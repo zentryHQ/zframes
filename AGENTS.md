@@ -1,0 +1,60 @@
+# zframes
+
+AI-personalizable market dashboard framework (working name — do NOT call it "hyperframes"; that's HeyGen's project, which we use as the distribution-model reference). An agent reads the frame catalogue (Zod → JSON Schema), emits a `dashboard.json` spec, and the runtime validates + renders it as a live dashboard.
+
+## Commands
+
+```bash
+pnpm install
+pnpm dev          # playground at http://localhost:5179 (project default port, strict)
+pnpm typecheck    # tsc --noEmit via playground (covers workspace source packages)
+pnpm build        # vite build
+pnpm sprites      # regenerate demo pet sprite (uv + pillow)
+```
+
+## Structure
+
+- `packages/core` — `defineFrame`/`defineFrameMeta`, registry, `DashboardSpecSchema`, `DashboardRenderer` (error cards for invalid config AND missing capabilities), capability-routed multi-provider hooks, `catalogueForAI`. Deep exports (`@zframes/core/spec`, `/frame`, `/catalogue`) are React-free for tooling.
+- `packages/charts` — D3 base chart layer ported from zTerminal (`tree-chart`, `heatmap-chart`, `multi-series-line-chart`, `stacked-area-chart`, `pie-chart`, `mini-line-chart`) plus `theme.css` (zTerminal design tokens for Tailwind v4). Implementation-agnostic: no business logic, no data fetching.
+- `packages/provider-hyperliquid` — free no-key provider: allMids WS (one subscription per HIP-3 dex, added lazily from requested symbols), day stats per dex (full universe when no symbols given), fundingHistory, candleSnapshot
+- `packages/provider-defillama` — TVL per chain (`tvl` capability)
+- `packages/provider-alternativeme` — fear & greed index (`sentiment` capability)
+- `packages/provider-coingecko` — global marketcap + dominance (`global-market` capability, free tier no key)
+- `packages/frames` — 13 frames: `price-chart` (liveline candle/line, the centerpiece), `price-ticker`, `top-movers`, `funding-rate-chart`, `funding-heatmap`, `tvl-treemap`, `fear-greed` (with zTerminal's striped mood bar), `bitcoin-dominance` (ported zTerminal segmented bar), `mood-pet`, `dino-game` (ported, CDN sprite swapped for drawn cactus), `note`, `image`, `heading`. **`src/schemas.ts` is the single source of truth for frame metadata** — pure Zod, no React, imported by both the components and the CLI. New frame = add meta to schemas.ts + component file + `allFrames`.
+- `packages/cli` — `zframes catalogue | lint | init` (tsup-bundled bin; `pnpm build:cli`, then `pnpm zframes <cmd>` at root). `lint` is the generating agent's feedback loop.
+- `skills/zframe/SKILL.md` — the agent skill: interview → read catalogue → emit dashboard.json → lint → iterate
+- `apps/playground` — Vite demo that loads `src/dashboard.json`; Tailwind v4 via `@tailwindcss/vite` (`@source` directives scan workspace packages)
+- `patches/liveline@0.0.7.patch` — vendored from zhive (DPR fix + label precision); applied via pnpm `patchedDependencies`
+- `tools/generate-pet-spritesheet.py` — original pixel-art sheet, 512×512, 4 moods × 4-frame idle cycle
+
+## Conventions
+
+- pnpm only. Packages ship TypeScript source (`main: src/index.ts`); the playground's Vite consumes them directly (`optimizeDeps.exclude`).
+- Every frame schema field needs `.describe()` — schemas are read by generating agents via `catalogueForAI`.
+- `dashboard.json` is the AI-generated artifact. Invalid frame configs render as per-frame error cards (the agent's feedback loop), never crash the dashboard.
+- Frame chrome (cards, titles, hover) lives in the renderer's injected `.zf-*` stylesheet, themeable via `--zf-*` CSS vars — frames style only their interior.
+- Sprite sheet contract: 512×512, 4 rows (happy/neutral/tired/stressed) × 4 cols (rest/hop/blink/hop), 128px frames.
+- Original assets only — never copy art/code from other workspace projects (lens is personal; the 3z repos have closed history). Exception: zTerminal base charts are ported deliberately into `packages/charts` (Zentry's own IP, public-OSS decision pending owner sign-off before first public release).
+- Base charts stay generic — no mindshare/news/zAI concepts; frames own data fetching and transformation, charts own rendering.
+
+## Scope decisions (2026-06-12)
+
+- **Public open-source** is the target distribution; everything must run keyless (Hyperliquid, DeFiLlama, alternative.me, CoinGecko free).
+- **No zAI/zData data for end users** (too expensive) — zAI-semantic widgets (mindshare, creators, sectors) are out of scope.
+- **No TradingView** (license) — `liveline` (npm, benjitaylor/liveline; already used in zhive with pnpm patches) is the live price-chart engine.
+- **Stocks first**: equity perps via Hyperliquid HIP-3 builder dexes (`dex` param), same free WS.
+
+## Done (2026-06-12)
+
+- ~~liveline price-chart + HIP-3 stocks~~ — `price-chart` frame streams `xyz:TSLA` candles live
+- ~~Widget wave~~ — top-movers, fear-greed, tvl-treemap, note shipped
+- ~~CLI~~ — `catalogue` / `lint` / `init` built and smoke-tested
+- ~~/zframe skill~~ — `skills/zframe/SKILL.md`
+- ~~Multi-provider + namespaced symbols~~ — capability routing in core; HL's own `dex:SYMBOL` namespacing covers stocks
+
+## Roadmap (next)
+
+1. Standalone app scaffold: `zframes init` should scaffold a full Vite app (not just dashboard.json) so non-repo users get a one-command start
+2. Skill distribution: publish packages + skill so `npx skills add zframe` works outside this repo
+3. More frames: heatmap-based (funding/volume heatmaps), stacked-area marketcap distribution, fun widgets (dino game), orderbook depth via liveline's `orderbook` prop
+4. `zframes preview` — serve the playground pointed at any dashboard.json path

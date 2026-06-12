@@ -1,0 +1,18 @@
+{
+  "name": "zframes-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.6.0",
+  "scripts": {
+    "dev": "pnpm --filter @zframes/playground dev",
+    "build": "pnpm --filter @zframes/playground build",
+    "typecheck": "pnpm -r typecheck",
+    "sprites": "uv run tools/generate-pet-spritesheet.py",
+    "zframes": "node packages/cli/dist/index.js",
+    "build:cli": "pnpm --filter @zframes/cli build"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "liveline@0.0.7": "patches/liveline@0.0.7.patch"
+    }
+  }
+}
