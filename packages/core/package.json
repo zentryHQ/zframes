@@ -1,0 +1,24 @@
+{
+  "name": "@zframes/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./frame": "./src/frame.ts",
+    "./spec": "./src/spec.ts",
+    "./catalogue": "./src/catalogue.ts"
+  },
+  "sideEffects": false,
+  "dependencies": {
+    "zod": "^4.1.0"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0"
+  }
+}
