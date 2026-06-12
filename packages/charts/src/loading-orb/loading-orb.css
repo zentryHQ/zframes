@@ -1,0 +1,83 @@
+@keyframes dnaStrand1Move {
+    0%,
+    100% {
+        translate: 0 0px;
+    }
+    50% {
+        translate: 0 18px;
+    }
+}
+
+@keyframes dnaStrand1Scale {
+    0%,
+    100% {
+        scale: 0.7;
+    }
+    25% {
+        scale: 1;
+    }
+    50% {
+        scale: 0.7;
+    }
+    75% {
+        scale: 0.7;
+    }
+}
+
+@keyframes dnaStrand1Color {
+    0%,
+    100% {
+        background-color: hsla(242, 100%, 68%, 1);
+    }
+    25% {
+        background-color: hsla(263, 83%, 75%, 1);
+    }
+    50% {
+        background-color: hsla(0, 0%, 100%, 0.4);
+    }
+    75% {
+        background-color: hsla(0, 0%, 100%, 0.3);
+    }
+}
+
+@keyframes dnaStrand2Move {
+    0%,
+    100% {
+        translate: 0 18px;
+    }
+    50% {
+        translate: 0 0px;
+    }
+}
+
+@keyframes dnaStrand2Scale {
+    0%,
+    100% {
+        scale: 0.7;
+    }
+    25% {
+        scale: 0.7;
+    }
+    50% {
+        scale: 1;
+    }
+    75% {
+        scale: 1;
+    }
+}
+
+@keyframes dnaStrand2Color {
+    0%,
+    100% {
+        background-color: hsla(0, 0%, 100%, 0.4);
+    }
+    25% {
+        background-color: hsla(0, 0%, 100%, 0.3);
+    }
+    50% {
+        background-color: hsla(242, 100%, 68%, 1);
+    }
+    75% {
+        background-color: hsla(263, 83%, 75%, 1);
+    }
+}
