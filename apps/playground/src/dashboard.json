@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "title": "micky's desk",
+  "grid": { "columns": 12, "rowHeight": 96, "gap": 12 },
+  "frames": [
+    {
+      "id": "nvda-candles",
+      "frame": "price-chart",
+      "position": { "x": 0, "y": 0, "w": 6, "h": 3 },
+      "config": { "symbol": "xyz:NVDA", "interval": "1h" }
+    },
+    {
+      "id": "eth-tape",
+      "frame": "price-chart",
+      "position": { "x": 6, "y": 0, "w": 6, "h": 3 },
+      "config": { "symbol": "ETH", "interval": "1m", "mode": "line", "color": "#25A78D" }
+    },
+    {
+      "id": "watchlist",
+      "frame": "price-ticker",
+      "position": { "x": 0, "y": 3, "w": 3, "h": 3 },
+      "config": { "symbols": ["ETH", "SOL", "HYPE", "xyz:NVDA", "xyz:AAPL", "km:GOLD"] }
+    },
+    {
+      "id": "movers",
+      "frame": "top-movers",
+      "position": { "x": 3, "y": 3, "w": 4, "h": 3 },
+      "config": { "count": 7 }
+    },
+    {
+      "id": "sentiment",
+      "frame": "fear-greed",
+      "position": { "x": 7, "y": 3, "w": 2, "h": 3 },
+      "config": {}
+    },
+    {
+      "id": "dominance",
+      "frame": "bitcoin-dominance",
+      "position": { "x": 9, "y": 3, "w": 3, "h": 3 },
+      "config": {}
+    },
+    {
+      "id": "funding-heat",
+      "frame": "funding-heatmap",
+      "position": { "x": 0, "y": 6, "w": 7, "h": 3 },
+      "config": { "symbols": ["BTC", "ETH", "SOL", "HYPE"] }
+    },
+    {
+      "id": "tvl",
+      "frame": "tvl-treemap",
+      "position": { "x": 7, "y": 6, "w": 5, "h": 3 },
+      "config": { "topN": 10 }
+    },
+    {
+      "id": "pet",
+      "frame": "mood-pet",
+      "position": { "x": 0, "y": 9, "w": 3, "h": 3 },
+      "config": { "symbol": "HYPE" }
+    },
+    {
+      "id": "dino",
+      "frame": "dino-game",
+      "position": { "x": 3, "y": 9, "w": 6, "h": 3 },
+      "config": {}
+    },
+    {
+      "id": "plan",
+      "frame": "note",
+      "position": { "x": 9, "y": 9, "w": 3, "h": 3 },
+      "config": { "text": "desk rules\n— NVDA: no chasing over 210\n— ETH: add under 1,600\n— fear < 20: halve size\n— tilted? play the dino" }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap');
+@import 'tailwindcss';
+@import '@zframes/charts/src/theme.css';
+
+/* Workspace packages ship TS source through node_modules symlinks, which
+ * Tailwind's auto-detection skips — scan them explicitly. */
+@source '../../../packages/frames/src';
+@source '../../../packages/charts/src';
+
+body {
+  margin: 0;
+  background: var(--color-background-terminal);
+  color: #dde3ee;
+  font-family: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace;
+  -webkit-font-smoothing: antialiased;
+}
