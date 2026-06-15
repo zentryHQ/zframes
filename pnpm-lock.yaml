@@ -42,6 +42,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.2.7(react@19.2.7)
+      unicornstudio-react:
+        specifier: ^2.1.9
+        version: 2.1.9(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       zod:
         specifier: ^4.1.0
         version: 4.4.3
@@ -1501,6 +1504,17 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
+  unicornstudio-react@2.1.9:
+    resolution: {integrity: sha512-eitHdcr4bEl1VtGbWoUVsDhhbL/25IyKYdf4BX9b88Hb5/PYdH/vTZRN4SRLD9j1XD2x8XDLmRezx6VAv6Um9g==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      next: '*'
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+    peerDependenciesMeta:
+      next:
+        optional: true
+
   update-browserslist-db@1.2.3:
     resolution: {integrity: sha512-Js0m9cx+qOgDxo0eMiFGEueWztz+d4+M3rGlmKPT+T4IS/jP4ylw3Nwpu6cpTTP8R1MAC1kF4VbdLt3ARf209w==}
     hasBin: true
@@ -2697,6 +2711,11 @@ snapshots:
   ufo@1.6.4: {}
 
   undici-types@6.21.0: {}
+
+  unicornstudio-react@2.1.9(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+    dependencies:
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
 
   update-browserslist-db@1.2.3(browserslist@4.28.2):
     dependencies:

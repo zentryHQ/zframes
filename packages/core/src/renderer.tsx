@@ -21,14 +21,17 @@ const FRAME_CSS = `
   min-height: 0;
   overflow: hidden;
   padding: 14px 16px;
-  background: var(--zf-frame-bg, rgba(255, 255, 255, 0.02));
-  border: 1px solid var(--zf-frame-border, rgba(255, 255, 255, 0.07));
-  border-radius: var(--zf-frame-radius, 12px);
-  transition: border-color 0.2s ease, background 0.2s ease;
+  background: var(--zf-frame-bg, linear-gradient(180deg, rgba(20, 22, 34, 0.88), rgba(11, 12, 19, 0.91)));
+  border: 1px solid var(--zf-frame-border, rgba(255, 255, 255, 0.08));
+  border-radius: var(--zf-frame-radius, 14px);
+  box-shadow: var(--zf-frame-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 12px 32px -18px rgba(0, 0, 0, 0.75));
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 .zf-frame:hover {
-  border-color: var(--zf-frame-border-hover, rgba(255, 255, 255, 0.16));
-  background: var(--zf-frame-bg-hover, rgba(255, 255, 255, 0.035));
+  border-color: var(--zf-frame-border-hover, rgba(139, 141, 249, 0.4));
+  background: var(--zf-frame-bg-hover, linear-gradient(180deg, rgba(30, 32, 46, 0.92), rgba(16, 17, 26, 0.94)));
+  box-shadow: var(--zf-frame-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 44px -20px rgba(0, 0, 0, 0.85));
+  transform: translateY(-1px);
 }
 .zf-frame::before {
   content: '';
@@ -48,7 +51,7 @@ const FRAME_CSS = `
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--zf-frame-title, rgba(255, 255, 255, 0.38));
+  color: var(--zf-frame-title, rgba(255, 255, 255, 0.46));
   flex: none;
 }
 .zf-frame-title::before {
@@ -76,6 +79,24 @@ const FRAME_CSS = `
 }
 .zf-frame--error .zf-frame-title { color: var(--zf-frame-error-text, #ff8b9d); }
 .zf-frame--error .zf-frame-title::before { background: var(--zf-frame-error-text, #ff8b9d); }
+.zf-frame--featured {
+  border-color: var(--zf-frame-featured-border, rgba(139, 141, 249, 0.55));
+  box-shadow: var(--zf-frame-featured-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 0 0 1px rgba(139, 141, 249, 0.22), 0 24px 64px -28px rgba(99, 102, 241, 0.6));
+}
+.zf-frame--featured:hover {
+  border-color: var(--zf-frame-featured-border-hover, rgba(139, 141, 249, 0.72));
+}
+.zf-frame--featured .zf-frame-title {
+  color: var(--zf-frame-featured-title, rgba(176, 178, 255, 0.85));
+}
+/* Bare frames (headings) divide a dashboard into zones — positioned slot,
+   no card chrome, no auto-title. */
+.zf-bare {
+  display: flex;
+  align-items: flex-end;
+  min-height: 0;
+  overflow: hidden;
+}
 `
 
 class FrameErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -146,9 +167,22 @@ function FrameSlot({ instance, registry }: { instance: FrameInstance; registry: 
   }
 
   const FrameComponent = def.component
+
+  // Bare frames (e.g. headings) structure a dashboard into zones — they get a
+  // positioned slot but no card chrome and no auto-title.
+  if (def.chrome === 'bare') {
+    return (
+      <div className="zf-bare" style={style}>
+        <FrameErrorBoundary>
+          <FrameComponent config={parsed.data} />
+        </FrameErrorBoundary>
+      </div>
+    )
+  }
+
   return (
-    <div className="zf-frame" style={style}>
-      <div className="zf-frame-title">{instance.frame.replace(/-/g, ' ')}</div>
+    <div className={instance.featured ? 'zf-frame zf-frame--featured' : 'zf-frame'} style={style}>
+      <div className="zf-frame-title">{instance.title ?? instance.frame.replace(/-/g, ' ')}</div>
       <div className="zf-frame-body">
         <FrameErrorBoundary>
           <FrameComponent config={parsed.data} />

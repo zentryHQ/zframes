@@ -16,6 +16,13 @@ export interface FrameMeta<S extends z.ZodType = z.ZodType> {
   capabilities: readonly Capability[];
   /** Config schema. Every field needs .describe() — agents read this catalogue. */
   schema: S;
+  /**
+   * How the renderer wraps the frame. "card" (default) gets the standard boxed
+   * chrome; "bare" renders the component with no card or auto-title — for
+   * structural frames like `heading` that divide a dashboard into zones rather
+   * than sitting in a box.
+   */
+  chrome?: "card" | "bare";
 }
 
 /** Identity helper so the schema generic flows through meta declarations. */

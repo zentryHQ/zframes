@@ -19,9 +19,11 @@ export {
   type FrameRegistry,
 } from "./frame";
 export {
+  BackgroundSchema,
   DashboardSpecSchema,
   FrameInstanceSchema,
   GridPositionSchema,
+  type DashboardBackground,
   type DashboardSpec,
   type FrameInstance,
   type GridPosition,

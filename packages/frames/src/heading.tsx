@@ -6,11 +6,30 @@ const schema = headingMeta.schema;
 
 function Heading({ config }: { config: z.output<typeof schema> }) {
   return (
-    <div className="flex h-full flex-col justify-center gap-1">
-      <h2 className="heading-title-md text-strong">{config.title}</h2>
-      {config.subtitle && (
-        <p className="body-sm text-soft">{config.subtitle}</p>
-      )}
+    <div className="flex h-full w-full items-end gap-3 pb-2">
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <span
+            className="h-[5px] w-[5px] shrink-0 rounded-full"
+            style={{ background: "var(--color-highlight)" }}
+          />
+          <h2 className="font-dmsans text-strong text-[0.8rem] font-extrabold uppercase leading-none tracking-[0.16em]">
+            {config.title}
+          </h2>
+        </div>
+        {config.subtitle && (
+          <p className="caption text-soft pl-[13px] leading-none">
+            {config.subtitle}
+          </p>
+        )}
+      </div>
+      <span
+        className="mb-[5px] h-px flex-1"
+        style={{
+          background:
+            "linear-gradient(90deg, rgba(255,255,255,0.16), rgba(255,255,255,0.02) 65%, transparent)",
+        }}
+      />
     </div>
   );
 }

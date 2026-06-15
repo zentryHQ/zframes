@@ -10,6 +10,7 @@ import { CoinGeckoProvider } from '@zframes/provider-coingecko'
 import { DefiLlamaProvider } from '@zframes/provider-defillama'
 import { HyperliquidProvider } from '@zframes/provider-hyperliquid'
 import rawSpec from './dashboard.json'
+import { DashboardBackground } from './background'
 
 const registry = createRegistry(allFrames)
 const providers = [
@@ -23,7 +24,8 @@ const spec = DashboardSpecSchema.parse(rawSpec)
 export default function App() {
   return (
     <FramesProvider providers={providers}>
-      <main className="mx-auto max-w-[1320px] px-6 pb-16 pt-5">
+      <DashboardBackground background={spec.background} />
+      <main className="relative z-10 mx-auto max-w-[1320px] px-6 pb-16 pt-5">
         <header className="mb-5 flex items-baseline justify-between border-b border-white/[0.06] pb-4">
           <div className="flex items-baseline gap-3">
             <h1 className="font-dmsans text-strong text-lg font-extrabold tracking-tight">

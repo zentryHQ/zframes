@@ -9,23 +9,21 @@ pnpm install
 pnpm dev          # playground at http://localhost:5179 (project default port, strict)
 pnpm typecheck    # tsc --noEmit via playground (covers workspace source packages)
 pnpm build        # vite build
-pnpm sprites      # regenerate demo pet sprite (uv + pillow)
 ```
 
 ## Structure
 
-- `packages/core` — `defineFrame`/`defineFrameMeta`, registry, `DashboardSpecSchema`, `DashboardRenderer` (error cards for invalid config AND missing capabilities), capability-routed multi-provider hooks, `catalogueForAI`. Deep exports (`@zframes/core/spec`, `/frame`, `/catalogue`) are React-free for tooling.
+- `packages/core` — `defineFrame`/`defineFrameMeta`, registry, `DashboardSpecSchema`, `DashboardRenderer` (error cards for invalid config AND missing capabilities), capability-routed multi-provider hooks, `catalogueForAI`. Spec extras: `featured` (hero frame, gets an accent rim) on instances, `background` (`BackgroundSchema`) on the dashboard; frame meta carries optional `chrome: "bare"` (renders chrome-less — headings become zone dividers). Deep exports (`@zframes/core/spec`, `/frame`, `/catalogue`) are React-free for tooling.
 - `packages/charts` — D3 base chart layer ported from zTerminal (`tree-chart`, `heatmap-chart`, `multi-series-line-chart`, `stacked-area-chart`, `pie-chart`, `mini-line-chart`) plus `theme.css` (zTerminal design tokens for Tailwind v4). Implementation-agnostic: no business logic, no data fetching.
 - `packages/provider-hyperliquid` — free no-key provider: allMids WS (one subscription per HIP-3 dex, added lazily from requested symbols), day stats per dex (full universe when no symbols given), fundingHistory, candleSnapshot
 - `packages/provider-defillama` — TVL per chain (`tvl` capability)
 - `packages/provider-alternativeme` — fear & greed index (`sentiment` capability)
 - `packages/provider-coingecko` — global marketcap + dominance (`global-market` capability, free tier no key)
-- `packages/frames` — 13 frames: `price-chart` (liveline candle/line, the centerpiece), `price-ticker`, `top-movers`, `funding-rate-chart`, `funding-heatmap`, `tvl-treemap`, `fear-greed` (with zTerminal's striped mood bar), `bitcoin-dominance` (ported zTerminal segmented bar), `mood-pet`, `dino-game` (ported, CDN sprite swapped for drawn cactus), `note`, `image`, `heading`. **`src/schemas.ts` is the single source of truth for frame metadata** — pure Zod, no React, imported by both the components and the CLI. New frame = add meta to schemas.ts + component file + `allFrames`.
+- `packages/frames` — 12 frames: `price-chart` (liveline candle/line, the centerpiece), `price-ticker`, `top-movers`, `funding-rate-chart`, `funding-heatmap`, `tvl-treemap`, `fear-greed` (with zTerminal's striped mood bar), `bitcoin-dominance` (ported zTerminal segmented bar), `dino-game` (ported, CDN sprite swapped for drawn cactus), `note`, `image`, `heading`. **`src/schemas.ts` is the single source of truth for frame metadata** — pure Zod, no React, imported by both the components and the CLI. New frame = add meta to schemas.ts + component file + `allFrames`.
 - `packages/cli` — `zframes catalogue | lint | init` (tsup-bundled bin; `pnpm build:cli`, then `pnpm zframes <cmd>` at root). `lint` is the generating agent's feedback loop.
 - `skills/zframe/SKILL.md` — the agent skill: interview → read catalogue → emit dashboard.json → lint → iterate
-- `apps/playground` — Vite demo that loads `src/dashboard.json`; Tailwind v4 via `@tailwindcss/vite` (`@source` directives scan workspace packages)
+- `apps/playground` — Vite demo that loads `src/dashboard.json`; Tailwind v4 via `@tailwindcss/vite` (`@source` directives scan workspace packages). Renders `spec.background` via `src/background.tsx` (Unicorn Studio scene through `unicornstudio-react`, lazy-loaded, behind a contrast scrim).
 - `patches/liveline@0.0.7.patch` — vendored from zhive (DPR fix + label precision); applied via pnpm `patchedDependencies`
-- `tools/generate-pet-spritesheet.py` — original pixel-art sheet, 512×512, 4 moods × 4-frame idle cycle
 
 ## Conventions
 
@@ -33,7 +31,7 @@ pnpm sprites      # regenerate demo pet sprite (uv + pillow)
 - Every frame schema field needs `.describe()` — schemas are read by generating agents via `catalogueForAI`.
 - `dashboard.json` is the AI-generated artifact. Invalid frame configs render as per-frame error cards (the agent's feedback loop), never crash the dashboard.
 - Frame chrome (cards, titles, hover) lives in the renderer's injected `.zf-*` stylesheet, themeable via `--zf-*` CSS vars — frames style only their interior.
-- Sprite sheet contract: 512×512, 4 rows (happy/neutral/tired/stressed) × 4 cols (rest/hop/blink/hop), 128px frames.
+- Dashboard background: the **spec declares** it (`background: {type: "gradient"|"unicorn"|"none", projectId?, opacity?}`), the **host renders** it (playground's `background.tsx`) — same split as providers. Scene `opacity` is kept low (~0.05) so it's a faint backdrop, not a distraction; cards are opaque so content always wins. `unicornstudio-react` lives only in the playground, never in core. **Footgun:** a `unicorn` background loads the SDK from a jsDelivr CDN and the scene from a hosted Unicorn Studio project (`K42KSY4FXeXhjVOj9RgT` is the zframes default) — keyless, but an external runtime dependency (like the Google Fonts import); it falls back to the body gradient if the SDK fails. The skill emits `unicorn` by default.
 - Original assets only — never copy art/code from other workspace projects (lens is personal; the 3z repos have closed history). Exception: zTerminal base charts are ported deliberately into `packages/charts` (Zentry's own IP, public-OSS decision pending owner sign-off before first public release).
 - Base charts stay generic — no mindshare/news/zAI concepts; frames own data fetching and transformation, charts own rendering.
 

@@ -40,8 +40,8 @@ Ask, in the user's language, roughly:
    (candle vs line, interval).
 3. **Context widgets?** Offer what the catalogue has: top-movers,
    funding-rate-chart, tvl-treemap, fear-greed.
-4. **Personality?** mood-pet (which symbol it tracks), a note with their
-   trading plan.
+4. **Personality?** a `note` with their trading plan, a `heading` to label
+   regions ("Stocks", "On-chain"), or the `dino-game` for when the market's flat.
 
 For "update my dashboard" requests, read the existing `dashboard.json` first
 and change only what they asked for.
@@ -51,11 +51,27 @@ and change only what they asked for.
 Write `dashboard.json`. Layout rules:
 
 - 12-column grid, `rowHeight: 96`, `gap: 12`.
+- **Group into zones.** Put a `heading` frame (full-width `w: 12, h: 1`) above
+  each group of related frames — e.g. "Markets", "On-chain", "Desk". Headings
+  render as bare section dividers (no card); they're what make a dashboard read
+  as designed instead of a widget dump. A good dashboard has 2–3 zones.
+- **Feature the centerpiece.** Set `"featured": true` on the single hero frame
+  (usually the main `price-chart`) — the renderer gives it an accent rim.
+  Exactly one featured frame per dashboard.
+- **Title each card.** Set a per-instance `"title"` (sibling of `frame`/`position`)
+  to label the card; it overrides the default, which is just the frame-type name.
+  Required on every `price-chart` — use the ticker (`"title": "TSLA"`, not
+  `"PRICE CHART"`) so a wall of charts is readable. Useful on any frame whose
+  type name is ambiguous; skip it for `heading` (bare, no card chrome).
 - Big charts: `w: 6–12, h: 3`. Lists/tickers: `w: 3–4, h: 3`. Small cards
-  (fear-greed, mood-pet): `w: 2–3, h: 3`.
+  (fear-greed, bitcoin-dominance): `w: 2–3, h: 3`.
 - No overlaps; no frame past column 12; every `id` unique and human-readable.
 - Only set config fields the user cares about — schema defaults cover the
   rest, except required fields (the catalogue's `required` list).
+- **Background.** Include `"background": { "type": "unicorn", "projectId": "K42KSY4FXeXhjVOj9RgT", "opacity": 0.05 }`
+  at the top level (next to `grid`). Keep `opacity` low (~0.05) — the scene is a
+  faint backdrop, never a distraction. To opt out, use `"type": "gradient"`
+  (built-in dark glow, fully keyless) or `"none"`.
 
 ### 5. Lint — the feedback loop
 

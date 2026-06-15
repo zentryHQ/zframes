@@ -9,7 +9,11 @@
 
 body {
   margin: 0;
-  background: var(--color-background-terminal);
+  background:
+    radial-gradient(1100px 520px at 50% -8%, hsla(242, 70%, 24%, 0.22), transparent 62%),
+    radial-gradient(900px 480px at 92% 0%, hsla(168, 55%, 22%, 0.10), transparent 55%),
+    var(--color-background-terminal);
+  background-attachment: fixed;
   color: #dde3ee;
   font-family: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace;
   -webkit-font-smoothing: antialiased;

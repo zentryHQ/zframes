@@ -123,7 +123,7 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
         loading={isLoading}
         formatValue={(v) => formatPrice(v)}
         formatTime={formatTime}
-        showValue={false}
+        showValue={true}
       />
     </div>
   );

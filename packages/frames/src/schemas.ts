@@ -222,8 +222,9 @@ export const imageMeta = defineFrameMeta({
 export const headingMeta = defineFrameMeta({
   name: "heading",
   description:
-    "Section heading with optional subtitle — used to title regions of a dashboard ('Stocks', 'On-chain', 'Fun'). Needs no data provider. Usually 1 row tall and wide.",
+    "Section divider that titles a region of the dashboard ('Markets', 'On-chain', 'Desk'). Renders as a label with a hairline rule — no card. Use to group frames into zones: place full-width (w: 12) and 1 row tall (h: 1) above each group. Needs no data provider.",
   capabilities: [],
+  chrome: "bare",
   schema: z.object({
     title: z.string().min(1).describe("The heading text."),
     subtitle: z
