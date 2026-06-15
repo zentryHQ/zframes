@@ -1,5 +1,15 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { basename, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { catalogueForAI } from "@zframes/core/catalogue";
 import { DashboardSpecSchema, type DashboardSpec } from "@zframes/core/spec";
 import { frameMetas } from "@zframes/frames/schemas";
@@ -7,12 +17,14 @@ import { frameMetas } from "@zframes/frames/schemas";
 const HELP = `zframes — AI-personalizable market dashboards
 
 usage:
+  zframes init [dir]          scaffold a full, runnable dashboard app into <dir>
+                              (default: ./my-terminal), refusing a non-empty dir
+  zframes init --json [file]  write only a starter dashboard.json (default:
+                              ./dashboard.json) — for an existing zframes app
   zframes catalogue           print the frame catalogue as JSON Schema
                               (this is what a generating agent reads)
   zframes lint <file>         validate a dashboard.json; exit 1 with readable
                               errors (the agent's self-correction feedback)
-  zframes init [file]         write a starter dashboard.json (default:
-                              ./dashboard.json), refusing to overwrite
   zframes help                this text
 `;
 
@@ -141,7 +153,7 @@ function lint(file: string): number {
   return 0;
 }
 
-function init(file: string): number {
+function initSpec(file: string): number {
   if (existsSync(file)) {
     console.error(`✗ ${file} already exists — refusing to overwrite`);
     return 1;
@@ -152,8 +164,67 @@ function init(file: string): number {
   return 0;
 }
 
+/** Locate the bundled scaffold template (sibling of both src/ and dist/). */
+function templateDir(): string {
+  return fileURLToPath(new URL("../templates/app", import.meta.url));
+}
+
+/** Scaffold a complete, runnable zframes app (vendored runtime + starter spec). */
+function scaffold(target: string): number {
+  const tpl = templateDir();
+  if (
+    !existsSync(join(tpl, "package.json")) ||
+    !existsSync(join(tpl, "packages"))
+  ) {
+    console.error(
+      `✗ scaffold template is incomplete at ${tpl}\n` +
+        "  the vendored runtime is missing — run `pnpm build:cli` to regenerate it.",
+    );
+    return 1;
+  }
+
+  const dest = resolve(process.cwd(), target);
+  if (existsSync(dest)) {
+    if (!statSync(dest).isDirectory()) {
+      console.error(`✗ ${target} already exists and is not a directory`);
+      return 1;
+    }
+    if (readdirSync(dest).length > 0) {
+      console.error(
+        `✗ ${target} already exists and is not empty — choose another directory`,
+      );
+      return 1;
+    }
+  }
+
+  // Filter is defensive: a pristine template has no node_modules/dist, but if a
+  // dev ever installs inside templates/app, never copy those into the scaffold.
+  cpSync(tpl, dest, {
+    recursive: true,
+    filter: (src) => {
+      const base = basename(src);
+      return base !== "node_modules" && base !== "dist";
+    },
+  });
+  // npm renames/strips .gitignore inside published packages, so the template
+  // ships it as _gitignore; restore the real filename on scaffold.
+  const ignore = join(dest, "_gitignore");
+  if (existsSync(ignore)) renameSync(ignore, join(dest, ".gitignore"));
+
+  console.log(`✓ scaffolded a zframes terminal in ${target}/\n`);
+  console.log("  next:");
+  console.log(`    cd ${target}`);
+  console.log("    pnpm install");
+  console.log("    pnpm dev        # http://localhost:5179\n");
+  console.log(
+    "  then edit src/dashboard.json — by hand, or with the zframe skill.",
+  );
+  return 0;
+}
+
 function main(): number {
-  const [command, arg] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const [command, arg] = args;
   switch (command) {
     case "catalogue":
       console.log(JSON.stringify(catalogueForAI(frameMetas), null, 2));
@@ -164,8 +235,13 @@ function main(): number {
         return 1;
       }
       return lint(arg);
-    case "init":
-      return init(arg ?? "dashboard.json");
+    case "init": {
+      const rest = args.slice(1);
+      if (rest[0] === "--json" || rest[0] === "--spec-only") {
+        return initSpec(rest[1] ?? "dashboard.json");
+      }
+      return scaffold(rest[0] ?? "my-terminal");
+    }
     case "help":
     case undefined:
       console.log(HELP);

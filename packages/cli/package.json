@@ -6,8 +6,13 @@
   "bin": {
     "zframes": "./dist/index.js"
   },
+  "files": [
+    "dist",
+    "templates"
+  ],
   "scripts": {
-    "build": "tsup",
+    "build": "node scripts/sync-template.mjs && tsup",
+    "prepack": "node scripts/sync-template.mjs && tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "title": "my terminal",
+  "grid": { "columns": 12, "rowHeight": 96, "gap": 12 },
+  "background": { "type": "unicorn", "projectId": "K42KSY4FXeXhjVOj9RgT" },
+  "frames": [
+    {
+      "id": "btc-chart",
+      "frame": "price-chart",
+      "position": { "x": 0, "y": 0, "w": 8, "h": 3 },
+      "featured": true,
+      "config": { "symbol": "BTC", "interval": "1h", "mode": "candle" }
+    },
+    {
+      "id": "watchlist",
+      "frame": "price-ticker",
+      "position": { "x": 8, "y": 0, "w": 4, "h": 3 },
+      "config": { "symbols": ["BTC", "ETH", "SOL", "HYPE"] }
+    },
+    {
+      "id": "movers",
+      "frame": "top-movers",
+      "position": { "x": 0, "y": 3, "w": 5, "h": 3 },
+      "config": { "count": 6 }
+    },
+    {
+      "id": "sentiment",
+      "frame": "fear-greed",
+      "position": { "x": 5, "y": 3, "w": 3, "h": 3 },
+      "config": {}
+    },
+    {
+      "id": "btc-dominance",
+      "frame": "bitcoin-dominance",
+      "position": { "x": 8, "y": 3, "w": 4, "h": 3 },
+      "config": {}
+    }
+  ]
+}
