@@ -44,34 +44,6 @@ export const fundingRateChartMeta = defineFrameMeta({
   }),
 });
 
-export const moodPetMeta = defineFrameMeta({
-  name: "mood-pet",
-  description:
-    "Pixel-art pet whose mood tracks a symbol's 24h change — happy when pumping, stressed when dumping. Pure fun; makes a dashboard feel owned.",
-  capabilities: ["day-stats"],
-  schema: z.object({
-    symbol: z
-      .string()
-      .describe(
-        'Symbol the pet cares about — a Hyperliquid coin name like "BTC" or "ETH"',
-      ),
-    spriteUrl: z
-      .string()
-      .default("/sprites/mood-pet.png")
-      .describe(
-        "URL of the 512x512 sprite sheet (4 moods x 4-frame idle cycle, 128px frames)",
-      ),
-    happyAbove: z
-      .number()
-      .default(2)
-      .describe("24h % change at or above which the pet is happy"),
-    stressedBelow: z
-      .number()
-      .default(-5)
-      .describe("24h % change at or below which the pet is stressed"),
-  }),
-});
-
 export const noteMeta = defineFrameMeta({
   name: "note",
   description:
@@ -243,7 +215,6 @@ export const frameMetas: FrameMeta[] = [
   fundingRateChartMeta,
   headingMeta,
   imageMeta,
-  moodPetMeta,
   noteMeta,
   priceChartMeta,
   priceTickerMeta,
