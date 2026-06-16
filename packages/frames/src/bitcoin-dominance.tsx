@@ -1,7 +1,9 @@
 import { defineFrame, useGlobalMarket } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { changeColor, formatChangePct } from "./format";
 import { bitcoinDominanceMeta } from "./schemas";
+import { FrameStatus } from "./ui";
 
 const schema = bitcoinDominanceMeta.schema;
 
@@ -26,9 +28,8 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
     ].sort((a, b) => b.value - a.value);
   }, [market]);
 
-  if (isLoading)
-    return <div className="body-sm text-soft animate-pulse">loading dominance…</div>;
-  if (!market) return <div className="body-sm text-soft">no market data</div>;
+  if (isLoading) return <FrameStatus loading>loading dominance…</FrameStatus>;
+  if (!market) return <FrameStatus>no market data</FrameStatus>;
 
   const lead = segments[0];
   return (
@@ -68,9 +69,8 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
       {config.showTotalMarketCap && (
         <div className="caption text-soft">
           total mcap ${(market.totalMarketCapUsd / 1e12).toFixed(2)}T ·{" "}
-          <span style={{ color: market.marketCapChangePct24h >= 0 ? "#3fd08f" : "#ff6b81" }}>
-            {market.marketCapChangePct24h >= 0 ? "+" : ""}
-            {market.marketCapChangePct24h.toFixed(2)}% 24h
+          <span style={{ color: changeColor(market.marketCapChangePct24h) }}>
+            {formatChangePct(market.marketCapChangePct24h)} 24h
           </span>
         </div>
       )}

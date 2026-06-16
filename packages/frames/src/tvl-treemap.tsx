@@ -3,6 +3,7 @@ import { defineFrame, useTvlByChain } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tvlTreemapMeta } from "./schemas";
+import { FrameStatus } from "./ui";
 
 const schema = tvlTreemapMeta.schema;
 
@@ -41,10 +42,8 @@ function TvlTreemap({ config }: { config: z.output<typeof schema> }) {
     [entries, config.topN],
   );
 
-  if (isLoading)
-    return <div className="body-sm text-soft animate-pulse">loading TVL…</div>;
-  if (data.length === 0)
-    return <div className="body-sm text-soft">no TVL data</div>;
+  if (isLoading) return <FrameStatus loading>loading TVL…</FrameStatus>;
+  if (data.length === 0) return <FrameStatus>no TVL data</FrameStatus>;
 
   return (
     <TreeChart

@@ -3,11 +3,12 @@ import { defineFrame, useFundingHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { fundingHeatmapMeta } from "./schemas";
+import { FrameStatus } from "./ui";
 
 const schema = fundingHeatmapMeta.schema;
 
-const BUCKET_MS = 4 * 60 * 60 * 1000; // 4h buckets over a 2-day window
-const WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
+const BUCKET_MS = 4 * 60 * 60 * 1000; // 4h buckets over a 3-day window
+const WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 interface FundingCell extends HeatmapCell {
   ratePct: number;
@@ -57,10 +58,8 @@ function FundingHeatmap({ config }: { config: z.output<typeof schema> }) {
     return out;
   }, [history, config.symbols]);
 
-  if (isLoading)
-    return <div className="body-sm text-soft animate-pulse">loading funding…</div>;
-  if (cells.length === 0)
-    return <div className="body-sm text-soft">no funding data</div>;
+  if (isLoading) return <FrameStatus loading>loading funding…</FrameStatus>;
+  if (cells.length === 0) return <FrameStatus>no funding data</FrameStatus>;
 
   return (
     <HeatmapChart<FundingCell>

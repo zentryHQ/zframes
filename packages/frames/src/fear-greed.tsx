@@ -3,6 +3,7 @@ import { defineFrame, useFearGreed } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { fearGreedMeta } from "./schemas";
+import { FrameStatus } from "./ui";
 
 const schema = fearGreedMeta.schema;
 
@@ -30,9 +31,8 @@ function FearGreed({ config }: { config: z.output<typeof schema> }) {
     [points],
   );
 
-  if (isLoading)
-    return <div className="body-sm text-soft animate-pulse">loading index…</div>;
-  if (!latest) return <div className="body-sm text-soft">no sentiment data</div>;
+  if (isLoading) return <FrameStatus loading>loading index…</FrameStatus>;
+  if (!latest) return <FrameStatus>no sentiment data</FrameStatus>;
 
   const color = indexColor(latest.value);
   return (

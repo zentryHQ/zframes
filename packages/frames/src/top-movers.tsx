@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct, formatPrice } from "./format";
 import { topMoversMeta } from "./schemas";
+import { FrameStatus } from "./ui";
 
 const schema = topMoversMeta.schema;
 
@@ -40,7 +41,7 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
   }, [stats, config.count]);
 
   if (gainers.length === 0)
-    return <div className="body-sm text-soft animate-pulse">loading movers…</div>;
+    return <FrameStatus loading>loading movers…</FrameStatus>;
 
   return (
     <div className="grid h-full grid-cols-2 gap-x-4 overflow-hidden">
