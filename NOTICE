@@ -1,0 +1,28 @@
+zframes
+Copyright 2026 Zentry
+
+This product includes software developed at Zentry.
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+--------------------------------------------------------------------------------
+Third-party components
+--------------------------------------------------------------------------------
+
+The base chart layer in packages/charts is ported from Zentry's zTerminal
+(zentry-nexus) charting components.
+
+This project depends on, and (in the CLI scaffold and B1 packages) may
+redistribute, the following third-party software under their respective
+licenses:
+
+  - liveline (npm: liveline@0.0.7) — live price-chart engine; vendored with a
+    local patch for retina rendering and axis-label precision
+    (see patches/liveline@0.0.7.patch).
+  - d3, d3-hierarchy — chart math and layout.
+  - unicornstudio-react — optional animated background (host-only; loaded
+    lazily from a CDN).
+  - react, react-dom — peer dependencies provided by the host app.
+
+Each retains its own copyright and license; consult the respective package for
+details.
