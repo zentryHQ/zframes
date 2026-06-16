@@ -1,6 +1,25 @@
 {
   "name": "@zframes/cli",
   "version": "0.0.0",
+  "description": "zframes CLI — scaffold a runnable dashboard app (init), print the frame catalogue for generating agents (catalogue), and validate a dashboard.json (lint).",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentry/zframes.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/zentry/zframes#readme",
+  "keywords": [
+    "zframes",
+    "dashboard",
+    "market",
+    "trading",
+    "cli",
+    "ai",
+    "agent",
+    "hyperliquid"
+  ],
   "private": true,
   "type": "module",
   "bin": {

@@ -1,12 +1,26 @@
 {
   "name": "@zframes/provider-hyperliquid",
   "version": "0.0.0",
+  "description": "Free, no-API-key zframes data provider backed by Hyperliquid's public API: quote stream, day stats, funding history, and OHLCV — crypto and HIP-3 stock perps.",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentry/zframes.git",
+    "directory": "packages/provider-hyperliquid"
+  },
   "private": true,
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@zframes/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
   }
 }

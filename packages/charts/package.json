@@ -1,6 +1,14 @@
 {
   "name": "@zframes/charts",
   "version": "0.0.0",
+  "description": "D3 base chart layer for zframes (tree, heatmap, multi-series line, stacked-area, pie, mini-line) plus the zTerminal theme tokens. Implementation-agnostic building blocks.",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentry/zframes.git",
+    "directory": "packages/charts"
+  },
   "private": true,
   "type": "module",
   "main": "src/index.ts",

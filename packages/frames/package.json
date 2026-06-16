@@ -1,6 +1,14 @@
 {
   "name": "@zframes/frames",
   "version": "0.0.0",
+  "description": "Built-in zframes frames (price-chart, ticker, top-movers, funding chart/heatmap, TVL treemap, sentiment, and more) plus their AI-facing Zod schemas.",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentry/zframes.git",
+    "directory": "packages/frames"
+  },
   "private": true,
   "type": "module",
   "main": "src/index.ts",
@@ -10,6 +18,9 @@
     "./schemas": "./src/schemas.ts"
   },
   "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@zframes/charts": "workspace:*",
     "@zframes/core": "workspace:*",
@@ -20,6 +31,7 @@
     "react": ">=18"
   },
   "devDependencies": {
-    "@types/react": "^19.1.0"
+    "@types/react": "^19.1.0",
+    "typescript": "^5.8.0"
   }
 }

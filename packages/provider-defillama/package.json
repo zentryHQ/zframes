@@ -1,6 +1,14 @@
 {
   "name": "@zframes/provider-defillama",
   "version": "0.0.0",
+  "description": "Free, no-API-key zframes data provider for DeFiLlama total value locked per chain (tvl capability).",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentry/zframes.git",
+    "directory": "packages/provider-defillama"
+  },
   "private": true,
   "type": "module",
   "main": "src/index.ts",

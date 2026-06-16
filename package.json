@@ -1,5 +1,12 @@
 {
   "name": "zframes-monorepo",
+  "description": "AI-personalizable market dashboard framework — an agent reads the frame catalogue, emits a dashboard.json spec, and the runtime validates and renders it as a live dashboard.",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentry/zframes.git"
+  },
   "private": true,
   "packageManager": "pnpm@9.6.0",
   "scripts": {

@@ -1,6 +1,14 @@
 {
   "name": "@zframes/core",
   "version": "0.0.0",
+  "description": "Core runtime for zframes: frame/registry primitives, the dashboard spec schema, the renderer, capability-routed provider hooks, and the AI catalogue.",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentry/zframes.git",
+    "directory": "packages/core"
+  },
   "private": true,
   "type": "module",
   "main": "src/index.ts",
@@ -12,6 +20,9 @@
     "./catalogue": "./src/catalogue.ts"
   },
   "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "zod": "^4.1.0"
   },
@@ -19,6 +30,7 @@
     "react": ">=18"
   },
   "devDependencies": {
-    "@types/react": "^19.1.0"
+    "@types/react": "^19.1.0",
+    "typescript": "^5.8.0"
   }
 }
