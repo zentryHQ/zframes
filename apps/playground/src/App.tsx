@@ -19,9 +19,35 @@ const providers = [
   new AlternativeMeProvider(),
   new CoinGeckoProvider(),
 ]
-const spec = DashboardSpecSchema.parse(rawSpec)
+// Per-frame config errors render as error cards (see DashboardRenderer); a
+// malformed *top-level* spec is caught here so a bad dashboard.json shows a
+// readable message instead of a blank screen.
+const parsed = DashboardSpecSchema.safeParse(rawSpec)
+
+function SpecError({ issues }: { issues: { path: PropertyKey[]; message: string }[] }) {
+  return (
+    <main className="mx-auto max-w-2xl px-6 py-16">
+      <h1 className="font-dmsans text-strong mb-2 text-lg font-extrabold">
+        dashboard.json is not a valid spec
+      </h1>
+      <p className="body-sm text-soft mb-4">
+        Fix the issues below (or run <code>zframes lint dashboard.json</code>), then reload.
+      </p>
+      <ul className="body-sm text-normal list-disc space-y-1 pl-5">
+        {issues.map((issue, i) => (
+          <li key={i}>
+            <code>{issue.path.join('.') || '(root)'}</code>: {issue.message}
+          </li>
+        ))}
+      </ul>
+    </main>
+  )
+}
 
 export default function App() {
+  if (!parsed.success) return <SpecError issues={parsed.error.issues} />
+  const spec = parsed.data
+
   return (
     <FramesProvider providers={providers}>
       <DashboardBackground background={spec.background} />
