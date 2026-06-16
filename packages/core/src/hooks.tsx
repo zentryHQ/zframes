@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type DependencyList,
+  type ReactNode,
+} from 'react'
 import type {
   Candle,
   Capability,
@@ -31,6 +38,53 @@ export function useProviders(): MarketDataProvider[] {
 export function useProviderFor(capability: Capability): MarketDataProvider | null {
   const providers = useProviders()
   return providers.find((p) => p.capabilities.includes(capability)) ?? null
+}
+
+/**
+ * Shared engine for every poll-on-an-interval hook: fetch once, then re-fetch
+ * on `refreshMs`, keep the last good value on error, and cancel cleanly on
+ * unmount or dep change. Pass `load = null` when no provider covers the
+ * capability — the hook resolves to `fallback` and stops loading.
+ *
+ * The effect keys off `deps`, not the `load` identity (which changes every
+ * render); callers must list everything `load` closes over in `deps`, exactly
+ * as a hand-written effect would.
+ */
+function usePolled<T>(
+  load: (() => Promise<T>) | null,
+  fallback: T,
+  deps: DependencyList,
+  refreshMs: number,
+): { data: T; isLoading: boolean } {
+  const [data, setData] = useState<T>(fallback)
+  const [isLoading, setIsLoading] = useState(true)
+  useEffect(() => {
+    if (!load) {
+      setIsLoading(false)
+      return
+    }
+    let cancelled = false
+    const run = () => {
+      load()
+        .then((next) => {
+          if (cancelled) return
+          setData(next)
+          setIsLoading(false)
+        })
+        .catch(() => {
+          // keep last good value; the next poll retries
+          if (!cancelled) setIsLoading(false)
+        })
+    }
+    run()
+    const id = setInterval(run, refreshMs)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps)
+  return { data, isLoading }
 }
 
 /** Live mid prices for the given symbols, streamed from a quote-stream provider. */
@@ -68,30 +122,15 @@ export function useDayStats(
   refreshMs = 30_000,
 ): Record<string, DayStats> {
   const provider = useProviderFor('day-stats')
-  const [stats, setStats] = useState<Record<string, DayStats>>({})
   const key = symbols ? symbols.join(',') : '*'
-  useEffect(() => {
-    const wanted = key === '*' ? undefined : key.split(',').filter(Boolean)
-    if (!provider?.getDayStats) return
-    let cancelled = false
-    const load = () => {
-      provider
-        .getDayStats!(wanted)
-        .then((next) => {
-          if (!cancelled) setStats(next)
-        })
-        .catch(() => {
-          // keep last good stats; next poll retries
-        })
-    }
-    load()
-    const id = setInterval(load, refreshMs)
-    return () => {
-      cancelled = true
-      clearInterval(id)
-    }
-  }, [provider, key, refreshMs])
-  return stats
+  const wanted = key === '*' ? undefined : key.split(',').filter(Boolean)
+  const { data } = usePolled<Record<string, DayStats>>(
+    provider?.getDayStats ? () => provider.getDayStats!(wanted) : null,
+    {},
+    [provider, key, refreshMs],
+    refreshMs,
+  )
+  return data
 }
 
 /**
@@ -105,35 +144,16 @@ export function useFundingHistory(
   refreshMs = 5 * 60_000,
 ): { history: Record<string, FundingPoint[]>; isLoading: boolean } {
   const provider = useProviderFor('funding-history')
-  const [history, setHistory] = useState<Record<string, FundingPoint[]>>({})
-  const [isLoading, setIsLoading] = useState(true)
   const key = symbols.join(',')
-  useEffect(() => {
-    const wanted = key.split(',').filter(Boolean)
-    if (!provider?.getFundingHistory || wanted.length === 0) {
-      setIsLoading(false)
-      return
-    }
-    let cancelled = false
-    const load = () => {
-      provider
-        .getFundingHistory!(wanted, startTimeMs)
-        .then((next) => {
-          if (cancelled) return
-          setHistory(next)
-          setIsLoading(false)
-        })
-        .catch(() => {
-          if (!cancelled) setIsLoading(false)
-        })
-    }
-    load()
-    const id = setInterval(load, refreshMs)
-    return () => {
-      cancelled = true
-      clearInterval(id)
-    }
-  }, [provider, key, startTimeMs, refreshMs])
+  const wanted = key.split(',').filter(Boolean)
+  const { data: history, isLoading } = usePolled<Record<string, FundingPoint[]>>(
+    provider?.getFundingHistory && wanted.length > 0
+      ? () => provider.getFundingHistory!(wanted, startTimeMs)
+      : null,
+    {},
+    [provider, key, startTimeMs, refreshMs],
+    refreshMs,
+  )
   return { history, isLoading }
 }
 
@@ -145,33 +165,14 @@ export function useCandles(
   refreshMs = 60_000,
 ): { candles: Candle[]; isLoading: boolean } {
   const provider = useProviderFor('ohlcv')
-  const [candles, setCandles] = useState<Candle[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  useEffect(() => {
-    if (!provider?.getCandles || !symbol) {
-      setIsLoading(false)
-      return
-    }
-    let cancelled = false
-    const load = () => {
-      provider
-        .getCandles!(symbol, interval, startTimeMs)
-        .then((next) => {
-          if (cancelled) return
-          setCandles(next)
-          setIsLoading(false)
-        })
-        .catch(() => {
-          if (!cancelled) setIsLoading(false)
-        })
-    }
-    load()
-    const id = setInterval(load, refreshMs)
-    return () => {
-      cancelled = true
-      clearInterval(id)
-    }
-  }, [provider, symbol, interval, startTimeMs, refreshMs])
+  const { data: candles, isLoading } = usePolled<Candle[]>(
+    provider?.getCandles && symbol
+      ? () => provider.getCandles!(symbol, interval, startTimeMs)
+      : null,
+    [],
+    [provider, symbol, interval, startTimeMs, refreshMs],
+    refreshMs,
+  )
   return { candles, isLoading }
 }
 
@@ -181,33 +182,12 @@ export function useTvlByChain(refreshMs = 10 * 60_000): {
   isLoading: boolean
 } {
   const provider = useProviderFor('tvl')
-  const [entries, setEntries] = useState<TvlEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  useEffect(() => {
-    if (!provider?.getTvlByChain) {
-      setIsLoading(false)
-      return
-    }
-    let cancelled = false
-    const load = () => {
-      provider
-        .getTvlByChain!()
-        .then((next) => {
-          if (cancelled) return
-          setEntries(next)
-          setIsLoading(false)
-        })
-        .catch(() => {
-          if (!cancelled) setIsLoading(false)
-        })
-    }
-    load()
-    const id = setInterval(load, refreshMs)
-    return () => {
-      cancelled = true
-      clearInterval(id)
-    }
-  }, [provider, refreshMs])
+  const { data: entries, isLoading } = usePolled<TvlEntry[]>(
+    provider?.getTvlByChain ? () => provider.getTvlByChain!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  )
   return { entries, isLoading }
 }
 
@@ -217,33 +197,12 @@ export function useGlobalMarket(refreshMs = 5 * 60_000): {
   isLoading: boolean
 } {
   const provider = useProviderFor('global-market')
-  const [market, setMarket] = useState<GlobalMarket | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  useEffect(() => {
-    if (!provider?.getGlobalMarket) {
-      setIsLoading(false)
-      return
-    }
-    let cancelled = false
-    const load = () => {
-      provider
-        .getGlobalMarket!()
-        .then((next) => {
-          if (cancelled) return
-          setMarket(next)
-          setIsLoading(false)
-        })
-        .catch(() => {
-          if (!cancelled) setIsLoading(false)
-        })
-    }
-    load()
-    const id = setInterval(load, refreshMs)
-    return () => {
-      cancelled = true
-      clearInterval(id)
-    }
-  }, [provider, refreshMs])
+  const { data: market, isLoading } = usePolled<GlobalMarket | null>(
+    provider?.getGlobalMarket ? () => provider.getGlobalMarket!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  )
   return { market, isLoading }
 }
 
@@ -253,32 +212,11 @@ export function useFearGreed(
   refreshMs = 60 * 60_000,
 ): { points: FearGreedPoint[]; isLoading: boolean } {
   const provider = useProviderFor('sentiment')
-  const [points, setPoints] = useState<FearGreedPoint[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  useEffect(() => {
-    if (!provider?.getFearGreed) {
-      setIsLoading(false)
-      return
-    }
-    let cancelled = false
-    const load = () => {
-      provider
-        .getFearGreed!(limit)
-        .then((next) => {
-          if (cancelled) return
-          setPoints(next)
-          setIsLoading(false)
-        })
-        .catch(() => {
-          if (!cancelled) setIsLoading(false)
-        })
-    }
-    load()
-    const id = setInterval(load, refreshMs)
-    return () => {
-      cancelled = true
-      clearInterval(id)
-    }
-  }, [provider, limit, refreshMs])
+  const { data: points, isLoading } = usePolled<FearGreedPoint[]>(
+    provider?.getFearGreed ? () => provider.getFearGreed!(limit) : null,
+    [],
+    [provider, limit, refreshMs],
+    refreshMs,
+  )
   return { points, isLoading }
 }
