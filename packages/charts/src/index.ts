@@ -1,6 +1,8 @@
 // D3 base chart layer ported from zTerminal (zentry-nexus frontend-s2
 // shared/components/charts). Implementation-agnostic: no business logic,
-// no data fetching — frames feed these via props.
+// no data fetching — frames feed these via props. This is a reusable
+// building-block library: some charts (StackedAreaChart, PieChart) ship as
+// primitives for custom frames and aren't yet used by a built-in frame.
 
 export { default as TreeChart } from "./tree-chart";
 export type { LeafComponentProps, TreeNode, TileMode } from "./tree-chart";
@@ -29,15 +31,10 @@ export { Skeleton } from "./lib/skeleton";
 
 export { ChartTimeframe } from "./lib/timeframe";
 export type { DataPoint } from "./lib/timeframe";
-export {
-  parseMarketData,
-  formatSmallNumber,
-  numberWithCommas,
-} from "./lib/format";
+export { parseMarketData, formatSmallNumber } from "./lib/format";
 export { cn } from "./lib/utils";
 export {
   CHART_COLORS_MULTI_SERIES,
   calculateChartDomain,
   formatChartDate,
-  formatChartValueWithAbbreviation,
 } from "./chart-utils";

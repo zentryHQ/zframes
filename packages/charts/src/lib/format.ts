@@ -75,15 +75,3 @@ export const formatSmallNumber = (value: number): string => {
 
   return String(Math.round(value * 100) / 100);
 };
-
-export const numberWithCommas = (
-  x: number,
-  minimumFractionDigits: number = 0,
-  maximumFractionDigits: number = 0,
-) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "decimal",
-    minimumFractionDigits,
-    maximumFractionDigits,
-  }).format(x);
-};

@@ -11,13 +11,6 @@ export const formatChartDate = (
   return d3.timeFormat("%b %d")(d);
 };
 
-/** Format numbers for display (K, M, B). */
-export const formatChartValueWithAbbreviation = (value: number): string => {
-  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`;
-  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`;
-  return value.toFixed(0);
-};
-
 /** Calculate chart domain with padding. */
 export const calculateChartDomain = (data: DataPoint[], padding = 0.1) => {
   const values = data.map((d) => d.value);
