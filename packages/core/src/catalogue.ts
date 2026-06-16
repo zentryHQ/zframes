@@ -4,7 +4,7 @@ import type { FrameMeta, FrameRegistry } from "./frame";
 /**
  * Serializes frame metadata into an AI-readable catalogue: name, description,
  * capabilities, and the config schema as JSON Schema. A generating agent
- * (e.g. the /zframe skill) reads this before emitting a dashboard spec —
+ * (e.g. the /zframes skill) reads this before emitting a dashboard spec —
  * the same pattern zTerminal's component catalogue proved in production.
  *
  * Accepts a runtime registry or a plain list of metas (the CLI path, which

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 /**
  * Frame metadata, separated from components so React-free tooling (the
- * zframes CLI, catalogue export, the /zframe skill) can import this module
+ * zframes CLI, catalogue export, the /zframes skill) can import this module
  * without charts, liveline, or CSS. Each frame's .tsx imports its meta from
  * here — this file is the single source of truth for the AI catalogue.
  */

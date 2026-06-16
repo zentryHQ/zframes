@@ -22,7 +22,7 @@ Invalid configs show a per-frame error card instead of crashing the page.
 Two ways to edit it:
 
 - **By hand** — open `src/dashboard.json` and tweak symbols, layout, or which frames appear.
-- **With an agent** — install the `zframe` skill and just say what you want
+- **With an agent** — install the `zframes` skill and just say what you want
   ("add a TSLA chart", "show funding rates"). The agent reads the frame catalogue,
   rewrites `dashboard.json`, and lints it for you.
 

@@ -4,7 +4,7 @@ import type { Capability } from "./types";
 
 /**
  * AI-facing frame metadata — everything but the React component. Kept
- * separate so tooling (CLI lint, catalogue export, the /zframe skill) can
+ * separate so tooling (CLI lint, catalogue export, the /zframes skill) can
  * load schemas without pulling React, chart code, or CSS.
  */
 export interface FrameMeta<S extends z.ZodType = z.ZodType> {
@@ -32,8 +32,9 @@ export function defineFrameMeta<S extends z.ZodType>(
   return meta;
 }
 
-export interface FrameDefinition<S extends z.ZodType = z.ZodType>
-  extends FrameMeta<S> {
+export interface FrameDefinition<
+  S extends z.ZodType = z.ZodType,
+> extends FrameMeta<S> {
   component: ComponentType<{ config: z.output<S> }>;
 }
 

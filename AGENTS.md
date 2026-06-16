@@ -21,7 +21,7 @@ pnpm build        # vite build
 - `packages/provider-coingecko` — global marketcap + dominance (`global-market` capability, free tier no key)
 - `packages/frames` — 12 frames: `price-chart` (liveline candle/line, the centerpiece), `price-ticker`, `top-movers`, `funding-rate-chart`, `funding-heatmap`, `tvl-treemap`, `fear-greed` (with zTerminal's striped mood bar), `bitcoin-dominance` (ported zTerminal segmented bar), `dino-game` (ported, CDN sprite swapped for drawn cactus), `note`, `image`, `heading`. **`src/schemas.ts` is the single source of truth for frame metadata** — pure Zod, no React, imported by both the components and the CLI. New frame = add meta to schemas.ts + component file + `allFrames`.
 - `packages/cli` — `zframes catalogue | lint | init` (tsup-bundled bin; `pnpm build:cli`, then `pnpm zframes <cmd>` at root). `lint` is the generating agent's feedback loop.
-- `skills/zframe/SKILL.md` — the agent skill: interview → read catalogue → emit dashboard.json → lint → iterate
+- `skills/zframes/SKILL.md` — the agent skill: resolve CLI → scaffold/locate app → read catalogue → interview → emit dashboard.json → lint → run
 - `apps/playground` — Vite demo that loads `src/dashboard.json`; Tailwind v4 via `@tailwindcss/vite` (`@source` directives scan workspace packages). Renders `spec.background` via `src/background.tsx` (Unicorn Studio scene through `unicornstudio-react`, lazy-loaded, behind a contrast scrim).
 - `patches/liveline@0.0.7.patch` — vendored from zhive (DPR fix + label precision); applied via pnpm `patchedDependencies`
 
@@ -47,12 +47,12 @@ pnpm build        # vite build
 - ~~liveline price-chart + HIP-3 stocks~~ — `price-chart` frame streams `xyz:TSLA` candles live
 - ~~Widget wave~~ — top-movers, fear-greed, tvl-treemap, note shipped
 - ~~CLI~~ — `catalogue` / `lint` / `init` built and smoke-tested
-- ~~/zframe skill~~ — `skills/zframe/SKILL.md`
+- ~~/zframes skill~~ — `skills/zframes/SKILL.md`
 - ~~Multi-provider + namespaced symbols~~ — capability routing in core; HL's own `dex:SYMBOL` namespacing covers stocks
 
 ## Roadmap (next)
 
 1. Standalone app scaffold: `zframes init` should scaffold a full Vite app (not just dashboard.json) so non-repo users get a one-command start
-2. Skill distribution: publish packages + skill so `npx skills add zframe` works outside this repo
+2. Skill distribution: publish packages + skill so `npx skills add zframes` works outside this repo
 3. More frames: heatmap-based (funding/volume heatmaps), stacked-area marketcap distribution, fun widgets (dino game), orderbook depth via liveline's `orderbook` prop
 4. `zframes preview` — serve the playground pointed at any dashboard.json path

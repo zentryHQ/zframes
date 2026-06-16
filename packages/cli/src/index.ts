@@ -217,7 +217,7 @@ function scaffold(target: string): number {
   console.log("    pnpm install");
   console.log("    pnpm dev        # http://localhost:5179\n");
   console.log(
-    "  then edit src/dashboard.json — by hand, or with the zframe skill.",
+    "  then edit src/dashboard.json — by hand, or with the zframes skill.",
   );
   return 0;
 }
