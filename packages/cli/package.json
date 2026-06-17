@@ -1,6 +1,6 @@
 {
-  "name": "@zframes/cli",
-  "version": "0.0.0",
+  "name": "zframes",
+  "version": "0.1.0",
   "description": "zframes CLI — scaffold a runnable dashboard app (init), print the frame catalogue for generating agents (catalogue), and validate a dashboard.json (lint).",
   "license": "Apache-2.0",
   "author": "Zentry",
@@ -20,10 +20,9 @@
     "agent",
     "hyperliquid"
   ],
-  "private": true,
   "type": "module",
   "bin": {
-    "zframes": "./dist/index.js"
+    "zframes": "dist/index.js"
   },
   "files": [
     "dist",

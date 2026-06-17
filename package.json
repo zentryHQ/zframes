@@ -14,7 +14,7 @@
     "build": "pnpm --filter @zframes/playground build",
     "typecheck": "pnpm -r typecheck",
     "zframes": "node packages/cli/dist/index.js",
-    "build:cli": "pnpm --filter @zframes/cli build"
+    "build:cli": "pnpm --filter zframes build"
   },
   "pnpm": {
     "patchedDependencies": {
