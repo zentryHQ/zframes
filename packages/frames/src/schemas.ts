@@ -29,7 +29,7 @@ export const fundingRateChartMeta = defineFrameMeta({
   name: "funding-rate-chart",
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
-    "Multi-series line chart comparing hourly perp funding rates across coins over a configurable lookback window. Positive funding = longs pay shorts. Useful for spotting crowded trades.",
+    "Multi-series line chart comparing hourly perp funding rates across symbols over a configurable lookback window. Positive funding = longs pay shorts. Useful for spotting crowded trades.",
   capabilities: ["funding-history"],
   schema: z.object({
     symbols: z
@@ -37,7 +37,7 @@ export const fundingRateChartMeta = defineFrameMeta({
       .min(1)
       .max(6)
       .describe(
-        'Hyperliquid coin names to compare funding for, e.g. ["BTC", "ETH"]. Up to 6.',
+        'Hyperliquid symbols to compare funding for, e.g. ["xyz:TSLA", "xyz:NVDA"]. Up to 6.',
       ),
     lookback: z
       .enum(["24h", "7D", "1M"])
@@ -68,14 +68,14 @@ export const priceChartMeta = defineFrameMeta({
   name: "price-chart",
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
-    "Live animated price chart (candlestick or line) for one symbol — canvas-rendered at 60fps via liveline, streaming live off the Hyperliquid WebSocket. Works for crypto (BTC) and HIP-3 stock perps (xyz:TSLA). The centerpiece frame.",
+    "Live animated price chart (candlestick or line) for one symbol — canvas-rendered at 60fps via liveline, streaming live off the Hyperliquid WebSocket. Works for HIP-3 stock perps (xyz:TSLA) and crypto (BTC). The centerpiece frame.",
   capabilities: ["ohlcv", "quote-stream"],
   schema: z.object({
     symbol: z
       .string()
       .min(1)
       .describe(
-        'Hyperliquid coin to chart. Crypto: "BTC", "ETH". Stocks/HIP-3: "xyz:TSLA", "xyz:NVDA", "km:US500".',
+        'Hyperliquid symbol to chart. Stocks/HIP-3: "xyz:TSLA", "xyz:NVDA", "xyz:AAPL". Crypto: "BTC", "ETH".',
       ),
     interval: z
       .enum(["1m", "5m", "15m", "1h", "4h", "1d"])
@@ -103,7 +103,7 @@ export const priceTickerMeta = defineFrameMeta({
       .array(z.string())
       .min(1)
       .describe(
-        'Hyperliquid coin names to track, e.g. ["BTC", "ETH", "SOL"]. HIP-3 stock perps work too: "xyz:TSLA".',
+        'Hyperliquid symbols to track, e.g. ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"]. Crypto works too: "BTC", "ETH".',
       ),
   }),
 });
@@ -146,7 +146,7 @@ export const bitcoinDominanceMeta = defineFrameMeta({
   name: "bitcoin-dominance",
   layout: { w: 4, h: 2, minW: 3, minH: 2 },
   description:
-    "BTC / ETH / Others market-cap dominance as a segmented bar (zTerminal's signature dominance widget), with optional total marketcap line. Shifts in BTC dominance hint at where the market rotates next.",
+    "BTC / ETH / Others market-cap dominance as a segmented bar, with optional total marketcap line. Shifts in BTC dominance hint at where the market rotates next.",
   capabilities: ["global-market"],
   schema: z.object({
     showTotalMarketCap: z
@@ -162,7 +162,7 @@ export const fundingHeatmapMeta = defineFrameMeta({
   name: "funding-heatmap",
   layout: { w: 6, h: 3, minW: 4, minH: 3 },
   description:
-    "Heatmap of perp funding rates — coins as rows, 4h time buckets over the last 3 days as columns, green positive / red negative. Spots persistent funding regimes at a glance.",
+    "Heatmap of perp funding rates — symbols as rows, 4h time buckets over the last 3 days as columns, green positive / red negative. Spots persistent funding regimes at a glance.",
   capabilities: ["funding-history"],
   schema: z.object({
     symbols: z
@@ -170,7 +170,7 @@ export const fundingHeatmapMeta = defineFrameMeta({
       .min(1)
       .max(8)
       .describe(
-        'Hyperliquid coin names as heatmap rows, e.g. ["BTC", "ETH", "SOL"].',
+        'Hyperliquid symbols as heatmap rows, e.g. ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"].',
       ),
   }),
 });

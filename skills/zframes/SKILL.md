@@ -11,18 +11,17 @@ Never create or edit `.tsx` files for this task.
 
 ## 0. Resolve the CLI
 
-You'll call the zframes CLI repeatedly (`init`, `catalogue`, `lint`). It's run
-with **`npx` — never installed globally**. Resolve how to invoke it once, and
-use that everywhere below as `zframes`:
+You'll call the zframes CLI repeatedly (`init`, `catalogue`, `lint`). Resolve
+how to invoke it once, and use that everywhere below as `zframes`:
 
-- **Standalone (the normal case)** → `npx zframes@latest <cmd>`. npx fetches the
-  published CLI per run; there is no global install to manage.
-- **Inside the zframes monorepo (developing zframes itself)** → `pnpm zframes <cmd>`
+- **Inside the zframes monorepo (the path that works today)** → `pnpm zframes <cmd>`
   (run `pnpm build:cli` once if `packages/cli/dist/` is missing).
+- **Standalone, once published** → `npx zframes@latest <cmd>`. npx fetches the
+  published CLI per run; no global install to manage.
 
-> Note: the CLI isn't published to npm yet, so `npx zframes` won't resolve until
-> it is (deployment plan, Phase 2); until then use the monorepo `pnpm zframes`
-> path. The steps are identical either way.
+> Note: the CLI isn't on npm yet (deployment plan, Phase 2), so `npx zframes`
+> won't resolve until then — use the monorepo `pnpm zframes` path today. The
+> steps are identical either way.
 
 ## 1. Locate or scaffold the app
 
@@ -58,16 +57,17 @@ here — never from memory. The catalogue grows; your memory doesn't.
 
 Ask, in the user's language, roughly:
 
-1. **What do you watch?** Symbols — crypto ("BTC", "ETH", "HYPE") and/or
-   stocks via HIP-3 perps ("xyz:TSLA", "xyz:NVDA", "km:US500"). If they name
-   a plain stock ticker, map it to the `xyz:` dex first.
+1. **What do you watch?** Symbols — stocks via HIP-3 perps ("xyz:TSLA",
+   "xyz:NVDA", "xyz:AAPL") and/or crypto ("BTC", "ETH", "HYPE"). zframes leads
+   with stocks; if they name a plain stock ticker, map it to the `xyz:` dex first.
 2. **Centerpiece?** Which 1–2 symbols deserve a big `price-chart`
    (candle vs line, interval).
-3. **Context widgets?** Offer what the catalogue has: top-movers,
-   funding-rate-chart, funding-heatmap, tvl-treemap, fear-greed,
+3. **Context widgets?** Offer what the catalogue has: price-ticker (watchlist),
+   top-movers, funding-rate-chart, funding-heatmap, tvl-treemap, fear-greed,
    bitcoin-dominance.
 4. **Personality?** a `note` with their trading plan, a `heading` to label
-   regions ("Stocks", "On-chain"), or the `dino-game` for when the market's flat.
+   regions ("Stocks", "On-chain"), an `image` (logo/banner), or the `dino-game`
+   for when the market's flat.
 
 For "update my dashboard" requests, read the existing `dashboard.json` first
 and change only what they asked for.

@@ -5,17 +5,18 @@
   "background": { "type": "unicorn", "projectId": "K42KSY4FXeXhjVOj9RgT" },
   "frames": [
     {
-      "id": "btc-chart",
+      "id": "tsla-chart",
       "frame": "price-chart",
+      "title": "TSLA",
       "position": { "x": 0, "y": 0, "w": 8, "h": 3 },
       "featured": true,
-      "config": { "symbol": "BTC", "interval": "1h", "mode": "candle" }
+      "config": { "symbol": "xyz:TSLA", "interval": "1h", "mode": "candle" }
     },
     {
       "id": "watchlist",
       "frame": "price-ticker",
       "position": { "x": 8, "y": 0, "w": 4, "h": 3 },
-      "config": { "symbols": ["BTC", "ETH", "SOL", "HYPE"] }
+      "config": { "symbols": ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL", "xyz:AMD"] }
     },
     {
       "id": "movers",

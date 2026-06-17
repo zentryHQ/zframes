@@ -6,6 +6,8 @@
 
 zframes is a framework where AI agents generate personal market terminals: the agent reads a catalogue of *frames* (typed, validated dashboard components), emits a plain-JSON `dashboard.json` spec, and the runtime renders it with live market data. Invalid specs fail per-frame with readable errors the agent uses to self-correct — the generation loop is built into the rendering contract.
 
+**Stocks first** — live equity perps stream via Hyperliquid HIP-3 (`xyz:TSLA`, `xyz:NVDA`), with crypto, TVL, and sentiment alongside.
+
 Everything runs **keyless** — Hyperliquid, DeFiLlama, alternative.me, and CoinGecko free public APIs. No signup, no API keys.
 
 ## Quickstart
@@ -27,7 +29,7 @@ pnpm build        # production build of the playground
 A human installs the skill once, then just talks; their agent does the rest:
 
 ```
-"build me a BTC + TSLA terminal"
+"build me a TSLA + NVDA terminal"
   → agent reads the frame catalogue
   → agent writes dashboard.json and lints it
   → agent runs the app, opens the browser
@@ -48,7 +50,7 @@ Twelve built-in frames (`packages/frames`):
 
 | Frame | What it shows |
 |---|---|
-| `price-chart` | Live candle/line chart for one symbol (liveline), crypto + HIP-3 stock perps |
+| `price-chart` | Live candle/line chart for one symbol (liveline), HIP-3 stock perps + crypto |
 | `price-ticker` | Streaming watchlist with 24h change |
 | `top-movers` | Biggest gainers/losers across the perp universe |
 | `funding-rate-chart` | Multi-series funding rates across coins |
@@ -61,13 +63,13 @@ Twelve built-in frames (`packages/frames`):
 | `heading` | Section divider to group frames into zones |
 | `dino-game` | Chrome-dino runner, for when the market's flat |
 
-Stocks work via Hyperliquid HIP-3 builder dexes, namespaced by Hyperliquid itself (`xyz:TSLA`, `km:US500`) — the same free WebSocket, no extra adapter.
+Stocks are the lead use case — equity perps via Hyperliquid HIP-3 builder dexes, namespaced by Hyperliquid itself (`xyz:TSLA`, `xyz:NVDA`, `km:US500`) — the same free WebSocket, no extra adapter. Crypto (`BTC`, `ETH`) works the same way.
 
 ## Providers
 
 All free, all keyless (`packages/provider-*`):
 
-- **Hyperliquid** — `quote-stream`, `day-stats`, `funding-history`, `ohlcv` (crypto + HIP-3 stock perps)
+- **Hyperliquid** — `quote-stream`, `day-stats`, `funding-history`, `ohlcv` (HIP-3 stock perps + crypto)
 - **DeFiLlama** — `tvl`
 - **alternative.me** — `sentiment` (Fear & Greed)
 - **CoinGecko** (free tier) — `global-market` (total marketcap + dominance)
