@@ -1,3 +1,4 @@
+import { dashboardWriteback } from "@zframes/core/vite";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -5,7 +6,8 @@ import { defineConfig } from "vite";
 // @zframes/* are vendored under packages/ and ship TypeScript source; Vite
 // transforms them directly (no prebuilt dist), so keep them out of optimizeDeps.
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // dashboardWriteback persists in-browser editor changes to src/dashboard.json.
+  plugins: [react(), tailwindcss(), dashboardWriteback()],
   resolve: {
     dedupe: ["react", "react-dom"],
   },

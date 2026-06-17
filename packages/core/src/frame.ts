@@ -3,6 +3,27 @@ import type { z } from "zod";
 import type { Capability } from "./types";
 
 /**
+ * Grid sizing hints in grid units (columns × rows). The CSS-grid renderer
+ * ignores these — every instance carries an explicit `position`. They drive
+ * the interactive editor: the default size of a frame dragged in from the
+ * palette, and the min/max bounds the resize handles enforce.
+ */
+export interface FrameLayout {
+  /** Default width in grid columns when added from the palette. */
+  w: number;
+  /** Default height in grid rows when added from the palette. */
+  h: number;
+  /** Minimum width in columns (resize floor). */
+  minW?: number;
+  /** Minimum height in rows (resize floor). */
+  minH?: number;
+  /** Maximum width in columns (resize ceiling). */
+  maxW?: number;
+  /** Maximum height in rows (resize ceiling). */
+  maxH?: number;
+}
+
+/**
  * AI-facing frame metadata — everything but the React component. Kept
  * separate so tooling (CLI lint, catalogue export, the /zframes skill) can
  * load schemas without pulling React, chart code, or CSS.
@@ -23,6 +44,12 @@ export interface FrameMeta<S extends z.ZodType = z.ZodType> {
    * than sitting in a box.
    */
   chrome?: "card" | "bare";
+  /**
+   * Default size + resize bounds for the interactive editor. Optional; the
+   * editor falls back to a sensible default when absent. Not used by the
+   * CSS-grid renderer (instances always declare an explicit `position`).
+   */
+  layout?: FrameLayout;
 }
 
 /** Identity helper so the schema generic flows through meta declarations. */

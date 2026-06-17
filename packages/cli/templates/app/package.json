@@ -16,6 +16,7 @@
     "@zframes/provider-coingecko": "workspace:*",
     "@zframes/provider-defillama": "workspace:*",
     "@zframes/provider-hyperliquid": "workspace:*",
+    "gridstack": "^12.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "unicornstudio-react": "^2.1.9",

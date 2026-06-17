@@ -17,20 +17,28 @@
     ".": "./src/index.ts",
     "./frame": "./src/frame.ts",
     "./spec": "./src/spec.ts",
-    "./catalogue": "./src/catalogue.ts"
+    "./catalogue": "./src/catalogue.ts",
+    "./editor": "./src/editor.tsx",
+    "./vite": "./src/vite.ts"
   },
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "gridstack": "^12.1.0",
     "zod": "^4.1.0"
   },
   "peerDependencies": {
-    "react": ">=18"
+    "react": ">=18",
+    "react-dom": ">=18"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
     "typescript": "^5.8.0"
   }
 }

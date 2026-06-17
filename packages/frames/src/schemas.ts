@@ -10,6 +10,7 @@ import { z } from "zod";
 
 export const fearGreedMeta = defineFrameMeta({
   name: "fear-greed",
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
     "Crypto Fear & Greed index (0 = extreme fear, 100 = extreme greed) with a recent-history sparkline. A one-number market mood gauge from alternative.me.",
   capabilities: ["sentiment"],
@@ -26,6 +27,7 @@ export const fearGreedMeta = defineFrameMeta({
 
 export const fundingRateChartMeta = defineFrameMeta({
   name: "funding-rate-chart",
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Multi-series line chart comparing hourly perp funding rates across coins over a configurable lookback window. Positive funding = longs pay shorts. Useful for spotting crowded trades.",
   capabilities: ["funding-history"],
@@ -46,6 +48,7 @@ export const fundingRateChartMeta = defineFrameMeta({
 
 export const noteMeta = defineFrameMeta({
   name: "note",
+  layout: { w: 4, h: 3, minW: 2, minH: 2 },
   description:
     "Free-form text note pinned to the dashboard — trading plans, reminders, watch levels. Needs no data provider.",
   capabilities: [],
@@ -63,6 +66,7 @@ export const noteMeta = defineFrameMeta({
 
 export const priceChartMeta = defineFrameMeta({
   name: "price-chart",
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Live animated price chart (candlestick or line) for one symbol — canvas-rendered at 60fps via liveline, streaming live off the Hyperliquid WebSocket. Works for crypto (BTC) and HIP-3 stock perps (xyz:TSLA). The centerpiece frame.",
   capabilities: ["ohlcv", "quote-stream"],
@@ -90,6 +94,7 @@ export const priceChartMeta = defineFrameMeta({
 
 export const priceTickerMeta = defineFrameMeta({
   name: "price-ticker",
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
     "Live watchlist streaming mid prices over the Hyperliquid WebSocket with 24h change per symbol. The bread-and-butter frame for any dashboard.",
   capabilities: ["quote-stream", "day-stats"],
@@ -105,6 +110,7 @@ export const priceTickerMeta = defineFrameMeta({
 
 export const topMoversMeta = defineFrameMeta({
   name: "top-movers",
+  layout: { w: 5, h: 3, minW: 3, minH: 3 },
   description:
     "Today's biggest gainers and losers across the whole Hyperliquid perp universe, side by side with 24h change.",
   capabilities: ["day-stats"],
@@ -121,6 +127,7 @@ export const topMoversMeta = defineFrameMeta({
 
 export const tvlTreemapMeta = defineFrameMeta({
   name: "tvl-treemap",
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Treemap of total value locked (TVL) across the largest blockchain ecosystems, sized by TVL. Data from DeFiLlama. Good single-glance answer to 'where does on-chain capital live right now'.",
   capabilities: ["tvl"],
@@ -137,6 +144,7 @@ export const tvlTreemapMeta = defineFrameMeta({
 
 export const bitcoinDominanceMeta = defineFrameMeta({
   name: "bitcoin-dominance",
+  layout: { w: 4, h: 2, minW: 3, minH: 2 },
   description:
     "BTC / ETH / Others market-cap dominance as a segmented bar (zTerminal's signature dominance widget), with optional total marketcap line. Shifts in BTC dominance hint at where the market rotates next.",
   capabilities: ["global-market"],
@@ -152,6 +160,7 @@ export const bitcoinDominanceMeta = defineFrameMeta({
 
 export const fundingHeatmapMeta = defineFrameMeta({
   name: "funding-heatmap",
+  layout: { w: 6, h: 3, minW: 4, minH: 3 },
   description:
     "Heatmap of perp funding rates — coins as rows, 4h time buckets over the last 3 days as columns, green positive / red negative. Spots persistent funding regimes at a glance.",
   capabilities: ["funding-history"],
@@ -168,6 +177,7 @@ export const fundingHeatmapMeta = defineFrameMeta({
 
 export const dinoGameMeta = defineFrameMeta({
   name: "dino-game",
+  layout: { w: 4, h: 3, minW: 3, minH: 3 },
   description:
     "Chrome-dino style runner game on canvas — jump cacti with SPACE or tap. High score persists locally. For when the market is boring. Needs no data provider.",
   capabilities: [],
@@ -176,6 +186,7 @@ export const dinoGameMeta = defineFrameMeta({
 
 export const imageMeta = defineFrameMeta({
   name: "image",
+  layout: { w: 3, h: 3, minW: 1, minH: 1 },
   description:
     "Displays an image from a URL — logos, memes, chart screenshots, banners. Needs no data provider.",
   capabilities: [],
@@ -193,6 +204,7 @@ export const imageMeta = defineFrameMeta({
 
 export const headingMeta = defineFrameMeta({
   name: "heading",
+  layout: { w: 12, h: 1, minW: 2, minH: 1, maxH: 1 },
   description:
     "Section divider that titles a region of the dashboard ('Markets', 'On-chain', 'Desk'). Renders as a label with a hairline rule — no card. Use to group frames into zones: place full-width (w: 12) and 1 row tall (h: 1) above each group. Needs no data provider.",
   capabilities: [],

@@ -1,0 +1,311 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   zframes editor chrome. Ports the nexus workspace "customise mode" feel
+   (jiggle, hover outline, red × delete, indigo placeholder) onto zframes'
+   .zf-* cards, plus the toolbar + side rail. Plain CSS — core never assumes
+   the host has Tailwind. Everything is scoped under .zf-editor.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.zf-editor {
+  --zf-accent: #8b8df9;
+  position: relative;
+}
+
+.zf-editor-main {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.zf-editor-grid {
+  flex: 1;
+  min-width: 0;
+  min-height: 360px;
+  border-radius: 14px;
+  border: 1px dashed transparent;
+  transition: border-color 0.2s ease;
+}
+.zf-editor.zf-customise .zf-editor-grid {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* GridStack positions .grid-stack-item-content absolutely inside each item; let
+   our card fill it and stop GridStack's own scroll/overflow from clipping the
+   delete affordance and the customise outline. */
+.zf-editor .grid-stack-item-content {
+  overflow: visible;
+  inset: 0;
+}
+.zf-fill {
+  width: 100%;
+  height: 100%;
+}
+/* The entrance cascade replays every time a root re-mounts during a drag — kill
+   it inside the editor so cards sit still until *we* wiggle them. */
+.zf-editor .zf-frame,
+.zf-editor .zf-bare {
+  animation: none;
+}
+
+/* ── Customise mode: the editable feel ─────────────────────────────────── */
+.zf-editor.zf-customise .grid-stack-item > .grid-stack-item-content {
+  outline: 2px dashed rgba(255, 255, 255, 0.08);
+  outline-offset: -2px;
+  border-radius: 14px;
+  transition: outline-color 0.2s ease;
+}
+/* Frame interiors are inert while customising — dragging a card must never
+   play the dino game or fire a chart tooltip. */
+.zf-editor.zf-customise .grid-stack-item > .grid-stack-item-content > * {
+  pointer-events: none;
+}
+.zf-editor.zf-customise .grid-stack-item:hover > .grid-stack-item-content {
+  outline-color: var(--zf-accent);
+}
+.zf-editor.zf-customise .grid-stack-item.zf-selected > .grid-stack-item-content {
+  outline-style: solid;
+  outline-color: var(--zf-accent);
+}
+
+/* The iOS-style jiggle, with per-item desync so they don't march in lockstep. */
+@keyframes zf-wiggle {
+  0%, 100% { transform: rotate(-0.4deg); }
+  50% { transform: rotate(0.4deg); }
+}
+.zf-editor.zf-customise .grid-stack-item > .grid-stack-item-content {
+  animation: zf-wiggle 0.32s ease-in-out infinite;
+}
+.zf-editor.zf-customise .grid-stack-item:nth-child(2n) > .grid-stack-item-content {
+  animation-delay: 0.05s;
+  animation-duration: 0.28s;
+}
+.zf-editor.zf-customise .grid-stack-item:nth-child(3n) > .grid-stack-item-content {
+  animation-delay: 0.1s;
+  animation-duration: 0.34s;
+}
+.zf-editor.zf-customise .grid-stack-item:nth-child(5n) > .grid-stack-item-content {
+  animation-delay: 0.15s;
+  animation-duration: 0.26s;
+}
+.zf-editor.zf-customise .grid-stack-item.ui-draggable-dragging > .grid-stack-item-content,
+.zf-editor.zf-customise .grid-stack-item.ui-resizing > .grid-stack-item-content {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .zf-editor.zf-customise .grid-stack-item > .grid-stack-item-content {
+    animation: none;
+  }
+}
+
+/* Red × delete — sibling of content so it's clickable while the interior is
+   inert. Fades in on hover of the item. */
+.zf-del-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: #ef4444;
+  border: 2px solid #0b0c13;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  z-index: 100;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+}
+.zf-del-btn:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+.zf-editor.zf-customise .grid-stack-item:hover > .zf-del-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Drop placeholder while dragging a new frame in. */
+.zf-editor .grid-stack-placeholder > .placeholder-content {
+  background: rgba(139, 141, 249, 0.15);
+  border: 2px dashed rgba(139, 141, 249, 0.55);
+  border-radius: 14px;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────────────── */
+.zf-editor-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.zf-editor-bar-spacer {
+  flex: 1;
+}
+.zf-editor-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.zf-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.86);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.zf-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.zf-btn--primary {
+  background: var(--zf-accent);
+  border-color: var(--zf-accent);
+  color: #0b0c13;
+}
+.zf-btn--primary:hover {
+  background: #a0a2ff;
+  border-color: #a0a2ff;
+}
+.zf-btn--danger {
+  color: #ff8b9d;
+  border-color: rgba(242, 21, 83, 0.4);
+}
+.zf-btn--danger:hover {
+  background: rgba(242, 21, 83, 0.12);
+}
+.zf-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* ── Side rail (palette + config) ──────────────────────────────────────── */
+.zf-rail {
+  width: 280px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(20, 22, 34, 0.7), rgba(11, 12, 19, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+}
+.zf-rail-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.46);
+  margin: 0 0 8px;
+}
+.zf-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.zf-newwidget {
+  text-align: left;
+  cursor: grab;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.zf-newwidget:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(139, 141, 249, 0.4);
+}
+.zf-newwidget:active {
+  cursor: grabbing;
+}
+.zf-newwidget-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: capitalize;
+}
+.zf-newwidget-desc {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 2px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.zf-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+.zf-field label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.zf-input,
+.zf-textarea {
+  font: inherit;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  padding: 7px 9px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.zf-textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.45;
+}
+.zf-input:focus,
+.zf-textarea:focus {
+  outline: none;
+  border-color: var(--zf-accent);
+}
+.zf-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.zf-config-error {
+  font-size: 11px;
+  color: #ff8b9d;
+  line-height: 1.45;
+  margin: -4px 0 10px;
+  white-space: pre-wrap;
+}
+.zf-rail-empty {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.5;
+}

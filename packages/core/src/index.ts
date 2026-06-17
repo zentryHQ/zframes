@@ -15,6 +15,7 @@ export {
   createRegistry,
   type AnyFrameDefinition,
   type FrameDefinition,
+  type FrameLayout,
   type FrameMeta,
   type FrameRegistry,
 } from "./frame";

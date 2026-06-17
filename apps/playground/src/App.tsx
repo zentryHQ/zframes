@@ -1,9 +1,10 @@
 import {
   createRegistry,
-  DashboardRenderer,
   DashboardSpecSchema,
   FramesProvider,
+  type DashboardSpec,
 } from '@zframes/core'
+import { DashboardEditor } from '@zframes/core/editor'
 import { allFrames } from '@zframes/frames'
 import { AlternativeMeProvider } from '@zframes/provider-alternativeme'
 import { CoinGeckoProvider } from '@zframes/provider-coingecko'
@@ -44,6 +45,33 @@ function SpecError({ issues }: { issues: { path: PropertyKey[]; message: string 
   )
 }
 
+// Persist editor changes back to the real dashboard.json via the dev
+// write-back plugin (see vite.config.ts). On success we reload so the editor
+// re-renders from the file it just wrote — the round-trip is the proof. With
+// no dev server (a static build), the PUT fails and we download instead.
+async function persist(next: DashboardSpec) {
+  try {
+    const res = await fetch('/__zframes/dashboard', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(next),
+    })
+    if (res.ok) {
+      window.location.reload()
+      return
+    }
+  } catch {
+    // fall through to download
+  }
+  const blob = new Blob([`${JSON.stringify(next, null, 2)}\n`], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'dashboard.json'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function App() {
   if (!parsed.success) return <SpecError issues={parsed.error.issues} />
   const spec = parsed.data
@@ -51,8 +79,8 @@ export default function App() {
   return (
     <FramesProvider providers={providers}>
       <DashboardBackground background={spec.background} />
-      <main className="relative z-10 mx-auto max-w-[1320px] px-6 pb-16 pt-5">
-        <header className="mb-5 flex items-baseline justify-between border-b border-white/[0.06] pb-4">
+      <main className="relative z-10 mx-auto max-w-[1320px] px-4 pb-16 pt-5 sm:px-6">
+        <header className="mb-5 flex flex-col gap-2 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-baseline sm:justify-between">
           <div className="flex items-baseline gap-3">
             <h1 className="font-dmsans text-strong text-lg font-extrabold tracking-tight">
               z<span className="text-[#8b8df9]">frames</span>
@@ -65,11 +93,14 @@ export default function App() {
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
             </span>
             <span className="caption text-soft">
-              live · hyperliquid + defillama + alternative.me + coingecko · no API keys
+              <span className="sm:hidden">live · no API keys</span>
+              <span className="hidden sm:inline">
+                live · hyperliquid + defillama + alternative.me + coingecko · no API keys
+              </span>
             </span>
           </div>
         </header>
-        <DashboardRenderer spec={spec} registry={registry} />
+        <DashboardEditor spec={spec} registry={registry} onSave={persist} />
       </main>
     </FramesProvider>
   )
