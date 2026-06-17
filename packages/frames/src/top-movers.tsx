@@ -7,7 +7,15 @@ import { FrameStatus } from "./ui";
 
 const schema = topMoversMeta.schema;
 
-function MoverRow({ symbol, markPx, changePct }: { symbol: string; markPx: number; changePct: number }) {
+function MoverRow({
+  symbol,
+  markPx,
+  changePct,
+}: {
+  symbol: string;
+  markPx: number;
+  changePct: number;
+}) {
   return (
     <div
       className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2"

@@ -22,12 +22,10 @@ function FearGreed({ config }: { config: z.output<typeof schema> }) {
 
   const sparkline = useMemo(
     () =>
-      [...points]
-        .reverse()
-        .map((point) => ({
-          date: new Date(point.time).toISOString(),
-          value: point.value,
-        })),
+      [...points].reverse().map((point) => ({
+        date: new Date(point.time).toISOString(),
+        value: point.value,
+      })),
     [points],
   );
 
@@ -45,7 +43,7 @@ function FearGreed({ config }: { config: z.output<typeof schema> }) {
       </div>
       <div className="body-md text-normal">{latest.classification}</div>
 
-      {/* Striped mood bar, ported from zTerminal's fear-and-greed-terminal */}
+      {/* Striped mood bar */}
       <div className="relative w-full max-w-[180px] overflow-hidden rounded-xl">
         <div
           className="h-[11px] w-full opacity-40"

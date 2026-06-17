@@ -1,6 +1,6 @@
 /* ─────────────────────────────────────────────────────────────────────────
-   zframes editor chrome. Ports the nexus workspace "customise mode" feel
-   (jiggle, hover outline, red × delete, indigo placeholder) onto zframes'
+   zframes editor chrome — the drag/resize "customise mode" feel
+   (jiggle, hover outline, red × delete, indigo placeholder) on zframes'
    .zf-* cards, plus the toolbar + side rail. Plain CSS — core never assumes
    the host has Tailwind. Everything is scoped under .zf-editor.
    ───────────────────────────────────────────────────────────────────────── */
@@ -61,33 +61,50 @@
 .zf-editor.zf-customise .grid-stack-item:hover > .grid-stack-item-content {
   outline-color: var(--zf-accent);
 }
-.zf-editor.zf-customise .grid-stack-item.zf-selected > .grid-stack-item-content {
+.zf-editor.zf-customise
+  .grid-stack-item.zf-selected
+  > .grid-stack-item-content {
   outline-style: solid;
   outline-color: var(--zf-accent);
 }
 
 /* The iOS-style jiggle, with per-item desync so they don't march in lockstep. */
 @keyframes zf-wiggle {
-  0%, 100% { transform: rotate(-0.4deg); }
-  50% { transform: rotate(0.4deg); }
+  0%,
+  100% {
+    transform: rotate(-0.4deg);
+  }
+  50% {
+    transform: rotate(0.4deg);
+  }
 }
 .zf-editor.zf-customise .grid-stack-item > .grid-stack-item-content {
   animation: zf-wiggle 0.32s ease-in-out infinite;
 }
-.zf-editor.zf-customise .grid-stack-item:nth-child(2n) > .grid-stack-item-content {
+.zf-editor.zf-customise
+  .grid-stack-item:nth-child(2n)
+  > .grid-stack-item-content {
   animation-delay: 0.05s;
   animation-duration: 0.28s;
 }
-.zf-editor.zf-customise .grid-stack-item:nth-child(3n) > .grid-stack-item-content {
+.zf-editor.zf-customise
+  .grid-stack-item:nth-child(3n)
+  > .grid-stack-item-content {
   animation-delay: 0.1s;
   animation-duration: 0.34s;
 }
-.zf-editor.zf-customise .grid-stack-item:nth-child(5n) > .grid-stack-item-content {
+.zf-editor.zf-customise
+  .grid-stack-item:nth-child(5n)
+  > .grid-stack-item-content {
   animation-delay: 0.15s;
   animation-duration: 0.26s;
 }
-.zf-editor.zf-customise .grid-stack-item.ui-draggable-dragging > .grid-stack-item-content,
-.zf-editor.zf-customise .grid-stack-item.ui-resizing > .grid-stack-item-content {
+.zf-editor.zf-customise
+  .grid-stack-item.ui-draggable-dragging
+  > .grid-stack-item-content,
+.zf-editor.zf-customise
+  .grid-stack-item.ui-resizing
+  > .grid-stack-item-content {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -114,7 +131,10 @@
   cursor: pointer;
   opacity: 0;
   transform: scale(0.8);
-  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    background 0.2s ease;
   z-index: 100;
   font-size: 14px;
   font-weight: 700;
@@ -167,7 +187,10 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.86);
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 .zf-btn:hover {
   background: rgba(255, 255, 255, 0.1);
@@ -203,7 +226,11 @@
   gap: 16px;
   padding: 14px;
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(20, 22, 34, 0.7), rgba(11, 12, 19, 0.8));
+  background: linear-gradient(
+    180deg,
+    rgba(20, 22, 34, 0.7),
+    rgba(11, 12, 19, 0.8)
+  );
   border: 1px solid rgba(255, 255, 255, 0.08);
   position: sticky;
   top: 12px;
@@ -230,7 +257,9 @@
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.07);
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 .zf-newwidget:hover {
   background: rgba(255, 255, 255, 0.09);

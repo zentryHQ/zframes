@@ -2,8 +2,8 @@ import { defineFrame } from "@zframes/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { dinoGameMeta } from "./schemas";
 
-// Ported from zTerminal's dino-game-widget. The CDN obstacle sprite is
-// replaced with a drawn pixel cactus so the OSS build has no Zentry assets.
+// Chrome-dino style runner on canvas. The obstacle sprite is drawn (a pixel
+// cactus) so the build ships no external image asset.
 
 const GRAVITY = 0.6;
 const JUMP_FORCE = -12;
@@ -77,7 +77,9 @@ function drawCactus(
 
 function DinoGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<"idle" | "playing" | "gameover">("idle");
+  const [gameState, setGameState] = useState<"idle" | "playing" | "gameover">(
+    "idle",
+  );
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => {
     if (typeof window !== "undefined") {
@@ -87,6 +89,12 @@ function DinoGame() {
     return 0;
   });
   const [canvasReady, setCanvasReady] = useState(false);
+
+  // The RAF game loop reads live score/highScore from refs so they needn't be
+  // in its effect deps — otherwise each score tick would tear down and restart
+  // the loop. State still drives the rendered HUD/score.
+  const scoreRef = useRef(0);
+  const highScoreRef = useRef(highScore);
 
   useEffect(() => {
     if (highScore > 0)
@@ -115,6 +123,7 @@ function DinoGame() {
       frameCount: 0,
       groundOffset: 0,
     };
+    scoreRef.current = 0;
     setScore(0);
   }, []);
 
@@ -196,10 +205,14 @@ function DinoGame() {
       ctx.fillStyle = COLORS.textSoft;
       ctx.fillText("HI", 10, 30);
       ctx.fillStyle = COLORS.score;
-      ctx.fillText(String(highScore).padStart(5, "0"), 30, 30);
+      ctx.fillText(String(highScoreRef.current).padStart(5, "0"), 30, 30);
       ctx.textAlign = "right";
       ctx.fillStyle = COLORS.text;
-      ctx.fillText(String(score).padStart(5, "0"), canvas.width - 10, 30);
+      ctx.fillText(
+        String(scoreRef.current).padStart(5, "0"),
+        canvas.width - 10,
+        30,
+      );
     };
 
     const checkCollision = (obstacle: Obstacle): boolean => {
@@ -245,14 +258,20 @@ function DinoGame() {
 
       for (const obs of data.obstacles) {
         if (checkCollision(obs)) {
-          setHighScore((prev) => Math.max(prev, score));
+          if (scoreRef.current > highScoreRef.current) {
+            highScoreRef.current = scoreRef.current;
+            setHighScore(scoreRef.current);
+          }
           setGameState("gameover");
           return;
         }
       }
 
       data.frameCount++;
-      if (data.frameCount % 6 === 0) setScore((s) => s + 1);
+      if (data.frameCount % 6 === 0) {
+        scoreRef.current += 1;
+        setScore(scoreRef.current);
+      }
       data.speed += SPEED_INCREMENT;
       data.groundOffset += data.speed;
 
@@ -273,7 +292,9 @@ function DinoGame() {
 
     animationId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animationId);
-  }, [gameState, score, highScore]);
+    // Loop reads score/highScore via refs; only gameState (re)starts it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState]);
 
   useEffect(() => {
     if (gameState === "playing") return;
@@ -291,7 +312,11 @@ function DinoGame() {
     if (gameState === "idle") {
       ctx.fillStyle = COLORS.text;
       ctx.font = 'bold 14px "DM Sans", sans-serif';
-      ctx.fillText("Press SPACE or tap to start", canvas.width / 2, canvas.height / 2 - 30);
+      ctx.fillText(
+        "Press SPACE or tap to start",
+        canvas.width / 2,
+        canvas.height / 2 - 30,
+      );
     } else {
       ctx.fillStyle = COLORS.gameOver;
       ctx.font = 'bold 20px "DM Sans", sans-serif';
@@ -300,7 +325,11 @@ function DinoGame() {
       ctx.font = 'bold 14px "DM Sans", sans-serif';
       ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 - 10);
       ctx.fillStyle = COLORS.textSoft;
-      ctx.fillText("Press SPACE or tap to restart", canvas.width / 2, canvas.height / 2 + 20);
+      ctx.fillText(
+        "Press SPACE or tap to restart",
+        canvas.width / 2,
+        canvas.height / 2 + 20,
+      );
     }
 
     ctx.textAlign = "left";

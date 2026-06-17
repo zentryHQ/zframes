@@ -11,15 +11,16 @@ const BUCKET_MS = 4 * 60 * 60 * 1000; // 4h buckets over a 3-day window
 const WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 
 interface FundingCell extends HeatmapCell {
-  ratePct: number;
+  /** Average funding rate for the bucket, as a decimal fraction. */
+  rate: number;
 }
 
 function Cell({ data, width }: { data: FundingCell; width: number }) {
-  if (width < 40) return null;
+  if (width < 44) return null;
   return (
     <div className="flex h-full w-full items-center justify-center">
       <span className="text-[10px] font-medium text-white/90 tabular-nums">
-        {(data.ratePct * 100).toFixed(3)}
+        {(data.rate * 100).toFixed(4)}%
       </span>
     </div>
   );
@@ -51,7 +52,7 @@ function FundingHeatmap({ config }: { config: z.output<typeof schema> }) {
           column,
           // color scale keys off this; funding is tiny so scale up
           value: avg * 10000,
-          ratePct: avg,
+          rate: avg,
         });
       }
     }

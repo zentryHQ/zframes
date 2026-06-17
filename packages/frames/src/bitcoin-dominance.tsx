@@ -13,7 +13,7 @@ const SEGMENT_STYLE: Record<string, string> = {
   Others: "#6B7280",
 };
 
-/** UI ported from zTerminal's BitcoinDominance (features/market). */
+/** Segmented BTC / ETH / Others dominance bar. */
 function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
   const { market, isLoading } = useGlobalMarket();
 
@@ -46,7 +46,10 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
           <div
             key={item.type}
             className="h-full rounded-[2px] first:rounded-l-[10px] last:rounded-r-[10px]"
-            style={{ width: `${item.value}%`, background: SEGMENT_STYLE[item.type] }}
+            style={{
+              width: `${item.value}%`,
+              background: SEGMENT_STYLE[item.type],
+            }}
           />
         ))}
       </div>

@@ -11,7 +11,15 @@ interface TvlNode extends TreeNode {
   tvl: number;
 }
 
-function Leaf({ width, height, data }: { width: number; height: number; data: TvlNode }) {
+function Leaf({
+  width,
+  height,
+  data,
+}: {
+  width: number;
+  height: number;
+  data: TvlNode;
+}) {
   // Tiny leaves render clipped fragments — better to show nothing and let
   // size + hover carry the information.
   if (width < 48 || height < 30) return null;
@@ -23,7 +31,9 @@ function Leaf({ width, height, data }: { width: number; height: number; data: Tv
     >
       <span className="body-sm truncate font-bold text-white">{data.id}</span>
       {!compact && (
-        <span className="caption text-white/70">${parseMarketData(data.tvl)}</span>
+        <span className="caption text-white/70">
+          ${parseMarketData(data.tvl)}
+        </span>
       )}
     </div>
   );

@@ -1,7 +1,6 @@
 /**
  * Timeframe granularity for time-series charts. Drives axis tick formatting
- * and date parsing. Ported from zTerminal's MindshareTimeframe, renamed since
- * it is a generic chart concern here.
+ * and date parsing — a generic chart concern, no product-specific coupling.
  */
 export enum ChartTimeframe {
   "30m" = "30m",

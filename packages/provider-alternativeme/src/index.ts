@@ -3,6 +3,7 @@ import type {
   FearGreedPoint,
   MarketDataProvider,
 } from "@zframes/core";
+import { fetchJson } from "@zframes/core/fetch";
 
 const FNG_URL = "https://api.alternative.me/fng/";
 
@@ -23,13 +24,19 @@ export class AlternativeMeProvider implements MarketDataProvider {
   readonly capabilities: readonly Capability[] = ["sentiment"];
 
   async getFearGreed(limit = 30): Promise<FearGreedPoint[]> {
-    const res = await fetch(`${FNG_URL}?limit=${limit}`);
-    if (!res.ok) throw new Error(`alternative.me fng failed: ${res.status}`);
-    const body = (await res.json()) as FngResponse;
-    return body.data.map((entry) => ({
-      value: Number(entry.value),
-      classification: entry.value_classification,
-      time: Number(entry.timestamp) * 1000,
-    }));
+    const body = await fetchJson<FngResponse>(`${FNG_URL}?limit=${limit}`);
+    if (!Array.isArray(body?.data))
+      throw new Error("alternative.me fng: unexpected response shape");
+    // alternative.me returns numbers as strings; drop any row that doesn't
+    // parse so a malformed entry never renders as a literal "NaN".
+    return body.data
+      .map((entry) => ({
+        value: Number(entry.value),
+        classification: entry.value_classification ?? "",
+        time: Number(entry.timestamp) * 1000,
+      }))
+      .filter(
+        (point) => Number.isFinite(point.value) && Number.isFinite(point.time),
+      );
   }
 }

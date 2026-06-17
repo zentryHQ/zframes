@@ -2,9 +2,9 @@ import { useMemo } from "react";
 import type { MultiSeriesData } from "../types";
 
 /**
- * zTerminal extracts series colors from token logos via node-vibrant; here
- * series declare their color explicitly, keeping the package dependency-light.
- * Return shape is kept identical so ported call sites don't change.
+ * Series declare their color explicitly (rather than deriving it from logos),
+ * which keeps the package dependency-light. The hook's return shape is stable
+ * so call sites don't need to change.
  */
 export const useSeriesColors = (series: MultiSeriesData[]) => {
   const seriesColors = useMemo(() => {

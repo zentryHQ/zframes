@@ -1,4 +1,4 @@
-import { HeatmapCell } from './index';
+import { HeatmapCell } from "./index";
 
 /**
  * Default minimum relative threshold for filtering heatmap data.
@@ -29,23 +29,23 @@ export const DEFAULT_MIN_RELATIVE_THRESHOLD = 0.05;
  * const filtered = filterHeatmapData(data, { getValue: (item) => item.correlationScore });
  */
 export function filterHeatmapData<T extends HeatmapCell>(
-    data: T[],
-    options: {
-        minRelativeThreshold?: number;
-        getValue?: (item: T) => number;
-    } = {}
+  data: T[],
+  options: {
+    minRelativeThreshold?: number;
+    getValue?: (item: T) => number;
+  } = {},
 ): T[] {
-    const {
-        minRelativeThreshold = DEFAULT_MIN_RELATIVE_THRESHOLD,
-        getValue = (item: T) => item.value,
-    } = options;
+  const {
+    minRelativeThreshold = DEFAULT_MIN_RELATIVE_THRESHOLD,
+    getValue = (item: T) => item.value,
+  } = options;
 
-    if (data.length === 0) return [];
+  if (data.length === 0) return [];
 
-    const maxAbsValue = Math.max(...data.map((d) => Math.abs(getValue(d))));
-    const threshold = maxAbsValue * minRelativeThreshold;
+  const maxAbsValue = Math.max(...data.map((d) => Math.abs(getValue(d))));
+  const threshold = maxAbsValue * minRelativeThreshold;
 
-    return data.filter((item) => Math.abs(getValue(item)) >= threshold);
+  return data.filter((item) => Math.abs(getValue(item)) >= threshold);
 }
 
 /**
@@ -65,36 +65,36 @@ export function filterHeatmapData<T extends HeatmapCell>(
  * );
  */
 export function generateHeatmapGrid<R, C>(
-    rows: R[],
-    columns: C[],
-    getValue: (row: R, column: C) => number,
-    options: {
-        getRowId?: (row: R) => string;
-        getColumnId?: (column: C) => string;
-    } = {}
+  rows: R[],
+  columns: C[],
+  getValue: (row: R, column: C) => number,
+  options: {
+    getRowId?: (row: R) => string;
+    getColumnId?: (column: C) => string;
+  } = {},
 ): HeatmapCell[] {
-    const {
-        getRowId = (row: R) => String(row),
-        getColumnId = (column: C) => String(column),
-    } = options;
+  const {
+    getRowId = (row: R) => String(row),
+    getColumnId = (column: C) => String(column),
+  } = options;
 
-    const cells: HeatmapCell[] = [];
+  const cells: HeatmapCell[] = [];
 
-    for (const row of rows) {
-        for (const column of columns) {
-            const rowId = getRowId(row);
-            const columnId = getColumnId(column);
+  for (const row of rows) {
+    for (const column of columns) {
+      const rowId = getRowId(row);
+      const columnId = getColumnId(column);
 
-            cells.push({
-                id: `${rowId}-${columnId}`,
-                row: rowId,
-                column: columnId,
-                value: getValue(row, column),
-            });
-        }
+      cells.push({
+        id: `${rowId}-${columnId}`,
+        row: rowId,
+        column: columnId,
+        value: getValue(row, column),
+      });
     }
+  }
 
-    return cells;
+  return cells;
 }
 
 /**
@@ -110,43 +110,43 @@ export function generateHeatmapGrid<R, C>(
  * const normalized = normalizeHeatmapValues(data);
  */
 export function normalizeHeatmapValues<T extends HeatmapCell>(
-    data: T[],
-    options: {
-        getValue?: (item: T) => number;
-        diverging?: boolean;
-    } = {}
+  data: T[],
+  options: {
+    getValue?: (item: T) => number;
+    diverging?: boolean;
+  } = {},
 ): (T & { normalizedValue: number })[] {
-    const { getValue = (item: T) => item.value } = options;
+  const { getValue = (item: T) => item.value } = options;
 
-    if (data.length === 0) return [];
+  if (data.length === 0) return [];
 
-    const values = data.map(getValue);
-    const minValue = Math.min(...values);
-    const maxValue = Math.max(...values);
+  const values = data.map(getValue);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
 
-    const hasDiverging = options.diverging ?? minValue < 0;
+  const hasDiverging = options.diverging ?? minValue < 0;
 
-    if (hasDiverging) {
-        // Normalize to -1 to 1 range
-        const absMax = Math.max(Math.abs(minValue), Math.abs(maxValue));
-        if (absMax === 0) {
-            return data.map((item) => ({ ...item, normalizedValue: 0 }));
-        }
-        return data.map((item) => ({
-            ...item,
-            normalizedValue: getValue(item) / absMax,
-        }));
-    } else {
-        // Normalize to 0 to 1 range
-        const range = maxValue - minValue;
-        if (range === 0) {
-            return data.map((item) => ({ ...item, normalizedValue: 1 }));
-        }
-        return data.map((item) => ({
-            ...item,
-            normalizedValue: (getValue(item) - minValue) / range,
-        }));
+  if (hasDiverging) {
+    // Normalize to -1 to 1 range
+    const absMax = Math.max(Math.abs(minValue), Math.abs(maxValue));
+    if (absMax === 0) {
+      return data.map((item) => ({ ...item, normalizedValue: 0 }));
     }
+    return data.map((item) => ({
+      ...item,
+      normalizedValue: getValue(item) / absMax,
+    }));
+  } else {
+    // Normalize to 0 to 1 range
+    const range = maxValue - minValue;
+    if (range === 0) {
+      return data.map((item) => ({ ...item, normalizedValue: 1 }));
+    }
+    return data.map((item) => ({
+      ...item,
+      normalizedValue: (getValue(item) - minValue) / range,
+    }));
+  }
 }
 
 /**
@@ -161,17 +161,17 @@ export function normalizeHeatmapValues<T extends HeatmapCell>(
  * const rowATotals = byRow.get('A')?.reduce((sum, cell) => sum + cell.value, 0);
  */
 export function groupHeatmapCells<T extends HeatmapCell>(
-    data: T[],
-    by: 'row' | 'column'
+  data: T[],
+  by: "row" | "column",
 ): Map<string, T[]> {
-    const groups = new Map<string, T[]>();
+  const groups = new Map<string, T[]>();
 
-    for (const cell of data) {
-        const key = by === 'row' ? cell.row : cell.column;
-        const existing = groups.get(key) || [];
-        existing.push(cell);
-        groups.set(key, existing);
-    }
+  for (const cell of data) {
+    const key = by === "row" ? cell.row : cell.column;
+    const existing = groups.get(key) || [];
+    existing.push(cell);
+    groups.set(key, existing);
+  }
 
-    return groups;
+  return groups;
 }

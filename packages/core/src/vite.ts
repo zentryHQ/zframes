@@ -24,6 +24,8 @@ export interface DashboardWritebackOptions {
 export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
   const file = options.file ?? "src/dashboard.json";
   const route = options.route ?? "/__zframes/dashboard";
+  // Hard cap on the request body — dev-only writeback of a small spec file.
+  const MAX_BODY_BYTES = 2_000_000;
 
   return {
     name: "zframes:dashboard-writeback",
@@ -43,11 +45,33 @@ export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
           res.end();
           return;
         }
+        // CSRF guard: requiring a JSON content-type forces a CORS preflight for
+        // any cross-origin request (which this dev middleware never answers), so
+        // a malicious page you visit can't silently overwrite the spec file.
+        if (
+          !String(req.headers["content-type"] ?? "").includes(
+            "application/json",
+          )
+        ) {
+          res.statusCode = 415;
+          res.end();
+          return;
+        }
         let body = "";
+        let aborted = false;
         req.on("data", (chunk: Buffer) => {
+          if (aborted) return;
           body += chunk;
+          // Drop the connection if the body grows past the cap.
+          if (body.length > MAX_BODY_BYTES) {
+            aborted = true;
+            res.statusCode = 413;
+            res.end();
+            req.destroy();
+          }
         });
         req.on("end", async () => {
+          if (aborted) return;
           try {
             // Parse + re-stringify so we never persist malformed JSON and the
             // file lands consistently formatted (2-space, trailing newline).

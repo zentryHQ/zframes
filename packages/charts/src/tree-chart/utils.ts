@@ -24,24 +24,24 @@ export const DEFAULT_MIN_RELATIVE_THRESHOLD = 0.02;
  *
  * @example
  * // Custom value getter for different data structures
- * const filtered = filterTreemapData(data, { getValue: (item) => item.mindshare });
+ * const filtered = filterTreemapData(data, { getValue: (item) => item.tvl });
  */
 export function filterTreemapData<T>(
-    data: T[],
-    options: {
-        minRelativeThreshold?: number;
-        getValue?: (item: T) => number;
-    } = {}
+  data: T[],
+  options: {
+    minRelativeThreshold?: number;
+    getValue?: (item: T) => number;
+  } = {},
 ): T[] {
-    const {
-        minRelativeThreshold = DEFAULT_MIN_RELATIVE_THRESHOLD,
-        getValue = (item: T) => (item as T & { value: number }).value,
-    } = options;
+  const {
+    minRelativeThreshold = DEFAULT_MIN_RELATIVE_THRESHOLD,
+    getValue = (item: T) => (item as T & { value: number }).value,
+  } = options;
 
-    if (data.length === 0) return [];
+  if (data.length === 0) return [];
 
-    const maxValue = Math.max(...data.map(getValue));
-    const threshold = maxValue * minRelativeThreshold;
+  const maxValue = Math.max(...data.map(getValue));
+  const threshold = maxValue * minRelativeThreshold;
 
-    return data.filter((item) => getValue(item) >= threshold);
+  return data.filter((item) => getValue(item) >= threshold);
 }

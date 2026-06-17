@@ -1,0 +1,7 @@
+node_modules
+**/dist/
+pnpm-lock.yaml
+docs/
+**/*.md
+**/*.html
+packages/cli/templates/app/packages/

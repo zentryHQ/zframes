@@ -1,43 +1,43 @@
 /*
- * zTerminal design tokens, ported from zentry-nexus frontend-s2 globals.css.
+ * Design tokens for the chart layer (Tailwind v4).
  * Import this into the app's Tailwind v4 entry CSS *after* `@import "tailwindcss"`.
  * Provides the color tokens (text-soft, text-normal, bg-card, ...) and
  * typography utilities (body-md, caption, ...) the chart components use.
  */
 
 @theme {
-    --color-background: hsla(222, 22%, 8%, 1);
-    --color-background-terminal: hsla(240, 24%, 7%, 1);
-    --color-surface: hsla(0, 0%, 100%, 0.06);
+  --color-background: hsla(222, 22%, 8%, 1);
+  --color-background-terminal: hsla(240, 24%, 7%, 1);
+  --color-surface: hsla(0, 0%, 100%, 0.06);
 
-    --color-normal: hsla(0, 0%, 100%, 0.85);
-    --color-strong: hsla(0, 0%, 100%, 0.95);
-    --color-soft: hsla(0, 0%, 100%, 0.6);
-    --color-disabled: hsla(0, 0%, 100%, 0.3);
+  --color-normal: hsla(0, 0%, 100%, 0.85);
+  --color-strong: hsla(0, 0%, 100%, 0.95);
+  --color-soft: hsla(0, 0%, 100%, 0.6);
+  --color-disabled: hsla(0, 0%, 100%, 0.3);
 
-    --color-card: hsla(0, 0%, 100%, 0.02);
-    --color-card-hover: hsla(0, 0%, 100%, 0.1);
-    --color-highlight: hsla(242, 100%, 89%, 1);
+  --color-card: hsla(0, 0%, 100%, 0.02);
+  --color-card-hover: hsla(0, 0%, 100%, 0.1);
+  --color-highlight: hsla(242, 100%, 89%, 1);
 
-    --font-dmsans: 'DM Sans', sans-serif;
+  --font-dmsans: "DM Sans", sans-serif;
 }
 
 @utility caption {
-    @apply font-dmsans text-[0.6875rem] font-medium;
+  @apply font-dmsans text-[0.6875rem] font-medium;
 }
 
 @utility body-sm {
-    @apply font-dmsans text-xs font-medium;
+  @apply font-dmsans text-xs font-medium;
 }
 
 @utility body-md {
-    @apply font-dmsans text-sm font-medium;
+  @apply font-dmsans text-sm font-medium;
 }
 
 @utility body-lg {
-    @apply font-dmsans text-base font-medium;
+  @apply font-dmsans text-base font-medium;
 }
 
 @utility heading-card-title {
-    @apply font-dmsans text-[0.8125rem] font-bold sm:text-sm;
+  @apply font-dmsans text-[0.8125rem] font-bold sm:text-sm;
 }

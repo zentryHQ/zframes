@@ -6,6 +6,7 @@ import type {
   MarketDataProvider,
   Unsubscribe,
 } from "@zframes/core";
+import { fetchJson } from "@zframes/core/fetch";
 
 const WS_URL = "wss://api.hyperliquid.xyz/ws";
 const INFO_URL = "https://api.hyperliquid.xyz/info";
@@ -48,14 +49,15 @@ const dexOf = (symbol: string): string =>
   symbol.includes(":") ? symbol.split(":")[0] : "";
 
 async function info<T>(body: Record<string, unknown>): Promise<T> {
-  const res = await fetch(INFO_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+  // Routed through the shared helper for a request timeout + (Node) User-Agent;
+  // a stalled connection rejects instead of wedging the polling hook.
+  return fetchJson<T>(INFO_URL, undefined, {
+    init: {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
   });
-  if (!res.ok)
-    throw new Error(`hyperliquid info ${body.type} failed: ${res.status}`);
-  return (await res.json()) as T;
 }
 
 /**
@@ -120,6 +122,7 @@ export class HyperliquidProvider implements MarketDataProvider {
           if (!ctx) return;
           const markPx = Number(ctx.markPx);
           const prevDayPx = Number(ctx.prevDayPx);
+          if (!Number.isFinite(markPx) || !Number.isFinite(prevDayPx)) return;
           out[asset.name] = {
             markPx,
             prevDayPx,
@@ -142,10 +145,15 @@ export class HyperliquidProvider implements MarketDataProvider {
           coin,
           startTime: startTimeMs,
         });
-        const points: FundingPoint[] = entries.map((entry) => ({
-          time: entry.time,
-          fundingRate: Number(entry.fundingRate),
-        }));
+        const points: FundingPoint[] = entries
+          .map((entry) => ({
+            time: entry.time,
+            fundingRate: Number(entry.fundingRate),
+          }))
+          .filter(
+            (point) =>
+              Number.isFinite(point.fundingRate) && Number.isFinite(point.time),
+          );
         return [coin, points] as const;
       }),
     );

@@ -1,7 +1,7 @@
-import { Component, type CSSProperties, type ReactNode } from 'react'
-import type { FrameRegistry } from './frame'
-import { useProviders } from './hooks'
-import type { FrameInstance } from './spec'
+import { Component, type CSSProperties, type ReactNode } from "react";
+import type { FrameRegistry } from "./frame";
+import { useProviders } from "./hooks";
+import type { FrameInstance } from "./spec";
 
 /**
  * Frame chrome ships as a tiny stylesheet so cards get hover/transition
@@ -156,20 +156,25 @@ export const FRAME_CSS = `
     transform: none;
   }
 }
-`
+`;
 
-class FrameErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null as Error | null }
+class FrameErrorBoundary extends Component<
+  { children: ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
   static getDerivedStateFromError(error: Error) {
-    return { error }
+    return { error };
   }
   render() {
     if (this.state.error) {
       return (
-        <div style={{ color: '#ff8b9d', fontSize: 12 }}>frame crashed: {this.state.error.message}</div>
-      )
+        <div style={{ color: "#ff8b9d", fontSize: 12 }}>
+          frame crashed: {this.state.error.message}
+        </div>
+      );
     }
-    return this.props.children
+    return this.props.children;
   }
 }
 
@@ -186,84 +191,102 @@ export function FrameContent({
   instance,
   registry,
   style,
-  className = '',
+  className = "",
 }: {
-  instance: FrameInstance
-  registry: FrameRegistry
-  style?: CSSProperties
-  className?: string
+  instance: FrameInstance;
+  registry: FrameRegistry;
+  style?: CSSProperties;
+  className?: string;
 }) {
-  const providers = useProviders()
-  const def = registry.get(instance.frame)
-  const cx = (...c: string[]) => c.filter(Boolean).join(' ')
+  const providers = useProviders();
+  const def = registry.get(instance.frame);
+  const cx = (...c: string[]) => c.filter(Boolean).join(" ");
 
   if (!def) {
     return (
-      <div className={cx('zf-frame', 'zf-frame--error', className)} style={style}>
+      <div
+        className={cx("zf-frame", "zf-frame--error", className)}
+        style={style}
+      >
         <div className="zf-frame-title">{instance.frame}</div>
-        unknown frame &quot;{instance.frame}&quot;. registered: {[...registry.keys()].join(', ')}
+        unknown frame &quot;{instance.frame}&quot;. registered:{" "}
+        {[...registry.keys()].join(", ")}
       </div>
-    )
+    );
   }
 
   // A frame whose data needs no provider covers renders as an error card,
   // not a permanently-empty widget — generating agents read this and pick
   // frames the host can actually feed.
-  const covered = new Set(providers.flatMap((p) => [...p.capabilities]))
-  const missing = def.capabilities.filter((c) => !covered.has(c))
+  const covered = new Set(providers.flatMap((p) => [...p.capabilities]));
+  const missing = def.capabilities.filter((c) => !covered.has(c));
   if (missing.length > 0) {
     return (
-      <div className={cx('zf-frame', 'zf-frame--error', className)} style={style}>
-        <div className="zf-frame-title">{instance.frame} — missing capability</div>
-        no registered provider covers: {missing.join(', ')}
+      <div
+        className={cx("zf-frame", "zf-frame--error", className)}
+        style={style}
+      >
+        <div className="zf-frame-title">
+          {instance.frame} — missing capability
+        </div>
+        no registered provider covers: {missing.join(", ")}
       </div>
-    )
+    );
   }
 
   // Per-frame validation failures render as readable error cards instead of
   // breaking the dashboard — this is the feedback surface a generating agent
   // (or a human editing config) reads to self-correct.
-  const parsed = def.schema.safeParse(instance.config)
+  const parsed = def.schema.safeParse(instance.config);
   if (!parsed.success) {
     return (
-      <div className={cx('zf-frame', 'zf-frame--error', className)} style={style}>
+      <div
+        className={cx("zf-frame", "zf-frame--error", className)}
+        style={style}
+      >
         <div className="zf-frame-title">{instance.frame} — invalid config</div>
         <ul style={{ margin: 0, paddingLeft: 16 }}>
           {parsed.error.issues.map((issue, i) => (
             <li key={i}>
-              {issue.path.join('.') || '(root)'}: {issue.message}
+              {issue.path.join(".") || "(root)"}: {issue.message}
             </li>
           ))}
         </ul>
       </div>
-    )
+    );
   }
 
-  const FrameComponent = def.component
+  const FrameComponent = def.component;
 
   // Bare frames (e.g. headings) structure a dashboard into zones — they get a
   // positioned slot but no card chrome and no auto-title.
-  if (def.chrome === 'bare') {
+  if (def.chrome === "bare") {
     return (
-      <div className={cx('zf-bare', className)} style={style}>
+      <div className={cx("zf-bare", className)} style={style}>
         <FrameErrorBoundary>
           <FrameComponent config={parsed.data} />
         </FrameErrorBoundary>
       </div>
-    )
+    );
   }
 
   return (
     <div
-      className={cx('zf-frame', instance.featured ? 'zf-frame--featured' : '', className)}
+      className={cx(
+        "zf-frame",
+        instance.featured ? "zf-frame--featured" : "",
+        className,
+      )}
       style={style}
     >
-      <div className="zf-frame-title">{instance.title ?? instance.frame.replace(/-/g, ' ')}</div>
+      <div className="zf-frame-title">
+        {instance.title ?? instance.frame.replace(/-/g, " ")}
+      </div>
       <div className="zf-frame-body">
         <FrameErrorBoundary>
           <FrameComponent config={parsed.data} />
         </FrameErrorBoundary>
       </div>
     </div>
-  )
+  );
 }

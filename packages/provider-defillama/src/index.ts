@@ -1,4 +1,5 @@
 import type { Capability, MarketDataProvider, TvlEntry } from "@zframes/core";
+import { fetchJson } from "@zframes/core/fetch";
 
 const CHAINS_URL = "https://api.llama.fi/v2/chains";
 
@@ -16,11 +17,11 @@ export class DefiLlamaProvider implements MarketDataProvider {
   readonly capabilities: readonly Capability[] = ["tvl"];
 
   async getTvlByChain(): Promise<TvlEntry[]> {
-    const res = await fetch(CHAINS_URL);
-    if (!res.ok) throw new Error(`defillama chains failed: ${res.status}`);
-    const chains = (await res.json()) as LlamaChain[];
+    const chains = await fetchJson<LlamaChain[]>(CHAINS_URL);
+    if (!Array.isArray(chains))
+      throw new Error("defillama chains: unexpected response shape");
     return chains
-      .filter((chain) => chain.tvl > 0)
+      .filter((chain) => Number.isFinite(chain.tvl) && chain.tvl > 0)
       .sort((a, b) => b.tvl - a.tvl)
       .map((chain) => ({ name: chain.name, tvl: chain.tvl }));
   }
