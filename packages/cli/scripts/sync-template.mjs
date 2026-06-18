@@ -57,7 +57,10 @@ const pkgs = readdirSync(srcPackages).filter((name) => {
 });
 
 for (const name of pkgs) {
-  cpSync(join(srcPackages, name), join(destPackages, name), { recursive: true, filter });
+  cpSync(join(srcPackages, name), join(destPackages, name), {
+    recursive: true,
+    filter,
+  });
 }
 
 // 2. Shared app shell -------------------------------------------------------
@@ -71,10 +74,10 @@ for (const file of ["App.tsx", "main.tsx", "background.tsx"]) {
 
 // styles.css is identical except for the Tailwind @source paths: the playground
 // reaches up to ../../../packages, the scaffold has them vendored at ../packages.
-const styles = readFileSync(join(srcApp, "src", "styles.css"), "utf8").replaceAll(
-  "../../../packages/",
-  "../packages/",
-);
+const styles = readFileSync(
+  join(srcApp, "src", "styles.css"),
+  "utf8",
+).replaceAll("../../../packages/", "../packages/");
 writeFileSync(join(templateApp, "src", "styles.css"), styles);
 
 console.log(

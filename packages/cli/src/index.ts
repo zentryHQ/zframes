@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { catalogueForAI } from "@zframes/core/catalogue";
 import { DashboardSpecSchema, type DashboardSpec } from "@zframes/core/spec";
 import { frameMetas } from "@zframes/frames/schemas";
+import { snapshot } from "./snapshot";
 
 const HELP = `zframes — AI-personalizable market dashboards
 
@@ -25,6 +26,9 @@ usage:
                               (this is what a generating agent reads)
   zframes lint <file>         validate a dashboard.json; exit 1 with readable
                               errors (the agent's self-correction feedback)
+  zframes snapshot <file>     gather a keyless market snapshot for the symbols
+                              on <dashboard.json> + the prior brief, as JSON on
+                              stdout (the deterministic half of /zframes-brief)
   zframes help                this text
 `;
 
@@ -222,7 +226,7 @@ function scaffold(target: string): number {
   return 0;
 }
 
-function main(): number {
+async function main(): Promise<number> {
   const args = process.argv.slice(2);
   const [command, arg] = args;
   switch (command) {
@@ -235,6 +239,8 @@ function main(): number {
         return 1;
       }
       return lint(arg);
+    case "snapshot":
+      return snapshot(args.slice(1));
     case "init": {
       const rest = args.slice(1);
       if (rest[0] === "--json" || rest[0] === "--spec-only") {
@@ -253,4 +259,4 @@ function main(): number {
   }
 }
 
-process.exit(main());
+main().then((code) => process.exit(code));

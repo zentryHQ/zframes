@@ -35,6 +35,13 @@
       "frame": "bitcoin-dominance",
       "position": { "x": 8, "y": 3, "w": 4, "h": 3 },
       "config": {}
+    },
+    {
+      "id": "daily-brief",
+      "frame": "daily-analysis",
+      "title": "Daily Brief",
+      "position": { "x": 0, "y": 6, "w": 6, "h": 3 },
+      "config": {}
     }
   ]
 }

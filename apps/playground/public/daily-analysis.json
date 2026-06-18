@@ -1,0 +1,67 @@
+{
+  "entries": [
+    {
+      "date": "2026-06-16",
+      "run": {
+        "timestamp": "2026-06-16T07:30:00Z",
+        "model": "claude-opus-4-8",
+        "effort": "high",
+        "config": null
+      },
+      "universe": ["xyz:TSLA", "xyz:NVDA", "xyz:AMD"],
+      "summary": "Semis led the tape — NVDA and AMD both extended on volume while TSLA chopped under resistance. Funding stayed flat, so the move isn't crowded yet.",
+      "calls": [
+        {
+          "id": "tsla-range",
+          "symbol": "xyz:TSLA",
+          "direction": "neutral",
+          "claim": "TSLA stays rangebound, no breakout above the prior high",
+          "check": "TSLA 24h change between -2% and +2%",
+          "horizon": "1d"
+        },
+        {
+          "id": "nvda-cont",
+          "symbol": "xyz:NVDA",
+          "direction": "bullish",
+          "claim": "NVDA continues higher on AI-demand momentum",
+          "check": "NVDA 24h change > 0",
+          "horizon": "1d"
+        }
+      ],
+      "grades": []
+    },
+    {
+      "date": "2026-06-17",
+      "run": {
+        "timestamp": "2026-06-17T07:30:00Z",
+        "model": "claude-sonnet-4-6",
+        "effort": "medium",
+        "config": null
+      },
+      "universe": ["xyz:TSLA", "xyz:NVDA", "xyz:AMD"],
+      "summary": "Risk cooled overnight. NVDA gave back part of yesterday's gain and TSLA held its range as called. Watching for a funding flip if the bounce gets crowded.",
+      "calls": [
+        {
+          "id": "amd-fade",
+          "symbol": "xyz:AMD",
+          "direction": "bearish",
+          "claim": "AMD fades the gap, fills toward yesterday's close",
+          "check": "AMD 24h change < 0",
+          "horizon": "1d"
+        },
+        {
+          "id": "tsla-base",
+          "symbol": "xyz:TSLA",
+          "direction": "neutral",
+          "claim": "TSLA keeps basing; no chase until it reclaims the high",
+          "check": "TSLA 24h change between -2% and +2%",
+          "horizon": "1d"
+        }
+      ],
+      "grades": [
+        { "callId": "tsla-range", "verdict": "hit", "note": "TSLA +0.6% — stayed in range" },
+        { "callId": "nvda-cont", "verdict": "miss", "note": "NVDA -1.2% — pulled back instead" }
+      ]
+    }
+  ]
+}

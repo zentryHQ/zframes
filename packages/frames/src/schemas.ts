@@ -218,9 +218,43 @@ export const headingMeta = defineFrameMeta({
   }),
 });
 
+export const dailyAnalysisMeta = defineFrameMeta({
+  name: "daily-analysis",
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Daily market brief written by the /zframes-brief loop — a dated analysis of the symbols on your dashboard, the calls it is making today, and how yesterday's calls scored (with a running hit-rate). Reads a local log file the loop appends to; needs no market data provider. Add one per dashboard.",
+  capabilities: [],
+  schema: z.object({
+    src: z
+      .string()
+      .default("/daily-analysis.json")
+      .describe(
+        "URL of the analysis log the loop writes, served from the app's public/ dir. Leave as the default unless you renamed the file.",
+      ),
+    entries: z
+      .number()
+      .int()
+      .min(1)
+      .max(5)
+      .default(1)
+      .describe(
+        "How many of the most recent daily entries to show (newest first).",
+      ),
+    refreshSec: z
+      .number()
+      .int()
+      .min(30)
+      .default(300)
+      .describe(
+        "How often (seconds) to re-fetch the log so a fresh brief appears without a manual reload.",
+      ),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   bitcoinDominanceMeta,
+  dailyAnalysisMeta,
   dinoGameMeta,
   fearGreedMeta,
   fundingHeatmapMeta,

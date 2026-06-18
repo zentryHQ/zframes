@@ -11,7 +11,11 @@ patchedDependencies:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      prettier:
+        specifier: ^3.4.0
+        version: 3.8.4
 
   apps/playground:
     dependencies:
@@ -123,6 +127,18 @@ importers:
       '@zframes/frames':
         specifier: workspace:*
         version: link:../frames
+      '@zframes/provider-alternativeme':
+        specifier: workspace:*
+        version: link:../provider-alternativeme
+      '@zframes/provider-coingecko':
+        specifier: workspace:*
+        version: link:../provider-coingecko
+      '@zframes/provider-defillama':
+        specifier: workspace:*
+        version: link:../provider-defillama
+      '@zframes/provider-hyperliquid':
+        specifier: workspace:*
+        version: link:../provider-hyperliquid
       tsup:
         specifier: ^8.3.0
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(typescript@5.9.3)
@@ -1419,6 +1435,11 @@ packages:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
+  prettier@3.8.4:
+    resolution: {integrity: sha512-N2MylSdi48+5N/6S5j+maeHbUSIzzZ5uOcX5Hm4QpV8Dkb1HFjfAKTKX6yNPJQD9AhcT3ifHNB66tWTTJDi11Q==}
+    engines: {node: '>=14'}
+    hasBin: true
+
   react-dom@19.2.7:
     resolution: {integrity: sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==}
     peerDependencies:
@@ -2621,6 +2642,8 @@ snapshots:
       nanoid: 3.3.12
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  prettier@3.8.4: {}
 
   react-dom@19.2.7(react@19.2.7):
     dependencies:

@@ -40,6 +40,10 @@
     "@types/node": "^20.14.0",
     "@zframes/core": "workspace:*",
     "@zframes/frames": "workspace:*",
+    "@zframes/provider-alternativeme": "workspace:*",
+    "@zframes/provider-coingecko": "workspace:*",
+    "@zframes/provider-defillama": "workspace:*",
+    "@zframes/provider-hyperliquid": "workspace:*",
     "tsup": "^8.3.0",
     "typescript": "^5.8.0"
   }
