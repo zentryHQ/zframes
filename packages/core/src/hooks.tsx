@@ -87,13 +87,10 @@ function usePolled<T>(
     // don't poll the public APIs in lockstep.
     let timer: ReturnType<typeof setTimeout>;
     const schedule = () => {
-      timer = setTimeout(
-        () => {
-          run();
-          schedule();
-        },
-        refreshMs * (0.85 + Math.random() * 0.3),
-      );
+      timer = setTimeout(() => {
+        run();
+        schedule();
+      }, refreshMs * (0.85 + Math.random() * 0.3));
     };
     schedule();
     return () => {
@@ -191,6 +188,41 @@ export function useCandles(
       : null,
     [],
     [provider, symbol, interval, startTimeMs, refreshMs],
+    refreshMs,
+  );
+  return { candles, isLoading };
+}
+
+/**
+ * OHLCV candles for several symbols at once (one provider call per symbol, in
+ * parallel), re-fetched on an interval. Mirrors useFundingHistory's shape for
+ * multi-series frames; a symbol whose fetch fails resolves to [] so one bad
+ * symbol can't blank the whole chart.
+ */
+export function useCandlesMulti(
+  symbols: readonly string[],
+  interval: string,
+  startTimeMs: number,
+  refreshMs = 60_000,
+): { candles: Record<string, Candle[]>; isLoading: boolean } {
+  const provider = useProviderFor("ohlcv");
+  const key = symbols.join(",");
+  const wanted = key.split(",").filter(Boolean);
+  const { data: candles, isLoading } = usePolled<Record<string, Candle[]>>(
+    provider?.getCandles && wanted.length > 0
+      ? async () => {
+          const pairs = await Promise.all(
+            wanted.map((symbol) =>
+              provider.getCandles!(symbol, interval, startTimeMs)
+                .then((c) => [symbol, c] as const)
+                .catch(() => [symbol, [] as Candle[]] as const),
+            ),
+          );
+          return Object.fromEntries(pairs);
+        }
+      : null,
+    {},
+    [provider, key, interval, startTimeMs, refreshMs],
     refreshMs,
   );
   return { candles, isLoading };
