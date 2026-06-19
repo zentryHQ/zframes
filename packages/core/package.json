@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "gridstack": "^12.1.0",
+    "lucide-react": "^1.21.0",
     "zod": "^4.1.0"
   },
   "peerDependencies": {

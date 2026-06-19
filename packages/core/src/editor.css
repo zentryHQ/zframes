@@ -6,13 +6,18 @@
    ───────────────────────────────────────────────────────────────────────── */
 
 .zf-editor {
-  --zf-accent: #8b8df9;
+  /* Editor accent derives from the same hue + saturation knobs as the dashboard
+     chrome, so customise-mode UI (buttons, selection outline, drop zone) rotates
+     and desaturates with it. The element carries --zf-accent-hue / --zf-accent-sat
+     inline (from spec.theme). */
+  --zf-accent: hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76%);
+  /* iOS-drawer curve (Ionic): gives the rail reveal a confident settle. */
+  --zf-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   position: relative;
 }
 
 .zf-editor-main {
   display: flex;
-  gap: 16px;
   align-items: flex-start;
 }
 
@@ -28,12 +33,53 @@
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-/* GridStack positions .grid-stack-item-content absolutely inside each item; let
-   our card fill it and stop GridStack's own scroll/overflow from clipping the
-   delete affordance and the customise outline. */
-.zf-editor .grid-stack-item-content {
+/* Stop GridStack's own scroll/overflow from clipping the delete affordance, the
+   customise outline, and — most visibly — the card's hover lift + accent glow,
+   which spill 2px past the content box at the top. GridStack's own rule is
+   `.grid-stack > .grid-stack-item > .grid-stack-item-content` (specificity 0,3,0),
+   so the override has to match its depth to win.
+   Do NOT set `inset`/`top`/`left`/etc. here: GridStack drives the inter-frame
+   gutter by insetting this box with the `--gs-item-margin-*` vars (set live by
+   grid.margin(gap/2) from the Frame gap slider). Pinning it to inset:0 zeroes
+   those insets, so cards touch and the gap control does nothing. */
+.zf-editor .grid-stack > .grid-stack-item > .grid-stack-item-content {
   overflow: visible;
-  inset: 0;
+}
+/* Hover lift is driven by the *stationary* content box, not the card's own
+   :hover. A self-:hover lift (the translateY on .zf-frame:hover) moves the card
+   up out from under the pointer at the card's bottom edge → :hover drops → the
+   card falls back → :hover re-fires → it bounces up and down. The content box
+   stays put (never transformed — only inset by the gap margin), so it holds the
+   whole hover state —
+   lift and accent chrome — steady through the 2px lift. Values mirror
+   .zf-frame:hover in frame-content.tsx via the same --zf-frame-*-hover vars, so
+   host theming keeps working; the self-:hover there stays as the fallback driver
+   for the 2px the card pokes above its box. */
+@media (hover: hover) {
+  .zf-editor:not(.zf-customise) .grid-stack-item-content:hover > .zf-frame {
+    transform: translateY(-2px);
+    border-color: var(
+      --zf-frame-border-hover,
+      hsl(var(--zf-accent-hue, 242) 90% 76% / 0.42)
+    );
+    background: var(
+      --zf-frame-bg-hover,
+      linear-gradient(
+        165deg,
+        rgba(34, 35, 50, 0.88) 0%,
+        rgba(18, 19, 28, 0.9) 60%,
+        rgba(12, 13, 20, 0.92) 100%
+      )
+    );
+    box-shadow: var(
+      --zf-frame-shadow-hover,
+      inset 0 1px 0 rgba(255, 255, 255, 0.09),
+      0 1px 2px rgba(0, 0, 0, 0.4),
+      0 26px 56px -26px rgba(0, 0, 0, 0.92),
+      0 0 0 1px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.12),
+      0 20px 60px -28px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.4)
+    );
+  }
 }
 .zf-fill {
   width: 100%;
@@ -59,12 +105,6 @@
   pointer-events: none;
 }
 .zf-editor.zf-customise .grid-stack-item:hover > .grid-stack-item-content {
-  outline-color: var(--zf-accent);
-}
-.zf-editor.zf-customise
-  .grid-stack-item.zf-selected
-  > .grid-stack-item-content {
-  outline-style: solid;
   outline-color: var(--zf-accent);
 }
 
@@ -114,7 +154,8 @@
 }
 
 /* Red × delete — sibling of content so it's clickable while the interior is
-   inert. Fades in on hover of the item. */
+   inert. Fades in on hover of the item. Glassy red (frosted + blurred) to sit
+   with the rest of the editor chrome rather than a flat dot with a hard ring. */
 .zf-del-btn {
   position: absolute;
   top: 0;
@@ -122,8 +163,12 @@
   width: 24px;
   height: 24px;
   border-radius: 9999px;
-  background: #ef4444;
-  border: 2px solid #0b0c13;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 113, 113, 0.82),
+    rgba(220, 38, 38, 0.86)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.28);
   color: #fff;
   display: flex;
   align-items: center;
@@ -131,10 +176,12 @@
   cursor: pointer;
   opacity: 0;
   transform: scale(0.8);
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease,
-    background 0.2s ease;
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  backdrop-filter: blur(12px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 20px -12px rgba(220, 38, 38, 0.7);
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease,
+    border-color 0.2s ease, box-shadow 0.2s ease;
   z-index: 100;
   font-size: 14px;
   font-weight: 700;
@@ -142,18 +189,72 @@
   padding: 0;
 }
 .zf-del-btn:hover {
-  background: #dc2626;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 113, 113, 0.95),
+    rgba(220, 38, 38, 0.98)
+  );
+  border-color: rgba(255, 255, 255, 0.42);
   transform: scale(1.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    0 2px 6px rgba(0, 0, 0, 0.32), 0 12px 26px -12px rgba(220, 38, 38, 0.85);
 }
 .zf-editor.zf-customise .grid-stack-item:hover > .zf-del-btn {
   opacity: 1;
   transform: scale(1);
 }
 
+/* Per-frame gear — opens this frame's settings dialog. Sibling of content (like
+   the delete ×) so it's clickable while the interior is inert; sits just left of
+   the ×. Frosted neutral, accent on hover; fades in on item hover. */
+.zf-cfg-btn {
+  position: absolute;
+  top: 0;
+  right: 28px;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    180deg,
+    rgba(38, 40, 56, 0.72),
+    rgba(19, 20, 31, 0.78)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.32), 0 8px 20px -12px rgba(0, 0, 0, 0.8);
+  transition: opacity 0.2s ease, transform 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease, box-shadow 0.2s ease;
+  z-index: 100;
+  padding: 0;
+}
+.zf-cfg-btn:hover {
+  color: hsl(var(--zf-accent-hue, 242) 96% 82%);
+  border-color: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.6);
+  transform: scale(1.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 2px 6px rgba(0, 0, 0, 0.34), 0 12px 26px -14px rgba(0, 0, 0, 0.82);
+}
+.zf-cfg-btn > svg {
+  display: block;
+}
+.zf-editor.zf-customise .grid-stack-item:hover > .zf-cfg-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
 /* Drop placeholder while dragging a new frame in. */
 .zf-editor .grid-stack-placeholder > .placeholder-content {
-  background: rgba(139, 141, 249, 0.15);
-  border: 2px dashed rgba(139, 141, 249, 0.55);
+  background: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.15);
+  border: 2px dashed hsl(var(--zf-accent-hue, 242) 90% 76% / 0.55);
   border-radius: 18px;
 }
 
@@ -170,7 +271,9 @@
 }
 .zf-editor-hint {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.5);
+  /* Survives over light dashboard backgrounds without a surface of its own. */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .zf-btn {
@@ -180,47 +283,159 @@
   line-height: 1;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 8px 14px;
-  border-radius: 9px;
+  padding: 9px 15px;
+  border-radius: 10px;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.86);
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
+  /* Self-contained frosted surface. The editor chrome floats over an arbitrary
+     dashboard background (light gradient, dark scene, busy unicorn animation),
+     so each control carries its own dark tint + blur instead of leaning on an
+     assumed-dark backdrop — translucent-white-on-light just washed out. */
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(
+    180deg,
+    rgba(38, 40, 56, 0.72),
+    rgba(19, 20, 31, 0.78)
+  );
+  color: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.32), 0 10px 24px -14px rgba(0, 0, 0, 0.8);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease,
+    box-shadow 0.18s ease, transform 0.18s ease;
 }
 .zf-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(
+    180deg,
+    rgba(50, 52, 71, 0.82),
+    rgba(26, 27, 41, 0.86)
+  );
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.34), 0 16px 30px -16px rgba(0, 0, 0, 0.82);
 }
-.zf-btn--primary {
-  background: var(--zf-accent);
-  border-color: var(--zf-accent);
-  color: #0b0c13;
+.zf-btn:active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
 }
-.zf-btn--primary:hover {
-  background: #a0a2ff;
-  border-color: #a0a2ff;
-}
-.zf-btn--danger {
-  color: #ff8b9d;
-  border-color: rgba(242, 21, 83, 0.4);
-}
-.zf-btn--danger:hover {
-  background: rgba(242, 21, 83, 0.12);
-}
-.zf-btn--ghost {
-  background: transparent;
-  border-color: transparent;
+.zf-btn:focus-visible {
+  outline: none;
+  border-color: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.35);
 }
 
-/* ── Side rail (palette + config) ──────────────────────────────────────── */
+/* Primary (Save) — the accent fill, the loudest control in the set. */
+.zf-btn--primary {
+  border-color: hsl(var(--zf-accent-hue, 242) 90% 72% / 0.7);
+  background: linear-gradient(
+    180deg,
+    hsl(var(--zf-accent-hue, 242) 96% 81%),
+    hsl(var(--zf-accent-hue, 242) 88% 72%)
+  );
+  color: #0b0c13;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 12px 26px -12px hsl(var(--zf-accent-hue, 242) 85% 60% / 0.7);
+}
+.zf-btn--primary:hover {
+  border-color: hsl(var(--zf-accent-hue, 242) 95% 78% / 0.85);
+  background: linear-gradient(
+    180deg,
+    hsl(var(--zf-accent-hue, 242) 100% 85%),
+    hsl(var(--zf-accent-hue, 242) 92% 76%)
+  );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3),
+    0 18px 34px -14px hsl(var(--zf-accent-hue, 242) 85% 60% / 0.8);
+}
+.zf-btn--primary:focus-visible {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.45);
+}
+
+/* Danger (Clear) — destructive, so it stays subordinate: the frosted neutral
+   base with a warm-pink cast that only commits to red on hover. */
+.zf-btn--danger {
+  border-color: rgba(242, 21, 83, 0.32);
+  color: #ff9aab;
+}
+.zf-btn--danger:hover {
+  border-color: rgba(242, 21, 83, 0.55);
+  color: #ffb3bf;
+  background: linear-gradient(
+    180deg,
+    rgba(120, 28, 52, 0.62),
+    rgba(74, 18, 36, 0.72)
+  );
+}
+.zf-btn--danger:focus-visible {
+  border-color: rgba(242, 21, 83, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 3px rgba(242, 21, 83, 0.35);
+}
+
+/* Ghost (Cancel) — the quietest dismiss: same frosted base, dialed down so it
+   recedes behind Save without going invisible on light backgrounds. */
+.zf-btn--ghost {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    180deg,
+    rgba(30, 31, 44, 0.5),
+    rgba(16, 17, 26, 0.58)
+  );
+  color: rgba(255, 255, 255, 0.78);
+}
+.zf-btn--ghost:hover {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Icon-only button (the collapsed "Customise" affordance, top-right). Portaled
+   into the host header — outside .zf-editor — so it derives its accent from
+   --zf-accent-hue directly, never the editor-scoped --zf-accent. */
+.zf-btn--icon {
+  padding: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  color: rgba(255, 255, 255, 0.85);
+}
+.zf-btn--icon:hover {
+  color: hsl(var(--zf-accent-hue, 242) 96% 82%);
+  border-color: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.55);
+}
+.zf-btn--icon > svg {
+  display: block;
+}
+
+/* ── Side rail (palette + config) ──────────────────────────────────────────
+   The rail stays mounted; entering customise mode animates its width 0→320px
+   (and its left margin 0→16px). The grid is `flex: 1`, so it reflows to fill
+   the space the rail gives back every frame — and because GridStack sizes its
+   items in percentages of the grid container, the cards compress in lockstep
+   with the animating width (no JS reflow). `.zf-rail` is the clip/animator;
+   `.zf-rail-inner` is the fixed-width panel it reveals, so the rail's contents
+   never reflow mid-animation — they're clipped, then settle in place. */
 .zf-rail {
-  width: 280px;
   flex: none;
+  width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  position: sticky;
+  top: 12px;
+  transition: width 0.32s var(--zf-ease-drawer),
+    margin-left 0.32s var(--zf-ease-drawer);
+}
+.zf-editor.zf-customise .zf-rail {
+  width: 320px;
+  margin-left: 16px;
+}
+.zf-rail-inner {
+  box-sizing: border-box;
+  width: 320px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -232,10 +447,21 @@
     rgba(11, 12, 19, 0.8)
   );
   border: 1px solid rgba(255, 255, 255, 0.08);
-  position: sticky;
-  top: 12px;
   max-height: calc(100vh - 24px);
   overflow-y: auto;
+  /* Fade the contents in just behind the reveal so the clip edge isn't stark. */
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.zf-editor.zf-customise .zf-rail-inner {
+  opacity: 1;
+  transition-delay: 0.12s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .zf-rail,
+  .zf-rail-inner {
+    transition: none;
+  }
 }
 .zf-rail-title {
   font-size: 10px;
@@ -256,22 +482,37 @@
   gap: 6px;
 }
 .zf-newwidget {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-align: left;
   cursor: pointer;
-  padding: 9px 11px;
+  min-height: 58px;
+  padding: 7px 10px 7px 8px;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.07);
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 .zf-newwidget:hover {
   background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(139, 141, 249, 0.4);
+  border-color: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.4);
 }
 .zf-newwidget:active {
   cursor: grabbing;
+}
+.zf-newwidget-icon {
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: 10px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 8px 18px rgba(0, 0, 0, 0.22);
+}
+.zf-newwidget-copy {
+  min-width: 0;
 }
 .zf-newwidget-name {
   font-size: 12px;
@@ -342,4 +583,674 @@
   font-size: 12px;
   color: rgba(255, 255, 255, 0.4);
   line-height: 1.5;
+}
+
+/* ── Generated config controls ─────────────────────────────────────────────
+   select / slider / color / tag list — each shares the .zf-field rhythm with
+   the text inputs above so the rail reads as one form. */
+.zf-select {
+  font: inherit;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  padding: 7px 28px 7px 9px;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-opacity='0.55' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+}
+.zf-select:focus {
+  outline: none;
+  border-color: var(--zf-accent);
+}
+/* Native menu paints on the OS surface — keep the options legible there. */
+.zf-select option {
+  color: #0b0c13;
+}
+
+.zf-field-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.zf-field-num {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* Neutral track, accent thumb — distinct from the rainbow hue slider above. */
+.zf-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  margin: 4px 0 2px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.13);
+}
+.zf-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 9999px;
+  background: var(--zf-accent);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+.zf-range::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border-radius: 9999px;
+  background: var(--zf-accent);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+.zf-range:focus-visible {
+  box-shadow: 0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.3);
+}
+
+.zf-color-row {
+  display: flex;
+  gap: 8px;
+}
+.zf-color {
+  flex: none;
+  width: 40px;
+  height: 34px;
+  padding: 2px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.zf-color::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+.zf-color::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+.zf-color::-moz-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+/* Free-text note body wants prose, not the JSON-era monospace textarea. */
+.zf-textarea--prose {
+  font-family: inherit;
+  min-height: 76px;
+}
+
+.zf-taglist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.zf-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 5px 4px 9px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.24);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* ── Ticker picker ─────────────────────────────────────────────────────── */
+.zf-symbol-editor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0 0 12px;
+  padding: 10px;
+  border-radius: 11px;
+  border: 1px solid hsl(var(--zf-accent-hue, 242) 90% 76% / 0.16);
+  background: linear-gradient(
+      135deg,
+      hsl(var(--zf-accent-hue, 242) 90% 76% / 0.1),
+      rgba(255, 255, 255, 0.035) 45%,
+      rgba(0, 0, 0, 0.16)
+    ),
+    rgba(255, 255, 255, 0.03);
+}
+.zf-symbol-head,
+.zf-holding-row,
+.zf-holding-main,
+.zf-selected-symbol,
+.zf-symbol-search,
+.zf-symbol-chip {
+  display: flex;
+  align-items: center;
+}
+.zf-symbol-head {
+  justify-content: space-between;
+  gap: 10px;
+}
+.zf-symbol-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.46);
+}
+.zf-symbol-detail {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+}
+.zf-symbol-source {
+  flex: none;
+  padding: 4px 7px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.48);
+}
+.zf-symbol-source.is-loading {
+  color: var(--zf-accent);
+  border-color: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.24);
+}
+.zf-selected-symbol {
+  min-width: 0;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.22);
+}
+.zf-selected-symbol.is-compact {
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.zf-selected-symbol-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.zf-selected-symbol-text strong,
+.zf-symbol-option-main strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.zf-selected-symbol-text em,
+.zf-symbol-option-main em {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: normal;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+.zf-selected-symbol-price {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+}
+.zf-symbol-avatar {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+.zf-symbol-avatar--stock {
+  background: rgba(255, 255, 255, 0.92);
+  color: #151821;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+.zf-symbol-avatar--crypto {
+  background: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.18);
+  color: var(--zf-accent);
+  box-shadow: inset 0 0 0 1px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.22);
+}
+/* Logo variant: the real asset image inside the chip. Stock marks (often dark)
+   keep the white chip + a little padding; crypto coin icons are full-colour
+   circles, so drop the tinted chip and clip to a circle. */
+.zf-symbol-avatar--logo {
+  object-fit: contain;
+}
+.zf-symbol-avatar--logo.zf-symbol-avatar--stock {
+  padding: 2px;
+}
+.zf-symbol-avatar--logo.zf-symbol-avatar--crypto {
+  border-radius: 9999px;
+  background: transparent;
+  box-shadow: none;
+}
+.zf-symbol-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.zf-symbol-chip {
+  min-width: 0;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 6px 6px 7px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.22);
+}
+.zf-symbol-remove {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 9999px;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+}
+.zf-symbol-remove:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ff8b9d;
+}
+.zf-symbol-empty {
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.36);
+  font-size: 11px;
+}
+.zf-symbol-combo {
+  position: relative;
+}
+.zf-symbol-search {
+  gap: 7px;
+  height: 34px;
+  border-radius: 9px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(255, 255, 255, 0.48);
+}
+.zf-symbol-search:focus-within {
+  border-color: var(--zf-accent);
+  box-shadow: 0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.12);
+}
+.zf-symbol-search.is-disabled {
+  opacity: 0.55;
+}
+.zf-symbol-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 12px;
+}
+.zf-symbol-search input::placeholder {
+  color: rgba(255, 255, 255, 0.34);
+}
+.zf-symbol-menu {
+  position: absolute;
+  z-index: 120;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 286px;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(11, 12, 19, 0.96);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.46), 0 0 0 1px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
+}
+.zf-symbol-option {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto 16px;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 7px 7px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.zf-symbol-option:hover,
+.zf-symbol-option:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.075);
+}
+.zf-symbol-option:disabled {
+  cursor: default;
+  opacity: 0.52;
+}
+.zf-symbol-option.is-selected {
+  background: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.1);
+}
+.zf-symbol-option--custom {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0 0 8px 8px;
+}
+.zf-symbol-option-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.zf-symbol-option-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.44);
+}
+.zf-symbol-change {
+  font-size: 10px;
+  font-weight: 800;
+}
+.zf-symbol-change.is-up {
+  color: #42d67a;
+}
+.zf-symbol-change.is-down {
+  color: #ff637d;
+}
+.zf-symbol-custom-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--zf-accent);
+}
+.zf-symbol-menu-status {
+  padding: 10px 8px;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 11px;
+}
+.zf-holding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.zf-holding-row {
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+}
+.zf-holding-main {
+  min-width: 0;
+  gap: 7px;
+}
+.zf-holding-amount {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.44);
+}
+
+/* ── Theme: accent-hue picker ──────────────────────────────────────────
+   A rainbow track whose thumb + value swatch render at the *current* accent,
+   so the control previews the very color it sets. Drives --zf-accent-hue,
+   which every accent in the dashboard + editor derives from. */
+.zf-theme {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.zf-theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.zf-theme-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.55);
+}
+.zf-theme-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 9999px;
+  background: var(--zf-accent);
+  box-shadow: 0 0 8px hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.9);
+}
+/* Right side of a Layout knob row: optional Reset link + the live px value. */
+.zf-theme-knob-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.zf-theme-reset {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+  cursor: pointer;
+}
+.zf-theme-reset:hover {
+  color: var(--zf-accent);
+}
+.zf-hue-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: linear-gradient(
+    to right,
+    hsl(0 90% 76%),
+    hsl(60 90% 76%),
+    hsl(120 90% 76%),
+    hsl(180 90% 76%),
+    hsl(240 90% 76%),
+    hsl(300 90% 76%),
+    hsl(360 90% 76%)
+  );
+}
+.zf-hue-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--zf-accent);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+.zf-hue-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--zf-accent);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+/* ── Per-frame settings dialog ─────────────────────────────────────────────
+   A modal that edits ONE frame, opened from that frame's gear button. Portaled
+   to <body>, so it re-declares --zf-accent (the editor scopes it to .zf-editor)
+   and reads --zf-accent-hue inline from the live hue. The .zf-field / .zf-select
+   / ticker-picker rules are unscoped, so they style the body unchanged. */
+.zf-dialog-backdrop {
+  --zf-accent: hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76%);
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(6, 7, 12, 0.62);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: zf-dialog-fade 0.16s ease;
+}
+.zf-dialog {
+  width: min(440px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    180deg,
+    rgba(20, 22, 34, 0.98),
+    rgba(11, 12, 19, 0.99)
+  );
+  box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(0, 0, 0, 0.4);
+  animation: zf-dialog-pop 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.zf-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.zf-dialog-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+}
+.zf-dialog-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.zf-dialog-close:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+.zf-dialog-close > svg {
+  display: block;
+}
+.zf-dialog-body {
+  padding: 16px;
+  overflow-y: auto;
+  /* Reserve the scrollbar's track even when no scrollbar is showing, so opening
+     the ticker dropdown (which overflows the body) can't steal width and shift
+     the form sideways. */
+  scrollbar-gutter: stable;
+}
+/* The dialog already frames the section, so its inner controls drop the rail's
+   own heading/margins that were tuned for the side panel. */
+.zf-dialog-body > :first-child {
+  margin-top: 0;
+}
+.zf-dialog-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+@keyframes zf-dialog-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes zf-dialog-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zf-dialog-backdrop,
+  .zf-dialog {
+    animation: none;
+  }
 }
