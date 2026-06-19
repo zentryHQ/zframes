@@ -34,8 +34,17 @@ export function DashboardRenderer({
           ["--zf-cols" as string]: spec.grid.columns,
           ["--zf-row-h" as string]: `${spec.grid.rowHeight}px`,
           ["--zf-gap" as string]: `${spec.grid.gap}px`,
-          // Drives every accent color in FRAME_CSS (card rims, dots, hero glow).
+          // Accent color identity (spec.theme): hue + saturation drive every
+          // accent in FRAME_CSS (card rims, title dots, source links).
           ["--zf-accent-hue" as string]: spec.theme.accentHue,
+          ["--zf-accent-sat" as string]: `${spec.theme.accentSat}%`,
+          // Card surface treatment (spec.appearance): corners, rim opacity,
+          // surface translucency, padding density, shadow depth.
+          ["--zf-frame-radius" as string]: `${spec.appearance.radius}px`,
+          ["--zf-border-alpha" as string]: spec.appearance.borderStrength,
+          ["--zf-surface-opacity" as string]: spec.appearance.surfaceOpacity,
+          ["--zf-density" as string]: spec.appearance.density,
+          ["--zf-elevation" as string]: spec.appearance.elevation,
         }}
       >
         {spec.frames.map((instance, index) => (
