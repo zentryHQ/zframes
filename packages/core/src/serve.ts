@@ -14,14 +14,49 @@ import { readFile, writeFile } from "node:fs/promises";
 export const DASHBOARD_READ_ROUTE = "/__zframes/dashboard.json";
 /** Canonical route the editor SAVES its spec to (PUT/POST). */
 export const DASHBOARD_WRITE_ROUTE = "/__zframes/dashboard";
+/**
+ * Same-origin relay for official-data hosts that browsers can't fetch directly
+ * (no CORS header, or a UA/bot wall). The browser hits this same-origin route
+ * (no CORS check); Node fetches the upstream (no CORS rule applies) and streams
+ * it back. Must match `PROXY_ROUTE` in `./fetch`, which rewrites to it.
+ */
+export const DASHBOARD_PROXY_ROUTE = "/__zframes/proxy";
 
 // Hard cap on the request body — a small spec file, never a large upload.
 const MAX_BODY_BYTES = 2_000_000;
+
+/**
+ * Hosts the proxy will relay to — official/open financial-data surfaces only.
+ * An allowlist (not an open proxy) so a dashboard or page can't turn the local
+ * serve process into an SSRF relay to arbitrary or internal hosts.
+ */
+const PROXY_ALLOW_HOSTS = new Set<string>([
+  "data.sec.gov",
+  "www.sec.gov",
+  "efts.sec.gov",
+  "www.federalreserve.gov",
+  "www.financialresearch.gov",
+  "www.nasdaqtrader.com",
+  "www.nyse.com",
+  "markets.newyorkfed.org",
+  "api.fiscaldata.treasury.gov",
+  "api.bls.gov",
+  "cdn.finra.org",
+]);
+
+// SEC's companyfacts blob is a few MB; allow headroom but bound it.
+const PROXY_MAX_BYTES = 16_000_000;
+const PROXY_TIMEOUT_MS = 20_000;
+// A real desktop Chrome UA: SEC and the other official hosts accept it, so the
+// keyless default works out of the box. `--contact` swaps in a polite UA.
+const PROXY_DEFAULT_UA =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
 
 // Minimal structural shapes satisfied by both Node's http and Vite's connect
 // middleware, so neither this module nor `./vite` needs a node/vite type dep.
 interface ReqLike {
   method?: string;
+  url?: string;
   headers: Record<string, string | string[] | undefined>;
   on(event: "data", cb: (chunk: Buffer) => void): unknown;
   on(event: "end", cb: () => void): unknown;
@@ -102,4 +137,70 @@ export function handleSpecWrite(
       res.end(JSON.stringify({ ok: false, error: String(error) }));
     }
   });
+}
+
+function proxyError(res: ResLike, status: number, error: string): void {
+  res.statusCode = status;
+  res.setHeader("content-type", "application/json");
+  res.end(JSON.stringify({ ok: false, error }));
+}
+
+/**
+ * GET `/__zframes/proxy?url=<encoded https URL>`: relay an allowlisted
+ * official-data host to the browser, same-origin, so CORS-blocked or UA-walled
+ * sources are reachable client-side without a backend or keys. GET-only,
+ * https-only, host-allowlisted (no open-proxy / SSRF), size- and time-bounded.
+ * `userAgent` lets the host send a polite contact UA (SEC fair-access); the
+ * default is a browser UA the official sources accept.
+ */
+export async function handleProxy(
+  req: ReqLike,
+  res: ResLike,
+  opts: { userAgent?: string } = {},
+): Promise<void> {
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    proxyError(res, 405, "proxy is GET-only");
+    return;
+  }
+  const query = (req.url ?? "").split("?")[1] ?? "";
+  const raw = new URLSearchParams(query).get("url");
+  let target: URL;
+  try {
+    target = new URL(raw ?? "");
+  } catch {
+    proxyError(res, 400, "missing or invalid ?url=");
+    return;
+  }
+  if (target.protocol !== "https:") {
+    proxyError(res, 400, "only https targets are allowed");
+    return;
+  }
+  if (!PROXY_ALLOW_HOSTS.has(target.hostname)) {
+    proxyError(res, 403, `host not allowed: ${target.hostname}`);
+    return;
+  }
+  try {
+    const upstream = await fetch(target.toString(), {
+      headers: {
+        "User-Agent": opts.userAgent ?? PROXY_DEFAULT_UA,
+        Accept: "application/json,text/plain,*/*",
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
+    });
+    const text = await upstream.text();
+    if (text.length > PROXY_MAX_BYTES) {
+      proxyError(res, 502, "upstream response too large");
+      return;
+    }
+    res.statusCode = upstream.status;
+    res.setHeader(
+      "content-type",
+      upstream.headers.get("content-type") ?? "application/octet-stream",
+    );
+    res.setHeader("cache-control", "no-store");
+    res.end(text);
+  } catch (error) {
+    proxyError(res, 502, `upstream fetch failed: ${String(error)}`);
+  }
 }

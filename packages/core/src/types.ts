@@ -7,8 +7,14 @@ export type Capability =
   | "tvl"
   | "sentiment"
   | "global-market"
+  | "reference-rates"
+  | "treasury-rates"
+  | "yield-curve"
+  | "macro-series"
   | "news"
   | "fundamentals"
+  | "filings"
+  | "short-volume"
   | "social";
 
 export interface DayStats {
@@ -59,6 +65,161 @@ export interface GlobalMarket {
   dominance: Record<string, number>;
 }
 
+/** One short-rate / repo reference rate observation from an official source. */
+export interface ReferenceRate {
+  code: string;
+  label: string;
+  /** ISO date, e.g. "2026-06-17". */
+  date: string;
+  /** Percent rate, e.g. 3.63. */
+  rate: number;
+  source: string;
+  volumeInBillions?: number;
+  targetRateFrom?: number;
+  targetRateTo?: number;
+  average30Day?: number;
+  average90Day?: number;
+  average180Day?: number;
+}
+
+/** Treasury average interest rate by security class. */
+export interface TreasuryAverageRate {
+  /** ISO date, e.g. "2026-05-31". */
+  date: string;
+  securityType: string;
+  security: string;
+  /** Percent rate, e.g. 3.69. */
+  rate: number;
+}
+
+/** One maturity point on the Treasury yield curve. */
+export interface YieldPoint {
+  /** Display label, e.g. "3M", "2Y", "10Y". */
+  label: string;
+  /** Maturity in months (for ordering / axis spacing). */
+  months: number;
+  /** Par yield, percent, e.g. 4.46. */
+  rate: number;
+}
+
+/** The US Treasury daily par yield curve for one date. */
+export interface YieldCurve {
+  /** ISO date of the curve, e.g. "2026-06-18". */
+  date: string;
+  /** Maturity points, shortest → longest. */
+  points: YieldPoint[];
+}
+
+/** One point in a macroeconomic time series. */
+export interface MacroPoint {
+  /** Epoch milliseconds at the period start. */
+  time: number;
+  /** Human-readable period, e.g. "May 2026". */
+  date: string;
+  value: number;
+  period: string;
+}
+
+/** Macro series from an official public data source. */
+export interface MacroSeries {
+  seriesId: string;
+  label: string;
+  source: string;
+  points: MacroPoint[];
+}
+
+/** One filing from SEC EDGAR. */
+export interface SecFiling {
+  /** Form type, e.g. "10-K", "10-Q", "8-K", "4". */
+  form: string;
+  /** ISO filing date, e.g. "2026-06-17". */
+  filingDate: string;
+  /** ISO period-of-report date when the form carries one, e.g. "2026-03-29". */
+  reportDate?: string;
+  /** EDGAR's short description, e.g. "FORM 4" — often empty. */
+  description?: string;
+  /** Accession number, e.g. "0001140361-26-025622". */
+  accessionNumber: string;
+  /** Comma-separated 8-K item codes when present, e.g. "5.02,9.01". */
+  items?: string;
+  /** Direct URL to the primary filing document (or its folder) on sec.gov. */
+  url: string;
+}
+
+/**
+ * Company profile and recent filings from SEC EDGAR's submissions endpoint.
+ * Event-driven, official, keyless data — not a price feed.
+ */
+export interface SecCompanyFilings {
+  /** Zero-padded 10-digit CIK, e.g. "0000320193". */
+  cik: string;
+  /** Registrant name, e.g. "Apple Inc.". */
+  name: string;
+  /** Tickers EDGAR associates with the registrant. */
+  tickers: string[];
+  /** Listing exchanges, e.g. ["Nasdaq"]. */
+  exchanges: string[];
+  /** Standard Industrial Classification code. */
+  sic?: string;
+  /** SIC description, e.g. "Electronic Computers". */
+  sicDescription?: string;
+  /** Filer category, e.g. "Large accelerated filer". */
+  category?: string;
+  /** Fiscal year end as "MMDD", e.g. "0926". */
+  fiscalYearEnd?: string;
+  /** Recent filings, newest first. */
+  filings: SecFiling[];
+}
+
+/** One headline financial metric extracted from SEC XBRL company facts. */
+export interface FinancialMetric {
+  /** Human label, e.g. "Revenue", "Net income". */
+  label: string;
+  /** Most recent reported value (USD, shares, or per-share depending on unit). */
+  value: number;
+  /** XBRL unit, e.g. "USD", "USD/shares", "shares". */
+  unit: string;
+  /** Fiscal period end, ISO date e.g. "2025-09-27". */
+  end: string;
+  /** Readable fiscal period, e.g. "FY2025" or "Q3 2026". */
+  fiscalPeriod: string;
+  /** SEC form the value was reported on, e.g. "10-K". */
+  form: string;
+}
+
+/**
+ * A company's headline financials from SEC EDGAR XBRL company facts. Periodic,
+ * official, keyless data (browser-reachable only via the runtime proxy).
+ */
+export interface CompanyFacts {
+  /** Zero-padded 10-digit CIK. */
+  cik: string;
+  /** Registrant name, e.g. "Apple Inc.". */
+  entityName: string;
+  /** Headline metrics, in display order. */
+  metrics: FinancialMetric[];
+}
+
+/**
+ * One symbol's daily short-sale volume from FINRA's consolidated tape report.
+ * This is *reported short volume* (sell-side short flow for the day, including
+ * market-maker hedging) — NOT short interest (outstanding short positions).
+ */
+export interface ShortVolumeEntry {
+  /** ISO date of the FINRA report, e.g. "2026-06-18". */
+  date: string;
+  /** Ticker as FINRA reports it, e.g. "TSLA". */
+  symbol: string;
+  /** Reported short volume (shares). */
+  shortVolume: number;
+  /** Short-exempt volume (shares), a subset of short volume. */
+  shortExemptVolume: number;
+  /** Total reported volume (shares). */
+  totalVolume: number;
+  /** shortVolume / totalVolume as a percent (0–100). */
+  shortPct: number;
+}
+
 export type Unsubscribe = () => void;
 
 /**
@@ -99,4 +260,22 @@ export interface MarketDataProvider {
   getFearGreed?(limit?: number): Promise<FearGreedPoint[]>;
   /** Global market snapshot (total mcap, dominance). */
   getGlobalMarket?(): Promise<GlobalMarket>;
+  /** Official short-rate / repo reference rates. */
+  getReferenceRates?(): Promise<ReferenceRate[]>;
+  /** Treasury average interest rates by security class. */
+  getTreasuryAverageRates?(): Promise<TreasuryAverageRate[]>;
+  /** US Treasury daily par yield curve (latest available date). */
+  getYieldCurve?(): Promise<YieldCurve>;
+  /** Official macroeconomic time series. */
+  getMacroSeries?(
+    seriesId: string,
+    startYear: number,
+    endYear: number,
+  ): Promise<MacroSeries>;
+  /** SEC EDGAR company profile + recent filings, by ticker or CIK. */
+  getCompanyFilings?(tickerOrCik: string): Promise<SecCompanyFilings>;
+  /** SEC EDGAR XBRL headline financials, by ticker or CIK. */
+  getCompanyFacts?(tickerOrCik: string): Promise<CompanyFacts>;
+  /** FINRA daily reported short-sale volume, keyed by the requested symbol. */
+  getShortVolume?(symbols: string[]): Promise<Record<string, ShortVolumeEntry>>;
 }

@@ -1,0 +1,26 @@
+{
+  "name": "@zframes/provider-sec",
+  "version": "0.0.0",
+  "description": "Free, no-API-key zframes data provider for SEC EDGAR company filings (CORS-safe submissions endpoint).",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/provider-sec"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

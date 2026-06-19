@@ -107,17 +107,34 @@ export class HyperliquidProvider implements MarketDataProvider {
   }
 
   async getDayStats(symbols?: string[]): Promise<Record<string, DayStats>> {
-    // Group requested symbols by dex; no symbols = default-dex universe.
-    const dexes = symbols ? [...new Set(symbols.map(dexOf))] : [""];
+    // Three request shapes, all routed through `metaAndAssetCtxs` per dex:
+    //   • no symbols           → the default-dex universe (crypto)
+    //   • "<dex>:*" wildcard   → that dex's *entire* universe (e.g. "xyz:*"
+    //                            for every HIP-3 equity) — there's otherwise no
+    //                            way to enumerate a dex without naming symbols
+    //   • concrete symbols     → just those, grouped by their dex
+    const wholeDexes = new Set<string>();
+    const concrete = new Set<string>();
+    if (!symbols) {
+      wholeDexes.add("");
+    } else {
+      for (const s of symbols) {
+        if (s.endsWith(":*")) wholeDexes.add(s.slice(0, -2));
+        else concrete.add(s);
+      }
+    }
+    const dexes = new Set<string>(wholeDexes);
+    for (const s of concrete) dexes.add(dexOf(s));
 
     const out: Record<string, DayStats> = {};
     await Promise.all(
-      dexes.map(async (dex) => {
+      [...dexes].map(async (dex) => {
         const body: Record<string, unknown> = { type: "metaAndAssetCtxs" };
         if (dex) body.dex = dex;
         const [meta, ctxs] = await info<[PerpMeta, AssetCtx[]]>(body);
+        const wholeDex = wholeDexes.has(dex);
         meta.universe.forEach((asset, i) => {
-          if (symbols && !symbols.includes(asset.name)) return;
+          if (!wholeDex && !concrete.has(asset.name)) return;
           const ctx = ctxs[i];
           if (!ctx) return;
           const markPx = Number(ctx.markPx);

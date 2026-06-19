@@ -19,15 +19,27 @@ export interface FetchJsonOptions {
   timeoutMs?: number;
   /** Extra request init — method, body, headers (e.g. Hyperliquid's POSTs). */
   init?: RequestInit;
+  /**
+   * Route through the runtime's same-origin proxy when running in the browser,
+   * for official-data hosts that aren't browser-CORS-safe (SEC XBRL, H.15, …).
+   * In Node it's a no-op (Node has no CORS rule) — the request goes direct, so a
+   * provider can pass its own `User-Agent` in `init` for the Node path. The
+   * proxy only exists while `zframes serve` / `vite dev` is running; in a static
+   * deploy a proxied fetch 404s and the caller surfaces its empty/error state.
+   */
+  proxied?: boolean;
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const USER_AGENT = "zframes (+https://github.com/zentryhq/zframes)";
+// Must match `DASHBOARD_PROXY_ROUTE` in ./serve. Hardcoded (not imported) so the
+// browser bundle never pulls in serve.ts's node:fs dependency.
+const PROXY_ROUTE = "/__zframes/proxy";
 
 export async function fetchJson<T>(
   url: string,
   schema?: ZodType<T>,
-  { timeoutMs = DEFAULT_TIMEOUT_MS, init }: FetchJsonOptions = {},
+  { timeoutMs = DEFAULT_TIMEOUT_MS, init, proxied }: FetchJsonOptions = {},
 ): Promise<T> {
   const headers = new Headers(init?.headers);
   // Browsers forbid setting User-Agent (it's silently dropped); only bother in
@@ -35,7 +47,13 @@ export async function fetchJson<T>(
   if (typeof document === "undefined" && !headers.has("User-Agent")) {
     headers.set("User-Agent", USER_AGENT);
   }
-  const res = await fetch(url, {
+  // In the browser, a proxied request becomes a same-origin call to the local
+  // runtime, which relays the real host. In Node, fetch the target directly.
+  const target =
+    proxied && typeof document !== "undefined"
+      ? `${PROXY_ROUTE}?url=${encodeURIComponent(url)}`
+      : url;
+  const res = await fetch(target, {
     ...init,
     headers,
     signal: init?.signal ?? AbortSignal.timeout(timeoutMs),

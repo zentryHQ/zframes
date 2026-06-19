@@ -9,12 +9,19 @@ import {
 import type {
   Candle,
   Capability,
+  CompanyFacts,
   DayStats,
   FearGreedPoint,
   FundingPoint,
   GlobalMarket,
+  MacroSeries,
   MarketDataProvider,
+  ReferenceRate,
+  SecCompanyFilings,
+  ShortVolumeEntry,
+  TreasuryAverageRate,
   TvlEntry,
+  YieldCurve,
 } from "./types";
 
 const ProvidersContext = createContext<MarketDataProvider[]>([]);
@@ -285,8 +292,13 @@ export function useTvlByChain(refreshMs = 10 * 60_000): {
   return { entries, isLoading };
 }
 
-/** Global market snapshot (total mcap, dominance), polled every few minutes. */
-export function useGlobalMarket(refreshMs = 5 * 60_000): {
+/**
+ * Global market snapshot (total mcap, dominance), polled every ~15 min — the
+ * CoinGecko source only refreshes the global endpoint about every 10 minutes
+ * and dominance drifts over hours, so faster polling just burns rate-limit
+ * tokens for an identical payload.
+ */
+export function useGlobalMarket(refreshMs = 15 * 60_000): {
   market: GlobalMarket | null;
   isLoading: boolean;
 } {
@@ -313,4 +325,132 @@ export function useFearGreed(
     refreshMs,
   );
   return { points, isLoading };
+}
+
+/** Official short-rate / repo reference rates, polled conservatively. */
+export function useReferenceRates(refreshMs = 15 * 60_000): {
+  rates: ReferenceRate[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("reference-rates");
+  const { data: rates, isLoading } = usePolled<ReferenceRate[]>(
+    provider?.getReferenceRates ? () => provider.getReferenceRates!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { rates, isLoading };
+}
+
+/** Treasury average borrowing rates by security class. */
+export function useTreasuryAverageRates(refreshMs = 6 * 60 * 60_000): {
+  rates: TreasuryAverageRate[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("treasury-rates");
+  const { data: rates, isLoading } = usePolled<TreasuryAverageRate[]>(
+    provider?.getTreasuryAverageRates
+      ? () => provider.getTreasuryAverageRates!()
+      : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { rates, isLoading };
+}
+
+/** US Treasury daily par yield curve, polled slowly (updates once per business day). */
+export function useYieldCurve(refreshMs = 6 * 60 * 60_000): {
+  curve: YieldCurve | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("yield-curve");
+  const { data: curve, isLoading } = usePolled<YieldCurve | null>(
+    provider?.getYieldCurve ? () => provider.getYieldCurve!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { curve, isLoading };
+}
+
+/** Official macroeconomic time series such as CPI or unemployment. */
+export function useMacroSeries(
+  seriesId: string,
+  startYear: number,
+  endYear: number,
+  refreshMs = 12 * 60 * 60_000,
+): { series: MacroSeries | null; isLoading: boolean } {
+  const provider = useProviderFor("macro-series");
+  const { data: series, isLoading } = usePolled<MacroSeries | null>(
+    provider?.getMacroSeries && seriesId
+      ? () => provider.getMacroSeries!(seriesId, startYear, endYear)
+      : null,
+    null,
+    [provider, seriesId, startYear, endYear, refreshMs],
+    refreshMs,
+  );
+  return { series, isLoading };
+}
+
+/**
+ * SEC EDGAR company profile + recent filings, by ticker or CIK. Filings are
+ * event-driven, so polling is slow by default (every 30 min).
+ */
+export function useCompanyFilings(
+  tickerOrCik: string,
+  refreshMs = 30 * 60_000,
+): { data: SecCompanyFilings | null; isLoading: boolean } {
+  const provider = useProviderFor("filings");
+  const { data, isLoading } = usePolled<SecCompanyFilings | null>(
+    provider?.getCompanyFilings && tickerOrCik
+      ? () => provider.getCompanyFilings!(tickerOrCik)
+      : null,
+    null,
+    [provider, tickerOrCik, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/**
+ * SEC EDGAR XBRL headline financials, by ticker or CIK. Financials change only
+ * on filings, so this polls slowly (every 12 h by default).
+ */
+export function useCompanyFacts(
+  tickerOrCik: string,
+  refreshMs = 12 * 60 * 60_000,
+): { data: CompanyFacts | null; isLoading: boolean } {
+  const provider = useProviderFor("fundamentals");
+  const { data, isLoading } = usePolled<CompanyFacts | null>(
+    provider?.getCompanyFacts && tickerOrCik
+      ? () => provider.getCompanyFacts!(tickerOrCik)
+      : null,
+    null,
+    [provider, tickerOrCik, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/**
+ * FINRA daily reported short-sale volume per symbol. The report updates once a
+ * day (next business day), so this polls slowly (every 6 h by default).
+ */
+export function useShortVolume(
+  symbols: readonly string[],
+  refreshMs = 6 * 60 * 60_000,
+): { data: Record<string, ShortVolumeEntry>; isLoading: boolean } {
+  const provider = useProviderFor("short-volume");
+  const key = symbols.join(",");
+  const wanted = key.split(",").filter(Boolean);
+  const { data, isLoading } = usePolled<Record<string, ShortVolumeEntry>>(
+    provider?.getShortVolume && wanted.length > 0
+      ? () => provider.getShortVolume!(wanted)
+      : null,
+    {},
+    [provider, key, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
 }

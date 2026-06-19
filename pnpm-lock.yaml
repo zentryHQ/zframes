@@ -27,15 +27,30 @@ importers:
       '@zframes/provider-alternativeme':
         specifier: workspace:*
         version: link:../../packages/provider-alternativeme
+      '@zframes/provider-bls':
+        specifier: workspace:*
+        version: link:../../packages/provider-bls
       '@zframes/provider-coingecko':
         specifier: workspace:*
         version: link:../../packages/provider-coingecko
       '@zframes/provider-defillama':
         specifier: workspace:*
         version: link:../../packages/provider-defillama
+      '@zframes/provider-finra':
+        specifier: workspace:*
+        version: link:../../packages/provider-finra
       '@zframes/provider-hyperliquid':
         specifier: workspace:*
         version: link:../../packages/provider-hyperliquid
+      '@zframes/provider-nyfed':
+        specifier: workspace:*
+        version: link:../../packages/provider-nyfed
+      '@zframes/provider-sec':
+        specifier: workspace:*
+        version: link:../../packages/provider-sec
+      '@zframes/provider-treasury':
+        specifier: workspace:*
+        version: link:../../packages/provider-treasury
       gridstack:
         specifier: ^12.1.0
         version: 12.6.0
@@ -172,6 +187,9 @@ importers:
       gridstack:
         specifier: ^12.1.0
         version: 12.6.0
+      lucide-react:
+        specifier: ^1.21.0
+        version: 1.21.0(react@19.2.7)
       react:
         specifier: '>=18'
         version: 19.2.7
@@ -230,6 +248,16 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-bls:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-coingecko:
     dependencies:
       '@zframes/core':
@@ -250,7 +278,47 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-finra:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-hyperliquid:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-nyfed:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-sec:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-treasury:
     dependencies:
       '@zframes/core':
         specifier: workspace:*
@@ -1391,6 +1459,11 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
+
+  lucide-react@1.21.0:
+    resolution: {integrity: sha512-reEZMXq8Qdd5jg5XYkQ5TR1fB/GiQ7ih4vcrthYDtgjSDwh0i6/YLiGjsWsIwgN49gpAnd4J2elSNzncMEEUUQ==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -2606,6 +2679,10 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  lucide-react@1.21.0(react@19.2.7):
+    dependencies:
+      react: 19.2.7
 
   magic-string@0.30.21:
     dependencies:
