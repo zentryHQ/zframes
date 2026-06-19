@@ -6,6 +6,15 @@ dist/
 .env
 .env.*
 
+# design-sync: staged converter scripts + regenerated build output + machine state
+# (durable inputs under .design-sync/ — config.json, NOTES.md, conventions.md,
+#  previews/, overrides/, ds-entry.tsx — ARE committed)
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+
 # Derived: vendored runtime + shared app shell for the CLI scaffold template
 # (regenerated from packages/* and apps/playground by build:cli)
 packages/cli/templates/app/packages/
