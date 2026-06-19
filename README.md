@@ -8,11 +8,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache-2.0"></a>
   <img src="https://img.shields.io/badge/data-keyless-brightgreen" alt="Keyless">
   <img src="https://img.shields.io/badge/TypeScript-strict-3178c6" alt="TypeScript">
-  <img src="https://img.shields.io/badge/pnpm-workspace-f69220" alt="pnpm workspace">
+  <img src="https://img.shields.io/badge/install-npx_skills_add-7c3aed" alt="Install: npx skills add">
   <img src="https://img.shields.io/badge/agent-driven-7c3aed" alt="Agent-driven">
 </p>
 
-zframes is a framework where **AI agents generate personal market terminals**. The agent reads a catalogue of *frames* (typed, validated dashboard widgets), emits a plain-JSON `dashboard.json` spec, and the runtime renders it with live market data. Invalid specs fail per-frame with readable errors the agent uses to self-correct — the generation loop is built into the rendering contract, so the agent never writes a line of React.
+zframes is a framework where **AI agents generate personal market terminals**. You don't clone a repo or build a Node project — you install a *skill* into your coding agent and describe the dashboard you want. The agent reads a catalogue of *frames* (typed, validated dashboard widgets), emits a plain-JSON `dashboard.json` spec, and the runtime renders it with live market data. Invalid specs fail per-frame with readable errors the agent uses to self-correct — the generation loop is built into the rendering contract, so the agent never writes a line of React.
 
 <p align="center">
   <img src="docs/assets/dashboard-2026-06-12.png" alt="A zframes dashboard: live price charts, a streaming watchlist, top movers, fear &amp; greed, BTC dominance, a funding heatmap, a TVL treemap, and a dino game" width="720">
@@ -30,40 +30,29 @@ zframes is a framework where **AI agents generate personal market terminals**. T
 
 ---
 
-## See it running
+## Quickstart — install the skill, then talk
+
+You drive zframes from your coding agent, not from a Node project you build by hand. Open your agent, install the skill once, and describe what you want — the agent absorbs all the scaffolding, building, and running.
+
+### 1. Install the skill
 
 ```bash
-pnpm install
-pnpm dev          # playground at http://localhost:5179
+npx skills add zentry/zframes
 ```
 
-The playground streams real prices from Hyperliquid's public WebSocket and renders the dashboard in [`apps/playground/src/dashboard.json`](apps/playground/src/dashboard.json). Edit that file — by hand or with your agent — and it hot-reloads. You can also drag, resize, and add frames right in the browser; **Save** writes the changes back to the same `dashboard.json`.
+That pulls the [`zframes`](skills/zframes/SKILL.md) and [`zframes-brief`](skills/zframes-brief/SKILL.md) skills from this repo into your agent's skills directory (for Claude Code, `~/.claude/skills/`). One command, no clone, no per-package install — it works with any agent that supports the open skills standard.
 
-```bash
-pnpm typecheck    # tsc across all packages
-pnpm build        # production build of the playground
-```
+### Supported agents
 
----
+The skills are plain Markdown following the [skills standard](https://github.com/obra/skills), so any skills-aware coding agent can run them. Install is the same `npx skills add zentry/zframes` everywhere; only how you summon the skill differs.
 
-## Use it with your agent
-
-zframes is built to be driven by a coding agent (Claude Code, Cursor, …). Two skills ship in [`skills/`](skills/):
-
-| Skill | What it does | You say |
+| Agent | Summon it by | Status |
 |---|---|---|
-| [**`zframes`**](skills/zframes/SKILL.md) | Builds & edits your dashboard — scaffolds a real app, reads the catalogue, writes `dashboard.json`, lints it, opens the browser. | *"build me a TSLA + NVDA terminal"* |
-| [**`zframes-brief`**](skills/zframes-brief/SKILL.md) | Daily analyst loop — analyzes the symbols on your dashboard, grades yesterday's calls, writes today's brief into the `daily-analysis` frame. | *"run my daily brief"* |
-
-### 1. Install the skill (Claude Code)
-
-Until the skill is published to npm, copy it into your skills directory:
-
-```bash
-git clone https://github.com/zentry/zframes.git
-cp -r zframes/skills/zframes        ~/.claude/skills/
-cp -r zframes/skills/zframes-brief  ~/.claude/skills/   # optional: the daily loop
-```
+| **Claude Code** (Anthropic) | `/zframes build me a TSLA terminal` | ✅ Primary — tested end-to-end |
+| **Cursor** | mention **zframes** in chat | ✓ Compatible (skills standard) |
+| **Gemini CLI** (Google) | mention **zframes** in chat | ✓ Compatible (skills standard) |
+| **Codex** (OpenAI) | mention **zframes** in chat | ✓ Compatible (skills standard) |
+| Any other skills-aware agent | reads `skills/` per the open standard | ⚙️ Should work |
 
 ### 2. Then just talk
 
@@ -75,12 +64,19 @@ cp -r zframes/skills/zframes-brief  ~/.claude/skills/   # optional: the daily lo
   → agent scaffolds a real Vite app  (zframes init)
   → agent reads the frame catalogue  (zframes catalogue)
   → agent writes dashboard.json and lints it  (zframes lint)
-  → agent runs pnpm dev and opens the browser
+  → agent runs the dev server and opens the browser
 ```
 
 The contract the agent works against is the **catalogue** (frame names + config schemas) and the **linter** (per-frame validation feedback). It only ever emits JSON — the framework owns all rendering.
 
-> **Roadmap:** once the CLI and skill ship to npm, install becomes `npx skills add zframes` and the agent calls `npx zframes` instead of the in-repo CLI — same conversation, no clone needed. See [`docs/deployment-plan.html`](docs/deployment-plan.html).
+### What the two skills do
+
+| Skill | What it does | You say |
+|---|---|---|
+| [**`zframes`**](skills/zframes/SKILL.md) | Builds & edits your dashboard — scaffolds a real app, reads the catalogue, writes `dashboard.json`, lints it, opens the browser. | *"build me a TSLA + NVDA terminal"* |
+| [**`zframes-brief`**](skills/zframes-brief/SKILL.md) | Daily analyst loop — analyzes the symbols on your dashboard, grades yesterday's calls, writes today's brief into the `daily-analysis` frame. | *"run my daily brief"* |
+
+> **🚧 Pre-release.** `npx skills add zentry/zframes` installs the skills straight from GitHub today — no npm publish needed. The `zframes` **CLI** they drive is still being published to npm (so the agent can `npx zframes` per run); until that lands, clone this repo and the skill uses the in-repo CLI (`pnpm zframes`). Progress: [`docs/deployment-plan.html`](docs/deployment-plan.html).
 
 ---
 
@@ -143,7 +139,25 @@ The `daily-analysis` frame renders that log on the dashboard. The loop **only** 
 
 ---
 
-## CLI
+## Run it from source
+
+You don't need this to *use* zframes — the agent flow above handles everything. But the repo runs standalone if you want to hack on the framework, inspect the playground, or drive the CLI by hand.
+
+```bash
+pnpm install
+pnpm dev          # playground at http://localhost:5179
+```
+
+The playground streams real prices from Hyperliquid's public WebSocket and renders the dashboard in [`apps/playground/src/dashboard.json`](apps/playground/src/dashboard.json). Edit that file — by hand or with your agent — and it hot-reloads. You can also drag, resize, and add frames right in the browser; **Save** writes the changes back to the same `dashboard.json`.
+
+```bash
+pnpm typecheck    # tsc across all packages
+pnpm build        # production build of the playground
+```
+
+### CLI
+
+The skill drives this CLI; you can run the same commands yourself.
 
 ```bash
 pnpm build:cli                      # build the bin (also vendors the scaffold template)
@@ -154,7 +168,7 @@ pnpm zframes init [dir]             # scaffold a full, runnable dashboard app
 pnpm zframes init --json [file]     # write just a starter dashboard.json
 ```
 
-`zframes init` scaffolds a complete, owned Vite app with the runtime vendored in — it runs without cloning this repo or installing anything from a registry. (Publishing the CLI and skill to npm is on the roadmap; see [`docs/deployment-plan.html`](docs/deployment-plan.html).)
+`zframes init` scaffolds a complete, owned Vite app with the runtime vendored in — it runs without cloning this repo or installing anything from a registry. (Publishing the CLI to npm — so the agent can `npx zframes` per run — is on the roadmap; see [`docs/deployment-plan.html`](docs/deployment-plan.html).)
 
 ---
 
