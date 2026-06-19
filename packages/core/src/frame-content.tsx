@@ -27,16 +27,16 @@ export const FRAME_CSS = `
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding: 14px 16px;
-  background: var(--zf-frame-bg, linear-gradient(180deg, rgba(20, 22, 34, 0.88), rgba(11, 12, 19, 0.91)));
-  border: 1px solid var(--zf-frame-border, rgba(255, 255, 255, 0.08));
-  border-radius: var(--zf-frame-radius, 14px);
-  box-shadow: var(--zf-frame-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 12px 32px -18px rgba(0, 0, 0, 0.75));
+  padding: 16px 18px;
+  background: var(--zf-frame-bg, linear-gradient(165deg, rgba(26, 27, 38, 0.82) 0%, rgba(14, 15, 22, 0.86) 60%, rgba(10, 11, 17, 0.9) 100%));
+  border: 1px solid var(--zf-frame-border, rgba(255, 255, 255, 0.07));
+  border-radius: var(--zf-frame-radius, 18px);
+  box-shadow: var(--zf-frame-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 44px -26px rgba(0, 0, 0, 0.9));
   transition:
-    border-color 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
-    background 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
-    box-shadow 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
-    transform 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+    border-color 0.25s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    background 0.25s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    box-shadow 0.25s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    transform 0.25s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   /* Frames arrive in a soft top-down cascade on first paint. The translate
      property (not transform) carries the motion, so the hover lift stays
      independent; the backwards fill holds the hidden state through the stagger
@@ -47,44 +47,54 @@ export const FRAME_CSS = `
 /* Hover lift is pointer-only — on touch it would stick after a tap. */
 @media (hover: hover) {
   .zf-frame:hover {
-    border-color: var(--zf-frame-border-hover, rgba(139, 141, 249, 0.4));
-    background: var(--zf-frame-bg-hover, linear-gradient(180deg, rgba(30, 32, 46, 0.92), rgba(16, 17, 26, 0.94)));
-    box-shadow: var(--zf-frame-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 44px -20px rgba(0, 0, 0, 0.85));
-    transform: translateY(-1px);
+    border-color: var(--zf-frame-border-hover, rgba(139, 141, 249, 0.42));
+    background: var(--zf-frame-bg-hover, linear-gradient(165deg, rgba(34, 35, 50, 0.88) 0%, rgba(18, 19, 28, 0.9) 60%, rgba(12, 13, 20, 0.92) 100%));
+    box-shadow: var(--zf-frame-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 1px 2px rgba(0, 0, 0, 0.4), 0 26px 56px -26px rgba(0, 0, 0, 0.92), 0 0 0 1px rgba(139, 141, 249, 0.12), 0 20px 60px -28px rgba(139, 141, 249, 0.4));
+    transform: translateY(-2px);
   }
   .zf-frame--featured:hover {
-    border-color: var(--zf-frame-featured-border-hover, rgba(139, 141, 249, 0.72));
+    border-color: var(--zf-frame-featured-border-hover, rgba(160, 162, 255, 0.75));
   }
 }
+/* Top edge sheen — inset past the corner radius so the bright line never
+   pokes outside the rounded border (which read as a clipped corner). */
 .zf-frame::before {
   content: '';
   position: absolute;
-  inset: 0 0 auto 0;
+  top: 0;
+  left: 18px;
+  right: 18px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
   pointer-events: none;
+  z-index: 2;
 }
 .zf-frame-title {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 7px;
+  margin-bottom: 12px;
   font-family: var(--font-dmsans, inherit);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--zf-frame-title, rgba(255, 255, 255, 0.46));
+  color: var(--zf-frame-title, rgba(255, 255, 255, 0.5));
   flex: none;
 }
 .zf-frame-title::before {
   content: '';
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
   border-radius: 9999px;
-  background: var(--zf-frame-title-dot, rgba(139, 141, 249, 0.8));
+  background: var(--zf-frame-title-dot, #8b8df9);
+  box-shadow: 0 0 8px var(--zf-frame-title-dot-glow, rgba(139, 141, 249, 0.9));
 }
 .zf-frame-body {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -101,13 +111,33 @@ export const FRAME_CSS = `
   line-height: 1.5;
 }
 .zf-frame--error .zf-frame-title { color: var(--zf-frame-error-text, #ff8b9d); }
-.zf-frame--error .zf-frame-title::before { background: var(--zf-frame-error-text, #ff8b9d); }
+.zf-frame--error .zf-frame-title::before {
+  background: var(--zf-frame-error-text, #ff8b9d);
+  box-shadow: 0 0 8px rgba(242, 21, 83, 0.7);
+}
 .zf-frame--featured {
-  border-color: var(--zf-frame-featured-border, rgba(139, 141, 249, 0.55));
-  box-shadow: var(--zf-frame-featured-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 0 0 1px rgba(139, 141, 249, 0.22), 0 24px 64px -28px rgba(99, 102, 241, 0.6));
+  border-color: var(--zf-frame-featured-border, rgba(139, 141, 249, 0.5));
+  box-shadow: var(--zf-frame-featured-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(139, 141, 249, 0.18), 0 30px 80px -34px rgba(99, 102, 241, 0.55), 0 18px 50px -30px rgba(0, 0, 0, 0.9));
+}
+/* Hero bloom — a soft accent glow rising from the top edge, clipped to the
+   card radius by overflow:hidden. Sits at z-index 0 so the title/body (z 1)
+   stay crisp on top. */
+.zf-frame--featured::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--zf-frame-featured-bloom, radial-gradient(135% 95% at 50% -10%, rgba(139, 141, 249, 0.2), rgba(139, 141, 249, 0.05) 40%, transparent 72%));
+  pointer-events: none;
+  z-index: 0;
+}
+@media (hover: hover) {
+  .zf-frame--featured:hover {
+    box-shadow: var(--zf-frame-featured-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(139, 141, 249, 0.28), 0 36px 90px -32px rgba(99, 102, 241, 0.7), 0 18px 50px -30px rgba(0, 0, 0, 0.92));
+  }
 }
 .zf-frame--featured .zf-frame-title {
-  color: var(--zf-frame-featured-title, rgba(176, 178, 255, 0.85));
+  color: var(--zf-frame-featured-title, rgba(184, 186, 255, 0.9));
 }
 /* Bare frames (headings) divide a dashboard into zones — positioned slot,
    no card chrome, no auto-title. */
