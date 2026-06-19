@@ -1,147 +1,304 @@
 {
   "version": 1,
-  "title": "micky's equities desk",
-  "grid": { "columns": 12, "rowHeight": 96, "gap": 12 },
+  "title": "micky's stocks desk",
+  "grid": {
+    "columns": 12,
+    "rowHeight": 96,
+    "gap": 12
+  },
   "background": {
     "type": "unicorn",
     "projectId": "K42KSY4FXeXhjVOj9RgT",
-    "opacity": 0.05
+    "scale": 1,
+    "dpi": 1.5,
+    "opacity": 0.16
   },
   "frames": [
     {
-      "id": "equities-heading",
+      "id": "markets-heading",
       "frame": "heading",
-      "position": { "x": 0, "y": 0, "w": 12, "h": 1 },
+      "position": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 1
+      },
       "config": {
-        "title": "Equities",
+        "title": "Markets",
         "subtitle": "HIP-3 stock perps — streaming live"
-      }
+      },
+      "featured": false
     },
     {
-      "id": "tsla-candles",
+      "id": "tsla-hero",
       "frame": "price-chart",
       "title": "TSLA",
-      "position": { "x": 0, "y": 1, "w": 6, "h": 3 },
-      "featured": true,
+      "position": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 3
+      },
       "config": {
         "symbol": "xyz:TSLA",
         "interval": "1m",
         "mode": "candle",
         "color": "#e6464f"
-      }
+      },
+      "featured": true
     },
     {
       "id": "nvda-live",
       "frame": "price-chart",
       "title": "NVDA",
-      "position": { "x": 6, "y": 1, "w": 3, "h": 3 },
+      "position": {
+        "x": 6,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
       "config": {
         "symbol": "xyz:NVDA",
         "interval": "1m",
         "mode": "line",
         "color": "#76d275"
-      }
+      },
+      "featured": false
     },
     {
-      "id": "amd-live",
+      "id": "aapl-live",
       "frame": "price-chart",
-      "title": "AMD",
-      "position": { "x": 9, "y": 1, "w": 3, "h": 3 },
+      "title": "AAPL",
+      "position": {
+        "x": 9,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
       "config": {
-        "symbol": "xyz:AMD",
+        "symbol": "xyz:AAPL",
         "interval": "1m",
         "mode": "line",
-        "color": "#f4a259"
-      }
+        "color": "#8b8df9"
+      },
+      "featured": false
     },
     {
-      "id": "sp500-live",
+      "id": "msft-live",
       "frame": "price-chart",
-      "title": "S&P 500",
-      "position": { "x": 0, "y": 4, "w": 3, "h": 2 },
-      "config": { "symbol": "xyz:SP500", "interval": "1m", "mode": "line" }
-    },
-    {
-      "id": "mstr-live",
-      "frame": "price-chart",
-      "title": "MSTR",
-      "position": { "x": 3, "y": 4, "w": 3, "h": 2 },
-      "config": { "symbol": "xyz:MSTR", "interval": "1m", "mode": "line" }
-    },
-    {
-      "id": "orcl-live",
-      "frame": "price-chart",
-      "title": "ORCL",
-      "position": { "x": 6, "y": 4, "w": 3, "h": 2 },
-      "config": { "symbol": "xyz:ORCL", "interval": "1m", "mode": "line" }
+      "title": "MSFT",
+      "position": {
+        "x": 0,
+        "y": 4,
+        "w": 3,
+        "h": 2
+      },
+      "config": {
+        "symbol": "xyz:MSFT",
+        "interval": "1m",
+        "mode": "line"
+      },
+      "featured": false
     },
     {
       "id": "googl-live",
       "frame": "price-chart",
       "title": "GOOGL",
-      "position": { "x": 9, "y": 4, "w": 3, "h": 2 },
-      "config": { "symbol": "xyz:GOOGL", "interval": "1m", "mode": "line" }
+      "position": {
+        "x": 3,
+        "y": 4,
+        "w": 3,
+        "h": 2
+      },
+      "config": {
+        "symbol": "xyz:GOOGL",
+        "interval": "1m",
+        "mode": "line"
+      },
+      "featured": false
     },
     {
-      "id": "mu-live",
+      "id": "amd-live",
       "frame": "price-chart",
-      "title": "MU",
-      "position": { "x": 0, "y": 6, "w": 3, "h": 2 },
-      "config": { "symbol": "xyz:MU", "interval": "1m", "mode": "line" }
+      "title": "AMD",
+      "position": {
+        "x": 6,
+        "y": 4,
+        "w": 3,
+        "h": 2
+      },
+      "config": {
+        "symbol": "xyz:AMD",
+        "interval": "1m",
+        "mode": "line",
+        "color": "#f4a259"
+      },
+      "featured": false
     },
     {
-      "id": "intc-live",
+      "id": "meta-live",
       "frame": "price-chart",
-      "title": "INTC",
-      "position": { "x": 3, "y": 6, "w": 3, "h": 2 },
-      "config": { "symbol": "xyz:INTC", "interval": "1m", "mode": "line" }
-    },
-    {
-      "id": "mrvl-live",
-      "frame": "price-chart",
-      "title": "MRVL",
-      "position": { "x": 6, "y": 6, "w": 3, "h": 2 },
-      "config": { "symbol": "xyz:MRVL", "interval": "1m", "mode": "line" }
-    },
-    {
-      "id": "crcl-live",
-      "frame": "price-chart",
-      "title": "CRCL",
-      "position": { "x": 9, "y": 6, "w": 3, "h": 2 },
-      "config": { "symbol": "xyz:CRCL", "interval": "1m", "mode": "line" }
+      "title": "META",
+      "position": {
+        "x": 9,
+        "y": 4,
+        "w": 3,
+        "h": 2
+      },
+      "config": {
+        "symbol": "xyz:META",
+        "interval": "1m",
+        "mode": "line"
+      },
+      "featured": false
     },
     {
       "id": "desk-heading",
       "frame": "heading",
-      "position": { "x": 0, "y": 8, "w": 12, "h": 1 },
-      "config": { "title": "Desk", "subtitle": "context & rules" }
+      "position": {
+        "x": 0,
+        "y": 6,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Desk",
+        "subtitle": "context & rules"
+      },
+      "featured": false
     },
     {
       "id": "movers",
       "frame": "top-movers",
-      "position": { "x": 0, "y": 9, "w": 5, "h": 3 },
-      "config": { "count": 6 }
+      "position": {
+        "x": 0,
+        "y": 7,
+        "w": 5,
+        "h": 3
+      },
+      "config": {
+        "count": 6
+      },
+      "featured": false
     },
     {
       "id": "sentiment",
       "frame": "fear-greed",
-      "position": { "x": 5, "y": 9, "w": 3, "h": 3 },
-      "config": {}
+      "position": {
+        "x": 5,
+        "y": 7,
+        "w": 3,
+        "h": 3
+      },
+      "config": {},
+      "featured": false
     },
     {
       "id": "plan",
       "frame": "note",
-      "position": { "x": 8, "y": 9, "w": 4, "h": 3 },
+      "position": {
+        "x": 8,
+        "y": 7,
+        "w": 4,
+        "h": 3
+      },
       "config": {
-        "text": "desk rules\n— TSLA: no chasing into earnings\n— trim into 1m overextension, re-add on the reclaim\n— funding flips positive + crowded? fade the move\n— fear < 20: halve size"
-      }
+        "text": "desk rules\n— TSLA: no chasing into earnings\n— trim into 1m overextension, re-add on the reclaim\n— green day? bank it, don't round-trip\n— fear < 20: halve size, widen stops"
+      },
+      "featured": false
     },
     {
       "id": "daily-brief",
       "frame": "daily-analysis",
       "title": "Daily Brief",
-      "position": { "x": 0, "y": 12, "w": 6, "h": 3 },
-      "config": {}
+      "position": {
+        "x": 0,
+        "y": 10,
+        "w": 6,
+        "h": 3
+      },
+      "config": {},
+      "featured": false
+    },
+    {
+      "id": "compare-7d",
+      "frame": "price-compare",
+      "title": "TSLA · NVDA · AAPL — 7D",
+      "position": {
+        "x": 6,
+        "y": 10,
+        "w": 6,
+        "h": 3
+      },
+      "config": {
+        "symbols": [
+          "xyz:TSLA",
+          "xyz:NVDA",
+          "xyz:AAPL"
+        ],
+        "lookback": "7D",
+        "normalize": true
+      },
+      "featured": false
+    },
+    {
+      "id": "portfolio-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Portfolio",
+        "subtitle": "live book value off the mid stream"
+      },
+      "featured": false
+    },
+    {
+      "id": "stock-book",
+      "frame": "allocation",
+      "title": "Stock book",
+      "position": {
+        "x": 0,
+        "y": 14,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "holdings": [
+          {
+            "symbol": "xyz:TSLA",
+            "amount": 30
+          },
+          {
+            "symbol": "xyz:NVDA",
+            "amount": 15
+          },
+          {
+            "symbol": "xyz:AAPL",
+            "amount": 40
+          },
+          {
+            "symbol": "xyz:MSFT",
+            "amount": 12
+          }
+        ]
+      },
+      "featured": false
+    },
+    {
+      "id": "dino-game-2",
+      "frame": "dino-game",
+      "position": {
+        "x": 4,
+        "y": 14,
+        "w": 4,
+        "h": 3
+      },
+      "config": {},
+      "featured": false
     }
   ]
 }

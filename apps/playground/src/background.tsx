@@ -13,8 +13,8 @@ const SDK_URL =
  * same split as data providers, so the heavy WebGL engine never reaches
  * @zframes/core or the React-free tooling path.
  *
- * The scene renders at the spec's `opacity` (kept low by default) and a
- * contrast scrim sits over it, so frame text stays legible even if a user
+ * The scene renders at the spec's `opacity` (a moderate ~0.15 by default) and
+ * a contrast scrim sits over it, so frame text stays legible even if a user
  * raises the opacity. If the Unicorn SDK fails to load (offline, CDN down,
  * bad projectId), nothing renders here and the body's dark gradient shows
  * through — a graceful default.
@@ -52,13 +52,15 @@ export function DashboardBackground({
         </Suspense>
       </div>
       {/* Contrast scrim — lighter at the top-center, darker toward the edges,
-          so motion reads at the margins while content stays legible. */}
+          so motion reads at the margins while content stays legible. Cards are
+          opaque, so the scrim can stay light enough to let the scene breathe in
+          the gutters. */}
       <div
         style={{
           position: "absolute",
           inset: 0,
           background:
-            "radial-gradient(1300px 760px at 50% 22%, rgba(8,8,14,0.40), rgba(8,8,14,0.70) 64%, rgba(8,8,14,0.82)), linear-gradient(to bottom, transparent 52%, rgba(8,8,14,0.55))",
+            "radial-gradient(1340px 800px at 50% 16%, rgba(7,7,12,0.24), rgba(7,7,12,0.58) 60%, rgba(7,7,12,0.78)), linear-gradient(to bottom, transparent 48%, rgba(7,7,12,0.5))",
           pointerEvents: "none",
         }}
       />
