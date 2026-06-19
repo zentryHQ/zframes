@@ -1,13 +1,22 @@
-import { defineFrame, useDayStats, useMids } from "@zframes/core";
+import { defineFrame, useDayStatsState, useMidsState } from "@zframes/core";
 import type { z } from "zod";
+import { AssetLogo, tickerOf } from "./asset-logo";
 import { changeColor, formatChangePct, formatPrice } from "./format";
 import { priceTickerMeta } from "./schemas";
+import { FrameStatus } from "./ui";
 
 const schema = priceTickerMeta.schema;
 
 function PriceTicker({ config }: { config: z.output<typeof schema> }) {
-  const mids = useMids(config.symbols);
-  const stats = useDayStats(config.symbols);
+  const { mids, isLoading: midsLoading } = useMidsState(config.symbols);
+  const { stats, isLoading: statsLoading } = useDayStatsState(config.symbols);
+  const hasAnyPrice = config.symbols.some(
+    (symbol) =>
+      mids[symbol] !== undefined || stats[symbol]?.markPx !== undefined,
+  );
+
+  if ((midsLoading || statsLoading) && !hasAnyPrice)
+    return <FrameStatus loading>loading prices...</FrameStatus>;
 
   return (
     <div className="flex flex-col gap-1.5 overflow-auto">
@@ -17,9 +26,12 @@ function PriceTicker({ config }: { config: z.output<typeof schema> }) {
         return (
           <div
             key={symbol}
-            className="body-sm grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-3"
+            className="body-sm grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3"
           >
-            <span className="truncate font-semibold text-white">{symbol}</span>
+            <AssetLogo symbol={symbol} size={18} />
+            <span className="truncate font-semibold text-white" title={symbol}>
+              {tickerOf(symbol)}
+            </span>
             <span className="tabular-nums">
               {mid !== undefined ? formatPrice(mid) : "—"}
             </span>

@@ -7,6 +7,7 @@ import {
 import { defineFrame, useCandlesMulti } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { assetLogoUrl, tickerOf } from "./asset-logo";
 import { formatPrice } from "./format";
 import { priceCompareMeta } from "./schemas";
 
@@ -51,7 +52,8 @@ function PriceCompare({ config }: { config: z.output<typeof schema> }) {
         const base = points[0]?.close;
         return {
           id: symbol,
-          name: symbol,
+          name: tickerOf(symbol),
+          iconImageUrl: assetLogoUrl(symbol),
           color:
             CHART_COLORS_MULTI_SERIES[i % CHART_COLORS_MULTI_SERIES.length],
           data: points.map((candle) => ({
@@ -75,7 +77,7 @@ function PriceCompare({ config }: { config: z.output<typeof schema> }) {
       formatValue={
         config.normalize
           ? (value) => `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`
-          : (value) => `$${formatPrice(value)}`
+          : (value) => formatPrice(value)
       }
     />
   );

@@ -24,6 +24,18 @@ export interface FrameLayout {
 }
 
 /**
+ * A data-provenance credit shown on the card chrome: the provider's display
+ * name and the page opened when it's clicked. Frames with no external data
+ * (headings, notes, the clock, client-side market hours) declare none.
+ */
+export interface FrameSource {
+  /** Display name, e.g. "Hyperliquid", "DeFiLlama", "SEC EDGAR". */
+  name: string;
+  /** Canonical URL opened in a new tab when the credit is clicked. */
+  url: string;
+}
+
+/**
  * AI-facing frame metadata — everything but the React component. Kept
  * separate so tooling (CLI lint, catalogue export, the /zframes skill) can
  * load schemas without pulling React, chart code, or CSS.
@@ -52,6 +64,12 @@ export interface FrameMeta<S extends z.ZodType = z.ZodType> {
    * CSS-grid renderer (instances always declare an explicit `position`).
    */
   layout?: FrameLayout;
+  /**
+   * Where this frame's data comes from. The chrome renders it as a clickable
+   * credit in the title row (one or more provider links). Omit for frames with
+   * no external data feed.
+   */
+  source?: FrameSource | FrameSource[];
 }
 
 /** Identity helper so the schema generic flows through meta declarations. */
@@ -65,6 +83,14 @@ export interface FrameDefinition<
   S extends z.ZodType = z.ZodType,
 > extends FrameMeta<S> {
   component: ComponentType<{ config: z.output<S> }>;
+  /**
+   * Optional leading element for the card title (e.g. an asset logo for a
+   * single-symbol chart). Core renders it inside `.zf-frame-title` and hides
+   * the default dot when present. Lives on the definition, not the meta, so
+   * the React-free catalogue stays React-free; asset-specific rendering stays
+   * in the frame and core just provides the slot.
+   */
+  titleIcon?: ComponentType<{ config: z.output<S> }>;
 }
 
 /** Registry entries erase the schema generic; defineFrame guarantees coherence. */

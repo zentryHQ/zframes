@@ -2,8 +2,10 @@ import { defineFrame, useCandles, useMids } from "@zframes/core";
 import { Liveline, type CandlePoint, type LivelinePoint } from "liveline";
 import { useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
+import { AssetLogo } from "./asset-logo";
 import { formatPrice } from "./format";
 import { priceChartMeta } from "./schemas";
+import { FrameStatus } from "./ui";
 
 const INTERVALS = {
   "1m": 60_000,
@@ -16,6 +18,7 @@ const INTERVALS = {
 
 /** How many historical candles to load and roughly keep visible. */
 const CANDLE_COUNT = 60;
+const PRICE_CHART_PADDING = { top: 12, right: 56, bottom: 28, left: 12 };
 
 const schema = priceChartMeta.schema;
 
@@ -87,7 +90,10 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
     if (intervalMs >= INTERVALS["1h"])
       return (t: number) => {
         const d = new Date(t * 1000);
-        return `${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })} ${String(d.getHours()).padStart(2, "0")}h`;
+        return `${d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        })} ${String(d.getHours()).padStart(2, "0")}h`;
       };
     return (t: number) =>
       new Date(t * 1000).toLocaleTimeString("en-US", {
@@ -108,6 +114,9 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
     return [...seed.filter((point) => point.time < firstTick), ...ticks];
   }, [candles, ticks]);
 
+  if (isLoading && candles.length === 0)
+    return <FrameStatus loading>loading chart...</FrameStatus>;
+
   return (
     <div className="h-full min-h-0">
       <Liveline
@@ -123,6 +132,7 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
         loading={isLoading}
         formatValue={(v) => formatPrice(v)}
         formatTime={formatTime}
+        padding={PRICE_CHART_PADDING}
         showValue={true}
         // The reference look: a soft gradient area glowing under the line
         // (line mode) and a pulsing halo on the live value dot. `fill` is a
@@ -137,4 +147,7 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
 export const priceChartFrame = defineFrame({
   ...priceChartMeta,
   component: PriceChart,
+  // The asset logo rides in the card title (this is a single-symbol frame), so
+  // the chart body stays clean for liveline's own value/axis overlays.
+  titleIcon: ({ config }) => <AssetLogo symbol={config.symbol} size={14} />,
 });

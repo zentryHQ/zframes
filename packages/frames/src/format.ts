@@ -1,9 +1,9 @@
 export function formatPrice(value: number): string {
   if (value >= 1000)
-    return value.toLocaleString("en-US", { maximumFractionDigits: 0 });
+    return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
   if (value >= 1)
-    return value.toLocaleString("en-US", { maximumFractionDigits: 2 });
-  return value.toPrecision(4);
+    return `$${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  return `$${value.toPrecision(4)}`;
 }
 
 export function formatChangePct(changePct: number): string {

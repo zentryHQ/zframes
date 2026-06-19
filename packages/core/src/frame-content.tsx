@@ -1,5 +1,10 @@
-import { Component, type CSSProperties, type ReactNode } from "react";
-import type { FrameRegistry } from "./frame";
+import {
+  Component,
+  Fragment,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
+import type { FrameRegistry, FrameSource } from "./frame";
 import { useProviders } from "./hooks";
 import type { FrameInstance } from "./spec";
 
@@ -9,12 +14,16 @@ import type { FrameInstance } from "./spec";
  * first, so themes (e.g. @zframes/charts theme.css) can restyle the chrome
  * by defining vars — the fallbacks keep zero-config hosts presentable.
  *
- * The accent (indigo by default) is expressed as hsl() off a single
- * --zf-accent-hue var, so the host can rotate the entire brand to any hue by
- * setting one number (spec.theme.accentHue → renderer/editor). Saturation and
- * lightness stay baked per color; only the hue channel is the knob. Semantic
- * colors (error red, success green) and asset logos are intentionally NOT
- * hue-derived — they carry meaning, so they don't rotate.
+ * The accent (indigo by default) is expressed as hsl() off two vars —
+ * --zf-accent-hue and --zf-accent-sat — so the host can rotate the entire
+ * brand to any hue and dial its vividness from one place (spec.theme →
+ * renderer/editor). Lightness stays baked per color. Card *surface* knobs ride
+ * their own vars too: --zf-border-alpha (rim opacity), --zf-surface-opacity
+ * (card translucency), --zf-density (padding scale) and --zf-elevation (shadow
+ * depth), all from spec.appearance. Every var defaults to the original look, so
+ * an unset var renders exactly as before. Semantic colors (error red, success
+ * green) and asset logos are intentionally NOT accent-derived — they carry
+ * meaning, so they don't rotate.
  *
  * Lives here (not in renderer.tsx) so both the CSS-grid renderer and the
  * interactive editor render identical cards from one source.
@@ -34,11 +43,11 @@ export const FRAME_CSS = `
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  padding: 16px 18px;
-  background: var(--zf-frame-bg, linear-gradient(165deg, rgba(26, 27, 38, 0.82) 0%, rgba(14, 15, 22, 0.86) 60%, rgba(10, 11, 17, 0.9) 100%));
-  border: 1px solid var(--zf-frame-border, rgba(255, 255, 255, 0.07));
+  padding: calc(16px * var(--zf-density, 1)) calc(18px * var(--zf-density, 1));
+  background: var(--zf-frame-bg, linear-gradient(165deg, rgba(26, 27, 38, calc(0.82 * var(--zf-surface-opacity, 1))) 0%, rgba(14, 15, 22, calc(0.86 * var(--zf-surface-opacity, 1))) 60%, rgba(10, 11, 17, calc(0.9 * var(--zf-surface-opacity, 1))) 100%));
+  border: 1px solid var(--zf-frame-border, hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / var(--zf-border-alpha, 0.22)));
   border-radius: var(--zf-frame-radius, 18px);
-  box-shadow: var(--zf-frame-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 44px -26px rgba(0, 0, 0, 0.9));
+  box-shadow: var(--zf-frame-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4), 0 calc(18px * var(--zf-elevation, 1)) calc(44px * var(--zf-elevation, 1)) -26px rgba(0, 0, 0, 0.9));
   transition:
     border-color 0.25s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
     background 0.25s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
@@ -54,13 +63,10 @@ export const FRAME_CSS = `
 /* Hover lift is pointer-only — on touch it would stick after a tap. */
 @media (hover: hover) {
   .zf-frame:hover {
-    border-color: var(--zf-frame-border-hover, hsl(var(--zf-accent-hue, 242) 90% 76% / 0.42));
-    background: var(--zf-frame-bg-hover, linear-gradient(165deg, rgba(34, 35, 50, 0.88) 0%, rgba(18, 19, 28, 0.9) 60%, rgba(12, 13, 20, 0.92) 100%));
-    box-shadow: var(--zf-frame-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 1px 2px rgba(0, 0, 0, 0.4), 0 26px 56px -26px rgba(0, 0, 0, 0.92), 0 0 0 1px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.12), 0 20px 60px -28px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.4));
+    border-color: var(--zf-frame-border-hover, hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / calc(var(--zf-border-alpha, 0.22) + 0.2)));
+    background: var(--zf-frame-bg-hover, linear-gradient(165deg, rgba(34, 35, 50, calc(0.88 * var(--zf-surface-opacity, 1))) 0%, rgba(18, 19, 28, calc(0.9 * var(--zf-surface-opacity, 1))) 60%, rgba(12, 13, 20, calc(0.92 * var(--zf-surface-opacity, 1))) 100%));
+    box-shadow: var(--zf-frame-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 1px 2px rgba(0, 0, 0, 0.4), 0 calc(26px * var(--zf-elevation, 1)) calc(56px * var(--zf-elevation, 1)) -26px rgba(0, 0, 0, 0.92), 0 0 0 1px hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.12), 0 calc(20px * var(--zf-elevation, 1)) calc(60px * var(--zf-elevation, 1)) -28px hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.4)));
     transform: translateY(-2px);
-  }
-  .zf-frame--featured:hover {
-    border-color: var(--zf-frame-featured-border-hover, hsl(var(--zf-accent-hue, 242) 100% 81% / 0.75));
   }
 }
 /* Top edge sheen — inset past the corner radius so the bright line never
@@ -96,9 +102,47 @@ export const FRAME_CSS = `
   width: 5px;
   height: 5px;
   border-radius: 9999px;
-  background: var(--zf-frame-title-dot, hsl(var(--zf-accent-hue, 242) 90% 76%));
-  box-shadow: 0 0 8px var(--zf-frame-title-dot-glow, hsl(var(--zf-accent-hue, 242) 90% 76% / 0.9));
+  background: var(--zf-frame-title-dot, hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76%));
+  box-shadow: 0 0 8px var(--zf-frame-title-dot-glow, hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.9));
 }
+/* A title with a leading icon (e.g. an asset logo) drops the status dot — the
+   logo is the card's identity marker. */
+.zf-frame-title--icon::before { display: none; }
+/* The title label takes the remaining width and truncates so a long title
+   never shoves the source credit off the card. */
+.zf-frame-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Data-source credit — a clickable provider link pinned to the right of the
+   title row. Brand casing is preserved (text-transform reset) so DeFiLlama /
+   alternative.me read correctly against the uppercase title. */
+.zf-frame-source {
+  margin-left: auto;
+  padding-left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+.zf-frame-source a {
+  color: var(--zf-frame-source, rgba(255, 255, 255, 0.42));
+  text-decoration: none;
+  transition: color 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  white-space: nowrap;
+}
+@media (hover: hover) {
+  .zf-frame-source a:hover {
+    color: var(--zf-frame-source-hover, hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 80%));
+    text-decoration: underline;
+  }
+}
+.zf-frame-source-sep { color: rgba(255, 255, 255, 0.22); }
 .zf-frame-body {
   position: relative;
   z-index: 1;
@@ -111,40 +155,136 @@ export const FRAME_CSS = `
   flex: 1;
   min-height: 0;
 }
+/* ── Error cards ────────────────────────────────────────────────────────────
+   Unknown frame / missing capability / invalid config / runtime crash all share
+   one centered empty-state: an alert glyph, a headline naming what's wrong, the
+   frame's name, then the specific detail. Centered (not top-left) so the card
+   reads as a deliberate state instead of a raw debug dump floating in a void —
+   and a faint red top-bloom signals "error" across the whole surface, not just
+   the 1px border. This is also the generating agent's feedback surface, so the
+   detail stays precise (field paths, the exact missing capability/provider). */
 .zf-frame--error {
-  border-color: var(--zf-frame-error-border, rgba(242, 21, 83, 0.45));
-  color: var(--zf-frame-error-text, #ff8b9d);
-  font-size: 12px;
-  line-height: 1.5;
-}
-.zf-frame--error .zf-frame-title { color: var(--zf-frame-error-text, #ff8b9d); }
-.zf-frame--error .zf-frame-title::before {
-  background: var(--zf-frame-error-text, #ff8b9d);
-  box-shadow: 0 0 8px rgba(242, 21, 83, 0.7);
-}
-.zf-frame--featured {
-  border-color: var(--zf-frame-featured-border, hsl(var(--zf-accent-hue, 242) 90% 76% / 0.5));
-  box-shadow: var(--zf-frame-featured-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.18), 0 30px 80px -34px hsl(var(--zf-accent-hue, 242) 84% 67% / 0.55), 0 18px 50px -30px rgba(0, 0, 0, 0.9));
-}
-/* Hero bloom — a soft accent glow rising from the top edge, clipped to the
-   card radius by overflow:hidden. Sits at z-index 0 so the title/body (z 1)
-   stay crisp on top. */
-.zf-frame--featured::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--zf-frame-featured-bloom, radial-gradient(135% 95% at 50% -10%, hsl(var(--zf-accent-hue, 242) 90% 76% / 0.2), hsl(var(--zf-accent-hue, 242) 90% 76% / 0.05) 40%, transparent 72%));
-  pointer-events: none;
-  z-index: 0;
+  border-color: var(--zf-frame-error-border, rgba(242, 21, 83, 0.42));
+  background: var(
+    --zf-frame-error-bg,
+    radial-gradient(125% 80% at 50% -12%, rgba(242, 21, 83, 0.13), transparent 60%),
+    linear-gradient(165deg, rgba(26, 27, 38, 0.82) 0%, rgba(14, 15, 22, 0.86) 60%, rgba(10, 11, 17, 0.9) 100%)
+  );
 }
 @media (hover: hover) {
-  .zf-frame--featured:hover {
-    box-shadow: var(--zf-frame-featured-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.28), 0 36px 90px -32px hsl(var(--zf-accent-hue, 242) 84% 67% / 0.7), 0 18px 50px -30px rgba(0, 0, 0, 0.92));
+  .zf-frame--error:hover {
+    border-color: var(--zf-frame-error-border-hover, rgba(242, 21, 83, 0.6));
+    background: var(
+      --zf-frame-error-bg,
+      radial-gradient(125% 80% at 50% -12%, rgba(242, 21, 83, 0.13), transparent 60%),
+      linear-gradient(165deg, rgba(26, 27, 38, 0.82) 0%, rgba(14, 15, 22, 0.86) 60%, rgba(10, 11, 17, 0.9) 100%)
+    );
+    box-shadow: var(--zf-frame-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 44px -26px rgba(0, 0, 0, 0.9)), 0 0 0 1px rgba(242, 21, 83, 0.14), 0 20px 56px -30px rgba(242, 21, 83, 0.4);
   }
 }
-.zf-frame--featured .zf-frame-title {
-  color: var(--zf-frame-featured-title, hsl(var(--zf-accent-hue, 242) 100% 86% / 0.9));
+/* The centered stack. flex:1 lets it claim the whole card; the inner content
+   stays its natural height and is centered around the card's middle, so a 2×1
+   card and a 6×4 card both read as composed rather than top-anchored. */
+.zf-error {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 2px;
+  text-align: center;
+  overflow: auto;
+}
+.zf-error-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--zf-frame-error-text, #ff8b9d);
+  background: rgba(242, 21, 83, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(242, 21, 83, 0.32),
+    0 0 24px -8px rgba(242, 21, 83, 0.6);
+}
+.zf-error-icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+.zf-error-headline {
+  font-family: var(--font-dmsans, inherit);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--zf-frame-error-headline, rgba(255, 255, 255, 0.92));
+}
+.zf-error-frame {
+  margin-top: -3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--zf-frame-error-text, #ff8b9d);
+}
+.zf-error-detail {
+  margin: 2px 0 0;
+  max-width: 44ch;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--zf-frame-error-detail, rgba(255, 255, 255, 0.6));
+}
+.zf-error-detail code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92em;
+}
+/* Per-issue rows for invalid config: the field path as a code chip, the Zod
+   message beside it. Block-centered but left-aligned inside, so a one-field
+   error sits dead-centre and a multi-field one reads as a tidy list. */
+.zf-error-issues {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+.zf-error-issue {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(242, 21, 83, 0.18);
+}
+.zf-error-field {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--zf-frame-error-text, #ff8b9d);
+  background: rgba(242, 21, 83, 0.14);
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+.zf-error-msg {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--zf-frame-error-detail, rgba(255, 255, 255, 0.68));
+}
+/* Registered-frame list under an "unknown frame" card — quiet, it's reference. */
+.zf-error-list {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.4);
 }
 /* Bare frames (headings) divide a dashboard into zones — positioned slot,
    no card chrome, no auto-title. */
@@ -171,7 +311,7 @@ export const FRAME_CSS = `
     grid-row: auto / span var(--zf-row-span, 1);
   }
   .zf-frame {
-    padding: 12px 14px;
+    padding: calc(12px * var(--zf-density, 1)) calc(14px * var(--zf-density, 1));
   }
 }
 @keyframes zf-enter {
@@ -195,6 +335,89 @@ export const FRAME_CSS = `
 }
 `;
 
+/**
+ * The clickable data-source credit rendered at the right of a card's title
+ * row. Each source opens its provider site in a new tab. `stopPropagation` on
+ * pointer-down keeps a click from starting a GridStack drag (or selecting the
+ * frame) while customising — the link still navigates on click.
+ */
+/**
+ * The alert glyph shared by every error card (and the crash boundary). Inlined
+ * as an SVG so core never depends on a host icon set; `currentColor` lets it
+ * inherit the error tint from `.zf-error-icon`.
+ */
+const AlertGlyph = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+/**
+ * The centered error-card layout shared by the unknown-frame, missing-capability
+ * and invalid-config branches: alert glyph → headline → frame name → detail.
+ * `outerClassName` carries the full `zf-frame zf-frame--error …` chrome from the
+ * call site so placement (grid style / editor fill) round-trips unchanged.
+ */
+function ErrorCard({
+  outerClassName,
+  style,
+  headline,
+  frame,
+  children,
+}: {
+  outerClassName: string;
+  style?: CSSProperties;
+  headline: string;
+  frame: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={outerClassName} style={style}>
+      <div className="zf-error">
+        <span className="zf-error-icon">
+          <AlertGlyph />
+        </span>
+        <div className="zf-error-headline">{headline}</div>
+        <div className="zf-error-frame">{frame}</div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SourceCredit({ sources }: { sources: FrameSource[] }) {
+  if (sources.length === 0) return null;
+  return (
+    <span className="zf-frame-source">
+      {sources.map((source, i) => (
+        <Fragment key={source.url}>
+          {i > 0 && <span className="zf-frame-source-sep">·</span>}
+          <a
+            href={source.url}
+            target="_blank"
+            rel="noreferrer noopener"
+            title={`Data source: ${source.name}`}
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {source.name}
+          </a>
+        </Fragment>
+      ))}
+    </span>
+  );
+}
+
 class FrameErrorBoundary extends Component<
   { children: ReactNode },
   { error: Error | null }
@@ -205,9 +428,15 @@ class FrameErrorBoundary extends Component<
   }
   render() {
     if (this.state.error) {
+      // Runtime crash inside an otherwise-valid card: reuse the centered
+      // error stack so it sits in the body the card already framed.
       return (
-        <div style={{ color: "#ff8b9d", fontSize: 12 }}>
-          frame crashed: {this.state.error.message}
+        <div className="zf-error">
+          <span className="zf-error-icon">
+            <AlertGlyph />
+          </span>
+          <div className="zf-error-headline">Frame crashed</div>
+          <p className="zf-error-detail">{this.state.error.message}</p>
         </div>
       );
     }
@@ -241,14 +470,19 @@ export function FrameContent({
 
   if (!def) {
     return (
-      <div
-        className={cx("zf-frame", "zf-frame--error", className)}
+      <ErrorCard
+        outerClassName={cx("zf-frame", "zf-frame--error", className)}
         style={style}
+        headline="Unknown frame"
+        frame={instance.frame}
       >
-        <div className="zf-frame-title">{instance.frame}</div>
-        unknown frame &quot;{instance.frame}&quot;. registered:{" "}
-        {[...registry.keys()].join(", ")}
-      </div>
+        <p className="zf-error-detail">
+          <code>{instance.frame}</code> isn&rsquo;t a registered frame.
+        </p>
+        <p className="zf-error-list">
+          Available: {[...registry.keys()].join(", ")}
+        </p>
+      </ErrorCard>
     );
   }
 
@@ -259,15 +493,23 @@ export function FrameContent({
   const missing = def.capabilities.filter((c) => !covered.has(c));
   if (missing.length > 0) {
     return (
-      <div
-        className={cx("zf-frame", "zf-frame--error", className)}
+      <ErrorCard
+        outerClassName={cx("zf-frame", "zf-frame--error", className)}
         style={style}
+        headline="No data source"
+        frame={instance.frame}
       >
-        <div className="zf-frame-title">
-          {instance.frame} — missing capability
-        </div>
-        no registered provider covers: {missing.join(", ")}
-      </div>
+        <p className="zf-error-detail">
+          No registered provider supplies{" "}
+          {missing.map((c, i) => (
+            <Fragment key={c}>
+              {i > 0 && ", "}
+              <code>{c}</code>
+            </Fragment>
+          ))}
+          .
+        </p>
+      </ErrorCard>
     );
   }
 
@@ -277,23 +519,35 @@ export function FrameContent({
   const parsed = def.schema.safeParse(instance.config);
   if (!parsed.success) {
     return (
-      <div
-        className={cx("zf-frame", "zf-frame--error", className)}
+      <ErrorCard
+        outerClassName={cx("zf-frame", "zf-frame--error", className)}
         style={style}
+        headline="Invalid configuration"
+        frame={instance.frame}
       >
-        <div className="zf-frame-title">{instance.frame} — invalid config</div>
-        <ul style={{ margin: 0, paddingLeft: 16 }}>
+        <ul className="zf-error-issues">
           {parsed.error.issues.map((issue, i) => (
-            <li key={i}>
-              {issue.path.join(".") || "(root)"}: {issue.message}
+            <li className="zf-error-issue" key={i}>
+              <code className="zf-error-field">
+                {issue.path.join(".") || "(root)"}
+              </code>
+              <span className="zf-error-msg">
+                {issue.message.replace(/^Invalid input:\s*/i, "")}
+              </span>
             </li>
           ))}
         </ul>
-      </div>
+      </ErrorCard>
     );
   }
 
   const FrameComponent = def.component;
+  const TitleIcon = def.titleIcon;
+  const sources = def.source
+    ? Array.isArray(def.source)
+      ? def.source
+      : [def.source]
+    : [];
 
   // Bare frames (e.g. headings) structure a dashboard into zones — they get a
   // positioned slot but no card chrome and no auto-title.
@@ -309,15 +563,20 @@ export function FrameContent({
 
   return (
     <div
-      className={cx(
-        "zf-frame",
-        instance.featured ? "zf-frame--featured" : "",
-        className,
-      )}
+      className={cx("zf-frame", className)}
       style={style}
     >
-      <div className="zf-frame-title">
-        {instance.title ?? instance.frame.replace(/-/g, " ")}
+      <div
+        className={cx(
+          "zf-frame-title",
+          TitleIcon ? "zf-frame-title--icon" : "",
+        )}
+      >
+        {TitleIcon ? <TitleIcon config={parsed.data} /> : null}
+        <span className="zf-frame-title-text">
+          {instance.title ?? instance.frame.replace(/-/g, " ")}
+        </span>
+        <SourceCredit sources={sources} />
       </div>
       <div className="zf-frame-body">
         <FrameErrorBoundary>

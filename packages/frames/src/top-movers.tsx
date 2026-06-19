@@ -1,11 +1,25 @@
-import { defineFrame, useDayStats } from "@zframes/core";
+import { defineFrame, useDayStatsState } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { AssetLogo, tickerOf } from "./asset-logo";
 import { changeColor, formatChangePct, formatPrice } from "./format";
 import { topMoversMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = topMoversMeta.schema;
+
+const MOVER_UNIVERSE = [
+  "xyz:*",
+  "km:GOLD",
+  "km:SILVER",
+  "km:USOIL",
+  "km:USENERGY",
+  "km:US500",
+  "km:SMALL2000",
+  "km:USTECH",
+  "km:SEMI",
+  "km:GLDMINE",
+] as const;
 
 function MoverRow({
   symbol,
@@ -18,10 +32,16 @@ function MoverRow({
 }) {
   return (
     <div
-      className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-2"
+      className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2"
       title={`${symbol} · ${formatPrice(markPx)}`}
     >
-      <span className="body-sm truncate font-bold text-white">{symbol}</span>
+      <AssetLogo symbol={symbol} size={16} />
+      <span className="body-sm truncate font-bold text-white">
+        {tickerOf(symbol)}
+      </span>
+      <span className="caption text-soft text-right tabular-nums">
+        {formatPrice(markPx)}
+      </span>
       <span
         className="caption text-right font-bold tabular-nums"
         style={{ color: changeColor(changePct) }}
@@ -33,14 +53,16 @@ function MoverRow({
 }
 
 function TopMovers({ config }: { config: z.output<typeof schema> }) {
-  // No symbols = the provider's full universe.
-  const stats = useDayStats(undefined, 60_000);
+  const { stats, isLoading } = useDayStatsState(MOVER_UNIVERSE, 60_000);
 
   const { gainers, losers } = useMemo(() => {
     const rows = Object.entries(stats)
       .map(([symbol, stat]) => ({ symbol, ...stat }))
       // Dust assets produce absurd % moves with no liquidity behind them.
-      .filter((row) => row.markPx > 0 && row.prevDayPx > 0)
+      .filter(
+        (row) =>
+          row.symbol.includes(":") && row.markPx > 0 && row.prevDayPx > 0,
+      )
       .sort((a, b) => b.changePct - a.changePct);
     return {
       gainers: rows.slice(0, config.count),
@@ -48,8 +70,8 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
     };
   }, [stats, config.count]);
 
-  if (gainers.length === 0)
-    return <FrameStatus loading>loading movers…</FrameStatus>;
+  if (isLoading) return <FrameStatus loading>loading movers...</FrameStatus>;
+  if (gainers.length === 0) return <FrameStatus>no mover data yet</FrameStatus>;
 
   return (
     <div className="grid h-full grid-cols-2 gap-x-4 overflow-hidden">
