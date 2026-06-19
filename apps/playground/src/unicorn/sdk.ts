@@ -1,50 +1,63 @@
-// Loads the self-hosted UnicornStudio UMD (apps/playground/public/) exactly
-// once and resolves when `window.UnicornStudio` is live. Self-hosted (not the
-// jsDelivr CDN) so the orb scene runs against the SDK version it was authored
-// for, the whole thing stays keyless/offline, and it ships in the prebuilt
-// bundle. The background's <UnicornScene sdkUrl> points at the same file, so
-// there is a single SDK global — no version clash.
+// Loads the self-hosted LEGACY UnicornStudio engine (apps/playground/public/)
+// for the orb, in ISOLATION from the global `window.UnicornStudio`.
+//
+// Why isolated, not a shared global: the orb scene (./scenes/orb.scene.ts) is a
+// hand-authored v1.4.29 export with embedded compiled shaders, and only renders
+// correctly on that 1.4.x engine. The dashboard *background*, by contrast, is a
+// hosted Unicorn project in the modern `layers` format (v2.x) that only the
+// newer engine can read — and `unicornstudio-react` insists on finding its
+// engine at `window.UnicornStudio`. The two engines can't be the same build and
+// would clobber each other's global, so the orb's engine is loaded into a
+// private module scope here and never touches `window.UnicornStudio`. The
+// background owns the global (see background.tsx + /unicornStudio.umd.mjs).
+//
+// The UMD is loaded via a blob ES-module wrapper (same blob: mechanism the orb
+// scene itself uses): we define module/exports in the wrapper so the UMD takes
+// its CommonJS branch and populates a private object instead of the window
+// global. Keyless, offline, and ships in the prebuilt bundle.
 
-const SDK_SRC = "/unicornStudio.umd.mjs";
-const SCRIPT_ID = "_unicorn-script";
+import type { UnicornStudioType } from "./types";
 
-let loading: Promise<void> | null = null;
+const LEGACY_SDK_SRC = "/unicornStudio.legacy.umd.mjs";
 
-function hasGlobal(): boolean {
-  return (
-    typeof window !== "undefined" &&
-    Boolean((window as { UnicornStudio?: unknown }).UnicornStudio)
-  );
-}
+let loading: Promise<UnicornStudioType> | null = null;
 
-/** Resolve once the UnicornStudio global is available (loading the UMD if needed). */
-export function loadUnicornSdk(): Promise<void> {
+/** Resolve the isolated legacy UnicornStudio engine (loading + evaluating once). */
+export function loadUnicornSdk(): Promise<UnicornStudioType> {
   if (typeof window === "undefined" || typeof document === "undefined")
-    return Promise.resolve();
-  if (hasGlobal()) return Promise.resolve();
+    return Promise.reject(new Error("UnicornStudio needs a browser"));
   if (loading) return loading;
 
-  loading = new Promise<void>((resolve, reject) => {
-    // Another loader (e.g. the background's <UnicornScene>) may have injected
-    // the script already; attach to it rather than adding a duplicate.
-    const existing = document.getElementById(
-      SCRIPT_ID,
-    ) as HTMLScriptElement | null;
-    const script = existing ?? document.createElement("script");
-    const done = () =>
-      hasGlobal() ? resolve() : reject(new Error("UnicornStudio missing"));
-    script.addEventListener("load", done);
-    script.addEventListener("error", () =>
-      reject(new Error("failed to load UnicornStudio")),
+  loading = (async () => {
+    const umd = await fetch(LEGACY_SDK_SRC).then((r) => {
+      if (!r.ok) throw new Error(`failed to load UnicornStudio (${r.status})`);
+      return r.text();
+    });
+    // Wrap so the UMD's `typeof exports == "object" && typeof module < "u"`
+    // branch fires and attaches the engine to OUR `module.exports` rather than
+    // to `window.UnicornStudio`.
+    const wrapped =
+      "const module={exports:{}};const exports=module.exports;\n" +
+      umd +
+      "\nexport default module.exports;";
+    const url = URL.createObjectURL(
+      new Blob([wrapped], { type: "text/javascript" }),
     );
-    if (!existing) {
-      script.src = SDK_SRC;
-      script.id = SCRIPT_ID;
-      script.async = true;
-      document.body.appendChild(script);
-    } else if (hasGlobal()) {
-      resolve();
+    try {
+      const mod = (await import(/* @vite-ignore */ url)) as {
+        default?: UnicornStudioType;
+      };
+      const engine = mod.default;
+      if (!engine?.addScene)
+        throw new Error("UnicornStudio engine missing addScene");
+      return engine;
+    } finally {
+      URL.revokeObjectURL(url);
     }
+  })();
+  // Let a failed load be retried on the next call rather than caching the reject.
+  loading.catch(() => {
+    loading = null;
   });
   return loading;
 }

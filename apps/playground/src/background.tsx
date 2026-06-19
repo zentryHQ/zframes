@@ -4,9 +4,12 @@ import { lazy, Suspense } from "react";
 // Lazy so dashboards that don't use a Unicorn scene never fetch the SDK bundle.
 const UnicornScene = lazy(() => import("unicornstudio-react"));
 
-// Self-hosted from apps/playground/public/ (the same UMD the zAI orb loads), so
-// background + orb share ONE UnicornStudio global — no version clash — and the
-// engine ships in the prebuilt bundle instead of being pulled from a CDN.
+// Self-hosted from apps/playground/public/ so the engine ships in the prebuilt
+// bundle instead of being pulled from a CDN. This is the MODERN engine (reads
+// the hosted `layers`-format projects); `unicornstudio-react` loads it onto
+// window.UnicornStudio. The orb deliberately uses a DIFFERENT, isolated legacy
+// engine for its v1.4.29 scene (see src/unicorn/sdk.ts) — the two builds can't
+// be unified, so they're kept on separate globals to avoid a version clash.
 const SDK_URL = "/unicornStudio.umd.mjs";
 
 /**

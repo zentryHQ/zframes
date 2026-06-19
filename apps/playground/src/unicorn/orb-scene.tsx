@@ -1,14 +1,18 @@
 import { useEffect, useId, useRef } from "react";
 import { loadUnicornSdk } from "./sdk";
 import { orbScene } from "./scenes/orb.scene";
-import type { UnicornSceneType, UnicornStudioType } from "./types";
+import type { UnicornSceneType } from "./types";
 
 // The WebGL orb. Ports Nexus's lib/unicorn RendererElement (Zentry IP), trimmed
 // to the single embedded `orbScene`: the scene JSON is wrapped in a blob: URL
-// (see ./scenes/scene.ts) and handed to UnicornStudio.addScene, so there is no
+// (see ./scenes/scene.ts) and handed to the engine's addScene, so there is no
 // hosted projectId and nothing to fetch — fully keyless. The live `scene` is
 // handed back via `onScene` so the host can mutate the effect layer's speed
 // (faster while thinking). `onError` lets the host fall back to the CSS orb.
+//
+// The orb runs on the ISOLATED legacy engine (loadUnicornSdk) — its v1.4.29
+// scene only renders on that build, and the modern engine the dashboard
+// background uses lives separately on window.UnicornStudio. See ./sdk.ts.
 
 export function OrbCanvas({
   className,
@@ -40,11 +44,7 @@ export function OrbCanvas({
 
     void (async () => {
       try {
-        await loadUnicornSdk();
-        const UnicornStudio = (
-          window as Window & { UnicornStudio?: UnicornStudioType }
-        ).UnicornStudio;
-        if (!UnicornStudio) throw new Error("UnicornStudio not found");
+        const UnicornStudio = await loadUnicornSdk();
         if (cancelled || !elementRef.current) return;
         elementRef.current.setAttribute("data-us-project-src", orbScene.url);
         scenePromise = UnicornStudio.addScene({
