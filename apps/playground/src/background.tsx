@@ -4,8 +4,10 @@ import { lazy, Suspense } from "react";
 // Lazy so dashboards that don't use a Unicorn scene never fetch the SDK bundle.
 const UnicornScene = lazy(() => import("unicornstudio-react"));
 
-const SDK_URL =
-  "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.5/dist/unicornStudio.umd.js";
+// Self-hosted from apps/playground/public/ (the same UMD the zAI orb loads), so
+// background + orb share ONE UnicornStudio global — no version clash — and the
+// engine ships in the prebuilt bundle instead of being pulled from a CDN.
+const SDK_URL = "/unicornStudio.umd.mjs";
 
 /**
  * Full-viewport background behind the dashboard. The spec picks *what* the
@@ -51,19 +53,6 @@ export function DashboardBackground({
           />
         </Suspense>
       </div>
-      {/* Contrast scrim — lighter at the top-center, darker toward the edges,
-          so motion reads at the margins while content stays legible. Cards are
-          opaque, so the scrim can stay light enough to let the scene breathe in
-          the gutters. */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(1340px 800px at 50% 16%, rgba(7,7,12,0.24), rgba(7,7,12,0.58) 60%, rgba(7,7,12,0.78)), linear-gradient(to bottom, transparent 48%, rgba(7,7,12,0.5))",
-          pointerEvents: "none",
-        }}
-      />
     </div>
   );
 }

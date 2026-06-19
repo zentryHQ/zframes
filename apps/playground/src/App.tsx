@@ -1,6 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import {
   createRegistry,
+  DashboardRenderer,
   DashboardSpecSchema,
   FramesProvider,
   type DashboardSpec,
@@ -8,10 +9,18 @@ import {
 import { DashboardEditor } from "@zframes/core/editor";
 import { allFrames } from "@zframes/frames";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
+import { BlsProvider } from "@zframes/provider-bls";
 import { CoinGeckoProvider } from "@zframes/provider-coingecko";
 import { DefiLlamaProvider } from "@zframes/provider-defillama";
+import { FinraProvider } from "@zframes/provider-finra";
 import { HyperliquidProvider } from "@zframes/provider-hyperliquid";
+import { NyFedProvider } from "@zframes/provider-nyfed";
+import { SecProvider } from "@zframes/provider-sec";
+import { TreasuryProvider } from "@zframes/provider-treasury";
 import { DashboardBackground } from "./background";
+import { TickerTape } from "./ticker-tape";
+import { useIsMobile } from "./use-is-mobile";
+import { ZaiOrb } from "./zai-orb";
 
 const registry = createRegistry(allFrames);
 const providers = [
@@ -19,6 +28,11 @@ const providers = [
   new DefiLlamaProvider(),
   new AlternativeMeProvider(),
   new CoinGeckoProvider(),
+  new NyFedProvider(),
+  new TreasuryProvider(),
+  new BlsProvider(),
+  new SecProvider(),
+  new FinraProvider(),
 ];
 
 // The runtime serves the user's dashboard.json at this route. Both `vite dev`
@@ -112,6 +126,28 @@ async function persist(next: DashboardSpec) {
 
 export default function App() {
   const [load, setLoad] = useState<Load>({ status: "loading" });
+  const [customiseButtonTarget, setCustomiseButtonTarget] =
+    useState<HTMLDivElement | null>(null);
+  // Live accent hue the editor reports while customising (null = not editing →
+  // fall back to the saved spec value). Held here, above the editor, so the
+  // header and :root-scoped tokens re-tint with the slider, not just on reload.
+  const [liveHue, setLiveHue] = useState<number | null>(null);
+  // Phones get the read-only CSS-grid renderer (single-column reflow at <=640px);
+  // desktop gets the editable GridStack editor. Editing stays a desktop activity.
+  const isMobile = useIsMobile();
+
+  const accentHue =
+    liveHue ?? (load.status === "ready" ? load.spec.theme.accentHue : null);
+  // --color-highlight (chart layer) is declared in @theme → resolved at :root,
+  // so it only follows the hue if :root carries it. Setting it here lets the
+  // heading-frame dots and chart highlights track the slider in real time.
+  useEffect(() => {
+    if (accentHue == null) return;
+    document.documentElement.style.setProperty(
+      "--zf-accent-hue",
+      String(accentHue),
+    );
+  }, [accentHue]);
 
   useEffect(() => {
     // Fetch once on mount. StrictMode runs this twice in dev; the `cancelled`
@@ -148,30 +184,49 @@ export default function App() {
   return (
     <FramesProvider providers={providers}>
       <DashboardBackground background={spec.background} />
-      <main className="relative z-10 mx-auto max-w-[1320px] px-4 pb-16 pt-5 sm:px-6">
-        <header className="mb-5 flex flex-col gap-2 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-baseline sm:justify-between">
+      <main
+        className="relative z-10 mx-auto max-w-[1320px] px-4 pb-24 pt-5 sm:px-6"
+        style={
+          {
+            ["--zf-accent-hue"]: accentHue ?? spec.theme.accentHue,
+            ["--zf-accent-sat"]: `${spec.theme.accentSat}%`,
+          } as CSSProperties
+        }
+      >
+        <header className="mb-5 flex flex-col gap-2 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-baseline gap-3">
             <h1 className="font-dmsans text-strong text-lg font-extrabold tracking-tight">
-              z<span className="text-[#8b8df9]">frames</span>
+              /
+              <span
+                style={{
+                  color:
+                    "hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76%)",
+                }}
+              >
+                zframes
+              </span>
             </h1>
             <span className="body-sm text-soft">{spec.title}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-            </span>
-            <span className="caption text-soft">
-              <span className="sm:hidden">live · no API keys</span>
-              <span className="hidden sm:inline">
-                live · hyperliquid + defillama + alternative.me + coingecko · no
-                API keys
-              </span>
-            </span>
-          </div>
+          <div
+            ref={setCustomiseButtonTarget}
+            className="flex min-h-9 items-center justify-end"
+          />
         </header>
-        <DashboardEditor spec={spec} registry={registry} onSave={persist} />
+        {isMobile ? (
+          <DashboardRenderer spec={spec} registry={registry} />
+        ) : (
+          <DashboardEditor
+            spec={spec}
+            registry={registry}
+            onSave={persist}
+            customiseButtonTarget={customiseButtonTarget}
+            onAccentHueChange={setLiveHue}
+          />
+        )}
       </main>
+      <TickerTape />
+      <ZaiOrb />
     </FramesProvider>
   );
 }

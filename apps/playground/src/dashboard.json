@@ -1,17 +1,28 @@
 {
-  "version": 1,
+  "version": "1",
   "title": "micky's stocks desk",
   "grid": {
     "columns": 12,
     "rowHeight": 96,
-    "gap": 12
+    "gap": 8
   },
   "background": {
     "type": "unicorn",
-    "projectId": "K42KSY4FXeXhjVOj9RgT",
+    "projectId": "YrTzGatwjK7EoFpCSfgZ",
     "scale": 1,
     "dpi": 1.5,
-    "opacity": 0.16
+    "opacity": 1
+  },
+  "theme": {
+    "accentHue": 25,
+    "accentSat": 45
+  },
+  "appearance": {
+    "radius": 14,
+    "borderStrength": 0,
+    "surfaceOpacity": 1,
+    "density": 1,
+    "elevation": 1
   },
   "frames": [
     {
@@ -26,8 +37,7 @@
       "config": {
         "title": "Markets",
         "subtitle": "HIP-3 stock perps — streaming live"
-      },
-      "featured": false
+      }
     },
     {
       "id": "tsla-hero",
@@ -36,52 +46,34 @@
       "position": {
         "x": 0,
         "y": 1,
-        "w": 6,
-        "h": 3
-      },
-      "config": {
-        "symbol": "xyz:TSLA",
-        "interval": "1m",
-        "mode": "candle",
-        "color": "#e6464f"
-      },
-      "featured": true
-    },
-    {
-      "id": "nvda-live",
-      "frame": "price-chart",
-      "title": "NVDA",
-      "position": {
-        "x": 6,
-        "y": 1,
-        "w": 3,
+        "w": 5,
         "h": 3
       },
       "config": {
         "symbol": "xyz:NVDA",
         "interval": "1m",
-        "mode": "line",
-        "color": "#76d275"
-      },
-      "featured": false
+        "mode": "candle",
+        "color": "#e6464f"
+      }
     },
     {
-      "id": "aapl-live",
-      "frame": "price-chart",
-      "title": "AAPL",
+      "id": "stock-liveline",
+      "frame": "price-liveline",
+      "title": "Stock liveline",
       "position": {
-        "x": 9,
+        "x": 5,
         "y": 1,
-        "w": 3,
+        "w": 7,
         "h": 3
       },
       "config": {
-        "symbol": "xyz:AAPL",
-        "interval": "1m",
-        "mode": "line",
-        "color": "#8b8df9"
-      },
-      "featured": false
+        "symbols": [
+          "xyz:AAPL",
+          "xyz:MSFT"
+        ],
+        "windowSec": 30,
+        "normalize": true
+      }
     },
     {
       "id": "msft-live",
@@ -97,8 +89,7 @@
         "symbol": "xyz:MSFT",
         "interval": "1m",
         "mode": "line"
-      },
-      "featured": false
+      }
     },
     {
       "id": "googl-live",
@@ -114,8 +105,7 @@
         "symbol": "xyz:GOOGL",
         "interval": "1m",
         "mode": "line"
-      },
-      "featured": false
+      }
     },
     {
       "id": "amd-live",
@@ -132,8 +122,7 @@
         "interval": "1m",
         "mode": "line",
         "color": "#f4a259"
-      },
-      "featured": false
+      }
     },
     {
       "id": "meta-live",
@@ -149,8 +138,7 @@
         "symbol": "xyz:META",
         "interval": "1m",
         "mode": "line"
-      },
-      "featured": false
+      }
     },
     {
       "id": "desk-heading",
@@ -164,8 +152,7 @@
       "config": {
         "title": "Desk",
         "subtitle": "context & rules"
-      },
-      "featured": false
+      }
     },
     {
       "id": "movers",
@@ -177,9 +164,8 @@
         "h": 3
       },
       "config": {
-        "count": 6
-      },
-      "featured": false
+        "count": 4
+      }
     },
     {
       "id": "sentiment",
@@ -190,8 +176,9 @@
         "w": 3,
         "h": 3
       },
-      "config": {},
-      "featured": false
+      "config": {
+        "sparklineDays": 41
+      }
     },
     {
       "id": "plan",
@@ -204,8 +191,7 @@
       },
       "config": {
         "text": "desk rules\n— TSLA: no chasing into earnings\n— trim into 1m overextension, re-add on the reclaim\n— green day? bank it, don't round-trip\n— fear < 20: halve size, widen stops"
-      },
-      "featured": false
+      }
     },
     {
       "id": "daily-brief",
@@ -217,8 +203,7 @@
         "w": 6,
         "h": 3
       },
-      "config": {},
-      "featured": false
+      "config": {}
     },
     {
       "id": "compare-7d",
@@ -238,8 +223,7 @@
         ],
         "lookback": "7D",
         "normalize": true
-      },
-      "featured": false
+      }
     },
     {
       "id": "portfolio-heading",
@@ -253,8 +237,7 @@
       "config": {
         "title": "Portfolio",
         "subtitle": "live book value off the mid stream"
-      },
-      "featured": false
+      }
     },
     {
       "id": "stock-book",
@@ -285,8 +268,7 @@
             "amount": 12
           }
         ]
-      },
-      "featured": false
+      }
     },
     {
       "id": "dino-game-2",
@@ -297,8 +279,283 @@
         "w": 4,
         "h": 3
       },
-      "config": {},
-      "featured": false
+      "config": {}
+    },
+    {
+      "id": "world-sessions",
+      "frame": "market-hours",
+      "title": "World markets",
+      "position": {
+        "x": 8,
+        "y": 14,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "exchanges": [
+          "NYSE",
+          "NASDAQ",
+          "LSE",
+          "XETRA",
+          "TSE",
+          "HKEX",
+          "SET",
+          "ASX"
+        ],
+        "sort": "region"
+      }
+    },
+    {
+      "id": "rates-board-1",
+      "frame": "rates-board",
+      "position": {
+        "x": 4,
+        "y": 17,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "maxReferenceRates": 5,
+        "showTreasuryAverageRates": true,
+        "maxTreasuryRates": 4
+      }
+    },
+    {
+      "id": "local-clock",
+      "frame": "clock",
+      "position": {
+        "x": 8,
+        "y": 18,
+        "w": 4,
+        "h": 2
+      },
+      "config": {
+        "label": "Local",
+        "showSeconds": true,
+        "showMillis": true
+      }
+    },
+    {
+      "id": "macro-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 21,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Macro & filings",
+        "subtitle": "CPI · SEC filings · FINRA short volume — official data"
+      }
+    },
+    {
+      "id": "cpi-pulse",
+      "frame": "inflation-pulse",
+      "title": "Inflation pulse",
+      "position": {
+        "x": 0,
+        "y": 22,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "months": 18
+      }
+    },
+    {
+      "id": "tsla-filings",
+      "frame": "filings-feed",
+      "title": "TSLA filings",
+      "position": {
+        "x": 4,
+        "y": 22,
+        "w": 5,
+        "h": 4
+      },
+      "config": {
+        "symbol": "xyz:TSLA",
+        "forms": "important",
+        "count": 8
+      }
+    },
+    {
+      "id": "short-volume-1",
+      "frame": "short-volume",
+      "title": "Short volume",
+      "position": {
+        "x": 9,
+        "y": 22,
+        "w": 3,
+        "h": 4
+      },
+      "config": {
+        "symbols": [
+          "TSLA",
+          "NVDA",
+          "AAPL",
+          "MSFT",
+          "META",
+          "AMD"
+        ],
+        "sort": "shortPct"
+      }
+    },
+    {
+      "id": "price-chart-2",
+      "frame": "price-chart",
+      "position": {
+        "x": 0,
+        "y": 26,
+        "w": 6,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "tsla-fundamentals",
+      "frame": "fundamentals",
+      "title": "TSLA financials",
+      "position": {
+        "x": 6,
+        "y": 26,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "symbol": "xyz:TSLA"
+      }
+    },
+    {
+      "id": "all-frames-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 29,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "All frame types",
+        "subtitle": "the remaining built-ins — one of each"
+      }
+    },
+    {
+      "id": "watchlist-ticker",
+      "frame": "price-ticker",
+      "title": "Watchlist",
+      "position": {
+        "x": 0,
+        "y": 30,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "symbols": [
+          "xyz:TSLA",
+          "xyz:NVDA",
+          "xyz:AAPL",
+          "xyz:MSFT"
+        ]
+      }
+    },
+    {
+      "id": "btc-dominance",
+      "frame": "bitcoin-dominance",
+      "title": "BTC dominance",
+      "position": {
+        "x": 4,
+        "y": 30,
+        "w": 4,
+        "h": 2
+      },
+      "config": {
+        "showTotalMarketCap": true
+      }
+    },
+    {
+      "id": "chain-tvl",
+      "frame": "tvl-treemap",
+      "title": "Chain TVL",
+      "position": {
+        "x": 8,
+        "y": 30,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "topN": 12
+      }
+    },
+    {
+      "id": "funding-lines",
+      "frame": "funding-rate-chart",
+      "title": "Funding rates",
+      "position": {
+        "x": 0,
+        "y": 33,
+        "w": 6,
+        "h": 3
+      },
+      "config": {
+        "symbols": [
+          "xyz:TSLA",
+          "xyz:NVDA",
+          "xyz:AAPL"
+        ],
+        "lookback": "7D"
+      }
+    },
+    {
+      "id": "funding-grid",
+      "frame": "funding-heatmap",
+      "title": "Funding heatmap",
+      "position": {
+        "x": 6,
+        "y": 34,
+        "w": 6,
+        "h": 3
+      },
+      "config": {
+        "symbols": [
+          "xyz:TSLA",
+          "xyz:NVDA",
+          "xyz:AAPL",
+          "xyz:MSFT"
+        ]
+      }
+    },
+    {
+      "id": "funding-heatmap-2",
+      "frame": "funding-heatmap",
+      "position": {
+        "x": 0,
+        "y": 36,
+        "w": 6,
+        "h": 3
+      },
+      "config": {
+        "symbols": [
+          "xyz:TSLA"
+        ]
+      }
+    },
+    {
+      "id": "funding-heatmap-3",
+      "frame": "funding-heatmap",
+      "position": {
+        "x": 6,
+        "y": 37,
+        "w": 6,
+        "h": 3
+      },
+      "config": {
+        "symbols": [
+          "xyz:TSLA",
+          "xyz:MSFT",
+          "xyz:GOOGL"
+        ]
+      }
     }
   ]
 }

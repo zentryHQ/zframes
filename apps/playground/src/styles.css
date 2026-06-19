@@ -37,6 +37,41 @@ body {
    keeps the header entrance and the frame cascade on the exact same curve. */
 :root {
   --zf-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Track-less scrollbar: a translucent-white thumb, matching the design
+     system's white-with-alpha chrome idiom (see @zframes/charts theme tokens). */
+  --zf-scrollbar-thumb: hsla(0, 0%, 100%, 0.14);
+  --zf-scrollbar-thumb-hover: hsla(0, 0%, 100%, 0.28);
+}
+
+/* ── Custom scrollbar (no track) ────────────────────────────────────────────
+   One global rule styles the page and every inner scroll area (editor rail,
+   config textarea): WebKit's ::-webkit-scrollbar pseudo-elements are
+   document-global, and Firefox's scrollbar-* inherit from <html>. The track is
+   transparent — only a floating pill thumb shows. The transparent border +
+   background-clip:padding-box slims the thumb and insets it from the edges so
+   it reads as floating, not riding a rail. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--zf-scrollbar-thumb) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--zf-scrollbar-thumb);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.15s ease;
+}
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--zf-scrollbar-thumb-hover);
 }
 
 /* The header leads the frame cascade in: it lands first, then the grid
