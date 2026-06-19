@@ -15,21 +15,37 @@ Never create or edit `.tsx` files for this task.
 The runtime ships as the `zframes` CLI on npm. Always invoke it with
 **`npx zframes@latest <cmd>`** — npx fetches the published CLI (which bundles the
 dashboard runtime) per run, so there's nothing to clone, install, or keep
-current. The commands you'll use below are `catalogue`, `lint`, and `serve`
-(written `zframes <cmd>` for brevity — always run them through `npx`).
+current. The commands you'll use below are `init`, `catalogue`, `lint`, and
+`serve` (written `zframes <cmd>` for brevity — always run them through `npx`).
 
-## 1. Pick where the dashboard lives
+## 1. Pick where the dashboard lives — and scaffold it
 
 The only artifact is a single `dashboard.json`. There is **no app to scaffold** —
 the runtime comes from the CLI.
 
 - **Updating an existing dashboard?** Find the `dashboard.json` the user is
   serving (or one in the current directory), read it first, and go to step 2 to
-  change only what they asked for.
+  change only what they asked for. Don't re-init — you'd wipe their frames.
 - **New dashboard?** Pick a directory for it — the current directory, or a fresh
-  one the user names (e.g. `~/zframes`). The spec is `<dir>/dashboard.json`; that
-  single file is everything the user owns. Any sibling files the spec references
-  (a `daily-analysis.json` brief, a local image) live next to it in `<dir>`.
+  one the user names (e.g. `~/zframes`) — then **scaffold the file with `init`
+  instead of hand-writing the envelope**:
+
+  ```bash
+  npx zframes@latest init <dir> --title "<dashboard title>" --author "<name>"
+  ```
+
+  This writes a bare, already-valid `<dir>/dashboard.json` — the fixed envelope,
+  modelled on package.json: `version` (semver string), `title`, `author` (pass
+  `--author` if the user gave a name, else it's left blank), then the 12-column
+  `grid` (geometry — columns/rowHeight/`gap`), the unicorn `background`, the
+  accent `theme` (`accentHue`/`accentSat`), and the card-surface `appearance`
+  (`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`) — with an
+  **empty `frames` array**. You never author that boilerplate or its
+  geometry by hand; you only fill in `frames` (step 4). The
+  spec is `<dir>/dashboard.json`; that single file is everything the user owns.
+  Any sibling files it references (a `daily-analysis.json` brief, a local image)
+  live next to it in `<dir>`. `init` refuses to clobber an existing file unless
+  you pass `--force`.
 
 ## 2. Read the catalogue — always, before generating
 
@@ -82,18 +98,22 @@ name ("fear-greed", "tvl-treemap").
 For "update my dashboard" requests, read the existing `dashboard.json` first
 and change only what they asked for.
 
-## 4. Emit the spec
+## 4. Fill in the frames
 
-Write `<dir>/dashboard.json`. Layout rules:
+Edit the file `init` scaffolded (or the existing one for updates): add objects to
+the `frames` array. **Leave the envelope alone** — `version`, `grid`,
+`background`, `theme`, and `appearance` are already set; only touch them if the
+user explicitly asks (e.g. "more spacing" → bump `grid.gap`, "square corners" →
+`appearance.radius: 0`, "muted accent" → lower `theme.accentSat`, "glassy cards"
+→ lower `appearance.surfaceOpacity`, "no animation" → `background.type:
+"gradient"`). Layout rules for the frames:
 
-- 12-column grid, `rowHeight: 96`, `gap: 12`.
+- The grid is 12 columns, `rowHeight: 96` (set by `init`). Place each frame with
+  an explicit `position: { x, y, w, h }` in grid units.
 - **Group into zones.** Put a `heading` frame (full-width `w: 12, h: 1`) above
   each group of related frames — e.g. "Markets", "On-chain", "Desk". Headings
   render as bare section dividers (no card); they're what make a dashboard read
   as designed instead of a widget dump. A good dashboard has 2–3 zones.
-- **Feature the centerpiece.** Set `"featured": true` on the single hero frame
-  (usually the main `price-chart`) — the renderer gives it an accent rim.
-  Exactly one featured frame per dashboard.
 - **Title each card.** Set a per-instance `"title"` (sibling of `frame`/`position`)
   to label the card; it overrides the default, which is just the frame-type name.
   Required on every `price-chart` — use the ticker (`"title": "TSLA"`, not
@@ -104,10 +124,6 @@ Write `<dir>/dashboard.json`. Layout rules:
 - No overlaps; no frame past column 12; every `id` unique and human-readable.
 - Only set config fields the user cares about — schema defaults cover the
   rest, except required fields (the catalogue's `required` list).
-- **Background.** Include `"background": { "type": "unicorn", "projectId": "K42KSY4FXeXhjVOj9RgT", "opacity": 0.05 }`
-  at the top level (next to `grid`). Keep `opacity` low (~0.05) — the scene is a
-  faint backdrop, never a distraction. To opt out, use `"type": "gradient"`
-  (built-in dark glow, fully keyless) or `"none"`.
 
 ## 5. Lint — the feedback loop
 
