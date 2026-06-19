@@ -11,16 +11,21 @@ body {
   margin: 0;
   background:
     radial-gradient(
-      1100px 520px at 50% -8%,
-      hsla(242, 70%, 24%, 0.22),
-      transparent 62%
+      1240px 660px at 50% -12%,
+      hsla(248, 84%, 34%, 0.28),
+      transparent 60%
     ),
     radial-gradient(
-      900px 480px at 92% 0%,
-      hsla(168, 55%, 22%, 0.1),
-      transparent 55%
+      940px 540px at 86% -4%,
+      hsla(266, 72%, 32%, 0.14),
+      transparent 56%
     ),
-    var(--color-background-terminal);
+    radial-gradient(
+      1000px 620px at 6% 10%,
+      hsla(200, 60%, 26%, 0.07),
+      transparent 60%
+    ),
+    #07070c;
   background-attachment: fixed;
   color: #dde3ee;
   font-family: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
