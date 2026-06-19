@@ -1,5 +1,5 @@
 import { CHART_COLORS_MULTI_SERIES, PieChart } from "@zframes/charts";
-import { defineFrame, useMids } from "@zframes/core";
+import { defineFrame, useMidsState } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { allocationMeta } from "./schemas";
@@ -19,7 +19,7 @@ function Allocation({ config }: { config: z.output<typeof schema> }) {
     () => config.holdings.map((holding) => holding.symbol),
     [config.holdings],
   );
-  const mids = useMids(symbols);
+  const { mids, isLoading } = useMidsState(symbols);
 
   // Value each holding at its live mid; drop the not-yet-priced ones so the
   // donut never renders a lopsided slice while prices trickle in.
@@ -39,8 +39,9 @@ function Allocation({ config }: { config: z.output<typeof schema> }) {
 
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
 
-  if (slices.length === 0)
-    return <FrameStatus loading>loading prices…</FrameStatus>;
+  if (isLoading)
+    return <FrameStatus loading>loading allocation...</FrameStatus>;
+  if (slices.length === 0) return <FrameStatus>no live prices yet</FrameStatus>;
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-4">

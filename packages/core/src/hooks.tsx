@@ -70,6 +70,8 @@ function usePolled<T>(
       return;
     }
     let cancelled = false;
+    setData(fallback);
+    setIsLoading(true);
     const run = () => {
       load()
         .then((next) => {
@@ -87,10 +89,13 @@ function usePolled<T>(
     // don't poll the public APIs in lockstep.
     let timer: ReturnType<typeof setTimeout>;
     const schedule = () => {
-      timer = setTimeout(() => {
-        run();
-        schedule();
-      }, refreshMs * (0.85 + Math.random() * 0.3));
+      timer = setTimeout(
+        () => {
+          run();
+          schedule();
+        },
+        refreshMs * (0.85 + Math.random() * 0.3),
+      );
     };
     schedule();
     return () => {
@@ -103,49 +108,86 @@ function usePolled<T>(
 }
 
 /** Live mid prices for the given symbols, streamed from a quote-stream provider. */
-export function useMids(symbols: readonly string[]): Record<string, number> {
+export function useMidsState(symbols: readonly string[]): {
+  mids: Record<string, number>;
+  isLoading: boolean;
+} {
   const provider = useProviderFor("quote-stream");
   const [mids, setMids] = useState<Record<string, number>>({});
+  const [isLoading, setIsLoading] = useState(true);
   const key = symbols.join(",");
   useEffect(() => {
     const wanted = key.split(",").filter(Boolean);
-    if (!provider?.subscribeMids || wanted.length === 0) return;
-    return provider.subscribeMids((all) => {
+    setMids({});
+    if (!provider?.subscribeMids || wanted.length === 0) {
+      setIsLoading(false);
+      return;
+    }
+    let cancelled = false;
+    let received = false;
+    setIsLoading(true);
+    const timeout = setTimeout(() => {
+      if (!cancelled && !received) setIsLoading(false);
+    }, 8_000);
+    const unsubscribe = provider.subscribeMids((all) => {
+      if (cancelled) return;
+      received = true;
+      clearTimeout(timeout);
+      setIsLoading(false);
       setMids((prev) => {
         let changed = false;
-        const next = { ...prev };
+        const next: Record<string, number> = {};
         for (const symbol of wanted) {
           const value = all[symbol];
-          if (value !== undefined && value !== next[symbol]) {
+          if (value !== undefined) {
             next[symbol] = value;
-            changed = true;
+            if (value !== prev[symbol]) changed = true;
           }
         }
+        if (Object.keys(prev).length !== Object.keys(next).length)
+          changed = true;
         return changed ? next : prev;
       });
     }, wanted);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      unsubscribe();
+    };
   }, [provider, key]);
-  return mids;
+  return { mids, isLoading };
+}
+
+/** Live mid prices for the given symbols, streamed from a quote-stream provider. */
+export function useMids(symbols: readonly string[]): Record<string, number> {
+  return useMidsState(symbols).mids;
 }
 
 /**
  * 24h stats per symbol, polled on an interval. Pass no symbols (undefined)
  * for the provider's full universe — used by market-overview style frames.
  */
-export function useDayStats(
+export function useDayStatsState(
   symbols?: readonly string[],
   refreshMs = 30_000,
-): Record<string, DayStats> {
+): { stats: Record<string, DayStats>; isLoading: boolean } {
   const provider = useProviderFor("day-stats");
   const key = symbols ? symbols.join(",") : "*";
   const wanted = key === "*" ? undefined : key.split(",").filter(Boolean);
-  const { data } = usePolled<Record<string, DayStats>>(
+  const { data: stats, isLoading } = usePolled<Record<string, DayStats>>(
     provider?.getDayStats ? () => provider.getDayStats!(wanted) : null,
     {},
     [provider, key, refreshMs],
     refreshMs,
   );
-  return data;
+  return { stats, isLoading };
+}
+
+export function useDayStats(
+  symbols?: readonly string[],
+  refreshMs = 30_000,
+): Record<string, DayStats> {
+  return useDayStatsState(symbols, refreshMs).stats;
 }
 
 /**
