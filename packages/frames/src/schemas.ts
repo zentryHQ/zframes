@@ -1,4 +1,8 @@
-import { defineFrameMeta, type FrameMeta } from "@zframes/core/frame";
+import {
+  defineFrameMeta,
+  type FrameMeta,
+  type FrameSource,
+} from "@zframes/core/frame";
 import { z } from "zod";
 
 /**
@@ -10,6 +14,95 @@ import { z } from "zod";
 
 const widgetIcon = (name: string) => `/widget-icons/${name}.png`;
 
+/**
+ * Canonical data-source credits. Each frame links its provider from the card
+ * chrome (see core's FrameContent); the URL lives here in exactly one place.
+ */
+const SOURCES = {
+  hyperliquid: { name: "Hyperliquid", url: "https://hyperliquid.xyz" },
+  defillama: { name: "DeFiLlama", url: "https://defillama.com" },
+  coingecko: { name: "CoinGecko", url: "https://www.coingecko.com" },
+  alternativeMe: {
+    name: "alternative.me",
+    url: "https://alternative.me/crypto/fear-and-greed-index/",
+  },
+  bls: { name: "BLS", url: "https://www.bls.gov" },
+  nyFed: {
+    name: "NY Fed",
+    url: "https://www.newyorkfed.org/markets/reference-rates",
+  },
+  treasury: { name: "U.S. Treasury", url: "https://fiscaldata.treasury.gov" },
+  secEdgar: { name: "SEC EDGAR", url: "https://www.sec.gov/edgar" },
+  finra: {
+    name: "FINRA",
+    url: "https://www.finra.org/finra-data/browse-catalog/short-sale-volume-data",
+  },
+} satisfies Record<string, FrameSource>;
+
+export const clockMeta = defineFrameMeta({
+  name: "clock",
+  iconUrl: widgetIcon("clock"),
+  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  description:
+    "Digital clock showing the current time, ticking every second. Configurable IANA timezone (defaults to the viewer's local zone), 12/24-hour format, optional seconds and date, and a caption label. Drop several with different timezones for a trading-desk world clock. Needs no data provider.",
+  capabilities: [],
+  schema: z.object({
+    timezone: z
+      .string()
+      .default("")
+      .describe(
+        'IANA timezone, e.g. "America/New_York", "Europe/London", "Asia/Tokyo", "UTC". Empty = the viewer\'s local timezone.',
+      ),
+    label: z
+      .string()
+      .default("")
+      .describe(
+        'Caption under the time, e.g. "New York" or "Local". Empty hides it.',
+      ),
+    hour12: z
+      .boolean()
+      .default(false)
+      .describe("12-hour clock with AM/PM (true) or 24-hour (false)."),
+    showSeconds: z
+      .boolean()
+      .default(true)
+      .describe("Show seconds (HH:MM:SS) instead of just HH:MM."),
+    showMillis: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Show milliseconds (HH:MM:SS.mmm), updated smoothly each animation frame. Implies seconds.",
+      ),
+    showDate: z
+      .boolean()
+      .default(false)
+      .describe("Show the weekday and date under the time."),
+  }),
+});
+
+export const marketHoursMeta = defineFrameMeta({
+  name: "market-hours",
+  iconUrl: widgetIcon("market-hours"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Which world stock exchanges are open right now — each row shows an open / closed / holiday status dot and a live countdown to the next open or close. Computed entirely client-side from each exchange's timezone and regular trading hours (no API); a bundled 2026 holiday list keeps the major Western exchanges accurate on market holidays. Intraday lunch breaks and half-day early closes are not modelled. Needs no data provider.",
+  capabilities: [],
+  schema: z.object({
+    exchanges: z
+      .array(z.string())
+      .default([])
+      .describe(
+        'Exchange codes to show, e.g. ["NYSE","LSE","TSE","HKEX","SET"]. Empty = a global default set. Known codes: NYSE, NASDAQ, TSX, B3, LSE, XETRA, EURONEXT, SIX, TSE, HKEX, SSE, NSE, KRX, SGX, SET, ASX, JSE, TADAWUL.',
+      ),
+    sort: z
+      .enum(["region", "status", "name"])
+      .default("region")
+      .describe(
+        "Order rows by world region (Americas → Europe → Asia-Pacific → Middle East/Africa), by status (open first), or alphabetically by name.",
+      ),
+  }),
+});
+
 export const fearGreedMeta = defineFrameMeta({
   name: "fear-greed",
   iconUrl: widgetIcon("fear-greed"),
@@ -17,6 +110,7 @@ export const fearGreedMeta = defineFrameMeta({
   description:
     "Crypto Fear & Greed index (0 = extreme fear, 100 = extreme greed) with a recent-history sparkline. A one-number market mood gauge from alternative.me.",
   capabilities: ["sentiment"],
+  source: SOURCES.alternativeMe,
   schema: z.object({
     sparklineDays: z
       .number()
@@ -35,6 +129,7 @@ export const fundingRateChartMeta = defineFrameMeta({
   description:
     "Multi-series line chart comparing hourly perp funding rates across symbols over a configurable lookback window. Positive funding = longs pay shorts. Useful for spotting crowded trades.",
   capabilities: ["funding-history"],
+  source: SOURCES.hyperliquid,
   schema: z.object({
     symbols: z
       .array(z.string())
@@ -76,6 +171,7 @@ export const priceChartMeta = defineFrameMeta({
   description:
     "Live animated price chart (candlestick or line) for one symbol — canvas-rendered at 60fps via liveline, streaming live off the Hyperliquid WebSocket. Works for HIP-3 stock perps (xyz:TSLA) and crypto (BTC). The centerpiece frame.",
   capabilities: ["ohlcv", "quote-stream"],
+  source: SOURCES.hyperliquid,
   schema: z.object({
     symbol: z
       .string()
@@ -98,6 +194,40 @@ export const priceChartMeta = defineFrameMeta({
   }),
 });
 
+export const priceLivelineMeta = defineFrameMeta({
+  name: "price-liveline",
+  iconUrl: widgetIcon("price-liveline"),
+  layout: { w: 6, h: 3, minW: 4, minH: 2 },
+  description:
+    "Multi-asset live price liveline — several Hyperliquid symbols streaming in one canvas chart. Defaults to normalized % movement so stocks and crypto can share one axis, while the legend still shows each asset's live raw price. Use when the dashboard needs one compact live race view instead of several single-symbol charts.",
+  capabilities: ["quote-stream", "day-stats"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    symbols: z
+      .array(z.string())
+      .min(2)
+      .max(8)
+      .describe(
+        'Hyperliquid symbols to stream together, e.g. ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"] or ["BTC", "ETH", "SOL"]. 2 to 8.',
+      ),
+    windowSec: z
+      .number()
+      .int()
+      .min(10)
+      .max(300)
+      .default(30)
+      .describe(
+        "Rolling live window in seconds. 30 mirrors the zhive liveline view; use 60–300 for slower dashboards.",
+      ),
+    normalize: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Show each asset as % movement from its first live tick (recommended when prices differ). Off = raw price overlay.",
+      ),
+  }),
+});
+
 export const priceTickerMeta = defineFrameMeta({
   name: "price-ticker",
   iconUrl: widgetIcon("price-ticker"),
@@ -105,6 +235,7 @@ export const priceTickerMeta = defineFrameMeta({
   description:
     "Live watchlist streaming mid prices over the Hyperliquid WebSocket with 24h change per symbol. The bread-and-butter frame for any dashboard.",
   capabilities: ["quote-stream", "day-stats"],
+  source: SOURCES.hyperliquid,
   schema: z.object({
     symbols: z
       .array(z.string())
@@ -120,8 +251,9 @@ export const topMoversMeta = defineFrameMeta({
   iconUrl: widgetIcon("top-movers"),
   layout: { w: 5, h: 3, minW: 3, minH: 3 },
   description:
-    "Today's biggest gainers and losers across the whole Hyperliquid perp universe, side by side with 24h change.",
+    "Today's biggest stock and commodity HIP-3 gainers and losers (no bare crypto), side by side with current price and 24h change.",
   capabilities: ["day-stats"],
+  source: SOURCES.hyperliquid,
   schema: z.object({
     count: z
       .number()
@@ -140,6 +272,7 @@ export const tvlTreemapMeta = defineFrameMeta({
   description:
     "Treemap of total value locked (TVL) across the largest blockchain ecosystems, sized by TVL. Data from DeFiLlama. Good single-glance answer to 'where does on-chain capital live right now'.",
   capabilities: ["tvl"],
+  source: SOURCES.defillama,
   schema: z.object({
     topN: z
       .number()
@@ -158,12 +291,174 @@ export const bitcoinDominanceMeta = defineFrameMeta({
   description:
     "BTC / ETH / Others market-cap dominance as a segmented bar, with optional total marketcap line. Shifts in BTC dominance hint at where the market rotates next.",
   capabilities: ["global-market"],
+  source: SOURCES.coingecko,
   schema: z.object({
     showTotalMarketCap: z
       .boolean()
       .default(true)
       .describe(
         "Show total crypto marketcap and its 24h change below the bar.",
+      ),
+  }),
+});
+
+export const ratesBoardMeta = defineFrameMeta({
+  name: "rates-board",
+  iconUrl: widgetIcon("rates-board"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Official US rates board from free public APIs: New York Fed reference rates (SOFR, effective fed funds, repo rates) plus Treasury average interest rates by security class. Daily/reference data, not a real-time stock quote feed.",
+  capabilities: ["reference-rates", "treasury-rates"],
+  source: [SOURCES.nyFed, SOURCES.treasury],
+  schema: z.object({
+    maxReferenceRates: z
+      .number()
+      .int()
+      .min(2)
+      .max(8)
+      .default(5)
+      .describe("How many New York Fed reference rates to show."),
+    showTreasuryAverageRates: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Also show Treasury average interest rates by security class from Fiscal Data.",
+      ),
+    maxTreasuryRates: z
+      .number()
+      .int()
+      .min(1)
+      .max(8)
+      .default(4)
+      .describe("How many Treasury average-rate rows to show."),
+  }),
+});
+
+export const inflationPulseMeta = defineFrameMeta({
+  name: "inflation-pulse",
+  iconUrl: widgetIcon("inflation-pulse"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "BLS CPI pulse from the public no-key API: latest CPI-U all-items index with month-over-month and year-over-year changes plus a small trend sparkline. Monthly macro context for stock dashboards; not a live price feed.",
+  capabilities: ["macro-series"],
+  source: SOURCES.bls,
+  schema: z.object({
+    months: z
+      .number()
+      .int()
+      .min(13)
+      .max(36)
+      .default(18)
+      .describe("How many monthly CPI observations to show in the trend."),
+  }),
+});
+
+export const filingsFeedMeta = defineFrameMeta({
+  name: "filings-feed",
+  iconUrl: widgetIcon("filings-feed"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Recent SEC EDGAR filings for one US-listed company — each row shows the form type (10-K, 10-Q, 8-K, Form 4…), a plain-English label, the filing date, and a click-through to the document on sec.gov, under a header with the company name, exchange, and filer category. Official data from SEC's free, CORS-safe submissions endpoint; event-driven (updates when the company files), not a price feed. Resolve by ticker (a bundled snapshot of the ~500 largest US issuers) or by raw SEC CIK for anything else.",
+  capabilities: ["filings"],
+  source: SOURCES.secEdgar,
+  schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .describe(
+        'Company to show filings for — a ticker ("AAPL", "NVDA"), a HIP-3 symbol ("xyz:TSLA"), or a raw SEC CIK ("320193"). Tickers outside the bundled top-500 map need a CIK.',
+      ),
+    forms: z
+      .enum(["important", "all", "insider"])
+      .default("important")
+      .describe(
+        'Which filings to surface: "important" = periodic & material reports (10-K, 10-Q, 8-K, S-1, proxies, 13D/G…); "insider" = ownership forms (3/4/5/144); "all" = unfiltered. Always newest first.',
+      ),
+    count: z
+      .number()
+      .int()
+      .min(3)
+      .max(25)
+      .default(8)
+      .describe("How many filings to list (newest first)."),
+  }),
+});
+
+export const yieldCurveMeta = defineFrameMeta({
+  name: "yield-curve",
+  iconUrl: widgetIcon("yield-curve"),
+  layout: { w: 4, h: 3, minW: 3, minH: 3 },
+  description:
+    "The U.S. Treasury daily par yield curve — a line from 1-month to 30-year yields, the headline 2s10s spread (10Y minus 2Y; negative = inverted, the classic recession signal), and a configurable row of key maturities. Keyless official data from the U.S. Treasury, updated each business day; not a live intraday feed.",
+  capabilities: ["yield-curve"],
+  source: SOURCES.treasury,
+  schema: z.object({
+    maturities: z
+      .array(
+        z.enum([
+          "1M",
+          "2M",
+          "3M",
+          "4M",
+          "6M",
+          "1Y",
+          "2Y",
+          "3Y",
+          "5Y",
+          "7Y",
+          "10Y",
+          "20Y",
+          "30Y",
+        ]),
+      )
+      .min(2)
+      .max(8)
+      .default(["3M", "2Y", "5Y", "10Y", "30Y"])
+      .describe(
+        "Maturities to show as labelled cells under the curve (the full curve line always shows every maturity).",
+      ),
+  }),
+});
+
+export const fundamentalsMeta = defineFrameMeta({
+  name: "fundamentals",
+  iconUrl: widgetIcon("fundamentals"),
+  layout: { w: 4, h: 3, minW: 3, minH: 3 },
+  description:
+    "Headline financials for one US-listed company from SEC EDGAR XBRL company facts — revenue, net income, total assets, shareholders' equity, diluted EPS, and shares outstanding, each labelled with its fiscal period. Income-statement figures are the latest full fiscal year; balance-sheet figures are the latest reported quarter. Keyless official data that updates only when the company files (annual/quarterly), not a live feed. Requires the zframes runtime's data proxy (it ships with `zframes serve` / `vite dev`); resolve by ticker (bundled top-500 map) or raw SEC CIK.",
+  capabilities: ["fundamentals"],
+  source: SOURCES.secEdgar,
+  schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .describe(
+        'Company to show financials for — a ticker ("AAPL", "NVDA"), a HIP-3 symbol ("xyz:NVDA"), or a raw SEC CIK ("320193"). Tickers outside the bundled top-500 map need a CIK.',
+      ),
+  }),
+});
+
+export const shortVolumeMeta = defineFrameMeta({
+  name: "short-volume",
+  iconUrl: widgetIcon("short-volume"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Daily reported short-sale volume for a watchlist of US-listed stocks, from FINRA's free consolidated file — each row shows the % of the day's reported volume that was sold short, with a bar and the raw short/total share counts. IMPORTANT: this is reported short volume (sell-side short flow, which includes market-maker hedging), NOT short interest (outstanding short positions), and is not a directional signal on its own. Daily data published the next business day; not a live feed. US equities only.",
+  capabilities: ["short-volume"],
+  source: SOURCES.finra,
+  schema: z.object({
+    symbols: z
+      .array(z.string())
+      .min(1)
+      .max(12)
+      .describe(
+        'US-listed stock tickers to show, e.g. ["TSLA","NVDA","AAPL"]. HIP-3 symbols ("xyz:TSLA") work too — the dex prefix is stripped. Crypto has no SEC/FINRA short-volume and is ignored.',
+      ),
+    sort: z
+      .enum(["shortPct", "volume", "symbol"])
+      .default("shortPct")
+      .describe(
+        "Order rows by short % of volume (highest first), by total volume (highest first), or alphabetically by symbol.",
       ),
   }),
 });
@@ -175,6 +470,7 @@ export const fundingHeatmapMeta = defineFrameMeta({
   description:
     "Heatmap of perp funding rates — symbols as rows, 4h time buckets over the last 3 days as columns, green positive / red negative. Spots persistent funding regimes at a glance.",
   capabilities: ["funding-history"],
+  source: SOURCES.hyperliquid,
   schema: z.object({
     symbols: z
       .array(z.string())
@@ -273,6 +569,7 @@ export const priceCompareMeta = defineFrameMeta({
   description:
     "Multi-series line chart overlaying the price history of several symbols over a lookback window — see how TSLA, NVDA and BTC moved against each other. Normalized by default to % change from the window start so symbols at very different price levels (BTC vs a $20 stock) stay comparable on one axis. Candles from Hyperliquid.",
   capabilities: ["ohlcv"],
+  source: SOURCES.hyperliquid,
   schema: z.object({
     symbols: z
       .array(z.string())
@@ -301,6 +598,7 @@ export const allocationMeta = defineFrameMeta({
   description:
     "Donut of a portfolio's live allocation — list holdings (symbol + amount) and each slice is sized by current USD value off the Hyperliquid mid stream, with total portfolio value in the center. A live 'where is my money right now' view.",
   capabilities: ["quote-stream"],
+  source: SOURCES.hyperliquid,
   schema: z.object({
     holdings: z
       .array(
@@ -327,17 +625,26 @@ export const allocationMeta = defineFrameMeta({
 export const frameMetas: FrameMeta[] = [
   allocationMeta,
   bitcoinDominanceMeta,
+  clockMeta,
   dailyAnalysisMeta,
   dinoGameMeta,
   fearGreedMeta,
+  filingsFeedMeta,
+  fundamentalsMeta,
   fundingHeatmapMeta,
   fundingRateChartMeta,
   headingMeta,
   imageMeta,
+  inflationPulseMeta,
+  marketHoursMeta,
   noteMeta,
   priceChartMeta,
   priceCompareMeta,
+  priceLivelineMeta,
   priceTickerMeta,
+  ratesBoardMeta,
+  shortVolumeMeta,
   topMoversMeta,
   tvlTreemapMeta,
+  yieldCurveMeta,
 ];
