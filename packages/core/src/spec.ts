@@ -67,9 +67,9 @@ export const BackgroundSchema = z
       .number()
       .min(0)
       .max(1)
-      .default(0.06)
+      .default(0.16)
       .describe(
-        "Opacity of the unicorn scene (0–1). Keep low (~0.05) so the animation stays a faint backdrop and never competes with the dashboard content.",
+        "Opacity of the unicorn scene (0–1). Keep moderate (~0.15) so the animation reads as a living backdrop in the gutters without competing with the (opaque) dashboard cards.",
       ),
   })
   .describe("Visual background rendered behind the whole dashboard.");
@@ -95,7 +95,7 @@ export const DashboardSpecSchema = z.object({
     type: "gradient",
     scale: 1,
     dpi: 1.5,
-    opacity: 0.06,
+    opacity: 0.16,
   }),
   frames: z.array(FrameInstanceSchema),
 });

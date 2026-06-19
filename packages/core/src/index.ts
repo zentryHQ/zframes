@@ -32,6 +32,7 @@ export {
 export {
   FramesProvider,
   useCandles,
+  useCandlesMulti,
   useDayStats,
   useFearGreed,
   useFundingHistory,
