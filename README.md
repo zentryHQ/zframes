@@ -76,7 +76,7 @@ The contract the agent works against is the **catalogue** (frame names + config 
 | [**`zframes`**](skills/zframes/SKILL.md) | Builds & edits your dashboard — scaffolds a real app, reads the catalogue, writes `dashboard.json`, lints it, opens the browser. | *"build me a TSLA + NVDA terminal"* |
 | [**`zframes-brief`**](skills/zframes-brief/SKILL.md) | Daily analyst loop — analyzes the symbols on your dashboard, grades yesterday's calls, writes today's brief into the `daily-analysis` frame. | *"run my daily brief"* |
 
-> **🚧 Pre-release.** `npx skills add zentryhq/zframes` installs the skills straight from GitHub today — no npm publish needed. The `zframes` **CLI** they drive is still being published to npm (so the agent can `npx zframes` per run); until that lands, clone this repo and the skill uses the in-repo CLI (`pnpm zframes`). Progress: [`docs/deployment-plan.html`](docs/deployment-plan.html).
+> **🚧 Pre-release.** `npx skills add zentryhq/zframes` installs the skills straight from GitHub today — no npm publish needed. The `zframes` **CLI** they drive is still being published to npm (so the agent can `npx zframes` per run); until that lands, clone this repo and the skill uses the in-repo CLI (`pnpm zframes`). Progress: [`docs/decisions/cli/cli.md`](docs/decisions/cli/cli.md).
 
 ---
 
@@ -168,7 +168,7 @@ pnpm zframes init [dir]             # scaffold a full, runnable dashboard app
 pnpm zframes init --json [file]     # write just a starter dashboard.json
 ```
 
-`zframes init` scaffolds a complete, owned Vite app with the runtime vendored in — it runs without cloning this repo or installing anything from a registry. (Publishing the CLI to npm — so the agent can `npx zframes` per run — is on the roadmap; see [`docs/deployment-plan.html`](docs/deployment-plan.html).)
+`zframes init` scaffolds a complete, owned Vite app with the runtime vendored in — it runs without cloning this repo or installing anything from a registry. (Publishing the CLI to npm — so the agent can `npx zframes` per run — is on the roadmap; see [`docs/decisions/cli/cli.md`](docs/decisions/cli/cli.md).)
 
 ---
 
@@ -195,4 +195,4 @@ Packages ship TypeScript source (`main: src/index.ts`); the playground's Vite co
 
 ## License
 
-[Apache-2.0](LICENSE) · Copyright 2026 Zentry. See [`NOTICE`](NOTICE) for third-party components (liveline, d3, unicornstudio-react). The runtime packages are not yet published to npm — distribution today is the `zframes init` scaffold (see [`docs/deployment-plan.html`](docs/deployment-plan.html)).
+[Apache-2.0](LICENSE) · Copyright 2026 Zentry. See [`NOTICE`](NOTICE) for third-party components (liveline, d3, unicornstudio-react). The runtime packages are not yet published to npm — distribution today is the `zframes init` scaffold (see [`docs/decisions/cli/cli.md`](docs/decisions/cli/cli.md)).
