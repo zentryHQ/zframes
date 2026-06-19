@@ -1,0 +1,5 @@
+<svg width="72" height="52" viewBox="0 0 72 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>zframes</title>
+  <defs><linearGradient id="zg" x1="0" y1="0" x2="72" y2="52" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#5C8CFF"/><stop offset="1" stop-color="#A974FF"/></linearGradient></defs>
+  <g transform="translate(36,26) scale(0.05301,-0.05301) translate(-440.0,-415.0)"><path d="M202 830 26 0H188L364 830Z" fill="#FFFFFF"/><g transform="translate(428,0)"><path d="M16 0H420V190H237L426 660V830H18V640H205L16 170Z" fill="url(#zg)"/></g></g>
+</svg>
