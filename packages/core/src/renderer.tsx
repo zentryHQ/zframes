@@ -34,6 +34,8 @@ export function DashboardRenderer({
           ["--zf-cols" as string]: spec.grid.columns,
           ["--zf-row-h" as string]: `${spec.grid.rowHeight}px`,
           ["--zf-gap" as string]: `${spec.grid.gap}px`,
+          // Drives every accent color in FRAME_CSS (card rims, dots, hero glow).
+          ["--zf-accent-hue" as string]: spec.theme.accentHue,
         }}
       >
         {spec.frames.map((instance, index) => (

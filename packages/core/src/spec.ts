@@ -77,6 +77,31 @@ export const BackgroundSchema = z
 export type DashboardBackground = z.infer<typeof BackgroundSchema>;
 
 /**
+ * Dashboard-wide theming. Like `background`, the spec only *declares* it; the
+ * renderer/editor apply it as the `--zf-accent-hue` CSS var, which the chrome
+ * stylesheet (frame-content's FRAME_CSS) and the chart highlight token derive
+ * every accent color from. Rotating the hue re-tints the whole brand — card
+ * rims, title dots, the hero-frame glow, chart highlights, loading states —
+ * while leaving semantic up/down (green/red), asset logos, and explicit
+ * per-frame chart colors untouched.
+ */
+export const ThemeSchema = z
+  .object({
+    accentHue: z
+      .number()
+      .int()
+      .min(0)
+      .max(360)
+      .default(242)
+      .describe(
+        "Brand accent hue in degrees on the HSL color wheel (0–360). Rotates the dashboard's accent — card rims, title dots, the hero-frame glow, chart highlights, loading states — across the spectrum. 242 is the default zframes indigo; rough anchors: 0 red, 35 orange, 50 amber, 150 green, 190 teal, 210 blue, 280 violet, 330 pink. Semantic up/down green/red, asset logos, and per-frame chart colors stay fixed.",
+      ),
+  })
+  .describe("Dashboard-wide theming (accent color).");
+
+export type DashboardTheme = z.infer<typeof ThemeSchema>;
+
+/**
  * The dashboard spec is the artifact a generating agent emits: plain JSON,
  * diffable, lives in git. Invalid specs fail loudly per frame so the agent
  * can read the errors and self-correct.
@@ -97,6 +122,7 @@ export const DashboardSpecSchema = z.object({
     dpi: 1.5,
     opacity: 0.16,
   }),
+  theme: ThemeSchema.default({ accentHue: 242 }),
   frames: z.array(FrameInstanceSchema),
 });
 

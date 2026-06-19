@@ -27,10 +27,10 @@
 @keyframes dnaStrand1Color {
   0%,
   100% {
-    background-color: hsla(242, 100%, 68%, 1);
+    background-color: hsl(var(--zf-accent-hue, 242) 100% 68%);
   }
   25% {
-    background-color: hsla(263, 83%, 75%, 1);
+    background-color: hsl(calc(var(--zf-accent-hue, 242) + 21) 83% 75%);
   }
   50% {
     background-color: hsla(0, 0%, 100%, 0.4);
@@ -75,9 +75,9 @@
     background-color: hsla(0, 0%, 100%, 0.3);
   }
   50% {
-    background-color: hsla(242, 100%, 68%, 1);
+    background-color: hsl(var(--zf-accent-hue, 242) 100% 68%);
   }
   75% {
-    background-color: hsla(263, 83%, 75%, 1);
+    background-color: hsl(calc(var(--zf-accent-hue, 242) + 21) 83% 75%);
   }
 }

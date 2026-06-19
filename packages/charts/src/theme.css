@@ -17,7 +17,9 @@
 
   --color-card: hsla(0, 0%, 100%, 0.02);
   --color-card-hover: hsla(0, 0%, 100%, 0.1);
-  --color-highlight: hsla(242, 100%, 89%, 1);
+  /* Accent highlight — hue rotates with the host's --zf-accent-hue knob
+     (spec.theme.accentHue); 242 is the default zframes indigo. */
+  --color-highlight: hsl(var(--zf-accent-hue, 242) 100% 89%);
 
   --font-dmsans: "DM Sans", sans-serif;
 }

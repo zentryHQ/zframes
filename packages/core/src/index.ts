@@ -24,8 +24,10 @@ export {
   DashboardSpecSchema,
   FrameInstanceSchema,
   GridPositionSchema,
+  ThemeSchema,
   type DashboardBackground,
   type DashboardSpec,
+  type DashboardTheme,
   type FrameInstance,
   type GridPosition,
 } from "./spec";

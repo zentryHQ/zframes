@@ -9,6 +9,13 @@ import type { FrameInstance } from "./spec";
  * first, so themes (e.g. @zframes/charts theme.css) can restyle the chrome
  * by defining vars — the fallbacks keep zero-config hosts presentable.
  *
+ * The accent (indigo by default) is expressed as hsl() off a single
+ * --zf-accent-hue var, so the host can rotate the entire brand to any hue by
+ * setting one number (spec.theme.accentHue → renderer/editor). Saturation and
+ * lightness stay baked per color; only the hue channel is the knob. Semantic
+ * colors (error red, success green) and asset logos are intentionally NOT
+ * hue-derived — they carry meaning, so they don't rotate.
+ *
  * Lives here (not in renderer.tsx) so both the CSS-grid renderer and the
  * interactive editor render identical cards from one source.
  */
@@ -47,13 +54,13 @@ export const FRAME_CSS = `
 /* Hover lift is pointer-only — on touch it would stick after a tap. */
 @media (hover: hover) {
   .zf-frame:hover {
-    border-color: var(--zf-frame-border-hover, rgba(139, 141, 249, 0.42));
+    border-color: var(--zf-frame-border-hover, hsl(var(--zf-accent-hue, 242) 90% 76% / 0.42));
     background: var(--zf-frame-bg-hover, linear-gradient(165deg, rgba(34, 35, 50, 0.88) 0%, rgba(18, 19, 28, 0.9) 60%, rgba(12, 13, 20, 0.92) 100%));
-    box-shadow: var(--zf-frame-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 1px 2px rgba(0, 0, 0, 0.4), 0 26px 56px -26px rgba(0, 0, 0, 0.92), 0 0 0 1px rgba(139, 141, 249, 0.12), 0 20px 60px -28px rgba(139, 141, 249, 0.4));
+    box-shadow: var(--zf-frame-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 1px 2px rgba(0, 0, 0, 0.4), 0 26px 56px -26px rgba(0, 0, 0, 0.92), 0 0 0 1px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.12), 0 20px 60px -28px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.4));
     transform: translateY(-2px);
   }
   .zf-frame--featured:hover {
-    border-color: var(--zf-frame-featured-border-hover, rgba(160, 162, 255, 0.75));
+    border-color: var(--zf-frame-featured-border-hover, hsl(var(--zf-accent-hue, 242) 100% 81% / 0.75));
   }
 }
 /* Top edge sheen — inset past the corner radius so the bright line never
@@ -89,8 +96,8 @@ export const FRAME_CSS = `
   width: 5px;
   height: 5px;
   border-radius: 9999px;
-  background: var(--zf-frame-title-dot, #8b8df9);
-  box-shadow: 0 0 8px var(--zf-frame-title-dot-glow, rgba(139, 141, 249, 0.9));
+  background: var(--zf-frame-title-dot, hsl(var(--zf-accent-hue, 242) 90% 76%));
+  box-shadow: 0 0 8px var(--zf-frame-title-dot-glow, hsl(var(--zf-accent-hue, 242) 90% 76% / 0.9));
 }
 .zf-frame-body {
   position: relative;
@@ -116,8 +123,8 @@ export const FRAME_CSS = `
   box-shadow: 0 0 8px rgba(242, 21, 83, 0.7);
 }
 .zf-frame--featured {
-  border-color: var(--zf-frame-featured-border, rgba(139, 141, 249, 0.5));
-  box-shadow: var(--zf-frame-featured-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(139, 141, 249, 0.18), 0 30px 80px -34px rgba(99, 102, 241, 0.55), 0 18px 50px -30px rgba(0, 0, 0, 0.9));
+  border-color: var(--zf-frame-featured-border, hsl(var(--zf-accent-hue, 242) 90% 76% / 0.5));
+  box-shadow: var(--zf-frame-featured-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.18), 0 30px 80px -34px hsl(var(--zf-accent-hue, 242) 84% 67% / 0.55), 0 18px 50px -30px rgba(0, 0, 0, 0.9));
 }
 /* Hero bloom — a soft accent glow rising from the top edge, clipped to the
    card radius by overflow:hidden. Sits at z-index 0 so the title/body (z 1)
@@ -127,17 +134,17 @@ export const FRAME_CSS = `
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--zf-frame-featured-bloom, radial-gradient(135% 95% at 50% -10%, rgba(139, 141, 249, 0.2), rgba(139, 141, 249, 0.05) 40%, transparent 72%));
+  background: var(--zf-frame-featured-bloom, radial-gradient(135% 95% at 50% -10%, hsl(var(--zf-accent-hue, 242) 90% 76% / 0.2), hsl(var(--zf-accent-hue, 242) 90% 76% / 0.05) 40%, transparent 72%));
   pointer-events: none;
   z-index: 0;
 }
 @media (hover: hover) {
   .zf-frame--featured:hover {
-    box-shadow: var(--zf-frame-featured-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(139, 141, 249, 0.28), 0 36px 90px -32px rgba(99, 102, 241, 0.7), 0 18px 50px -30px rgba(0, 0, 0, 0.92));
+    box-shadow: var(--zf-frame-featured-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.28), 0 36px 90px -32px hsl(var(--zf-accent-hue, 242) 84% 67% / 0.7), 0 18px 50px -30px rgba(0, 0, 0, 0.92));
   }
 }
 .zf-frame--featured .zf-frame-title {
-  color: var(--zf-frame-featured-title, rgba(184, 186, 255, 0.9));
+  color: var(--zf-frame-featured-title, hsl(var(--zf-accent-hue, 242) 100% 86% / 0.9));
 }
 /* Bare frames (headings) divide a dashboard into zones — positioned slot,
    no card chrome, no auto-title. */
