@@ -6,7 +6,7 @@
   "author": "Zentry",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zentry/zframes.git",
+    "url": "https://github.com/zentryhq/zframes.git",
     "directory": "packages/provider-alternativeme"
   },
   "private": true,

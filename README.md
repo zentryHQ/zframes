@@ -37,14 +37,14 @@ You drive zframes from your coding agent, not from a Node project you build by h
 ### 1. Install the skill
 
 ```bash
-npx skills add zentry/zframes
+npx skills add zentryhq/zframes
 ```
 
 That pulls the [`zframes`](skills/zframes/SKILL.md) and [`zframes-brief`](skills/zframes-brief/SKILL.md) skills from this repo into your agent's skills directory (for Claude Code, `~/.claude/skills/`). One command, no clone, no per-package install — it works with any agent that supports the open skills standard.
 
 ### Supported agents
 
-The skills are plain Markdown following the [skills standard](https://github.com/obra/skills), so any skills-aware coding agent can run them. Install is the same `npx skills add zentry/zframes` everywhere; only how you summon the skill differs.
+The skills are plain Markdown following the [skills standard](https://github.com/obra/skills), so any skills-aware coding agent can run them. Install is the same `npx skills add zentryhq/zframes` everywhere; only how you summon the skill differs.
 
 | Agent | Summon it by | Status |
 |---|---|---|
@@ -76,7 +76,7 @@ The contract the agent works against is the **catalogue** (frame names + config 
 | [**`zframes`**](skills/zframes/SKILL.md) | Builds & edits your dashboard — scaffolds a real app, reads the catalogue, writes `dashboard.json`, lints it, opens the browser. | *"build me a TSLA + NVDA terminal"* |
 | [**`zframes-brief`**](skills/zframes-brief/SKILL.md) | Daily analyst loop — analyzes the symbols on your dashboard, grades yesterday's calls, writes today's brief into the `daily-analysis` frame. | *"run my daily brief"* |
 
-> **🚧 Pre-release.** `npx skills add zentry/zframes` installs the skills straight from GitHub today — no npm publish needed. The `zframes` **CLI** they drive is still being published to npm (so the agent can `npx zframes` per run); until that lands, clone this repo and the skill uses the in-repo CLI (`pnpm zframes`). Progress: [`docs/deployment-plan.html`](docs/deployment-plan.html).
+> **🚧 Pre-release.** `npx skills add zentryhq/zframes` installs the skills straight from GitHub today — no npm publish needed. The `zframes` **CLI** they drive is still being published to npm (so the agent can `npx zframes` per run); until that lands, clone this repo and the skill uses the in-repo CLI (`pnpm zframes`). Progress: [`docs/deployment-plan.html`](docs/deployment-plan.html).
 
 ---
 

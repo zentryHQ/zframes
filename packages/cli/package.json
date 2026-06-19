@@ -6,10 +6,10 @@
   "author": "Zentry",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zentry/zframes.git",
+    "url": "https://github.com/zentryhq/zframes.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://github.com/zentry/zframes#readme",
+  "homepage": "https://github.com/zentryhq/zframes#readme",
   "keywords": [
     "zframes",
     "dashboard",

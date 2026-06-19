@@ -22,7 +22,7 @@ export interface FetchJsonOptions {
 }
 
 const DEFAULT_TIMEOUT_MS = 10_000;
-const USER_AGENT = "zframes (+https://github.com/zentry/zframes)";
+const USER_AGENT = "zframes (+https://github.com/zentryhq/zframes)";
 
 export async function fetchJson<T>(
   url: string,

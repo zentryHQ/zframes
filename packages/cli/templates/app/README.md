@@ -1,6 +1,6 @@
 # my zframes terminal
 
-A personal, live market dashboard built with [zframes](https://github.com/zentry/zframes).
+A personal, live market dashboard built with [zframes](https://github.com/zentryhq/zframes).
 Streams real prices from Hyperliquid, DeFiLlama, alternative.me, and CoinGecko —
 all keyless, no signup, no API keys.
 
