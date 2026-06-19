@@ -1,5 +1,5 @@
 import { defineFrame } from "@zframes/core";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { dinoGameMeta } from "./schemas";
 
 // Chrome-dino style runner on canvas. The obstacle sprite is drawn (a pixel
@@ -32,6 +32,8 @@ interface Obstacle {
   width: number;
   height: number;
 }
+
+type GameState = "idle" | "playing" | "gameover";
 
 function drawDinoSprite(
   ctx: CanvasRenderingContext2D,
@@ -75,11 +77,54 @@ function drawCactus(
   ctx.fillRect(x + width - 4, y + 18, 4, 12);
 }
 
+function drawStaticGameFrame(
+  canvas: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  gameState: Exclude<GameState, "playing">,
+  score: number,
+  highScore: number,
+) {
+  const groundY = canvas.height - GROUND_HEIGHT;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = COLORS.ground;
+  ctx.fillRect(0, groundY, canvas.width, 2);
+  drawDinoSprite(ctx, 50, groundY - DINO_HEIGHT, null);
+
+  ctx.textAlign = "center";
+  if (gameState === "idle") {
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 14px "DM Sans", sans-serif';
+    ctx.fillText(
+      "Press SPACE or tap to start",
+      canvas.width / 2,
+      canvas.height / 2 - 30,
+    );
+  } else {
+    ctx.fillStyle = COLORS.gameOver;
+    ctx.font = 'bold 20px "DM Sans", sans-serif';
+    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 14px "DM Sans", sans-serif';
+    ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 - 10);
+    ctx.fillStyle = COLORS.textSoft;
+    ctx.fillText(
+      "Press SPACE or tap to restart",
+      canvas.width / 2,
+      canvas.height / 2 + 20,
+    );
+  }
+
+  ctx.textAlign = "left";
+  ctx.font = 'bold 12px "DM Sans", monospace';
+  ctx.fillStyle = COLORS.textSoft;
+  ctx.fillText("HI", 10, 30);
+  ctx.fillStyle = COLORS.score;
+  ctx.fillText(String(highScore).padStart(5, "0"), 30, 30);
+}
+
 function DinoGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gameState, setGameState] = useState<"idle" | "playing" | "gameover">(
-    "idle",
-  );
+  const [gameState, setGameState] = useState<GameState>("idle");
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => {
     if (typeof window !== "undefined") {
@@ -95,11 +140,17 @@ function DinoGame() {
   // the loop. State still drives the rendered HUD/score.
   const scoreRef = useRef(0);
   const highScoreRef = useRef(highScore);
+  const gameStateRef = useRef<GameState>(gameState);
 
   useEffect(() => {
+    highScoreRef.current = highScore;
     if (highScore > 0)
       localStorage.setItem("zframes-dino-high-score", String(highScore));
   }, [highScore]);
+
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
 
   const gameDataRef = useRef({
     dinoY: 0,
@@ -157,7 +208,7 @@ function DinoGame() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [jump]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const resizeCanvas = () => {
@@ -166,6 +217,16 @@ function DinoGame() {
         canvas.width = parent.clientWidth;
         canvas.height = parent.clientHeight;
         gameDataRef.current.dinoY = canvas.height - GROUND_HEIGHT - DINO_HEIGHT;
+        const ctx = canvas.getContext("2d");
+        if (ctx && gameStateRef.current !== "playing") {
+          drawStaticGameFrame(
+            canvas,
+            ctx,
+            gameStateRef.current,
+            scoreRef.current,
+            highScoreRef.current,
+          );
+        }
         setCanvasReady((prev) => !prev);
       }
     };
@@ -302,42 +363,7 @@ function DinoGame() {
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
-    const groundY = canvas.height - GROUND_HEIGHT;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = COLORS.ground;
-    ctx.fillRect(0, groundY, canvas.width, 2);
-    drawDinoSprite(ctx, 50, groundY - DINO_HEIGHT, null);
-
-    ctx.textAlign = "center";
-    if (gameState === "idle") {
-      ctx.fillStyle = COLORS.text;
-      ctx.font = 'bold 14px "DM Sans", sans-serif';
-      ctx.fillText(
-        "Press SPACE or tap to start",
-        canvas.width / 2,
-        canvas.height / 2 - 30,
-      );
-    } else {
-      ctx.fillStyle = COLORS.gameOver;
-      ctx.font = 'bold 20px "DM Sans", sans-serif';
-      ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
-      ctx.fillStyle = COLORS.text;
-      ctx.font = 'bold 14px "DM Sans", sans-serif';
-      ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 - 10);
-      ctx.fillStyle = COLORS.textSoft;
-      ctx.fillText(
-        "Press SPACE or tap to restart",
-        canvas.width / 2,
-        canvas.height / 2 + 20,
-      );
-    }
-
-    ctx.textAlign = "left";
-    ctx.font = 'bold 12px "DM Sans", monospace';
-    ctx.fillStyle = COLORS.textSoft;
-    ctx.fillText("HI", 10, 30);
-    ctx.fillStyle = COLORS.score;
-    ctx.fillText(String(highScore).padStart(5, "0"), 30, 30);
+    drawStaticGameFrame(canvas, ctx, gameState, score, highScore);
   }, [gameState, score, highScore, canvasReady]);
 
   return (
