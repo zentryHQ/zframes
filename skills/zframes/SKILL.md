@@ -55,19 +55,41 @@ here — never from memory. The catalogue grows; your memory doesn't.
 
 ## 3. Interview the user (first run = onboarding)
 
-Ask, in the user's language, roughly:
+Keep onboarding **short** and ask only about what the user cares about — never
+about frames, widgets, or "extras". A first-time user shouldn't have to know
+what a "widget" is, read back a catalogue of frame names, or assemble the
+dashboard themselves. You map their answers onto catalogue frames, and you
+supply the rest (zones, section labels, a sensible default context set, the
+background) from the good-dashboard defaults in step 4 — don't ask about those.
 
-1. **What do you watch?** Symbols — stocks via HIP-3 perps ("xyz:TSLA",
-   "xyz:NVDA", "xyz:AAPL") and/or crypto ("BTC", "ETH", "HYPE"). zframes leads
-   with stocks; if they name a plain stock ticker, map it to the `xyz:` dex first.
-2. **Centerpiece?** Which 1–2 symbols deserve a big `price-chart`
-   (candle vs line, interval).
-3. **Context widgets?** Offer what the catalogue has: price-ticker (watchlist),
-   top-movers, funding-rate-chart, funding-heatmap, tvl-treemap, fear-greed,
-   bitcoin-dominance.
-4. **Personality?** a `note` with their trading plan, a `heading` to label
-   regions ("Stocks", "On-chain"), an `image` (logo/banner), or the `dino-game`
-   for when the market's flat.
+Ask, in the user's language, essentially two things:
+
+1. **What do you want to keep an eye on?** The assets — stocks ("TSLA", "NVDA",
+   "AAPL") and/or crypto ("BTC", "ETH", "HYPE"). Ask and show **plain tickers
+   only**; the `xyz:` HIP-3 dex prefix is a framework internal — never surface it
+   in a question or option. When the user names a stock, *you* add the `xyz:`
+   prefix silently when writing the spec (so "TSLA" → `xyz:TSLA`); crypto stays
+   bare. zframes leads with stocks. Also note which 1–2 are the **main focus**
+   (the big live chart) and roughly the timeframe (intraday vs swing). This is
+   the core — everything else follows from it.
+2. **What else matters to you?** *(optional — skip if they've already implied
+   it, or just pick sensible defaults.)* Phrase these as interests/outcomes, not
+   frame names — then translate to frames yourself. The user picks the interest;
+   you pick the widget. Map e.g.:
+   - "the overall market mood / is it greedy or fearful" → `fear-greed`, `bitcoin-dominance`
+   - "what's moving today / biggest movers" → `top-movers`
+   - "where money's flowing on-chain / which chains" → `tvl-treemap`
+   - "funding / leverage / who's paying to be long" → `funding-rate-chart`, `funding-heatmap`
+   - "a glanceable watchlist of my assets" → `price-ticker`
+
+Everything else is your call, not a question: add zone `heading`s, feature the
+centerpiece, and include a tasteful default context set. Add a trading-plan
+`note`, a logo `image`, or the `dino-game` only if the user brings it up — don't
+prompt for them. The user can always refine later with "add X to my dashboard".
+
+If you render this as a picker (e.g. AskUserQuestion), label steps and options
+by interest ("Market mood", "What's moving", "On-chain flows"), never by frame
+name ("fear-greed", "tvl-treemap").
 
 For "update my dashboard" requests, read the existing `dashboard.json` first
 and change only what they asked for.
