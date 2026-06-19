@@ -8,8 +8,11 @@ import { z } from "zod";
  * here — this file is the single source of truth for the AI catalogue.
  */
 
+const widgetIcon = (name: string) => `/widget-icons/${name}.png`;
+
 export const fearGreedMeta = defineFrameMeta({
   name: "fear-greed",
+  iconUrl: widgetIcon("fear-greed"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
     "Crypto Fear & Greed index (0 = extreme fear, 100 = extreme greed) with a recent-history sparkline. A one-number market mood gauge from alternative.me.",
@@ -27,6 +30,7 @@ export const fearGreedMeta = defineFrameMeta({
 
 export const fundingRateChartMeta = defineFrameMeta({
   name: "funding-rate-chart",
+  iconUrl: widgetIcon("funding-rate-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Multi-series line chart comparing hourly perp funding rates across symbols over a configurable lookback window. Positive funding = longs pay shorts. Useful for spotting crowded trades.",
@@ -48,6 +52,7 @@ export const fundingRateChartMeta = defineFrameMeta({
 
 export const noteMeta = defineFrameMeta({
   name: "note",
+  iconUrl: widgetIcon("note"),
   layout: { w: 4, h: 3, minW: 2, minH: 2 },
   description:
     "Free-form text note pinned to the dashboard — trading plans, reminders, watch levels. Needs no data provider.",
@@ -66,6 +71,7 @@ export const noteMeta = defineFrameMeta({
 
 export const priceChartMeta = defineFrameMeta({
   name: "price-chart",
+  iconUrl: widgetIcon("price-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Live animated price chart (candlestick or line) for one symbol — canvas-rendered at 60fps via liveline, streaming live off the Hyperliquid WebSocket. Works for HIP-3 stock perps (xyz:TSLA) and crypto (BTC). The centerpiece frame.",
@@ -94,6 +100,7 @@ export const priceChartMeta = defineFrameMeta({
 
 export const priceTickerMeta = defineFrameMeta({
   name: "price-ticker",
+  iconUrl: widgetIcon("price-ticker"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
     "Live watchlist streaming mid prices over the Hyperliquid WebSocket with 24h change per symbol. The bread-and-butter frame for any dashboard.",
@@ -110,6 +117,7 @@ export const priceTickerMeta = defineFrameMeta({
 
 export const topMoversMeta = defineFrameMeta({
   name: "top-movers",
+  iconUrl: widgetIcon("top-movers"),
   layout: { w: 5, h: 3, minW: 3, minH: 3 },
   description:
     "Today's biggest gainers and losers across the whole Hyperliquid perp universe, side by side with 24h change.",
@@ -127,6 +135,7 @@ export const topMoversMeta = defineFrameMeta({
 
 export const tvlTreemapMeta = defineFrameMeta({
   name: "tvl-treemap",
+  iconUrl: widgetIcon("tvl-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Treemap of total value locked (TVL) across the largest blockchain ecosystems, sized by TVL. Data from DeFiLlama. Good single-glance answer to 'where does on-chain capital live right now'.",
@@ -144,6 +153,7 @@ export const tvlTreemapMeta = defineFrameMeta({
 
 export const bitcoinDominanceMeta = defineFrameMeta({
   name: "bitcoin-dominance",
+  iconUrl: widgetIcon("bitcoin-dominance"),
   layout: { w: 4, h: 2, minW: 3, minH: 2 },
   description:
     "BTC / ETH / Others market-cap dominance as a segmented bar, with optional total marketcap line. Shifts in BTC dominance hint at where the market rotates next.",
@@ -160,6 +170,7 @@ export const bitcoinDominanceMeta = defineFrameMeta({
 
 export const fundingHeatmapMeta = defineFrameMeta({
   name: "funding-heatmap",
+  iconUrl: widgetIcon("funding-heatmap"),
   layout: { w: 6, h: 3, minW: 4, minH: 3 },
   description:
     "Heatmap of perp funding rates — symbols as rows, 4h time buckets over the last 3 days as columns, green positive / red negative. Spots persistent funding regimes at a glance.",
@@ -177,6 +188,7 @@ export const fundingHeatmapMeta = defineFrameMeta({
 
 export const dinoGameMeta = defineFrameMeta({
   name: "dino-game",
+  iconUrl: widgetIcon("dino-game"),
   layout: { w: 4, h: 3, minW: 3, minH: 3 },
   description:
     "Chrome-dino style runner game on canvas — jump cacti with SPACE or tap. High score persists locally. For when the market is boring. Needs no data provider.",
@@ -186,6 +198,7 @@ export const dinoGameMeta = defineFrameMeta({
 
 export const imageMeta = defineFrameMeta({
   name: "image",
+  iconUrl: widgetIcon("image"),
   layout: { w: 3, h: 3, minW: 1, minH: 1 },
   description:
     "Displays an image from a URL — logos, memes, chart screenshots, banners. Needs no data provider.",
@@ -204,6 +217,7 @@ export const imageMeta = defineFrameMeta({
 
 export const headingMeta = defineFrameMeta({
   name: "heading",
+  iconUrl: widgetIcon("heading"),
   layout: { w: 12, h: 1, minW: 2, minH: 1, maxH: 1 },
   description:
     "Section divider that titles a region of the dashboard ('Markets', 'On-chain', 'Desk'). Renders as a label with a hairline rule — no card. Use to group frames into zones: place full-width (w: 12) and 1 row tall (h: 1) above each group. Needs no data provider.",
@@ -220,6 +234,7 @@ export const headingMeta = defineFrameMeta({
 
 export const dailyAnalysisMeta = defineFrameMeta({
   name: "daily-analysis",
+  iconUrl: widgetIcon("daily-analysis"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Daily market brief written by the /zframes-brief loop — a dated analysis of the symbols on your dashboard, the calls it is making today, and how yesterday's calls scored (with a running hit-rate). Reads a local log file the loop appends to; needs no market data provider. Add one per dashboard.",
@@ -253,6 +268,7 @@ export const dailyAnalysisMeta = defineFrameMeta({
 
 export const priceCompareMeta = defineFrameMeta({
   name: "price-compare",
+  iconUrl: widgetIcon("price-compare"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Multi-series line chart overlaying the price history of several symbols over a lookback window — see how TSLA, NVDA and BTC moved against each other. Normalized by default to % change from the window start so symbols at very different price levels (BTC vs a $20 stock) stay comparable on one axis. Candles from Hyperliquid.",
@@ -280,6 +296,7 @@ export const priceCompareMeta = defineFrameMeta({
 
 export const allocationMeta = defineFrameMeta({
   name: "allocation",
+  iconUrl: widgetIcon("allocation"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
     "Donut of a portfolio's live allocation — list holdings (symbol + amount) and each slice is sized by current USD value off the Hyperliquid mid stream, with total portfolio value in the center. A live 'where is my money right now' view.",

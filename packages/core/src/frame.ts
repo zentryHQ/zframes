@@ -33,6 +33,8 @@ export interface FrameMeta<S extends z.ZodType = z.ZodType> {
   name: string;
   /** AI-facing: what the frame shows and when a generating agent should pick it. */
   description: string;
+  /** Optional visual used by editor palettes/catalogues. */
+  iconUrl?: string;
   /** Data needs; the host must supply providers covering them. */
   capabilities: readonly Capability[];
   /** Config schema. Every field needs .describe() — agents read this catalogue. */

@@ -16,6 +16,7 @@ export function catalogueForAI(input: FrameRegistry | Iterable<FrameMeta>) {
   return metas.map((meta) => ({
     name: meta.name,
     description: meta.description,
+    iconUrl: meta.iconUrl,
     capabilities: meta.capabilities,
     // io: "input" — the agent writes the *input* shape, where .default()
     // fields are optional. The output shape would wrongly mark them required.
