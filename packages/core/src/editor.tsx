@@ -151,16 +151,22 @@ export function DashboardEditor({
 
   // Builds the GridStack item DOM for an instance and registers its content
   // node + data. Does not render React (caller calls renderInstance).
+  // `autoPosition` lets GridStack pick the first free slot (used by click-to-add,
+  // where the instance has no meaningful x/y yet).
   const buildItemEl = useCallback(
-    (instance: FrameInstance): GridItemHTMLElement => {
+    (instance: FrameInstance, autoPosition = false): GridItemHTMLElement => {
       const def = registryRef.current.get(instance.frame);
       const layout = def?.layout;
       const el = document.createElement("div") as GridItemHTMLElement;
       el.className = "grid-stack-item";
       el.setAttribute("gs-id", instance.id);
       el.setAttribute("data-frame", instance.frame);
-      el.setAttribute("gs-x", String(instance.position.x));
-      el.setAttribute("gs-y", String(instance.position.y));
+      if (autoPosition) {
+        el.setAttribute("gs-auto-position", "true");
+      } else {
+        el.setAttribute("gs-x", String(instance.position.x));
+        el.setAttribute("gs-y", String(instance.position.y));
+      }
       el.setAttribute("gs-w", String(instance.position.w));
       el.setAttribute("gs-h", String(instance.position.h));
       if (layout?.minW) el.setAttribute("gs-min-w", String(layout.minW));
@@ -202,6 +208,34 @@ export function DashboardEditor({
       setCount(frames.length);
     },
     [buildItemEl, renderInstance],
+  );
+
+  // Click-to-add: append a new frame to the grid in the first free slot.
+  // The drag-in path (the `dropped` handler) covers the same job for users who
+  // prefer dragging; this is the one-click equivalent.
+  const addFrame = useCallback(
+    (frameName: string) => {
+      const grid = gridInstanceRef.current;
+      if (!grid) return;
+      const def = registryRef.current.get(frameName);
+      const id = uniqueId(frameName);
+      const instance: FrameInstance = {
+        id,
+        frame: frameName,
+        position: { x: 0, y: 0, w: def?.layout?.w ?? 4, h: def?.layout?.h ?? 3 },
+        config: defaultConfig(def),
+        featured: false,
+      };
+      instancesRef.current.set(id, instance);
+      const el = buildItemEl(instance, true);
+      grid.el.appendChild(el);
+      grid.makeWidget(el);
+      renderInstance(id);
+      decorateItem(el);
+      setCount(grid.getGridItems().length);
+      setSelectedId(id);
+    },
+    [buildItemEl, decorateItem, defaultConfig, renderInstance, uniqueId],
   );
 
   // Mount once: init GridStack, render the spec, wire drag-in drops.
@@ -462,12 +496,23 @@ export function DashboardEditor({
 
               <section>
                 <h3 className="zf-rail-title">Add a frame</h3>
+                <p className="zf-palette-hint">Click to add, or drag onto the grid.</p>
                 <div className="zf-palette">
                   {paletteFrames.map((def) => (
                     <div
                       key={def.name}
                       className="zf-newwidget"
                       data-frame={def.name}
+                      role="button"
+                      tabIndex={0}
+                      title={`Add ${def.name.replace(/-/g, " ")}`}
+                      onClick={() => addFrame(def.name)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          addFrame(def.name);
+                        }
+                      }}
                     >
                       <div className="zf-newwidget-name">
                         {def.name.replace(/-/g, " ")}

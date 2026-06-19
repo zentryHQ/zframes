@@ -20,7 +20,7 @@
   flex: 1;
   min-width: 0;
   min-height: 360px;
-  border-radius: 14px;
+  border-radius: 18px;
   border: 1px dashed transparent;
   transition: border-color 0.2s ease;
 }
@@ -50,7 +50,7 @@
 .zf-editor.zf-customise .grid-stack-item > .grid-stack-item-content {
   outline: 2px dashed rgba(255, 255, 255, 0.08);
   outline-offset: -2px;
-  border-radius: 14px;
+  border-radius: 18px;
   transition: outline-color 0.2s ease;
 }
 /* Frame interiors are inert while customising — dragging a card must never
@@ -154,7 +154,7 @@
 .zf-editor .grid-stack-placeholder > .placeholder-content {
   background: rgba(139, 141, 249, 0.15);
   border: 2px dashed rgba(139, 141, 249, 0.55);
-  border-radius: 14px;
+  border-radius: 18px;
 }
 
 /* ── Toolbar ───────────────────────────────────────────────────────────── */
@@ -245,6 +245,11 @@
   color: rgba(255, 255, 255, 0.46);
   margin: 0 0 8px;
 }
+.zf-palette-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  margin: -4px 0 8px;
+}
 .zf-palette {
   display: flex;
   flex-direction: column;
@@ -252,7 +257,7 @@
 }
 .zf-newwidget {
   text-align: left;
-  cursor: grab;
+  cursor: pointer;
   padding: 9px 11px;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.04);
