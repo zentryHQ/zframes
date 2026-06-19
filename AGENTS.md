@@ -34,35 +34,13 @@ pnpm zframes serve <dashboard.json>   # the runtime: serve a dashboard live (--p
 - `dashboard.json` is the AI-generated artifact. Invalid frame configs render as per-frame error cards (the agent's feedback loop), never crash the dashboard.
 - Frame chrome (cards, titles, hover) lives in the renderer's injected `.zf-*` stylesheet, themeable via `--zf-*` CSS vars — frames style only their interior.
 - Dashboard background: the **spec declares** it (`background: {type: "gradient"|"unicorn"|"none", projectId?, opacity?}`), the **host renders** it (playground's `background.tsx`) — same split as providers. Scene `opacity` is kept moderate (~0.15) so it reads as a living backdrop in the gutters, not a distraction; cards are opaque so content always wins. `unicornstudio-react` lives only in the playground, never in core. **Footgun:** a `unicorn` background loads the SDK from a jsDelivr CDN and the scene from a hosted Unicorn Studio project (`K42KSY4FXeXhjVOj9RgT` is the zframes default) — keyless, but an external runtime dependency (like the Google Fonts import); it falls back to the body gradient if the SDK fails. The skill emits `unicorn` by default.
-- Original assets only — never copy art/code from other workspace projects (lens is personal; the 3z repos have closed history). Exception: zTerminal base charts are ported deliberately into `packages/charts` (Zentry's own IP, public-OSS decision pending owner sign-off before first public release).
-- Base charts stay generic — no mindshare/news/zAI concepts; frames own data fetching and transformation, charts own rendering.
-- **Editable dashboard** (`@zframes/core/editor` → `DashboardEditor`, GridStack, mirrors the nexus workspace "customise mode"): the agent generates `dashboard.json` AND a human edits the *same* file — drag/resize/add/delete + a per-frame config rail, then Save. Edits round-trip the human-readable `dashboard.json` (the host's `onSave`), never a localStorage blob — the spec read/write contract lives in `@zframes/core/serve` (`handleSpecRead`/`handleSpecWrite`) and is used by BOTH `@zframes/core/vite`'s `dashboardWriteback()` (dev) and the CLI's `serve` (prod), so the round-trip is identical in both. GridStack owns each item's DOM, so frames render into per-item React roots wrapped in `FramesProvider` (shared provider instances — no duplicate WS). New-frame default config = `schema.safeParse({})`; required-field frames land as error cards until the rail fills them. **Footgun:** `@zframes/core/vite` is loaded by Vite's Node config-loader, so it imports the shared module by package subpath (`@zframes/core/serve`), NOT a relative `./serve` — a relative extensionless import fails under Node there.
+- Original assets only. The one deliberate exception is `packages/charts` — a port of zTerminal (Zentry's own IP); public release pends owner sign-off.
+- Base charts stay generic — no business logic, no data fetching; frames own data, charts own rendering.
+- **Editable dashboard** (`@zframes/core/editor` → `DashboardEditor`, GridStack, mirrors Zentry's "customise mode"): the agent generates `dashboard.json` AND a human edits the *same* file — drag/resize/add/delete + a per-frame config rail, then Save. Edits round-trip the human-readable `dashboard.json` (the host's `onSave`), never a localStorage blob — the spec read/write contract lives in `@zframes/core/serve` (`handleSpecRead`/`handleSpecWrite`) and is used by BOTH `@zframes/core/vite`'s `dashboardWriteback()` (dev) and the CLI's `serve` (prod), so the round-trip is identical in both. GridStack owns each item's DOM, so frames render into per-item React roots wrapped in `FramesProvider` (shared provider instances — no duplicate WS). New-frame default config = `schema.safeParse({})`; required-field frames land as error cards until the rail fills them. **Footgun:** `@zframes/core/vite` is loaded by Vite's Node config-loader, so it imports the shared module by package subpath (`@zframes/core/serve`), NOT a relative `./serve` — a relative extensionless import fails under Node there.
 
-## Scope decisions (2026-06-12)
+## Scope
 
-- **Public open-source** is the target distribution; everything must run keyless (Hyperliquid, DeFiLlama, alternative.me, CoinGecko free).
-- **No zAI/zData data for end users** (too expensive) — zAI-semantic widgets (mindshare, creators, sectors) are out of scope.
-- **No TradingView** (license) — `liveline` (npm, benjitaylor/liveline; already used in zhive with pnpm patches) is the live price-chart engine.
-- **Stocks first**: equity perps via Hyperliquid HIP-3 builder dexes (`dex` param), same free WS.
+- Keyless only — all data comes from free public APIs (Hyperliquid, DeFiLlama, alternative.me, CoinGecko). No API keys, anywhere.
+- Stocks-first — equity perps via Hyperliquid HIP-3 builder dexes (`dex` param, e.g. `xyz:TSLA`), with crypto alongside.
 
-## Done (2026-06-12)
-
-- ~~liveline price-chart + HIP-3 stocks~~ — `price-chart` frame streams `xyz:TSLA` candles live
-- ~~Widget wave~~ — top-movers, fear-greed, tvl-treemap, note shipped
-- ~~CLI~~ — `catalogue` / `lint` / `init` built and smoke-tested
-- ~~/zframes skill~~ — `skills/zframes/SKILL.md`
-- ~~Multi-provider + namespaced symbols~~ — capability routing in core; HL's own `dex:SYMBOL` namespacing covers stocks
-
-## Done (2026-06-17)
-
-- ~~Editable dashboard~~ — `DashboardEditor` (GridStack, nexus-style customise mode) + `dashboardWriteback()` dev plugin; in-browser drag/resize/add/delete/config round-trips `dashboard.json`. See Conventions.
-
-## Done (2026-06-19)
-
-- ~~serve-only runtime~~ — the CLI **is** the runtime: `npx zframes serve dashboard.json` serves a prebuilt bundle (vite build of the playground, shipped in the CLI) pointed at the user's one file, with always-on in-browser editing that writes back. App fetches the spec at runtime; shared read/write in `@zframes/core/serve`. **Replaced and deleted `zframes init` / `templates/app/` / `sync-template.mjs`** (supersedes old roadmap "scaffold" + "zframes preview"). Decision trail: `docs/decisions/cli/`.
-
-## Roadmap (next)
-
-1. Publish the `zframes` CLI to npm (`npm login` + `npm publish` from `packages/cli`) so `npx zframes@latest serve` resolves standalone — the runtime is **npx-only** by design.
-2. Publish the skill so `npx skills add zentryhq/zframes` works outside this repo.
-3. More frames: stacked-area marketcap distribution, orderbook depth via liveline's `orderbook` prop.
+Architecture decisions, the distribution model, and roadmap live in [`docs/decisions/`](docs/decisions/).

@@ -10,7 +10,7 @@ Third-party components
 --------------------------------------------------------------------------------
 
 The base chart layer in packages/charts is ported from Zentry's zTerminal
-(zentry-nexus) charting components.
+charting components.
 
 This project depends on, and (in the CLI scaffold and B1 packages) may
 redistribute, the following third-party software under their respective
