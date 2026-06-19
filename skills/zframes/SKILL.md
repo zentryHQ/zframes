@@ -1,52 +1,40 @@
 ---
 name: zframes
-description: Build or update the user's personal zframes market dashboard. Use when the user says "/zframes", "build me a dashboard", "set up my terminal", "make me a market terminal", "add X to my dashboard", or wants a personalized live market dashboard (crypto + stocks). Scaffolds a runnable app with the CLI, then emits a validated dashboard.json — the agent never writes React.
+description: Build or update the user's personal zframes market dashboard. Use when the user says "/zframes", "build me a dashboard", "set up my terminal", "make me a market terminal", "add X to my dashboard", or wants a personalized live market dashboard (crypto + stocks). Writes a validated dashboard.json and serves it live with the CLI — the agent never writes React.
 ---
 
 # zframes — your dashboard, generated
 
 You set up the user's dashboard by driving the **zframes CLI** and writing a
-`dashboard.json` spec. The framework owns all React; you only ever write JSON.
+`dashboard.json` spec. The CLI *is* the runtime: it serves a prebuilt dashboard
+app pointed at that one file, editable in the browser. You only ever write JSON.
 Never create or edit `.tsx` files for this task.
 
-## 0. Resolve the CLI
+## 0. The CLI
 
-You'll call the zframes CLI repeatedly (`init`, `catalogue`, `lint`). Resolve
-how to invoke it once, and use that everywhere below as `zframes`:
+The runtime ships as the `zframes` CLI on npm. Always invoke it with
+**`npx zframes@latest <cmd>`** — npx fetches the published CLI (which bundles the
+dashboard runtime) per run, so there's nothing to clone, install, or keep
+current. The commands you'll use below are `catalogue`, `lint`, and `serve`
+(written `zframes <cmd>` for brevity — always run them through `npx`).
 
-- **Inside the zframes monorepo (the path that works today)** → `pnpm zframes <cmd>`
-  (run `pnpm build:cli` once if `packages/cli/dist/` is missing).
-- **Standalone, once published** → `npx zframes@latest <cmd>`. npx fetches the
-  published CLI per run; no global install to manage.
+## 1. Pick where the dashboard lives
 
-> Note: the CLI isn't on npm yet (deployment plan, Phase 2), so `npx zframes`
-> won't resolve until then — use the monorepo `pnpm zframes` path today. The
-> steps are identical either way.
+The only artifact is a single `dashboard.json`. There is **no app to scaffold** —
+the runtime comes from the CLI.
 
-## 1. Locate or scaffold the app
-
-**Is there already a zframes app?** A directory with `src/dashboard.json`, or a
-`package.json` that depends on `@zframes/*` (inside the monorepo that's
-`apps/playground/`). If the user is in one or names one, that's your target —
-read its existing `dashboard.json` and skip to step 2 to update it.
-
-**Otherwise scaffold a fresh one** — this is the new-user path:
-
-```bash
-zframes init my-terminal      # full runnable app; refuses a non-empty dir
-cd my-terminal && pnpm install
-```
-
-The app's spec is now `my-terminal/src/dashboard.json` — that's the file you
-write in step 4. The scaffold is the user's own app: git-trackable, hackable,
-no service to operate.
+- **Updating an existing dashboard?** Find the `dashboard.json` the user is
+  serving (or one in the current directory), read it first, and go to step 2 to
+  change only what they asked for.
+- **New dashboard?** Pick a directory for it — the current directory, or a fresh
+  one the user names (e.g. `~/zframes`). The spec is `<dir>/dashboard.json`; that
+  single file is everything the user owns. Any sibling files the spec references
+  (a `daily-analysis.json` brief, a local image) live next to it in `<dir>`.
 
 ## 2. Read the catalogue — always, before generating
 
 ```bash
-zframes catalogue
-# in the monorepo: pnpm --silent zframes catalogue   (--silent keeps pnpm's
-#                                                      banner out of the JSON)
+npx zframes@latest catalogue
 ```
 
 This prints every available frame with its description, capabilities, and
@@ -96,7 +84,7 @@ and change only what they asked for.
 
 ## 4. Emit the spec
 
-Write the app's `src/dashboard.json`. Layout rules:
+Write `<dir>/dashboard.json`. Layout rules:
 
 - 12-column grid, `rowHeight: 96`, `gap: 12`.
 - **Group into zones.** Put a `heading` frame (full-width `w: 12, h: 1`) above
@@ -124,7 +112,7 @@ Write the app's `src/dashboard.json`. Layout rules:
 ## 5. Lint — the feedback loop
 
 ```bash
-zframes lint <app>/src/dashboard.json
+zframes lint <dir>/dashboard.json
 ```
 
 If it reports issues, fix the JSON and re-lint until clean. The error
@@ -132,18 +120,21 @@ messages name the frame instance and the exact field. Unknown frame names
 come back with the list of valid ones — use it.
 
 Renderer-level failures (a frame whose capability no provider covers) show
-up as error cards in the running app; treat those the same way.
+up as error cards in the running dashboard; treat those the same way.
 
-## 6. Hand off
+## 6. Hand off — serve it
 
-Start (or reload) the app and open it for the user:
+Serve the dashboard and open it for the user:
 
 ```bash
-cd <app> && pnpm dev      # http://localhost:5179
+zframes serve <dir>/dashboard.json   # live at http://127.0.0.1:5179
 ```
 
-The dashboard hot-reloads whenever `dashboard.json` changes, so further edits
-are instant — no restart.
+`serve` hosts the prebuilt runtime pointed at that file, streaming live keyless
+data. The user can drag, resize, add, and configure frames **in the browser** —
+Save writes the changes straight back to `dashboard.json`. Edits to the file
+(yours or theirs) show on reload, so further "add X to my dashboard" requests are
+just another edit + the page reloads. Pass `--port <n>` if 5179 is taken.
 
 ## Hard rules
 
