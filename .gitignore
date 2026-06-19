@@ -2,6 +2,7 @@ node_modules/
 dist/
 .vite/
 *.log
+*.tgz
 .DS_Store
 .env
 .env.*
@@ -15,11 +16,6 @@ ds-bundle/
 .design-sync/learnings/
 .design-sync/node_modules
 
-# Derived: vendored runtime + shared app shell for the CLI scaffold template
-# (regenerated from packages/* and apps/playground by build:cli)
-packages/cli/templates/app/packages/
-packages/cli/templates/app/index.html
-packages/cli/templates/app/src/App.tsx
-packages/cli/templates/app/src/main.tsx
-packages/cli/templates/app/src/background.tsx
-packages/cli/templates/app/src/styles.css
+# Derived: the prebuilt browser runtime vendored into the CLI by build:cli
+# (a vite build of apps/playground that `zframes serve` ships)
+packages/cli/runtime/

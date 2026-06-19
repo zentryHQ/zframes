@@ -1,7 +1,7 @@
 {
   "name": "zframes",
   "version": "0.1.0",
-  "description": "zframes CLI — scaffold a runnable dashboard app (init), print the frame catalogue for generating agents (catalogue), and validate a dashboard.json (lint).",
+  "description": "zframes CLI — serve a dashboard.json as a live, editable market terminal (serve), print the frame catalogue for generating agents (catalogue), and validate a dashboard.json (lint).",
   "license": "Apache-2.0",
   "author": "Zentry",
   "repository": {
@@ -26,11 +26,11 @@
   },
   "files": [
     "dist",
-    "templates"
+    "runtime"
   ],
   "scripts": {
-    "build": "node scripts/sync-template.mjs && tsup",
-    "prepack": "node scripts/sync-template.mjs && tsup",
+    "build": "node scripts/build-runtime.mjs && tsup",
+    "prepack": "node scripts/build-runtime.mjs && tsup",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

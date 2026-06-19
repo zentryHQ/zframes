@@ -1,27 +1,17 @@
 #!/usr/bin/env node
-import {
-  cpSync,
-  existsSync,
-  readFileSync,
-  readdirSync,
-  renameSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
-import { basename, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 import { catalogueForAI } from "@zframes/core/catalogue";
 import { DashboardSpecSchema, type DashboardSpec } from "@zframes/core/spec";
 import { frameMetas } from "@zframes/frames/schemas";
+import { serve } from "./serve";
 import { snapshot } from "./snapshot";
 
 const HELP = `zframes — AI-personalizable market dashboards
 
 usage:
-  zframes init [dir]          scaffold a full, runnable dashboard app into <dir>
-                              (default: ./my-terminal), refusing a non-empty dir
-  zframes init --json [file]  write only a starter dashboard.json (default:
-                              ./dashboard.json) — for an existing zframes app
+  zframes serve [file]        serve <dashboard.json> (default: ./dashboard.json)
+                              as a live, editable terminal at 127.0.0.1:5179
+                              (--port <n> to change); Save writes back to the file
   zframes catalogue           print the frame catalogue as JSON Schema
                               (this is what a generating agent reads)
   zframes lint <file>         validate a dashboard.json; exit 1 with readable
@@ -31,26 +21,6 @@ usage:
                               stdout (the deterministic half of /zframes-brief)
   zframes help                this text
 `;
-
-const STARTER: unknown = {
-  version: 1,
-  title: "my terminal",
-  grid: { columns: 12, rowHeight: 96, gap: 12 },
-  frames: [
-    {
-      id: "btc",
-      frame: "price-chart",
-      position: { x: 0, y: 0, w: 8, h: 3 },
-      config: { symbol: "BTC", interval: "1h", mode: "candle" },
-    },
-    {
-      id: "watchlist",
-      frame: "price-ticker",
-      position: { x: 8, y: 0, w: 4, h: 3 },
-      config: { symbols: ["BTC", "ETH", "SOL"] },
-    },
-  ],
-};
 
 interface LintIssue {
   frameId: string | null;
@@ -157,75 +127,6 @@ function lint(file: string): number {
   return 0;
 }
 
-function initSpec(file: string): number {
-  if (existsSync(file)) {
-    console.error(`✗ ${file} already exists — refusing to overwrite`);
-    return 1;
-  }
-  writeFileSync(file, `${JSON.stringify(STARTER, null, 2)}\n`);
-  console.log(`✓ wrote ${file}`);
-  console.log("  next: zframes lint " + file);
-  return 0;
-}
-
-/** Locate the bundled scaffold template (sibling of both src/ and dist/). */
-function templateDir(): string {
-  return fileURLToPath(new URL("../templates/app", import.meta.url));
-}
-
-/** Scaffold a complete, runnable zframes app (vendored runtime + starter spec). */
-function scaffold(target: string): number {
-  const tpl = templateDir();
-  if (
-    !existsSync(join(tpl, "package.json")) ||
-    !existsSync(join(tpl, "packages"))
-  ) {
-    console.error(
-      `✗ scaffold template is incomplete at ${tpl}\n` +
-        "  the vendored runtime is missing — run `pnpm build:cli` to regenerate it.",
-    );
-    return 1;
-  }
-
-  const dest = resolve(process.cwd(), target);
-  if (existsSync(dest)) {
-    if (!statSync(dest).isDirectory()) {
-      console.error(`✗ ${target} already exists and is not a directory`);
-      return 1;
-    }
-    if (readdirSync(dest).length > 0) {
-      console.error(
-        `✗ ${target} already exists and is not empty — choose another directory`,
-      );
-      return 1;
-    }
-  }
-
-  // Filter is defensive: a pristine template has no node_modules/dist, but if a
-  // dev ever installs inside templates/app, never copy those into the scaffold.
-  cpSync(tpl, dest, {
-    recursive: true,
-    filter: (src) => {
-      const base = basename(src);
-      return base !== "node_modules" && base !== "dist";
-    },
-  });
-  // npm renames/strips .gitignore inside published packages, so the template
-  // ships it as _gitignore; restore the real filename on scaffold.
-  const ignore = join(dest, "_gitignore");
-  if (existsSync(ignore)) renameSync(ignore, join(dest, ".gitignore"));
-
-  console.log(`✓ scaffolded a zframes terminal in ${target}/\n`);
-  console.log("  next:");
-  console.log(`    cd ${target}`);
-  console.log("    pnpm install");
-  console.log("    pnpm dev        # http://localhost:5179\n");
-  console.log(
-    "  then edit src/dashboard.json — by hand, or with the zframes skill.",
-  );
-  return 0;
-}
-
 async function main(): Promise<number> {
   const args = process.argv.slice(2);
   const [command, arg] = args;
@@ -239,15 +140,10 @@ async function main(): Promise<number> {
         return 1;
       }
       return lint(arg);
+    case "serve":
+      return serve(args.slice(1));
     case "snapshot":
       return snapshot(args.slice(1));
-    case "init": {
-      const rest = args.slice(1);
-      if (rest[0] === "--json" || rest[0] === "--spec-only") {
-        return initSpec(rest[1] ?? "dashboard.json");
-      }
-      return scaffold(rest[0] ?? "my-terminal");
-    }
     case "help":
     case undefined:
       console.log(HELP);
