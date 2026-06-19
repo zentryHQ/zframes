@@ -11,11 +11,7 @@ patchedDependencies:
 
 importers:
 
-  .:
-    devDependencies:
-      prettier:
-        specifier: ^3.4.0
-        version: 3.8.4
+  .: {}
 
   apps/playground:
     dependencies:
@@ -77,6 +73,28 @@ importers:
       vite:
         specifier: ^6.3.0
         version: 6.4.3(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)
+
+  packages/catalogue:
+    dependencies:
+      '@zframes/charts':
+        specifier: workspace:*
+        version: link:../charts
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+      '@zframes/frames':
+        specifier: workspace:*
+        version: link:../frames
+      react:
+        specifier: '>=18'
+        version: 19.2.7
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.17
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
 
   packages/charts:
     dependencies:
@@ -1435,11 +1453,6 @@ packages:
     resolution: {integrity: sha512-FfR8sjd4em2T6fb3I2MwAJU7HWVMr9zba+enmQeeWFfCbm+UOC/0X4DS8XtpUTMwWMGbjKYP7xjfNekzyGmB3A==}
     engines: {node: ^10 || ^12 || >=14}
 
-  prettier@3.8.4:
-    resolution: {integrity: sha512-N2MylSdi48+5N/6S5j+maeHbUSIzzZ5uOcX5Hm4QpV8Dkb1HFjfAKTKX6yNPJQD9AhcT3ifHNB66tWTTJDi11Q==}
-    engines: {node: '>=14'}
-    hasBin: true
-
   react-dom@19.2.7:
     resolution: {integrity: sha512-t0BRVXvbiE/o20Hfw669rLbMCDWtYZLvmJigy2f0MxsXF+71pxhR3xOkspmsO8h3ZlNzyibAmtCa3l4lYKk6gQ==}
     peerDependencies:
@@ -2642,8 +2655,6 @@ snapshots:
       nanoid: 3.3.12
       picocolors: 1.1.1
       source-map-js: 1.2.1
-
-  prettier@3.8.4: {}
 
   react-dom@19.2.7(react@19.2.7):
     dependencies:

@@ -14,6 +14,8 @@ interface PieChartProps {
   height?: number;
   innerRadius?: number;
   outerRadius?: number;
+  /** Slice colors, applied in order. Defaults to the built-in 2-color set. */
+  colors?: string[];
   children?: React.ReactNode;
 }
 
@@ -23,6 +25,7 @@ const PieChart = ({
   height = 270,
   innerRadius = 90,
   outerRadius = 100,
+  colors = COLORS,
   children,
 }: PieChartProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -88,7 +91,7 @@ const PieChart = ({
     const colorScale = d3
       .scaleOrdinal()
       .domain(data.map((_, i) => i.toString()))
-      .range(COLORS);
+      .range(colors);
 
     const pieGroup = svg
       .append("g")
@@ -131,7 +134,7 @@ const PieChart = ({
           .duration(300)
           .style("opacity", 0);
       });
-  }, [data, width, height, innerRadius, outerRadius]);
+  }, [data, width, height, innerRadius, outerRadius, colors]);
 
   return (
     <div
