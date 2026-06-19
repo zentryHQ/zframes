@@ -22,6 +22,7 @@ export { ratesBoardFrame } from "./rates-board";
 export { shortVolumeFrame } from "./short-volume";
 export { topMoversFrame } from "./top-movers";
 export { tvlTreemapFrame } from "./tvl-treemap";
+export { yieldCurveFrame } from "./yield-curve";
 
 import type { AnyFrameDefinition } from "@zframes/core";
 import { allocationFrame } from "./allocation";
@@ -47,6 +48,7 @@ import { ratesBoardFrame } from "./rates-board";
 import { shortVolumeFrame } from "./short-volume";
 import { topMoversFrame } from "./top-movers";
 import { tvlTreemapFrame } from "./tvl-treemap";
+import { yieldCurveFrame } from "./yield-curve";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -73,4 +75,5 @@ export const allFrames: AnyFrameDefinition[] = [
   shortVolumeFrame,
   topMoversFrame,
   tvlTreemapFrame,
+  yieldCurveFrame,
 ];
