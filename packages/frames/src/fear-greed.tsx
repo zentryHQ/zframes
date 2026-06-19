@@ -36,12 +36,21 @@ function FearGreed({ config }: { config: z.output<typeof schema> }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2.5">
       <div
-        className="font-dmsans text-5xl font-bold tabular-nums"
-        style={{ color }}
+        className="font-dmsans text-5xl font-bold leading-none tracking-tight tabular-nums"
+        style={{ color, textShadow: `0 0 28px ${color}55` }}
       >
         {latest.value}
       </div>
-      <div className="body-md text-normal">{latest.classification}</div>
+      <div
+        className="body-sm rounded-full px-2.5 py-0.5 font-semibold uppercase tracking-wide"
+        style={{
+          color,
+          background: `${color}1f`,
+          border: `1px solid ${color}33`,
+        }}
+      >
+        {latest.classification}
+      </div>
 
       {/* Striped mood bar */}
       <div className="relative w-full max-w-[180px] overflow-hidden rounded-xl">

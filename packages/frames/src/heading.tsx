@@ -11,7 +11,10 @@ function Heading({ config }: { config: z.output<typeof schema> }) {
         <div className="flex items-center gap-2">
           <span
             className="h-[5px] w-[5px] shrink-0 rounded-full"
-            style={{ background: "var(--color-highlight)" }}
+            style={{
+              background: "var(--color-highlight)",
+              boxShadow: "0 0 8px var(--color-highlight)",
+            }}
           />
           <h2 className="font-dmsans text-strong text-[0.8rem] font-extrabold uppercase leading-none tracking-[0.16em]">
             {config.title}

@@ -124,6 +124,11 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
         formatValue={(v) => formatPrice(v)}
         formatTime={formatTime}
         showValue={true}
+        // The reference look: a soft gradient area glowing under the line
+        // (line mode) and a pulsing halo on the live value dot. `fill` is a
+        // no-op in candle mode, so it's safe to leave on for both.
+        fill={true}
+        pulse={true}
       />
     </div>
   );
