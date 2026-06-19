@@ -4,11 +4,19 @@ import { resolve } from "node:path";
 // doesn't fail — `@zframes/core/serve` resolves via the exports map and pulls in
 // a module with only built-in imports. Same contract the CLI's `serve` uses.
 import {
+  DASHBOARD_PROXY_ROUTE,
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
+  handleProxy,
   handleSpecRead,
   handleSpecWrite,
 } from "@zframes/core/serve";
+import {
+  AGENTS_LIST_ROUTE,
+  ASK_ROUTE,
+  handleAgents,
+  handleAsk,
+} from "@zframes/core/agent";
 
 /**
  * Dev-only Vite plugin that serves the dashboard spec to the in-browser app and
@@ -26,11 +34,18 @@ export interface DashboardWritebackOptions {
   file?: string;
   /** HTTP route the editor PUTs to. */
   route?: string;
+  /**
+   * Contact for the official-data proxy's `User-Agent` (SEC fair-access policy).
+   * Defaults to `ZFRAMES_CONTACT`, else a browser UA the sources accept.
+   */
+  contact?: string;
 }
 
 export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
   const file = options.file ?? "src/dashboard.json";
   const writeRoute = options.route ?? DASHBOARD_WRITE_ROUTE;
+  const contact = options.contact ?? process.env.ZFRAMES_CONTACT;
+  const proxyUserAgent = contact ? `zframes (${contact})` : undefined;
 
   return {
     name: "zframes:dashboard-writeback",
@@ -54,6 +69,21 @@ export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
       });
       server.middlewares.use(writeRoute, (req, res) => {
         handleSpecWrite(req, res, target());
+      });
+      // Same-origin official-data proxy — the dev mirror of the CLI serve route,
+      // so frames needing CORS-blocked sources work identically under vite dev.
+      server.middlewares.use(DASHBOARD_PROXY_ROUTE, (req, res, next) => {
+        if (req.method !== "GET" && req.method !== "HEAD") return next();
+        void handleProxy(req, res, { userAgent: proxyUserAgent });
+      });
+      // The zAI orb's keyless agent bridge — same contract the CLI's `serve`
+      // ships, so `vite dev` dogfoods it too. Hidden when no runner is found.
+      server.middlewares.use(AGENTS_LIST_ROUTE, (req, res, next) => {
+        if (req.method !== "GET") return next();
+        void handleAgents(res);
+      });
+      server.middlewares.use(ASK_ROUTE, (req, res) => {
+        handleAsk(req, res, target());
       });
     },
   };

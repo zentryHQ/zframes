@@ -3,11 +3,19 @@ import { createServer } from "node:http";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  DASHBOARD_PROXY_ROUTE,
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
+  handleProxy,
   handleSpecRead,
   handleSpecWrite,
 } from "@zframes/core/serve";
+import {
+  AGENTS_LIST_ROUTE,
+  ASK_ROUTE,
+  handleAgents,
+  handleAsk,
+} from "@zframes/core/agent";
 
 const DEFAULT_PORT = 5179;
 
@@ -32,17 +40,23 @@ const MIME: Record<string, string> = {
 interface ServeArgs {
   file: string;
   port: number;
+  contact?: string;
 }
 
 function parseArgs(args: string[]): ServeArgs | { error: string } {
   let file = "dashboard.json";
   let port = DEFAULT_PORT;
+  let contact = process.env.ZFRAMES_CONTACT;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "--port" || a === "-p") {
       port = Number(args[++i]);
     } else if (a.startsWith("--port=")) {
       port = Number(a.slice("--port=".length));
+    } else if (a === "--contact") {
+      contact = args[++i];
+    } else if (a.startsWith("--contact=")) {
+      contact = a.slice("--contact=".length);
     } else if (!a.startsWith("-")) {
       file = a;
     } else {
@@ -52,7 +66,7 @@ function parseArgs(args: string[]): ServeArgs | { error: string } {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     return { error: "--port must be an integer between 1 and 65535" };
   }
-  return { file, port };
+  return { file, port, contact };
 }
 
 /** Resolve a URL path inside `rootDir`, or null if it escapes (traversal). */
@@ -93,7 +107,9 @@ export function serve(args: string[]): Promise<number> {
   const parsed = parseArgs(args);
   if ("error" in parsed) {
     console.error(`✗ ${parsed.error}`);
-    console.error("usage: zframes serve [dashboard.json] [--port <n>]");
+    console.error(
+      "usage: zframes serve [dashboard.json] [--port <n>] [--contact <email>]",
+    );
     return Promise.resolve(1);
   }
 
@@ -139,6 +155,28 @@ export function serve(args: string[]): Promise<number> {
         handleSpecWrite(req, res, file);
         return;
       }
+      // The zAI orb's keyless agent bridge (opt-in, shells to a local CLI).
+      if (path === AGENTS_LIST_ROUTE) {
+        if (req.method === "GET") {
+          void handleAgents(res);
+        } else {
+          res.statusCode = 405;
+          res.end();
+        }
+        return;
+      }
+      if (path === ASK_ROUTE) {
+        handleAsk(req, res, file);
+        return;
+      }
+      // Same-origin relay for official-data hosts that browsers can't fetch
+      // directly (no CORS / UA wall). Host-allowlisted inside handleProxy.
+      if (path === DASHBOARD_PROXY_ROUTE) {
+        void handleProxy(req, res, {
+          userAgent: parsed.contact ? `zframes (${parsed.contact})` : undefined,
+        });
+        return;
+      }
       if (path.startsWith("/__zframes/")) {
         res.statusCode = 404;
         res.end();
@@ -177,6 +215,11 @@ export function serve(args: string[]): Promise<number> {
       const url = `http://127.0.0.1:${parsed.port}`;
       console.log(`▸ zframes serving ${parsed.file} on ${url}`);
       console.log("  live editing on — drag, resize, then Save writes back.");
+      if (!parsed.contact) {
+        console.log(
+          "  tip: pass --contact <email> so SEC/official-data requests identify you (fair-access).",
+        );
+      }
     });
   });
 }

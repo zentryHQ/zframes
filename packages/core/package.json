@@ -21,7 +21,8 @@
     "./fetch": "./src/fetch.ts",
     "./editor": "./src/editor.tsx",
     "./vite": "./src/vite.ts",
-    "./serve": "./src/serve.ts"
+    "./serve": "./src/serve.ts",
+    "./agent": "./src/agent.ts"
   },
   "sideEffects": [
     "**/*.css"
