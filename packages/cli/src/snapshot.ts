@@ -50,17 +50,6 @@ function symbolsFromSpec(spec: DashboardSpec): string[] {
   return [...set];
 }
 
-/** The featured frame's symbol if it has one, else the first dashboard symbol. */
-function featuredSymbol(
-  spec: DashboardSpec,
-  universe: string[],
-): string | null {
-  const featured = spec.frames.find((frame) => frame.featured);
-  const sym = featured && (featured.config as Record<string, unknown>).symbol;
-  if (typeof sym === "string") return sym;
-  return universe[0] ?? null;
-}
-
 /** Run a provider call, returning null (and a stderr note) if it fails/offline. */
 async function safe<T>(label: string, fn: () => Promise<T>): Promise<T | null> {
   try {
@@ -166,7 +155,10 @@ export async function snapshot(args: string[]): Promise<number> {
   if (!spec) return 1;
 
   const universe = symbolsFromSpec(spec);
-  const featured = featuredSymbol(spec, universe);
+  // The dashboard's headline symbol — the first symbol in spec order — gets a
+  // candle series in the snapshot. (Was the "featured" frame's symbol before the
+  // hero-frame flag was removed; first-in-order is the natural stand-in.)
+  const featured = universe[0] ?? null;
 
   const hl = new HyperliquidProvider();
   const now = Date.now();

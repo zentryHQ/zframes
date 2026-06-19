@@ -3,12 +3,17 @@ import { readFileSync } from "node:fs";
 import { catalogueForAI } from "@zframes/core/catalogue";
 import { DashboardSpecSchema, type DashboardSpec } from "@zframes/core/spec";
 import { frameMetas } from "@zframes/frames/schemas";
+import { init } from "./init";
 import { serve } from "./serve";
 import { snapshot } from "./snapshot";
 
 const HELP = `zframes — AI-personalizable market dashboards
 
 usage:
+  zframes init [dir|file]     write a bare, valid dashboard.json (envelope only —
+                              version, author, grid, background, theme, empty
+                              frames) for the agent to fill in; --title <t>,
+                              --author <a>, --force to overwrite
   zframes serve [file]        serve <dashboard.json> (default: ./dashboard.json)
                               as a live, editable terminal at 127.0.0.1:5179
                               (--port <n> to change); Save writes back to the file
@@ -45,7 +50,9 @@ export function lintSpec(spec: DashboardSpec): LintIssue[] {
     if (!meta) {
       issues.push({
         frameId: instance.id,
-        message: `unknown frame "${instance.frame}". available: ${[...metaByName.keys()].join(", ")}`,
+        message: `unknown frame "${instance.frame}". available: ${[
+          ...metaByName.keys(),
+        ].join(", ")}`,
       });
       continue;
     }
@@ -55,7 +62,9 @@ export function lintSpec(spec: DashboardSpec): LintIssue[] {
       for (const issue of parsed.error.issues) {
         issues.push({
           frameId: instance.id,
-          message: `config.${issue.path.join(".") || "(root)"}: ${issue.message}`,
+          message: `config.${issue.path.join(".") || "(root)"}: ${
+            issue.message
+          }`,
         });
       }
     }
@@ -131,6 +140,8 @@ async function main(): Promise<number> {
   const args = process.argv.slice(2);
   const [command, arg] = args;
   switch (command) {
+    case "init":
+      return init(args.slice(1));
     case "catalogue":
       console.log(JSON.stringify(catalogueForAI(frameMetas), null, 2));
       return 0;
