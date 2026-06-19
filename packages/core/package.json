@@ -20,7 +20,8 @@
     "./catalogue": "./src/catalogue.ts",
     "./fetch": "./src/fetch.ts",
     "./editor": "./src/editor.tsx",
-    "./vite": "./src/vite.ts"
+    "./vite": "./src/vite.ts",
+    "./serve": "./src/serve.ts"
   },
   "sideEffects": [
     "**/*.css"

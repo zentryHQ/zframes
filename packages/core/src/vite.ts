@@ -1,21 +1,28 @@
-import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+// Imported by the package subpath (not a relative "./serve") so that when Vite's
+// config loader runs this file through Node, the extensionless relative import
+// doesn't fail — `@zframes/core/serve` resolves via the exports map and pulls in
+// a module with only built-in imports. Same contract the CLI's `serve` uses.
+import {
+  DASHBOARD_READ_ROUTE,
+  DASHBOARD_WRITE_ROUTE,
+  handleSpecRead,
+  handleSpecWrite,
+} from "@zframes/core/serve";
 
 /**
- * Dev-only Vite plugin that lets the in-browser editor persist edits straight
- * back to the dashboard spec file. The editor PUTs the full spec JSON to
- * `route`; this writes it to `file` (pretty-printed), so the artifact the
- * agent generates and the one a human edits in the browser stay the *same*
- * human-editable file — round-tripped, never a separate localStorage blob.
+ * Dev-only Vite plugin that serves the dashboard spec to the in-browser app and
+ * persists its edits straight back to the spec file. The app FETCHES the spec
+ * from the read route and the editor PUTs the full spec JSON to the write route;
+ * both hit the exact same read/write contract the CLI's `serve` ships (see
+ * `./serve`), so `vite dev` dogfoods precisely what users run.
  *
- * Only active under `vite` / `vite dev` (apply: "serve"). A production build
- * has no server to write to; the editor falls back to a download there.
- *
- * Typed loosely (returns a structural Vite Plugin) so @zframes/core needn't
- * depend on vite — the host already does.
+ * Only active under `vite` / `vite dev` (apply: "serve"). Typed loosely (returns
+ * a structural Vite Plugin) so @zframes/core needn't depend on vite — the host
+ * already does.
  */
 export interface DashboardWritebackOptions {
-  /** Spec file to write, relative to the Vite project root. */
+  /** Spec file to read/write, relative to the Vite project root. */
   file?: string;
   /** HTTP route the editor PUTs to. */
   route?: string;
@@ -23,9 +30,7 @@ export interface DashboardWritebackOptions {
 
 export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
   const file = options.file ?? "src/dashboard.json";
-  const route = options.route ?? "/__zframes/dashboard";
-  // Hard cap on the request body — dev-only writeback of a small spec file.
-  const MAX_BODY_BYTES = 2_000_000;
+  const writeRoute = options.route ?? DASHBOARD_WRITE_ROUTE;
 
   return {
     name: "zframes:dashboard-writeback",
@@ -39,58 +44,16 @@ export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
         ) => void;
       };
     }) {
-      server.middlewares.use(route, (req, res) => {
-        if (req.method !== "PUT" && req.method !== "POST") {
-          res.statusCode = 405;
-          res.end();
-          return;
-        }
-        // CSRF guard: requiring a JSON content-type forces a CORS preflight for
-        // any cross-origin request (which this dev middleware never answers), so
-        // a malicious page you visit can't silently overwrite the spec file.
-        if (
-          !String(req.headers["content-type"] ?? "").includes(
-            "application/json",
-          )
-        ) {
-          res.statusCode = 415;
-          res.end();
-          return;
-        }
-        let body = "";
-        let aborted = false;
-        req.on("data", (chunk: Buffer) => {
-          if (aborted) return;
-          body += chunk;
-          // Drop the connection if the body grows past the cap.
-          if (body.length > MAX_BODY_BYTES) {
-            aborted = true;
-            res.statusCode = 413;
-            res.end();
-            req.destroy();
-          }
-        });
-        req.on("end", async () => {
-          if (aborted) return;
-          try {
-            // Parse + re-stringify so we never persist malformed JSON and the
-            // file lands consistently formatted (2-space, trailing newline).
-            const json = JSON.parse(body);
-            const target = resolve(server.config.root, file);
-            await writeFile(
-              target,
-              `${JSON.stringify(json, null, 2)}\n`,
-              "utf8",
-            );
-            res.statusCode = 200;
-            res.setHeader("content-type", "application/json");
-            res.end(JSON.stringify({ ok: true, file }));
-          } catch (error) {
-            res.statusCode = 400;
-            res.setHeader("content-type", "application/json");
-            res.end(JSON.stringify({ ok: false, error: String(error) }));
-          }
-        });
+      const target = () => resolve(server.config.root, file);
+      // Read route is registered first: connect matches by prefix, and the
+      // write route is a prefix of the read route ("/__zframes/dashboard" ⊂
+      // "/__zframes/dashboard.json"), so the read middleware must win the GET.
+      server.middlewares.use(DASHBOARD_READ_ROUTE, (req, res, next) => {
+        if (req.method !== "GET" && req.method !== "HEAD") return next();
+        void handleSpecRead(target(), res);
+      });
+      server.middlewares.use(writeRoute, (req, res) => {
+        handleSpecWrite(req, res, target());
       });
     },
   };
