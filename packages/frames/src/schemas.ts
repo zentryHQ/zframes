@@ -251,8 +251,64 @@ export const dailyAnalysisMeta = defineFrameMeta({
   }),
 });
 
+export const priceCompareMeta = defineFrameMeta({
+  name: "price-compare",
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Multi-series line chart overlaying the price history of several symbols over a lookback window — see how TSLA, NVDA and BTC moved against each other. Normalized by default to % change from the window start so symbols at very different price levels (BTC vs a $20 stock) stay comparable on one axis. Candles from Hyperliquid.",
+  capabilities: ["ohlcv"],
+  schema: z.object({
+    symbols: z
+      .array(z.string())
+      .min(2)
+      .max(6)
+      .describe(
+        'Hyperliquid symbols to overlay, e.g. ["xyz:TSLA", "xyz:NVDA", "BTC"]. 2 to 6.',
+      ),
+    lookback: z
+      .enum(["24h", "7D", "1M"])
+      .default("7D")
+      .describe("History window for the comparison."),
+    normalize: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Rebase each series to % change from the window start (recommended — lets symbols at different price levels share one axis). Off = raw price, only sensible when comparing similarly-priced symbols.",
+      ),
+  }),
+});
+
+export const allocationMeta = defineFrameMeta({
+  name: "allocation",
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Donut of a portfolio's live allocation — list holdings (symbol + amount) and each slice is sized by current USD value off the Hyperliquid mid stream, with total portfolio value in the center. A live 'where is my money right now' view.",
+  capabilities: ["quote-stream"],
+  schema: z.object({
+    holdings: z
+      .array(
+        z.object({
+          symbol: z
+            .string()
+            .min(1)
+            .describe('Hyperliquid symbol, e.g. "BTC", "ETH", "xyz:TSLA".'),
+          amount: z
+            .number()
+            .positive()
+            .describe(
+              "Units held (e.g. 0.5 BTC, 10 shares). Weights the slice by USD value = amount × live price.",
+            ),
+        }),
+      )
+      .min(2)
+      .max(8)
+      .describe("The holdings to chart. 2 to 8 positions."),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
+  allocationMeta,
   bitcoinDominanceMeta,
   dailyAnalysisMeta,
   dinoGameMeta,
@@ -263,6 +319,7 @@ export const frameMetas: FrameMeta[] = [
   imageMeta,
   noteMeta,
   priceChartMeta,
+  priceCompareMeta,
   priceTickerMeta,
   topMoversMeta,
   tvlTreemapMeta,
