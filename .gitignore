@@ -19,3 +19,14 @@ ds-bundle/
 # Derived: the prebuilt browser runtime vendored into the CLI by build:cli
 # (a vite build of apps/playground that `zframes serve` ships)
 packages/cli/runtime/
+
+# Working-session docs — kept locally, excluded from the public repo.
+# (ADRs under docs/decisions/, docs/assets/, and the CENTRAL_PLAN_* / daily-brief
+#  docs stay tracked.)
+docs/code-review-2026-06-16.html
+docs/code-review-2026-06-17.html
+docs/session-summary-2026-06-12.html
+docs/hyperframes-explainer.html
+docs/zframes-architecture.html
+docs/zframes-structure.html
+docs/open-source-readiness.html
