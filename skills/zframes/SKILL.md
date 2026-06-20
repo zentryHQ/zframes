@@ -133,6 +133,9 @@ around them. Skip one only if the user explicitly opts out:
   picks (e.g. NVDA, TSLA, AAPL, AMD).
 - **`short-volume`** for the US-stock tickers (FINRA reported short volume; use
   `"sort": "shortPct"`): `w: 5, h: 4`.
+- **`rates-board` — always include it.** The Fed rates board (NY Fed SOFR /
+  effective fed funds / repo rates + Treasury average rates) — macro context
+  every dashboard should carry. No config needed: `w: 4, h: 4`.
 
 Layout rules for the frames:
 
