@@ -6,23 +6,26 @@ This product includes software developed at Zentry.
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 --------------------------------------------------------------------------------
-Third-party components
+First-party components
 --------------------------------------------------------------------------------
 
 The base chart layer in packages/charts is ported from Zentry's zTerminal
 charting components.
 
-This project depends on, and (in the CLI scaffold and B1 packages) may
-redistribute, the following third-party software under their respective
-licenses:
+--------------------------------------------------------------------------------
+Third-party components
+--------------------------------------------------------------------------------
 
-  - liveline (npm: liveline@0.0.7) — live price-chart engine; vendored with a
+This project depends on, and — via the prebuilt runtime bundle the CLI ships —
+redistributes, the following third-party software. Each retains its own
+copyright and license; consult the respective package for full terms.
+
+  - liveline (liveline@0.0.7) — MIT — live price-chart engine; vendored with a
     local patch for retina rendering and axis-label precision
     (see patches/liveline@0.0.7.patch).
-  - d3, d3-hierarchy — chart math and layout.
-  - unicornstudio-react — optional animated background (host-only; loaded
-    lazily from a CDN).
-  - react, react-dom — peer dependencies provided by the host app.
-
-Each retains its own copyright and license; consult the respective package for
-details.
+  - gridstack — MIT — drag/resize grid layout powering the editable dashboard.
+  - zod — MIT — schema definitions and dashboard.json validation.
+  - d3, d3-hierarchy — ISC — chart math and layout.
+  - unicornstudio-react — MIT — optional animated background (host-only; the
+    Unicorn Studio SDK itself loads lazily from a CDN at runtime).
+  - react, react-dom — MIT — bundled into the prebuilt runtime the CLI serves.
