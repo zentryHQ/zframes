@@ -20,7 +20,8 @@ ds-bundle/
 # (a vite build of apps/playground that `zframes serve` ships)
 packages/cli/runtime/
 
-# HTML docs are local-only working artifacts (plans, reports, audits) —
-# kept on disk, never committed to the public repo. ADRs under
-# docs/decisions/ (Markdown) and docs/assets/ stay tracked.
+# Local-only docs — kept on disk, never committed to the public repo:
+# HTML working artifacts (plans, reports, audits) and the decision logs.
+# Only docs/assets/ (README images) stays tracked.
 docs/*.html
+docs/decisions/

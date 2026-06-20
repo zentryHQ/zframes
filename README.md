@@ -75,7 +75,7 @@ The contract the agent works against is the **catalogue** (frame names + config 
 | [**`zframes`**](skills/zframes/SKILL.md) | Builds & edits your dashboard — reads the catalogue, writes `dashboard.json`, lints it, serves it live in your browser. | *"build me a TSLA + NVDA terminal"* |
 | [**`zframes-brief`**](skills/zframes-brief/SKILL.md) | Daily analyst loop — analyzes the symbols on your dashboard, grades yesterday's calls, writes today's brief into the `daily-analysis` frame. | *"run my daily brief"* |
 
-> **🚧 Pre-release.** `npx skills add zentryhq/zframes` installs the skills from GitHub today. The `zframes` **CLI** they drive bundles the dashboard runtime, so `npx zframes serve` is the entire runtime — no clone, no install. That CLI is being published to npm now; until it lands, the standalone `npx` flow isn't live yet. Progress: [`docs/decisions/cli/cli.md`](docs/decisions/cli/cli.md).
+> **🚧 Pre-release.** `npx skills add zentryhq/zframes` installs the skills from GitHub today. The `zframes` **CLI** they drive bundles the dashboard runtime, so `npx zframes serve` is the entire runtime — no clone, no install. That CLI is being published to npm now; until it lands, the standalone `npx` flow isn't live yet.
 
 ---
 
@@ -166,7 +166,7 @@ pnpm zframes snapshot <dashboard.json>   # keyless market snapshot of the spec's
 pnpm zframes serve [dashboard.json] # serve a dashboard.json as a live, editable terminal (:5179)
 ```
 
-`zframes serve` hosts a prebuilt dashboard runtime pointed at your `dashboard.json` (bound to `127.0.0.1`), with in-browser editing that saves back to the file — you own just that one file, no app to maintain. (Publishing the CLI to npm — so the agent can `npx zframes serve` per run — is on the roadmap; see [`docs/decisions/cli/cli.md`](docs/decisions/cli/cli.md).)
+`zframes serve` hosts a prebuilt dashboard runtime pointed at your `dashboard.json` (bound to `127.0.0.1`), with in-browser editing that saves back to the file — you own just that one file, no app to maintain. (Publishing the CLI to npm — so the agent can `npx zframes serve` per run — is on the roadmap.)
 
 ---
 
@@ -193,4 +193,4 @@ Packages ship TypeScript source (`main: src/index.ts`); the playground's Vite co
 
 ## License
 
-[Apache-2.0](LICENSE) · Copyright 2026 Zentry. See [`NOTICE`](NOTICE) for third-party components (liveline, d3, unicornstudio-react). Distribution is `npx zframes serve` — one CLI that bundles the runtime, pointed at your `dashboard.json`. The npm publish that makes `npx zframes` resolve is the remaining step (see [`docs/decisions/cli/cli.md`](docs/decisions/cli/cli.md)).
+[Apache-2.0](LICENSE) · Copyright 2026 Zentry. See [`NOTICE`](NOTICE) for third-party components (liveline, d3, unicornstudio-react). Distribution is `npx zframes serve` — one CLI that bundles the runtime, pointed at your `dashboard.json`. The npm publish that makes `npx zframes` resolve is the remaining step.
