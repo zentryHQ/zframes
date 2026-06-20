@@ -133,9 +133,15 @@ around them. Skip one only if the user explicitly opts out:
   picks (e.g. NVDA, TSLA, AAPL, AMD).
 - **`short-volume`** for the US-stock tickers (FINRA reported short volume; use
   `"sort": "shortPct"`): `w: 5, h: 4`.
-- **`rates-board` — always include it.** The Fed rates board (NY Fed SOFR /
-  effective fed funds / repo rates + Treasury average rates) — macro context
-  every dashboard should carry. No config needed: `w: 4, h: 4`.
+- **The macro trio — always include all three.** Keyless official-data context
+  every dashboard should carry; group them in a row under a "Macro" heading
+  (4 + 4 + 4 = 12 columns). None need config — schema defaults are sensible:
+  - **`rates-board`** — NY Fed SOFR / effective fed funds / repo rates +
+    Treasury average rates. `w: 4, h: 4`.
+  - **`yield-curve`** — the US Treasury par yield curve + the 2s10s spread.
+    `w: 4, h: 3`.
+  - **`inflation-pulse`** — BLS CPI, month-over-month / year-over-year + trend.
+    `w: 4, h: 3`.
 
 Layout rules for the frames:
 
