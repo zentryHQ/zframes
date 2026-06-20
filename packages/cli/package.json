@@ -21,6 +21,9 @@
     "hyperliquid"
   ],
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "bin": {
     "zframes": "dist/index.js"
   },
