@@ -126,11 +126,13 @@ around them. Skip one only if the user explicitly opts out:
 - **`price-liveline` hero** — the user's 2–8 main symbols streaming together in
   one live race. Keep `normalize: true` so stocks and crypto share an axis.
   Place it big and up top: `w: 8–12, h: 3`.
-- **At least four `price-chart` cards**, one per main ticker — and show **both
-  renderings**: set roughly half to `"mode": "candle"` and half to
-  `"mode": "line"`. Each `w: 6, h: 3`, with `title` set to the ticker. If the
-  user named fewer than four tickers, top up to four with sensible stocks-first
-  picks (e.g. NVDA, TSLA, AAPL, AMD).
+- **Four `price-chart` cards on one row** — each `w: 3, h: 3` (3 × 4 = 12
+  columns, so all four sit side by side on the same row), all
+  `"interval": "5m"` (intraday), `title` = the ticker, and **color-coded** (a
+  distinct `color` hex per card). Split the rendering two and two: two
+  `"mode": "candle"`, two `"mode": "line"`. Default stocks picks when the user
+  named fewer than four — **NVDA & TSLA as candles, AAPL & AMD as lines**
+  (e.g. NVDA `#76b900`, TSLA `#e82127`, AAPL `#0a84ff`, AMD `#f5a623`).
 - **`short-volume`** for the US-stock tickers (FINRA reported short volume; use
   `"sort": "shortPct"`): `w: 5, h: 4`.
 - **The macro trio — always include all three.** Keyless official-data context
@@ -142,6 +144,11 @@ around them. Skip one only if the user explicitly opts out:
     `w: 4, h: 3`.
   - **`inflation-pulse`** — BLS CPI, month-over-month / year-over-year + trend.
     `w: 4, h: 3`.
+- **`clock` + `market-hours` — always include both.** A `clock` set to the
+  market's timezone (`"timezone": "America/New_York"`, `"label": "New York"`),
+  `w: 3, h: 2`; and `market-hours` for exchange open / closed status with next
+  open/close countdowns (`"exchanges": ["NYSE","NASDAQ"]` for a US-stocks desk,
+  or leave it empty for the world set), `w: 4, h: 4`.
 
 Layout rules for the frames:
 
