@@ -75,7 +75,10 @@ Ask, in the user's language, essentially two things:
    only**; the `xyz:` HIP-3 dex prefix is a framework internal — never surface it
    in a question or option. When the user names a stock, *you* add the `xyz:`
    prefix silently when writing the spec (so "TSLA" → `xyz:TSLA`); crypto stays
-   bare. zframes leads with stocks. Also note which 1–2 are the **main focus**
+   bare. **Default to stocks: build a US-stocks dashboard unless the user
+   explicitly names a crypto asset (BTC, ETH, …) or asks for crypto.** When they
+   don't mention crypto, use stock tickers in every frame and include no
+   crypto-only frames. Also note which 1–2 are the **main focus**
    (the big live chart) and roughly the timeframe (intraday vs swing). This is
    the core — everything else follows from it.
 2. **What else matters to you?** *(optional — skip if they've already implied
@@ -88,8 +91,14 @@ Ask, in the user's language, essentially two things:
    - "funding / leverage / who's paying to be long" → `funding-rate-chart`, `funding-heatmap`
    - "a glanceable watchlist of my assets" → `price-ticker`
 
+   On a stocks dashboard, prefer stock-relevant extras (`top-movers`,
+   `funding-rate-chart`/`funding-heatmap`, `short-volume`); reach for the
+   crypto-only frames (`bitcoin-dominance`, `tvl-treemap`) only when the
+   dashboard actually includes crypto.
+
 Everything else is your call, not a question: add zone `heading`s, feature the
-centerpiece, and include a tasteful default context set. Add a trading-plan
+centerpiece, and include a tasteful default context set (stocks, unless the user
+asked for crypto). Add a trading-plan
 `note`, a logo `image`, or the `dino-game` only if the user brings it up — don't
 prompt for them. The user can always refine later with "add X to my dashboard".
 
