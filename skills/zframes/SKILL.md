@@ -50,12 +50,14 @@ the runtime comes from the CLI.
 ## 2. Read the catalogue — always, before generating
 
 ```bash
-npx --yes zframes@latest catalogue
+npx --yes zframes@latest catalogue > /tmp/zframes-catalogue.json
 ```
 
-This prints every available frame with its description, capabilities, and
-config JSON Schema. Frame names, config fields, and enum values come from
-here — never from memory. The catalogue grows; your memory doesn't.
+Then **read `/tmp/zframes-catalogue.json`** with your file reader (it's ~25 KB of
+JSON Schema). Redirect to a file and read the file rather than reading the
+command's piped stdout — that guarantees the *complete* catalogue even if the
+shell truncates large piped output. Frame names, config fields, and enum values
+come from here — never from memory. The catalogue grows; your memory doesn't.
 
 ## 3. Interview the user (first run = onboarding)
 
