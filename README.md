@@ -15,7 +15,7 @@
 zframes is a framework where **AI agents generate personal market terminals**. You don't clone a repo or build a Node project — you install a *skill* into your coding agent and describe the dashboard you want. The agent reads a catalogue of *frames* (typed, validated dashboard widgets), emits a plain-JSON `dashboard.json` spec, and the runtime renders it with live market data. Invalid specs fail per-frame with readable errors the agent uses to self-correct — the generation loop is built into the rendering contract, so the agent never writes a line of React.
 
 <p align="center">
-  <img src="docs/assets/dashboard-2026-06-12.png" alt="A zframes dashboard: live price charts, a streaming watchlist, top movers, fear &amp; greed, BTC dominance, a funding heatmap, a TVL treemap, and a dino game" width="720">
+  <img src="docs/assets/dashboard-2026-06-20.png" alt="A zframes stocks desk: a live TSLA candlestick chart, a multi-asset stock liveline (TSLA, NVDA, AAPL, MSFT), a price ticker, top movers, and a live ticker tape — keyless HIP-3 stock perps + crypto" width="720">
   <br>
   <sub><i>A generated zframes dashboard — every card is a validated frame fed by keyless public data.</i></sub>
 </p>
