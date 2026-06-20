@@ -67,7 +67,7 @@ function skeleton(title: string, author: string) {
     grid: { columns: 12, rowHeight: 96, gap: 12 },
     background: {
       type: "unicorn" as const,
-      projectId: "K42KSY4FXeXhjVOj9RgT",
+      projectId: "YrTzGatwjK7EoFpCSfgZ",
       opacity: 0.05,
     },
     theme: { accentHue: 242, accentSat: 90 },
@@ -132,8 +132,8 @@ export function init(args: string[]): number {
     : join(parsed.target, "dashboard.json");
   console.log(`✓ wrote a bare dashboard to ${dest}`);
   console.log("  next: read the catalogue, add frames, then lint + serve:");
-  console.log("    npx zframes@latest catalogue");
-  console.log(`    npx zframes@latest lint ${hint}`);
-  console.log(`    npx zframes@latest serve ${hint}`);
+  console.log("    npx --yes zframes@latest catalogue");
+  console.log(`    npx --yes zframes@latest lint ${hint}`);
+  console.log(`    npx --yes zframes@latest serve ${hint}`);
   return 0;
 }
