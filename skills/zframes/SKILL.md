@@ -13,7 +13,7 @@ Never create or edit `.tsx` files for this task.
 ## 0. The CLI
 
 The runtime ships as the `zframes` CLI on npm. Always invoke it with
-**`npx zframes@latest <cmd>`** — npx fetches the published CLI (which bundles the
+**`npx --yes zframes@latest <cmd>`** — npx fetches the published CLI (which bundles the
 dashboard runtime) per run, so there's nothing to clone, install, or keep
 current. The commands you'll use below are `init`, `catalogue`, `lint`, and
 `serve` (written `zframes <cmd>` for brevity — always run them through `npx`).
@@ -31,7 +31,7 @@ the runtime comes from the CLI.
   instead of hand-writing the envelope**:
 
   ```bash
-  npx zframes@latest init <dir> --title "<dashboard title>" --author "<name>"
+  npx --yes zframes@latest init <dir> --title "<dashboard title>" --author "<name>"
   ```
 
   This writes a bare, already-valid `<dir>/dashboard.json` — the fixed envelope,
@@ -50,7 +50,7 @@ the runtime comes from the CLI.
 ## 2. Read the catalogue — always, before generating
 
 ```bash
-npx zframes@latest catalogue
+npx --yes zframes@latest catalogue
 ```
 
 This prints every available frame with its description, capabilities, and
@@ -106,7 +106,24 @@ the `frames` array. **Leave the envelope alone** — `version`, `grid`,
 user explicitly asks (e.g. "more spacing" → bump `grid.gap`, "square corners" →
 `appearance.radius: 0`, "muted accent" → lower `theme.accentSat`, "glassy cards"
 → lower `appearance.surfaceOpacity`, "no animation" → `background.type:
-"gradient"`). Layout rules for the frames:
+"gradient"`).
+
+**Default frame set — the spine of every new dashboard.** Build these first
+(using the symbols from the interview), then add the interest-driven frames
+around them. Skip one only if the user explicitly opts out:
+
+- **`price-liveline` hero** — the user's 2–8 main symbols streaming together in
+  one live race. Keep `normalize: true` so stocks and crypto share an axis.
+  Place it big and up top: `w: 8–12, h: 3`.
+- **At least four `price-chart` cards**, one per main ticker — and show **both
+  renderings**: set roughly half to `"mode": "candle"` and half to
+  `"mode": "line"`. Each `w: 6, h: 3`, with `title` set to the ticker. If the
+  user named fewer than four tickers, top up to four with sensible stocks-first
+  picks (e.g. NVDA, TSLA, AAPL, AMD).
+- **`short-volume`** for the US-stock tickers (FINRA reported short volume; use
+  `"sort": "shortPct"`): `w: 5, h: 4`.
+
+Layout rules for the frames:
 
 - The grid is 12 columns, `rowHeight: 96` (set by `init`). Place each frame with
   an explicit `position: { x, y, w, h }` in grid units.
@@ -128,7 +145,7 @@ user explicitly asks (e.g. "more spacing" → bump `grid.gap`, "square corners" 
 ## 5. Lint — the feedback loop
 
 ```bash
-zframes lint <dir>/dashboard.json
+npx --yes zframes@latest lint <dir>/dashboard.json
 ```
 
 If it reports issues, fix the JSON and re-lint until clean. The error
@@ -143,7 +160,7 @@ up as error cards in the running dashboard; treat those the same way.
 Serve the dashboard and open it for the user:
 
 ```bash
-zframes serve <dir>/dashboard.json   # live at http://127.0.0.1:37263
+npx --yes zframes@latest serve <dir>/dashboard.json   # live at http://127.0.0.1:37263
 ```
 
 `serve` hosts the prebuilt runtime pointed at that file, streaming live keyless
