@@ -166,4 +166,13 @@ async function main(): Promise<number> {
   }
 }
 
-main().then((code) => process.exit(code));
+main().then((code) => {
+  // A bare process.exit() can truncate buffered stdout (the large `catalogue`
+  // and `snapshot` JSON) on pipes and redirects — the process dies before the
+  // write drains. Flush stdout first, then exit with the code.
+  if (process.stdout.write("")) {
+    process.exit(code);
+  } else {
+    process.stdout.once("drain", () => process.exit(code));
+  }
+});
