@@ -213,13 +213,10 @@ export function serve(args: string[]): Promise<number> {
     // local-only tool and must never be exposed on the network.
     server.listen(parsed.port, "127.0.0.1", () => {
       const url = `http://127.0.0.1:${parsed.port}`;
-      console.log(`▸ zframes serving ${parsed.file} on ${url}`);
-      console.log("  live editing on — drag, resize, then Save writes back.");
-      if (!parsed.contact) {
-        console.log(
-          "  tip: pass --contact <email> so SEC/official-data requests identify you (fair-access).",
-        );
-      }
+      console.log(`⚡ zframes is live at ${url}`);
+      console.log(
+        `   serving ${parsed.file} — live editing on; drag, resize, then Save writes back.`,
+      );
     });
   });
 }
