@@ -13,7 +13,7 @@ CoinGecko) — **no API keys, ever.**
 # scaffold a bare, valid dashboard.json (envelope only — you fill in the frames)
 npx zframes@latest init my-dashboard --title "My Terminal"
 
-# serve it live at http://127.0.0.1:5179
+# serve it live at http://127.0.0.1:37263
 # — drag / resize / add / edit frames in the browser; Save writes back to the file
 npx zframes@latest serve my-dashboard/dashboard.json
 ```
@@ -26,7 +26,7 @@ dashboard runtime) on each run.
 | Command | What it does |
 |---|---|
 | `zframes init [dir]` | Write a bare, schema-valid `dashboard.json` (the fixed envelope; you fill in `frames`). Flags: `--title`, `--author`, `--force`. |
-| `zframes serve [file]` | Serve `dashboard.json` as a live, editable terminal at `127.0.0.1:5179` (`--port` to change). In-browser edits Save straight back to the file. |
+| `zframes serve [file]` | Serve `dashboard.json` as a live, editable terminal at `127.0.0.1:37263` (`--port` to change). In-browser edits Save straight back to the file. |
 | `zframes catalogue` | Print every available frame as JSON Schema — this is what a generating agent reads. |
 | `zframes lint <file>` | Validate a `dashboard.json`; exits non-zero with readable, per-frame errors. |
 | `zframes snapshot <file>` | Gather a keyless market snapshot for the dashboard's symbols (feeds the daily-brief loop). |

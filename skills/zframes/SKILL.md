@@ -143,14 +143,14 @@ up as error cards in the running dashboard; treat those the same way.
 Serve the dashboard and open it for the user:
 
 ```bash
-zframes serve <dir>/dashboard.json   # live at http://127.0.0.1:5179
+zframes serve <dir>/dashboard.json   # live at http://127.0.0.1:37263
 ```
 
 `serve` hosts the prebuilt runtime pointed at that file, streaming live keyless
 data. The user can drag, resize, add, and configure frames **in the browser** —
 Save writes the changes straight back to `dashboard.json`. Edits to the file
 (yours or theirs) show on reload, so further "add X to my dashboard" requests are
-just another edit + the page reloads. Pass `--port <n>` if 5179 is taken.
+just another edit + the page reloads. Pass `--port <n>` if 37263 is taken.
 
 ## Hard rules
 

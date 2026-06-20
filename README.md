@@ -144,7 +144,7 @@ You don't need this to *use* zframes — the agent flow above handles everything
 
 ```bash
 pnpm install
-pnpm dev          # playground at http://localhost:5179
+pnpm dev          # playground at http://localhost:37263
 ```
 
 The playground streams real prices from Hyperliquid's public WebSocket and renders the dashboard in [`apps/playground/src/dashboard.json`](apps/playground/src/dashboard.json). Edit that file — by hand or with your agent — and it hot-reloads. You can also drag, resize, and add frames right in the browser; **Save** writes the changes back to the same `dashboard.json`.
@@ -163,7 +163,7 @@ pnpm build:cli                      # build the bin (also builds the prebuilt ru
 pnpm zframes catalogue              # frame catalogue as JSON Schema (what the agent reads)
 pnpm zframes lint <dashboard.json>  # validate a spec; exit 1 with readable, per-frame errors
 pnpm zframes snapshot <dashboard.json>   # keyless market snapshot of the spec's symbols (feeds the brief)
-pnpm zframes serve [dashboard.json] # serve a dashboard.json as a live, editable terminal (:5179)
+pnpm zframes serve [dashboard.json] # serve a dashboard.json as a live, editable terminal (:37263)
 ```
 
 `zframes serve` hosts a prebuilt dashboard runtime pointed at your `dashboard.json` (bound to `127.0.0.1`), with in-browser editing that saves back to the file — you own just that one file, no app to maintain. (Publishing the CLI to npm — so the agent can `npx zframes serve` per run — is on the roadmap.)

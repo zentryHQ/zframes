@@ -15,7 +15,7 @@ usage:
                               frames) for the agent to fill in; --title <t>,
                               --author <a>, --force to overwrite
   zframes serve [file]        serve <dashboard.json> (default: ./dashboard.json)
-                              as a live, editable terminal at 127.0.0.1:5179
+                              as a live, editable terminal at 127.0.0.1:37263
                               (--port <n> to change); Save writes back to the file
   zframes catalogue           print the frame catalogue as JSON Schema
                               (this is what a generating agent reads)

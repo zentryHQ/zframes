@@ -17,7 +17,7 @@ import {
   handleAsk,
 } from "@zframes/core/agent";
 
-const DEFAULT_PORT = 5179;
+const DEFAULT_PORT = 37263;
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
