@@ -29,7 +29,8 @@
   },
   "files": [
     "dist",
-    "runtime"
+    "runtime",
+    "NOTICE"
   ],
   "scripts": {
     "build": "node scripts/build-runtime.mjs && tsup",
