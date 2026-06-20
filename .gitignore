@@ -7,14 +7,11 @@ dist/
 .env
 .env.*
 
-# design-sync: staged converter scripts + regenerated build output + machine state
-# (durable inputs under .design-sync/ — config.json, NOTES.md, conventions.md,
-#  previews/, overrides/, ds-entry.tsx — ARE committed)
+# Internal Claude Design-sync tooling — local-only, never in the public repo.
 .ds-sync/
 ds-bundle/
-.design-sync/.cache/
-.design-sync/learnings/
-.design-sync/node_modules
+.design-sync/
+packages/catalogue/
 
 # Derived: the prebuilt browser runtime vendored into the CLI by build:cli
 # (a vite build of apps/playground that `zframes serve` ships)
