@@ -68,7 +68,7 @@ function skeleton(title: string, author: string) {
     background: {
       type: "unicorn" as const,
       projectId: "YrTzGatwjK7EoFpCSfgZ",
-      opacity: 0.05,
+      opacity: 1,
     },
     theme: { accentHue: 242, accentSat: 90 },
     appearance: {
