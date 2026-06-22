@@ -10,6 +10,9 @@ export type Capability =
   | "reference-rates"
   | "treasury-rates"
   | "yield-curve"
+  | "treasury-auctions"
+  | "national-debt"
+  | "financial-stress"
   | "macro-series"
   | "news"
   | "fundamentals"
@@ -108,6 +111,90 @@ export interface YieldCurve {
   date: string;
   /** Maturity points, shortest → longest. */
   points: YieldPoint[];
+}
+
+/** One completed US Treasury auction. */
+export interface TreasuryAuction {
+  /** ISO auction date, e.g. "2026-06-18". */
+  auctionDate: string;
+  /** Security class, e.g. "Bill", "Note", "Bond", "TIPS", "FRN". */
+  securityType: string;
+  /** Term as offered, e.g. "4-Week", "10-Year", "30-Year". */
+  securityTerm: string;
+  /**
+   * Headline awarded rate, percent: high yield for notes/bonds, the
+   * coupon-equivalent (high investment rate) for bills. Null when the auction
+   * hasn't reported results yet.
+   */
+  rate: number | null;
+  /** Bid-to-cover ratio (total bids ÷ amount accepted); higher = stronger demand. */
+  bidToCover: number | null;
+  /** Offering amount, USD. */
+  offeringAmount: number | null;
+  /** Total amount accepted, USD. */
+  totalAccepted: number | null;
+}
+
+/** One observation in the national-debt history. */
+export interface NationalDebtPoint {
+  /** Epoch milliseconds at the record date. */
+  time: number;
+  /** ISO record date, e.g. "2026-06-17". */
+  date: string;
+  /** Total public debt outstanding, USD. */
+  total: number;
+}
+
+/**
+ * US total public debt outstanding from Treasury's "Debt to the Penny",
+ * with the public vs intragovernmental split and a recent trend.
+ */
+export interface NationalDebt {
+  /** ISO date of the latest reading, e.g. "2026-06-17". */
+  date: string;
+  /** Total public debt outstanding, USD. */
+  total: number;
+  /** Debt held by the public, USD. */
+  heldByPublic: number;
+  /** Intragovernmental holdings, USD. */
+  intragovernmental: number;
+  /** Recent history, oldest → newest, for a trend sparkline and change calc. */
+  trend: NationalDebtPoint[];
+}
+
+/** One component's contribution to the OFR Financial Stress Index. */
+export interface FinancialStressCategory {
+  /** Category label, e.g. "Credit", "Volatility", "Funding". */
+  label: string;
+  /** Signed contribution to the index (can be negative). */
+  value: number;
+}
+
+/** One observation in the financial-stress history. */
+export interface FinancialStressPoint {
+  /** Epoch milliseconds at the observation date. */
+  time: number;
+  /** ISO date, e.g. "2026-06-17". */
+  date: string;
+  /** Overall index value (0 = historical average; >0 stressed, <0 calm). */
+  value: number;
+}
+
+/**
+ * The OFR Financial Stress Index — a daily, market-based measure of systemic
+ * financial stress. Zero is the historical average; positive = above-average
+ * stress, negative = calmer-than-average conditions. Keyless official data.
+ */
+export interface FinancialStress {
+  /** Latest overall index value. */
+  value: number;
+  /** ISO date of the latest reading. */
+  date: string;
+  /** Category contributions for the latest reading. */
+  categories: FinancialStressCategory[];
+  /** Recent history, oldest → newest, for a trend sparkline. */
+  trend: FinancialStressPoint[];
+  source: string;
 }
 
 /** One point in a macroeconomic time series. */
@@ -266,6 +353,12 @@ export interface MarketDataProvider {
   getTreasuryAverageRates?(): Promise<TreasuryAverageRate[]>;
   /** US Treasury daily par yield curve (latest available date). */
   getYieldCurve?(): Promise<YieldCurve>;
+  /** Recent completed US Treasury auctions, newest first. */
+  getTreasuryAuctions?(limit?: number): Promise<TreasuryAuction[]>;
+  /** US total public debt outstanding, with a recent trend (`days` of history). */
+  getNationalDebt?(days?: number): Promise<NationalDebt>;
+  /** OFR Financial Stress Index — latest reading, category split, and trend. */
+  getFinancialStress?(): Promise<FinancialStress>;
   /** Official macroeconomic time series. */
   getMacroSeries?(
     seriesId: string,

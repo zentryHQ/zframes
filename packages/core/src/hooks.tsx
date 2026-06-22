@@ -12,13 +12,16 @@ import type {
   CompanyFacts,
   DayStats,
   FearGreedPoint,
+  FinancialStress,
   FundingPoint,
   GlobalMarket,
   MacroSeries,
   MarketDataProvider,
+  NationalDebt,
   ReferenceRate,
   SecCompanyFilings,
   ShortVolumeEntry,
+  TreasuryAuction,
   TreasuryAverageRate,
   TvlEntry,
   YieldCurve,
@@ -372,6 +375,53 @@ export function useYieldCurve(refreshMs = 6 * 60 * 60_000): {
     refreshMs,
   );
   return { curve, isLoading };
+}
+
+/** Recent completed US Treasury auctions, polled slowly (auctions are scheduled, not real-time). */
+export function useTreasuryAuctions(
+  limit = 8,
+  refreshMs = 6 * 60 * 60_000,
+): { auctions: TreasuryAuction[]; isLoading: boolean } {
+  const provider = useProviderFor("treasury-auctions");
+  const { data: auctions, isLoading } = usePolled<TreasuryAuction[]>(
+    provider?.getTreasuryAuctions
+      ? () => provider.getTreasuryAuctions!(limit)
+      : null,
+    [],
+    [provider, limit, refreshMs],
+    refreshMs,
+  );
+  return { auctions, isLoading };
+}
+
+/** US total public debt outstanding + recent trend, polled daily (Debt to the Penny updates each business day). */
+export function useNationalDebt(
+  days = 180,
+  refreshMs = 6 * 60 * 60_000,
+): { debt: NationalDebt | null; isLoading: boolean } {
+  const provider = useProviderFor("national-debt");
+  const { data: debt, isLoading } = usePolled<NationalDebt | null>(
+    provider?.getNationalDebt ? () => provider.getNationalDebt!(days) : null,
+    null,
+    [provider, days, refreshMs],
+    refreshMs,
+  );
+  return { debt, isLoading };
+}
+
+/** OFR Financial Stress Index (latest + categories + trend), polled daily. */
+export function useFinancialStress(refreshMs = 6 * 60 * 60_000): {
+  stress: FinancialStress | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("financial-stress");
+  const { data: stress, isLoading } = usePolled<FinancialStress | null>(
+    provider?.getFinancialStress ? () => provider.getFinancialStress!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { stress, isLoading };
 }
 
 /** Official macroeconomic time series such as CPI or unemployment. */

@@ -1,6 +1,9 @@
 import type {
   Capability,
   MarketDataProvider,
+  NationalDebt,
+  NationalDebtPoint,
+  TreasuryAuction,
   TreasuryAverageRate,
   YieldCurve,
   YieldPoint,
@@ -9,6 +12,19 @@ import { fetchJson } from "@zframes/core/fetch";
 
 const TREASURY_AVG_RATES_URL =
   "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page%5Bsize%5D=20&format=json";
+
+const DEBT_TO_PENNY_URL = (size: number) =>
+  "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny" +
+  `?sort=-record_date&page%5Bsize%5D=${size}&format=json`;
+
+// Completed auctions only (`bid_to_cover_ratio:gt:0`), newest first, trimmed to
+// the result fields the frame renders.
+const AUCTIONS_URL = (size: number) =>
+  "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/od/auctions_query" +
+  "?sort=-auction_date&filter=bid_to_cover_ratio:gt:0" +
+  "&fields=auction_date,security_type,security_term,high_yield,high_discnt_rate," +
+  "high_investment_rate,bid_to_cover_ratio,offering_amt,total_accepted" +
+  `&page%5Bsize%5D=${size}&format=json`;
 
 const YIELD_CURVE_URL = (yyyymm: string) =>
   `https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value_month=${yyyymm}`;
@@ -38,6 +54,29 @@ interface TreasuryAvgRatesResponse {
     security_type_desc?: string;
     security_desc?: string;
     avg_interest_rate_amt?: string;
+  }>;
+}
+
+interface DebtToPennyResponse {
+  data: Array<{
+    record_date?: string;
+    debt_held_public_amt?: string;
+    intragov_hold_amt?: string;
+    tot_pub_debt_out_amt?: string;
+  }>;
+}
+
+interface AuctionsResponse {
+  data: Array<{
+    auction_date?: string;
+    security_type?: string;
+    security_term?: string;
+    high_yield?: string;
+    high_discnt_rate?: string;
+    high_investment_rate?: string;
+    bid_to_cover_ratio?: string;
+    offering_amt?: string;
+    total_accepted?: string;
   }>;
 }
 
@@ -96,6 +135,8 @@ export class TreasuryProvider implements MarketDataProvider {
   readonly capabilities: readonly Capability[] = [
     "treasury-rates",
     "yield-curve",
+    "treasury-auctions",
+    "national-debt",
   ];
 
   async getYieldCurve(): Promise<YieldCurve> {
@@ -145,5 +186,78 @@ export class TreasuryProvider implements MarketDataProvider {
         } satisfies TreasuryAverageRate;
       })
       .filter((rate): rate is TreasuryAverageRate => rate !== null);
+  }
+
+  async getNationalDebt(days = 180): Promise<NationalDebt> {
+    const size = Math.max(2, Math.min(days, 400));
+    // fiscaldata isn't reliably browser-CORS-reachable; relay via the runtime
+    // proxy in the browser (allowlisted host). No-op (direct) in Node.
+    const body = await fetchJson<DebtToPennyResponse>(
+      DEBT_TO_PENNY_URL(size),
+      undefined,
+      {
+        proxied: true,
+      },
+    );
+    if (!Array.isArray(body?.data) || body.data.length === 0)
+      throw new Error("treasury debt to the penny: unexpected response shape");
+
+    // The API returns newest → oldest; build the trend oldest → newest.
+    const trend: NationalDebtPoint[] = [];
+    for (let i = body.data.length - 1; i >= 0; i--) {
+      const entry = body.data[i];
+      const total = finiteNumber(entry.tot_pub_debt_out_amt);
+      const time = Date.parse(`${entry.record_date}T00:00:00Z`);
+      if (!entry.record_date || total === null || !Number.isFinite(time))
+        continue;
+      trend.push({ time, date: entry.record_date, total });
+    }
+    if (trend.length === 0)
+      throw new Error("treasury debt to the penny: no usable rows");
+
+    const latest = body.data[0];
+    return {
+      date: latest.record_date ?? trend[trend.length - 1].date,
+      total:
+        finiteNumber(latest.tot_pub_debt_out_amt) ??
+        trend[trend.length - 1].total,
+      heldByPublic: finiteNumber(latest.debt_held_public_amt) ?? 0,
+      intragovernmental: finiteNumber(latest.intragov_hold_amt) ?? 0,
+      trend,
+    };
+  }
+
+  async getTreasuryAuctions(limit = 8): Promise<TreasuryAuction[]> {
+    const size = Math.max(1, Math.min(limit, 30));
+    // Proxy in the browser (fiscaldata isn't reliably CORS-safe); direct in Node.
+    const body = await fetchJson<AuctionsResponse>(
+      AUCTIONS_URL(size),
+      undefined,
+      {
+        proxied: true,
+      },
+    );
+    if (!Array.isArray(body?.data))
+      throw new Error("treasury auctions: unexpected response shape");
+
+    return body.data
+      .map((entry): TreasuryAuction | null => {
+        if (!entry.auction_date || !entry.security_type) return null;
+        // Notes/bonds/TIPS report a high yield; bills report a discount rate
+        // plus a coupon-equivalent "investment rate" — use the comparable yield.
+        const rate =
+          finiteNumber(entry.high_yield) ??
+          finiteNumber(entry.high_investment_rate);
+        return {
+          auctionDate: entry.auction_date,
+          securityType: entry.security_type,
+          securityTerm: entry.security_term ?? "",
+          rate,
+          bidToCover: finiteNumber(entry.bid_to_cover_ratio),
+          offeringAmount: finiteNumber(entry.offering_amt),
+          totalAccepted: finiteNumber(entry.total_accepted),
+        };
+      })
+      .filter((auction): auction is TreasuryAuction => auction !== null);
   }
 }
