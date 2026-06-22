@@ -16,11 +16,22 @@
     "zframes": "node packages/cli/dist/index.js",
     "build:cli": "pnpm --filter zframes build",
     "format": "pnpm dlx prettier@3 --write .",
-    "format:check": "pnpm dlx prettier@3 --check ."
+    "format:check": "pnpm dlx prettier@3 --check .",
+    "lint": "eslint .",
+    "test": "vitest run"
   },
   "pnpm": {
     "patchedDependencies": {
       "liveline@0.0.7": "patches/liveline@0.0.7.patch"
     }
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.6.0",
+    "typescript-eslint": "^8.61.1",
+    "vitest": "^4.1.9"
   }
 }

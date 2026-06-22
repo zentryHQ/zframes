@@ -385,7 +385,9 @@ function useSymbolUniverse(
     }
     let cancelled = false;
     setLoading(true);
-    Promise.allSettled([
+    // Fire-and-forget: allSettled never rejects and the chain handles its own
+    // outcome (cancelled guard + finally), so explicitly mark it ignored.
+    void Promise.allSettled([
       provider.getDayStats(),
       provider.getDayStats(["xyz:*"]),
     ])
