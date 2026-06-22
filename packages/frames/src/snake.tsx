@@ -14,7 +14,7 @@ import { snakeMeta } from "./schemas";
 const CELL = 18;
 // The snake advances one cell every STEP_FRAMES animation frames — the lower the
 // number, the faster the game.
-const STEP_FRAMES = 7;
+const STEP_FRAMES = 14;
 const GROUND = 0;
 
 const COLORS = {
@@ -131,6 +131,7 @@ function drawStatic(
 
 function SnakeGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [gameState, setGameState] = useState<GameState>("idle");
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => {
@@ -257,8 +258,10 @@ function SnakeGame() {
       }
       if (handled) e.preventDefault();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("keydown", onKey);
+    return () => el.removeEventListener("keydown", onKey);
   }, [turn, start]);
 
   useLayoutEffect(() => {
@@ -360,6 +363,7 @@ function SnakeGame() {
     const from = touchStartRef.current;
     touchStartRef.current = null;
     const t = e.changedTouches[0];
+    containerRef.current?.focus();
     if (gameStateRef.current !== "playing") {
       start();
       return;
@@ -374,9 +378,12 @@ function SnakeGame() {
 
   return (
     <div
-      className="relative h-full w-full cursor-pointer select-none overflow-hidden"
+      ref={containerRef}
+      tabIndex={0}
+      className="relative h-full w-full cursor-pointer select-none overflow-hidden outline-none"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
+      onClick={() => containerRef.current?.focus()}
       role="application"
       aria-label="Snake game. Use the arrow keys or swipe to steer."
     >
