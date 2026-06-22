@@ -37,7 +37,7 @@ const hasJsAsset =
   readdirSync(assetsDir).some((f) => f.endsWith(".js"));
 if (!hasJsAsset) {
   errors.push(
-    "runtime/assets has no .js bundle — the playground build produced no app; run `pnpm build:cli`",
+    "runtime/assets has no .js bundle — the runtime build produced no app; run `pnpm build:cli`",
   );
 }
 

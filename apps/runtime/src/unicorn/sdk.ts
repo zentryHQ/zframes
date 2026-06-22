@@ -1,4 +1,4 @@
-// Loads the self-hosted LEGACY UnicornStudio engine (apps/playground/public/)
+// Loads the self-hosted LEGACY UnicornStudio engine (apps/runtime/public/)
 // for the orb, in ISOLATION from the global `window.UnicornStudio`.
 //
 // Why isolated, not a shared global: the orb scene (./scenes/orb.scene.ts) is a

@@ -1,7 +1,7 @@
 /**
  * The `/__zframes/*` routes the runtime reserves — the single source of truth
  * for both the Node servers that ANSWER them (`./serve`, `./agent`, `./vite`)
- * and the browser code that CALLS them (the playground app, `./fetch`).
+ * and the browser code that CALLS them (the runtime app, `./fetch`).
  *
  * This module exists precisely because `./serve` and `./agent` import `node:*`
  * builtins: the browser bundle can import these route strings without dragging

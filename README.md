@@ -140,18 +140,18 @@ The `daily-analysis` frame renders that log on the dashboard. The loop **only** 
 
 ## Run it from source
 
-You don't need this to *use* zframes — the agent flow above handles everything. But the repo runs standalone if you want to hack on the framework, inspect the playground, or drive the CLI by hand.
+You don't need this to *use* zframes — the agent flow above handles everything. But the repo runs standalone if you want to hack on the framework, inspect the runtime, or drive the CLI by hand.
 
 ```bash
 pnpm install
-pnpm dev          # playground at http://localhost:37263
+pnpm dev          # runtime at http://localhost:37263
 ```
 
-The playground streams real prices from Hyperliquid's public WebSocket and renders the dashboard in [`apps/playground/src/dashboard.json`](apps/playground/src/dashboard.json). Edit that file — by hand or with your agent — and it hot-reloads. You can also drag, resize, and add frames right in the browser; **Save** writes the changes back to the same `dashboard.json`.
+The runtime streams real prices from Hyperliquid's public WebSocket and renders the dashboard in [`apps/runtime/src/dashboard.json`](apps/runtime/src/dashboard.json). Edit that file — by hand or with your agent — and it hot-reloads. You can also drag, resize, and add frames right in the browser; **Save** writes the changes back to the same `dashboard.json`.
 
 ```bash
 pnpm typecheck    # tsc across all packages
-pnpm build        # production build of the playground
+pnpm build        # production build of the runtime
 ```
 
 ### CLI
@@ -182,12 +182,12 @@ packages/
   provider-alternativeme   Fear & Greed
   provider-coingecko       global market / dominance
   cli                      zframes catalogue | lint | snapshot | serve
-apps/playground            Vite demo that renders src/dashboard.json (editable in-browser)
+apps/runtime               Vite app that renders src/dashboard.json (editable in-browser)
 skills/zframes             the build-my-dashboard skill
 skills/zframes-brief       the daily-analyst loop skill
 ```
 
-Packages ship TypeScript source (`main: src/index.ts`); the playground's Vite consumes them directly. pnpm only.
+Packages ship TypeScript source (`main: src/index.ts`); the runtime's Vite consumes them directly. pnpm only.
 
 ---
 
