@@ -25,7 +25,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { z } from "zod";
 import "./editor.css";
 import type { AnyFrameDefinition, FrameRegistry } from "./frame";
-import { FRAME_CSS, FrameContent } from "./frame-content";
+import { FRAME_CSS, FrameContent, FramePatchContext } from "./frame-content";
 import { FramesProvider, useProviders } from "./hooks";
 import type { DashboardSpec, FrameInstance } from "./spec";
 import type { DayStats, MarketDataProvider } from "./types";
@@ -561,6 +561,12 @@ export function DashboardEditor({
     return id;
   }, []);
 
+  // Allows frame components (e.g. note) to patch their own config in-place
+  // without opening the config rail. Kept in a ref so the stable renderInstance
+  // closure always calls the latest version.
+  const patchInstanceRef =
+    useRef<((id: string, patch: Record<string, unknown>) => void) | null>(null);
+
   const renderInstance = useCallback((id: string) => {
     const content = contentRef.current.get(id);
     const instance = instancesRef.current.get(id);
@@ -573,14 +579,32 @@ export function DashboardEditor({
     }
     root.render(
       <FramesProvider providers={providersRef.current}>
-        <FrameContent
-          instance={instance}
-          registry={registryRef.current}
-          className="zf-fill"
-        />
+        <FramePatchContext.Provider
+          value={(patch) => patchInstanceRef.current?.(id, patch)}
+        >
+          <FrameContent
+            instance={instance}
+            registry={registryRef.current}
+            className="zf-fill"
+          />
+        </FramePatchContext.Provider>
       </FramesProvider>,
     );
   }, []);
+
+  const patchInstance = useCallback(
+    (id: string, patch: Record<string, unknown>) => {
+      const inst = instancesRef.current.get(id);
+      if (!inst) return;
+      instancesRef.current.set(id, {
+        ...inst,
+        config: { ...inst.config, ...patch },
+      });
+      renderInstance(id);
+    },
+    [renderInstance],
+  );
+  patchInstanceRef.current = patchInstance;
 
   const deleteItem = useCallback((el: GridItemHTMLElement) => {
     const grid = gridInstanceRef.current;

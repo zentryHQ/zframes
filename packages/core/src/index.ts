@@ -119,4 +119,9 @@ export {
   useYieldCurve,
 } from "./hooks";
 export { DashboardRenderer } from "./renderer";
+export {
+  FramePatchContext,
+  useFramePatch,
+  type FramePatcher,
+} from "./frame-content";
 export { catalogueForAI } from "./catalogue";
