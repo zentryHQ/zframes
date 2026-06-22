@@ -33,8 +33,8 @@
     "NOTICE"
   ],
   "scripts": {
-    "build": "node scripts/build-runtime.mjs && tsup",
-    "prepack": "node scripts/build-runtime.mjs && tsup",
+    "build": "node scripts/build-runtime.mjs && tsup && node scripts/assert-artifacts.mjs",
+    "prepack": "node scripts/build-runtime.mjs && tsup && node scripts/assert-artifacts.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
