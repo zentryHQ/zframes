@@ -11,12 +11,12 @@ import { flappyBirdMeta } from "./schemas";
 // Flappy-bird style game on canvas. Bird holds a fixed x; tap / SPACE flaps it
 // up against gravity through gaps in scrolling pipes. No external assets.
 
-const GRAVITY = 0.45;
-const FLAP = -7.2;
+const GRAVITY = 0.225;
+const FLAP = -3.6;
 const PIPE_WIDTH = 52;
 const PIPE_GAP = 132;
 const PIPE_SPACING = 210;
-const SPEED = 2.6;
+const SPEED = 1.3;
 const BIRD_X = 64;
 const BIRD_R = 12;
 const GROUND_HEIGHT = 28;
@@ -118,6 +118,7 @@ function drawStatic(
 
 function FlappyBird() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [gameState, setGameState] = useState<GameState>("idle");
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => {
@@ -171,6 +172,7 @@ function FlappyBird() {
   }, [newGap]);
 
   const flap = useCallback(() => {
+    containerRef.current?.focus();
     if (gameStateRef.current !== "playing") {
       resetGame();
       setGameState("playing");
@@ -193,8 +195,10 @@ function FlappyBird() {
         flap();
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("keydown", onKey);
+    return () => el.removeEventListener("keydown", onKey);
   }, [flap]);
 
   useLayoutEffect(() => {
@@ -315,7 +319,9 @@ function FlappyBird() {
 
   return (
     <div
-      className="relative h-full w-full cursor-pointer select-none overflow-hidden"
+      ref={containerRef}
+      tabIndex={0}
+      className="relative h-full w-full cursor-pointer select-none overflow-hidden outline-none"
       onClick={flap}
       onTouchStart={flap}
       role="application"

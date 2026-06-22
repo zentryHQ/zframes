@@ -12,8 +12,8 @@ const DINO_WIDTH = 40;
 const DINO_HEIGHT = 44;
 const OBSTACLE_WIDTH = 24;
 const OBSTACLE_HEIGHT = 40;
-const INITIAL_SPEED = 6;
-const SPEED_INCREMENT = 0.001;
+const INITIAL_SPEED = 3;
+const SPEED_INCREMENT = 0.0005;
 
 const COLORS = {
   ground: "rgba(255, 255, 255, 0.1)",
@@ -124,6 +124,7 @@ function drawStaticGameFrame(
 
 function DinoGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [gameState, setGameState] = useState<GameState>("idle");
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(() => {
@@ -179,6 +180,7 @@ function DinoGame() {
   }, []);
 
   const jump = useCallback(() => {
+    containerRef.current?.focus();
     if (gameState !== "playing") {
       resetGame();
       setGameState("playing");
@@ -204,8 +206,10 @@ function DinoGame() {
         jump();
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    const el = containerRef.current;
+    if (!el) return;
+    el.addEventListener("keydown", handleKeyDown);
+    return () => el.removeEventListener("keydown", handleKeyDown);
   }, [jump]);
 
   useLayoutEffect(() => {
@@ -368,7 +372,9 @@ function DinoGame() {
 
   return (
     <div
-      className="relative h-full w-full cursor-pointer select-none overflow-hidden"
+      ref={containerRef}
+      tabIndex={0}
+      className="relative h-full w-full cursor-pointer select-none overflow-hidden outline-none"
       onClick={jump}
       onTouchStart={jump}
       role="application"
