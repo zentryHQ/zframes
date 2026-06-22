@@ -507,6 +507,10 @@ export function DashboardEditor({
   );
   const [density, setDensity] = useState(spec.appearance.density);
   const [elevation, setElevation] = useState(spec.appearance.elevation);
+  // Which rail panel is showing: dashboard-wide cosmetics (accent/layout/
+  // appearance) or the add-a-frame palette. The rail used to stack both; the
+  // tabs split them so theme knobs and frame management each get the full panel.
+  const [railTab, setRailTab] = useState<"cosmetics" | "frames">("cosmetics");
   // Which frame's settings dialog is open (null = none). The per-item gear
   // button (added imperatively in decorateItem) flips it; the portaled
   // FrameConfigDialog reads it. The ref mirrors it for the imperative deleteItem
@@ -808,9 +812,11 @@ export function DashboardEditor({
     }
   }, [editing, decorateItem, undecorateItem]);
 
-  // Register palette cards as GridStack drag sources while customising.
+  // Register palette cards as GridStack drag sources while customising. The
+  // palette only mounts on the Frames tab, so re-run when that tab opens too —
+  // otherwise the freshly-mounted cards wouldn't be draggable.
   useEffect(() => {
-    if (!editing || !gridInstanceRef.current) return;
+    if (!editing || railTab !== "frames" || !gridInstanceRef.current) return;
     GridStack.setupDragIn(".zf-newwidget", {
       appendTo: "body",
       helper: (el: HTMLElement) => {
@@ -831,7 +837,7 @@ export function DashboardEditor({
         return helper;
       },
     });
-  }, [editing, paletteFrames]);
+  }, [editing, railTab, paletteFrames]);
 
   const collectSpec = useCallback((): DashboardSpec => {
     const grid = gridInstanceRef.current;
@@ -1034,279 +1040,325 @@ export function DashboardEditor({
               rail unfocusable and unclickable while it's clipped to zero width. */}
           <aside className="zf-rail" aria-hidden={!editing} inert={!editing}>
             <div className="zf-rail-inner">
-              <section className="zf-theme">
-                <h3 className="zf-rail-title" style={{ margin: 0 }}>
-                  Accent
-                </h3>
-                <div className="zf-theme-row" style={{ margin: "10px 0 0" }}>
-                  <span className="zf-theme-val">
-                    <span className="zf-theme-swatch" />
-                    Hue {accentHue}°
-                  </span>
-                  {accentHue !== 242 && (
-                    <button
-                      type="button"
-                      className="zf-theme-reset"
-                      onClick={() => setAccentHue(242)}
-                    >
-                      Reset
-                    </button>
-                  )}
-                </div>
-                <input
-                  type="range"
-                  className="zf-hue-slider"
-                  min={0}
-                  max={360}
-                  value={accentHue}
-                  aria-label="Accent hue"
-                  onChange={(e) => setAccentHue(Number(e.target.value))}
-                />
-                <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                  <span className="zf-theme-val">Saturation</span>
-                  <span className="zf-theme-knob-end">
-                    {accentSat !== 90 && (
-                      <button
-                        type="button"
-                        className="zf-theme-reset"
-                        onClick={() => setAccentSat(90)}
-                      >
-                        Reset
-                      </button>
-                    )}
-                    <span className="zf-theme-val">{accentSat}%</span>
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  className="zf-range"
-                  min={0}
-                  max={100}
-                  value={accentSat}
-                  aria-label="Accent saturation"
-                  onChange={(e) => setAccentSat(Number(e.target.value))}
-                />
-              </section>
+              <div
+                className="zf-rail-tabs"
+                role="tablist"
+                aria-label="Customise"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={railTab === "cosmetics"}
+                  className={
+                    railTab === "cosmetics"
+                      ? "zf-rail-tab is-active"
+                      : "zf-rail-tab"
+                  }
+                  onClick={() => setRailTab("cosmetics")}
+                >
+                  Cosmetics
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={railTab === "frames"}
+                  className={
+                    railTab === "frames"
+                      ? "zf-rail-tab is-active"
+                      : "zf-rail-tab"
+                  }
+                  onClick={() => setRailTab("frames")}
+                >
+                  Frames
+                </button>
+              </div>
 
-              <section className="zf-theme">
-                <h3 className="zf-rail-title">Layout</h3>
-                <div className="zf-theme-row">
-                  <span className="zf-theme-val">Frame gap</span>
-                  <span className="zf-theme-knob-end">
-                    {gap !== 12 && (
-                      <button
-                        type="button"
-                        className="zf-theme-reset"
-                        onClick={() => setGap(12)}
-                      >
-                        Reset
-                      </button>
-                    )}
-                    <span className="zf-theme-val">{gap}px</span>
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  className="zf-range"
-                  min={0}
-                  max={12}
-                  value={gap}
-                  aria-label="Frame gap"
-                  onChange={(e) => setGap(Number(e.target.value))}
-                />
-              </section>
-
-              <section className="zf-theme">
-                <h3 className="zf-rail-title">Appearance</h3>
-                <div className="zf-theme-row">
-                  <span className="zf-theme-val">Corner radius</span>
-                  <span className="zf-theme-knob-end">
-                    {radius !== 18 && (
-                      <button
-                        type="button"
-                        className="zf-theme-reset"
-                        onClick={() => setRadius(18)}
-                      >
-                        Reset
-                      </button>
-                    )}
-                    <span className="zf-theme-val">{radius}px</span>
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  className="zf-range"
-                  min={0}
-                  max={32}
-                  value={radius}
-                  aria-label="Corner radius"
-                  onChange={(e) => setRadius(Number(e.target.value))}
-                />
-                <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                  <span className="zf-theme-val">Border</span>
-                  <span className="zf-theme-knob-end">
-                    {borderStrength !== 0.22 && (
-                      <button
-                        type="button"
-                        className="zf-theme-reset"
-                        onClick={() => setBorderStrength(0.22)}
-                      >
-                        Reset
-                      </button>
-                    )}
-                    <span className="zf-theme-val">
-                      {Math.round(borderStrength * 100)}%
-                    </span>
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  className="zf-range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={borderStrength}
-                  aria-label="Border strength"
-                  onChange={(e) =>
-                    setBorderStrength(
-                      Math.round(Number(e.target.value) * 100) / 100,
-                    )
-                  }
-                />
-                <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                  <span className="zf-theme-val">Card opacity</span>
-                  <span className="zf-theme-knob-end">
-                    {surfaceOpacity !== 1 && (
-                      <button
-                        type="button"
-                        className="zf-theme-reset"
-                        onClick={() => setSurfaceOpacity(1)}
-                      >
-                        Reset
-                      </button>
-                    )}
-                    <span className="zf-theme-val">
-                      {Math.round(surfaceOpacity * 100)}%
-                    </span>
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  className="zf-range"
-                  min={0.3}
-                  max={1}
-                  step={0.05}
-                  value={surfaceOpacity}
-                  aria-label="Card opacity"
-                  onChange={(e) =>
-                    setSurfaceOpacity(
-                      Math.round(Number(e.target.value) * 100) / 100,
-                    )
-                  }
-                />
-                <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                  <span className="zf-theme-val">Density</span>
-                  <span className="zf-theme-knob-end">
-                    {density !== 1 && (
-                      <button
-                        type="button"
-                        className="zf-theme-reset"
-                        onClick={() => setDensity(1)}
-                      >
-                        Reset
-                      </button>
-                    )}
-                    <span className="zf-theme-val">
-                      {Math.round(density * 100)}%
-                    </span>
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  className="zf-range"
-                  min={0.6}
-                  max={1.4}
-                  step={0.05}
-                  value={density}
-                  aria-label="Card density"
-                  onChange={(e) =>
-                    setDensity(Math.round(Number(e.target.value) * 100) / 100)
-                  }
-                />
-                <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                  <span className="zf-theme-val">Elevation</span>
-                  <span className="zf-theme-knob-end">
-                    {elevation !== 1 && (
-                      <button
-                        type="button"
-                        className="zf-theme-reset"
-                        onClick={() => setElevation(1)}
-                      >
-                        Reset
-                      </button>
-                    )}
-                    <span className="zf-theme-val">
-                      {elevation.toFixed(1)}×
-                    </span>
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  className="zf-range"
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  value={elevation}
-                  aria-label="Card elevation"
-                  onChange={(e) =>
-                    setElevation(Math.round(Number(e.target.value) * 10) / 10)
-                  }
-                />
-              </section>
-
-              <section>
-                <h3 className="zf-rail-title">Add a frame</h3>
-                <p className="zf-palette-hint">
-                  Click to add, or drag onto the grid.
-                </p>
-                <div className="zf-palette">
-                  {paletteFrames.map((def) => (
+              {railTab === "cosmetics" && (
+                <>
+                  <section className="zf-theme">
+                    <h3 className="zf-rail-title" style={{ margin: 0 }}>
+                      Accent
+                    </h3>
                     <div
-                      key={def.name}
-                      className="zf-newwidget"
-                      data-frame={def.name}
-                      role="button"
-                      tabIndex={0}
-                      title={`Add ${def.name.replace(/-/g, " ")}`}
-                      onClick={() => addFrame(def.name)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          addFrame(def.name);
-                        }
-                      }}
+                      className="zf-theme-row"
+                      style={{ margin: "10px 0 0" }}
                     >
-                      {def.iconUrl && (
-                        <img
-                          className="zf-newwidget-icon"
-                          src={def.iconUrl}
-                          alt=""
-                          loading="lazy"
-                          draggable={false}
-                        />
+                      <span className="zf-theme-val">
+                        <span className="zf-theme-swatch" />
+                        Hue {accentHue}°
+                      </span>
+                      {accentHue !== 242 && (
+                        <button
+                          type="button"
+                          className="zf-theme-reset"
+                          onClick={() => setAccentHue(242)}
+                        >
+                          Reset
+                        </button>
                       )}
-                      <div className="zf-newwidget-copy">
-                        <div className="zf-newwidget-name">
-                          {def.name.replace(/-/g, " ")}
-                        </div>
-                        <div className="zf-newwidget-desc">
-                          {def.description}
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-hue-slider"
+                      min={0}
+                      max={360}
+                      value={accentHue}
+                      aria-label="Accent hue"
+                      onChange={(e) => setAccentHue(Number(e.target.value))}
+                    />
+                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                      <span className="zf-theme-val">Saturation</span>
+                      <span className="zf-theme-knob-end">
+                        {accentSat !== 90 && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setAccentSat(90)}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="zf-theme-val">{accentSat}%</span>
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-range"
+                      min={0}
+                      max={100}
+                      value={accentSat}
+                      aria-label="Accent saturation"
+                      onChange={(e) => setAccentSat(Number(e.target.value))}
+                    />
+                  </section>
+
+                  <section className="zf-theme">
+                    <h3 className="zf-rail-title">Layout</h3>
+                    <div className="zf-theme-row">
+                      <span className="zf-theme-val">Frame gap</span>
+                      <span className="zf-theme-knob-end">
+                        {gap !== 12 && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setGap(12)}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="zf-theme-val">{gap}px</span>
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-range"
+                      min={0}
+                      max={12}
+                      value={gap}
+                      aria-label="Frame gap"
+                      onChange={(e) => setGap(Number(e.target.value))}
+                    />
+                  </section>
+
+                  <section className="zf-theme">
+                    <h3 className="zf-rail-title">Appearance</h3>
+                    <div className="zf-theme-row">
+                      <span className="zf-theme-val">Corner radius</span>
+                      <span className="zf-theme-knob-end">
+                        {radius !== 18 && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setRadius(18)}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="zf-theme-val">{radius}px</span>
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-range"
+                      min={0}
+                      max={32}
+                      value={radius}
+                      aria-label="Corner radius"
+                      onChange={(e) => setRadius(Number(e.target.value))}
+                    />
+                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                      <span className="zf-theme-val">Border</span>
+                      <span className="zf-theme-knob-end">
+                        {borderStrength !== 0.22 && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setBorderStrength(0.22)}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="zf-theme-val">
+                          {Math.round(borderStrength * 100)}%
+                        </span>
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={borderStrength}
+                      aria-label="Border strength"
+                      onChange={(e) =>
+                        setBorderStrength(
+                          Math.round(Number(e.target.value) * 100) / 100,
+                        )
+                      }
+                    />
+                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                      <span className="zf-theme-val">Card opacity</span>
+                      <span className="zf-theme-knob-end">
+                        {surfaceOpacity !== 1 && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setSurfaceOpacity(1)}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="zf-theme-val">
+                          {Math.round(surfaceOpacity * 100)}%
+                        </span>
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-range"
+                      min={0.3}
+                      max={1}
+                      step={0.05}
+                      value={surfaceOpacity}
+                      aria-label="Card opacity"
+                      onChange={(e) =>
+                        setSurfaceOpacity(
+                          Math.round(Number(e.target.value) * 100) / 100,
+                        )
+                      }
+                    />
+                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                      <span className="zf-theme-val">Density</span>
+                      <span className="zf-theme-knob-end">
+                        {density !== 1 && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setDensity(1)}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="zf-theme-val">
+                          {Math.round(density * 100)}%
+                        </span>
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-range"
+                      min={0.6}
+                      max={1.4}
+                      step={0.05}
+                      value={density}
+                      aria-label="Card density"
+                      onChange={(e) =>
+                        setDensity(
+                          Math.round(Number(e.target.value) * 100) / 100,
+                        )
+                      }
+                    />
+                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                      <span className="zf-theme-val">Elevation</span>
+                      <span className="zf-theme-knob-end">
+                        {elevation !== 1 && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setElevation(1)}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="zf-theme-val">
+                          {elevation.toFixed(1)}×
+                        </span>
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-range"
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      value={elevation}
+                      aria-label="Card elevation"
+                      onChange={(e) =>
+                        setElevation(
+                          Math.round(Number(e.target.value) * 10) / 10,
+                        )
+                      }
+                    />
+                  </section>
+                </>
+              )}
+
+              {railTab === "frames" && (
+                <section>
+                  <h3 className="zf-rail-title">Add a frame</h3>
+                  <p className="zf-palette-hint">
+                    Click to add, or drag onto the grid.
+                  </p>
+                  <div className="zf-palette">
+                    {paletteFrames.map((def) => (
+                      <div
+                        key={def.name}
+                        className="zf-newwidget"
+                        data-frame={def.name}
+                        role="button"
+                        tabIndex={0}
+                        title={`Add ${def.name.replace(/-/g, " ")}`}
+                        onClick={() => addFrame(def.name)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            addFrame(def.name);
+                          }
+                        }}
+                      >
+                        {def.iconUrl && (
+                          <img
+                            className="zf-newwidget-icon"
+                            src={def.iconUrl}
+                            alt=""
+                            loading="lazy"
+                            draggable={false}
+                          />
+                        )}
+                        <div className="zf-newwidget-copy">
+                          <div className="zf-newwidget-name">
+                            {def.name.replace(/-/g, " ")}
+                          </div>
+                          <div className="zf-newwidget-desc">
+                            {def.description}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           </aside>
         </div>
