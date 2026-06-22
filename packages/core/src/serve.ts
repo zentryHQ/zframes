@@ -42,6 +42,14 @@ const PROXY_ALLOW_HOSTS = new Set<string>([
   "api.fiscaldata.treasury.gov",
   "api.bls.gov",
   "cdn.finra.org",
+  // News-outlet RSS feeds (CORS-blocked, so the news-feed frame reads them
+  // through here). Headlines + links only; no keys.
+  "www.coindesk.com",
+  "cointelegraph.com",
+  "decrypt.co",
+  "www.cnbc.com",
+  "www.nasdaq.com",
+  "news.google.com",
 ]);
 
 // SEC's companyfacts blob is a few MB; allow headroom but bound it.
