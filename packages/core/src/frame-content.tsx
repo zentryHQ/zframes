@@ -1,9 +1,17 @@
 import {
   Component,
   Fragment,
+  createContext,
+  useContext,
   type CSSProperties,
   type ReactNode,
 } from "react";
+
+export type FramePatcher = (patch: Record<string, unknown>) => void;
+export const FramePatchContext = createContext<FramePatcher | null>(null);
+export function useFramePatch(): FramePatcher | null {
+  return useContext(FramePatchContext);
+}
 import type { FrameRegistry, FrameSource } from "./frame";
 import { useProviders } from "./hooks";
 import type { FrameInstance } from "./spec";
