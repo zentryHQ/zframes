@@ -7,7 +7,6 @@ import React, {
   useState,
   useTransition,
 } from "react";
-import * as d3 from "d3";
 import { cn } from "../lib/utils";
 
 /**
@@ -152,41 +151,28 @@ function HeatmapChartInner<T extends HeatmapCell>({
     };
   }, [dimension, showLabels, rowLabelWidth, columnLabelHeight]);
 
-  // Create band scales for rows and columns
-  // We use paddingInner for gaps between cells, calculated as a ratio of step size
-  const scales = useMemo(() => {
+  // Fixed-pixel grid layout. A d3 scaleBand only takes a padding *ratio*, which
+  // yields different pixel gaps on each axis whenever cells aren't square (e.g.
+  // a 2-row × 8-col funding map ends up with wider column gaps than row gaps).
+  // Computing cell size directly keeps the gap a uniform `gap` px both ways.
+  const layout = useMemo(() => {
     const numColumns = uniqueColumns.length;
     const numRows = uniqueRows.length;
 
-    // Calculate padding ratio: gap pixels / estimated step size
-    // Step = range / (n - paddingInner + 2 * paddingOuter), simplified for inner only
-    const xPaddingInner =
-      numColumns > 1
-        ? (gap * (numColumns - 1)) /
-          (chartArea.width - gap * (numColumns - 1) + gap * numColumns)
+    const cellWidth =
+      numColumns > 0
+        ? Math.max(0, (chartArea.width - gap * (numColumns - 1)) / numColumns)
         : 0;
-    const yPaddingInner =
-      numRows > 1
-        ? (gap * (numRows - 1)) /
-          (chartArea.height - gap * (numRows - 1) + gap * numRows)
+    const cellHeight =
+      numRows > 0
+        ? Math.max(0, (chartArea.height - gap * (numRows - 1)) / numRows)
         : 0;
 
-    const xScale = d3
-      .scaleBand<string>()
-      .domain(uniqueColumns)
-      .range([0, chartArea.width])
-      .paddingInner(Math.min(xPaddingInner, 0.5))
-      .paddingOuter(0);
+    const columnX = (index: number) => index * (cellWidth + gap);
+    const rowY = (index: number) => index * (cellHeight + gap);
 
-    const yScale = d3
-      .scaleBand<string>()
-      .domain(uniqueRows)
-      .range([0, chartArea.height])
-      .paddingInner(Math.min(yPaddingInner, 0.5))
-      .paddingOuter(0);
-
-    return { xScale, yScale };
-  }, [uniqueRows, uniqueColumns, chartArea, gap]);
+    return { cellWidth, cellHeight, columnX, rowY };
+  }, [uniqueRows.length, uniqueColumns.length, chartArea, gap]);
 
   // Calculate color intensity for each cell
   const cellsWithColors = useMemo(() => {
@@ -230,75 +216,48 @@ function HeatmapChartInner<T extends HeatmapCell>({
     });
   }, [data, getColorValue]);
 
-  // Blend color helper (same as tree-chart)
-  const blendColor = (base: string, overlay: string, alpha: number) => {
-    const toRGB = (hex: string) =>
-      hex.match(/[A-F0-9]{2}/gi)?.map((x) => parseInt(x, 16)) || [0, 0, 0];
-    const [Rb, Gb, Bb] = toRGB(base);
-    const [Ro, Go, Bo] = toRGB(overlay);
-
-    const R = Math.round(Ro * alpha + Rb * (1 - alpha));
-    const G = Math.round(Go * alpha + Gb * (1 - alpha));
-    const B = Math.round(Bo * alpha + Bb * (1 - alpha));
-
-    return `#${[R, G, B].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
-  };
-
-  // Get discrete opacity based on intensity (same as tree-chart)
-  const getDiscreteOpacity = (intensity: number, isPositive: boolean) => {
-    if (!isPositive) {
-      const invertedIntensity = 1 - intensity;
-      if (invertedIntensity >= 0.75) return 0.6;
-      if (invertedIntensity >= 0.5) return 0.4;
-      if (invertedIntensity >= 0.25) return 0.3;
-      return 0.2;
-    } else {
-      if (intensity >= 0.75) return 0.1;
-      if (intensity >= 0.6) return 0.2;
-      if (intensity >= 0.5) return 0.3;
-      if (intensity >= 0.25) return 0.4;
-      if (intensity >= 0.1) return 0.45;
-      return 0.5;
+  // Diverging up/down ramp, tuned for a dark indigo ground (matches tree-chart).
+  // Down uses a crimson hue that stays red even when dark — orange-reds (hue ~4)
+  // turn muddy brown at low lightness; up uses a calm emerald, not neon mint.
+  const getCellColor = (intensity: number, isPositive: boolean): string => {
+    if (isPositive) {
+      const l = Math.round(34 + intensity * 16); // 34% → 50%
+      const s = Math.round(42 + intensity * 20); // 42% → 62%
+      return `hsl(152 ${s}% ${l}%)`;
     }
+    const l = Math.round(36 + intensity * 15); // 36% → 51%
+    const s = Math.round(48 + intensity * 22); // 48% → 70%
+    return `hsl(350 ${s}% ${l}%)`;
   };
 
   // Render cells
   const memoizedCells = useMemo(() => {
-    const { xScale, yScale } = scales;
+    const { cellWidth, cellHeight, columnX, rowY } = layout;
+    if (cellWidth <= 0 || cellHeight <= 0) return null;
 
     return cellsWithColors.map(({ cell, intensity, isPositive }) => {
-      const x = xScale(cell.column);
-      const y = yScale(cell.row);
-      const width = xScale.bandwidth();
-      const height = yScale.bandwidth();
+      const rowIndex = rowToIndex.get(cell.row);
+      const columnIndex = columnToIndex.get(cell.column);
+      if (rowIndex === undefined || columnIndex === undefined) return null;
 
-      if (x === undefined || y === undefined || width <= 0 || height <= 0)
-        return null;
-
-      const rowIndex = rowToIndex.get(cell.row) ?? 0;
-      const columnIndex = columnToIndex.get(cell.column) ?? 0;
-
-      const opacity = getDiscreteOpacity(intensity, isPositive);
-      const baseColor = isPositive
-        ? blendColor("#25A78D", "#000000", opacity)
-        : blendColor("#F21553", "#000000", opacity);
+      const baseColor = getCellColor(intensity, isPositive);
 
       return (
         <div
           key={cell.id}
           className="group absolute cursor-pointer border border-transparent hover:bg-[radial-gradient(146.13%_118.42%_at_50%_-15.5%,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_99.59%)] hover:bg-gradient-to-t"
           style={{
-            left: chartArea.x + x,
-            top: chartArea.y + y,
-            width,
-            height,
+            left: chartArea.x + columnX(columnIndex),
+            top: chartArea.y + rowY(rowIndex),
+            width: cellWidth,
+            height: cellHeight,
             borderRadius: CELL_BORDER_RADIUS,
             backgroundColor: baseColor,
           }}
         >
           <CellComponent
-            width={width}
-            height={height}
+            width={cellWidth}
+            height={cellHeight}
             data={cell}
             rowIndex={rowIndex}
             columnIndex={columnIndex}
@@ -310,7 +269,7 @@ function HeatmapChartInner<T extends HeatmapCell>({
     });
   }, [
     cellsWithColors,
-    scales,
+    layout,
     chartArea,
     rowToIndex,
     columnToIndex,
@@ -320,61 +279,49 @@ function HeatmapChartInner<T extends HeatmapCell>({
   // Render row labels
   const rowLabels = useMemo(() => {
     if (!showLabels) return null;
-    const { yScale } = scales;
+    const { cellHeight, rowY } = layout;
 
-    return uniqueRows.map((row) => {
-      const y = yScale(row);
-      const height = yScale.bandwidth();
-      if (y === undefined) return null;
-
-      return (
-        <div
-          key={`row-${row}`}
-          className="absolute flex items-center justify-end pr-2 text-xs text-white/60"
-          style={{
-            left: 0,
-            top: chartArea.y + y,
-            width: rowLabelWidth,
-            height,
-          }}
-        >
-          <span className="truncate">{row}</span>
-        </div>
-      );
-    });
-  }, [showLabels, uniqueRows, scales, chartArea, rowLabelWidth]);
+    return uniqueRows.map((row, index) => (
+      <div
+        key={`row-${row}`}
+        className="absolute flex items-center justify-end pr-2 text-xs text-white/60"
+        style={{
+          left: 0,
+          top: chartArea.y + rowY(index),
+          width: rowLabelWidth,
+          height: cellHeight,
+        }}
+      >
+        <span className="truncate">{row}</span>
+      </div>
+    ));
+  }, [showLabels, uniqueRows, layout, chartArea, rowLabelWidth]);
 
   // Render column labels
   const columnLabels = useMemo(() => {
     if (!showLabels) return null;
-    const { xScale } = scales;
+    const { cellWidth, columnX } = layout;
 
-    return uniqueColumns.map((column) => {
-      const x = xScale(column);
-      const width = xScale.bandwidth();
-      if (x === undefined) return null;
-
-      return (
-        <div
-          key={`col-${column}`}
-          className="absolute flex items-end justify-center pb-1 text-xs text-white/60"
-          style={{
-            left: chartArea.x + x,
-            top: 0,
-            width,
-            height: columnLabelHeight,
-          }}
-        >
-          <span className="truncate">{column}</span>
-        </div>
-      );
-    });
-  }, [showLabels, uniqueColumns, scales, chartArea, columnLabelHeight]);
+    return uniqueColumns.map((column, index) => (
+      <div
+        key={`col-${column}`}
+        className="absolute flex items-end justify-center pb-1 text-xs text-white/60"
+        style={{
+          left: chartArea.x + columnX(index),
+          top: 0,
+          width: cellWidth,
+          height: columnLabelHeight,
+        }}
+      >
+        <span className="truncate">{column}</span>
+      </div>
+    ));
+  }, [showLabels, uniqueColumns, layout, chartArea, columnLabelHeight]);
 
   return (
     <div className={cn("h-full w-full", className)} ref={containerRef}>
       <div
-        className="relative space-x-2 space-y-2 overflow-hidden"
+        className="relative overflow-hidden"
         style={{ height: dimension.height, width: dimension.width }}
       >
         {rowLabels}
