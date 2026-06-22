@@ -4,6 +4,7 @@ import type {
   MacroSeries,
   MarketDataProvider,
 } from "@zframes/core";
+import { TtlCache } from "@zframes/core/cache";
 import { fetchJson } from "@zframes/core/fetch";
 
 const BLS_SERIES_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
@@ -56,42 +57,21 @@ function blsPeriodLabel(time: number): string {
 /**
  * BLS's keyless public API caps unregistered usage at 25 requests/day per IP.
  * CPI is monthly data, so re-fetching on every mount/reload is both wasteful and
- * the quickest way to hit that cap. We cache each series in localStorage (when
- * available) so reloads reuse the last result, and fall back to the last-good
- * value when a request is rejected for the daily cap. Fresh entries skip the
- * network entirely; stale ones are still served if a refetch fails.
+ * the quickest way to hit that cap. The shared cache persists each series to
+ * localStorage so reloads reuse the last result, dedups concurrent / StrictMode
+ * double calls, and serves the last good value when a request is rejected for
+ * the daily cap. The 6 h TTL sits well under useMacroSeries' 12 h poll. The
+ * `revive` guard drops a malformed persisted entry rather than trusting it.
  */
-const MACRO_CACHE_PREFIX = "zframes:macro:";
-const MACRO_FRESH_MS = 6 * 60 * 60_000;
-
-interface CachedMacro {
-  at: number;
-  series: MacroSeries;
-}
-
-function readMacroCache(key: string): CachedMacro | null {
-  try {
-    if (typeof localStorage === "undefined") return null;
-    const raw = localStorage.getItem(MACRO_CACHE_PREFIX + key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as CachedMacro;
-    return Array.isArray(parsed?.series?.points) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeMacroCache(key: string, series: MacroSeries): void {
-  try {
-    if (typeof localStorage === "undefined") return;
-    localStorage.setItem(
-      MACRO_CACHE_PREFIX + key,
-      JSON.stringify({ at: Date.now(), series } satisfies CachedMacro),
-    );
-  } catch {
-    // ignore quota / serialization errors — the cache is best-effort
-  }
-}
+const macroCache = new TtlCache<MacroSeries>({
+  namespace: "zframes:macro",
+  ttlMs: 6 * 60 * 60_000,
+  persist: true,
+  revive: (value) =>
+    value && Array.isArray((value as MacroSeries).points)
+      ? (value as MacroSeries)
+      : null,
+});
 
 /**
  * Free, no-API-key provider for the BLS public data API — monthly economic
@@ -103,37 +83,14 @@ export class BlsProvider implements MarketDataProvider {
   readonly name = "bls";
   readonly capabilities: readonly Capability[] = ["macro-series"];
 
-  /** Collapses concurrent / React-StrictMode double calls onto one request. */
-  private macroInflight = new Map<string, Promise<MacroSeries>>();
-
   async getMacroSeries(
     seriesId: string,
     startYear: number,
     endYear: number,
   ): Promise<MacroSeries> {
-    const cacheKey = `${seriesId}:${startYear}:${endYear}`;
-    const cached = readMacroCache(cacheKey);
-    if (cached && Date.now() - cached.at < MACRO_FRESH_MS) return cached.series;
-
-    const inflight = this.macroInflight.get(cacheKey);
-    if (inflight) return inflight;
-
-    const promise = this.fetchMacroSeries(seriesId, startYear, endYear)
-      .then((series) => {
-        writeMacroCache(cacheKey, series);
-        return series;
-      })
-      .catch((error: unknown) => {
-        // Serve the last-good value (even if stale) when BLS rejects the
-        // request for its keyless daily cap, rather than going blank.
-        if (cached) return cached.series;
-        throw error;
-      })
-      .finally(() => {
-        this.macroInflight.delete(cacheKey);
-      });
-    this.macroInflight.set(cacheKey, promise);
-    return promise;
+    return macroCache.get(`${seriesId}:${startYear}:${endYear}`, () =>
+      this.fetchMacroSeries(seriesId, startYear, endYear),
+    );
   }
 
   private async fetchMacroSeries(

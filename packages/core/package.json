@@ -20,6 +20,7 @@
     "./catalogue": "./src/catalogue.ts",
     "./routes": "./src/routes.ts",
     "./fetch": "./src/fetch.ts",
+    "./cache": "./src/cache.ts",
     "./editor": "./src/editor.tsx",
     "./vite": "./src/vite.ts",
     "./serve": "./src/serve.ts",
@@ -41,7 +42,7 @@
     "react-dom": ">=18"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^20.14.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "typescript": "^5.8.0"

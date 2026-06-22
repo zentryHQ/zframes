@@ -3,6 +3,7 @@ import type {
   MarketDataProvider,
   ShortVolumeEntry,
 } from "@zframes/core";
+import { TtlCache } from "@zframes/core/cache";
 
 const DAILY_URL = (yyyymmdd: string) =>
   `https://cdn.finra.org/equity/regsho/daily/CNMSshvol${yyyymmdd}.txt`;
@@ -18,6 +19,16 @@ interface ShortVolumeReport {
   date: string;
   bySymbol: Map<string, ShortVolumeEntry>;
 }
+
+// One report serves every requested symbol, so a single-slot cache (constant
+// key) dedups concurrent loads, reuses the parsed file within the TTL, and
+// serves the last good report on a transient error. Not persisted — the value
+// holds a Map, which isn't JSON-serialisable (and the file lands once a day, so
+// session-scoped caching is enough).
+const reportCache = new TtlCache<ShortVolumeReport>({
+  namespace: "zframes:finra:shortvol",
+  ttlMs: CACHE_TTL_MS,
+});
 
 /** Strip a HIP-3 dex prefix to the bare ticker: "xyz:TSLA" → "TSLA". */
 function tickerOf(symbol: string): string {
@@ -92,8 +103,6 @@ export class FinraProvider implements MarketDataProvider {
   readonly name = "finra";
   readonly capabilities: readonly Capability[] = ["short-volume"];
 
-  private cache?: { at: number; promise: Promise<ShortVolumeReport> };
-
   async getShortVolume(
     symbols: string[],
   ): Promise<Record<string, ShortVolumeEntry>> {
@@ -107,15 +116,7 @@ export class FinraProvider implements MarketDataProvider {
   }
 
   private loadReport(): Promise<ShortVolumeReport> {
-    const now = Date.now();
-    if (this.cache && now - this.cache.at < CACHE_TTL_MS)
-      return this.cache.promise;
-    const promise = this.fetchLatest().catch((error) => {
-      this.cache = undefined; // don't cache failures
-      throw error;
-    });
-    this.cache = { at: now, promise };
-    return promise;
+    return reportCache.get("latest", () => this.fetchLatest());
   }
 
   private async fetchLatest(): Promise<ShortVolumeReport> {
