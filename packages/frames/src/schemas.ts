@@ -51,7 +51,7 @@ export const clockMeta = defineFrameMeta({
   iconUrl: widgetIcon("clock"),
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
   description:
-    "Digital clock showing the current time, ticking every second. Configurable IANA timezone (defaults to the viewer's local zone), 12/24-hour format, optional seconds and date, and a caption label. Drop several with different timezones for a trading-desk world clock. Needs no data provider.",
+    "Digital clock showing the current time, ticking every second. Configurable IANA timezone (defaults to the viewer's local zone), 12/24-hour format, optional seconds and date, the timezone abbreviation, and a caption label. Drop several with different timezones for a trading-desk world clock. Needs no data provider.",
   capabilities: [],
   schema: z.object({
     timezone: z
@@ -84,6 +84,12 @@ export const clockMeta = defineFrameMeta({
       .boolean()
       .default(false)
       .describe("Show the weekday and date under the time."),
+    showTimezone: z
+      .boolean()
+      .default(true)
+      .describe(
+        'Show the timezone abbreviation (e.g. "EST", "GMT+7", "UTC") in the caption. Combines with the label when set, e.g. "New York · EST".',
+      ),
   }),
 });
 

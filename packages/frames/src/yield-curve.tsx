@@ -63,7 +63,7 @@ function YieldCurve({ config }: { config: z.output<typeof schema> }) {
           <div className="caption text-soft uppercase">Treasury yield curve</div>
           <div className="body-sm text-normal">U.S. Treasury · {curve.date}</div>
         </div>
-        <div className="caption text-soft text-right">keyless · daily</div>
+        <div className="caption text-soft text-right">daily</div>
       </div>
 
       {spreadBps != null && (

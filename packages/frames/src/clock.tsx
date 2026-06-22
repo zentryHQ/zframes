@@ -76,11 +76,34 @@ function Clock({ config }: { config: z.output<typeof schema> }) {
             day: "numeric",
           })
         : null;
-      return { time, date, error: null as string | null };
+      // The short zone name ("EST", "GMT+7", "UTC") is static per render — it
+      // only shifts on a DST boundary, so we read it once here rather than
+      // through the per-frame tick. `timeZoneName` is pulled from formatToParts
+      // so we get just the abbreviation, not a full formatted time.
+      let zone = "";
+      if (config.showTimezone) {
+        const zoneFmt = new Intl.DateTimeFormat(undefined, {
+          timeZone: tz,
+          hour: "2-digit",
+          timeZoneName: "short",
+        });
+        zone =
+          zoneFmt
+            .formatToParts(new Date())
+            .find((part) => part.type === "timeZoneName")?.value ?? "";
+      }
+      return { time, date, zone, error: null as string | null };
     } catch {
-      return { time: null, date: null, error: tz ?? "invalid timezone" };
+      return { time: null, date: null, zone: "", error: tz ?? "invalid timezone" };
     }
-  }, [tz, withSeconds, config.showMillis, config.hour12, config.showDate]);
+  }, [
+    tz,
+    withSeconds,
+    config.showMillis,
+    config.hour12,
+    config.showDate,
+    config.showTimezone,
+  ]);
 
   // Drive every readout through zhive's shared 24fps global tick (see
   // use-countdown.ts): one timer for every clock on the page, viewport-gated,
@@ -180,14 +203,16 @@ function Clock({ config }: { config: z.output<typeof schema> }) {
           {fmt.date.format(new Date())}
         </div>
       )}
-      {config.label && (
+      {(config.label || fmt.zone) && (
         <div className="caption text-soft inline-flex items-center gap-1.5 uppercase tracking-[0.18em]">
           <span
             aria-hidden
             className="inline-block h-1 w-1 rounded-full"
             style={{ background: accent, boxShadow: accentGlow }}
           />
-          {config.label}
+          {config.label && fmt.zone
+            ? `${config.label} · ${fmt.zone}`
+            : config.label || fmt.zone}
         </div>
       )}
     </div>
