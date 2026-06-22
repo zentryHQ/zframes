@@ -201,7 +201,13 @@ const ORB_CSS = `
 }
 `;
 
-export function ZaiOrb() {
+export function ZaiOrb({
+  onOpenChange,
+}: {
+  /** Notified whenever the orb expands/collapses, so host chrome (e.g. the
+      dashboard background) can react to the orb being opened. */
+  onOpenChange?: (open: boolean) => void;
+} = {}) {
   const [agents, setAgents] = useState<Agent[] | null>(null);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -273,6 +279,11 @@ export function ZaiOrb() {
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  // Surface the open/closed state to the host (App lifts it to the background).
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
 
   const push = (msg: Message) =>
     setMessages((prev) => [...prev, msg].slice(-MAX_MESSAGES));

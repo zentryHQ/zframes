@@ -139,6 +139,9 @@ export default function App() {
   // Phones get the read-only CSS-grid renderer (single-column reflow at <=640px);
   // desktop gets the editable GridStack editor. Editing stays a desktop activity.
   const isMobile = useIsMobile();
+  // Lifted from the zAI orb: when the orb is open, the background recolors +
+  // brightens so opening zAI visibly "charges" the scene behind the dashboard.
+  const [orbOpen, setOrbOpen] = useState(false);
 
   const accentHue =
     liveHue ?? (load.status === "ready" ? load.spec.theme.accentHue : null);
@@ -187,7 +190,7 @@ export default function App() {
 
   return (
     <FramesProvider providers={providers}>
-      <DashboardBackground background={spec.background} />
+      <DashboardBackground background={spec.background} active={orbOpen} />
       <main
         className="relative z-10 mx-auto max-w-[1320px] px-4 pb-24 pt-5 sm:px-6"
         style={
@@ -236,7 +239,7 @@ export default function App() {
         )}
       </main>
       <TickerTape />
-      <ZaiOrb />
+      <ZaiOrb onOpenChange={setOrbOpen} />
     </FramesProvider>
   );
 }
