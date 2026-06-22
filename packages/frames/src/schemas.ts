@@ -42,6 +42,9 @@ const SOURCES = {
     name: "OFR",
     url: "https://www.financialresearch.gov/financial-stress-index/",
   },
+  mempool: { name: "mempool.space", url: "https://mempool.space" },
+  deribit: { name: "Deribit", url: "https://www.deribit.com" },
+  coinpaprika: { name: "Coinpaprika", url: "https://coinpaprika.com" },
 } satisfies Record<string, FrameSource>;
 
 export const clockMeta = defineFrameMeta({
@@ -950,6 +953,246 @@ export const videoMeta = defineFrameMeta({
   }),
 });
 
+export const btcFeesMeta = defineFrameMeta({
+  name: "btc-fees",
+  iconUrl: widgetIcon("btc-fees"),
+  layout: { w: 3, h: 2, minW: 2, minH: 2 },
+  description:
+    "Recommended Bitcoin on-chain fee rates (sat/vB) from mempool.space — the next-block ('fastest'), ~30-minute, ~1-hour, economy, and minimum tiers, as a compact gauge. Live mempool data, keyless; updates every ~30s.",
+  capabilities: ["btc-fees"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    tiers: z
+      .array(z.enum(["fastest", "halfHour", "hour", "economy", "minimum"]))
+      .min(1)
+      .max(5)
+      .default(["fastest", "halfHour", "hour", "economy"])
+      .describe(
+        'Which fee tiers to show, in order. "fastest" = next block, "halfHour"/"hour" = within ~30/60 min, "economy"/"minimum" = cheapest relayable.',
+      ),
+  }),
+});
+
+export const btcMempoolMeta = defineFrameMeta({
+  name: "btc-mempool",
+  iconUrl: widgetIcon("btc-mempool"),
+  layout: { w: 5, h: 3, minW: 3, minH: 2 },
+  description:
+    "Bitcoin mempool congestion at a glance — unconfirmed transaction count, total pending vsize, and a row of projected ('template') blocks the network will likely mine next, each labelled with its median fee rate (sat/vB) and tx count. Live mempool data from mempool.space, keyless.",
+  capabilities: ["btc-mempool"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    projectedBlocks: z
+      .number()
+      .int()
+      .min(1)
+      .max(8)
+      .default(5)
+      .describe(
+        "How many projected (yet-to-be-mined) blocks to show, next-to-mine first.",
+      ),
+  }),
+});
+
+export const btcBlocksMeta = defineFrameMeta({
+  name: "btc-blocks",
+  iconUrl: widgetIcon("btc-blocks"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Feed of the most recently mined Bitcoin blocks — each row shows the height, how long ago it was mined, transaction count, the mining pool that found it, total fees (BTC), and size. Live data from mempool.space, keyless; newest first.",
+  capabilities: ["btc-blocks"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    count: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(8)
+      .describe("How many recent blocks to list (newest first)."),
+  }),
+});
+
+export const btcHashrateMeta = defineFrameMeta({
+  name: "btc-hashrate",
+  iconUrl: widgetIcon("btc-hashrate"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Bitcoin network hashrate over time as a line chart, with the current hashrate (EH/s) and difficulty as headline figures. Shows the long-run security trend of the network. Data from mempool.space (daily granularity), keyless.",
+  capabilities: ["btc-hashrate"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    window: z
+      .enum(["1y", "2y", "3y"])
+      .default("1y")
+      .describe("History window for the hashrate line."),
+  }),
+});
+
+export const btcDifficultyMeta = defineFrameMeta({
+  name: "btc-difficulty",
+  iconUrl: widgetIcon("btc-difficulty"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "Countdown to the next Bitcoin difficulty adjustment — a progress bar through the current 2016-block epoch, the estimated change (+ = mining gets harder), blocks remaining, and the estimated retarget date. Also shows the previous adjustment. Data from mempool.space, keyless.",
+  capabilities: ["btc-difficulty"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    showPrevious: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Also show the percentage change applied at the previous retarget.",
+      ),
+  }),
+});
+
+export const miningPoolsMeta = defineFrameMeta({
+  name: "mining-pools",
+  iconUrl: widgetIcon("mining-pools"),
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  description:
+    "Treemap of Bitcoin mining-pool dominance over a window — each tile is a pool sized by the share of blocks it mined, so you can see how concentrated hashpower is right now (Foundry, AntPool, ViaBTC…). Data from mempool.space, keyless.",
+  capabilities: ["mining-pools"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    window: z
+      .enum(["24h", "3d", "1w", "1m"])
+      .default("1w")
+      .describe("Window over which to measure each pool's block share."),
+    topN: z
+      .number()
+      .int()
+      .min(3)
+      .max(25)
+      .default(12)
+      .describe(
+        "How many of the largest pools to show; the rest fold into 'Other'.",
+      ),
+  }),
+});
+
+export const lightningStatsMeta = defineFrameMeta({
+  name: "lightning-stats",
+  iconUrl: widgetIcon("lightning-stats"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "Bitcoin Lightning Network snapshot — public node count, channel count, and total network capacity (BTC), with a day-over-day delta and the Tor/clearnet node split. Data from mempool.space, keyless; updates roughly daily.",
+  capabilities: ["lightning-stats"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    showSplit: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Show the Tor vs clearnet node split under the headline stats.",
+      ),
+  }),
+});
+
+export const optionsPutCallMeta = defineFrameMeta({
+  name: "options-put-call",
+  iconUrl: widgetIcon("options-put-call"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "Deribit options put/call ratio for BTC or ETH — the headline ratio (by open interest or 24h volume), a call-vs-put open-interest split bar, and the open-interest-weighted average implied volatility. A ratio above 1 means puts outweigh calls (defensive positioning). Keyless Deribit market data.",
+  capabilities: ["options-summary"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    currency: z
+      .enum(["BTC", "ETH"])
+      .default("BTC")
+      .describe(
+        "Which Deribit options book to summarise — BTC or ETH (the only deeply liquid books).",
+      ),
+    basis: z
+      .enum(["oi", "volume"])
+      .default("oi")
+      .describe(
+        'Headline put/call ratio basis: "oi" = by open interest (positioning), "volume" = by 24h traded volume (flow). The other is shown smaller.',
+      ),
+  }),
+});
+
+export const optionsIvMeta = defineFrameMeta({
+  name: "options-iv",
+  iconUrl: widgetIcon("options-iv"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Deribit DVOL implied-volatility index for BTC or ETH over time — the crypto equivalent of the VIX, as a line chart with the current reading and its change over the window. Rising DVOL = the market is pricing bigger expected swings. Keyless Deribit market data.",
+  capabilities: ["volatility-index"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    currency: z
+      .enum(["BTC", "ETH"])
+      .default("BTC")
+      .describe("Which DVOL volatility index to plot — BTC or ETH."),
+    lookback: z
+      .enum(["7D", "1M", "3M"])
+      .default("1M")
+      .describe("History window for the volatility-index line."),
+  }),
+});
+
+export const optionsOiStrikeMeta = defineFrameMeta({
+  name: "options-oi-strike",
+  iconUrl: widgetIcon("options-oi-strike"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Open interest by strike for the nearest Deribit options expiry (BTC or ETH) — a grouped histogram of call vs put open interest across strikes, with the current spot marked. Surfaces the strike 'walls' where positioning is concentrated. Keyless Deribit market data.",
+  capabilities: ["options-summary"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    currency: z
+      .enum(["BTC", "ETH"])
+      .default("BTC")
+      .describe("Which Deribit options book — BTC or ETH."),
+    strikes: z
+      .number()
+      .int()
+      .min(6)
+      .max(30)
+      .default(14)
+      .describe(
+        "How many strikes nearest the current spot to show (centered on the underlying price).",
+      ),
+  }),
+});
+
+export const coinMoversMeta = defineFrameMeta({
+  name: "coin-movers",
+  iconUrl: widgetIcon("coin-movers"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Broad-market crypto gainers and losers across the top ~300 coins by market cap, over a selectable window (1h / 24h / 7d / 30d) — the biggest movers side by side with price and % change. Unlike a top-coins heatmap, this surfaces mid- and small-caps that ripped or dumped, not just the megacaps. Keyless data from Coinpaprika. Crypto only.",
+  capabilities: ["coin-movers"],
+  source: SOURCES.coinpaprika,
+  schema: z.object({
+    window: z
+      .enum(["1h", "24h", "7d", "30d"])
+      .default("24h")
+      .describe(
+        "Which price-change window ranks the movers: 1h (intraday momentum), 24h (daily), 7d (weekly), 30d (monthly).",
+      ),
+    count: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(6)
+      .describe("How many gainers and how many losers to list (each side)."),
+    minRank: z
+      .number()
+      .int()
+      .min(20)
+      .max(300)
+      .default(150)
+      .describe(
+        "Only consider coins ranked at or above this market-cap rank — a liquidity floor that keeps illiquid micro-cap dust (which posts absurd % moves on no volume) out of the list. Lower = stricter (megacaps only); higher = includes more small-caps.",
+      ),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   hackerNewsMeta,
@@ -992,4 +1235,15 @@ export const frameMetas: FrameMeta[] = [
   snakeMeta,
   flappyBirdMeta,
   videoMeta,
+  btcFeesMeta,
+  btcMempoolMeta,
+  btcBlocksMeta,
+  btcHashrateMeta,
+  btcDifficultyMeta,
+  miningPoolsMeta,
+  lightningStatsMeta,
+  optionsPutCallMeta,
+  optionsIvMeta,
+  optionsOiStrikeMeta,
+  coinMoversMeta,
 ];

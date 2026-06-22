@@ -7,21 +7,30 @@ import {
   type ReactNode,
 } from "react";
 import type {
+  BtcBlock,
+  BtcFees,
   Candle,
   Capability,
   CoinMarketEntry,
+  CoinMover,
   CompanyFacts,
   DayStats,
   DexVolumeEntry,
+  DifficultyAdjustment,
   FearGreedPoint,
   FinancialStress,
   FundingPoint,
   GlobalMarket,
+  LightningStats,
   MacroSeries,
   MarketDataProvider,
+  MempoolState,
+  MiningPools,
   NationalDebt,
+  NetworkHashrate,
   NewsItem,
   OpenInterestEntry,
+  OptionsSummary,
   ProtocolFeesEntry,
   ProtocolTvlEntry,
   ReferenceRate,
@@ -31,6 +40,7 @@ import type {
   TreasuryAuction,
   TreasuryAverageRate,
   TvlEntry,
+  VolatilityPoint,
   YieldCurve,
 } from "./types";
 
@@ -401,6 +411,24 @@ export function useCoinMarkets(refreshMs = 10 * 60_000): {
 }
 
 /**
+ * Broad multi-window coin movers (descending by mcap), polled every ~15 min
+ * (Coinpaprika's free tier is rate-limited; the movers snapshot drifts slowly).
+ */
+export function useCoinMovers(
+  limit = 300,
+  refreshMs = 15 * 60_000,
+): { entries: CoinMover[]; isLoading: boolean } {
+  const provider = useProviderFor("coin-movers");
+  const { data: entries, isLoading } = usePolled<CoinMover[]>(
+    provider?.getCoinMovers ? () => provider.getCoinMovers!(limit) : null,
+    [],
+    [provider, limit, refreshMs],
+    refreshMs,
+  );
+  return { entries, isLoading };
+}
+
+/**
  * Live open interest per perp symbol (single venue), polled every ~30s. Pass no
  * symbols for the provider's full universe, or a "<dex>:*" wildcard for a whole
  * dex (e.g. "xyz:*" for every HIP-3 equity).
@@ -660,21 +688,162 @@ export function useNews(
   return { items, isLoading };
 }
 
+/** Recommended Bitcoin on-chain fee tiers (sat/vB), polled every ~30s. */
+export function useBtcFees(refreshMs = 30_000): {
+  fees: BtcFees | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("btc-fees");
+  const { data: fees, isLoading } = usePolled<BtcFees | null>(
+    provider?.getBtcFees ? () => provider.getBtcFees!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { fees, isLoading };
+}
+
+/** Current Bitcoin mempool congestion + projected blocks, polled every ~15s. */
+export function useMempoolState(refreshMs = 15_000): {
+  state: MempoolState | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("btc-mempool");
+  const { data: state, isLoading } = usePolled<MempoolState | null>(
+    provider?.getMempoolState ? () => provider.getMempoolState!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { state, isLoading };
+}
+
+/** Most recently mined Bitcoin blocks (newest first), polled every ~30s. */
+export function useBtcBlocks(
+  limit = 8,
+  refreshMs = 30_000,
+): { blocks: BtcBlock[]; isLoading: boolean } {
+  const provider = useProviderFor("btc-blocks");
+  const { data: blocks, isLoading } = usePolled<BtcBlock[]>(
+    provider?.getBtcBlocks ? () => provider.getBtcBlocks!(limit) : null,
+    [],
+    [provider, limit, refreshMs],
+    refreshMs,
+  );
+  return { blocks, isLoading };
+}
+
+/** Bitcoin network hashrate + difficulty over a window, polled every ~30 min. */
+export function useNetworkHashrate(
+  window = "1y",
+  refreshMs = 30 * 60_000,
+): { data: NetworkHashrate | null; isLoading: boolean } {
+  const provider = useProviderFor("btc-hashrate");
+  const { data, isLoading } = usePolled<NetworkHashrate | null>(
+    provider?.getNetworkHashrate
+      ? () => provider.getNetworkHashrate!(window)
+      : null,
+    null,
+    [provider, window, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/** Countdown to the next Bitcoin difficulty retarget, polled every ~60s. */
+export function useDifficultyAdjustment(refreshMs = 60_000): {
+  adjustment: DifficultyAdjustment | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("btc-difficulty");
+  const { data: adjustment, isLoading } = usePolled<DifficultyAdjustment | null>(
+    provider?.getDifficultyAdjustment
+      ? () => provider.getDifficultyAdjustment!()
+      : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { adjustment, isLoading };
+}
+
+/** Bitcoin mining-pool dominance over a window, polled every ~5 min. */
+export function useMiningPools(
+  window = "1w",
+  refreshMs = 5 * 60_000,
+): { pools: MiningPools | null; isLoading: boolean } {
+  const provider = useProviderFor("mining-pools");
+  const { data: pools, isLoading } = usePolled<MiningPools | null>(
+    provider?.getMiningPools ? () => provider.getMiningPools!(window) : null,
+    null,
+    [provider, window, refreshMs],
+    refreshMs,
+  );
+  return { pools, isLoading };
+}
+
+/** Lightning Network summary stats, polled every ~30 min (updates ~daily). */
+export function useLightningStats(refreshMs = 30 * 60_000): {
+  stats: LightningStats | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("lightning-stats");
+  const { data: stats, isLoading } = usePolled<LightningStats | null>(
+    provider?.getLightningStats ? () => provider.getLightningStats!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { stats, isLoading };
+}
+
 /**
  * Community-ranked links + discussion (e.g. Hacker News), polled every few
  * minutes. An empty `query` returns the source's front page / top stories.
+ * Aggregated Deribit options summary (put/call ratio, OI-by-strike, avg IV) for
+ * one currency, polled every ~5 min. Two frames on the same currency share one
+ * cached provider call.
  */
 export function useSocial(
   query: string,
   limit: number,
+export function useOptionsSummary(
+  currency: string,
   refreshMs = 5 * 60_000,
 ): { items: NewsItem[]; isLoading: boolean } {
   const provider = useProviderFor("social");
   const { data: items, isLoading } = usePolled<NewsItem[]>(
     provider?.getSocial ? () => provider.getSocial!({ query, limit }) : null,
+): { summary: OptionsSummary | null; isLoading: boolean } {
+  const provider = useProviderFor("options-summary");
+  const ccy = (currency || "BTC").toUpperCase();
+  const { data: summary, isLoading } = usePolled<OptionsSummary | null>(
+    provider?.getOptionsSummary ? () => provider.getOptionsSummary!(ccy) : null,
+    null,
+    [provider, ccy, refreshMs],
+    refreshMs,
+  );
+  return { summary, isLoading };
+}
+
+/** Deribit DVOL volatility-index history for one currency, polled every ~10 min. */
+export function useVolatilityIndex(
+  currency: string,
+  startTimeMs: number,
+  resolutionSec = 43_200,
+  refreshMs = 10 * 60_000,
+): { points: VolatilityPoint[]; isLoading: boolean } {
+  const provider = useProviderFor("volatility-index");
+  const ccy = (currency || "BTC").toUpperCase();
+  const { data: points, isLoading } = usePolled<VolatilityPoint[]>(
+    provider?.getVolatilityIndex
+      ? () => provider.getVolatilityIndex!(ccy, startTimeMs, resolutionSec)
+      : null,
     [],
     [provider, query, limit, refreshMs],
+    [provider, ccy, startTimeMs, resolutionSec, refreshMs],
     refreshMs,
   );
   return { items, isLoading };
+  return { points, isLoading };
 }

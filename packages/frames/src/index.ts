@@ -39,6 +39,17 @@ export { openInterestFrame } from "./open-interest";
 export { snakeFrame } from "./snake";
 export { flappyBirdFrame } from "./flappy-bird";
 export { videoFrame } from "./video";
+export { btcFeesFrame } from "./btc-fees";
+export { btcMempoolFrame } from "./btc-mempool";
+export { btcBlocksFrame } from "./btc-blocks";
+export { btcHashrateFrame } from "./btc-hashrate";
+export { btcDifficultyFrame } from "./btc-difficulty";
+export { miningPoolsFrame } from "./mining-pools";
+export { lightningStatsFrame } from "./lightning-stats";
+export { optionsPutCallFrame } from "./options-put-call";
+export { optionsIvFrame } from "./options-iv";
+export { optionsOiStrikeFrame } from "./options-oi-strike";
+export { coinMoversFrame } from "./coin-movers";
 
 import type { AnyFrameDefinition } from "@zframes/core";
 import { allocationFrame } from "./allocation";
@@ -81,6 +92,17 @@ import { openInterestFrame } from "./open-interest";
 import { snakeFrame } from "./snake";
 import { flappyBirdFrame } from "./flappy-bird";
 import { videoFrame } from "./video";
+import { btcFeesFrame } from "./btc-fees";
+import { btcMempoolFrame } from "./btc-mempool";
+import { btcBlocksFrame } from "./btc-blocks";
+import { btcHashrateFrame } from "./btc-hashrate";
+import { btcDifficultyFrame } from "./btc-difficulty";
+import { miningPoolsFrame } from "./mining-pools";
+import { lightningStatsFrame } from "./lightning-stats";
+import { optionsPutCallFrame } from "./options-put-call";
+import { optionsIvFrame } from "./options-iv";
+import { optionsOiStrikeFrame } from "./options-oi-strike";
+import { coinMoversFrame } from "./coin-movers";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -124,4 +146,15 @@ export const allFrames: AnyFrameDefinition[] = [
   snakeFrame,
   flappyBirdFrame,
   videoFrame,
+  btcFeesFrame,
+  btcMempoolFrame,
+  btcBlocksFrame,
+  btcHashrateFrame,
+  btcDifficultyFrame,
+  miningPoolsFrame,
+  lightningStatsFrame,
+  optionsPutCallFrame,
+  optionsIvFrame,
+  optionsOiStrikeFrame,
+  coinMoversFrame,
 ];

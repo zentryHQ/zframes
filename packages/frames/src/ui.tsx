@@ -1,6 +1,15 @@
 import type { ReactNode } from "react";
 
 /**
+ * Shared scroll-area styling for list/feed frames: claims the remaining height,
+ * scrolls vertically, and renders a thin, quiet scrollbar that brightens on
+ * hover (webkit). `pr-1` keeps row content off the scrollbar track so the last
+ * column never sits under the thumb.
+ */
+export const scrollAreaClass =
+  "min-h-0 flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/[0.08] hover:[&::-webkit-scrollbar-thumb]:bg-white/15";
+
+/**
  * Shared loading / empty placeholder for frames. Loading gets a real widget
  * skeleton instead of text-only pulse; empty states stay quiet and readable.
  */

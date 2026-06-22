@@ -21,10 +21,12 @@ import { allFrames } from "@zframes/frames";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
 import { BlsProvider } from "@zframes/provider-bls";
 import { CoinGeckoProvider } from "@zframes/provider-coingecko";
+import { CoinpaprikaProvider } from "@zframes/provider-coinpaprika";
 import { DefiLlamaProvider } from "@zframes/provider-defillama";
+import { DeribitProvider } from "@zframes/provider-deribit";
 import { FinraProvider } from "@zframes/provider-finra";
-import { HackerNewsProvider } from "@zframes/provider-hackernews";
 import { HyperliquidProvider } from "@zframes/provider-hyperliquid";
+import { MempoolProvider } from "@zframes/provider-mempool";
 import { NewsProvider } from "@zframes/provider-news";
 import { NyFedProvider } from "@zframes/provider-nyfed";
 import { OfrProvider } from "@zframes/provider-ofr";
@@ -48,6 +50,7 @@ const providers = [
   new DefiLlamaProvider(),
   new AlternativeMeProvider(),
   new CoinGeckoProvider(),
+  new CoinpaprikaProvider(),
   new NyFedProvider(),
   new TreasuryProvider(),
   new BlsProvider(),
@@ -55,7 +58,8 @@ const providers = [
   new FinraProvider(),
   new OfrProvider(),
   new NewsProvider(),
-  new HackerNewsProvider(),
+  new MempoolProvider(),
+  new DeribitProvider(),
 ];
 
 // The runtime serves the user's dashboard.json at DASHBOARD_READ_ROUTE. Both
