@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { catalogueForAI } from "@zframes/core/catalogue";
-import { DashboardSpecSchema, type DashboardSpec } from "@zframes/core/spec";
+import { DashboardSpecSchema } from "@zframes/core/spec";
 import { frameMetas } from "@zframes/frames/schemas";
 import { init } from "./init";
+import { lintSpec } from "./lint";
 import { serve } from "./serve";
 import { snapshot } from "./snapshot";
 
@@ -26,76 +27,6 @@ usage:
                               stdout (the deterministic half of /zframes-brief)
   zframes help                this text
 `;
-
-interface LintIssue {
-  frameId: string | null;
-  message: string;
-}
-
-/** Validate a parsed spec beyond the Zod pass: frame names, configs, geometry. */
-export function lintSpec(spec: DashboardSpec): LintIssue[] {
-  const issues: LintIssue[] = [];
-  const metaByName = new Map(frameMetas.map((meta) => [meta.name, meta]));
-
-  const seenIds = new Set<string>();
-  for (const instance of spec.frames) {
-    if (seenIds.has(instance.id))
-      issues.push({
-        frameId: instance.id,
-        message: `duplicate frame id "${instance.id}"`,
-      });
-    seenIds.add(instance.id);
-
-    const meta = metaByName.get(instance.frame);
-    if (!meta) {
-      issues.push({
-        frameId: instance.id,
-        message: `unknown frame "${instance.frame}". available: ${[
-          ...metaByName.keys(),
-        ].join(", ")}`,
-      });
-      continue;
-    }
-
-    const parsed = meta.schema.safeParse(instance.config);
-    if (!parsed.success) {
-      for (const issue of parsed.error.issues) {
-        issues.push({
-          frameId: instance.id,
-          message: `config.${issue.path.join(".") || "(root)"}: ${
-            issue.message
-          }`,
-        });
-      }
-    }
-
-    if (instance.position.x + instance.position.w > spec.grid.columns)
-      issues.push({
-        frameId: instance.id,
-        message: `overflows the grid: x(${instance.position.x}) + w(${instance.position.w}) > ${spec.grid.columns} columns`,
-      });
-  }
-
-  // Pairwise overlap check — overlapping frames render on top of each other.
-  for (let i = 0; i < spec.frames.length; i++) {
-    for (let j = i + 1; j < spec.frames.length; j++) {
-      const a = spec.frames[i].position;
-      const b = spec.frames[j].position;
-      const overlap =
-        a.x < b.x + b.w &&
-        b.x < a.x + a.w &&
-        a.y < b.y + b.h &&
-        b.y < a.y + a.h;
-      if (overlap)
-        issues.push({
-          frameId: spec.frames[i].id,
-          message: `overlaps frame "${spec.frames[j].id}"`,
-        });
-    }
-  }
-
-  return issues;
-}
 
 function lint(file: string): number {
   let raw: string;
@@ -166,13 +97,21 @@ async function main(): Promise<number> {
   }
 }
 
-main().then((code) => {
-  // A bare process.exit() can truncate buffered stdout (the large `catalogue`
-  // and `snapshot` JSON) on pipes and redirects — the process dies before the
-  // write drains. Flush stdout first, then exit with the code.
-  if (process.stdout.write("")) {
-    process.exit(code);
-  } else {
-    process.stdout.once("drain", () => process.exit(code));
-  }
-});
+main().then(
+  (code) => {
+    // A bare process.exit() can truncate buffered stdout (the large `catalogue`
+    // and `snapshot` JSON) on pipes and redirects — the process dies before the
+    // write drains. Flush stdout first, then exit with the code.
+    if (process.stdout.write("")) {
+      process.exit(code);
+    } else {
+      process.stdout.once("drain", () => process.exit(code));
+    }
+  },
+  (error: unknown) => {
+    // main() shouldn't reject (each command returns a code), but if it does,
+    // surface it and exit non-zero instead of an unhandled rejection.
+    console.error(error);
+    process.exit(1);
+  },
+);
