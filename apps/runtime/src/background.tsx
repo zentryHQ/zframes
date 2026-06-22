@@ -12,6 +12,18 @@ const UnicornScene = lazy(() => import("unicornstudio-react"));
 // be unified, so they're kept on separate globals to avoid a version clash.
 const SDK_URL = "/unicornStudio.umd.mjs";
 
+// When the zAI orb is open the background "charges": it recolors and brightens.
+// Pure CSS on the wrapper (engine-agnostic, reliable) — the scene's own WebGL
+// animation lives behind the canvas and isn't a CSS knob. (The modern engine
+// DOES expose mutable per-layer `speed` via the scene handle, so a speed bump
+// on open is wireable too — left out here intentionally.) Tunable here.
+const ACTIVE_FILTER = "invert(1) hue-rotate(180deg) saturate(1.25)";
+const ACTIVE_TRANSITION =
+  "opacity 0.5s var(--zf-ease-out), filter 0.5s var(--zf-ease-out)";
+// Opening the orb lifts the (deliberately low) resting opacity so the recolor
+// actually reads, capped so the backdrop never overpowers the cards.
+const activeOpacity = (resting: number) => Math.min(0.42, resting * 2.4);
+
 /**
  * Full-viewport background behind the dashboard. The spec picks *what* the
  * background is ("unicorn" + projectId); the host (this file) renders it —
@@ -23,11 +35,16 @@ const SDK_URL = "/unicornStudio.umd.mjs";
  * raises the opacity. If the Unicorn SDK fails to load (offline, CDN down,
  * bad projectId), nothing renders here and the body's dark gradient shows
  * through — a graceful default.
+ *
+ * `active` (the zAI orb's open state, lifted in App) recolors + brightens the
+ * scene so opening zAI visibly energizes the backdrop.
  */
 export function DashboardBackground({
   background,
+  active = false,
 }: {
   background: BackgroundConfig;
+  active?: boolean;
 }) {
   if (background.type !== "unicorn" || !background.projectId) return null;
 
@@ -43,7 +60,16 @@ export function DashboardBackground({
       }}
     >
       <div
-        style={{ position: "absolute", inset: 0, opacity: background.opacity }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: active
+            ? activeOpacity(background.opacity)
+            : background.opacity,
+          filter: active ? ACTIVE_FILTER : "none",
+          transition: ACTIVE_TRANSITION,
+          willChange: "opacity, filter",
+        }}
       >
         <Suspense fallback={null}>
           <UnicornScene
