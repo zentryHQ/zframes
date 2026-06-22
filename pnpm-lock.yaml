@@ -39,12 +39,21 @@ importers:
       '@zframes/provider-finra':
         specifier: workspace:*
         version: link:../../packages/provider-finra
+      '@zframes/provider-hackernews':
+        specifier: workspace:*
+        version: link:../../packages/provider-hackernews
       '@zframes/provider-hyperliquid':
         specifier: workspace:*
         version: link:../../packages/provider-hyperliquid
+      '@zframes/provider-news':
+        specifier: workspace:*
+        version: link:../../packages/provider-news
       '@zframes/provider-nyfed':
         specifier: workspace:*
         version: link:../../packages/provider-nyfed
+      '@zframes/provider-ofr':
+        specifier: workspace:*
+        version: link:../../packages/provider-ofr
       '@zframes/provider-sec':
         specifier: workspace:*
         version: link:../../packages/provider-sec
@@ -291,6 +300,16 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-hackernews:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-hyperliquid:
     dependencies:
       '@zframes/core':
@@ -301,7 +320,27 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-news:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-nyfed:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-ofr:
     dependencies:
       '@zframes/core':
         specifier: workspace:*
