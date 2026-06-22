@@ -928,6 +928,180 @@ export const videoMeta = defineFrameMeta({
   }),
 });
 
+export const drawdyMeta = defineFrameMeta({
+  name: "drawdy",
+  layout: { w: 8, h: 6, minW: 2, minH: 2 },
+  description:
+    "Embeds drawdy.io as an interactive whiteboard canvas. No configuration needed.",
+  capabilities: [],
+  schema: z.object({}),
+});
+
+export const countdownMeta = defineFrameMeta({
+  name: "countdown",
+  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  description:
+    "Live countdown to a target date and time — FOMC decisions, CPI prints, options expiry, earnings, a token unlock, the next market open. Counts down in days / hours / minutes / seconds, ticking every second, and flips to a 'reached' state once the moment passes. Needs no data provider.",
+  capabilities: [],
+  schema: z.object({
+    target: z
+      .string()
+      .default("")
+      .describe(
+        'The moment to count down to, as an ISO 8601 string. Add a timezone for an unambiguous instant, e.g. "2026-07-30T18:00:00-04:00" or "2026-12-31T23:59:59Z"; a bare "2026-07-30T18:00" is read in the viewer\'s local timezone. Empty shows a "set a target" prompt.',
+      ),
+    label: z
+      .string()
+      .default("")
+      .describe(
+        'Caption above the countdown, e.g. "FOMC Decision". Empty hides it.',
+      ),
+    showTarget: z
+      .boolean()
+      .default(true)
+      .describe("Show the formatted target date and time under the countdown."),
+  }),
+});
+
+export const linkGridMeta = defineFrameMeta({
+  name: "link-grid",
+  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  description:
+    "A grid of quick-launch tiles linking to your favourite sites — TradingView, exchanges, news, docs, your own dashboards. Each tile opens in a new tab and shows the destination site's favicon by default (fetched keyless from a public favicon service), with an optional per-link icon override and a first-letter fallback. Needs no data provider.",
+  capabilities: [],
+  schema: z.object({
+    links: z
+      .array(
+        z.object({
+          label: z
+            .string()
+            .min(1)
+            .describe('Tile caption, e.g. "TradingView".'),
+          url: z
+            .string()
+            .min(1)
+            .describe("Destination URL (https). Opens in a new tab."),
+          icon: z
+            .string()
+            .default("")
+            .describe(
+              "Optional icon override: an emoji (e.g. \"📈\") or an https image URL. Empty uses the destination site's favicon, falling back to the label's first letter.",
+            ),
+        }),
+      )
+      .min(1)
+      .default([
+        {
+          label: "TradingView",
+          url: "https://www.tradingview.com",
+          icon: "📈",
+        },
+        {
+          label: "Hyperliquid",
+          url: "https://app.hyperliquid.xyz",
+          icon: "⚡",
+        },
+      ])
+      .describe("The links to show as tiles. At least one."),
+    columns: z
+      .number()
+      .int()
+      .min(1)
+      .max(4)
+      .default(2)
+      .describe("How many tiles per row."),
+  }),
+});
+
+export const calculatorMeta = defineFrameMeta({
+  name: "calculator",
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Position-size & risk calculator. Enter account size, risk-per-trade %, entry and stop price; it computes the dollars at risk, the per-unit risk, the position size (units) that respects that risk budget, the resulting position value, and whether the setup is long or short. All math runs client-side — no data provider. Inputs are editable live; the configured values are the starting point.",
+  capabilities: [],
+  schema: z.object({
+    account: z
+      .number()
+      .positive()
+      .default(10000)
+      .describe("Account size used as the risk base, in the quote currency."),
+    riskPct: z
+      .number()
+      .positive()
+      .max(100)
+      .default(1)
+      .describe("Percent of the account risked on the trade, e.g. 1 = 1%."),
+    entry: z.number().positive().default(100).describe("Entry price."),
+    stop: z
+      .number()
+      .positive()
+      .default(95)
+      .describe(
+        "Stop-loss price. Its distance from entry sets the per-unit risk; below entry = long, above = short.",
+      ),
+    currency: z
+      .string()
+      .default("$")
+      .describe("Currency symbol shown next to money values."),
+  }),
+});
+
+export const quoteMeta = defineFrameMeta({
+  name: "quote",
+  layout: { w: 4, h: 2, minW: 2, minH: 1 },
+  description:
+    'Displays a market or trading quote, centered — set one or rotate through several. A calm bit of wall-art for the dashboard: trading maxims, reminders of your own rules, mantras. Write any attribution into the text itself (e.g. "… — Buffett"). Needs no data provider.',
+  capabilities: [],
+  schema: z.object({
+    quotes: z
+      .array(z.string().min(1))
+      .min(1)
+      .default([
+        "Be fearful when others are greedy, and greedy when others are fearful. — Warren Buffett",
+        "The trend is your friend until the end when it bends.",
+        "Plan the trade, trade the plan.",
+      ])
+      .describe(
+        "One or more quotes. With more than one, the frame rotates through them.",
+      ),
+    intervalSec: z
+      .number()
+      .int()
+      .min(0)
+      .default(12)
+      .describe(
+        "Seconds between rotations when there are multiple quotes. 0 shows the first quote, fixed.",
+      ),
+  }),
+});
+
+export const dividerMeta = defineFrameMeta({
+  name: "divider",
+  layout: { w: 12, h: 1, minW: 1, minH: 1 },
+  description:
+    "A plain rule that separates regions of the dashboard, with an optional centered label. Renders chrome-less (no card) — lighter than a heading. Use a horizontal divider full-width between stacked zones, or set orientation to vertical for a 1-column-wide column separator. Needs no data provider.",
+  capabilities: [],
+  chrome: "bare",
+  schema: z.object({
+    label: z
+      .string()
+      .default("")
+      .describe(
+        "Optional text shown in the middle of the rule. Empty = a clean line.",
+      ),
+    orientation: z
+      .enum(["horizontal", "vertical"])
+      .default("horizontal")
+      .describe(
+        "Horizontal rule (spans the width) or vertical rule (spans the height).",
+      ),
+    style: z
+      .enum(["solid", "dashed", "dotted"])
+      .default("solid")
+      .describe("Line style."),
+  }),
+});
+
 export const btcFeesMeta = defineFrameMeta({
   name: "btc-fees",
   iconUrl: widgetIcon("btc-fees"),
@@ -1209,6 +1383,12 @@ export const frameMetas: FrameMeta[] = [
   snakeMeta,
   flappyBirdMeta,
   videoMeta,
+  drawdyMeta,
+  countdownMeta,
+  linkGridMeta,
+  calculatorMeta,
+  quoteMeta,
+  dividerMeta,
   btcFeesMeta,
   btcMempoolMeta,
   btcBlocksMeta,
