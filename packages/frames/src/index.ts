@@ -38,6 +38,12 @@ export { openInterestFrame } from "./open-interest";
 export { snakeFrame } from "./snake";
 export { flappyBirdFrame } from "./flappy-bird";
 export { videoFrame } from "./video";
+export { drawdyFrame } from "./drawdy";
+export { countdownFrame } from "./countdown";
+export { linkGridFrame } from "./link-grid";
+export { calculatorFrame } from "./calculator";
+export { quoteFrame } from "./quote";
+export { dividerFrame } from "./divider";
 export { btcFeesFrame } from "./btc-fees";
 export { btcMempoolFrame } from "./btc-mempool";
 export { btcBlocksFrame } from "./btc-blocks";
@@ -90,6 +96,12 @@ import { openInterestFrame } from "./open-interest";
 import { snakeFrame } from "./snake";
 import { flappyBirdFrame } from "./flappy-bird";
 import { videoFrame } from "./video";
+import { drawdyFrame } from "./drawdy";
+import { countdownFrame } from "./countdown";
+import { linkGridFrame } from "./link-grid";
+import { calculatorFrame } from "./calculator";
+import { quoteFrame } from "./quote";
+import { dividerFrame } from "./divider";
 import { btcFeesFrame } from "./btc-fees";
 import { btcMempoolFrame } from "./btc-mempool";
 import { btcBlocksFrame } from "./btc-blocks";
@@ -143,6 +155,12 @@ export const allFrames: AnyFrameDefinition[] = [
   snakeFrame,
   flappyBirdFrame,
   videoFrame,
+  drawdyFrame,
+  countdownFrame,
+  linkGridFrame,
+  calculatorFrame,
+  quoteFrame,
+  dividerFrame,
   btcFeesFrame,
   btcMempoolFrame,
   btcBlocksFrame,
