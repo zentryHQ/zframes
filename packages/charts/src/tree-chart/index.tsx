@@ -186,7 +186,7 @@ function TreeChartInner<T extends TreeNode>({
   useEffect(() => {
     const container = outerContainerRef.current;
     if (container) {
-      const observer = new ResizeObserver(({}) => {
+      const observer = new ResizeObserver(() => {
         startTransition(() => {
           setDimension({
             width: container.offsetWidth,

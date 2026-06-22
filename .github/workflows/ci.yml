@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: typecheck · format · test · build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.6.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      # --frozen-lockfile fails on lockfile drift; also applies the committed
+      # patches/liveline@0.0.7.patch automatically.
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm test
+
+      # Slowest step last (full runtime build → tsup → assert-artifacts), so the
+      # cheap checks fail fast. This also runs the publish-time artifact guard on
+      # every PR — a buildable, packable CLI is verified before merge.
+      - run: pnpm build:cli
