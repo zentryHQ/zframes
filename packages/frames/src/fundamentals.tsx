@@ -1,6 +1,7 @@
 import { defineFrame, useCompanyFacts } from "@zframes/core";
 import type { FinancialMetric } from "@zframes/core";
 import type { z } from "zod";
+import { tickerOf } from "./asset-logo";
 import { fundamentalsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -27,14 +28,16 @@ function Fundamentals({ config }: { config: z.output<typeof schema> }) {
   if (isLoading)
     return <FrameStatus loading>loading SEC financials…</FrameStatus>;
   if (!data || data.metrics.length === 0)
-    return <FrameStatus>no SEC financials for "{config.symbol}"</FrameStatus>;
+    return (
+      <FrameStatus>no SEC financials for "{tickerOf(config.symbol)}"</FrameStatus>
+    );
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="body-sm text-strong truncate font-semibold">
-            {data.entityName || config.symbol}
+            {data.entityName || tickerOf(config.symbol)}
           </div>
           <div className="caption text-soft truncate">
             SEC EDGAR · XBRL company facts

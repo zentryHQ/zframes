@@ -2,13 +2,14 @@ import { HeatmapChart, type HeatmapCell } from "@zframes/charts";
 import { defineFrame, useFundingHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { tickerOf } from "./asset-logo";
 import { fundingHeatmapMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = fundingHeatmapMeta.schema;
 
-const BUCKET_MS = 4 * 60 * 60 * 1000; // 4h buckets over a 3-day window
-const WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+const BUCKET_MS = 24 * 60 * 60 * 1000; // daily buckets over a 7-day window
+const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface FundingCell extends HeatmapCell {
   /** Average funding rate for the bucket, as a decimal fraction. */
@@ -45,10 +46,13 @@ function FundingHeatmap({ config }: { config: z.output<typeof schema> }) {
       for (const [bucket, { sum, n }] of buckets) {
         const avg = sum / n;
         const date = new Date(bucket);
-        const column = `${date.toLocaleDateString("en-US", { weekday: "short" })} ${String(date.getHours()).padStart(2, "0")}h`;
+        const column = date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
         out.push({
           id: `${symbol}-${bucket}`,
-          row: symbol,
+          row: tickerOf(symbol),
           column,
           // color scale keys off this; funding is tiny so scale up
           value: avg * 10000,

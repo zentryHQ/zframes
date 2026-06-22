@@ -29,7 +29,10 @@ function PriceTicker({ config }: { config: z.output<typeof schema> }) {
             className="body-sm grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3"
           >
             <AssetLogo symbol={symbol} size={18} />
-            <span className="truncate font-semibold text-white" title={symbol}>
+            <span
+              className="truncate font-semibold text-white"
+              title={tickerOf(symbol)}
+            >
               {tickerOf(symbol)}
             </span>
             <span className="tabular-nums">

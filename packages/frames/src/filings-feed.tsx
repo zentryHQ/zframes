@@ -2,7 +2,7 @@ import { defineFrame, useCompanyFilings } from "@zframes/core";
 import type { SecFiling } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { AssetLogo } from "./asset-logo";
+import { AssetLogo, tickerOf } from "./asset-logo";
 import { filingsFeedMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -107,7 +107,8 @@ function FilingsFeed({ config }: { config: z.output<typeof schema> }) {
   );
 
   if (isLoading) return <FrameStatus loading>loading SEC filings…</FrameStatus>;
-  if (!data) return <FrameStatus>no SEC data for "{config.symbol}"</FrameStatus>;
+  if (!data)
+    return <FrameStatus>no SEC data for "{tickerOf(config.symbol)}"</FrameStatus>;
 
   const ticker = data.tickers[0];
   const logoSymbol = config.symbol.includes(":")
@@ -126,7 +127,7 @@ function FilingsFeed({ config }: { config: z.output<typeof schema> }) {
           {logoSymbol && <AssetLogo symbol={logoSymbol} size={22} />}
           <div className="min-w-0">
             <div className="body-sm text-strong truncate font-semibold">
-              {data.name || ticker || config.symbol}
+              {data.name || ticker || tickerOf(config.symbol)}
             </div>
             {subtitle && (
               <div className="caption text-soft truncate">{subtitle}</div>

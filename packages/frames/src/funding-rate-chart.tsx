@@ -7,6 +7,7 @@ import {
 import { defineFrame, useFundingHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { tickerOf } from "./asset-logo";
 import { fundingRateChartMeta } from "./schemas";
 
 const LOOKBACKS = {
@@ -28,7 +29,7 @@ function FundingRateChart({ config }: { config: z.output<typeof schema> }) {
     () =>
       config.symbols.map((symbol, i) => ({
         id: symbol,
-        name: symbol,
+        name: tickerOf(symbol),
         color: CHART_COLORS_MULTI_SERIES[i % CHART_COLORS_MULTI_SERIES.length],
         data: (history[symbol] ?? []).map((point) => ({
           date: new Date(point.time).toISOString(),

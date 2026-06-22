@@ -2,6 +2,7 @@ import { CHART_COLORS_MULTI_SERIES, PieChart } from "@zframes/charts";
 import { defineFrame, useMidsState } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { tickerOf } from "./asset-logo";
 import { allocationMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -27,7 +28,7 @@ function Allocation({ config }: { config: z.output<typeof schema> }) {
     () =>
       config.holdings
         .map((holding, i) => ({
-          name: holding.symbol,
+          name: tickerOf(holding.symbol),
           value: (mids[holding.symbol] ?? 0) * holding.amount,
           color:
             CHART_COLORS_MULTI_SERIES[i % CHART_COLORS_MULTI_SERIES.length],
