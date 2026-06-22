@@ -14,8 +14,17 @@ ds-bundle/
 packages/catalogue/
 
 # Derived: the prebuilt browser runtime vendored into the CLI by build:cli
-# (a vite build of apps/playground that `zframes serve` ships)
+# (a vite build of apps/runtime that `zframes serve` ships)
 packages/cli/runtime/
+
+# Local dev dogfood data — `pnpm dev` reads/writes these (the dashboard spec is
+# the in-browser editor's Save target; the analysis log is what /zframes-brief
+# writes), but they're local working files, not published artifacts. The shipped
+# CLI never uses them. Create your own to run dev (e.g.
+# `zframes init apps/runtime/src/dashboard.json`); the brief frame degrades to an
+# empty "no brief yet" state when its log is absent.
+apps/runtime/src/dashboard.json
+apps/runtime/public/daily-analysis.json
 
 # Local-only docs — kept on disk, never committed to the public repo:
 # HTML working artifacts (plans, reports, audits) and the decision logs.
