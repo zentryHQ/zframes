@@ -1632,7 +1632,8 @@ function NumberField({
   const max = typeof shape.maximum === "number" ? shape.maximum : undefined;
   const isInt = isType(shape, "integer");
   const step = isInt ? 1 : "any";
-  const fallback = typeof shape.default === "number" ? shape.default : min ?? 0;
+  const fallback =
+    typeof shape.default === "number" ? shape.default : (min ?? 0);
   const numeric =
     typeof value === "number" && Number.isFinite(value) ? value : undefined;
 
@@ -1712,7 +1713,7 @@ function StringField({
   if (key === "color" || colorDefault) {
     const swatch = /^#[0-9a-f]{6}$/i.test(str)
       ? str
-      : colorDefault ?? "#8b8df9";
+      : (colorDefault ?? "#8b8df9");
     return (
       <div className="zf-field">
         <label htmlFor={id} title={tip}>
