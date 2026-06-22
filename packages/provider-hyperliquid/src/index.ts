@@ -4,6 +4,7 @@ import type {
   DayStats,
   FundingPoint,
   MarketDataProvider,
+  OpenInterestEntry,
   Unsubscribe,
 } from "@zframes/core";
 import { fetchJson } from "@zframes/core/fetch";
@@ -19,6 +20,8 @@ interface AllMidsMessage {
 interface AssetCtx {
   markPx: string;
   prevDayPx: string;
+  /** Open interest in base-asset units (string from the API). */
+  openInterest: string;
 }
 
 interface PerpMeta {
@@ -68,6 +71,7 @@ async function info<T>(body: Record<string, unknown>): Promise<T> {
  *   symbols are given
  * - funding-history: `fundingHistory` per coin
  * - ohlcv: `candleSnapshot` (works for HIP-3 coins like "xyz:TSLA" directly)
+ * - open-interest: `metaAndAssetCtxs` per dex (live, single-venue; no history)
  *
  * Perp mids/marks track but are not official exchange quotes (NBBO for
  * equities); fine for personal dashboards.
@@ -79,6 +83,7 @@ export class HyperliquidProvider implements MarketDataProvider {
     "day-stats",
     "funding-history",
     "ohlcv",
+    "open-interest",
   ];
 
   private ws: WebSocket | null = null;
@@ -149,6 +154,44 @@ export class HyperliquidProvider implements MarketDataProvider {
       }),
     );
     return out;
+  }
+
+  async getOpenInterest(symbols?: string[]): Promise<OpenInterestEntry[]> {
+    // Same `metaAndAssetCtxs`-per-dex resolution as getDayStats; we read
+    // `openInterest` (base units) × `markPx` for USD notional. Live snapshot
+    // only — Hyperliquid exposes no OI history endpoint.
+    const wholeDexes = new Set<string>();
+    const concrete = new Set<string>();
+    if (!symbols) {
+      wholeDexes.add("");
+    } else {
+      for (const s of symbols) {
+        if (s.endsWith(":*")) wholeDexes.add(s.slice(0, -2));
+        else concrete.add(s);
+      }
+    }
+    const dexes = new Set<string>(wholeDexes);
+    for (const s of concrete) dexes.add(dexOf(s));
+
+    const out: OpenInterestEntry[] = [];
+    await Promise.all(
+      [...dexes].map(async (dex) => {
+        const body: Record<string, unknown> = { type: "metaAndAssetCtxs" };
+        if (dex) body.dex = dex;
+        const [meta, ctxs] = await info<[PerpMeta, AssetCtx[]]>(body);
+        const wholeDex = wholeDexes.has(dex);
+        meta.universe.forEach((asset, i) => {
+          if (!wholeDex && !concrete.has(asset.name)) return;
+          const ctx = ctxs[i];
+          if (!ctx) return;
+          const markPx = Number(ctx.markPx);
+          const oi = Number(ctx.openInterest);
+          if (!Number.isFinite(markPx) || !Number.isFinite(oi)) return;
+          out.push({ symbol: asset.name, openInterestUsd: oi * markPx });
+        });
+      }),
+    );
+    return out.sort((a, b) => b.openInterestUsd - a.openInterestUsd);
   }
 
   async getFundingHistory(

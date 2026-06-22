@@ -563,16 +563,16 @@ export const fundingHeatmapMeta = defineFrameMeta({
   iconUrl: widgetIcon("funding-heatmap"),
   layout: { w: 6, h: 3, minW: 4, minH: 3 },
   description:
-    "Heatmap of perp funding rates — symbols as rows, 4h time buckets over the last 3 days as columns, green positive / red negative. Spots persistent funding regimes at a glance.",
+    "Heatmap of perp funding rates — symbols as rows, daily average over the last 7 days as columns, green positive / red negative. Spots persistent funding regimes at a glance.",
   capabilities: ["funding-history"],
   source: SOURCES.hyperliquid,
   schema: z.object({
     symbols: z
       .array(z.string())
-      .min(1)
+      .min(2)
       .max(8)
       .describe(
-        'Hyperliquid symbols as heatmap rows, e.g. ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"].',
+        'Hyperliquid symbols as heatmap rows — at least 2, since the heatmap compares funding across symbols, e.g. ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"].',
       ),
   }),
 });
@@ -776,6 +776,180 @@ export const hackerNewsMeta = defineFrameMeta({
   }),
 });
 
+export const dexVolumeTreemapMeta = defineFrameMeta({
+  name: "dex-volume-treemap",
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  description:
+    "Treemap of decentralized-exchange (DEX) protocols sized by trailing-24h trading volume, tiles colored green/red by 1-day change. Data from DeFiLlama. One-glance read on where on-chain trading flow is concentrated right now.",
+  capabilities: ["dex-volume"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    topN: z
+      .number()
+      .int()
+      .min(3)
+      .max(30)
+      .default(12)
+      .describe("How many of the highest-volume DEX protocols to show."),
+  }),
+});
+
+export const dexVolumeChartMeta = defineFrameMeta({
+  name: "dex-volume-chart",
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Multi-series line chart of daily DEX trading volume for several protocols over a lookback window — compare how Uniswap, PancakeSwap, Aerodrome etc. trend against each other. Data from DeFiLlama (daily granularity).",
+  capabilities: ["dex-volume"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    protocols: z
+      .array(z.string())
+      .min(1)
+      .max(6)
+      .describe(
+        'DeFiLlama DEX protocol slugs (lowercase, hyphenated), e.g. ["uniswap", "pancakeswap", "aerodrome-slipstream"]. 1 to 6.',
+      ),
+    lookback: z
+      .enum(["7D", "1M", "3M"])
+      .default("1M")
+      .describe("History window for the chart."),
+  }),
+});
+
+export const protocolTvlTreemapMeta = defineFrameMeta({
+  name: "protocol-tvl-treemap",
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  description:
+    "Treemap of DeFi protocols sized by current total value locked (TVL), tiles colored green/red by 1-day change. Data from DeFiLlama. Unlike tvl-treemap (which groups by blockchain), this ranks individual protocols (Lido, Aave, EigenLayer…).",
+  capabilities: ["protocol-tvl"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    topN: z
+      .number()
+      .int()
+      .min(3)
+      .max(30)
+      .default(12)
+      .describe("How many of the largest protocols by TVL to show."),
+  }),
+});
+
+export const protocolTvlChartMeta = defineFrameMeta({
+  name: "protocol-tvl-chart",
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Multi-series line chart of total value locked (TVL) for several DeFi protocols over a lookback window. Data from DeFiLlama (daily granularity).",
+  capabilities: ["protocol-tvl"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    protocols: z
+      .array(z.string())
+      .min(1)
+      .max(6)
+      .describe(
+        'DeFiLlama protocol slugs (lowercase, hyphenated), e.g. ["lido", "aave", "eigenlayer"]. 1 to 6.',
+      ),
+    lookback: z
+      .enum(["7D", "1M", "3M"])
+      .default("1M")
+      .describe("History window for the chart."),
+  }),
+});
+
+export const protocolFeesTreemapMeta = defineFrameMeta({
+  name: "protocol-fees-treemap",
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  description:
+    "Treemap of protocols sized by the fees they generated in the last 24h, tiles colored green/red by 1-day change. Data from DeFiLlama. Shows where on-chain users are actually paying for blockspace and services right now.",
+  capabilities: ["protocol-fees"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    topN: z
+      .number()
+      .int()
+      .min(3)
+      .max(30)
+      .default(12)
+      .describe("How many of the highest fee-earning protocols to show."),
+  }),
+});
+
+export const marketCapTreemapMeta = defineFrameMeta({
+  name: "market-cap-treemap",
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  description:
+    "Treemap of the largest cryptocurrencies sized by market capitalisation, tiles colored green/red by 24h price change. Data from CoinGecko (free tier). A heat-map of the whole crypto market at a glance.",
+  capabilities: ["coin-markets"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    topN: z
+      .number()
+      .int()
+      .min(5)
+      .max(50)
+      .default(20)
+      .describe(
+        "How many of the largest coins by market cap to show (up to 50).",
+      ),
+  }),
+});
+
+export const openInterestMeta = defineFrameMeta({
+  name: "open-interest",
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    'Live open interest across a watchlist of Hyperliquid perps — each symbol is a horizontal bar sized by USD notional, largest first, refreshed on a ~30s poll. Single-venue (Hyperliquid only), so read it as a relative gauge across your symbols, not a market-wide total. Stocks (HIP-3, e.g. "xyz:TSLA") and crypto both work.',
+  capabilities: ["open-interest"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    symbols: z
+      .array(z.string())
+      .min(1)
+      .max(20)
+      .describe(
+        'Hyperliquid symbols to compare open interest for, e.g. ["BTC", "ETH", "xyz:TSLA"]. A "<dex>:*" wildcard (e.g. "xyz:*") pulls that dex\'s entire universe.',
+      ),
+  }),
+});
+
+export const snakeMeta = defineFrameMeta({
+  name: "snake",
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Classic snake game on canvas — steer with the arrow keys (or swipe), eat dots to grow, avoid the walls and your own tail. High score persists locally. For when the market is flat. Needs no data provider.",
+  capabilities: [],
+  schema: z.object({}),
+});
+
+export const flappyBirdMeta = defineFrameMeta({
+  name: "flappy-bird",
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Flappy-bird style game on canvas — tap or press SPACE to flap through the gaps between pipes. High score persists locally. Needs no data provider.",
+  capabilities: [],
+  schema: z.object({}),
+});
+
+export const videoMeta = defineFrameMeta({
+  name: "video",
+  layout: { w: 4, h: 3, minW: 2, minH: 2 },
+  description:
+    "Embeds a video from a YouTube or Vimeo link (or any direct embed URL) as an iframe — a livestream, a market-news clip, a focus playlist. Needs no data provider.",
+  capabilities: [],
+  schema: z.object({
+    url: z
+      .string()
+      .min(1)
+      .describe(
+        "Video URL — a YouTube watch/share link, a Vimeo link, or a direct embeddable URL (https).",
+      ),
+    title: z
+      .string()
+      .default("Video")
+      .describe("Accessible title for the embedded player (iframe title)."),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   hackerNewsMeta,
@@ -808,4 +982,14 @@ export const frameMetas: FrameMeta[] = [
   topMoversMeta,
   tvlTreemapMeta,
   yieldCurveMeta,
+  dexVolumeTreemapMeta,
+  dexVolumeChartMeta,
+  protocolTvlTreemapMeta,
+  protocolTvlChartMeta,
+  protocolFeesTreemapMeta,
+  marketCapTreemapMeta,
+  openInterestMeta,
+  snakeMeta,
+  flappyBirdMeta,
+  videoMeta,
 ];
