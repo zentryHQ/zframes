@@ -61,53 +61,41 @@ come from here — never from memory. The catalogue grows; your memory doesn't.
 
 ## 3. Interview the user (first run = onboarding)
 
-Keep onboarding **short** and ask only about what the user cares about — never
-about frames, widgets, or "extras". A first-time user shouldn't have to know
-what a "widget" is, read back a catalogue of frame names, or assemble the
-dashboard themselves. You map their answers onto catalogue frames, and you
-supply the rest (zones, section labels, a sensible default context set, the
-background) from the good-dashboard defaults in step 4 — don't ask about those.
+The interview has **one job: choose which tickers fill the dashboard.** It never
+decides *which frames* — every dashboard ships the full market frame set (step
+4); the funnel only picks the *symbols* that populate them. Keep it to a short
+three-step funnel, each step narrowing from the one before:
 
-Ask, in the user's language, essentially two things:
+1. **Stocks, crypto, or both?** The asset class. This is the only answer that
+   changes the frame set — it gates the asset-specific frames (US-stock frames
+   like `short-volume` for stocks; `bitcoin-dominance` / `tvl-treemap` for
+   crypto; *both* → all of them). If they're vague, default to **stocks**.
+2. **Which categories?** Built from their step-1 answer, so they pick from groups
+   instead of recalling tickers cold. Offer a short multi-select menu:
+   - **Stocks** → sectors: *Big Tech, Semiconductors, EV & Auto, Banks &
+     Finance, Energy, Healthcare, Consumer & Retail*.
+   - **Crypto** → themes: *Majors (BTC/ETH), Layer-1s, DeFi, Layer-2s, AI,
+     Memecoins*.
+   - **Both** → offer both groupings.
+3. **Any in particular?** Within the chosen categories, ask them to name **3–5
+   specific tickers** (free text — "NVDA, TSLA, AAPL"). Show and accept **plain
+   tickers only**; the `xyz:` HIP-3 dex prefix is a framework internal you add
+   silently when writing the spec ("TSLA" → `xyz:TSLA`; crypto stays bare). If
+   they don't have specific names, **you pick representative liquid tickers** from
+   their chosen categories — don't send them off to research. Note which 1–2 are
+   the **main focus**; those drive the hero chart. If unsaid, take the first two.
 
-1. **What do you want to keep an eye on?** The assets — stocks ("TSLA", "NVDA",
-   "AAPL") and/or crypto ("BTC", "ETH", "HYPE"). Ask and show **plain tickers
-   only**; the `xyz:` HIP-3 dex prefix is a framework internal — never surface it
-   in a question or option. When the user names a stock, *you* add the `xyz:`
-   prefix silently when writing the spec (so "TSLA" → `xyz:TSLA`); crypto stays
-   bare. **Default to stocks: build a US-stocks dashboard unless the user
-   explicitly names a crypto asset (BTC, ETH, …) or asks for crypto.** When they
-   don't mention crypto, use stock tickers in every frame and include no
-   crypto-only frames. Also note which 1–2 are the **main focus**
-   (the big live chart) and roughly the timeframe (intraday vs swing). This is
-   the core — everything else follows from it.
-2. **What else matters to you?** *(optional — skip if they've already implied
-   it, or just pick sensible defaults.)* Phrase these as interests/outcomes, not
-   frame names — then translate to frames yourself. The user picks the interest;
-   you pick the widget. Map e.g.:
-   - "the overall market mood / is it greedy or fearful" → `fear-greed`, `bitcoin-dominance`
-   - "what's moving today / biggest movers" → `top-movers`
-   - "where money's flowing on-chain / which chains" → `tvl-treemap`
-   - "funding / leverage / who's paying to be long" → `funding-rate-chart`, `funding-heatmap`
-   - "a glanceable watchlist of my assets" → `price-ticker`
+That's the whole interview. Everything else — the full frame set, zones,
+headings, the background, default config — is your call from the step-4 defaults;
+never ask about it, and never read back frame or widget names as options.
 
-   On a stocks dashboard, prefer stock-relevant extras (`top-movers`,
-   `funding-rate-chart`/`funding-heatmap`, `short-volume`); reach for the
-   crypto-only frames (`bitcoin-dominance`, `tvl-treemap`) only when the
-   dashboard actually includes crypto.
+This maps cleanly onto `AskUserQuestion`: step 1 is one question; step 2's options
+are built from step-1's answer (a second round, not the same call); step 3 is the
+free-text "Other" field. Label every option by **asset / category / ticker**,
+never by frame name.
 
-Everything else is your call, not a question: add zone `heading`s, feature the
-centerpiece, and include a tasteful default context set (stocks, unless the user
-asked for crypto). Add a trading-plan
-`note`, a logo `image`, or the `dino-game` only if the user brings it up — don't
-prompt for them. The user can always refine later with "add X to my dashboard".
-
-If you render this as a picker (e.g. AskUserQuestion), label steps and options
-by interest ("Market mood", "What's moving", "On-chain flows"), never by frame
-name ("fear-greed", "tvl-treemap").
-
-For "update my dashboard" requests, read the existing `dashboard.json` first
-and change only what they asked for.
+For "update my dashboard" requests, skip the funnel — read the existing
+`dashboard.json` first and change only what they asked for.
 
 ## 4. Fill in the frames
 
@@ -119,9 +107,15 @@ user explicitly asks (e.g. "more spacing" → bump `grid.gap`, "square corners" 
 → lower `appearance.surfaceOpacity`, "no animation" → `background.type:
 "gradient"`).
 
-**Default frame set — the spine of every new dashboard.** Build these first
-(using the symbols from the interview), then add the interest-driven frames
-around them. Skip one only if the user explicitly opts out:
+**Show the full frame set — every dashboard gets all the market frames.** You
+don't cherry-pick frames by interest; build the whole comprehensive set and
+populate the symbol-bearing frames with the user's tickers from the interview.
+The only thing that varies the set is the **asset class** (step 1): the US-stock
+frames for a stocks desk, the crypto frames for a crypto desk, all of them for
+*both*. The pure-content frames (`note`, `image`, `dino-game`) stay opt-in — add
+them only if the user asks; `heading`s are structure (added per the zone rules
+below). Start from this spine (with the interview's symbols), then add the rest
+of the catalogue's market frames around it:
 
 - **`price-liveline` hero** — the user's 2–8 main symbols streaming together in
   one live race. Keep `normalize: true` so stocks and crypto share an axis.
@@ -132,9 +126,11 @@ around them. Skip one only if the user explicitly opts out:
   distinct `color` hex per card). Split the rendering two and two: two
   `"mode": "candle"`, two `"mode": "line"`. Default stocks picks when the user
   named fewer than four — **NVDA & TSLA as candles, AAPL & AMD as lines**
-  (e.g. NVDA `#76b900`, TSLA `#e82127`, AAPL `#0a84ff`, AMD `#f5a623`).
-- **`short-volume`** for the US-stock tickers (FINRA reported short volume; use
-  `"sort": "shortPct"`): `w: 5, h: 4`.
+  (e.g. NVDA `#76b900`, TSLA `#e82127`, AAPL `#0a84ff`, AMD `#f5a623`). On a
+  crypto desk, use the user's coins instead (e.g. BTC & ETH as candles, SOL & a
+  fourth as lines).
+- **`short-volume`** *(stocks desks only — FINRA reports US-equity short
+  volume)* for the stock tickers (`"sort": "shortPct"`): `w: 5, h: 4`.
 - **The macro trio — always include all three.** Keyless official-data context
   every dashboard should carry; group them in a row under a "Macro" heading
   (4 + 4 + 4 = 12 columns). None need config — schema defaults are sensible:
@@ -149,6 +145,14 @@ around them. Skip one only if the user explicitly opts out:
   `w: 3, h: 2`; and `market-hours` for exchange open / closed status with next
   open/close countdowns (`"exchanges": ["NYSE","NASDAQ"]` for a US-stocks desk,
   or leave it empty for the world set), `w: 4, h: 4`.
+- **The rest of the catalogue's market frames — include them too**, so the
+  dashboard reads as complete rather than sparse. From the catalogue you read in
+  step 2, add the remaining market frames that fit the asset class:
+  `top-movers`, `price-ticker`, and a normalized `price-compare` of the user's
+  tickers on any desk; **`fear-greed`** for market mood; and when crypto is in
+  scope, `bitcoin-dominance`, `tvl-treemap`, `funding-rate-chart`, and
+  `funding-heatmap`. Symbol-bearing frames take the user's tickers; context
+  frames need no config (schema defaults are sensible).
 
 Layout rules for the frames:
 
@@ -198,6 +202,11 @@ just another edit + the page reloads. Pass `--port <n>` if 37263 is taken.
 
 ## Hard rules
 
+- **The interview only picks tickers, never frames.** Every dashboard ships the
+  full market frame set (step 4); the onboarding funnel — asset class →
+  categories → specific tickers — exists only to choose which symbols fill them.
+  Never ask which frames or widgets to include, never show or read back frame
+  names as options, and never make the user assemble the dashboard.
 - dashboard.json is the only artifact. No React, no CSS, no new frames.
   If the user wants a frame that doesn't exist, say so and list what does.
 - Free data only: Hyperliquid (crypto + HIP-3 stock perps), DeFiLlama,
