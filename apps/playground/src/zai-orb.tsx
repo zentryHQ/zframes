@@ -60,7 +60,7 @@ const ORB_CSS = `
   overflow: hidden;
   transition:
     width 0.34s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
-    opacity 0.22s ease;
+    opacity 0.22s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 .zai-dock[data-open="true"] .zai-panel {
   width: 330px;
@@ -102,7 +102,7 @@ const ORB_CSS = `
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
-  transition: background 0.15s ease;
+  transition: background 0.15s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 .zai-agent:hover { background: hsla(263, 80%, 60%, 0.28); }
 
@@ -114,7 +114,7 @@ const ORB_CSS = `
   border-radius: 9999px;
   overflow: hidden;
   opacity: 0;
-  transition: opacity 0.45s ease;
+  transition: opacity 0.45s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   pointer-events: none;
 }
 .zai-orb[data-webgl="true"] .zai-orb-canvas { opacity: 1; }
@@ -134,7 +134,7 @@ const ORB_CSS = `
   border-radius: 9999px;
   cursor: pointer;
   background: transparent;
-  transition: transform 0.2s var(--zf-ease-out, ease);
+  transition: transform 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 .zai-orb:hover { transform: scale(1.06); }
 .zai-orb:active { transform: scale(0.97); }
@@ -172,7 +172,7 @@ const ORB_CSS = `
   word-break: break-word;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  animation: zai-rise 0.28s var(--zf-ease-out, ease) both;
+  animation: zai-rise 0.28s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) both;
 }
 .zai-msg-user {
   align-self: flex-end;

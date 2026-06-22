@@ -24,6 +24,17 @@
   --font-dmsans: "DM Sans", sans-serif;
 }
 
+/* Easing tokens for the D3 layer's JS-driven transitions (tooltip pop-in,
+   point reveals). The chart hooks read these by name with no inline fallback,
+   so without a definition the timing-function is invalid and the browser
+   silently uses the weak built-in `ease`. Strong ease-outs (start fast, settle
+   soft) so a tooltip snaps to the cursor and decelerates, instead of the
+   sluggish symmetric default. */
+:root {
+  --ease-out-quad: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
 @utility caption {
   @apply font-dmsans text-[0.6875rem] font-medium;
 }
