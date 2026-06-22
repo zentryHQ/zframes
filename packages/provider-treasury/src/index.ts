@@ -8,6 +8,7 @@ import type {
   YieldCurve,
   YieldPoint,
 } from "@zframes/core";
+import { TtlCache } from "@zframes/core/cache";
 import { fetchJson } from "@zframes/core/fetch";
 
 const TREASURY_AVG_RATES_URL =
@@ -30,6 +31,36 @@ const YIELD_CURVE_URL = (yyyymm: string) =>
   `https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value_month=${yyyymm}`;
 
 const USER_AGENT = "zframes (+https://github.com/zentryhq/zframes)";
+
+// Treasury data publishes once a business day, so every capability goes through
+// the shared cache with a 3-hour TTL (well under the 6-hour poll): a fresh value
+// is served without a network call, concurrent loads (and editor reloads) are
+// deduped, and the last good value is served on a transient error. This matters
+// most for the proxied endpoints (national-debt, auctions) — without it, every
+// poll and every reload tunnelled a fresh upstream fetch through the same-origin
+// proxy, which sets `cache-control: no-store`. Values persist across reloads
+// (all small + JSON-safe), keyed by their query args where they take any.
+const TREASURY_TTL_MS = 3 * 60 * 60_000;
+const yieldCurveCache = new TtlCache<YieldCurve>({
+  namespace: "zframes:treasury:yield-curve",
+  ttlMs: TREASURY_TTL_MS,
+  persist: true,
+});
+const avgRatesCache = new TtlCache<TreasuryAverageRate[]>({
+  namespace: "zframes:treasury:avg-rates",
+  ttlMs: TREASURY_TTL_MS,
+  persist: true,
+});
+const nationalDebtCache = new TtlCache<NationalDebt>({
+  namespace: "zframes:treasury:national-debt",
+  ttlMs: TREASURY_TTL_MS,
+  persist: true,
+});
+const auctionsCache = new TtlCache<TreasuryAuction[]>({
+  namespace: "zframes:treasury:auctions",
+  ttlMs: TREASURY_TTL_MS,
+  persist: true,
+});
 
 /** XML field → display label + maturity in months, shortest to longest. */
 const MATURITIES: ReadonlyArray<readonly [string, string, number]> = [
@@ -125,10 +156,16 @@ function parseYieldCurve(xml: string): YieldCurve | null {
 }
 
 /**
- * Free, no-API-key provider for the U.S. Treasury Fiscal Data API — average
- * interest rates on outstanding marketable Treasury securities by class
- * (`treasury-rates`, Fiscal Data API) and the daily par yield curve
- * (`yield-curve`, the Treasury data-center XML). Both keyless and CORS-safe.
+ * Free, no-API-key provider for the U.S. Treasury, keyless throughout:
+ * - `treasury-rates`: average interest rates by security class (Fiscal Data API).
+ * - `yield-curve`: the daily par yield curve (Treasury data-center XML).
+ * - `national-debt`: total public debt + recent trend (Fiscal Data API).
+ * - `treasury-auctions`: recent completed auctions (Fiscal Data API).
+ * The data-center XML and avg-rates endpoint are CORS-safe (fetched direct);
+ * national-debt and auctions hit fiscaldata, which isn't reliably CORS-reachable,
+ * so they relay through the runtime proxy in the browser (direct in Node). All
+ * four publish about once a business day, so every capability is cached — see
+ * the cache notes above.
  */
 export class TreasuryProvider implements MarketDataProvider {
   readonly name = "treasury";
@@ -140,6 +177,10 @@ export class TreasuryProvider implements MarketDataProvider {
   ];
 
   async getYieldCurve(): Promise<YieldCurve> {
+    return yieldCurveCache.get("latest", () => this.fetchYieldCurve());
+  }
+
+  private async fetchYieldCurve(): Promise<YieldCurve> {
     // The XML is keyed by month; near a month boundary the current month may be
     // empty, so fall back one month. CORS-safe — fetched directly, no proxy.
     const base = new Date();
@@ -157,6 +198,10 @@ export class TreasuryProvider implements MarketDataProvider {
   }
 
   async getTreasuryAverageRates(): Promise<TreasuryAverageRate[]> {
+    return avgRatesCache.get("latest", () => this.fetchTreasuryAverageRates());
+  }
+
+  private async fetchTreasuryAverageRates(): Promise<TreasuryAverageRate[]> {
     const body = await fetchJson<TreasuryAvgRatesResponse>(
       TREASURY_AVG_RATES_URL,
     );
@@ -189,6 +234,12 @@ export class TreasuryProvider implements MarketDataProvider {
   }
 
   async getNationalDebt(days = 180): Promise<NationalDebt> {
+    return nationalDebtCache.get(String(days), () =>
+      this.fetchNationalDebt(days),
+    );
+  }
+
+  private async fetchNationalDebt(days: number): Promise<NationalDebt> {
     const size = Math.max(2, Math.min(days, 400));
     // fiscaldata isn't reliably browser-CORS-reachable; relay via the runtime
     // proxy in the browser (allowlisted host). No-op (direct) in Node.
@@ -228,6 +279,14 @@ export class TreasuryProvider implements MarketDataProvider {
   }
 
   async getTreasuryAuctions(limit = 8): Promise<TreasuryAuction[]> {
+    return auctionsCache.get(String(limit), () =>
+      this.fetchTreasuryAuctions(limit),
+    );
+  }
+
+  private async fetchTreasuryAuctions(
+    limit: number,
+  ): Promise<TreasuryAuction[]> {
     const size = Math.max(1, Math.min(limit, 30));
     // Proxy in the browser (fiscaldata isn't reliably CORS-safe); direct in Node.
     const body = await fetchJson<AuctionsResponse>(

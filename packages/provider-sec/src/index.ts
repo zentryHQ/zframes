@@ -6,6 +6,7 @@ import type {
   SecCompanyFilings,
   SecFiling,
 } from "@zframes/core";
+import { TtlCache } from "@zframes/core/cache";
 import { fetchJson } from "@zframes/core/fetch";
 import { padCik, resolveCik } from "./tickers";
 
@@ -18,6 +19,20 @@ const COMPANY_FACTS_URL = (cik: string) =>
 
 /** How long a resolved profile is reused before re-fetching (filings are event-driven). */
 const CACHE_TTL_MS = 15 * 60_000;
+
+// Both endpoints are keyed by CIK and event-driven (they change only on a new
+// filing), so the shared cache dedups concurrent loads, reuses a result across
+// reloads within the TTL, and serves the last good value on a transient error
+// rather than blanking the card. The cached data doesn't depend on the Node
+// contact UA, so a single module-level cache per shape is correct.
+const filingsCache = new TtlCache<SecCompanyFilings>({
+  namespace: "zframes:sec:filings",
+  ttlMs: CACHE_TTL_MS,
+});
+const factsCache = new TtlCache<CompanyFacts>({
+  namespace: "zframes:sec:facts",
+  ttlMs: CACHE_TTL_MS,
+});
 
 /** The slice of the submissions JSON we read. */
 interface SubmissionsResponse {
@@ -219,15 +234,6 @@ export class SecProvider implements MarketDataProvider {
   /** @param contact optional contact for the Node User-Agent (SEC requires it; browsers ignore it). */
   constructor(private readonly contact?: string) {}
 
-  private cache = new Map<
-    string,
-    { at: number; promise: Promise<SecCompanyFilings> }
-  >();
-  private factsCache = new Map<
-    string,
-    { at: number; promise: Promise<CompanyFacts> }
-  >();
-
   /** Node-only contact User-Agent (browsers ignore it; the proxy sets its own). */
   private nodeInit():
     | { init: { headers: { "User-Agent": string } } }
@@ -244,15 +250,7 @@ export class SecProvider implements MarketDataProvider {
         `sec: unknown ticker "${tickerOrCik}" — not in the bundled map; pass a CIK (e.g. "320193") instead`,
       );
     }
-    const now = Date.now();
-    const hit = this.factsCache.get(cik);
-    if (hit && now - hit.at < CACHE_TTL_MS) return hit.promise;
-    const promise = this.fetchCompanyFacts(cik).catch((error) => {
-      this.factsCache.delete(cik);
-      throw error;
-    });
-    this.factsCache.set(cik, { at: now, promise });
-    return promise;
+    return factsCache.get(cik, () => this.fetchCompanyFacts(cik));
   }
 
   private async fetchCompanyFacts(cik: string): Promise<CompanyFacts> {
@@ -280,17 +278,7 @@ export class SecProvider implements MarketDataProvider {
         `sec: unknown ticker "${tickerOrCik}" — not in the bundled map; pass a CIK (e.g. "320193") instead`,
       );
     }
-    const now = Date.now();
-    const hit = this.cache.get(cik);
-    if (hit && now - hit.at < CACHE_TTL_MS) return hit.promise;
-
-    const promise = this.fetchFilings(cik).catch((error) => {
-      // Don't cache failures — let the next poll retry.
-      this.cache.delete(cik);
-      throw error;
-    });
-    this.cache.set(cik, { at: now, promise });
-    return promise;
+    return filingsCache.get(cik, () => this.fetchFilings(cik));
   }
 
   private async fetchFilings(cik: string): Promise<SecCompanyFilings> {

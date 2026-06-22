@@ -3,6 +3,7 @@ import type {
   MarketDataProvider,
   ReferenceRate,
 } from "@zframes/core";
+import { TtlCache } from "@zframes/core/cache";
 import { fetchJson } from "@zframes/core/fetch";
 
 const NY_FED_RATES_URL =
@@ -18,6 +19,17 @@ const REFERENCE_RATE_LABELS: Record<string, string> = {
 };
 
 const REFERENCE_RATE_ORDER = ["EFFR", "SOFR", "TGCR", "BGCR", "OBFR", "SOFRAI"];
+
+// Overnight reference rates publish once a business day, so the shared cache
+// reuses the latest set for 12 min (under useReferenceRates' 15-min poll), dedups
+// concurrent loads, persists across reloads, and serves the last good rates on a
+// transient error.
+const ratesCache = new TtlCache<ReferenceRate[]>({
+  namespace: "zframes:nyfed:rates",
+  ttlMs: 12 * 60_000,
+  persist: true,
+  revive: (value) => (Array.isArray(value) ? (value as ReferenceRate[]) : null),
+});
 
 interface NyFedRatesResponse {
   refRates: Array<{
@@ -54,39 +66,42 @@ export class NyFedProvider implements MarketDataProvider {
   readonly capabilities: readonly Capability[] = ["reference-rates"];
 
   async getReferenceRates(): Promise<ReferenceRate[]> {
-    const body = await fetchJson<NyFedRatesResponse>(NY_FED_RATES_URL);
-    if (!Array.isArray(body?.refRates))
-      throw new Error("ny fed rates: unexpected response shape");
+    return ratesCache.get("latest", async () => {
+      const body = await fetchJson<NyFedRatesResponse>(NY_FED_RATES_URL);
+      if (!Array.isArray(body?.refRates))
+        throw new Error("ny fed rates: unexpected response shape");
 
-    return body.refRates
-      .map((entry): ReferenceRate | null => {
-        const code = String(entry.type ?? "");
-        const rate = finiteNumber(entry.percentRate ?? entry.average30day);
-        if (!code || !entry.effectiveDate || rate === null) return null;
-        const referenceRate: ReferenceRate = {
-          code,
-          label: REFERENCE_RATE_LABELS[code] ?? code,
-          date: entry.effectiveDate,
-          rate,
-          source: "New York Fed",
-        };
-        const volumeInBillions = finiteNumber(entry.volumeInBillions);
-        const targetRateFrom = finiteNumber(entry.targetRateFrom);
-        const targetRateTo = finiteNumber(entry.targetRateTo);
-        const average30Day = finiteNumber(entry.average30day);
-        const average90Day = finiteNumber(entry.average90day);
-        const average180Day = finiteNumber(entry.average180day);
-        if (volumeInBillions !== null)
-          referenceRate.volumeInBillions = volumeInBillions;
-        if (targetRateFrom !== null)
-          referenceRate.targetRateFrom = targetRateFrom;
-        if (targetRateTo !== null) referenceRate.targetRateTo = targetRateTo;
-        if (average30Day !== null) referenceRate.average30Day = average30Day;
-        if (average90Day !== null) referenceRate.average90Day = average90Day;
-        if (average180Day !== null) referenceRate.average180Day = average180Day;
-        return referenceRate;
-      })
-      .filter((rate): rate is ReferenceRate => rate !== null)
-      .sort(referenceRateSort);
+      return body.refRates
+        .map((entry): ReferenceRate | null => {
+          const code = String(entry.type ?? "");
+          const rate = finiteNumber(entry.percentRate ?? entry.average30day);
+          if (!code || !entry.effectiveDate || rate === null) return null;
+          const referenceRate: ReferenceRate = {
+            code,
+            label: REFERENCE_RATE_LABELS[code] ?? code,
+            date: entry.effectiveDate,
+            rate,
+            source: "New York Fed",
+          };
+          const volumeInBillions = finiteNumber(entry.volumeInBillions);
+          const targetRateFrom = finiteNumber(entry.targetRateFrom);
+          const targetRateTo = finiteNumber(entry.targetRateTo);
+          const average30Day = finiteNumber(entry.average30day);
+          const average90Day = finiteNumber(entry.average90day);
+          const average180Day = finiteNumber(entry.average180day);
+          if (volumeInBillions !== null)
+            referenceRate.volumeInBillions = volumeInBillions;
+          if (targetRateFrom !== null)
+            referenceRate.targetRateFrom = targetRateFrom;
+          if (targetRateTo !== null) referenceRate.targetRateTo = targetRateTo;
+          if (average30Day !== null) referenceRate.average30Day = average30Day;
+          if (average90Day !== null) referenceRate.average90Day = average90Day;
+          if (average180Day !== null)
+            referenceRate.average180Day = average180Day;
+          return referenceRate;
+        })
+        .filter((rate): rate is ReferenceRate => rate !== null)
+        .sort(referenceRateSort);
+    });
   }
 }

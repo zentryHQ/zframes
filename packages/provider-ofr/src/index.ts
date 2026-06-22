@@ -5,6 +5,7 @@ import type {
   FinancialStressPoint,
   MarketDataProvider,
 } from "@zframes/core";
+import { TtlCache } from "@zframes/core/cache";
 import { fetchText } from "@zframes/core/fetch";
 
 const FSI_CSV_URL =
@@ -14,6 +15,15 @@ const FSI_CSV_URL =
 const CACHE_TTL_MS = 60 * 60_000;
 /** How much recent history to keep for the trend sparkline. */
 const TREND_POINTS = 90;
+
+// Single-slot cache (constant key): dedups concurrent loads, reuses the parsed
+// CSV within the TTL, and serves the last good report on a transient error
+// instead of blanking the card. The FSI updates once a business day, so session-
+// scoped caching is enough.
+const stressCache = new TtlCache<FinancialStress>({
+  namespace: "zframes:ofr:fsi",
+  ttlMs: CACHE_TTL_MS,
+});
 
 /**
  * The CSV header (verified live):
@@ -80,19 +90,9 @@ export class OfrProvider implements MarketDataProvider {
   readonly name = "ofr";
   readonly capabilities: readonly Capability[] = ["financial-stress"];
 
-  private cache?: { at: number; promise: Promise<FinancialStress> };
-
   async getFinancialStress(): Promise<FinancialStress> {
-    const now = Date.now();
-    if (this.cache && now - this.cache.at < CACHE_TTL_MS)
-      return this.cache.promise;
-    const promise = fetchText(FSI_CSV_URL, { proxied: true })
-      .then(parseFsi)
-      .catch((error: unknown) => {
-        this.cache = undefined; // don't cache failures
-        throw error;
-      });
-    this.cache = { at: now, promise };
-    return promise;
+    return stressCache.get("latest", () =>
+      fetchText(FSI_CSV_URL, { proxied: true }).then(parseFsi),
+    );
   }
 }
