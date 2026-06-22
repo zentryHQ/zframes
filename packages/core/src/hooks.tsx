@@ -798,22 +798,13 @@ export function useLightningStats(refreshMs = 30 * 60_000): {
 }
 
 /**
- * Community-ranked links + discussion (e.g. Hacker News), polled every few
- * minutes. An empty `query` returns the source's front page / top stories.
  * Aggregated Deribit options summary (put/call ratio, OI-by-strike, avg IV) for
  * one currency, polled every ~5 min. Two frames on the same currency share one
  * cached provider call.
  */
-export function useSocial(
-  query: string,
-  limit: number,
 export function useOptionsSummary(
   currency: string,
   refreshMs = 5 * 60_000,
-): { items: NewsItem[]; isLoading: boolean } {
-  const provider = useProviderFor("social");
-  const { data: items, isLoading } = usePolled<NewsItem[]>(
-    provider?.getSocial ? () => provider.getSocial!({ query, limit }) : null,
 ): { summary: OptionsSummary | null; isLoading: boolean } {
   const provider = useProviderFor("options-summary");
   const ccy = (currency || "BTC").toUpperCase();
@@ -840,10 +831,8 @@ export function useVolatilityIndex(
       ? () => provider.getVolatilityIndex!(ccy, startTimeMs, resolutionSec)
       : null,
     [],
-    [provider, query, limit, refreshMs],
     [provider, ccy, startTimeMs, resolutionSec, refreshMs],
     refreshMs,
   );
-  return { items, isLoading };
   return { points, isLoading };
 }

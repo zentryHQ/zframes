@@ -37,7 +37,6 @@ const SOURCES = {
     name: "FINRA",
     url: "https://www.finra.org/finra-data/browse-catalog/short-sale-volume-data",
   },
-  hackerNews: { name: "Hacker News", url: "https://news.ycombinator.com" },
   ofr: {
     name: "OFR",
     url: "https://www.financialresearch.gov/financial-stress-index/",
@@ -723,7 +722,7 @@ export const newsFeedMeta = defineFrameMeta({
   name: "news-feed",
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
-    'Scrolling feed of the latest news headlines from a chosen outlet — each row is a clickable headline with its publish time, newest first. Free, keyless RSS sources: crypto press (CoinDesk, Cointelegraph, Decrypt), broad markets/macro (CNBC, Nasdaq), or — source "stocks" — per-company headlines (via Google News) scoped to the specific tickers in `symbols`. IMPORTANT: news feeds are CORS-blocked, so this frame reads them through the zframes runtime\'s data proxy (it ships with `zframes serve` / `vite dev`); on a fully static host with no runtime it shows an empty state. For community/tech chatter use the `hacker-news` frame instead.',
+    'Scrolling feed of the latest news headlines from a chosen outlet — each row is a clickable headline with its publish time, newest first. Free, keyless RSS sources: crypto press (CoinDesk, Cointelegraph, Decrypt), broad markets/macro (CNBC, Nasdaq), or — source "stocks" — per-company headlines (via Google News) scoped to the specific tickers in `symbols`. IMPORTANT: news feeds are CORS-blocked, so this frame reads them through the zframes runtime\'s data proxy (it ships with `zframes serve` / `vite dev`); on a fully static host with no runtime it shows an empty state.',
   capabilities: ["news"],
   schema: z.object({
     source: z
@@ -752,30 +751,6 @@ export const newsFeedMeta = defineFrameMeta({
       .max(20)
       .default(8)
       .describe("How many headlines to list (newest first)."),
-  }),
-});
-
-export const hackerNewsMeta = defineFrameMeta({
-  name: "hacker-news",
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
-  description:
-    'Hacker News stories + discussion — each row shows the headline, points, and comment count, linking to both the article and the HN thread. Leave the query empty for the front page, or set a topic (e.g. "bitcoin", "AI") to track stories about it. Free and keyless via the HN Algolia API, and — unlike the RSS `news-feed` frame — it\'s CORS-open, so it needs no runtime proxy and keeps working on a static deploy. Tech/community chatter, not market press.',
-  capabilities: ["social"],
-  source: SOURCES.hackerNews,
-  schema: z.object({
-    query: z
-      .string()
-      .default("")
-      .describe(
-        'Topic to track, e.g. "bitcoin", "ethereum", "AI", "stripe". Empty = the Hacker News front page (top stories).',
-      ),
-    count: z
-      .number()
-      .int()
-      .min(3)
-      .max(20)
-      .default(10)
-      .describe("How many stories to list."),
   }),
 });
 
@@ -1195,7 +1170,6 @@ export const coinMoversMeta = defineFrameMeta({
 
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
-  hackerNewsMeta,
   newsFeedMeta,
   allocationMeta,
   bitcoinDominanceMeta,

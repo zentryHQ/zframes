@@ -18,7 +18,6 @@ export type Capability =
   | "fundamentals"
   | "filings"
   | "short-volume"
-  | "social"
   | "dex-volume"
   | "protocol-tvl"
   | "protocol-fees"
@@ -323,28 +322,26 @@ export interface ShortVolumeEntry {
 }
 
 /**
- * One news / community headline, normalised across very different upstreams
- * (RSS outlet feeds, the Hacker News search API). The optional `points` /
- * `commentCount` / `commentsUrl` fields only carry meaning for community-ranked
- * sources (Hacker News); press outlets leave them unset.
+ * One news headline, normalised across different upstream RSS outlet feeds.
  */
 export interface NewsItem {
   /** Headline text. */
   title: string;
   /** Canonical article URL (opened in a new tab). */
   url: string;
-  /** Display name of the outlet/source, e.g. "CoinDesk", "Hacker News". */
+  /** Display name of the outlet/source, e.g. "CoinDesk". */
   source: string;
   /** Publication time, epoch milliseconds, when the feed provides one. */
   publishedAt?: number;
   /** Short plain-text excerpt/summary, when the feed provides one. */
   summary?: string;
-  /** Community score (e.g. Hacker News points). */
-  points?: number;
-  /** Number of comments on the discussion, for social sources. */
-  commentCount?: number;
-  /** URL of the discussion thread (distinct from `url`), for social sources. */
-  commentsUrl?: string;
+  /**
+   * Article thumbnail URL (https), when the feed provides one — RSS
+   * `media:content` / `media:thumbnail` / `enclosure`. Loaded directly in an
+   * `<img>` (not CORS-bound), so it needs no proxy; absent for feeds that carry
+   * no media (CNBC, Nasdaq, Google News).
+   */
+  imageUrl?: string;
 }
 
 /** What a `news` provider is asked for: a named outlet feed, optionally scoped to symbols. */
@@ -356,14 +353,6 @@ export interface NewsQuery {
   feed: string;
   /** Symbols to scope a per-symbol feed (the Yahoo Finance headline feed). */
   symbols?: readonly string[];
-  /** Max items to return. */
-  limit?: number;
-}
-
-/** What a `social` provider is asked for: a topic query (empty = the front page). */
-export interface SocialQuery {
-  /** Search terms, e.g. "bitcoin OR ethereum". Empty = the source's front page / top. */
-  query?: string;
   /** Max items to return. */
   limit?: number;
 }
@@ -700,8 +689,6 @@ export interface MarketDataProvider {
   getShortVolume?(symbols: string[]): Promise<Record<string, ShortVolumeEntry>>;
   /** Latest headlines from a named outlet feed (RSS), newest first. */
   getNews?(query: NewsQuery): Promise<NewsItem[]>;
-  /** Community-ranked links + discussion (e.g. Hacker News), highest-ranked first. */
-  getSocial?(query: SocialQuery): Promise<NewsItem[]>;
   /** Trailing-24h trading volume per DEX protocol, descending. */
   getDexVolume?(): Promise<DexVolumeEntry[]>;
   /** Historical daily DEX volume per protocol slug. */

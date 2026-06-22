@@ -102,6 +102,57 @@ function linkOf(block: string): string | undefined {
   return rss ? decodeEntities(stripCdata(rss)).trim() : undefined;
 }
 
+/** Read a single attribute value off an opening tag string, entity-decoded. */
+function attr(tagStr: string, name: string): string | undefined {
+  const m = tagStr.match(new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`, "i"));
+  return m ? decodeEntities(m[1]).trim() : undefined;
+}
+
+const isHttps = (u: string | undefined): u is string =>
+  !!u && /^https:\/\//i.test(u);
+
+/**
+ * Pick a representative thumbnail URL from a feed <item>/<entry>, if any.
+ * Preference: media:thumbnail → media:content (image) → image enclosure → the
+ * first <img> in the description HTML. Only https URLs are kept (mixed-content
+ * safe). Image-bearing feeds (CoinDesk, Cointelegraph, Decrypt) hit one of
+ * these; media-less feeds (CNBC, Nasdaq, Google News) fall through to undefined.
+ */
+function imageOf(block: string): string | undefined {
+  const thumb = block.match(/<media:thumbnail\b[^>]*>/i)?.[0];
+  if (thumb) {
+    const u = attr(thumb, "url");
+    if (isHttps(u)) return u;
+  }
+  for (const m of block.matchAll(/<media:content\b[^>]*>/gi)) {
+    const medium = attr(m[0], "medium");
+    const type = attr(m[0], "type");
+    // Accept explicit images and untyped entries; skip audio/video variants.
+    const isImage =
+      medium === "image" || (!medium && !type?.match(/^(audio|video)\//i));
+    const u = attr(m[0], "url");
+    if (isImage && isHttps(u)) return u;
+  }
+  for (const m of block.matchAll(/<enclosure\b[^>]*>/gi)) {
+    if (!attr(m[0], "type")?.startsWith("image/")) continue;
+    const u = attr(m[0], "url");
+    if (isHttps(u)) return u;
+  }
+  const desc =
+    tag(block, "content:encoded") ??
+    tag(block, "description") ??
+    tag(block, "content") ??
+    tag(block, "summary");
+  const img = desc
+    ? stripCdata(desc).match(/<img\b[^>]*\bsrc="([^"]+)"/i)
+    : null;
+  if (img) {
+    const u = decodeEntities(img[1]).trim();
+    if (isHttps(u)) return u;
+  }
+  return undefined;
+}
+
 /** Publication time as epoch ms, from whichever date element the feed uses. */
 function dateOf(block: string): number | undefined {
   const raw =
@@ -132,12 +183,14 @@ function parseFeed(xml: string, source: string, limit: number): NewsItem[] {
       tag(block, "content");
     const summary = rawDesc ? plainText(rawDesc).slice(0, 280) : undefined;
     const publishedAt = dateOf(block);
+    const imageUrl = imageOf(block);
     items.push({
       title,
       url,
       source,
       ...(summary ? { summary } : {}),
       ...(publishedAt ? { publishedAt } : {}),
+      ...(imageUrl ? { imageUrl } : {}),
     });
   }
   // Sort newest-first only when the feed actually carries dates; otherwise the

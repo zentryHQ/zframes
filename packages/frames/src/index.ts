@@ -13,7 +13,6 @@ export { nationalDebtFrame } from "./national-debt";
 export { treasuryAuctionsFrame } from "./treasury-auctions";
 export { fundingHeatmapFrame } from "./funding-heatmap";
 export { fundingRateChartFrame } from "./funding-rate-chart";
-export { hackerNewsFrame } from "./hacker-news";
 export { headingFrame } from "./heading";
 export { imageFrame } from "./image";
 export { inflationPulseFrame } from "./inflation-pulse";
@@ -66,7 +65,6 @@ import { nationalDebtFrame } from "./national-debt";
 import { treasuryAuctionsFrame } from "./treasury-auctions";
 import { fundingHeatmapFrame } from "./funding-heatmap";
 import { fundingRateChartFrame } from "./funding-rate-chart";
-import { hackerNewsFrame } from "./hacker-news";
 import { headingFrame } from "./heading";
 import { imageFrame } from "./image";
 import { inflationPulseFrame } from "./inflation-pulse";
@@ -120,7 +118,6 @@ export const allFrames: AnyFrameDefinition[] = [
   treasuryAuctionsFrame,
   fundingHeatmapFrame,
   fundingRateChartFrame,
-  hackerNewsFrame,
   headingFrame,
   imageFrame,
   inflationPulseFrame,
