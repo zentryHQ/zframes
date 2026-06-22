@@ -1,4 +1,11 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   createRegistry,
   DashboardRenderer,
@@ -6,7 +13,6 @@ import {
   FramesProvider,
   type DashboardSpec,
 } from "@zframes/core";
-import { DashboardEditor } from "@zframes/core/editor";
 import {
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
@@ -28,6 +34,13 @@ import { DashboardBackground } from "./background";
 import { TickerTape } from "./ticker-tape";
 import { useIsMobile } from "./use-is-mobile";
 import { ZaiOrb } from "./zai-orb";
+
+// The GridStack editor is desktop-only and heavy (GridStack + its CSS side-effect
+// import + editor-only icons). Lazy-load it so the dashboard paints through
+// DashboardRenderer first and the editor chunk swaps in once it's loaded.
+const DashboardEditor = lazy(() =>
+  import("@zframes/core/editor").then((m) => ({ default: m.DashboardEditor })),
+);
 
 const registry = createRegistry(allFrames);
 const providers = [
@@ -235,13 +248,17 @@ export default function App() {
         {isMobile ? (
           <DashboardRenderer spec={spec} registry={registry} />
         ) : (
-          <DashboardEditor
-            spec={spec}
-            registry={registry}
-            onSave={persist}
-            customiseButtonTarget={customiseButtonTarget}
-            onAccentHueChange={setLiveHue}
-          />
+          <Suspense
+            fallback={<DashboardRenderer spec={spec} registry={registry} />}
+          >
+            <DashboardEditor
+              spec={spec}
+              registry={registry}
+              onSave={persist}
+              customiseButtonTarget={customiseButtonTarget}
+              onAccentHueChange={setLiveHue}
+            />
+          </Suspense>
         )}
       </main>
       <TickerTape />
