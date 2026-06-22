@@ -212,7 +212,9 @@ export function serve(args: string[]): Promise<number> {
     // Loopback only: the writeback endpoint writes to disk, so this is a
     // local-only tool and must never be exposed on the network.
     server.listen(parsed.port, "127.0.0.1", () => {
-      const url = `http://127.0.0.1:${parsed.port}`;
+      // Bind to loopback, but show `localhost` — friendlier and click-through
+      // in terminals (it resolves to 127.0.0.1 either way).
+      const url = `http://localhost:${parsed.port}`;
       console.log(`⚡ zframes is live at ${url}`);
       console.log(
         `   serving ${parsed.file} — live editing on; drag, resize, then Save writes back.`,
