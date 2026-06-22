@@ -1,6 +1,7 @@
 import { defineFrame } from "@zframes/core";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
+import { tickerOf } from "./asset-logo";
 import { dailyAnalysisMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -156,7 +157,9 @@ function DailyAnalysis({ config }: { config: z.output<typeof schema> }) {
                         DIRECTION_COLOR.neutral,
                     }}
                   >
-                    {call.symbol ?? call.direction ?? "•"}
+                    {call.symbol
+                      ? tickerOf(call.symbol)
+                      : (call.direction ?? "•")}
                   </span>
                   <span className="text-normal">{call.claim}</span>
                 </div>

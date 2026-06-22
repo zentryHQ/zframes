@@ -33,7 +33,7 @@ function MoverRow({
   return (
     <div
       className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2"
-      title={`${symbol} · ${formatPrice(markPx)}`}
+      title={`${tickerOf(symbol)} · ${formatPrice(markPx)}`}
     >
       <AssetLogo symbol={symbol} size={16} />
       <span className="body-sm truncate font-bold text-white">
