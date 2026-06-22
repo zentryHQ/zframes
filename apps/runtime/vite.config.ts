@@ -44,6 +44,37 @@ export default defineConfig({
       "@zframes/provider-treasury",
     ],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Peel the heavy third-party libs off the entry chunk so the dashboard
+        // paints without waiting on them and they cache independently. The
+        // editor is split automatically by the React.lazy import in App.tsx;
+        // these are the libs the editor + charts pull in. Function form (not
+        // object form) because charts/frames are consumed as workspace TS
+        // source, not as resolvable node_modules package names.
+        manualChunks(id) {
+          // react/react-dom/scheduler — peeled off the entry so it caches
+          // across deploys (the substring can't match lucide-react /
+          // unicornstudio-react: those are `node_modules/<name>-react`).
+          if (
+            id.includes("node_modules/react") ||
+            id.includes("node_modules/scheduler")
+          )
+            return "react";
+          if (
+            id.includes("node_modules/d3") ||
+            id.includes("node_modules/internmap") ||
+            id.includes("node_modules/delaunator") ||
+            id.includes("node_modules/robust-predicates")
+          )
+            return "d3";
+          if (id.includes("node_modules/gridstack")) return "gridstack";
+          if (id.includes("node_modules/liveline")) return "liveline";
+        },
+      },
+    },
+  },
   server: {
     port: 37263,
     strictPort: true,
