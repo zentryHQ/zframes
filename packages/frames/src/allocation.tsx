@@ -22,8 +22,6 @@ function Allocation({ config }: { config: z.output<typeof schema> }) {
   );
   const { mids, isLoading } = useMidsState(symbols);
 
-  // Value each holding at its live mid; drop the not-yet-priced ones so the
-  // donut never renders a lopsided slice while prices trickle in.
   const slices = useMemo(
     () =>
       config.holdings
@@ -50,28 +48,31 @@ function Allocation({ config }: { config: z.output<typeof schema> }) {
         data={slices}
         width={200}
         height={200}
-        innerRadius={66}
+        innerRadius={58}
         outerRadius={92}
         colors={slices.map((slice) => slice.color)}
       >
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center gap-0.5">
           <span className="caption text-soft">total</span>
-          <span className="font-dmsans text-strong text-2xl font-bold tabular-nums">
+          <span className="font-dmsans text-strong text-3xl font-bold tabular-nums">
             {formatUsd(total)}
           </span>
         </div>
       </PieChart>
 
-      <div className="flex w-full max-w-xs flex-wrap justify-center gap-x-4 gap-y-1">
+      <div className="flex w-full max-w-xs flex-wrap justify-center gap-x-5 gap-y-1.5">
         {slices.map((slice) => (
           <div key={slice.name} className="flex items-center gap-1.5">
             <span
-              className="h-2 w-2 rounded-full"
+              className="h-2 w-2 flex-shrink-0 rounded-full"
               style={{ background: slice.color }}
             />
             <span className="body-sm text-soft">{slice.name}</span>
             <span className="body-sm text-normal font-bold tabular-nums">
               {((slice.value / total) * 100).toFixed(1)}%
+            </span>
+            <span className="caption text-soft tabular-nums">
+              {formatUsd(slice.value)}
             </span>
           </div>
         ))}

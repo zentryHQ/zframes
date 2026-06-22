@@ -44,8 +44,6 @@ function Fundamentals({ config }: { config: z.output<typeof schema> }) {
           </div>
         </div>
         <div className="caption text-soft shrink-0 text-right">
-          keyless
-          <br />
           on filing
         </div>
       </div>

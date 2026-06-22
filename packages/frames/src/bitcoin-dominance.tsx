@@ -8,9 +8,9 @@ import { FrameStatus } from "./ui";
 const schema = bitcoinDominanceMeta.schema;
 
 const SEGMENT_STYLE: Record<string, string> = {
-  BTC: "linear-gradient(90deg, #FF810F 0%, #FF9E37 81.48%)",
+  BTC: "linear-gradient(90deg, #FF810F 0%, #FF9E37 100%)",
   ETH: "#6366F1",
-  Others: "#6B7280",
+  Others: "#7C3AED",
 };
 
 /** Segmented BTC / ETH / Others dominance bar. */
@@ -35,17 +35,17 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3">
       <div className="flex items-baseline gap-2">
-        <span className="font-dmsans text-strong text-4xl font-bold tabular-nums">
+        <span className="font-dmsans text-strong text-5xl font-bold tabular-nums">
           {lead.value.toFixed(1)}%
         </span>
         <span className="body-md text-soft">{lead.type}</span>
       </div>
 
-      <div className="flex h-2.5 w-full max-w-xs gap-0.5 overflow-hidden">
-        {segments.map((item) => (
+      <div className="flex h-3 w-full max-w-sm gap-1 overflow-hidden rounded-full">
+        {segments.map((item, i) => (
           <div
             key={item.type}
-            className="h-full rounded-[2px] first:rounded-l-[10px] last:rounded-r-[10px]"
+            className={`h-full ${i === 0 ? "rounded-l-full" : ""} ${i === segments.length - 1 ? "rounded-r-full" : ""}`}
             style={{
               width: `${item.value}%`,
               background: SEGMENT_STYLE[item.type],
@@ -54,11 +54,11 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
         ))}
       </div>
 
-      <div className="flex w-full max-w-xs items-center justify-between">
+      <div className="grid w-full max-w-sm grid-cols-3">
         {segments.map((item) => (
-          <div key={item.type} className="flex items-center gap-1.5">
+          <div key={item.type} className="flex items-center justify-center gap-1.5">
             <div
-              className="h-[5px] w-[7px] rounded-full"
+              className="h-2 w-2 flex-shrink-0 rounded-full"
               style={{ background: SEGMENT_STYLE[item.type] }}
             />
             <span className="body-sm text-soft">{item.type}</span>
