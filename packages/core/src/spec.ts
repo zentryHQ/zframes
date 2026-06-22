@@ -202,7 +202,7 @@ export const DashboardSpecSchema = z.preprocess(
       .string()
       .optional()
       .describe(
-        'Who made this dashboard — a free-form credit, like package.json\'s author ("Micky" or "Micky <pichaya@zentry.com>"). Optional.',
+        'Who made this dashboard — a free-form credit, like package.json\'s author ("You" or "You <you@example.com>"). Optional.',
       ),
     grid: z
       .object({
