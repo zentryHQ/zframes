@@ -1,4 +1,5 @@
 import type { ZodType } from "zod";
+import { DASHBOARD_PROXY_ROUTE } from "./routes";
 
 /**
  * Polite, resilient JSON fetch shared by every provider. Centralises the
@@ -32,9 +33,6 @@ export interface FetchJsonOptions {
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const USER_AGENT = "zframes (+https://github.com/zentryhq/zframes)";
-// Must match `DASHBOARD_PROXY_ROUTE` in ./serve. Hardcoded (not imported) so the
-// browser bundle never pulls in serve.ts's node:fs dependency.
-const PROXY_ROUTE = "/__zframes/proxy";
 
 export async function fetchJson<T>(
   url: string,
@@ -51,7 +49,7 @@ export async function fetchJson<T>(
   // runtime, which relays the real host. In Node, fetch the target directly.
   const target =
     proxied && typeof document !== "undefined"
-      ? `${PROXY_ROUTE}?url=${encodeURIComponent(url)}`
+      ? `${DASHBOARD_PROXY_ROUTE}?url=${encodeURIComponent(url)}`
       : url;
   const res = await fetch(target, {
     ...init,

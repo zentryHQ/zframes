@@ -18,10 +18,13 @@ import { dirname, join } from "node:path";
  * as `./serve`, shared verbatim by the dev plugin and the CLI server.
  */
 
-/** GET → which agent runners are installed (drives the orb's visibility). */
-export const AGENTS_LIST_ROUTE = "/__zframes/agents";
-/** POST { question, agent? } → run the question through a runner, return text. */
-export const ASK_ROUTE = "/__zframes/ask";
+// Route strings live in `routes` (React-free AND Node-free) so the browser
+// bundle can import them without pulling in this file's `node:child_process` /
+// `node:fs` deps. Re-exported here for the Node servers that import them
+// alongside the handlers from `@zframes/core/agent`. Imported by package subpath
+// (NOT relative `./routes`) because this file is reached by Vite's Node
+// config-loader, which can't resolve a relative extensionless path.
+export { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/core/routes";
 
 const MAX_BODY_BYTES = 64_000; // a question, never an upload
 const RUN_TIMEOUT_MS = 120_000; // bound latency/cost — kill a runaway agent

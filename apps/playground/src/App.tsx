@@ -7,6 +7,10 @@ import {
   type DashboardSpec,
 } from "@zframes/core";
 import { DashboardEditor } from "@zframes/core/editor";
+import {
+  DASHBOARD_READ_ROUTE,
+  DASHBOARD_WRITE_ROUTE,
+} from "@zframes/core/routes";
 import { allFrames } from "@zframes/frames";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
 import { BlsProvider } from "@zframes/provider-bls";
@@ -35,11 +39,11 @@ const providers = [
   new FinraProvider(),
 ];
 
-// The runtime serves the user's dashboard.json at this route. Both `vite dev`
-// (via @zframes/core/vite) and `zframes serve` answer it, so a single prebuilt
-// bundle renders whatever file the server is pointed at — the spec is never
-// compiled in.
-const SPEC_ROUTE = "/__zframes/dashboard.json";
+// The runtime serves the user's dashboard.json at DASHBOARD_READ_ROUTE. Both
+// `vite dev` (via @zframes/core/vite) and `zframes serve` answer it, so a single
+// prebuilt bundle renders whatever file the server is pointed at — the spec is
+// never compiled in. The route strings come from @zframes/core/routes so the
+// app and the servers can't drift apart.
 
 type SpecIssue = { path: PropertyKey[]; message: string };
 type Load =
@@ -109,7 +113,7 @@ function SpecError({ issues }: { issues: SpecIssue[] }) {
 // (the editor's own "Export JSON" stays as a manual escape hatch).
 async function persist(next: DashboardSpec) {
   try {
-    const res = await fetch("/__zframes/dashboard", {
+    const res = await fetch(DASHBOARD_WRITE_ROUTE, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(next),
@@ -153,7 +157,7 @@ export default function App() {
     // Fetch once on mount. StrictMode runs this twice in dev; the `cancelled`
     // guard makes the discarded first run a no-op (a GET is idempotent anyway).
     let cancelled = false;
-    fetch(SPEC_ROUTE, { cache: "no-store" })
+    fetch(DASHBOARD_READ_ROUTE, { cache: "no-store" })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();

@@ -18,6 +18,7 @@
     "./frame": "./src/frame.ts",
     "./spec": "./src/spec.ts",
     "./catalogue": "./src/catalogue.ts",
+    "./routes": "./src/routes.ts",
     "./fetch": "./src/fetch.ts",
     "./editor": "./src/editor.tsx",
     "./vite": "./src/vite.ts",

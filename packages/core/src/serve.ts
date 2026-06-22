@@ -10,17 +10,17 @@ import { readFile, writeFile } from "node:fs/promises";
  * bundle it with zod as its lone runtime dep.
  */
 
-/** Canonical route the app FETCHES its spec from (GET). */
-export const DASHBOARD_READ_ROUTE = "/__zframes/dashboard.json";
-/** Canonical route the editor SAVES its spec to (PUT/POST). */
-export const DASHBOARD_WRITE_ROUTE = "/__zframes/dashboard";
-/**
- * Same-origin relay for official-data hosts that browsers can't fetch directly
- * (no CORS header, or a UA/bot wall). The browser hits this same-origin route
- * (no CORS check); Node fetches the upstream (no CORS rule applies) and streams
- * it back. Must match `PROXY_ROUTE` in `./fetch`, which rewrites to it.
- */
-export const DASHBOARD_PROXY_ROUTE = "/__zframes/proxy";
+// The reserved route strings live in `routes` (React-free AND Node-free) so the
+// browser bundle can import them without pulling in this file's `node:fs`
+// dependency. Re-exported here for the Node servers (`./vite`, the CLI) that
+// import them alongside the handlers from `@zframes/core/serve`. Imported by
+// package subpath (NOT relative `./routes`) because this file is reached by
+// Vite's Node config-loader, which can't resolve a relative extensionless path.
+export {
+  DASHBOARD_READ_ROUTE,
+  DASHBOARD_WRITE_ROUTE,
+  DASHBOARD_PROXY_ROUTE,
+} from "@zframes/core/routes";
 
 // Hard cap on the request body — a small spec file, never a large upload.
 const MAX_BODY_BYTES = 2_000_000;

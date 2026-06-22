@@ -5,6 +5,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/core/routes";
 import { OrbCanvas } from "./unicorn/orb-scene";
 import type { UnicornSceneType } from "./unicorn/types";
 
@@ -27,8 +28,6 @@ const SPEED_IDLE = 1;
 const SPEED_BUSY = 5;
 const EFFECT_LAYER_ID = "effect2";
 
-const AGENTS_ROUTE = "/__zframes/agents";
-const ASK_ROUTE = "/__zframes/ask";
 // Keep the floating history bounded — it's an ambient readout, not a transcript.
 const MAX_MESSAGES = 8;
 
@@ -216,13 +215,16 @@ export function ZaiOrb() {
 
   // Drive the orb scene's effect-layer speed: gentle when idle, fast while the
   // agent is thinking. Mirrors Nexus's AIAvatar isLoading behaviour.
-  const applySpeed = useCallback((scene: UnicornSceneType, thinking: boolean) => {
-    const layer = scene.layers?.find(
-      (l) => l.id === EFFECT_LAYER_ID && l.layerType === "effect",
-    );
-    if (layer && layer.layerType === "effect")
-      layer.speed = thinking ? SPEED_BUSY : SPEED_IDLE;
-  }, []);
+  const applySpeed = useCallback(
+    (scene: UnicornSceneType, thinking: boolean) => {
+      const layer = scene.layers?.find(
+        (l) => l.id === EFFECT_LAYER_ID && l.layerType === "effect",
+      );
+      if (layer && layer.layerType === "effect")
+        layer.speed = thinking ? SPEED_BUSY : SPEED_IDLE;
+    },
+    [],
+  );
 
   const handleScene = useCallback(
     (scene: UnicornSceneType | null) => {
@@ -251,7 +253,7 @@ export function ZaiOrb() {
   // Detect installed runners once. No runner → the orb stays hidden.
   useEffect(() => {
     let cancelled = false;
-    fetch(AGENTS_ROUTE, { cache: "no-store" })
+    fetch(AGENTS_LIST_ROUTE, { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : { agents: [] }))
       .then((json: { agents?: Agent[] }) => {
         if (cancelled) return;
@@ -287,7 +289,11 @@ export function ZaiOrb() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question, agent: activeAgent }),
       });
-      const json = (await res.json()) as { ok?: boolean; answer?: string; error?: string };
+      const json = (await res.json()) as {
+        ok?: boolean;
+        answer?: string;
+        error?: string;
+      };
       if (res.ok && json.ok && json.answer) {
         push({ role: "zai", text: json.answer });
       } else {
