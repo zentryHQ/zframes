@@ -1,6 +1,6 @@
 {
   "name": "zframes",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "zframes CLI — serve a dashboard.json as a live, editable market terminal (serve), print the frame catalogue for generating agents (catalogue), and validate a dashboard.json (lint).",
   "license": "Apache-2.0",
   "author": "Zentry",
