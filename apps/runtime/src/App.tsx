@@ -17,7 +17,9 @@ import { BlsProvider } from "@zframes/provider-bls";
 import { CoinGeckoProvider } from "@zframes/provider-coingecko";
 import { DefiLlamaProvider } from "@zframes/provider-defillama";
 import { FinraProvider } from "@zframes/provider-finra";
+import { HackerNewsProvider } from "@zframes/provider-hackernews";
 import { HyperliquidProvider } from "@zframes/provider-hyperliquid";
+import { NewsProvider } from "@zframes/provider-news";
 import { NyFedProvider } from "@zframes/provider-nyfed";
 import { OfrProvider } from "@zframes/provider-ofr";
 import { SecProvider } from "@zframes/provider-sec";
@@ -39,6 +41,8 @@ const providers = [
   new SecProvider(),
   new FinraProvider(),
   new OfrProvider(),
+  new NewsProvider(),
+  new HackerNewsProvider(),
 ];
 
 // The runtime serves the user's dashboard.json at DASHBOARD_READ_ROUTE. Both

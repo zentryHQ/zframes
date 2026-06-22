@@ -18,6 +18,7 @@ import type {
   MacroSeries,
   MarketDataProvider,
   NationalDebt,
+  NewsItem,
   ReferenceRate,
   SecCompanyFilings,
   ShortVolumeEntry,
@@ -503,4 +504,52 @@ export function useShortVolume(
     refreshMs,
   );
   return { data, isLoading };
+}
+
+/**
+ * Latest headlines from a named outlet feed (RSS), polled every few minutes.
+ * Pass an empty `feed` to disable the fetch (e.g. a per-symbol feed with no
+ * symbols selected) — the hook resolves to [] and stops loading.
+ */
+export function useNews(
+  feed: string,
+  symbols: readonly string[] | undefined,
+  limit: number,
+  refreshMs = 5 * 60_000,
+): { items: NewsItem[]; isLoading: boolean } {
+  const provider = useProviderFor("news");
+  const symbolKey = symbols ? symbols.join(",") : "";
+  const { data: items, isLoading } = usePolled<NewsItem[]>(
+    provider?.getNews && feed
+      ? () =>
+          provider.getNews!({
+            feed,
+            symbols: symbolKey ? symbolKey.split(",") : undefined,
+            limit,
+          })
+      : null,
+    [],
+    [provider, feed, symbolKey, limit, refreshMs],
+    refreshMs,
+  );
+  return { items, isLoading };
+}
+
+/**
+ * Community-ranked links + discussion (e.g. Hacker News), polled every few
+ * minutes. An empty `query` returns the source's front page / top stories.
+ */
+export function useSocial(
+  query: string,
+  limit: number,
+  refreshMs = 5 * 60_000,
+): { items: NewsItem[]; isLoading: boolean } {
+  const provider = useProviderFor("social");
+  const { data: items, isLoading } = usePolled<NewsItem[]>(
+    provider?.getSocial ? () => provider.getSocial!({ query, limit }) : null,
+    [],
+    [provider, query, limit, refreshMs],
+    refreshMs,
+  );
+  return { items, isLoading };
 }
