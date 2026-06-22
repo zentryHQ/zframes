@@ -23,7 +23,17 @@ export type Capability =
   | "protocol-tvl"
   | "protocol-fees"
   | "coin-markets"
-  | "open-interest";
+  | "open-interest"
+  | "btc-fees"
+  | "btc-mempool"
+  | "btc-blocks"
+  | "btc-hashrate"
+  | "btc-difficulty"
+  | "mining-pools"
+  | "lightning-stats"
+  | "options-summary"
+  | "volatility-index"
+  | "coin-movers";
 
 export interface DayStats {
   markPx: number;
@@ -414,6 +424,216 @@ export interface OpenInterestEntry {
   openInterestUsd: number;
 }
 
+/** Recommended on-chain fee tiers (sat/vB) from a mempool source. */
+export interface BtcFees {
+  /** Next-block inclusion. */
+  fastest: number;
+  halfHour: number;
+  hour: number;
+  economy: number;
+  minimum: number;
+}
+
+/** One projected ("template") block the mempool will likely mine next. */
+export interface ProjectedBlock {
+  /** Median fee rate, sat/vB. */
+  medianFee: number;
+  /** [min, …, max] sat/vB fee spread across the block. */
+  feeRange: number[];
+  /** Total fees in the projected block, sats. */
+  totalFees: number;
+  /** Transaction count. */
+  nTx: number;
+  /** Virtual size, vB. */
+  blockVSize: number;
+}
+
+/** Current mempool congestion + the next few projected blocks. */
+export interface MempoolState {
+  /** Unconfirmed transaction count. */
+  count: number;
+  /** Total vsize of the mempool, vB. */
+  vsize: number;
+  /** Sum of fees of all mempool txs, sats. */
+  totalFee: number;
+  /** Projected blocks, next-to-mine first (typically up to 8). */
+  projected: ProjectedBlock[];
+}
+
+/** One recently mined block (normalised). */
+export interface BtcBlock {
+  /** Block hash. */
+  id: string;
+  height: number;
+  /** Mined-at, epoch milliseconds. */
+  time: number;
+  txCount: number;
+  /** Block size, bytes. */
+  size: number;
+  /** Total fees paid in the block, sats. */
+  totalFees: number;
+  /** Median fee rate, sat/vB. */
+  medianFee: number;
+  /** Mining pool display name, e.g. "Foundry USA". */
+  poolName: string;
+  /** Mining pool slug, e.g. "foundryusa". */
+  poolSlug: string;
+}
+
+/** One observation in the hashrate history. */
+export interface HashratePoint {
+  /** Epoch milliseconds. */
+  time: number;
+  /** Average network hashrate, H/s. */
+  hashrate: number;
+}
+
+/** One observation in the difficulty history. */
+export interface DifficultyPoint {
+  /** Epoch milliseconds. */
+  time: number;
+  difficulty: number;
+}
+
+/** Network hashrate + difficulty over a window, with current readings. */
+export interface NetworkHashrate {
+  /** Latest network hashrate, H/s. */
+  currentHashrate: number;
+  currentDifficulty: number;
+  /** Hashrate history, oldest → newest. */
+  hashrates: HashratePoint[];
+  /** Difficulty history, oldest → newest. */
+  difficulty: DifficultyPoint[];
+}
+
+/** Countdown + estimate to the next Bitcoin difficulty retarget. */
+export interface DifficultyAdjustment {
+  /** Progress through the current 2016-block epoch, percent (0–100). */
+  progressPercent: number;
+  /** Signed estimated % change at the NEXT retarget (+ = harder). */
+  difficultyChange: number;
+  /** Signed % change applied at the PREVIOUS retarget. */
+  previousRetarget: number;
+  /** Blocks left until the retarget. */
+  remainingBlocks: number;
+  /** Time left until the retarget, milliseconds. */
+  remainingTimeMs: number;
+  /** Estimated retarget moment, epoch milliseconds. */
+  estimatedRetargetDate: number;
+  /** Block height of the next retarget. */
+  nextRetargetHeight: number;
+  /** Average block time this epoch, ms (target = 600_000). */
+  avgBlockTimeMs: number;
+}
+
+/** One mining pool's share over a window. */
+export interface MiningPool {
+  name: string;
+  slug: string;
+  /** Blocks mined in the window. */
+  blockCount: number;
+  /** Share of window blocks, percent (0–100). */
+  sharePct: number;
+  rank: number;
+}
+
+/** Mining-pool dominance over a window. */
+export interface MiningPools {
+  /** Window label echoed back, e.g. "1w". */
+  window: string;
+  /** Total blocks in the window (denominator for share). */
+  totalBlocks: number;
+  /** Pools in rank order. */
+  pools: MiningPool[];
+}
+
+/** Lightning Network summary stats. */
+export interface LightningStats {
+  nodeCount: number;
+  channelCount: number;
+  /** Total public capacity, sats. */
+  totalCapacity: number;
+  torNodes: number;
+  clearnetNodes: number;
+  /** Median channel capacity, sats. */
+  medCapacity: number;
+  /** Prior-day snapshot for a delta (when present). */
+  prevNodeCount?: number;
+  prevChannelCount?: number;
+  prevTotalCapacity?: number;
+}
+
+/** Call vs put open interest at one strike. */
+export interface OptionsStrikeOi {
+  strike: number;
+  /** Call open interest at this strike (contracts). */
+  callOi: number;
+  /** Put open interest at this strike (contracts). */
+  putOi: number;
+}
+
+/** Per-strike call/put OI for one expiry. */
+export interface OptionsExpiryStrikes {
+  /** Expiry label as Deribit names it, e.g. "27JUN26". */
+  expiry: string;
+  /** Expiry as epoch ms (for sorting / "nearest"). */
+  expiryMs: number;
+  /** Strikes ascending; one row per strike present in the book. */
+  strikes: OptionsStrikeOi[];
+}
+
+/** Aggregated options-market summary for one currency (BTC/ETH), one snapshot. */
+export interface OptionsSummary {
+  /** Upper-case currency, e.g. "BTC". */
+  currency: string;
+  /** Reference spot/underlying price (USD) for ATM context. */
+  underlyingPrice: number;
+  /** Put/call ratio by total open interest (sum putOI / sum callOI). */
+  putCallRatioOi: number;
+  /** Put/call ratio by 24h contract volume. */
+  putCallRatioVolume: number;
+  /** Total call open interest (contracts). */
+  callOi: number;
+  /** Total put open interest (contracts). */
+  putOi: number;
+  /** Total 24h call volume (contracts). */
+  callVolume: number;
+  /** Total 24h put volume (contracts). */
+  putVolume: number;
+  /** Open-interest-weighted mean implied vol % across the book (ATM-ish proxy). */
+  avgIv: number;
+  /** Per-strike OI for the single nearest expiry, ascending by strike. */
+  nearestExpiry: OptionsExpiryStrikes;
+  /** Epoch ms the snapshot was built. */
+  asOf: number;
+}
+
+/** One point on a volatility index (DVOL) series. */
+export interface VolatilityPoint {
+  /** Epoch ms. */
+  time: number;
+  /** Index value (annualised IV %, e.g. 38.7). */
+  value: number;
+}
+
+/** One coin's multi-window price-change snapshot across the broad market. */
+export interface CoinMover {
+  /** Upper-case ticker, e.g. "BTC". */
+  symbol: string;
+  /** Display name, e.g. "Bitcoin". */
+  name: string;
+  /** Market-cap rank (1 = largest). Lets a frame exclude illiquid dust. */
+  rank: number;
+  /** Spot price, USD. */
+  priceUsd: number;
+  /** Market capitalisation, USD. */
+  marketCapUsd: number;
+  /** 24h volume, USD — a liquidity floor for filtering dust pumps. */
+  volume24hUsd: number;
+  /** % price change per window. Keys: "1h" | "24h" | "7d" | "30d". */
+  changePct: Record<string, number>;
+}
+
 export type Unsubscribe = () => void;
 
 /**
@@ -502,4 +722,31 @@ export interface MarketDataProvider {
    * dex's entire universe.
    */
   getOpenInterest?(symbols?: string[]): Promise<OpenInterestEntry[]>;
+  /** Recommended on-chain fee tiers (sat/vB). */
+  getBtcFees?(): Promise<BtcFees>;
+  /** Current mempool congestion + projected blocks. */
+  getMempoolState?(): Promise<MempoolState>;
+  /** Most recently mined blocks, newest first. */
+  getBtcBlocks?(limit?: number): Promise<BtcBlock[]>;
+  /** Network hashrate + difficulty over a window ("1y" | "2y" | "3y" | …). */
+  getNetworkHashrate?(window: string): Promise<NetworkHashrate>;
+  /** Countdown + estimate to the next difficulty retarget. */
+  getDifficultyAdjustment?(): Promise<DifficultyAdjustment>;
+  /** Mining-pool dominance over a window ("24h" | "3d" | "1w" | …). */
+  getMiningPools?(window: string): Promise<MiningPools>;
+  /** Lightning Network summary stats. */
+  getLightningStats?(): Promise<LightningStats>;
+  /** Aggregated options summary (PCR, OI-by-strike, avg IV) for one currency. */
+  getOptionsSummary?(currency: string): Promise<OptionsSummary>;
+  /** Volatility-index (DVOL) history for one currency since startTimeMs. */
+  getVolatilityIndex?(
+    currency: string,
+    startTimeMs: number,
+    resolutionSec: number,
+  ): Promise<VolatilityPoint[]>;
+  /**
+   * Broad multi-window price-change snapshots across the market, descending by
+   * market cap. `limit` caps how many coins to pull (provider may cap lower).
+   */
+  getCoinMovers?(limit?: number): Promise<CoinMover[]>;
 }

@@ -1,0 +1,26 @@
+{
+  "name": "@zframes/provider-mempool",
+  "version": "0.0.0",
+  "description": "Keyless zframes data provider for mempool.space: Bitcoin fees, mempool, blocks, hashrate, difficulty, mining pools, and Lightning stats.",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/provider-mempool"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

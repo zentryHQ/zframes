@@ -55,18 +55,24 @@ importers:
       '@zframes/provider-coingecko':
         specifier: workspace:*
         version: link:../../packages/provider-coingecko
+      '@zframes/provider-coinpaprika':
+        specifier: workspace:*
+        version: link:../../packages/provider-coinpaprika
       '@zframes/provider-defillama':
         specifier: workspace:*
         version: link:../../packages/provider-defillama
+      '@zframes/provider-deribit':
+        specifier: workspace:*
+        version: link:../../packages/provider-deribit
       '@zframes/provider-finra':
         specifier: workspace:*
         version: link:../../packages/provider-finra
-      '@zframes/provider-hackernews':
-        specifier: workspace:*
-        version: link:../../packages/provider-hackernews
       '@zframes/provider-hyperliquid':
         specifier: workspace:*
         version: link:../../packages/provider-hyperliquid
+      '@zframes/provider-mempool':
+        specifier: workspace:*
+        version: link:../../packages/provider-mempool
       '@zframes/provider-news':
         specifier: workspace:*
         version: link:../../packages/provider-news
@@ -302,7 +308,27 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-coinpaprika:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-defillama:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-deribit:
     dependencies:
       '@zframes/core':
         specifier: workspace:*
@@ -322,7 +348,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
-  packages/provider-hackernews:
+  packages/provider-hyperliquid:
     dependencies:
       '@zframes/core':
         specifier: workspace:*
@@ -332,7 +358,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
-  packages/provider-hyperliquid:
+  packages/provider-mempool:
     dependencies:
       '@zframes/core':
         specifier: workspace:*

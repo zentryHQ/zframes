@@ -1,0 +1,26 @@
+{
+  "name": "@zframes/provider-coinpaprika",
+  "version": "0.0.0",
+  "description": "Free-tier zframes data provider for Coinpaprika: broad multi-window coin movers across ~2000 coins (coin-movers capability).",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/provider-coinpaprika"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
