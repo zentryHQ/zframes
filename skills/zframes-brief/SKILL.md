@@ -29,7 +29,7 @@ the build skill:
 ## 1. Locate the app
 
 The app is a directory with `src/dashboard.json` (inside the monorepo that's
-`apps/playground/`). If the user named one or you're in one, that's the target.
+`apps/runtime/`). If the user named one or you're in one, that's the target.
 Its analysis log lives at `<app>/public/daily-analysis.json`.
 
 ## 2. One-time setup (idempotent — skip if already done)

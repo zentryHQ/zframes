@@ -10,8 +10,8 @@
   "private": true,
   "packageManager": "pnpm@9.6.0",
   "scripts": {
-    "dev": "pnpm --filter @zframes/playground dev",
-    "build": "pnpm --filter @zframes/playground build",
+    "dev": "pnpm --filter @zframes/runtime dev",
+    "build": "pnpm --filter @zframes/runtime build",
     "typecheck": "pnpm -r typecheck",
     "zframes": "node packages/cli/dist/index.js",
     "build:cli": "pnpm --filter zframes build",

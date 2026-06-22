@@ -13,7 +13,7 @@ importers:
 
   .: {}
 
-  apps/playground:
+  apps/runtime:
     dependencies:
       '@zframes/charts':
         specifier: workspace:*

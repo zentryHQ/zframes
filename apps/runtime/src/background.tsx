@@ -4,7 +4,7 @@ import { lazy, Suspense } from "react";
 // Lazy so dashboards that don't use a Unicorn scene never fetch the SDK bundle.
 const UnicornScene = lazy(() => import("unicornstudio-react"));
 
-// Self-hosted from apps/playground/public/ so the engine ships in the prebuilt
+// Self-hosted from apps/runtime/public/ so the engine ships in the prebuilt
 // bundle instead of being pulled from a CDN. This is the MODERN engine (reads
 // the hosted `layers`-format projects); `unicornstudio-react` loads it onto
 // window.UnicornStudio. The orb deliberately uses a DIFFERENT, isolated legacy
