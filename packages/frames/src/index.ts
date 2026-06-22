@@ -29,6 +29,16 @@ export { shortVolumeFrame } from "./short-volume";
 export { topMoversFrame } from "./top-movers";
 export { tvlTreemapFrame } from "./tvl-treemap";
 export { yieldCurveFrame } from "./yield-curve";
+export { dexVolumeTreemapFrame } from "./dex-volume-treemap";
+export { dexVolumeChartFrame } from "./dex-volume-chart";
+export { protocolTvlTreemapFrame } from "./protocol-tvl-treemap";
+export { protocolTvlChartFrame } from "./protocol-tvl-chart";
+export { protocolFeesTreemapFrame } from "./protocol-fees-treemap";
+export { marketCapTreemapFrame } from "./market-cap-treemap";
+export { openInterestFrame } from "./open-interest";
+export { snakeFrame } from "./snake";
+export { flappyBirdFrame } from "./flappy-bird";
+export { videoFrame } from "./video";
 
 import type { AnyFrameDefinition } from "@zframes/core";
 import { allocationFrame } from "./allocation";
@@ -61,6 +71,16 @@ import { shortVolumeFrame } from "./short-volume";
 import { topMoversFrame } from "./top-movers";
 import { tvlTreemapFrame } from "./tvl-treemap";
 import { yieldCurveFrame } from "./yield-curve";
+import { dexVolumeTreemapFrame } from "./dex-volume-treemap";
+import { dexVolumeChartFrame } from "./dex-volume-chart";
+import { protocolTvlTreemapFrame } from "./protocol-tvl-treemap";
+import { protocolTvlChartFrame } from "./protocol-tvl-chart";
+import { protocolFeesTreemapFrame } from "./protocol-fees-treemap";
+import { marketCapTreemapFrame } from "./market-cap-treemap";
+import { openInterestFrame } from "./open-interest";
+import { snakeFrame } from "./snake";
+import { flappyBirdFrame } from "./flappy-bird";
+import { videoFrame } from "./video";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -94,4 +114,14 @@ export const allFrames: AnyFrameDefinition[] = [
   topMoversFrame,
   tvlTreemapFrame,
   yieldCurveFrame,
+  dexVolumeTreemapFrame,
+  dexVolumeChartFrame,
+  protocolTvlTreemapFrame,
+  protocolTvlChartFrame,
+  protocolFeesTreemapFrame,
+  marketCapTreemapFrame,
+  openInterestFrame,
+  snakeFrame,
+  flappyBirdFrame,
+  videoFrame,
 ];

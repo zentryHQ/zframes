@@ -9,8 +9,10 @@ import {
 import type {
   Candle,
   Capability,
+  CoinMarketEntry,
   CompanyFacts,
   DayStats,
+  DexVolumeEntry,
   FearGreedPoint,
   FinancialStress,
   FundingPoint,
@@ -19,8 +21,12 @@ import type {
   MarketDataProvider,
   NationalDebt,
   NewsItem,
+  OpenInterestEntry,
+  ProtocolFeesEntry,
+  ProtocolTvlEntry,
   ReferenceRate,
   SecCompanyFilings,
+  SeriesPoint,
   ShortVolumeEntry,
   TreasuryAuction,
   TreasuryAverageRate,
@@ -291,6 +297,125 @@ export function useTvlByChain(refreshMs = 10 * 60_000): {
     provider?.getTvlByChain ? () => provider.getTvlByChain!() : null,
     [],
     [provider, refreshMs],
+    refreshMs,
+  );
+  return { entries, isLoading };
+}
+
+/** Trailing-24h DEX volume per protocol, polled slowly (volume aggregates move slowly). */
+export function useDexVolume(refreshMs = 10 * 60_000): {
+  entries: DexVolumeEntry[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("dex-volume");
+  const { data: entries, isLoading } = usePolled<DexVolumeEntry[]>(
+    provider?.getDexVolume ? () => provider.getDexVolume!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { entries, isLoading };
+}
+
+/** Historical daily DEX volume per protocol slug, re-fetched on an interval. */
+export function useDexVolumeHistory(
+  slugs: readonly string[],
+  refreshMs = 5 * 60_000,
+): { history: Record<string, SeriesPoint[]>; isLoading: boolean } {
+  const provider = useProviderFor("dex-volume");
+  const key = slugs.join(",");
+  const wanted = key.split(",").filter(Boolean);
+  const { data: history, isLoading } = usePolled<Record<string, SeriesPoint[]>>(
+    provider?.getDexVolumeHistory && wanted.length > 0
+      ? () => provider.getDexVolumeHistory!(wanted)
+      : null,
+    {},
+    [provider, key, refreshMs],
+    refreshMs,
+  );
+  return { history, isLoading };
+}
+
+/** Current TVL per DeFi protocol, polled slowly. */
+export function useProtocolTvl(refreshMs = 10 * 60_000): {
+  entries: ProtocolTvlEntry[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("protocol-tvl");
+  const { data: entries, isLoading } = usePolled<ProtocolTvlEntry[]>(
+    provider?.getProtocolTvl ? () => provider.getProtocolTvl!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { entries, isLoading };
+}
+
+/** Historical TVL per protocol slug, re-fetched on an interval. */
+export function useProtocolTvlHistory(
+  slugs: readonly string[],
+  refreshMs = 5 * 60_000,
+): { history: Record<string, SeriesPoint[]>; isLoading: boolean } {
+  const provider = useProviderFor("protocol-tvl");
+  const key = slugs.join(",");
+  const wanted = key.split(",").filter(Boolean);
+  const { data: history, isLoading } = usePolled<Record<string, SeriesPoint[]>>(
+    provider?.getProtocolTvlHistory && wanted.length > 0
+      ? () => provider.getProtocolTvlHistory!(wanted)
+      : null,
+    {},
+    [provider, key, refreshMs],
+    refreshMs,
+  );
+  return { history, isLoading };
+}
+
+/** Trailing-24h protocol fees per protocol, polled slowly. */
+export function useProtocolFees(refreshMs = 10 * 60_000): {
+  entries: ProtocolFeesEntry[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("protocol-fees");
+  const { data: entries, isLoading } = usePolled<ProtocolFeesEntry[]>(
+    provider?.getProtocolFees ? () => provider.getProtocolFees!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { entries, isLoading };
+}
+
+/** Coin market-cap snapshots (descending), polled slowly (the source is rate-limited). */
+export function useCoinMarkets(refreshMs = 10 * 60_000): {
+  entries: CoinMarketEntry[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("coin-markets");
+  const { data: entries, isLoading } = usePolled<CoinMarketEntry[]>(
+    provider?.getCoinMarkets ? () => provider.getCoinMarkets!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { entries, isLoading };
+}
+
+/**
+ * Live open interest per perp symbol (single venue), polled every ~30s. Pass no
+ * symbols for the provider's full universe, or a "<dex>:*" wildcard for a whole
+ * dex (e.g. "xyz:*" for every HIP-3 equity).
+ */
+export function useOpenInterest(
+  symbols?: readonly string[],
+  refreshMs = 30_000,
+): { entries: OpenInterestEntry[]; isLoading: boolean } {
+  const provider = useProviderFor("open-interest");
+  const key = symbols ? symbols.join(",") : "*";
+  const wanted = key === "*" ? undefined : key.split(",").filter(Boolean);
+  const { data: entries, isLoading } = usePolled<OpenInterestEntry[]>(
+    provider?.getOpenInterest ? () => provider.getOpenInterest!(wanted) : null,
+    [],
+    [provider, key, refreshMs],
     refreshMs,
   );
   return { entries, isLoading };

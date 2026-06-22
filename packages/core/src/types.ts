@@ -18,7 +18,12 @@ export type Capability =
   | "fundamentals"
   | "filings"
   | "short-volume"
-  | "social";
+  | "social"
+  | "dex-volume"
+  | "protocol-tvl"
+  | "protocol-fees"
+  | "coin-markets"
+  | "open-interest";
 
 export interface DayStats {
   markPx: number;
@@ -353,6 +358,62 @@ export interface SocialQuery {
   limit?: number;
 }
 
+/** One observation in a generic numeric time series (epoch ms → value). */
+export interface SeriesPoint {
+  /** Epoch milliseconds. */
+  time: number;
+  value: number;
+}
+
+/** 24h trading volume for one DEX protocol. */
+export interface DexVolumeEntry {
+  name: string;
+  /** Trailing-24h volume, USD. */
+  volume24h: number;
+  /** 1-day change in volume, percent (when the source reports it). */
+  changePct?: number;
+}
+
+/** Current total value locked for one DeFi protocol. */
+export interface ProtocolTvlEntry {
+  name: string;
+  /** Current TVL, USD. */
+  tvl: number;
+  /** DeFiLlama category, e.g. "Dexes", "Lending", "Liquid Staking". */
+  category?: string;
+  /** 1-day change in TVL, percent (when the source reports it). */
+  changePct?: number;
+}
+
+/** Trailing-24h protocol fees for one DeFi protocol. */
+export interface ProtocolFeesEntry {
+  name: string;
+  /** Fees accrued in the last 24h, USD. */
+  fees24h: number;
+  /** 1-day change, percent (when the source reports it). */
+  changePct?: number;
+}
+
+/** One coin's market-cap snapshot. */
+export interface CoinMarketEntry {
+  /** Upper-case ticker, e.g. "BTC". */
+  symbol: string;
+  /** Display name, e.g. "Bitcoin". */
+  name: string;
+  /** Market capitalisation, USD. */
+  marketCapUsd: number;
+  /** 24h price change, percent (when the source reports it). */
+  changePct24h?: number;
+}
+
+/** Live open interest for one perp symbol (single venue). */
+export interface OpenInterestEntry {
+  /** Provider-native symbol, e.g. "BTC", "xyz:TSLA". */
+  symbol: string;
+  /** Open interest as USD notional (base-unit OI × mark price). */
+  openInterestUsd: number;
+}
+
 export type Unsubscribe = () => void;
 
 /**
@@ -421,4 +482,24 @@ export interface MarketDataProvider {
   getNews?(query: NewsQuery): Promise<NewsItem[]>;
   /** Community-ranked links + discussion (e.g. Hacker News), highest-ranked first. */
   getSocial?(query: SocialQuery): Promise<NewsItem[]>;
+  /** Trailing-24h trading volume per DEX protocol, descending. */
+  getDexVolume?(): Promise<DexVolumeEntry[]>;
+  /** Historical daily DEX volume per protocol slug. */
+  getDexVolumeHistory?(slugs: string[]): Promise<Record<string, SeriesPoint[]>>;
+  /** Current TVL per DeFi protocol, descending. */
+  getProtocolTvl?(): Promise<ProtocolTvlEntry[]>;
+  /** Historical TVL per protocol slug. */
+  getProtocolTvlHistory?(
+    slugs: string[],
+  ): Promise<Record<string, SeriesPoint[]>>;
+  /** Trailing-24h protocol fees per protocol, descending. */
+  getProtocolFees?(): Promise<ProtocolFeesEntry[]>;
+  /** Coin market-cap snapshots, descending by market cap. */
+  getCoinMarkets?(): Promise<CoinMarketEntry[]>;
+  /**
+   * Live open interest per perp symbol (single venue). Omitting `symbols`
+   * returns the provider's full universe; a "<dex>:*" wildcard returns that
+   * dex's entire universe.
+   */
+  getOpenInterest?(symbols?: string[]): Promise<OpenInterestEntry[]>;
 }
