@@ -5,7 +5,7 @@ description: Run the daily market brief on the user's zframes dashboard — anal
 
 # zframes-brief — your dashboard's daily analyst
 
-This is the daily loop that makes the terminal smarter over time. Each run you:
+This is the daily loop that makes the terminal sharper over time. Each run you:
 read the user's dashboard → pull a market snapshot for the symbols on it →
 **grade yesterday's calls** against what actually happened → write today's
 analysis + a few fresh, checkable calls → append it all to one log file.

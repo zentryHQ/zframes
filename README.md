@@ -2,7 +2,7 @@
   <img src="docs/assets/zframes-banner.png" alt="zframes" width="100%">
 </p>
 
-<p align="center"><b>Describe your dashboard. An agent builds it. It gets smarter every day.</b></p>
+<p align="center"><b>Describe your dashboard. An agent builds it. It gets sharper every day.</b></p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache-2.0"></a>
