@@ -25,6 +25,8 @@ copyright and license; consult the respective package for full terms.
     (see patches/liveline@0.0.7.patch).
   - gridstack — MIT — drag/resize grid layout powering the editable dashboard.
   - zod — MIT — schema definitions and dashboard.json validation.
+  - sirv (with @polka/url, mrmime, totalist) — MIT — static file serving for
+    the `serve` runtime (assets, sibling files, SPA fallback).
   - d3, d3-hierarchy — ISC — chart math and layout.
   - unicornstudio-react — MIT — optional animated background (host-only; the
     Unicorn Studio SDK itself loads lazily from a CDN at runtime).

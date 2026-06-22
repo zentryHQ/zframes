@@ -38,6 +38,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "sirv": "^3.0.2",
     "zod": "^4.1.0"
   },
   "devDependencies": {

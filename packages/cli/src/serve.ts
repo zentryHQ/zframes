@@ -1,7 +1,8 @@
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
-import { extname, join, resolve, sep } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import sirv from "sirv";
 import {
   DASHBOARD_PROXY_ROUTE,
   DASHBOARD_READ_ROUTE,
@@ -18,24 +19,6 @@ import {
 } from "@zframes/core/agent";
 
 const DEFAULT_PORT = 37263;
-
-const MIME: Record<string, string> = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".mjs": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".map": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".ico": "image/x-icon",
-  ".woff2": "font/woff2",
-  ".txt": "text/plain; charset=utf-8",
-};
 
 interface ServeArgs {
   file: string;
@@ -69,40 +52,6 @@ function parseArgs(args: string[]): ServeArgs | { error: string } {
   return { file, port, contact };
 }
 
-/** Resolve a URL path inside `rootDir`, or null if it escapes (traversal). */
-function resolveWithin(rootDir: string, decodedPath: string): string | null {
-  const rel = decodedPath === "/" ? "/index.html" : decodedPath;
-  const abs = resolve(rootDir, `.${rel}`);
-  if (abs !== rootDir && !abs.startsWith(rootDir + sep)) return null;
-  return abs;
-}
-
-function sendFile(absPath: string, res: import("node:http").ServerResponse) {
-  res.statusCode = 200;
-  res.setHeader(
-    "content-type",
-    MIME[extname(absPath).toLowerCase()] ?? "application/octet-stream",
-  );
-  createReadStream(absPath).pipe(res);
-}
-
-/** Serve `decodedPath` from `rootDir` if it resolves to a real file within it. */
-function tryStatic(
-  rootDir: string,
-  decodedPath: string,
-  res: import("node:http").ServerResponse,
-): boolean {
-  const abs = resolveWithin(rootDir, decodedPath);
-  if (!abs) return false;
-  try {
-    if (!statSync(abs).isFile()) return false;
-  } catch {
-    return false;
-  }
-  sendFile(abs, res);
-  return true;
-}
-
 export function serve(args: string[]): Promise<number> {
   const parsed = parseArgs(args);
   if ("error" in parsed) {
@@ -128,6 +77,15 @@ export function serve(args: string[]): Promise<number> {
     console.error("  run `pnpm build:cli` to build it.");
     return Promise.resolve(1);
   }
+
+  // Static serving via sirv (MIME, ETag, range, traversal safety). `dev: true`
+  // re-stats per request so a saved sibling file or a rebuilt bundle is never
+  // served stale — the right trade for a localhost live-editing tool. Three
+  // roots tried in order: bundle assets, then sibling files next to
+  // dashboard.json, then the bundle's index.html as the SPA fallback.
+  const serveBundle = sirv(bundleDir, { dev: true });
+  const serveSiblings = sirv(userDir, { dev: true });
+  const serveSpa = sirv(bundleDir, { dev: true, single: true });
 
   return new Promise<number>((done) => {
     const server = createServer((req, res) => {
@@ -189,13 +147,17 @@ export function serve(args: string[]): Promise<number> {
         return;
       }
 
-      // 2. Bundle assets (index.html at "/", hashed /assets/*).
-      if (tryStatic(bundleDir, path, res)) return;
-      // 3. Sibling files next to dashboard.json (e.g. /daily-analysis.json,
-      //    local image assets) — never the bundle's job.
-      if (path !== "/" && tryStatic(userDir, path, res)) return;
-      // 4. SPA fallback.
-      sendFile(join(bundleDir, "index.html"), res);
+      // 2. Bundle assets ("/" → index.html, hashed /assets/*) → 3. sibling
+      //    files next to dashboard.json (e.g. /daily-analysis.json, local
+      //    images) → 4. SPA fallback to the bundle's index.html.
+      serveBundle(req, res, () =>
+        serveSiblings(req, res, () =>
+          serveSpa(req, res, () => {
+            res.statusCode = 404;
+            res.end();
+          }),
+        ),
+      );
     });
 
     server.on("error", (err: NodeJS.ErrnoException) => {

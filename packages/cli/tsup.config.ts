@@ -4,7 +4,7 @@ export default defineConfig({
   entry: ["src/index.ts"],
   format: "esm",
   clean: true,
-  // Workspace packages ship TS source — bundle them so the built CLI runs
-  // on plain node with only zod as a runtime dependency.
+  // Workspace packages ship TS source — bundle them so the built CLI's only
+  // runtime dependencies are the third-party libs in package.json (zod, sirv).
   noExternal: [/^@zframes\//],
 });
