@@ -319,34 +319,21 @@ function TreeChartInner<T extends TreeNode>({
       }
     };
 
-    const blendColor = (base: string, overlay: string, alpha: number) => {
-      const toRGB = (hex: string) =>
-        hex.match(/[A-F0-9]{2}/gi)?.map((x) => parseInt(x, 16)) || [0, 0, 0];
-      const [Rb, Gb, Bb] = toRGB(base);
-      const [Ro, Go, Bo] = toRGB(overlay);
-
-      const R = Math.round(Ro * alpha + Rb * (1 - alpha));
-      const G = Math.round(Go * alpha + Gb * (1 - alpha));
-      const B = Math.round(Bo * alpha + Bb * (1 - alpha));
-
-      return `#${[R, G, B].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
-    };
-
-    const getDiscreteOpacity = (intensity: number, colorValue: number) => {
-      if (colorValue < 0) {
-        const invertedIntensity = 1 - intensity;
-        if (invertedIntensity >= 0.75) return 0.6;
-        if (invertedIntensity >= 0.5) return 0.4;
-        if (invertedIntensity >= 0.25) return 0.3;
-        return 0.2;
-      } else {
-        if (intensity >= 0.75) return 0.1;
-        if (intensity >= 0.6) return 0.2;
-        if (intensity >= 0.5) return 0.3;
-        if (intensity >= 0.25) return 0.4;
-        if (intensity >= 0.1) return 0.45;
-        return 0.5;
+    // Diverging up/down ramp, tuned for a dark indigo ground. Hues are picked
+    // so the dimmest tiles still read as red/green instead of muddy: orange-reds
+    // (hue ~4) turn brown at low lightness, so down uses a crimson hue that stays
+    // red even when dark; up uses a calm emerald rather than neon mint. Each side
+    // gets its own lightness/saturation curve, floored well above black so the
+    // smallest movers are legible without the brightest ones going garish.
+    const getColor = (intensity: number, colorValue: number): string => {
+      if (colorValue >= 0) {
+        const l = Math.round(34 + intensity * 16); // 34% → 50%
+        const s = Math.round(42 + intensity * 20); // 42% → 62%
+        return `hsl(152 ${s}% ${l}%)`;
       }
+      const l = Math.round(36 + intensity * 15); // 36% → 51%
+      const s = Math.round(48 + intensity * 22); // 48% → 70%
+      return `hsl(350 ${s}% ${l}%)`;
     };
 
     const uniqueX0Values = [...new Set(leaves.map((leaf) => leaf.x0))].sort(
@@ -363,13 +350,9 @@ function TreeChartInner<T extends TreeNode>({
         ? getColorValue(leaf.data)
         : leaf.data.value;
       const intensity = getColorIntensity(colorValue);
-      const opacity = getDiscreteOpacity(intensity, colorValue);
       const columnIndex = x0ToColumnIndex.get(leaf.x0) ?? 0;
 
-      const baseColor =
-        colorValue >= 0
-          ? blendColor("#25A78D", "#000000", opacity)
-          : blendColor("#F21553", "#000000", opacity);
+      const baseColor = getColor(intensity, colorValue);
 
       return (
         <div
