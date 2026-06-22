@@ -19,6 +19,7 @@
     "@zframes/provider-finra": "workspace:*",
     "@zframes/provider-hyperliquid": "workspace:*",
     "@zframes/provider-nyfed": "workspace:*",
+    "@zframes/provider-ofr": "workspace:*",
     "@zframes/provider-sec": "workspace:*",
     "@zframes/provider-treasury": "workspace:*",
     "gridstack": "^12.1.0",

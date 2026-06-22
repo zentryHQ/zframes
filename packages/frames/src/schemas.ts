@@ -37,6 +37,10 @@ const SOURCES = {
     name: "FINRA",
     url: "https://www.finra.org/finra-data/browse-catalog/short-sale-volume-data",
   },
+  ofr: {
+    name: "OFR",
+    url: "https://www.financialresearch.gov/financial-stress-index/",
+  },
 } satisfies Record<string, FrameSource>;
 
 export const clockMeta = defineFrameMeta({
@@ -353,6 +357,96 @@ export const inflationPulseMeta = defineFrameMeta({
   }),
 });
 
+export const financialStressMeta = defineFrameMeta({
+  name: "financial-stress",
+  iconUrl: widgetIcon("financial-stress"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "The OFR Financial Stress Index — a daily, market-based gauge of systemic financial stress from the U.S. Office of Financial Research. One headline value where 0 is the long-run average (positive = elevated stress, negative = calmer than normal), an optional breakdown of the five contributing categories (credit, equity valuation, safe assets, funding, volatility), and a trend line. Keyless official data, updated each business day; needs the zframes runtime's data proxy (ships with `zframes serve` / `vite dev`). Not a price feed.",
+  capabilities: ["financial-stress"],
+  source: SOURCES.ofr,
+  schema: z.object({
+    trendDays: z
+      .number()
+      .int()
+      .min(20)
+      .max(90)
+      .default(60)
+      .describe("How many recent daily readings to plot in the trend line."),
+    showCategories: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Show the five category contributions (credit, equity valuation, safe assets, funding, volatility) under the headline.",
+      ),
+  }),
+});
+
+export const nationalDebtMeta = defineFrameMeta({
+  name: "national-debt",
+  iconUrl: widgetIcon("national-debt"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "U.S. total public debt outstanding from the Treasury's keyless 'Debt to the Penny' dataset — the headline total in trillions, the change over the chosen window, an optional split into debt held by the public vs intragovernmental holdings, and a trend line. Official data updated each business day; CORS-safe (no proxy needed). Macro context, not a live price feed.",
+  capabilities: ["national-debt"],
+  source: SOURCES.treasury,
+  schema: z.object({
+    trendDays: z
+      .number()
+      .int()
+      .min(30)
+      .max(365)
+      .default(180)
+      .describe(
+        "How many business days of history to load for the trend and the change figure.",
+      ),
+    showSplit: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Show the debt-held-by-the-public vs intragovernmental-holdings split.",
+      ),
+  }),
+});
+
+export const laborMarketMeta = defineFrameMeta({
+  name: "labor-market",
+  iconUrl: widgetIcon("labor-market"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "U.S. labor-market snapshot from the BLS keyless public API: the headline unemployment rate, the latest monthly change in nonfarm payrolls (jobs added or lost), the total payroll level, and an unemployment-rate trend line. Monthly macro context for stock dashboards; updates on the BLS jobs-report schedule, not a live feed.",
+  capabilities: ["macro-series"],
+  source: SOURCES.bls,
+  schema: z.object({
+    months: z
+      .number()
+      .int()
+      .min(13)
+      .max(36)
+      .default(18)
+      .describe("How many monthly observations to show in the trend."),
+  }),
+});
+
+export const treasuryAuctionsMeta = defineFrameMeta({
+  name: "treasury-auctions",
+  iconUrl: widgetIcon("treasury-auctions"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Recent completed U.S. Treasury auctions from the keyless Fiscal Data API — each row shows the security (bill/note/bond + term), the high awarded yield, and the bid-to-cover ratio (demand: total bids ÷ amount accepted; higher = stronger). Newest first. Official market-plumbing data, CORS-safe; updates as auctions settle, not a live price feed.",
+  capabilities: ["treasury-auctions"],
+  source: SOURCES.treasury,
+  schema: z.object({
+    count: z
+      .number()
+      .int()
+      .min(3)
+      .max(20)
+      .default(8)
+      .describe("How many recent auctions to list (newest first)."),
+  }),
+});
+
 export const filingsFeedMeta = defineFrameMeta({
   name: "filings-feed",
   iconUrl: widgetIcon("filings-feed"),
@@ -631,6 +725,10 @@ export const frameMetas: FrameMeta[] = [
   fearGreedMeta,
   filingsFeedMeta,
   fundamentalsMeta,
+  financialStressMeta,
+  laborMarketMeta,
+  nationalDebtMeta,
+  treasuryAuctionsMeta,
   fundingHeatmapMeta,
   fundingRateChartMeta,
   headingMeta,

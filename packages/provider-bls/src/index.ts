@@ -11,6 +11,9 @@ const BLS_SERIES_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
 const BLS_SERIES_LABELS: Record<string, string> = {
   CUUR0000SA0: "CPI-U all items",
   LNS14000000: "Unemployment rate",
+  CES0000000001: "Nonfarm payrolls",
+  CES0500000003: "Avg hourly earnings",
+  LNS11300000: "Labor force participation",
 };
 
 interface BlsResponse {

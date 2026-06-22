@@ -34,11 +34,11 @@ export interface FetchJsonOptions {
 const DEFAULT_TIMEOUT_MS = 10_000;
 const USER_AGENT = "zframes (+https://github.com/zentryhq/zframes)";
 
-export async function fetchJson<T>(
+/** The shared transport behind fetchJson/fetchText — UA, proxy rewrite, abort, status check. */
+async function request(
   url: string,
-  schema?: ZodType<T>,
-  { timeoutMs = DEFAULT_TIMEOUT_MS, init, proxied }: FetchJsonOptions = {},
-): Promise<T> {
+  { timeoutMs = DEFAULT_TIMEOUT_MS, init, proxied }: FetchJsonOptions,
+): Promise<Response> {
   const headers = new Headers(init?.headers);
   // Browsers forbid setting User-Agent (it's silently dropped); only bother in
   // Node/CLI runtimes, where a descriptive UA avoids anonymous-scraper throttling.
@@ -57,6 +57,29 @@ export async function fetchJson<T>(
     signal: init?.signal ?? AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw new Error(`${url} failed: ${res.status}`);
+  return res;
+}
+
+export async function fetchJson<T>(
+  url: string,
+  schema?: ZodType<T>,
+  opts: FetchJsonOptions = {},
+): Promise<T> {
+  const res = await request(url, opts);
   const body = (await res.json()) as unknown;
   return schema ? schema.parse(body) : (body as T);
+}
+
+/**
+ * Like {@link fetchJson} but returns the raw response body as text — for feeds
+ * that aren't JSON (RSS/Atom XML). Same proxy/UA/abort plumbing, so a CORS- or
+ * UA-walled feed is reachable in the browser via `{ proxied: true }`; in Node
+ * it fetches direct. Parsing the text (XML → items) is the caller's job.
+ */
+export async function fetchText(
+  url: string,
+  opts: FetchJsonOptions = {},
+): Promise<string> {
+  const res = await request(url, opts);
+  return res.text();
 }

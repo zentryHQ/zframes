@@ -7,6 +7,10 @@ export { dinoGameFrame } from "./dino-game";
 export { fearGreedFrame } from "./fear-greed";
 export { filingsFeedFrame } from "./filings-feed";
 export { fundamentalsFrame } from "./fundamentals";
+export { financialStressFrame } from "./financial-stress";
+export { laborMarketFrame } from "./labor-market";
+export { nationalDebtFrame } from "./national-debt";
+export { treasuryAuctionsFrame } from "./treasury-auctions";
 export { fundingHeatmapFrame } from "./funding-heatmap";
 export { fundingRateChartFrame } from "./funding-rate-chart";
 export { headingFrame } from "./heading";
@@ -33,6 +37,10 @@ import { dinoGameFrame } from "./dino-game";
 import { fearGreedFrame } from "./fear-greed";
 import { filingsFeedFrame } from "./filings-feed";
 import { fundamentalsFrame } from "./fundamentals";
+import { financialStressFrame } from "./financial-stress";
+import { laborMarketFrame } from "./labor-market";
+import { nationalDebtFrame } from "./national-debt";
+import { treasuryAuctionsFrame } from "./treasury-auctions";
 import { fundingHeatmapFrame } from "./funding-heatmap";
 import { fundingRateChartFrame } from "./funding-rate-chart";
 import { headingFrame } from "./heading";
@@ -60,6 +68,10 @@ export const allFrames: AnyFrameDefinition[] = [
   fearGreedFrame,
   filingsFeedFrame,
   fundamentalsFrame,
+  financialStressFrame,
+  laborMarketFrame,
+  nationalDebtFrame,
+  treasuryAuctionsFrame,
   fundingHeatmapFrame,
   fundingRateChartFrame,
   headingFrame,

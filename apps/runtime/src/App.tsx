@@ -19,6 +19,7 @@ import { DefiLlamaProvider } from "@zframes/provider-defillama";
 import { FinraProvider } from "@zframes/provider-finra";
 import { HyperliquidProvider } from "@zframes/provider-hyperliquid";
 import { NyFedProvider } from "@zframes/provider-nyfed";
+import { OfrProvider } from "@zframes/provider-ofr";
 import { SecProvider } from "@zframes/provider-sec";
 import { TreasuryProvider } from "@zframes/provider-treasury";
 import { DashboardBackground } from "./background";
@@ -37,6 +38,7 @@ const providers = [
   new BlsProvider(),
   new SecProvider(),
   new FinraProvider(),
+  new OfrProvider(),
 ];
 
 // The runtime serves the user's dashboard.json at DASHBOARD_READ_ROUTE. Both
