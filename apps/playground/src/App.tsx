@@ -207,6 +207,12 @@ export default function App() {
               </span>
             </h1>
             <span className="body-sm text-soft">{spec.title}</span>
+            <span
+              className="caption text-soft rounded-full border border-white/[0.08] px-1.5 py-0.5 font-mono leading-none"
+              title="zframes runtime version"
+            >
+              v{__ZFRAMES_VERSION__}
+            </span>
           </div>
           <div
             ref={setCustomiseButtonTarget}
