@@ -10,6 +10,14 @@ export const scrollAreaClass =
   "min-h-0 flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/[0.08] hover:[&::-webkit-scrollbar-thumb]:bg-white/15";
 
 /**
+ * Horizontal counterpart to {@link scrollAreaClass} for strips that scroll on
+ * the x-axis (e.g. a row of projected-block / candle tiles). Same quiet, thin
+ * thumb that brightens on hover; `pb-1` keeps content off the scrollbar track.
+ */
+export const scrollAreaXClass =
+  "min-w-0 overflow-x-auto pb-1 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/[0.08] hover:[&::-webkit-scrollbar-thumb]:bg-white/15";
+
+/**
  * Shared loading / empty placeholder for frames. Loading gets a real widget
  * skeleton instead of text-only pulse; empty states stay quiet and readable.
  */

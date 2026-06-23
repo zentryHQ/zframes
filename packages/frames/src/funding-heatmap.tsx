@@ -3,6 +3,7 @@ import { defineFrame, useFundingHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { formatFundingPct } from "./format";
 import { fundingHeatmapMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -20,8 +21,8 @@ function Cell({ data, width }: { data: FundingCell; width: number }) {
   if (width < 44) return null;
   return (
     <div className="flex h-full w-full items-center justify-center">
-      <span className="text-[10px] font-medium text-white/90 tabular-nums">
-        {(data.rate * 100).toFixed(4)}%
+      <span className="caption text-normal tabular-nums">
+        {formatFundingPct(data.rate * 100)}
       </span>
     </div>
   );

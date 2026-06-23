@@ -1,18 +1,14 @@
 import { defineFrame, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { DOWN_COLOR, UP_COLOR, formatCompact, formatPrice } from "./format";
 import { optionsOiStrikeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = optionsOiStrikeMeta.schema;
 
-const CALL = "#3fd08f";
-const PUT = "#ff6b81";
-
-function fmtStrike(s: number): string {
-  if (s >= 1000) return `${(s / 1000).toFixed(s % 1000 === 0 ? 0 : 1)}k`;
-  return String(s);
-}
+const CALL = UP_COLOR;
+const PUT = DOWN_COLOR;
 
 function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
   const { summary, isLoading } = useOptionsSummary(config.currency);
@@ -32,7 +28,7 @@ function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
   }, [summary, config.strikes]);
 
   if (isLoading) return <FrameStatus loading>loading strikes…</FrameStatus>;
-  if (!view) return <FrameStatus>no options data</FrameStatus>;
+  if (!view) return <FrameStatus>no options data yet</FrameStatus>;
 
   const { near, maxOi, spot, expiry } = view;
   const W = 600;
@@ -81,7 +77,7 @@ function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
           y1={padT + plotH}
           x2={W}
           y2={padT + plotH}
-          stroke="rgba(255,255,255,0.12)"
+          style={{ stroke: "var(--color-disabled)" }}
           strokeWidth={1}
         />
         {near.map((s, i) => {
@@ -113,7 +109,7 @@ function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
             y1={padT}
             x2={atmX}
             y2={padT + plotH}
-            stroke="rgba(255,255,255,0.65)"
+            style={{ stroke: "var(--color-soft)" }}
             strokeWidth={1}
             strokeDasharray="4 3"
           />
@@ -121,11 +117,9 @@ function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
       </svg>
 
       <div className="caption text-soft mt-1 flex justify-between tabular-nums">
-        <span>{fmtStrike(near[0].strike)}</span>
-        <span className="text-normal">
-          spot ${spot.toLocaleString("en-US", { maximumFractionDigits: 0 })}
-        </span>
-        <span>{fmtStrike(near[n - 1].strike)}</span>
+        <span>{formatCompact(near[0].strike)}</span>
+        <span className="text-normal">spot {formatPrice(spot)}</span>
+        <span>{formatCompact(near[n - 1].strike)}</span>
       </div>
     </div>
   );

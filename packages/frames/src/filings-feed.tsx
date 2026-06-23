@@ -3,8 +3,10 @@ import type { SecFiling } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
+import { FeedRow } from "./feed-row";
+import { timeAgo } from "./format";
 import { filingsFeedMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = filingsFeedMeta.schema;
 
@@ -61,37 +63,24 @@ function formLabel(filing: SecFiling): string {
 
 function FilingRow({ filing }: { filing: SecFiling }) {
   return (
-    <a
+    <FeedRow
       href={filing.url}
-      target="_blank"
-      rel="noreferrer noopener"
-      className="group flex min-w-0 items-center gap-3 border-b border-white/[0.06] py-1.5 no-underline transition-colors last:border-b-0 hover:bg-white/[0.03]"
-    >
-      <span
-        title={filing.form}
-        className="font-dmsans text-strong inline-flex w-16 shrink-0 justify-center truncate rounded bg-white/[0.06] px-1.5 py-1 text-[11px] font-bold"
-      >
-        {shortForm(filing.form)}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="body-sm text-normal block truncate font-medium">
-          {formLabel(filing)}
+      titleAttr={filing.form}
+      leading={
+        <span className="caption text-strong inline-flex w-16 shrink-0 justify-center truncate rounded bg-white/[0.06] px-1.5 py-1 font-bold">
+          {shortForm(filing.form)}
         </span>
-        <span className="caption text-soft block truncate">
-          {filing.reportDate
-            ? `period ${filing.reportDate}`
-            : filing.items
-              ? `items ${filing.items}`
-              : filing.accessionNumber}
-        </span>
-      </span>
-      <span className="caption text-soft shrink-0 tabular-nums">
-        {filing.filingDate}
-      </span>
-      <span className="caption text-soft shrink-0 opacity-0 transition-opacity group-hover:opacity-100">
-        ↗
-      </span>
-    </a>
+      }
+      title={formLabel(filing)}
+      subtitle={
+        filing.reportDate
+          ? `period ${filing.reportDate}`
+          : filing.items
+            ? `items ${filing.items}`
+            : filing.accessionNumber
+      }
+      meta={filing.filingDate ? timeAgo(new Date(filing.filingDate).getTime()) : undefined}
+    />
   );
 }
 
@@ -108,7 +97,7 @@ function FilingsFeed({ config }: { config: z.output<typeof schema> }) {
 
   if (isLoading) return <FrameStatus loading>loading SEC filings…</FrameStatus>;
   if (!data)
-    return <FrameStatus>no SEC data for "{tickerOf(config.symbol)}"</FrameStatus>;
+    return <FrameStatus>no SEC data for “{tickerOf(config.symbol)}”</FrameStatus>;
 
   const ticker = data.tickers[0];
   const logoSymbol = config.symbol.includes(":")
@@ -137,15 +126,15 @@ function FilingsFeed({ config }: { config: z.output<typeof schema> }) {
         <div className="caption text-soft shrink-0 text-right">filings</div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className={scrollAreaClass}>
         {shown.length > 0 ? (
           shown.map((filing) => (
             <FilingRow key={filing.accessionNumber} filing={filing} />
           ))
         ) : (
-          <div className="body-sm text-soft flex h-full items-center justify-center text-center">
-            no {config.forms === "all" ? "" : `${config.forms} `}filings
-          </div>
+          <FrameStatus>
+            no {config.forms === "all" ? "" : `${config.forms} `}filings yet
+          </FrameStatus>
         )}
       </div>
     </div>

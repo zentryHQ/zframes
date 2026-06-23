@@ -144,8 +144,8 @@ function Clock({ config }: { config: z.output<typeof schema> }) {
 
   // Seed the spans for the first paint, before the tick takes over.
   const seed = readParts(fmt.time!);
-  const accent = "hsl(var(--zf-accent-hue, 242) 96% 82%)";
-  const accentGlow = "0 0 22px hsl(var(--zf-accent-hue, 242) 92% 70% / 0.45)";
+  const accent = "var(--color-highlight)";
+  const accentGlow = "0 0 18px hsl(var(--zf-accent-hue, 242) 92% 70% / 0.45)";
 
   return (
     // container-type lets the readout scale to the card (cqmin), not the

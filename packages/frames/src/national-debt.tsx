@@ -2,19 +2,11 @@ import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useNationalDebt } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { formatCompactUsd } from "./format";
 import { nationalDebtMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = nationalDebtMeta.schema;
-
-function formatUsdShort(value: number): string {
-  const abs = Math.abs(value);
-  const sign = value < 0 ? "-" : "";
-  if (abs >= 1e12) return `${sign}$${(abs / 1e12).toFixed(2)}T`;
-  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1)}B`;
-  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1)}M`;
-  return `${sign}$${abs.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-}
 
 function NationalDebt({ config }: { config: z.output<typeof schema> }) {
   const { debt, isLoading } = useNationalDebt(config.trendDays);
@@ -29,7 +21,7 @@ function NationalDebt({ config }: { config: z.output<typeof schema> }) {
   );
 
   if (isLoading) return <FrameStatus loading>loading national debt…</FrameStatus>;
-  if (!debt) return <FrameStatus>no debt data</FrameStatus>;
+  if (!debt) return <FrameStatus>no debt data yet</FrameStatus>;
 
   const first = debt.trend[0];
   const change = first ? debt.total - first.total : null;
@@ -45,14 +37,14 @@ function NationalDebt({ config }: { config: z.output<typeof schema> }) {
       </div>
 
       <div className="flex items-end justify-between gap-3">
-        <div className="font-dmsans text-strong text-5xl font-bold leading-none tabular-nums">
-          {formatUsdShort(debt.total)}
+        <div className="metric-xl text-strong leading-none">
+          {formatCompactUsd(debt.total)}
         </div>
         {change !== null && first && (
           <div className="text-right">
             <div className="body-md text-normal font-bold tabular-nums">
               {change >= 0 ? "+" : ""}
-              {formatUsdShort(change)}
+              {formatCompactUsd(change)}
             </div>
             <div className="caption text-soft">since {first.date}</div>
           </div>
@@ -71,13 +63,13 @@ function NationalDebt({ config }: { config: z.output<typeof schema> }) {
           <div className="rounded bg-white/[0.04] px-2 py-1.5">
             <div className="caption text-soft truncate">Held by public</div>
             <div className="body-sm text-strong font-bold tabular-nums">
-              {formatUsdShort(debt.heldByPublic)}
+              {formatCompactUsd(debt.heldByPublic)}
             </div>
           </div>
           <div className="rounded bg-white/[0.04] px-2 py-1.5">
             <div className="caption text-soft truncate">Intragovernmental</div>
             <div className="body-sm text-strong font-bold tabular-nums">
-              {formatUsdShort(debt.intragovernmental)}
+              {formatCompactUsd(debt.intragovernmental)}
             </div>
           </div>
         </div>

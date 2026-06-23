@@ -1,13 +1,14 @@
 import { defineFrame } from "@zframes/core";
 import { useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
+import { interactiveSurface } from "./content-shared";
 import { calculatorMeta } from "./schemas";
 import { scrollAreaClass } from "./ui";
 
 const schema = calculatorMeta.schema;
 type Config = z.output<typeof schema>;
 
-const accent = "hsl(var(--zf-accent-hue, 242) 96% 82%)";
+const accent = "var(--color-highlight)";
 
 function toNum(v: string): number {
   const n = Number(v);
@@ -32,7 +33,7 @@ function Field({
       <span className="caption text-soft uppercase tracking-[0.12em]">
         {label}
       </span>
-      <span className="flex items-center gap-1 rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1.5 focus-within:border-white/25">
+      <span className={`flex items-center gap-1 px-2 py-1.5 ${interactiveSurface}`}>
         {prefix && <span className="body-sm text-soft">{prefix}</span>}
         <input
           type="number"
@@ -104,7 +105,7 @@ function Calculator({ config }: { config: Config }) {
             Position size
           </span>
           <span
-            className="font-dmsans text-base font-extrabold tabular-nums"
+            className="body-lg font-extrabold tabular-nums"
             style={{ color: r.hasStop ? accent : undefined }}
           >
             {r.hasStop ? units(r.size) : "—"}

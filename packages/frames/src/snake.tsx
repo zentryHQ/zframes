@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { GAME_HUD, accentColor, drawScore } from "./game-ui";
 import { snakeMeta } from "./schemas";
 
 // Classic grid snake on canvas. The board fills the frame; cell count is derived
@@ -17,14 +18,11 @@ const CELL = 18;
 const STEP_FRAMES = 14;
 const GROUND = 0;
 
+// Gameplay-art colors only; the snake body + score use the dashboard accent
+// (see accentColor) and HUD text + game-over come from GAME_HUD.
 const COLORS = {
-  snake: "hsla(246, 100%, 70%, 0.92)",
   snakeHead: "rgba(255, 255, 255, 0.95)",
   food: "hsla(347, 100%, 62%, 1)",
-  text: "rgba(255, 255, 255, 0.85)",
-  textSoft: "rgba(255, 255, 255, 0.6)",
-  score: "hsla(246, 100%, 70%, 1)",
-  gameOver: "hsla(347, 100%, 62%, 1)",
 };
 
 interface Cell {
@@ -62,36 +60,20 @@ function fillCell(
   );
 }
 
-function drawScore(
-  canvas: HTMLCanvasElement,
-  ctx: CanvasRenderingContext2D,
-  score: number,
-  highScore: number,
-) {
-  ctx.font = 'bold 12px "DM Sans", monospace';
-  ctx.textAlign = "left";
-  ctx.fillStyle = COLORS.textSoft;
-  ctx.fillText("HI", 10, 22);
-  ctx.fillStyle = COLORS.score;
-  ctx.fillText(String(highScore).padStart(4, "0"), 30, 22);
-  ctx.textAlign = "right";
-  ctx.fillStyle = COLORS.text;
-  ctx.fillText(String(score).padStart(4, "0"), canvas.width - 10, 22);
-}
-
 function drawPlay(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   d: SnakeData,
   score: number,
   highScore: number,
+  accent: string,
 ) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   fillCell(ctx, d, d.food, COLORS.food, 3);
   d.snake.forEach((seg, i) =>
-    fillCell(ctx, d, seg, i === 0 ? COLORS.snakeHead : COLORS.snake, 2),
+    fillCell(ctx, d, seg, i === 0 ? COLORS.snakeHead : accent, 2),
   );
-  drawScore(canvas, ctx, score, highScore);
+  drawScore(canvas, ctx, score, highScore, accent);
 }
 
 function drawStatic(
@@ -100,11 +82,12 @@ function drawStatic(
   gameState: Exclude<GameState, "playing">,
   score: number,
   highScore: number,
+  accent: string,
 ) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.textAlign = "center";
   if (gameState === "idle") {
-    ctx.fillStyle = COLORS.text;
+    ctx.fillStyle = GAME_HUD.text;
     ctx.font = 'bold 14px "DM Sans", sans-serif';
     ctx.fillText(
       "Arrow keys or swipe to start",
@@ -112,13 +95,13 @@ function drawStatic(
       canvas.height / 2,
     );
   } else {
-    ctx.fillStyle = COLORS.gameOver;
+    ctx.fillStyle = GAME_HUD.gameOver;
     ctx.font = 'bold 20px "DM Sans", sans-serif';
     ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
-    ctx.fillStyle = COLORS.text;
+    ctx.fillStyle = GAME_HUD.text;
     ctx.font = 'bold 14px "DM Sans", sans-serif';
     ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2);
-    ctx.fillStyle = COLORS.textSoft;
+    ctx.fillStyle = GAME_HUD.textSoft;
     ctx.fillText(
       "Press an arrow or tap to play again",
       canvas.width / 2,
@@ -126,7 +109,7 @@ function drawStatic(
     );
   }
   ctx.textAlign = "left";
-  drawScore(canvas, ctx, score, highScore);
+  drawScore(canvas, ctx, score, highScore, accent);
 }
 
 function SnakeGame() {
@@ -147,6 +130,9 @@ function SnakeGame() {
   const highScoreRef = useRef(highScore);
   const gameStateRef = useRef<GameState>(gameState);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  // The dashboard accent, read off the live canvas once it's mounted so the
+  // snake + score recolor with the theme. Refreshed on resize.
+  const accentRef = useRef<string>(accentColor(null));
 
   useEffect(() => {
     highScoreRef.current = highScore;
@@ -272,6 +258,7 @@ function SnakeGame() {
       if (parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
         canvas.width = parent.clientWidth;
         canvas.height = parent.clientHeight - GROUND;
+        accentRef.current = accentColor(canvas);
         const d = dataRef.current;
         d.cols = Math.max(5, Math.floor(canvas.width / CELL));
         d.rows = Math.max(5, Math.floor(canvas.height / CELL));
@@ -285,6 +272,7 @@ function SnakeGame() {
             gameStateRef.current,
             scoreRef.current,
             highScoreRef.current,
+            accentRef.current,
           );
         setCanvasReady((p) => !p);
       }
@@ -338,7 +326,14 @@ function SnakeGame() {
           d.snake.pop();
         }
       }
-      drawPlay(canvas, ctx, d, scoreRef.current, highScoreRef.current);
+      drawPlay(
+        canvas,
+        ctx,
+        d,
+        scoreRef.current,
+        highScoreRef.current,
+        accentRef.current,
+      );
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -352,7 +347,7 @@ function SnakeGame() {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    drawStatic(canvas, ctx, gameState, score, highScore);
+    drawStatic(canvas, ctx, gameState, score, highScore, accentRef.current);
   }, [gameState, score, highScore]);
 
   const onTouchStart = (e: React.TouchEvent) => {

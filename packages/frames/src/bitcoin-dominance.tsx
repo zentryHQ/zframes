@@ -1,16 +1,23 @@
 import { defineFrame, useGlobalMarket } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { changeColor, formatChangePct } from "./format";
+import {
+  changeColor,
+  formatChangePct,
+  formatCompactUsd,
+  formatPct,
+} from "./format";
 import { bitcoinDominanceMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = bitcoinDominanceMeta.schema;
 
+// BTC keeps its semantic orange; ETH + Others derive from the dashboard accent
+// hue so the bar recolors with the theme instead of being a fixed indigo/purple.
 const SEGMENT_STYLE: Record<string, string> = {
   BTC: "linear-gradient(90deg, #FF810F 0%, #FF9E37 100%)",
-  ETH: "#6366F1",
-  Others: "#7C3AED",
+  ETH: "hsl(var(--zf-accent-hue, 242) 85% 72%)",
+  Others: "hsl(var(--zf-accent-hue, 242) 38% 52%)",
 };
 
 /** Segmented BTC / ETH / Others dominance bar. */
@@ -35,9 +42,7 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3">
       <div className="flex items-baseline gap-2">
-        <span className="font-dmsans text-strong text-5xl font-bold tabular-nums">
-          {lead.value.toFixed(1)}%
-        </span>
+        <span className="metric-xl text-strong">{formatPct(lead.value, 1)}</span>
         <span className="body-md text-soft">{lead.type}</span>
       </div>
 
@@ -63,7 +68,7 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
             />
             <span className="body-sm text-soft">{item.type}</span>
             <span className="body-sm text-normal font-bold tabular-nums">
-              {item.value.toFixed(1)}%
+              {formatPct(item.value, 1)}
             </span>
           </div>
         ))}
@@ -71,7 +76,7 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
 
       {config.showTotalMarketCap && (
         <div className="caption text-soft">
-          total mcap ${(market.totalMarketCapUsd / 1e12).toFixed(2)}T ·{" "}
+          total mcap {formatCompactUsd(market.totalMarketCapUsd)} ·{" "}
           <span style={{ color: changeColor(market.marketCapChangePct24h) }}>
             {formatChangePct(market.marketCapChangePct24h)} 24h
           </span>

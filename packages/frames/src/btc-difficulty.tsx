@@ -1,6 +1,6 @@
 import { defineFrame, useDifficultyAdjustment } from "@zframes/core";
 import type { z } from "zod";
-import { changeColor } from "./format";
+import { changeColor, formatChangePct, formatPct } from "./format";
 import { btcDifficultyMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -21,23 +21,19 @@ function BtcDifficulty({ config }: { config: z.output<typeof schema> }) {
   const { adjustment, isLoading } = useDifficultyAdjustment();
 
   if (isLoading) return <FrameStatus loading>loading difficulty…</FrameStatus>;
-  if (!adjustment) return <FrameStatus>no difficulty data</FrameStatus>;
+  if (!adjustment) return <FrameStatus>no difficulty data yet</FrameStatus>;
 
   const { progressPercent, difficultyChange, remainingBlocks } = adjustment;
   const color = changeColor(difficultyChange);
-  const accent = "hsl(var(--zf-accent-hue, 242) 85% 66%)";
+  const accent = "hsl(var(--zf-accent-hue, 242) 85% 72%)";
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-3">
       <div className="flex items-end justify-between gap-3">
         <div>
           <div className="caption text-soft uppercase">next adjustment</div>
-          <div
-            className="font-dmsans text-4xl font-bold leading-none tabular-nums"
-            style={{ color }}
-          >
-            {difficultyChange >= 0 ? "+" : ""}
-            {difficultyChange.toFixed(2)}%
+          <div className="metric-lg leading-none" style={{ color }}>
+            {formatChangePct(difficultyChange)}
           </div>
           <div className="body-sm text-soft">
             {difficultyChange >= 0 ? "harder" : "easier"}
@@ -64,7 +60,7 @@ function BtcDifficulty({ config }: { config: z.output<typeof schema> }) {
           />
         </div>
         <div className="caption text-soft mt-1 tabular-nums">
-          {progressPercent.toFixed(1)}% through this epoch
+          {formatPct(progressPercent, 1)} through this epoch
         </div>
       </div>
 
@@ -75,8 +71,7 @@ function BtcDifficulty({ config }: { config: z.output<typeof schema> }) {
             className="font-bold tabular-nums"
             style={{ color: changeColor(adjustment.previousRetarget) }}
           >
-            {adjustment.previousRetarget >= 0 ? "+" : ""}
-            {adjustment.previousRetarget.toFixed(2)}%
+            {formatChangePct(adjustment.previousRetarget)}
           </span>
         </div>
       )}

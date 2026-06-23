@@ -1,5 +1,6 @@
 import { defineFrame } from "@zframes/core";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { GAME_HUD, accentColor, drawScore } from "./game-ui";
 import { dinoGameMeta } from "./schemas";
 
 // Chrome-dino style runner on canvas. The obstacle sprite is drawn (a pixel
@@ -15,16 +16,14 @@ const OBSTACLE_HEIGHT = 40;
 const INITIAL_SPEED = 3;
 const SPEED_INCREMENT = 0.0005;
 
+// Gameplay-art colors only; the score uses the dashboard accent (passed in) and
+// HUD text + game-over come from GAME_HUD.
 const COLORS = {
   ground: "rgba(255, 255, 255, 0.1)",
   groundTexture: "rgba(255, 255, 255, 0.06)",
   dino: "rgba(255, 255, 255, 1)",
   eye: "rgba(0, 0, 0, 0.8)",
   cactus: "#25A78D",
-  text: "rgba(255, 255, 255, 0.85)",
-  textSoft: "rgba(255, 255, 255, 0.6)",
-  score: "hsla(246, 100%, 70%, 1)",
-  gameOver: "hsla(347, 100%, 62%, 1)",
 };
 
 interface Obstacle {
@@ -83,6 +82,7 @@ function drawStaticGameFrame(
   gameState: Exclude<GameState, "playing">,
   score: number,
   highScore: number,
+  accent: string,
 ) {
   const groundY = canvas.height - GROUND_HEIGHT;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -92,7 +92,7 @@ function drawStaticGameFrame(
 
   ctx.textAlign = "center";
   if (gameState === "idle") {
-    ctx.fillStyle = COLORS.text;
+    ctx.fillStyle = GAME_HUD.text;
     ctx.font = 'bold 14px "DM Sans", sans-serif';
     ctx.fillText(
       "Press SPACE or tap to start",
@@ -100,13 +100,13 @@ function drawStaticGameFrame(
       canvas.height / 2 - 30,
     );
   } else {
-    ctx.fillStyle = COLORS.gameOver;
+    ctx.fillStyle = GAME_HUD.gameOver;
     ctx.font = 'bold 20px "DM Sans", sans-serif';
     ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 40);
-    ctx.fillStyle = COLORS.text;
+    ctx.fillStyle = GAME_HUD.text;
     ctx.font = 'bold 14px "DM Sans", sans-serif';
     ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 - 10);
-    ctx.fillStyle = COLORS.textSoft;
+    ctx.fillStyle = GAME_HUD.textSoft;
     ctx.fillText(
       "Press SPACE or tap to restart",
       canvas.width / 2,
@@ -115,11 +115,7 @@ function drawStaticGameFrame(
   }
 
   ctx.textAlign = "left";
-  ctx.font = 'bold 12px "DM Sans", monospace';
-  ctx.fillStyle = COLORS.textSoft;
-  ctx.fillText("HI", 10, 30);
-  ctx.fillStyle = COLORS.score;
-  ctx.fillText(String(highScore).padStart(5, "0"), 30, 30);
+  drawScore(canvas, ctx, score, highScore, accent);
 }
 
 function DinoGame() {
@@ -142,6 +138,9 @@ function DinoGame() {
   const scoreRef = useRef(0);
   const highScoreRef = useRef(highScore);
   const gameStateRef = useRef<GameState>(gameState);
+  // Dashboard accent, read off the live canvas so the score recolors with the
+  // theme. Refreshed on resize.
+  const accentRef = useRef<string>(accentColor(null));
 
   useEffect(() => {
     highScoreRef.current = highScore;
@@ -220,6 +219,7 @@ function DinoGame() {
       if (parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
         canvas.width = parent.clientWidth;
         canvas.height = parent.clientHeight;
+        accentRef.current = accentColor(canvas);
         gameDataRef.current.dinoY = canvas.height - GROUND_HEIGHT - DINO_HEIGHT;
         const ctx = canvas.getContext("2d");
         if (ctx && gameStateRef.current !== "playing") {
@@ -229,6 +229,7 @@ function DinoGame() {
             gameStateRef.current,
             scoreRef.current,
             highScoreRef.current,
+            accentRef.current,
           );
         }
         setCanvasReady((prev) => !prev);
@@ -262,22 +263,6 @@ function DinoGame() {
         ctx.arc(i + 15, groundY + 20, 1, 0, Math.PI * 2);
         ctx.fill();
       }
-    };
-
-    const drawScore = () => {
-      ctx.font = 'bold 12px "DM Sans", monospace';
-      ctx.textAlign = "left";
-      ctx.fillStyle = COLORS.textSoft;
-      ctx.fillText("HI", 10, 30);
-      ctx.fillStyle = COLORS.score;
-      ctx.fillText(String(highScoreRef.current).padStart(5, "0"), 30, 30);
-      ctx.textAlign = "right";
-      ctx.fillStyle = COLORS.text;
-      ctx.fillText(
-        String(scoreRef.current).padStart(5, "0"),
-        canvas.width - 10,
-        30,
-      );
     };
 
     const checkCollision = (obstacle: Obstacle): boolean => {
@@ -350,7 +335,13 @@ function DinoGame() {
       data.obstacles.forEach((obs) =>
         drawCactus(ctx, obs.x, groundY, obs.width, obs.height),
       );
-      drawScore();
+      drawScore(
+        canvas,
+        ctx,
+        scoreRef.current,
+        highScoreRef.current,
+        accentRef.current,
+      );
 
       animationId = requestAnimationFrame(gameLoop);
     };
@@ -367,7 +358,14 @@ function DinoGame() {
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
-    drawStaticGameFrame(canvas, ctx, gameState, score, highScore);
+    drawStaticGameFrame(
+      canvas,
+      ctx,
+      gameState,
+      score,
+      highScore,
+      accentRef.current,
+    );
   }, [gameState, score, highScore, canvasReady]);
 
   return (

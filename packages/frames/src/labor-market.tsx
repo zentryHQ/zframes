@@ -2,20 +2,13 @@ import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useMacroSeries } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { changeColor } from "./format";
+import { DOWN_COLOR, changeColor, formatCompact, formatPct } from "./format";
 import { laborMarketMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = laborMarketMeta.schema;
 const UNEMPLOYMENT_SERIES_ID = "LNS14000000"; // rate, percent
 const PAYROLLS_SERIES_ID = "CES0000000001"; // total nonfarm, thousands of jobs
-
-function formatJobsChange(thousands: number): string {
-  const sign = thousands >= 0 ? "+" : "";
-  if (Math.abs(thousands) >= 1000)
-    return `${sign}${(thousands / 1000).toFixed(2)}M`;
-  return `${sign}${Math.round(thousands)}K`;
-}
 
 function LaborMarket({ config }: { config: z.output<typeof schema> }) {
   const now = new Date();
@@ -48,7 +41,7 @@ function LaborMarket({ config }: { config: z.output<typeof schema> }) {
 
   const latestRate = unemploymentPoints.at(-1);
   if (!unemployment || !latestRate)
-    return <FrameStatus>no labor data</FrameStatus>;
+    return <FrameStatus>no labor data yet</FrameStatus>;
 
   const payrollLatest = payrolls?.points.at(-1);
   const payrollPrev = payrolls?.points.at(-2);
@@ -69,8 +62,8 @@ function LaborMarket({ config }: { config: z.output<typeof schema> }) {
 
       <div className="flex items-end justify-between gap-3">
         <div>
-          <div className="font-dmsans text-strong text-5xl font-bold leading-none tabular-nums">
-            {latestRate.value.toFixed(1)}%
+          <div className="metric-xl text-strong leading-none">
+            {formatPct(latestRate.value, 1)}
           </div>
           <div className="caption text-soft mt-1">{unemployment.source} · U-3</div>
         </div>
@@ -81,16 +74,17 @@ function LaborMarket({ config }: { config: z.output<typeof schema> }) {
               className="body-md font-bold tabular-nums"
               style={{ color: changeColor(jobsChange) }}
             >
-              {formatJobsChange(jobsChange)}
+              {jobsChange >= 0 ? "+" : ""}
+              {formatCompact(jobsChange * 1000)}
             </div>
             <div className="caption text-soft mt-1 tabular-nums">
-              {(payrollLatest.value / 1000).toFixed(1)}M jobs
+              {formatCompact(payrollLatest.value * 1000)} jobs
             </div>
           </div>
         )}
       </div>
 
-      <MiniLineChart data={sparkline} width={210} height={44} color="#ff6b81" />
+      <MiniLineChart data={sparkline} width={210} height={44} color={DOWN_COLOR} />
       <div className="caption text-soft">
         {unemployment.label} · {unemploymentPoints.length} monthly observations
       </div>

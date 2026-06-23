@@ -58,11 +58,6 @@ function normalizedValue(value: number, anchor: number) {
   return anchor === 0 ? 0 : (value / anchor - 1) * 100;
 }
 
-function formatLivePercent(value: number): string {
-  const digits = Math.abs(value) >= 10 ? 1 : 2;
-  return `${value >= 0 ? "+" : ""}${value.toFixed(digits)}%`;
-}
-
 function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
   const symbols = config.symbols;
   const symbolKey = symbols.join("|");
@@ -215,7 +210,7 @@ function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
               type="button"
               aria-pressed={!isHidden}
               title={`${isHidden ? "Show" : "Hide"} ${tickerOf(symbol)}`}
-              className={`grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left text-[10px] leading-4 transition ${
+              className={`caption grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left transition ${
                 isHidden
                   ? "opacity-40 hover:opacity-70"
                   : "bg-white/[0.035] opacity-100 hover:bg-white/[0.06]"
@@ -231,10 +226,10 @@ function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
                 style={{ backgroundColor: color }}
               />
               <AssetLogo symbol={symbol} size={14} />
-              <span className="truncate font-semibold text-white/75">
+              <span className="truncate font-bold text-strong">
                 {tickerOf(symbol)}
               </span>
-              <span className="tabular-nums text-white/85">
+              <span className="text-normal tabular-nums">
                 {price !== undefined ? formatPrice(price) : "…"}
                 {changePct !== undefined ? (
                   <span
@@ -260,7 +255,7 @@ function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
           loading={!hasSeries}
           scrub={false}
           badge={false}
-          formatValue={config.normalize ? formatLivePercent : formatPrice}
+          formatValue={config.normalize ? formatChangePct : formatPrice}
           padding={PADDING}
           seriesToggleCompact={symbols.length > 4}
           style={{ width: "100%", height: "100%" }}

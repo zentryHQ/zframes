@@ -1,5 +1,6 @@
 import { defineFrame, useBtcFees } from "@zframes/core";
 import type { z } from "zod";
+import { FEE_RAMP, FeePill } from "./btc-shared";
 import { btcFeesMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -13,44 +14,32 @@ const TIER_LABEL: Record<string, string> = {
   minimum: "Minimum",
 };
 
-// Warm = urgent (pay up to go next block), cool = patient (cheapest relayable).
+// Priority tiers map onto the shared fee ramp by urgency (fastest = warmest).
 const TIER_COLOR: Record<string, string> = {
-  fastest: "#ff6b81",
-  halfHour: "#ffa057",
-  hour: "#ffd166",
-  economy: "#9bd45f",
-  minimum: "#3fd08f",
+  fastest: FEE_RAMP[0],
+  halfHour: FEE_RAMP[1],
+  hour: FEE_RAMP[2],
+  economy: FEE_RAMP[3],
+  minimum: FEE_RAMP[4],
 };
 
 function BtcFees({ config }: { config: z.output<typeof schema> }) {
   const { fees, isLoading } = useBtcFees();
 
   if (isLoading) return <FrameStatus loading>loading fees…</FrameStatus>;
-  if (!fees) return <FrameStatus>no fee data</FrameStatus>;
+  if (!fees) return <FrameStatus>no fee data yet</FrameStatus>;
 
   return (
     <div className="flex h-full flex-wrap content-center items-stretch justify-center gap-2">
-      {config.tiers.map((tier) => {
-        const color = TIER_COLOR[tier];
-        return (
-          <div
-            key={tier}
-            className="flex min-w-[64px] flex-1 flex-col items-center justify-center rounded-lg px-2 py-2"
-            style={{ background: `${color}14`, border: `1px solid ${color}33` }}
-          >
-            <span
-              className="font-dmsans text-2xl font-bold leading-none tabular-nums"
-              style={{ color }}
-            >
-              {fees[tier]}
-            </span>
-            <span className="caption text-soft mt-0.5">sat/vB</span>
-            <span className="caption text-soft mt-1 text-center">
-              {TIER_LABEL[tier]}
-            </span>
-          </div>
-        );
-      })}
+      {config.tiers.map((tier) => (
+        <FeePill
+          key={tier}
+          className="min-w-[64px] flex-1"
+          color={TIER_COLOR[tier]}
+          value={fees[tier]}
+          caption={TIER_LABEL[tier]}
+        />
+      ))}
     </div>
   );
 }

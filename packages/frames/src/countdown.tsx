@@ -25,8 +25,8 @@ function segments(remaining: number) {
   return { days, hours, minutes, seconds };
 }
 
-const accent = "hsl(var(--zf-accent-hue, 242) 96% 82%)";
-const accentGlow = "0 0 16px hsl(var(--zf-accent-hue, 242) 92% 70% / 0.4)";
+const accent = "var(--color-highlight)";
+const accentGlow = "0 0 18px hsl(var(--zf-accent-hue, 242) 92% 70% / 0.45)";
 const pad = (n: number) => String(n).padStart(2, "0");
 
 function Countdown({ config }: { config: Config }) {

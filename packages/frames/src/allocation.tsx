@@ -3,17 +3,11 @@ import { defineFrame, useMidsState } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { formatCompactUsd, formatPct } from "./format";
 import { allocationMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = allocationMeta.schema;
-
-function formatUsd(value: number): string {
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-  if (value >= 1e3) return `$${(value / 1e3).toFixed(1)}K`;
-  return `$${value.toFixed(0)}`;
-}
 
 function Allocation({ config }: { config: z.output<typeof schema> }) {
   const symbols = useMemo(
@@ -39,7 +33,7 @@ function Allocation({ config }: { config: z.output<typeof schema> }) {
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
 
   if (isLoading)
-    return <FrameStatus loading>loading allocation...</FrameStatus>;
+    return <FrameStatus loading>loading allocation…</FrameStatus>;
   if (slices.length === 0) return <FrameStatus>no live prices yet</FrameStatus>;
 
   return (
@@ -54,9 +48,7 @@ function Allocation({ config }: { config: z.output<typeof schema> }) {
       >
         <div className="flex flex-col items-center gap-0.5">
           <span className="caption text-soft">total</span>
-          <span className="font-dmsans text-strong text-3xl font-bold tabular-nums">
-            {formatUsd(total)}
-          </span>
+          <span className="metric-lg text-strong">{formatCompactUsd(total)}</span>
         </div>
       </PieChart>
 
@@ -69,10 +61,10 @@ function Allocation({ config }: { config: z.output<typeof schema> }) {
             />
             <span className="body-sm text-soft">{slice.name}</span>
             <span className="body-sm text-normal font-bold tabular-nums">
-              {((slice.value / total) * 100).toFixed(1)}%
+              {formatPct((slice.value / total) * 100, 1)}
             </span>
             <span className="caption text-soft tabular-nums">
-              {formatUsd(slice.value)}
+              {formatCompactUsd(slice.value)}
             </span>
           </div>
         ))}

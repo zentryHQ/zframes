@@ -1,8 +1,10 @@
-import { parseMarketData, TreeChart, type TreeNode } from "@zframes/charts";
+import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useTvlByChain } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { formatCompactUsd } from "./format";
 import { tvlTreemapMeta } from "./schemas";
+import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = tvlTreemapMeta.schema;
@@ -20,22 +22,15 @@ function Leaf({
   height: number;
   data: TvlNode;
 }) {
-  // Tiny leaves render clipped fragments — better to show nothing and let
-  // size + hover carry the information.
-  if (width < 48 || height < 30) return null;
-  const compact = width < 70 || height < 44;
+  const value = formatCompactUsd(data.tvl);
   return (
-    <div
-      className="flex h-full w-full flex-col items-center justify-center overflow-hidden p-1 text-center"
-      title={`${data.id} · $${parseMarketData(data.tvl)}`}
-    >
-      <span className="body-sm truncate font-bold text-white">{data.id}</span>
-      {!compact && (
-        <span className="caption text-white/70">
-          ${parseMarketData(data.tvl)}
-        </span>
-      )}
-    </div>
+    <TreemapLeaf
+      width={width}
+      height={height}
+      label={data.id}
+      secondary={value}
+      title={`${data.id} · ${value}`}
+    />
   );
 }
 

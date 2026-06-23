@@ -17,7 +17,7 @@ function ImageFrame({ config }: { config: z.output<typeof schema> }) {
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-md">
       {state === "loading" && (
         <div className="absolute inset-0 z-10">
-          <FrameStatus loading>loading image...</FrameStatus>
+          <FrameStatus loading>loading image…</FrameStatus>
         </div>
       )}
       <img

@@ -1,12 +1,13 @@
 import { defineFrame, useOptionsSummary } from "@zframes/core";
 import type { z } from "zod";
+import { DOWN_COLOR, UP_COLOR, formatPct } from "./format";
 import { optionsPutCallMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = optionsPutCallMeta.schema;
 
-const CALL = "#3fd08f";
-const PUT = "#ff6b81";
+const CALL = UP_COLOR;
+const PUT = DOWN_COLOR;
 
 // PCR > 1 = puts outweigh calls (defensive) → reddish; < 1 = call-heavy → green.
 function ratioColor(r: number): string {
@@ -17,7 +18,7 @@ function OptionsPutCall({ config }: { config: z.output<typeof schema> }) {
   const { summary, isLoading } = useOptionsSummary(config.currency);
 
   if (isLoading) return <FrameStatus loading>loading options…</FrameStatus>;
-  if (!summary) return <FrameStatus>no options data</FrameStatus>;
+  if (!summary) return <FrameStatus>no options data yet</FrameStatus>;
 
   const primary =
     config.basis === "oi"
@@ -39,10 +40,7 @@ function OptionsPutCall({ config }: { config: z.output<typeof schema> }) {
           <div className="caption text-soft uppercase">
             {config.currency} put/call · {config.basis === "oi" ? "OI" : "vol"}
           </div>
-          <div
-            className="font-dmsans text-5xl font-bold leading-none tabular-nums"
-            style={{ color }}
-          >
+          <div className="metric-xl leading-none" style={{ color }}>
             {primary.toFixed(2)}
           </div>
         </div>
@@ -69,16 +67,16 @@ function OptionsPutCall({ config }: { config: z.output<typeof schema> }) {
         </div>
         <div className="caption text-soft mt-1 flex justify-between tabular-nums">
           <span>
-            <span style={{ color: CALL }}>calls</span> {callPct.toFixed(0)}%
+            <span style={{ color: CALL }}>calls</span> {formatPct(callPct, 0)}
           </span>
           <span>
-            {putPct.toFixed(0)}% <span style={{ color: PUT }}>puts</span>
+            {formatPct(putPct, 0)} <span style={{ color: PUT }}>puts</span>
           </span>
         </div>
       </div>
 
       <div className="caption text-soft">
-        avg implied vol {summary.avgIv.toFixed(1)}%
+        avg implied vol {formatPct(summary.avgIv, 1)}
       </div>
     </div>
   );

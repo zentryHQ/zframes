@@ -30,7 +30,8 @@ function OptionsIv({ config }: { config: z.output<typeof schema> }) {
   );
 
   if (isLoading) return <FrameStatus loading>loading volatility…</FrameStatus>;
-  if (points.length === 0) return <FrameStatus>no volatility data</FrameStatus>;
+  if (points.length === 0)
+    return <FrameStatus>no volatility data yet</FrameStatus>;
 
   const current = points[points.length - 1].value;
   const change = current - points[0].value;
@@ -42,7 +43,7 @@ function OptionsIv({ config }: { config: z.output<typeof schema> }) {
           <div className="caption text-soft uppercase">
             {config.currency} DVOL · implied vol
           </div>
-          <div className="font-dmsans text-strong text-4xl font-bold leading-none tabular-nums">
+          <div className="metric-lg text-strong leading-none">
             {current.toFixed(1)}
           </div>
         </div>

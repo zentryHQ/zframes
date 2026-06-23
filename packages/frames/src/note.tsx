@@ -2,6 +2,7 @@ import { defineFrame, useFramePatch } from "@zframes/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { z } from "zod";
 import { noteMeta } from "./schemas";
+import { scrollAreaClass } from "./ui";
 
 const schema = noteMeta.schema;
 
@@ -33,7 +34,7 @@ function Note({ config }: { config: z.output<typeof schema> }) {
     return (
       <textarea
         ref={textareaRef}
-        className={`body-md text-normal h-full w-full resize-none bg-transparent outline-none placeholder:text-white/30 ${centerClass}`}
+        className={`body-sm text-normal h-full w-full resize-none bg-transparent outline-none placeholder:text-disabled ${centerClass}`}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
@@ -50,7 +51,7 @@ function Note({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div
-      className={`body-md text-normal h-full overflow-auto whitespace-pre-wrap ${centerClass} ${
+      className={`body-sm text-normal whitespace-pre-wrap ${scrollAreaClass} ${centerClass} ${
         patch ? "cursor-text" : ""
       }`}
       onClick={() => patch && setEditing(true)}

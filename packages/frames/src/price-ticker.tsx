@@ -1,9 +1,9 @@
 import { defineFrame, useDayStatsState, useMidsState } from "@zframes/core";
 import type { z } from "zod";
-import { AssetLogo, tickerOf } from "./asset-logo";
-import { changeColor, formatChangePct, formatPrice } from "./format";
+import { tickerOf } from "./asset-logo";
+import { MoverRow } from "./mover-row";
 import { priceTickerMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = priceTickerMeta.schema;
 
@@ -16,41 +16,21 @@ function PriceTicker({ config }: { config: z.output<typeof schema> }) {
   );
 
   if ((midsLoading || statsLoading) && !hasAnyPrice)
-    return <FrameStatus loading>loading prices...</FrameStatus>;
+    return <FrameStatus loading>loading prices…</FrameStatus>;
 
   return (
-    <div className="flex flex-col gap-1.5 overflow-auto">
-      {config.symbols.map((symbol) => {
-        const mid = mids[symbol] ?? stats[symbol]?.markPx;
-        const changePct = stats[symbol]?.changePct;
-        return (
-          <div
-            key={symbol}
-            className="body-sm grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-3"
-          >
-            <AssetLogo symbol={symbol} size={18} />
-            <span
-              className="truncate font-semibold text-white"
-              title={tickerOf(symbol)}
-            >
-              {tickerOf(symbol)}
-            </span>
-            <span className="tabular-nums">
-              {mid !== undefined ? formatPrice(mid) : "—"}
-            </span>
-            <span
-              className="min-w-[64px] text-right tabular-nums"
-              style={{
-                color:
-                  changePct !== undefined ? changeColor(changePct) : undefined,
-                opacity: changePct !== undefined ? 1 : 0.4,
-              }}
-            >
-              {changePct !== undefined ? formatChangePct(changePct) : "…"}
-            </span>
-          </div>
-        );
-      })}
+    <div className={`flex flex-col gap-1.5 ${scrollAreaClass}`}>
+      {config.symbols.map((symbol) => (
+        <MoverRow
+          key={symbol}
+          symbol={symbol}
+          label={tickerOf(symbol)}
+          price={mids[symbol] ?? stats[symbol]?.markPx}
+          changePct={stats[symbol]?.changePct}
+          logoSize={18}
+          gap="gap-3"
+        />
+      ))}
     </div>
   );
 }

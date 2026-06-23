@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { GAME_HUD, accentColor, drawScore } from "./game-ui";
 import { flappyBirdMeta } from "./schemas";
 
 // Flappy-bird style game on canvas. Bird holds a fixed x; tap / SPACE flaps it
@@ -22,16 +23,13 @@ const BIRD_R = 12;
 const GROUND_HEIGHT = 28;
 const PIPE_MARGIN = 28;
 
+// Gameplay-art colors only; the wing + score use the dashboard accent (passed
+// in) and HUD text + game-over come from GAME_HUD.
 const COLORS = {
   bird: "rgba(255, 255, 255, 0.95)",
   eye: "rgba(0, 0, 0, 0.8)",
-  wing: "hsla(246, 100%, 70%, 1)",
   pipe: "hsla(160, 64%, 40%, 0.9)",
   ground: "rgba(255, 255, 255, 0.1)",
-  text: "rgba(255, 255, 255, 0.85)",
-  textSoft: "rgba(255, 255, 255, 0.6)",
-  score: "hsla(246, 100%, 70%, 1)",
-  gameOver: "hsla(347, 100%, 62%, 1)",
 };
 
 interface Pipe {
@@ -42,7 +40,12 @@ interface Pipe {
 
 type GameState = "idle" | "playing" | "gameover";
 
-function drawBird(ctx: CanvasRenderingContext2D, y: number, vel: number) {
+function drawBird(
+  ctx: CanvasRenderingContext2D,
+  y: number,
+  vel: number,
+  accent: string,
+) {
   ctx.save();
   ctx.translate(BIRD_X, y);
   ctx.rotate(Math.max(-0.5, Math.min(0.9, vel * 0.06)));
@@ -50,7 +53,7 @@ function drawBird(ctx: CanvasRenderingContext2D, y: number, vel: number) {
   ctx.beginPath();
   ctx.arc(0, 0, BIRD_R, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = COLORS.wing;
+  ctx.fillStyle = accent;
   ctx.fillRect(-BIRD_R + 2, 0, 10, 5);
   ctx.fillStyle = COLORS.eye;
   ctx.beginPath();
@@ -59,39 +62,23 @@ function drawBird(ctx: CanvasRenderingContext2D, y: number, vel: number) {
   ctx.restore();
 }
 
-function drawScore(
-  canvas: HTMLCanvasElement,
-  ctx: CanvasRenderingContext2D,
-  score: number,
-  highScore: number,
-) {
-  ctx.font = 'bold 12px "DM Sans", monospace';
-  ctx.textAlign = "left";
-  ctx.fillStyle = COLORS.textSoft;
-  ctx.fillText("HI", 10, 22);
-  ctx.fillStyle = COLORS.score;
-  ctx.fillText(String(highScore).padStart(4, "0"), 30, 22);
-  ctx.textAlign = "right";
-  ctx.fillStyle = COLORS.text;
-  ctx.fillText(String(score).padStart(4, "0"), canvas.width - 10, 22);
-}
-
 function drawStatic(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
   gameState: Exclude<GameState, "playing">,
   score: number,
   highScore: number,
+  accent: string,
 ) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   const groundY = canvas.height - GROUND_HEIGHT;
   ctx.fillStyle = COLORS.ground;
   ctx.fillRect(0, groundY, canvas.width, 2);
-  drawBird(ctx, canvas.height / 2, 0);
+  drawBird(ctx, canvas.height / 2, 0, accent);
 
   ctx.textAlign = "center";
   if (gameState === "idle") {
-    ctx.fillStyle = COLORS.text;
+    ctx.fillStyle = GAME_HUD.text;
     ctx.font = 'bold 14px "DM Sans", sans-serif';
     ctx.fillText(
       "Press SPACE or tap to fly",
@@ -99,13 +86,13 @@ function drawStatic(
       canvas.height / 2 - 40,
     );
   } else {
-    ctx.fillStyle = COLORS.gameOver;
+    ctx.fillStyle = GAME_HUD.gameOver;
     ctx.font = 'bold 20px "DM Sans", sans-serif';
     ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 50);
-    ctx.fillStyle = COLORS.text;
+    ctx.fillStyle = GAME_HUD.text;
     ctx.font = 'bold 14px "DM Sans", sans-serif';
     ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 - 22);
-    ctx.fillStyle = COLORS.textSoft;
+    ctx.fillStyle = GAME_HUD.textSoft;
     ctx.fillText(
       "Press SPACE or tap to retry",
       canvas.width / 2,
@@ -113,7 +100,7 @@ function drawStatic(
     );
   }
   ctx.textAlign = "left";
-  drawScore(canvas, ctx, score, highScore);
+  drawScore(canvas, ctx, score, highScore, accent);
 }
 
 function FlappyBird() {
@@ -133,6 +120,9 @@ function FlappyBird() {
   const scoreRef = useRef(0);
   const highScoreRef = useRef(highScore);
   const gameStateRef = useRef<GameState>(gameState);
+  // Dashboard accent, read off the live canvas so the wing + score recolor with
+  // the theme. Refreshed on resize.
+  const accentRef = useRef<string>(accentColor(null));
 
   useEffect(() => {
     highScoreRef.current = highScore;
@@ -209,6 +199,7 @@ function FlappyBird() {
       if (parent && parent.clientWidth > 0 && parent.clientHeight > 0) {
         canvas.width = parent.clientWidth;
         canvas.height = parent.clientHeight;
+        accentRef.current = accentColor(canvas);
         const ctx = canvas.getContext("2d");
         if (gameStateRef.current !== "playing") {
           dataRef.current.birdY = canvas.height / 2;
@@ -219,6 +210,7 @@ function FlappyBird() {
               gameStateRef.current,
               scoreRef.current,
               highScoreRef.current,
+              accentRef.current,
             );
         }
         setCanvasReady((p) => !p);
@@ -297,8 +289,8 @@ function FlappyBird() {
       ctx.fillStyle = COLORS.ground;
       ctx.fillRect(0, groundY, canvas.width, 2);
 
-      drawBird(ctx, d.birdY, d.birdVel);
-      drawScore(canvas, ctx, scoreRef.current, highScoreRef.current);
+      drawBird(ctx, d.birdY, d.birdVel, accentRef.current);
+      drawScore(canvas, ctx, scoreRef.current, highScoreRef.current, accentRef.current);
 
       d.frameCount++;
       raf = requestAnimationFrame(loop);
@@ -314,7 +306,7 @@ function FlappyBird() {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    drawStatic(canvas, ctx, gameState, score, highScore);
+    drawStatic(canvas, ctx, gameState, score, highScore, accentRef.current);
   }, [gameState, score, highScore]);
 
   return (
