@@ -159,6 +159,10 @@ export default function App() {
   // fall back to the saved spec value). Held here, above the editor, so the
   // header and :root-scoped tokens re-tint with the slider, not just on reload.
   const [liveHue, setLiveHue] = useState<number | null>(null);
+  // Same for accent saturation — the editor reports it so the :root chart tokens
+  // and the background scene's saturate() filter follow the slider live, not just
+  // on reload (the editor's own cards already track it via an inline var).
+  const [liveSat, setLiveSat] = useState<number | null>(null);
   // Phones get the read-only CSS-grid renderer (single-column reflow at <=640px);
   // desktop gets the editable GridStack editor. Editing stays a desktop activity.
   const isMobile = useIsMobile();
@@ -168,9 +172,11 @@ export default function App() {
 
   const accentHue =
     liveHue ?? (load.status === "ready" ? load.spec.theme.accentHue : null);
+  const accentSat =
+    liveSat ?? (load.status === "ready" ? load.spec.theme.accentSat : null);
   // --color-highlight (chart layer) is declared in @theme → resolved at :root,
-  // so it only follows the hue if :root carries it. Setting it here lets the
-  // heading-frame dots and chart highlights track the slider in real time.
+  // so it only follows the accent if :root carries the knobs. Pushing both here
+  // lets the heading-frame dots and chart highlights track the sliders live.
   useEffect(() => {
     if (accentHue == null) return;
     document.documentElement.style.setProperty(
@@ -178,6 +184,13 @@ export default function App() {
       String(accentHue),
     );
   }, [accentHue]);
+  useEffect(() => {
+    if (accentSat == null) return;
+    document.documentElement.style.setProperty(
+      "--zf-accent-sat",
+      `${accentSat}%`,
+    );
+  }, [accentSat]);
 
   useEffect(() => {
     // Fetch once on mount. StrictMode runs this twice in dev; the `cancelled`
@@ -213,13 +226,18 @@ export default function App() {
 
   return (
     <FramesProvider providers={providers}>
-      <DashboardBackground background={spec.background} active={orbOpen} />
+      <DashboardBackground
+        background={spec.background}
+        active={orbOpen}
+        accentHue={accentHue ?? spec.theme.accentHue}
+        accentSat={accentSat ?? spec.theme.accentSat}
+      />
       <main
         className="relative z-10 mx-auto max-w-[1320px] px-4 pb-24 pt-5 sm:px-6"
         style={
           {
             ["--zf-accent-hue"]: accentHue ?? spec.theme.accentHue,
-            ["--zf-accent-sat"]: `${spec.theme.accentSat}%`,
+            ["--zf-accent-sat"]: `${accentSat ?? spec.theme.accentSat}%`,
           } as CSSProperties
         }
       >
@@ -261,6 +279,7 @@ export default function App() {
               onSave={persist}
               customiseButtonTarget={customiseButtonTarget}
               onAccentHueChange={setLiveHue}
+              onAccentSatChange={setLiveSat}
             />
           </Suspense>
         )}

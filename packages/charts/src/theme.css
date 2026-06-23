@@ -17,9 +17,20 @@
 
   --color-card: hsla(0, 0%, 100%, 0.02);
   --color-card-hover: hsla(0, 0%, 100%, 0.1);
-  /* Accent highlight — hue rotates with the host's --zf-accent-hue knob
-     (spec.theme.accentHue); 242 is the default zframes indigo. */
-  --color-highlight: hsl(var(--zf-accent-hue, 242) 100% 89%);
+  /* Accent highlight — hue rotates with --zf-accent-hue (spec.theme.accentHue;
+     242 is the default zframes indigo) and vividness tracks --zf-accent-sat
+     (spec.theme.accentSat). The +10% offset keeps the default exact: at sat 90
+     this resolves to 100%, so an unset/default accent stays a visual no-op. */
+  --color-highlight: hsl(
+    var(--zf-accent-hue, 242) calc(var(--zf-accent-sat, 90%) + 10%) 89%
+  );
+  /* Structural accent for data ink (sparkline strokes, progress bars, axis
+     emphasis) — a hair deeper than the text highlight so a line reads against the
+     card. Tracks both knobs like --color-highlight; the -5% offset keeps the
+     default at 85% (sat 90), so frames stop hand-rolling their own accent hsl(). */
+  --color-accent-line: hsl(
+    var(--zf-accent-hue, 242) calc(var(--zf-accent-sat, 90%) - 5%) 72%
+  );
 
   --font-dmsans: "DM Sans", sans-serif;
 }
