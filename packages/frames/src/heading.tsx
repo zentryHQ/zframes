@@ -16,7 +16,7 @@ function Heading({ config }: { config: z.output<typeof schema> }) {
               boxShadow: "0 0 8px var(--color-highlight)",
             }}
           />
-          <h2 className="font-dmsans text-strong text-[0.8rem] font-extrabold uppercase leading-none tracking-[0.16em]">
+          <h2 className="body-md text-strong font-extrabold uppercase leading-none tracking-[0.14em]">
             {config.title}
           </h2>
         </div>

@@ -10,8 +10,9 @@ import {
   type Status,
   sortStates,
 } from "./market-data";
+import { UP_COLOR } from "./format";
 import { marketHoursMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = marketHoursMeta.schema;
 
@@ -33,13 +34,15 @@ const STATUS_STYLE: Record<
   }
 > = {
   open: {
-    color: "#34e2a3",
-    chipBg: "rgba(52, 226, 163, 0.13)",
+    // Shares the dashboard-wide "up" green so the open state never clashes with
+    // gains tinting elsewhere on the board.
+    color: UP_COLOR,
+    chipBg: "rgba(63, 208, 143, 0.13)",
     label: "Open",
     verb: "closes",
-    rail: "#34e2a3",
+    rail: UP_COLOR,
     railOpacity: 1,
-    wash: "linear-gradient(90deg, rgba(52, 226, 163, 0.08), transparent 40%)",
+    wash: "linear-gradient(90deg, rgba(63, 208, 143, 0.08), transparent 40%)",
   },
   closed: {
     color: "#8b92a1",
@@ -197,7 +200,7 @@ function Row({ now, state }: { now: Date; state: MarketState }) {
   return (
     <a
       aria-label={`${state.name} website`}
-      className="group relative grid min-h-[42px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.022] py-1.5 pr-2.5 pl-3 text-white/90 transition duration-200 hover:-translate-y-px hover:border-white/[0.14] hover:bg-white/[0.05] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50"
+      className="group text-normal relative grid min-h-[42px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.022] py-1.5 pr-2.5 pl-3 transition duration-200 hover:-translate-y-px hover:border-white/[0.14] hover:bg-white/[0.05] hover:text-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50"
       href={state.website}
       rel="noreferrer"
       style={{ backgroundImage: tone.wash } satisfies CSSProperties}
@@ -212,12 +215,12 @@ function Row({ now, state }: { now: Date; state: MarketState }) {
       <ExchangeMark state={state} />
       <span className="relative min-w-0 pl-0.5">
         <span className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate font-dmsans text-[0.78rem] font-bold leading-[1.05rem] text-white">
+          <span className="body-sm text-strong truncate font-bold">
             {state.name}
           </span>
           <ExternalLinkIcon />
         </span>
-        <span className="text-soft flex min-w-0 items-center gap-1.5 font-dmsans text-[0.66rem] leading-[0.85rem] tabular-nums">
+        <span className="caption text-soft flex min-w-0 items-center gap-1.5 tabular-nums">
           <span className="truncate">{state.city}</span>
           <span className="h-[3px] w-[3px] shrink-0 rounded-full bg-white/25" />
           <span className="shrink-0">{localTime}</span>
@@ -226,7 +229,7 @@ function Row({ now, state }: { now: Date; state: MarketState }) {
       <span className="relative flex min-w-[84px] flex-col items-end gap-1">
         <StatusChip state={state} />
         <span
-          className="whitespace-nowrap text-right font-dmsans text-[0.66rem] leading-[0.8rem] tabular-nums"
+          className="caption whitespace-nowrap text-right tabular-nums"
           style={{
             color:
               state.status === "closed" ? "rgba(255,255,255,0.55)" : tone.color,
@@ -272,10 +275,10 @@ function MarketHours({ config }: { config: z.output<typeof schema> }) {
           {openCount > 0 && (
             <span
               className="h-1.5 w-1.5 rounded-full"
-              style={{ background: "#34e2a3", boxShadow: "0 0 6px #34e2a3" }}
+              style={{ background: UP_COLOR, boxShadow: `0 0 6px ${UP_COLOR}` }}
             />
           )}
-          <span className="font-bold text-white">{openCount}</span>
+          <span className="text-strong font-bold">{openCount}</span>
           <span className="text-soft">/ {states.length} open</span>
         </span>
       </div>

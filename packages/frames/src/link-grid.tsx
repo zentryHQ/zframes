@@ -1,6 +1,7 @@
 import { defineFrame } from "@zframes/core";
 import { useState } from "react";
 import type { z } from "zod";
+import { interactiveSurface } from "./content-shared";
 import { linkGridMeta } from "./schemas";
 import { scrollAreaClass } from "./ui";
 
@@ -50,7 +51,7 @@ function Tile({ link }: { link: Link }) {
       target="_blank"
       rel="noopener noreferrer"
       title={link.url}
-      className="group flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-2 transition-colors hover:border-white/20 hover:bg-white/[0.08]"
+      className={`group flex items-center gap-2 px-2.5 py-2 ${interactiveSurface}`}
     >
       <span
         className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white/[0.06] text-base leading-none"
@@ -73,7 +74,7 @@ function Tile({ link }: { link: Link }) {
           </span>
         )}
       </span>
-      <span className="body-sm text-normal min-w-0 flex-1 truncate font-medium group-hover:text-white">
+      <span className="body-sm text-normal min-w-0 flex-1 truncate font-medium group-hover:text-strong">
         {link.label}
       </span>
     </a>

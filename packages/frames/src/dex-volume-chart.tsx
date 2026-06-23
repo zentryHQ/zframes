@@ -2,13 +2,14 @@ import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
   MultiSeriesLineChart,
-  parseMarketData,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useDexVolumeHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { formatCompactUsd, prettySlug } from "./format";
 import { dexVolumeChartMeta } from "./schemas";
+import { FrameStatus } from "./ui";
 
 const LOOKBACKS = {
   "7D": { ms: 7 * 24 * 60 * 60 * 1000, timeframe: ChartTimeframe["7D"] },
@@ -28,7 +29,7 @@ function DexVolumeChart({ config }: { config: z.output<typeof schema> }) {
     () =>
       config.protocols.map((slug, i) => ({
         id: slug,
-        name: slug,
+        name: prettySlug(slug),
         color: CHART_COLORS_MULTI_SERIES[i % CHART_COLORS_MULTI_SERIES.length],
         data: (history[slug] ?? [])
           .filter((point) => point.time >= cutoff)
@@ -40,13 +41,16 @@ function DexVolumeChart({ config }: { config: z.output<typeof schema> }) {
     [config.protocols, history, cutoff],
   );
 
+  if (isLoading) return <FrameStatus loading>loading DEX volume…</FrameStatus>;
+  if (series.every((s) => s.data.length === 0))
+    return <FrameStatus>no DEX volume data yet</FrameStatus>;
+
   return (
     <MultiSeriesLineChart
       series={series}
       timeframe={timeframe}
       height={250}
-      isLoading={isLoading}
-      formatValue={(value) => `$${parseMarketData(value)}`}
+      formatValue={(value) => formatCompactUsd(value)}
     />
   );
 }

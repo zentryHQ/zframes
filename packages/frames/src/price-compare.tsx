@@ -8,8 +8,9 @@ import { defineFrame, useCandlesMulti } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { assetLogoUrl, tickerOf } from "./asset-logo";
-import { formatPrice } from "./format";
+import { formatChangePct, formatPrice } from "./format";
 import { priceCompareMeta } from "./schemas";
+import { FrameStatus } from "./ui";
 
 // Candle interval picked per lookback so each window is ~50–100 points: dense
 // enough to read, light enough to keep the fetch cheap.
@@ -68,15 +69,18 @@ function PriceCompare({ config }: { config: z.output<typeof schema> }) {
     [config.symbols, config.normalize, candles],
   );
 
+  if (isLoading) return <FrameStatus loading>loading prices…</FrameStatus>;
+  if (series.every((s) => s.data.length === 0))
+    return <FrameStatus>no price data yet</FrameStatus>;
+
   return (
     <MultiSeriesLineChart
       series={series}
       timeframe={timeframe}
       height={250}
-      isLoading={isLoading}
       formatValue={
         config.normalize
-          ? (value) => `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`
+          ? (value) => formatChangePct(value)
           : (value) => formatPrice(value)
       }
     />

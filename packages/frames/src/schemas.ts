@@ -871,7 +871,7 @@ export const marketCapTreemapMeta = defineFrameMeta({
       .int()
       .min(5)
       .max(50)
-      .default(20)
+      .default(12)
       .describe(
         "How many of the largest coins by market cap to show (up to 50).",
       ),

@@ -2,14 +2,16 @@ import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useFinancialStress } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { DOWN_COLOR, UP_COLOR } from "./format";
 import { financialStressMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = financialStressMeta.schema;
 
-/** Higher index = more stress, so positive reads "bad" (red), negative "calm" (green). */
+/** Higher index = more stress, so positive reads "bad" (down/red), negative
+ *  "calm" (up/green) — note the inversion vs a price delta. */
 function stressColor(value: number): string {
-  return value > 0 ? "#ff6b81" : "#3fd08f";
+  return value > 0 ? DOWN_COLOR : UP_COLOR;
 }
 
 function classifyStress(value: number): string {
@@ -32,7 +34,7 @@ function FinancialStress({ config }: { config: z.output<typeof schema> }) {
   );
 
   if (isLoading) return <FrameStatus loading>loading stress index…</FrameStatus>;
-  if (!stress) return <FrameStatus>no stress-index data</FrameStatus>;
+  if (!stress) return <FrameStatus>no stress-index data yet</FrameStatus>;
 
   const color = stressColor(stress.value);
 
@@ -49,7 +51,7 @@ function FinancialStress({ config }: { config: z.output<typeof schema> }) {
       <div className="flex items-end justify-between gap-3">
         <div>
           <div
-            className="font-dmsans text-5xl font-bold leading-none tabular-nums"
+            className="metric-xl leading-none"
             style={{ color, textShadow: `0 0 24px ${color}44` }}
           >
             {stress.value > 0 ? "+" : ""}

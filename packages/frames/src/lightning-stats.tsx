@@ -1,6 +1,6 @@
 import { defineFrame, useLightningStats } from "@zframes/core";
 import type { z } from "zod";
-import { changeColor, formatBtc } from "./format";
+import { changeColor, formatBtc, formatChangePct } from "./format";
 import { lightningStatsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -22,17 +22,14 @@ function Stat({
 }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-md bg-white/[0.04] px-2 py-2 text-center">
-      <span className="font-dmsans text-strong text-xl font-bold leading-none tabular-nums">
-        {value}
-      </span>
+      <span className="metric-sm text-strong leading-none">{value}</span>
       <span className="caption text-soft mt-1">{label}</span>
       {delta !== null && (
         <span
           className="caption mt-0.5 font-bold tabular-nums"
           style={{ color: changeColor(delta) }}
         >
-          {delta >= 0 ? "+" : ""}
-          {delta.toFixed(2)}%
+          {formatChangePct(delta)}
         </span>
       )}
     </div>
@@ -43,7 +40,7 @@ function LightningStatsFrame({ config }: { config: z.output<typeof schema> }) {
   const { stats, isLoading } = useLightningStats();
 
   if (isLoading) return <FrameStatus loading>loading lightning…</FrameStatus>;
-  if (!stats) return <FrameStatus>no lightning data</FrameStatus>;
+  if (!stats) return <FrameStatus>no lightning data yet</FrameStatus>;
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-2">

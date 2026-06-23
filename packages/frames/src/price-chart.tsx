@@ -115,7 +115,7 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
   }, [candles, ticks]);
 
   if (isLoading && candles.length === 0)
-    return <FrameStatus loading>loading chart...</FrameStatus>;
+    return <FrameStatus loading>loading chart…</FrameStatus>;
 
   return (
     <div className="h-full min-h-0">

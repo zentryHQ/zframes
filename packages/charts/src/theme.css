@@ -65,3 +65,24 @@
 @utility heading-card-title {
   @apply font-dmsans text-[0.8125rem] font-bold sm:text-sm;
 }
+
+/* Hero/stat numerals — the single scale for a frame's headline number (price,
+   index level, count). DM Sans bold + tabular-nums + a touch of negative
+   tracking so big figures sit tight; three sizes replace the ad-hoc
+   text-2xl/3xl/4xl/5xl scatter. The live clock/countdown stay on their own
+   container-query clamp() (a deliberate exception). */
+@utility metric-sm {
+  @apply font-dmsans text-xl font-bold tabular-nums tracking-[-0.01em];
+}
+
+@utility metric-md {
+  @apply font-dmsans text-2xl font-bold tabular-nums tracking-[-0.01em];
+}
+
+@utility metric-lg {
+  @apply font-dmsans text-4xl font-bold tabular-nums tracking-[-0.01em];
+}
+
+@utility metric-xl {
+  @apply font-dmsans text-5xl font-bold tabular-nums tracking-[-0.01em];
+}

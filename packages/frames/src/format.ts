@@ -10,8 +10,60 @@ export function formatChangePct(changePct: number): string {
   return `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%`;
 }
 
+/** Unsigned percentage at a fixed precision: "3.42%". Use for *levels* — rates,
+ *  yields, ratios, shares — where there's no positive/negative semantics. For a
+ *  signed delta use {@link formatChangePct}; for funding use {@link formatFundingPct}. */
+export function formatPct(value: number, dp = 2): string {
+  return `${value.toFixed(dp)}%`;
+}
+
+/** Funding rate as a signed, high-precision percentage: "+0.0125%", "-0.0030%".
+ *  Pass a value already expressed in percent (multiply raw rates by 100 first). */
+export function formatFundingPct(percent: number): string {
+  return `${percent >= 0 ? "+" : ""}${percent.toFixed(4)}%`;
+}
+
+/** The semantic up/down colors — the single source of truth for gain/loss tint.
+ *  Import these (or {@link changeColor}) instead of re-typing the literals; they
+ *  carry meaning, so they intentionally do NOT rotate with the accent hue. */
+export const UP_COLOR = "#3fd08f";
+export const DOWN_COLOR = "#ff6b81";
+
 export function changeColor(changePct: number): string {
-  return changePct >= 0 ? "#3fd08f" : "#ff6b81";
+  return changePct >= 0 ? UP_COLOR : DOWN_COLOR;
+}
+
+/** Abbreviate a large number with a T/B/M/K suffix and one fixed precision
+ *  policy: "1.23T", "12.30B", "340.00M", "12.3K", "950". The single compact-number
+ *  formatter for the whole frame layer — replaces every hand-rolled $T/$B/$M and
+ *  the charts-layer `parseMarketData` in frame code. For a currency value, wrap
+ *  with {@link formatCompactUsd}; for an exact price use {@link formatPrice}. */
+export function formatCompact(value: number): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (abs >= 1e12) return `${sign}${(abs / 1e12).toFixed(2)}T`;
+  if (abs >= 1e9) return `${sign}${(abs / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `${sign}${(abs / 1e6).toFixed(2)}M`;
+  if (abs >= 1e3) return `${sign}${(abs / 1e3).toFixed(1)}K`;
+  return `${sign}${abs.toFixed(0)}`;
+}
+
+/** Abbreviated USD magnitude: "$1.23B", "$340.00M", "$2.10T", "-$5.00B". The one
+ *  helper for aggregate dollar figures (market cap, TVL, volume, open interest,
+ *  debt). The minus sign leads the `$` so negatives read naturally. */
+export function formatCompactUsd(value: number): string {
+  return value < 0 ? `-$${formatCompact(-value)}` : `$${formatCompact(value)}`;
+}
+
+/** Turn a provider slug into a readable series/legend label: "lido" → "Lido",
+ *  "rocket-pool" → "Rocket Pool". Keeps chart legends in step with the treemaps,
+ *  which get already-pretty names from their providers. */
+export function prettySlug(slug: string): string {
+  return slug
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 /** Format sats as BTC with sensible precision: "1.23 BTC", "0.0042 BTC". */

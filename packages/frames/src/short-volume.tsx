@@ -3,20 +3,14 @@ import type { ShortVolumeEntry } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { AssetLogo } from "./asset-logo";
+import { formatCompact, formatPct } from "./format";
 import { shortVolumeMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = shortVolumeMeta.schema;
 
-function formatShares(n: number): string {
-  if (n >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
-  if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
-  if (n >= 1e3) return `${(n / 1e3).toFixed(0)}K`;
-  return `${Math.round(n)}`;
-}
-
 const accent = (alpha = 1) =>
-  `hsl(var(--zf-accent-hue, 242) 85% 68% / ${alpha})`;
+  `hsl(var(--zf-accent-hue, 242) 85% 72% / ${alpha})`;
 
 function ShortVolumeRow({
   symbol,
@@ -35,8 +29,8 @@ function ShortVolumeRow({
           <span className="body-sm text-strong truncate font-semibold">
             {entry.symbol}
           </span>
-          <span className="font-dmsans text-strong text-sm font-bold tabular-nums">
-            {pct.toFixed(1)}%
+          <span className="body-md text-strong font-bold tabular-nums">
+            {formatPct(pct, 1)}
           </span>
         </div>
         <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.07]">
@@ -50,7 +44,8 @@ function ShortVolumeRow({
           />
         </div>
         <div className="caption text-soft mt-1 tabular-nums">
-          short {formatShares(entry.shortVolume)} / {formatShares(entry.totalVolume)}
+          short {formatCompact(entry.shortVolume)} /{" "}
+          {formatCompact(entry.totalVolume)}
         </div>
       </div>
     </div>
@@ -79,7 +74,7 @@ function ShortVolume({ config }: { config: z.output<typeof schema> }) {
   if (isLoading)
     return <FrameStatus loading>loading short volume…</FrameStatus>;
   if (rows.length === 0)
-    return <FrameStatus>no FINRA short-volume data</FrameStatus>;
+    return <FrameStatus>no FINRA short-volume data yet</FrameStatus>;
 
   const date = rows[0].entry.date;
 
@@ -99,7 +94,7 @@ function ShortVolume({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className={scrollAreaClass}>
         {rows.map(({ symbol, entry }) => (
           <ShortVolumeRow key={symbol} symbol={symbol} entry={entry} />
         ))}

@@ -10,7 +10,7 @@ function BtcBlocks({ config }: { config: z.output<typeof schema> }) {
   const { blocks, isLoading } = useBtcBlocks(config.count);
 
   if (isLoading) return <FrameStatus loading>loading blocks…</FrameStatus>;
-  if (blocks.length === 0) return <FrameStatus>no block data</FrameStatus>;
+  if (blocks.length === 0) return <FrameStatus>no block data yet</FrameStatus>;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -23,7 +23,7 @@ function BtcBlocks({ config }: { config: z.output<typeof schema> }) {
               title={`Block ${b.height} · ${b.poolName} · ${b.txCount.toLocaleString("en-US")} txs`}
             >
               <div className="flex flex-col">
-                <span className="body-sm font-bold tabular-nums text-white">
+                <span className="body-sm text-strong font-bold tabular-nums">
                   {b.height.toLocaleString("en-US")}
                 </span>
                 <span className="caption text-soft">{timeAgo(b.time)}</span>

@@ -1,8 +1,10 @@
-import { parseMarketData, TreeChart, type TreeNode } from "@zframes/charts";
+import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useProtocolFees } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { formatCompactUsd } from "./format";
 import { protocolFeesTreemapMeta } from "./schemas";
+import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = protocolFeesTreemapMeta.schema;
@@ -21,20 +23,15 @@ function Leaf({
   height: number;
   data: FeesNode;
 }) {
-  if (width < 48 || height < 30) return null;
-  const compact = width < 70 || height < 44;
+  const value = formatCompactUsd(data.fees24h);
   return (
-    <div
-      className="flex h-full w-full flex-col items-center justify-center overflow-hidden p-1 text-center"
-      title={`${data.id} · $${parseMarketData(data.fees24h)} 24h fees`}
-    >
-      <span className="body-sm truncate font-bold text-white">{data.id}</span>
-      {!compact && (
-        <span className="caption text-white/70">
-          ${parseMarketData(data.fees24h)}
-        </span>
-      )}
-    </div>
+    <TreemapLeaf
+      width={width}
+      height={height}
+      label={data.id}
+      secondary={value}
+      title={`${data.id} · ${value} 24h fees`}
+    />
   );
 }
 

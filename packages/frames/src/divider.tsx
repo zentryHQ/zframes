@@ -38,7 +38,7 @@ function Divider({ config }: { config: Config }) {
     >
       {rule()}
       <span
-        className="caption text-soft shrink-0 whitespace-nowrap uppercase tracking-[0.18em]"
+        className="caption text-soft shrink-0 whitespace-nowrap uppercase tracking-[0.14em]"
         style={vertical ? { writingMode: "vertical-rl" } : undefined}
       >
         {label}

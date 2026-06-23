@@ -2,7 +2,9 @@ import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useMiningPools } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { formatPct } from "./format";
 import { miningPoolsMeta } from "./schemas";
+import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = miningPoolsMeta.schema;
@@ -20,20 +22,15 @@ function Leaf({
   height: number;
   data: PoolNode;
 }) {
-  if (width < 48 || height < 30) return null;
-  const compact = width < 70 || height < 44;
+  const pct = formatPct(data.sharePct, 1);
   return (
-    <div
-      className="flex h-full w-full flex-col items-center justify-center overflow-hidden p-1 text-center"
-      title={`${data.id} · ${data.sharePct.toFixed(1)}% of blocks`}
-    >
-      <span className="body-sm truncate font-bold text-white">{data.id}</span>
-      {!compact && (
-        <span className="caption text-white/80">
-          {data.sharePct.toFixed(1)}%
-        </span>
-      )}
-    </div>
+    <TreemapLeaf
+      width={width}
+      height={height}
+      label={data.id}
+      secondary={pct}
+      title={`${data.id} · ${pct} of blocks`}
+    />
   );
 }
 
@@ -59,7 +56,7 @@ function MiningPoolsFrame({ config }: { config: z.output<typeof schema> }) {
   }, [pools, config.topN]);
 
   if (isLoading) return <FrameStatus loading>loading pools…</FrameStatus>;
-  if (data.length === 0) return <FrameStatus>no mining data</FrameStatus>;
+  if (data.length === 0) return <FrameStatus>no mining data yet</FrameStatus>;
 
   return (
     <TreeChart

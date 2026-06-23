@@ -1,8 +1,8 @@
 import { defineFrame, useDayStatsState } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { AssetLogo, tickerOf } from "./asset-logo";
-import { changeColor, formatChangePct, formatPrice } from "./format";
+import { tickerOf } from "./asset-logo";
+import { MoverRow } from "./mover-row";
 import { topMoversMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -20,37 +20,6 @@ const MOVER_UNIVERSE = [
   "km:SEMI",
   "km:GLDMINE",
 ] as const;
-
-function MoverRow({
-  symbol,
-  markPx,
-  changePct,
-}: {
-  symbol: string;
-  markPx: number;
-  changePct: number;
-}) {
-  return (
-    <div
-      className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2"
-      title={`${tickerOf(symbol)} · ${formatPrice(markPx)}`}
-    >
-      <AssetLogo symbol={symbol} size={16} />
-      <span className="body-sm truncate font-bold text-white">
-        {tickerOf(symbol)}
-      </span>
-      <span className="caption text-soft text-right tabular-nums">
-        {formatPrice(markPx)}
-      </span>
-      <span
-        className="caption text-right font-bold tabular-nums"
-        style={{ color: changeColor(changePct) }}
-      >
-        {formatChangePct(changePct)}
-      </span>
-    </div>
-  );
-}
 
 function TopMovers({ config }: { config: z.output<typeof schema> }) {
   const { stats, isLoading } = useDayStatsState(MOVER_UNIVERSE, 60_000);
@@ -70,7 +39,7 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
     };
   }, [stats, config.count]);
 
-  if (isLoading) return <FrameStatus loading>loading movers...</FrameStatus>;
+  if (isLoading) return <FrameStatus loading>loading movers…</FrameStatus>;
   if (gainers.length === 0) return <FrameStatus>no mover data yet</FrameStatus>;
 
   return (
@@ -78,13 +47,25 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
       <div className="flex flex-col gap-1.5">
         <div className="caption text-soft uppercase tracking-wide">gainers</div>
         {gainers.map((row) => (
-          <MoverRow key={row.symbol} {...row} />
+          <MoverRow
+            key={row.symbol}
+            symbol={row.symbol}
+            label={tickerOf(row.symbol)}
+            price={row.markPx}
+            changePct={row.changePct}
+          />
         ))}
       </div>
       <div className="flex flex-col gap-1.5">
         <div className="caption text-soft uppercase tracking-wide">losers</div>
         {losers.map((row) => (
-          <MoverRow key={row.symbol} {...row} />
+          <MoverRow
+            key={row.symbol}
+            symbol={row.symbol}
+            label={tickerOf(row.symbol)}
+            price={row.markPx}
+            changePct={row.changePct}
+          />
         ))}
       </div>
     </div>

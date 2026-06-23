@@ -6,7 +6,7 @@ import { quoteMeta } from "./schemas";
 const schema = quoteMeta.schema;
 type Config = z.output<typeof schema>;
 
-const accent = "hsl(var(--zf-accent-hue, 242) 96% 82%)";
+const accent = "var(--color-highlight)";
 
 function Quote({ config }: { config: Config }) {
   const quotes = config.quotes;
@@ -52,7 +52,7 @@ function Quote({ config }: { config: Config }) {
                   background:
                     i === Math.min(idx, quotes.length - 1)
                       ? accent
-                      : "rgba(255,255,255,0.2)",
+                      : "var(--color-disabled)",
                 }}
               />
             ))}

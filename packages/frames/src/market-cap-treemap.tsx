@@ -1,8 +1,10 @@
-import { parseMarketData, TreeChart, type TreeNode } from "@zframes/charts";
+import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useCoinMarkets } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { formatChangePct, formatCompactUsd } from "./format";
 import { marketCapTreemapMeta } from "./schemas";
+import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = marketCapTreemapMeta.schema;
@@ -21,24 +23,15 @@ function Leaf({
   height: number;
   data: CoinNode;
 }) {
-  if (width < 48 || height < 30) return null;
-  const compact = width < 70 || height < 44;
-  const change = data.changePct24h;
+  const value = formatCompactUsd(data.marketCapUsd);
   return (
-    <div
-      className="flex h-full w-full flex-col items-center justify-center overflow-hidden p-1 text-center"
-      title={`${data.id} · $${parseMarketData(data.marketCapUsd)} mcap · ${
-        change >= 0 ? "+" : ""
-      }${change.toFixed(2)}%`}
-    >
-      <span className="body-sm truncate font-bold text-white">{data.id}</span>
-      {!compact && (
-        <span className="caption text-white/80">
-          {change >= 0 ? "+" : ""}
-          {change.toFixed(1)}%
-        </span>
-      )}
-    </div>
+    <TreemapLeaf
+      width={width}
+      height={height}
+      label={data.id}
+      secondary={value}
+      title={`${data.id} · ${value} mcap · ${formatChangePct(data.changePct24h)}`}
+    />
   );
 }
 

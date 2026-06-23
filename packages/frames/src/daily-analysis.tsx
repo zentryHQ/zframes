@@ -2,8 +2,9 @@ import { defineFrame } from "@zframes/core";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { DOWN_COLOR, UP_COLOR } from "./format";
 import { dailyAnalysisMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = dailyAnalysisMeta.schema;
 
@@ -43,14 +44,15 @@ interface Log {
 }
 
 const DIRECTION_COLOR: Record<string, string> = {
-  bullish: "#76d275",
-  bearish: "#e6464f",
-  neutral: "#9aa0aa",
+  bullish: UP_COLOR,
+  bearish: DOWN_COLOR,
+  neutral: "var(--color-soft)",
 };
 
+// hit/miss share the dashboard up/down pair; partial keeps its own warn amber.
 const VERDICT_COLOR: Record<string, string> = {
-  hit: "#76d275",
-  miss: "#e6464f",
+  hit: UP_COLOR,
+  miss: DOWN_COLOR,
   partial: "#f4a259",
 };
 
@@ -112,11 +114,11 @@ function DailyAnalysis({ config }: { config: z.output<typeof schema> }) {
   const { rate, n } = hitRate(entries);
 
   return (
-    <div className="body-sm flex h-full flex-col gap-3 overflow-auto">
+    <div className={`body-sm flex flex-col gap-3 ${scrollAreaClass}`}>
       {n > 0 && (
         <div className="caption text-soft flex items-center justify-between">
           <span className="uppercase tracking-wide">track record</span>
-          <span className="font-bold tabular-nums text-white">
+          <span className="text-strong font-bold tabular-nums">
             {Math.round(rate * 100)}% · {n} call{n === 1 ? "" : "s"}
           </span>
         </div>
@@ -179,7 +181,7 @@ function DailyAnalysis({ config }: { config: z.output<typeof schema> }) {
                     color:
                       VERDICT_COLOR[grade.verdict ?? ""] ??
                       DIRECTION_COLOR.neutral,
-                    background: "rgba(255,255,255,0.06)",
+                    background: "var(--color-surface)",
                   }}
                   title={grade.note ?? ""}
                 >

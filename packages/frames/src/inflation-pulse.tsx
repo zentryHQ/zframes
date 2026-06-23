@@ -51,7 +51,7 @@ function InflationPulse({ config }: { config: z.output<typeof schema> }) {
   );
 
   if (isLoading) return <FrameStatus loading>loading CPI…</FrameStatus>;
-  if (!series || !latest) return <FrameStatus>no CPI data</FrameStatus>;
+  if (!series || !latest) return <FrameStatus>no CPI data yet</FrameStatus>;
 
   const mom = pointChangePct(latest.value, previous?.value);
   const yoy = pointChangePct(latest.value, yearAgo?.value);
@@ -71,7 +71,7 @@ function InflationPulse({ config }: { config: z.output<typeof schema> }) {
       <div className="flex items-end justify-between gap-3">
         <div>
           <div
-            className="font-dmsans text-5xl font-bold leading-none tabular-nums"
+            className="metric-xl leading-none"
             style={{ color, textShadow: `0 0 24px ${color}44` }}
           >
             {yoy !== null ? formatChangePct(yoy) : "--"}

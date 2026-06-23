@@ -2,6 +2,7 @@ import { defineFrame, useNews } from "@zframes/core";
 import type { NewsItem } from "@zframes/core";
 import { useState } from "react";
 import type { z } from "zod";
+import { FeedRow } from "./feed-row";
 import { timeAgo } from "./format";
 import { newsFeedMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -40,39 +41,16 @@ function Thumbnail({ src }: { src: string }) {
 }
 
 function HeadlineRow({ item }: { item: NewsItem }) {
-  // An accent tick (the ::before bar) slides in on hover to mark the active row.
-  // Title caps at two lines for even row heights; the summary gets two lines so a
-  // headline carries context.
-  // A leading thumbnail shows only when the feed supplied one.
   return (
-    <a
+    <FeedRow
       href={item.url}
-      target="_blank"
-      rel="noreferrer noopener"
-      className="group relative flex min-w-0 items-start gap-3 border-b border-white/[0.06] py-2 pl-3 no-underline transition-colors last:border-b-0 before:absolute before:bottom-1.5 before:left-0 before:top-1.5 before:w-0.5 before:rounded-full before:bg-highlight before:opacity-0 before:transition-opacity hover:bg-white/[0.03] group-hover:before:opacity-100 hover:before:opacity-100"
-    >
-      {item.imageUrl && <Thumbnail src={item.imageUrl} />}
-      <span className="min-w-0 flex-1">
-        <span className="body-sm text-normal line-clamp-2 block font-medium leading-snug transition-colors group-hover:text-white">
-          {item.title}
-        </span>
-        {item.summary && (
-          <span className="caption text-soft mt-1 line-clamp-2 block leading-relaxed">
-            {item.summary}
-          </span>
-        )}
-      </span>
-      <span className="flex shrink-0 items-center gap-1.5 pt-px">
-        {item.publishedAt !== undefined && (
-          <span className="caption text-soft tabular-nums">
-            {timeAgo(item.publishedAt)}
-          </span>
-        )}
-        <span className="caption text-highlight/70 -mr-0.5 w-2 opacity-0 transition-opacity group-hover:opacity-100">
-          ↗
-        </span>
-      </span>
-    </a>
+      leading={item.imageUrl ? <Thumbnail src={item.imageUrl} /> : undefined}
+      title={item.title}
+      subtitle={item.summary || undefined}
+      meta={
+        item.publishedAt !== undefined ? timeAgo(item.publishedAt) : undefined
+      }
+    />
   );
 }
 
@@ -105,10 +83,10 @@ function NewsFeed({ config }: { config: z.output<typeof schema> }) {
         {items.length > 0 ? (
           items.map((item) => <HeadlineRow key={item.url} item={item} />)
         ) : (
-          <div className="body-sm text-soft flex h-full items-center justify-center text-center">
+          <FrameStatus>
             no headlines {isStocks ? "for these symbols" : "available"} — the
             runtime proxy may be offline
-          </div>
+          </FrameStatus>
         )}
       </div>
     </div>

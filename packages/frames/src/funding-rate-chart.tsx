@@ -8,7 +8,9 @@ import { defineFrame, useFundingHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { formatFundingPct } from "./format";
 import { fundingRateChartMeta } from "./schemas";
+import { FrameStatus } from "./ui";
 
 const LOOKBACKS = {
   "24h": { ms: 24 * 60 * 60 * 1000, timeframe: ChartTimeframe["24h"] },
@@ -40,13 +42,17 @@ function FundingRateChart({ config }: { config: z.output<typeof schema> }) {
     [config.symbols, history],
   );
 
+  if (isLoading)
+    return <FrameStatus loading>loading funding rates…</FrameStatus>;
+  if (series.every((s) => s.data.length === 0))
+    return <FrameStatus>no funding data yet</FrameStatus>;
+
   return (
     <MultiSeriesLineChart
       series={series}
       timeframe={timeframe}
       height={250}
-      isLoading={isLoading}
-      formatValue={(value) => `${value.toFixed(4)}%`}
+      formatValue={(value) => formatFundingPct(value)}
     />
   );
 }

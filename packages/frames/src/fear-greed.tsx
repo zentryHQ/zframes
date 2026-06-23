@@ -7,7 +7,9 @@ import { FrameStatus } from "./ui";
 
 const schema = fearGreedMeta.schema;
 
-/** 0 = extreme fear (red) … 100 = extreme greed (green). */
+/** 0 = extreme fear (red) … 100 = extreme greed (green). A bespoke sentiment
+ *  ramp (NOT the up/down semantic pair) — it encodes a mood scale, so it's a
+ *  deliberate exception to the shared green/red. */
 function indexColor(value: number): string {
   if (value <= 25) return "#F21553";
   if (value <= 45) return "#F97316";
@@ -30,13 +32,13 @@ function FearGreed({ config }: { config: z.output<typeof schema> }) {
   );
 
   if (isLoading) return <FrameStatus loading>loading index…</FrameStatus>;
-  if (!latest) return <FrameStatus>no sentiment data</FrameStatus>;
+  if (!latest) return <FrameStatus>no sentiment data yet</FrameStatus>;
 
   const color = indexColor(latest.value);
   return (
     <div className="flex h-full flex-col items-center justify-center gap-2.5">
       <div
-        className="font-dmsans text-5xl font-bold leading-none tracking-tight tabular-nums"
+        className="metric-xl leading-none"
         style={{ color, textShadow: `0 0 28px ${color}55` }}
       >
         {latest.value}
@@ -65,7 +67,7 @@ function FearGreed({ config }: { config: z.output<typeof schema> }) {
           className="absolute left-0 top-0 h-full w-full"
           style={{
             background:
-              "repeating-linear-gradient(to right, #14181D, #14181D 2px, transparent 2px, transparent 3px)",
+              "repeating-linear-gradient(to right, var(--color-background-terminal), var(--color-background-terminal) 2px, transparent 2px, transparent 3px)",
           }}
         />
         <div

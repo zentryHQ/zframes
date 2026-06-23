@@ -1,11 +1,11 @@
 import { defineFrame, useYieldCurve } from "@zframes/core";
 import type { z } from "zod";
-import { changeColor } from "./format";
+import { changeColor, formatPct } from "./format";
 import { yieldCurveMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = yieldCurveMeta.schema;
-const accent = (a = 1) => `hsl(var(--zf-accent-hue, 242) 85% 68% / ${a})`;
+const accent = (a = 1) => `hsl(var(--zf-accent-hue, 242) 85% 72% / ${a})`;
 
 /** The curve shape — stretched to fill width; non-scaling stroke keeps it crisp. */
 function CurveSvg({ rates }: { rates: number[] }) {
@@ -44,7 +44,7 @@ function YieldCurve({ config }: { config: z.output<typeof schema> }) {
   if (isLoading)
     return <FrameStatus loading>loading yield curve…</FrameStatus>;
   if (!curve || curve.points.length < 2)
-    return <FrameStatus>no yield-curve data</FrameStatus>;
+    return <FrameStatus>no yield-curve data yet</FrameStatus>;
 
   const rate = (label: string) =>
     curve.points.find((p) => p.label === label)?.rate;
@@ -69,7 +69,7 @@ function YieldCurve({ config }: { config: z.output<typeof schema> }) {
       {spreadBps != null && (
         <div className="flex items-baseline gap-2">
           <span
-            className="font-dmsans text-2xl font-bold leading-none tabular-nums"
+            className="metric-md leading-none"
             style={{
               color: changeColor(spreadBps),
               textShadow: `0 0 24px ${changeColor(spreadBps)}44`,
@@ -99,7 +99,7 @@ function YieldCurve({ config }: { config: z.output<typeof schema> }) {
             >
               <div className="caption text-soft">{label}</div>
               <div className="body-sm text-strong font-bold tabular-nums">
-                {r != null ? `${r.toFixed(2)}%` : "—"}
+                {r != null ? formatPct(r) : "—"}
               </div>
             </div>
           );
