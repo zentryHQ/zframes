@@ -24,6 +24,26 @@ const ACTIVE_TRANSITION =
 // actually reads, capped so the backdrop never overpowers the cards.
 const activeOpacity = (resting: number) => Math.min(0.42, resting * 2.4);
 
+// The scene's colors are baked into the hosted Unicorn project — the host can't
+// repaint the WebGL, but a CSS hue-rotate on the wrapper spins the whole scene
+// (engine-agnostic, the same trick the orb's "charge" uses). We rotate by how far
+// the dashboard accent has moved from its default, so accentHue 242 (the zframes
+// purple) is a 0° no-op that renders the scene exactly as authored, and any
+// rolled/edited hue spins the backdrop in lockstep with the card accents.
+const ACCENT_DEFAULT_HUE = 242;
+// Shortest spin: map the offset into (-180, 180] so the transition never sweeps
+// the long way round the wheel.
+const accentRotation = (accentHue: number) => {
+  const d = (((accentHue - ACCENT_DEFAULT_HUE) % 360) + 360) % 360;
+  return d > 180 ? d - 360 : d;
+};
+// Accent saturation rides along too: a muted accent (low accentSat) desaturates
+// the scene via a saturate() filter so "muted" reads muted in the backdrop, not
+// just on the cards. 90 (the spec default) maps to saturate(1) — a no-op.
+const ACCENT_DEFAULT_SAT = 90;
+const accentSaturation = (accentSat: number) =>
+  Math.round((accentSat / ACCENT_DEFAULT_SAT) * 1000) / 1000;
+
 /**
  * Full-viewport background behind the dashboard. The spec picks *what* the
  * background is ("unicorn" + projectId); the host (this file) renders it —
@@ -38,15 +58,40 @@ const activeOpacity = (resting: number) => Math.min(0.42, resting * 2.4);
  *
  * `active` (the zAI orb's open state, lifted in App) recolors + brightens the
  * scene so opening zAI visibly energizes the backdrop.
+ *
+ * `accentHue` spins the whole scene via a CSS hue-rotate and `accentSat`
+ * desaturates it via saturate(), so the backdrop tracks the dashboard's accent
+ * (live as the sliders drag); the defaults (hue 242, sat 90) map to a no-op, so
+ * an unrolled dashboard renders the scene exactly as authored.
  */
 export function DashboardBackground({
   background,
   active = false,
+  accentHue = ACCENT_DEFAULT_HUE,
+  accentSat = ACCENT_DEFAULT_SAT,
 }: {
   background: BackgroundConfig;
   active?: boolean;
+  accentHue?: number;
+  accentSat?: number;
 }) {
   if (background.type !== "unicorn" || !background.projectId) return null;
+
+  // Compose the accent spin + desaturation with the orb's "charge" filter: the
+  // rolled/muted scene is the base, the orb's invert/rotate/saturate stacks on
+  // top when it's open. Default hue 242 + sat 90 collapse to no filter at all.
+  const rotation = accentRotation(accentHue);
+  const saturation = accentSaturation(accentSat);
+  const baseFilter = [
+    rotation === 0 ? "" : `hue-rotate(${rotation}deg)`,
+    saturation === 1 ? "" : `saturate(${saturation})`,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const restFilter = baseFilter || "none";
+  const activeFilter = baseFilter
+    ? `${baseFilter} ${ACTIVE_FILTER}`
+    : ACTIVE_FILTER;
 
   return (
     <div
@@ -66,7 +111,7 @@ export function DashboardBackground({
           opacity: active
             ? activeOpacity(background.opacity)
             : background.opacity,
-          filter: active ? ACTIVE_FILTER : "none",
+          filter: active ? activeFilter : restFilter,
           transition: ACTIVE_TRANSITION,
           willChange: "opacity, filter",
         }}

@@ -449,6 +449,7 @@ export function DashboardEditor({
   onSave,
   customiseButtonTarget,
   onAccentHueChange,
+  onAccentSatChange,
 }: {
   spec: DashboardSpec;
   registry: FrameRegistry;
@@ -461,6 +462,11 @@ export function DashboardEditor({
    *  and the :root-scoped --color-highlight token — in real time, not just after
    *  a save + reload. */
   onAccentHueChange?: (hue: number) => void;
+  /** Mirror of onAccentHueChange for accent *saturation* (0–100), so the host
+   *  re-tints the :root chart tokens and the background scene's saturate()
+   *  filter live — a muted accent then reads muted everywhere, not just on the
+   *  editor's own cards. */
+  onAccentSatChange?: (sat: number) => void;
 }) {
   const providers = useProviders();
 
@@ -528,6 +534,10 @@ export function DashboardEditor({
   useEffect(() => {
     onAccentHueChange?.(accentHue);
   }, [accentHue, onAccentHueChange]);
+
+  useEffect(() => {
+    onAccentSatChange?.(accentSat);
+  }, [accentSat, onAccentSatChange]);
 
   // Live gap: GridStack positions items absolutely, so the inter-frame gutter is
   // its `margin` (half on each side → matches the bare renderer's CSS `gap`).
