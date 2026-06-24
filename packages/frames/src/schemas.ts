@@ -1153,6 +1153,123 @@ export const dividerMeta = defineFrameMeta({
   }),
 });
 
+export const diceMeta = defineFrameMeta({
+  name: "dice",
+  category: "tools",
+  layout: { w: 2, h: 2, minW: 1, minH: 1 },
+  description:
+    "A click-to-decide widget — a random decision-maker with no data provider. Flip a coin (heads/tails), roll a die (1–6), or pick at random from your own list of options. Click the surface to re-roll. Use it to break a tie, pick what to trade, or settle any small decision.",
+  capabilities: [],
+  schema: z.object({
+    mode: z
+      .enum(["coin", "dice", "list"])
+      .default("coin")
+      .describe(
+        "coin = heads/tails, dice = 1–6, list = random pick from options.",
+      ),
+    options: z
+      .array(z.string())
+      .default(["Yes", "No"])
+      .describe("Choices used in list mode."),
+    label: z
+      .string()
+      .default("")
+      .describe("Optional caption, e.g. the question being decided."),
+  }),
+});
+
+export const riskRewardMeta = defineFrameMeta({
+  name: "risk-reward",
+  category: "tools",
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Risk:reward planner. Enter entry, stop-loss and profit-target prices; it computes the per-unit risk and reward, their percentages of entry, and the resulting R:R ratio, shown large above a two-segment bar (red risk leg vs green reward leg, sized to scale). Pure client-side math — no data provider. Complements the calculator frame by adding the target/reward leg the position sizer leaves out.",
+  capabilities: [],
+  schema: z.object({
+    entry: z.number().default(100).describe("Planned entry price."),
+    stop: z.number().default(95).describe("Stop-loss price."),
+    target: z.number().default(115).describe("Profit target price."),
+    direction: z
+      .enum(["long", "short"])
+      .default("long")
+      .describe(
+        "Trade direction. Long expects stop < entry < target; short expects target < entry < stop — used for labels and to flag a mismatched setup.",
+      ),
+    label: z.string().default("").describe("Optional caption."),
+  }),
+});
+
+export const marqueeMeta = defineFrameMeta({
+  name: "marquee",
+  category: "layout",
+  layout: { w: 6, h: 1, minW: 2, minH: 1 },
+  description:
+    "A chrome-less scrolling banner that glides custom text continuously right-to-left across the frame (think stadium ticker / news crawl). Renders with no card — it fills the whole frame. Use for a slogan, a reminder, or a hype line. Needs no data provider.",
+  capabilities: [],
+  chrome: "bare",
+  schema: z.object({
+    text: z
+      .string()
+      .default("LFG")
+      .describe("The text that scrolls across the banner."),
+    speed: z
+      .enum(["slow", "normal", "fast"])
+      .default("normal")
+      .describe("Scroll speed."),
+    accent: z
+      .boolean()
+      .default(true)
+      .describe("Tint the text with the dashboard accent color."),
+  }),
+});
+
+export const stopwatchMeta = defineFrameMeta({
+  name: "stopwatch",
+  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  category: "tools",
+  description:
+    "A count-up stopwatch — time-in-trade, a focus session, how long a setup has been live. Start / Pause / Reset, ticking up in H:MM:SS, and it persists across reloads (the running state is saved into the dashboard, so it keeps counting where it left off). Runs entirely client-side — needs no data provider.",
+  capabilities: [],
+  schema: z.object({
+    label: z.string().default("Session").describe("Caption above the timer."),
+    startedAt: z
+      .number()
+      .default(0)
+      .describe(
+        "Epoch ms when the timer was last started; 0 = paused. Persisted automatically by the frame.",
+      ),
+    accumulatedMs: z
+      .number()
+      .default(0)
+      .describe(
+        "Milliseconds banked before the current run. Persisted automatically by the frame.",
+      ),
+  }),
+});
+
+export const sessionProgressMeta = defineFrameMeta({
+  name: "session-progress",
+  category: "tools",
+  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  description:
+    "A horizontal progress bar showing how far through today's trading session an exchange is — fills from open to close with a percent readout, and a 'closes in …' / 'opens in …' countdown. Pick any exchange code (NYSE, NASDAQ, LSE, TSX, B3, …); sessions are computed client-side from the exchange's timezone and hours, so it needs no data provider.",
+  capabilities: [],
+  schema: z.object({
+    exchange: z
+      .string()
+      .default("NYSE")
+      .describe("Exchange code: NYSE, NASDAQ, LSE, TSX, B3, …"),
+    label: z
+      .string()
+      .default("")
+      .describe("Optional caption shown by the exchange code."),
+    showCountdown: z
+      .boolean()
+      .default(true)
+      .describe("Show the time-to-open / time-to-close countdown."),
+  }),
+});
+
 export const btcFeesMeta = defineFrameMeta({
   name: "btc-fees",
   category: "bitcoin",
