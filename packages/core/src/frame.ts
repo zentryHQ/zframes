@@ -157,6 +157,16 @@ export interface FrameMeta<S extends z.ZodType = z.ZodType> {
    * no external data feed.
    */
   source?: FrameSource | FrameSource[];
+  /**
+   * Marks a frame as part of the opt-in *connected-account* tier: it renders the
+   * user's own portfolio (a keyed CEX account or a keyless on-chain wallet)
+   * instead of keyless public data. The catalogue, editor palette, and renderer
+   * use this to group it apart and show a connect-state until a source is
+   * configured/connected. Deliberately source-agnostic — whether the configured
+   * source needs credentials (Binance) or just a public address (wallet) is
+   * per-instance config, not declared here. Keyless frames omit it.
+   */
+  account?: boolean;
 }
 
 /** Identity helper so the schema generic flows through meta declarations. */

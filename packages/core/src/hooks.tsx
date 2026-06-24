@@ -31,6 +31,8 @@ import type {
   NewsItem,
   OpenInterestEntry,
   OptionsSummary,
+  Portfolio,
+  PortfolioSource,
   ProtocolFeesEntry,
   ProtocolTvlEntry,
   ReferenceRate,
@@ -815,6 +817,36 @@ export function useOptionsSummary(
     refreshMs,
   );
   return { summary, isLoading };
+}
+
+/**
+ * A connected account's portfolio (a keyed CEX account or an on-chain address),
+ * polled on an interval. Routes to the first provider that advertises
+ * "portfolio" and serves `source.kind`. Pass `source = null` (no source
+ * configured yet) to resolve to null without loading — the frame renders its
+ * connect-state instead.
+ */
+export function usePortfolio(
+  source: PortfolioSource | null,
+  refreshMs = 60_000,
+): { portfolio: Portfolio | null; isLoading: boolean } {
+  const providers = useProviders();
+  const provider = source
+    ? (providers.find(
+        (p) =>
+          !!p.getPortfolio &&
+          p.capabilities.includes("portfolio") &&
+          (p.portfolioKinds?.includes(source.kind) ?? true),
+      ) ?? null)
+    : null;
+  const key = source ? `${source.kind}:${source.address ?? ""}` : "";
+  const { data: portfolio, isLoading } = usePolled<Portfolio | null>(
+    provider && source ? () => provider.getPortfolio!(source) : null,
+    null,
+    [provider, key, refreshMs],
+    refreshMs,
+  );
+  return { portfolio, isLoading };
 }
 
 /** Deribit DVOL volatility-index history for one currency, polled every ~10 min. */
