@@ -1301,6 +1301,57 @@ export const sessionProgressMeta = defineFrameMeta({
   }),
 });
 
+export const holidayCalendarMeta = defineFrameMeta({
+  name: "holiday-calendar",
+  category: "tools",
+  layout: { w: 3, h: 4, minW: 2, minH: 2 },
+  description:
+    "Upcoming market holidays (full closures) for a chosen exchange — the next few dates with their weekday and a countdown ('in 9d'). Pick any exchange code (NYSE, NASDAQ, LSE, TSX, B3, …); dates come from a bundled holiday table and are computed client-side, so it needs no data provider. Note: the bundled table currently covers 2026.",
+  capabilities: [],
+  schema: z.object({
+    exchange: z
+      .string()
+      .default("NYSE")
+      .describe("Exchange code: NYSE, NASDAQ, LSE, TSX, B3, …"),
+    count: z
+      .number()
+      .int()
+      .min(1)
+      .max(20)
+      .default(5)
+      .describe("How many upcoming holidays to list."),
+    label: z
+      .string()
+      .default("")
+      .describe("Optional caption shown above the list."),
+  }),
+});
+
+export const dayMeterMeta = defineFrameMeta({
+  name: "day-meter",
+  category: "tools",
+  layout: { w: 4, h: 2, minW: 2, minH: 1 },
+  description:
+    "A strip of the current week's days for a chosen exchange — today highlighted, market holidays flagged in amber, and (optionally) non-trading days greyed. Computed client-side from the exchange's trading days + a bundled holiday table; needs no data provider.",
+  capabilities: [],
+  schema: z.object({
+    exchange: z
+      .string()
+      .default("NYSE")
+      .describe("Exchange code: NYSE, NASDAQ, LSE, TSX, B3, …"),
+    weekdaysOnly: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Show only the exchange's trading days; off shows the full 7-day week with weekends greyed.",
+      ),
+    label: z
+      .string()
+      .default("")
+      .describe("Optional caption shown by the strip."),
+  }),
+});
+
 export const btcFeesMeta = defineFrameMeta({
   name: "btc-fees",
   category: "bitcoin",
