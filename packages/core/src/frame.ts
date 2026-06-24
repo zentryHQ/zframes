@@ -24,6 +24,87 @@ export interface FrameLayout {
 }
 
 /**
+ * The catalogue's top-level taxonomy — ordered, with the label + one-line
+ * blurb each category shows in the editor palette and the AI catalogue. This
+ * is the single source of truth for both the set of valid categories (the
+ * `FrameCategory` union derives from it) and their display order; the palette
+ * renders groups in this order and the AI reads the blurb to reason about
+ * which family a need falls into. Adding a category = one entry here.
+ */
+export const FRAME_CATEGORIES = [
+  {
+    key: "markets",
+    label: "Prices & Markets",
+    description:
+      "Live price charts, tickers, and market movers across stocks and crypto.",
+  },
+  {
+    key: "crypto",
+    label: "Crypto & On-chain",
+    description:
+      "Crypto market structure and DeFi/on-chain activity — dominance, market caps, TVL, DEX volume, and fees.",
+  },
+  {
+    key: "bitcoin",
+    label: "Bitcoin Network",
+    description:
+      "Bitcoin chain health — fees, mempool, blocks, hashrate, difficulty, mining pools, and Lightning.",
+  },
+  {
+    key: "derivatives",
+    label: "Derivatives & Options",
+    description:
+      "Perp funding, open interest, and options positioning and volatility.",
+  },
+  {
+    key: "macro",
+    label: "Macro & Rates",
+    description:
+      "Official macro data — rates, the yield curve, inflation, jobs, debt, Treasury auctions, and financial stress.",
+  },
+  {
+    key: "equities",
+    label: "Equities & Filings",
+    description:
+      "Single-company fundamentals, SEC filings, and short-sale volume.",
+  },
+  {
+    key: "sentiment",
+    label: "Sentiment & News",
+    description: "Market-mood gauges and news headline feeds.",
+  },
+  {
+    key: "portfolio",
+    label: "Portfolio",
+    description: "Your own holdings and their live allocation.",
+  },
+  {
+    key: "tools",
+    label: "Tools & Utility",
+    description:
+      "Clocks, countdowns, calculators, link grids, and the daily brief.",
+  },
+  {
+    key: "layout",
+    label: "Layout & Media",
+    description:
+      "Structural and decorative frames — headings, dividers, notes, images, video, and quotes.",
+  },
+  {
+    key: "games",
+    label: "Games",
+    description: "Idle canvas games for when the market is quiet.",
+  },
+] as const satisfies readonly {
+  key: string;
+  label: string;
+  description: string;
+}[];
+
+/** The family a frame belongs to — one of {@link FRAME_CATEGORIES}' keys. */
+export type FrameCategory = (typeof FRAME_CATEGORIES)[number]["key"];
+
+/**
  * A data-provenance credit shown on the card chrome: the provider's display
  * name and the page opened when it's clicked. Frames with no external data
  * (headings, notes, the clock, client-side market hours) declare none.
@@ -43,6 +124,12 @@ export interface FrameSource {
 export interface FrameMeta<S extends z.ZodType = z.ZodType> {
   /** Unique frame name, referenced by dashboard specs. */
   name: string;
+  /**
+   * The family this frame belongs to — groups the editor palette and the AI
+   * catalogue. One of {@link FRAME_CATEGORIES}' keys; see that list for the
+   * label and blurb each category renders with.
+   */
+  category: FrameCategory;
   /** AI-facing: what the frame shows and when a generating agent should pick it. */
   description: string;
   /** Optional visual used by editor palettes/catalogues. */

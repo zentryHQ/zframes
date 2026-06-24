@@ -36,7 +36,7 @@ These intentionally don't go through the generic primitives; don't "harmonize" t
 
 ## Adding a frame
 
-1. `schemas.ts` — add the meta via `defineFrameMeta`. **Every field needs `.describe()`** (read by `catalogueForAI`). This file is React-free — no component imports.
+1. `schemas.ts` — add the meta via `defineFrameMeta`. **Set `category`** (one of `FRAME_CATEGORIES`' keys in `@zframes/core` — it's a required field; groups the editor palette and the AI catalogue) and give **every field a `.describe()`** (read by `catalogueForAI`). This file is React-free — no component imports.
 2. New `<frame>.tsx` — import the meta, build the component using the primitives above, `export const xFrame = defineFrame({ ...xMeta, component: X })`.
 3. `index.ts` — add `xFrame` to `allFrames` (and re-export if hosts need it).
 4. `pnpm typecheck && pnpm lint && pnpm test` from the repo root before committing.
