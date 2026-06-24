@@ -20,6 +20,15 @@ export const DASHBOARD_WRITE_ROUTE = "/__zframes/dashboard";
  * it back.
  */
 export const DASHBOARD_PROXY_ROUTE = "/__zframes/proxy";
+/**
+ * Keyed-account tier. The signed read relay returns a connected account's
+ * portfolio (`?source=binance`); the credential route is the in-app connect
+ * form's backend (POST connect / GET status / DELETE disconnect). Both are
+ * loopback-only and the secret is held in a local file, never in the spec. The
+ * keyless on-chain wallet does NOT use these — it reads public data directly.
+ */
+export const ACCOUNT_PORTFOLIO_ROUTE = "/__zframes/account/portfolio";
+export const ACCOUNT_CREDENTIALS_ROUTE = "/__zframes/account/credentials";
 /** GET → which agent runners are installed (drives the zAI orb's visibility). */
 export const AGENTS_LIST_ROUTE = "/__zframes/agents";
 /** POST { question, agent? } → run the question through a runner, return text. */
