@@ -62,6 +62,8 @@ export { optionsPutCallFrame } from "./options-put-call";
 export { optionsIvFrame } from "./options-iv";
 export { optionsOiStrikeFrame } from "./options-oi-strike";
 export { coinMoversFrame } from "./coin-movers";
+export { holidayCalendarFrame } from "./holiday-calendar";
+export { dayMeterFrame } from "./day-meter";
 
 import type { AnyFrameDefinition } from "@zframes/core";
 import { portfolioValueFrame } from "./portfolio-value";
@@ -127,6 +129,8 @@ import { optionsPutCallFrame } from "./options-put-call";
 import { optionsIvFrame } from "./options-iv";
 import { optionsOiStrikeFrame } from "./options-oi-strike";
 import { coinMoversFrame } from "./coin-movers";
+import { holidayCalendarFrame } from "./holiday-calendar";
+import { dayMeterFrame } from "./day-meter";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -193,4 +197,6 @@ export const allFrames: AnyFrameDefinition[] = [
   optionsIvFrame,
   optionsOiStrikeFrame,
   coinMoversFrame,
+  holidayCalendarFrame,
+  dayMeterFrame,
 ];

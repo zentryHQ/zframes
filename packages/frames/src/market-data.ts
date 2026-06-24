@@ -726,3 +726,19 @@ export function nextHolidays(
     .sort()
     .slice(0, Math.max(0, n));
 }
+
+/**
+ * Exchange-local date parts for a moment: the local calendar date
+ * ("YYYY-MM-DD") and weekday (0 = Sunday … 6 = Saturday). `null` for an
+ * unknown code. Wraps the internal tz parser so day/week frames can reason in
+ * the exchange's own calendar without re-deriving the timezone math.
+ */
+export function exchangeDateParts(
+  code: string,
+  date: Date = new Date(),
+): { ymd: string; dow: number } | null {
+  const ex = EXCHANGES[code];
+  if (!ex) return null;
+  const { ymd, dow } = partsInTz(date, ex.tz);
+  return { ymd, dow };
+}
