@@ -220,7 +220,6 @@ function detectSymbolControl(def: AnyFrameDefinition): SymbolControl | null {
     ].includes(def.name)
   )
     return { kind: "symbols" };
-  if (def.name === "allocation") return { kind: "holdings" };
   return null;
 }
 
@@ -343,8 +342,8 @@ function defaultForShape(shape: JsonShape, key: string, index = 0): unknown {
 /**
  * A schema-valid starting config for a frame added from the palette. Frames
  * with all-optional fields resolve straight from `safeParse({})`; frames with
- * required fields (a price-chart's symbol, a note's text, an allocation's
- * holdings) get minimal placeholder values seeded from the schema, so they
+ * required fields (a price-chart's symbol, a note's text) get minimal
+ * placeholder values seeded from the schema, so they
  * render immediately and never land as a null/undefined error card.
  */
 function buildDefaultConfig(def: AnyFrameDefinition): Record<string, unknown> {

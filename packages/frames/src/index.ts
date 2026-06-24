@@ -1,5 +1,7 @@
 export { AssetLogo, assetLogoUrl, tickerOf } from "./asset-logo";
-export { allocationFrame } from "./allocation";
+export { portfolioValueFrame } from "./portfolio-value";
+export { portfolioAllocationFrame } from "./portfolio-allocation";
+export { portfolioHoldingsFrame } from "./portfolio-holdings";
 export { bitcoinDominanceFrame } from "./bitcoin-dominance";
 export { clockFrame } from "./clock";
 export { dailyAnalysisFrame } from "./daily-analysis";
@@ -62,7 +64,9 @@ export { optionsOiStrikeFrame } from "./options-oi-strike";
 export { coinMoversFrame } from "./coin-movers";
 
 import type { AnyFrameDefinition } from "@zframes/core";
-import { allocationFrame } from "./allocation";
+import { portfolioValueFrame } from "./portfolio-value";
+import { portfolioAllocationFrame } from "./portfolio-allocation";
+import { portfolioHoldingsFrame } from "./portfolio-holdings";
 import { bitcoinDominanceFrame } from "./bitcoin-dominance";
 import { clockFrame } from "./clock";
 import { dailyAnalysisFrame } from "./daily-analysis";
@@ -126,7 +130,9 @@ import { coinMoversFrame } from "./coin-movers";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
-  allocationFrame,
+  portfolioValueFrame,
+  portfolioAllocationFrame,
+  portfolioHoldingsFrame,
   bitcoinDominanceFrame,
   clockFrame,
   dailyAnalysisFrame,
