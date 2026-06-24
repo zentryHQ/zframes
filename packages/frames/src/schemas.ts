@@ -721,35 +721,66 @@ export const priceCompareMeta = defineFrameMeta({
   }),
 });
 
-export const allocationMeta = defineFrameMeta({
-  name: "allocation",
+// Shared config for the source-agnostic portfolio frames. The source is chosen
+// per instance; the keyed Binance source needs a one-time in-app connect (its
+// read-only key is stored locally, never in this spec), the wallet source just
+// needs a public address.
+const portfolioConfigShape = {
+  source: z
+    .enum(["binance", "wallet"])
+    .default("binance")
+    .describe(
+      'Where the holdings come from: "binance" (a connected Binance account — a read-only API key is entered in-app and stored locally, never in this file) or "wallet" (a public on-chain address, keyless).',
+    ),
+  address: z
+    .string()
+    .default("")
+    .describe(
+      'For source "wallet": the public Ethereum address (0x…) or ENS name to track. Public on-chain data, no keys. Ignored for "binance".',
+    ),
+};
+
+export const portfolioValueMeta = defineFrameMeta({
+  name: "portfolio-value",
   category: "portfolio",
-  iconUrl: widgetIcon("allocation"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Your connected portfolio's total USD value as a live equity line, ticking with the market. Source is a connected Binance account (read-only key, entered in-app) or a public on-chain wallet address. Shows total value + session change. Renders a connect prompt until a source is set.",
+  capabilities: ["portfolio", "quote-stream"],
+  account: true,
+  schema: z.object({
+    ...portfolioConfigShape,
+    windowSec: z
+      .number()
+      .int()
+      .positive()
+      .default(300)
+      .describe(
+        "Seconds of live history the equity line shows; it accumulates from when the dashboard opens.",
+      ),
+  }),
+});
+
+export const portfolioAllocationMeta = defineFrameMeta({
+  name: "portfolio-allocation",
+  category: "portfolio",
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
-    "Donut of a portfolio's live allocation — list holdings (symbol + amount) and each slice is sized by current USD value off the Hyperliquid mid stream, with total portfolio value in the center. A live 'where is my money right now' view.",
-  capabilities: ["quote-stream"],
-  source: SOURCES.hyperliquid,
-  schema: z.object({
-    holdings: z
-      .array(
-        z.object({
-          symbol: z
-            .string()
-            .min(1)
-            .describe('Hyperliquid symbol, e.g. "BTC", "ETH", "xyz:TSLA".'),
-          amount: z
-            .number()
-            .positive()
-            .describe(
-              "Units held (e.g. 0.5 BTC, 10 shares). Weights the slice by USD value = amount × live price.",
-            ),
-        }),
-      )
-      .min(2)
-      .max(8)
-      .describe("The holdings to chart. 2 to 8 positions."),
-  }),
+    "Donut of your connected portfolio's allocation — each slice sized by live USD value, total in the center. Source is a connected Binance account (read-only key, in-app) or a public on-chain wallet address. Renders a connect prompt until a source is set.",
+  capabilities: ["portfolio", "quote-stream"],
+  account: true,
+  schema: z.object({ ...portfolioConfigShape }),
+});
+
+export const portfolioHoldingsMeta = defineFrameMeta({
+  name: "portfolio-holdings",
+  category: "portfolio",
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Table of your connected portfolio's positions — asset, amount, live USD value, share of total, 24h change. Source is a connected Binance account (read-only key, in-app) or a public on-chain wallet address. Renders a connect prompt until a source is set.",
+  capabilities: ["portfolio", "quote-stream"],
+  account: true,
+  schema: z.object({ ...portfolioConfigShape }),
 });
 
 export const newsFeedMeta = defineFrameMeta({
@@ -1524,7 +1555,9 @@ export const coinMoversMeta = defineFrameMeta({
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   newsFeedMeta,
-  allocationMeta,
+  portfolioValueMeta,
+  portfolioAllocationMeta,
+  portfolioHoldingsMeta,
   bitcoinDominanceMeta,
   clockMeta,
   dailyAnalysisMeta,
