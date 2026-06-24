@@ -19,6 +19,7 @@ import {
 } from "@zframes/core/routes";
 import { allFrames } from "@zframes/frames";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
+import { BinanceProvider } from "@zframes/provider-binance";
 import { BlsProvider } from "@zframes/provider-bls";
 import { CoinGeckoProvider } from "@zframes/provider-coingecko";
 import { CoinpaprikaProvider } from "@zframes/provider-coinpaprika";
@@ -32,6 +33,7 @@ import { NyFedProvider } from "@zframes/provider-nyfed";
 import { OfrProvider } from "@zframes/provider-ofr";
 import { SecProvider } from "@zframes/provider-sec";
 import { TreasuryProvider } from "@zframes/provider-treasury";
+import { WalletProvider } from "@zframes/provider-wallet";
 import { DashboardBackground } from "./background";
 import { TickerTape } from "./ticker-tape";
 import { useIsMobile } from "./use-is-mobile";
@@ -60,6 +62,8 @@ const providers = [
   new NewsProvider(),
   new MempoolProvider(),
   new DeribitProvider(),
+  new BinanceProvider(),
+  new WalletProvider(),
 ];
 
 // The runtime serves the user's dashboard.json at DASHBOARD_READ_ROUTE. Both
