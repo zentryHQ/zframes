@@ -49,6 +49,9 @@ importers:
       '@zframes/provider-alternativeme':
         specifier: workspace:*
         version: link:../../packages/provider-alternativeme
+      '@zframes/provider-binance':
+        specifier: workspace:*
+        version: link:../../packages/provider-binance
       '@zframes/provider-bls':
         specifier: workspace:*
         version: link:../../packages/provider-bls
@@ -88,6 +91,9 @@ importers:
       '@zframes/provider-treasury':
         specifier: workspace:*
         version: link:../../packages/provider-treasury
+      '@zframes/provider-wallet':
+        specifier: workspace:*
+        version: link:../../packages/provider-wallet
       gridstack:
         specifier: ^12.1.0
         version: 12.6.0
@@ -125,31 +131,6 @@ importers:
       vite:
         specifier: ^6.3.0
         version: 6.4.3(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)
-
-  packages/catalogue:
-    dependencies:
-      '@zframes/charts':
-        specifier: workspace:*
-        version: link:../charts
-      '@zframes/core':
-        specifier: workspace:*
-        version: link:../core
-      '@zframes/frames':
-        specifier: workspace:*
-        version: link:../frames
-      react:
-        specifier: '>=18'
-        version: 19.2.7
-      zod:
-        specifier: ^4.1.0
-        version: 4.4.3
-    devDependencies:
-      '@types/react':
-        specifier: ^19.1.0
-        version: 19.2.17
-      typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
 
   packages/charts:
     dependencies:
@@ -288,6 +269,16 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-binance:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-bls:
     dependencies:
       '@zframes/core':
@@ -409,6 +400,16 @@ importers:
         version: 5.9.3
 
   packages/provider-treasury:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-wallet:
     dependencies:
       '@zframes/core':
         specifier: workspace:*
