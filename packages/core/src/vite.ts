@@ -17,6 +17,12 @@ import {
   handleAgents,
   handleAsk,
 } from "@zframes/core/agent";
+import {
+  ACCOUNT_CREDENTIALS_ROUTE,
+  ACCOUNT_PORTFOLIO_ROUTE,
+  handleAccountCredentials,
+  handleAccountPortfolio,
+} from "@zframes/core/account";
 
 /**
  * Dev-only Vite plugin that serves the dashboard spec to the in-browser app and
@@ -84,6 +90,15 @@ export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
       });
       server.middlewares.use(ASK_ROUTE, (req, res) => {
         handleAsk(req, res, target());
+      });
+      // Keyed-account tier — signed portfolio read relay + the in-app connect
+      // form's credential API; the dev mirror of the CLI serve routes.
+      server.middlewares.use(ACCOUNT_PORTFOLIO_ROUTE, (req, res, next) => {
+        if (req.method !== "GET" && req.method !== "HEAD") return next();
+        void handleAccountPortfolio(req, res);
+      });
+      server.middlewares.use(ACCOUNT_CREDENTIALS_ROUTE, (req, res) => {
+        void handleAccountCredentials(req, res);
       });
     },
   };

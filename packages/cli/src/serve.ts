@@ -17,6 +17,12 @@ import {
   handleAgents,
   handleAsk,
 } from "@zframes/core/agent";
+import {
+  ACCOUNT_CREDENTIALS_ROUTE,
+  ACCOUNT_PORTFOLIO_ROUTE,
+  handleAccountCredentials,
+  handleAccountPortfolio,
+} from "@zframes/core/account";
 
 const DEFAULT_PORT = 37263;
 
@@ -125,6 +131,16 @@ export function serve(args: string[]): Promise<number> {
       }
       if (path === ASK_ROUTE) {
         handleAsk(req, res, file);
+        return;
+      }
+      // Keyed-account tier: signed portfolio read relay + the in-app connect
+      // form's credential API. Loopback-only; the secret stays in a local file.
+      if (path === ACCOUNT_PORTFOLIO_ROUTE) {
+        void handleAccountPortfolio(req, res);
+        return;
+      }
+      if (path === ACCOUNT_CREDENTIALS_ROUTE) {
+        void handleAccountCredentials(req, res);
         return;
       }
       // Same-origin relay for official-data hosts that browsers can't fetch

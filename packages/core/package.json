@@ -24,7 +24,8 @@
     "./editor": "./src/editor.tsx",
     "./vite": "./src/vite.ts",
     "./serve": "./src/serve.ts",
-    "./agent": "./src/agent.ts"
+    "./agent": "./src/agent.ts",
+    "./account": "./src/account.ts"
   },
   "sideEffects": [
     "**/*.css"
