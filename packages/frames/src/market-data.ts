@@ -692,3 +692,37 @@ export function formatCountdown(min: number): string {
   if (hours > 0) return `${hours}h ${mins}m`;
   return `${mins}m`;
 }
+
+/** Holiday-group date list for an exchange code (mirrors `evaluate`'s
+ *  `ex.holidayGroup ?? ex.code` rule). Empty for an unknown code. */
+function holidayList(code: string): string[] {
+  const ex = EXCHANGES[code];
+  if (!ex) return [];
+  return HOLIDAYS[ex.holidayGroup ?? ex.code] ?? [];
+}
+
+/** Whether `ymd` ("YYYY-MM-DD", exchange-local date) is a full-closure
+ *  holiday for the exchange. */
+export function isHoliday(code: string, ymd: string): boolean {
+  return holidayList(code).includes(ymd);
+}
+
+/**
+ * The next `n` full-closure holiday dates ("YYYY-MM-DD") for an exchange,
+ * counting from today (exchange-local, today included if it is itself a
+ * holiday) forward. Sorted ascending; empty for an unknown code. Keyless —
+ * reads the bundled holiday table (currently 2026 only).
+ */
+export function nextHolidays(
+  code: string,
+  n: number,
+  now: Date = new Date(),
+): string[] {
+  const ex = EXCHANGES[code];
+  if (!ex) return [];
+  const todayYmd = partsInTz(now, ex.tz).ymd;
+  return holidayList(code)
+    .filter((ymd) => ymd >= todayYmd)
+    .sort()
+    .slice(0, Math.max(0, n));
+}

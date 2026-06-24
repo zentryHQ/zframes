@@ -44,6 +44,11 @@ export { linkGridFrame } from "./link-grid";
 export { calculatorFrame } from "./calculator";
 export { quoteFrame } from "./quote";
 export { dividerFrame } from "./divider";
+export { marqueeFrame } from "./marquee";
+export { diceFrame } from "./dice";
+export { riskRewardFrame } from "./risk-reward";
+export { stopwatchFrame } from "./stopwatch";
+export { sessionProgressFrame } from "./session-progress";
 export { btcFeesFrame } from "./btc-fees";
 export { btcMempoolFrame } from "./btc-mempool";
 export { btcBlocksFrame } from "./btc-blocks";
@@ -102,6 +107,11 @@ import { linkGridFrame } from "./link-grid";
 import { calculatorFrame } from "./calculator";
 import { quoteFrame } from "./quote";
 import { dividerFrame } from "./divider";
+import { marqueeFrame } from "./marquee";
+import { diceFrame } from "./dice";
+import { riskRewardFrame } from "./risk-reward";
+import { stopwatchFrame } from "./stopwatch";
+import { sessionProgressFrame } from "./session-progress";
 import { btcFeesFrame } from "./btc-fees";
 import { btcMempoolFrame } from "./btc-mempool";
 import { btcBlocksFrame } from "./btc-blocks";
@@ -161,6 +171,11 @@ export const allFrames: AnyFrameDefinition[] = [
   calculatorFrame,
   quoteFrame,
   dividerFrame,
+  marqueeFrame,
+  diceFrame,
+  riskRewardFrame,
+  stopwatchFrame,
+  sessionProgressFrame,
   btcFeesFrame,
   btcMempoolFrame,
   btcBlocksFrame,
