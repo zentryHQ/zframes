@@ -48,6 +48,7 @@ const SOURCES = {
 
 export const clockMeta = defineFrameMeta({
   name: "clock",
+  category: "tools",
   iconUrl: widgetIcon("clock"),
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
   description:
@@ -95,6 +96,7 @@ export const clockMeta = defineFrameMeta({
 
 export const marketHoursMeta = defineFrameMeta({
   name: "market-hours",
+  category: "tools",
   iconUrl: widgetIcon("market-hours"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
@@ -118,6 +120,7 @@ export const marketHoursMeta = defineFrameMeta({
 
 export const fearGreedMeta = defineFrameMeta({
   name: "fear-greed",
+  category: "sentiment",
   iconUrl: widgetIcon("fear-greed"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
@@ -137,6 +140,7 @@ export const fearGreedMeta = defineFrameMeta({
 
 export const fundingRateChartMeta = defineFrameMeta({
   name: "funding-rate-chart",
+  category: "derivatives",
   iconUrl: widgetIcon("funding-rate-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
@@ -160,6 +164,7 @@ export const fundingRateChartMeta = defineFrameMeta({
 
 export const noteMeta = defineFrameMeta({
   name: "note",
+  category: "layout",
   iconUrl: widgetIcon("note"),
   layout: { w: 4, h: 3, minW: 2, minH: 2 },
   description:
@@ -179,6 +184,7 @@ export const noteMeta = defineFrameMeta({
 
 export const priceChartMeta = defineFrameMeta({
   name: "price-chart",
+  category: "markets",
   iconUrl: widgetIcon("price-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
@@ -209,6 +215,7 @@ export const priceChartMeta = defineFrameMeta({
 
 export const priceLivelineMeta = defineFrameMeta({
   name: "price-liveline",
+  category: "markets",
   iconUrl: widgetIcon("price-liveline"),
   layout: { w: 6, h: 3, minW: 4, minH: 2 },
   description:
@@ -243,6 +250,7 @@ export const priceLivelineMeta = defineFrameMeta({
 
 export const priceTickerMeta = defineFrameMeta({
   name: "price-ticker",
+  category: "markets",
   iconUrl: widgetIcon("price-ticker"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
@@ -261,6 +269,7 @@ export const priceTickerMeta = defineFrameMeta({
 
 export const topMoversMeta = defineFrameMeta({
   name: "top-movers",
+  category: "markets",
   iconUrl: widgetIcon("top-movers"),
   layout: { w: 5, h: 3, minW: 3, minH: 3 },
   description:
@@ -280,6 +289,7 @@ export const topMoversMeta = defineFrameMeta({
 
 export const tvlTreemapMeta = defineFrameMeta({
   name: "tvl-treemap",
+  category: "crypto",
   iconUrl: widgetIcon("tvl-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
@@ -299,6 +309,7 @@ export const tvlTreemapMeta = defineFrameMeta({
 
 export const bitcoinDominanceMeta = defineFrameMeta({
   name: "bitcoin-dominance",
+  category: "crypto",
   iconUrl: widgetIcon("bitcoin-dominance"),
   layout: { w: 4, h: 2, minW: 3, minH: 2 },
   description:
@@ -317,6 +328,7 @@ export const bitcoinDominanceMeta = defineFrameMeta({
 
 export const ratesBoardMeta = defineFrameMeta({
   name: "rates-board",
+  category: "macro",
   iconUrl: widgetIcon("rates-board"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
@@ -349,6 +361,7 @@ export const ratesBoardMeta = defineFrameMeta({
 
 export const inflationPulseMeta = defineFrameMeta({
   name: "inflation-pulse",
+  category: "macro",
   iconUrl: widgetIcon("inflation-pulse"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
   description:
@@ -368,6 +381,7 @@ export const inflationPulseMeta = defineFrameMeta({
 
 export const financialStressMeta = defineFrameMeta({
   name: "financial-stress",
+  category: "macro",
   iconUrl: widgetIcon("financial-stress"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
   description:
@@ -393,6 +407,7 @@ export const financialStressMeta = defineFrameMeta({
 
 export const nationalDebtMeta = defineFrameMeta({
   name: "national-debt",
+  category: "macro",
   iconUrl: widgetIcon("national-debt"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
   description:
@@ -420,6 +435,7 @@ export const nationalDebtMeta = defineFrameMeta({
 
 export const laborMarketMeta = defineFrameMeta({
   name: "labor-market",
+  category: "macro",
   iconUrl: widgetIcon("labor-market"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
   description:
@@ -439,6 +455,7 @@ export const laborMarketMeta = defineFrameMeta({
 
 export const treasuryAuctionsMeta = defineFrameMeta({
   name: "treasury-auctions",
+  category: "macro",
   iconUrl: widgetIcon("treasury-auctions"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
   description:
@@ -458,6 +475,7 @@ export const treasuryAuctionsMeta = defineFrameMeta({
 
 export const filingsFeedMeta = defineFrameMeta({
   name: "filings-feed",
+  category: "equities",
   iconUrl: widgetIcon("filings-feed"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
   description:
@@ -489,6 +507,7 @@ export const filingsFeedMeta = defineFrameMeta({
 
 export const yieldCurveMeta = defineFrameMeta({
   name: "yield-curve",
+  category: "macro",
   iconUrl: widgetIcon("yield-curve"),
   layout: { w: 4, h: 3, minW: 3, minH: 3 },
   description:
@@ -525,6 +544,7 @@ export const yieldCurveMeta = defineFrameMeta({
 
 export const fundamentalsMeta = defineFrameMeta({
   name: "fundamentals",
+  category: "equities",
   iconUrl: widgetIcon("fundamentals"),
   layout: { w: 4, h: 3, minW: 3, minH: 3 },
   description:
@@ -543,6 +563,7 @@ export const fundamentalsMeta = defineFrameMeta({
 
 export const shortVolumeMeta = defineFrameMeta({
   name: "short-volume",
+  category: "equities",
   iconUrl: widgetIcon("short-volume"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
   description:
@@ -568,6 +589,7 @@ export const shortVolumeMeta = defineFrameMeta({
 
 export const fundingHeatmapMeta = defineFrameMeta({
   name: "funding-heatmap",
+  category: "derivatives",
   iconUrl: widgetIcon("funding-heatmap"),
   layout: { w: 6, h: 3, minW: 4, minH: 3 },
   description:
@@ -587,6 +609,7 @@ export const fundingHeatmapMeta = defineFrameMeta({
 
 export const dinoGameMeta = defineFrameMeta({
   name: "dino-game",
+  category: "games",
   iconUrl: widgetIcon("dino-game"),
   layout: { w: 4, h: 3, minW: 3, minH: 3 },
   description:
@@ -597,6 +620,7 @@ export const dinoGameMeta = defineFrameMeta({
 
 export const imageMeta = defineFrameMeta({
   name: "image",
+  category: "layout",
   iconUrl: widgetIcon("image"),
   layout: { w: 3, h: 3, minW: 1, minH: 1 },
   description:
@@ -616,6 +640,7 @@ export const imageMeta = defineFrameMeta({
 
 export const headingMeta = defineFrameMeta({
   name: "heading",
+  category: "layout",
   iconUrl: widgetIcon("heading"),
   layout: { w: 12, h: 1, minW: 2, minH: 1, maxH: 1 },
   description:
@@ -633,6 +658,7 @@ export const headingMeta = defineFrameMeta({
 
 export const dailyAnalysisMeta = defineFrameMeta({
   name: "daily-analysis",
+  category: "tools",
   iconUrl: widgetIcon("daily-analysis"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
@@ -667,6 +693,7 @@ export const dailyAnalysisMeta = defineFrameMeta({
 
 export const priceCompareMeta = defineFrameMeta({
   name: "price-compare",
+  category: "markets",
   iconUrl: widgetIcon("price-compare"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
@@ -696,6 +723,7 @@ export const priceCompareMeta = defineFrameMeta({
 
 export const allocationMeta = defineFrameMeta({
   name: "allocation",
+  category: "portfolio",
   iconUrl: widgetIcon("allocation"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
@@ -726,6 +754,7 @@ export const allocationMeta = defineFrameMeta({
 
 export const newsFeedMeta = defineFrameMeta({
   name: "news-feed",
+  category: "sentiment",
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
     'Scrolling feed of the latest news headlines from a chosen outlet — each row is a clickable headline with its publish time, newest first. Free, keyless RSS sources: crypto press (CoinDesk, Cointelegraph, Decrypt), broad markets/macro (CNBC, Nasdaq), or — source "stocks" — per-company headlines (via Google News) scoped to the specific tickers in `symbols`. IMPORTANT: news feeds are CORS-blocked, so this frame reads them through the zframes runtime\'s data proxy (it ships with `zframes serve` / `vite dev`); on a fully static host with no runtime it shows an empty state.',
@@ -762,6 +791,7 @@ export const newsFeedMeta = defineFrameMeta({
 
 export const dexVolumeTreemapMeta = defineFrameMeta({
   name: "dex-volume-treemap",
+  category: "crypto",
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Treemap of decentralized-exchange (DEX) protocols sized by trailing-24h trading volume, tiles colored green/red by 1-day change. Data from DeFiLlama. One-glance read on where on-chain trading flow is concentrated right now.",
@@ -780,6 +810,7 @@ export const dexVolumeTreemapMeta = defineFrameMeta({
 
 export const dexVolumeChartMeta = defineFrameMeta({
   name: "dex-volume-chart",
+  category: "crypto",
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Multi-series line chart of daily DEX trading volume for several protocols over a lookback window — compare how Uniswap, PancakeSwap, Aerodrome etc. trend against each other. Data from DeFiLlama (daily granularity).",
@@ -802,6 +833,7 @@ export const dexVolumeChartMeta = defineFrameMeta({
 
 export const protocolTvlTreemapMeta = defineFrameMeta({
   name: "protocol-tvl-treemap",
+  category: "crypto",
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Treemap of DeFi protocols sized by current total value locked (TVL), tiles colored green/red by 1-day change. Data from DeFiLlama. Unlike tvl-treemap (which groups by blockchain), this ranks individual protocols (Lido, Aave, EigenLayer…).",
@@ -820,6 +852,7 @@ export const protocolTvlTreemapMeta = defineFrameMeta({
 
 export const protocolTvlChartMeta = defineFrameMeta({
   name: "protocol-tvl-chart",
+  category: "crypto",
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Multi-series line chart of total value locked (TVL) for several DeFi protocols over a lookback window. Data from DeFiLlama (daily granularity).",
@@ -842,6 +875,7 @@ export const protocolTvlChartMeta = defineFrameMeta({
 
 export const protocolFeesTreemapMeta = defineFrameMeta({
   name: "protocol-fees-treemap",
+  category: "crypto",
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Treemap of protocols sized by the fees they generated in the last 24h, tiles colored green/red by 1-day change. Data from DeFiLlama. Shows where on-chain users are actually paying for blockspace and services right now.",
@@ -860,6 +894,7 @@ export const protocolFeesTreemapMeta = defineFrameMeta({
 
 export const marketCapTreemapMeta = defineFrameMeta({
   name: "market-cap-treemap",
+  category: "crypto",
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Treemap of the largest cryptocurrencies sized by market capitalisation, tiles colored green/red by 24h price change. Data from CoinGecko (free tier). A heat-map of the whole crypto market at a glance.",
@@ -880,6 +915,7 @@ export const marketCapTreemapMeta = defineFrameMeta({
 
 export const openInterestMeta = defineFrameMeta({
   name: "open-interest",
+  category: "derivatives",
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
   description:
     'Live open interest across a watchlist of Hyperliquid perps — each symbol is a horizontal bar sized by USD notional, largest first, refreshed on a ~30s poll. Single-venue (Hyperliquid only), so read it as a relative gauge across your symbols, not a market-wide total. Stocks (HIP-3, e.g. "xyz:TSLA") and crypto both work.',
@@ -898,6 +934,7 @@ export const openInterestMeta = defineFrameMeta({
 
 export const snakeMeta = defineFrameMeta({
   name: "snake",
+  category: "games",
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
     "Classic snake game on canvas — steer with the arrow keys (or swipe), eat dots to grow, avoid the walls and your own tail. High score persists locally. For when the market is flat. Needs no data provider.",
@@ -907,6 +944,7 @@ export const snakeMeta = defineFrameMeta({
 
 export const flappyBirdMeta = defineFrameMeta({
   name: "flappy-bird",
+  category: "games",
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
     "Flappy-bird style game on canvas — tap or press SPACE to flap through the gaps between pipes. High score persists locally. Needs no data provider.",
@@ -916,6 +954,7 @@ export const flappyBirdMeta = defineFrameMeta({
 
 export const videoMeta = defineFrameMeta({
   name: "video",
+  category: "layout",
   layout: { w: 4, h: 3, minW: 2, minH: 2 },
   description:
     "Embeds a video from a YouTube or Vimeo link (or any direct embed URL) as an iframe — a livestream, a market-news clip, a focus playlist. Needs no data provider.",
@@ -936,6 +975,7 @@ export const videoMeta = defineFrameMeta({
 
 export const drawdyMeta = defineFrameMeta({
   name: "drawdy",
+  category: "layout",
   layout: { w: 8, h: 6, minW: 2, minH: 2 },
   description:
     "Embeds drawdy.io as an interactive whiteboard canvas. No configuration needed.",
@@ -945,6 +985,7 @@ export const drawdyMeta = defineFrameMeta({
 
 export const countdownMeta = defineFrameMeta({
   name: "countdown",
+  category: "tools",
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
   description:
     "Live countdown to a target date and time — FOMC decisions, CPI prints, options expiry, earnings, a token unlock, the next market open. Counts down in days / hours / minutes / seconds, ticking every second, and flips to a 'reached' state once the moment passes. Needs no data provider.",
@@ -971,6 +1012,7 @@ export const countdownMeta = defineFrameMeta({
 
 export const linkGridMeta = defineFrameMeta({
   name: "link-grid",
+  category: "tools",
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
   description:
     "A grid of quick-launch tiles linking to your favourite sites — TradingView, exchanges, news, docs, your own dashboards. Each tile opens in a new tab and shows the destination site's favicon by default (fetched keyless from a public favicon service), with an optional per-link icon override and a first-letter fallback. Needs no data provider.",
@@ -1021,6 +1063,7 @@ export const linkGridMeta = defineFrameMeta({
 
 export const calculatorMeta = defineFrameMeta({
   name: "calculator",
+  category: "tools",
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
     "Position-size & risk calculator. Enter account size, risk-per-trade %, entry and stop price; it computes the dollars at risk, the per-unit risk, the position size (units) that respects that risk budget, the resulting position value, and whether the setup is long or short. All math runs client-side — no data provider. Inputs are editable live; the configured values are the starting point.",
@@ -1054,6 +1097,7 @@ export const calculatorMeta = defineFrameMeta({
 
 export const quoteMeta = defineFrameMeta({
   name: "quote",
+  category: "layout",
   layout: { w: 4, h: 2, minW: 2, minH: 1 },
   description:
     'Displays a market or trading quote, centered — set one or rotate through several. A calm bit of wall-art for the dashboard: trading maxims, reminders of your own rules, mantras. Write any attribution into the text itself (e.g. "… — Buffett"). Needs no data provider.',
@@ -1083,6 +1127,7 @@ export const quoteMeta = defineFrameMeta({
 
 export const dividerMeta = defineFrameMeta({
   name: "divider",
+  category: "layout",
   layout: { w: 12, h: 1, minW: 1, minH: 1 },
   description:
     "A plain rule that separates regions of the dashboard, with an optional centered label. Renders chrome-less (no card) — lighter than a heading. Use a horizontal divider full-width between stacked zones, or set orientation to vertical for a 1-column-wide column separator. Needs no data provider.",
@@ -1110,6 +1155,7 @@ export const dividerMeta = defineFrameMeta({
 
 export const btcFeesMeta = defineFrameMeta({
   name: "btc-fees",
+  category: "bitcoin",
   iconUrl: widgetIcon("btc-fees"),
   layout: { w: 3, h: 2, minW: 2, minH: 2 },
   description:
@@ -1130,6 +1176,7 @@ export const btcFeesMeta = defineFrameMeta({
 
 export const btcMempoolMeta = defineFrameMeta({
   name: "btc-mempool",
+  category: "bitcoin",
   iconUrl: widgetIcon("btc-mempool"),
   layout: { w: 5, h: 3, minW: 3, minH: 2 },
   description:
@@ -1151,6 +1198,7 @@ export const btcMempoolMeta = defineFrameMeta({
 
 export const btcBlocksMeta = defineFrameMeta({
   name: "btc-blocks",
+  category: "bitcoin",
   iconUrl: widgetIcon("btc-blocks"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
   description:
@@ -1170,6 +1218,7 @@ export const btcBlocksMeta = defineFrameMeta({
 
 export const btcHashrateMeta = defineFrameMeta({
   name: "btc-hashrate",
+  category: "bitcoin",
   iconUrl: widgetIcon("btc-hashrate"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
@@ -1186,6 +1235,7 @@ export const btcHashrateMeta = defineFrameMeta({
 
 export const btcDifficultyMeta = defineFrameMeta({
   name: "btc-difficulty",
+  category: "bitcoin",
   iconUrl: widgetIcon("btc-difficulty"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
   description:
@@ -1204,6 +1254,7 @@ export const btcDifficultyMeta = defineFrameMeta({
 
 export const miningPoolsMeta = defineFrameMeta({
   name: "mining-pools",
+  category: "bitcoin",
   iconUrl: widgetIcon("mining-pools"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
@@ -1229,6 +1280,7 @@ export const miningPoolsMeta = defineFrameMeta({
 
 export const lightningStatsMeta = defineFrameMeta({
   name: "lightning-stats",
+  category: "bitcoin",
   iconUrl: widgetIcon("lightning-stats"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
   description:
@@ -1247,6 +1299,7 @@ export const lightningStatsMeta = defineFrameMeta({
 
 export const optionsPutCallMeta = defineFrameMeta({
   name: "options-put-call",
+  category: "derivatives",
   iconUrl: widgetIcon("options-put-call"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
   description:
@@ -1271,6 +1324,7 @@ export const optionsPutCallMeta = defineFrameMeta({
 
 export const optionsIvMeta = defineFrameMeta({
   name: "options-iv",
+  category: "derivatives",
   iconUrl: widgetIcon("options-iv"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
@@ -1291,6 +1345,7 @@ export const optionsIvMeta = defineFrameMeta({
 
 export const optionsOiStrikeMeta = defineFrameMeta({
   name: "options-oi-strike",
+  category: "derivatives",
   iconUrl: widgetIcon("options-oi-strike"),
   layout: { w: 6, h: 4, minW: 4, minH: 3 },
   description:
@@ -1316,6 +1371,7 @@ export const optionsOiStrikeMeta = defineFrameMeta({
 
 export const coinMoversMeta = defineFrameMeta({
   name: "coin-movers",
+  category: "markets",
   iconUrl: widgetIcon("coin-movers"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
   description:

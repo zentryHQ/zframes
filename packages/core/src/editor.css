@@ -580,6 +580,20 @@
   color: rgba(255, 255, 255, 0.4);
   margin: -4px 0 8px;
 }
+.zf-palette-group {
+  margin-bottom: 16px;
+}
+.zf-palette-group:last-child {
+  margin-bottom: 0;
+}
+.zf-palette-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: hsl(var(--zf-accent-hue, 242) 70% 80% / 0.7);
+  margin: 0 0 7px;
+}
 .zf-palette {
   display: flex;
   flex-direction: column;

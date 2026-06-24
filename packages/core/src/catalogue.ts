@@ -15,6 +15,7 @@ export function catalogueForAI(input: FrameRegistry | Iterable<FrameMeta>) {
     input instanceof Map ? [...input.values()] : [...input];
   return metas.map((meta) => ({
     name: meta.name,
+    category: meta.category,
     description: meta.description,
     iconUrl: meta.iconUrl,
     capabilities: meta.capabilities,

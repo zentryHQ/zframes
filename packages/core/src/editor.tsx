@@ -24,7 +24,12 @@ import { createPortal } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { z } from "zod";
 import "./editor.css";
-import type { AnyFrameDefinition, FrameRegistry } from "./frame";
+import {
+  FRAME_CATEGORIES,
+  type AnyFrameDefinition,
+  type FrameCategory,
+  type FrameRegistry,
+} from "./frame";
 import { FRAME_CSS, FrameContent, FramePatchContext } from "./frame-content";
 import { FramesProvider, useProviders } from "./hooks";
 import type { DashboardSpec, FrameInstance } from "./spec";
@@ -553,10 +558,40 @@ export function DashboardEditor({
   const registryRef = useRef(registry);
   registryRef.current = registry;
 
-  const paletteFrames = useMemo(
-    () => [...registry.values()].sort((a, b) => a.name.localeCompare(b.name)),
-    [registry],
-  );
+  // The palette, grouped by category in FRAME_CATEGORIES order (frames sorted
+  // by name within each group). Empty groups are dropped, and any frame whose
+  // category isn't a known key folds into a trailing "Other" group so a host's
+  // custom frame still shows up.
+  const paletteGroups = useMemo(() => {
+    const byCategory = new Map<string, AnyFrameDefinition[]>();
+    for (const def of registry.values()) {
+      const key = def.category ?? "other";
+      const list = byCategory.get(key);
+      if (list) list.push(def);
+      else byCategory.set(key, [def]);
+    }
+    const known: FrameCategory[] = FRAME_CATEGORIES.map((c) => c.key);
+    const groups: {
+      key: string;
+      label: string;
+      frames: AnyFrameDefinition[];
+    }[] = FRAME_CATEGORIES.map((c) => ({
+      key: c.key as string,
+      label: c.label as string,
+      frames: byCategory.get(c.key) ?? [],
+    }));
+    const leftovers = [...byCategory.entries()]
+      .filter(([key]) => !known.includes(key as FrameCategory))
+      .flatMap(([, frames]) => frames);
+    if (leftovers.length)
+      groups.push({ key: "other", label: "Other", frames: leftovers });
+    return groups
+      .filter((g) => g.frames.length > 0)
+      .map((g) => ({
+        ...g,
+        frames: [...g.frames].sort((a, b) => a.name.localeCompare(b.name)),
+      }));
+  }, [registry]);
 
   const defaultConfig = useCallback(
     (def?: AnyFrameDefinition): Record<string, unknown> =>
@@ -574,8 +609,9 @@ export function DashboardEditor({
   // Allows frame components (e.g. note) to patch their own config in-place
   // without opening the config rail. Kept in a ref so the stable renderInstance
   // closure always calls the latest version.
-  const patchInstanceRef =
-    useRef<((id: string, patch: Record<string, unknown>) => void) | null>(null);
+  const patchInstanceRef = useRef<
+    ((id: string, patch: Record<string, unknown>) => void) | null
+  >(null);
 
   const renderInstance = useCallback((id: string) => {
     const content = contentRef.current.get(id);
@@ -873,7 +909,7 @@ export function DashboardEditor({
         return helper;
       },
     });
-  }, [editing, railTab, paletteFrames]);
+  }, [editing, railTab, paletteGroups]);
 
   const collectSpec = useCallback((): DashboardSpec => {
     const grid = gridInstanceRef.current;
@@ -1356,43 +1392,48 @@ export function DashboardEditor({
                   <p className="zf-palette-hint">
                     Click to add, or drag onto the grid.
                   </p>
-                  <div className="zf-palette">
-                    {paletteFrames.map((def) => (
-                      <div
-                        key={def.name}
-                        className="zf-newwidget"
-                        data-frame={def.name}
-                        role="button"
-                        tabIndex={0}
-                        title={`Add ${def.name.replace(/-/g, " ")}`}
-                        onClick={() => addFrame(def.name)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            addFrame(def.name);
-                          }
-                        }}
-                      >
-                        {def.iconUrl && (
-                          <img
-                            className="zf-newwidget-icon"
-                            src={def.iconUrl}
-                            alt=""
-                            loading="lazy"
-                            draggable={false}
-                          />
-                        )}
-                        <div className="zf-newwidget-copy">
-                          <div className="zf-newwidget-name">
-                            {def.name.replace(/-/g, " ")}
+                  {paletteGroups.map((group) => (
+                    <div key={group.key} className="zf-palette-group">
+                      <h4 className="zf-palette-group-title">{group.label}</h4>
+                      <div className="zf-palette">
+                        {group.frames.map((def) => (
+                          <div
+                            key={def.name}
+                            className="zf-newwidget"
+                            data-frame={def.name}
+                            role="button"
+                            tabIndex={0}
+                            title={`Add ${def.name.replace(/-/g, " ")}`}
+                            onClick={() => addFrame(def.name)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                addFrame(def.name);
+                              }
+                            }}
+                          >
+                            {def.iconUrl && (
+                              <img
+                                className="zf-newwidget-icon"
+                                src={def.iconUrl}
+                                alt=""
+                                loading="lazy"
+                                draggable={false}
+                              />
+                            )}
+                            <div className="zf-newwidget-copy">
+                              <div className="zf-newwidget-name">
+                                {def.name.replace(/-/g, " ")}
+                              </div>
+                              <div className="zf-newwidget-desc">
+                                {def.description}
+                              </div>
+                            </div>
                           </div>
-                          <div className="zf-newwidget-desc">
-                            {def.description}
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </section>
               )}
             </div>
