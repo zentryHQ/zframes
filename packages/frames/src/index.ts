@@ -64,6 +64,13 @@ export { optionsOiStrikeFrame } from "./options-oi-strike";
 export { coinMoversFrame } from "./coin-movers";
 export { holidayCalendarFrame } from "./holiday-calendar";
 export { dayMeterFrame } from "./day-meter";
+export { returnsProjectorFrame } from "./returns-projector";
+export { breakevenFrame } from "./breakeven";
+export { checklistFrame } from "./checklist";
+export { pomodoroFrame } from "./pomodoro";
+export { rulesCardFrame } from "./rules-card";
+export { breathingFrame } from "./breathing";
+export { spotifyEmbedFrame } from "./spotify-embed";
 
 import type { AnyFrameDefinition } from "@zframes/core";
 import { portfolioValueFrame } from "./portfolio-value";
@@ -131,6 +138,13 @@ import { optionsOiStrikeFrame } from "./options-oi-strike";
 import { coinMoversFrame } from "./coin-movers";
 import { holidayCalendarFrame } from "./holiday-calendar";
 import { dayMeterFrame } from "./day-meter";
+import { returnsProjectorFrame } from "./returns-projector";
+import { breakevenFrame } from "./breakeven";
+import { checklistFrame } from "./checklist";
+import { pomodoroFrame } from "./pomodoro";
+import { rulesCardFrame } from "./rules-card";
+import { breathingFrame } from "./breathing";
+import { spotifyEmbedFrame } from "./spotify-embed";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -199,4 +213,11 @@ export const allFrames: AnyFrameDefinition[] = [
   coinMoversFrame,
   holidayCalendarFrame,
   dayMeterFrame,
+  returnsProjectorFrame,
+  breakevenFrame,
+  checklistFrame,
+  pomodoroFrame,
+  rulesCardFrame,
+  breathingFrame,
+  spotifyEmbedFrame,
 ];

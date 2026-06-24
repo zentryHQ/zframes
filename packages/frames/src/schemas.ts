@@ -1352,6 +1352,193 @@ export const dayMeterMeta = defineFrameMeta({
   }),
 });
 
+export const returnsProjectorMeta = defineFrameMeta({
+  name: "returns-projector",
+  category: "tools",
+  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  description:
+    "A compound-growth projector — enter a starting principal, a percent return per period, the number of periods, and an optional per-period contribution; it charts the projected balance curve and shows the ending value and total gain. Pure client-side math, no data provider; complements the position-size/risk `calculator`.",
+  capabilities: [],
+  schema: z.object({
+    principal: z.number().default(1000).describe("Starting balance."),
+    ratePct: z
+      .number()
+      .default(5)
+      .describe("Return per period, in percent (e.g. 5 = 5%)."),
+    periods: z
+      .number()
+      .int()
+      .min(1)
+      .max(600)
+      .default(12)
+      .describe("Number of compounding periods to project."),
+    contribution: z
+      .number()
+      .default(0)
+      .describe("Amount added at the end of each period."),
+    label: z.string().default("").describe("Optional caption."),
+  }),
+});
+
+export const breakevenMeta = defineFrameMeta({
+  name: "breakeven",
+  category: "tools",
+  layout: { w: 3, h: 4, minW: 2, minH: 2 },
+  description:
+    "A break-even / average-cost calculator — add your fills (price + size) and it computes the size-weighted average entry; set an optional current price to see the unrealized P&L %. Pure client-side math, no data provider.",
+  capabilities: [],
+  schema: z.object({
+    fills: z
+      .array(
+        z.object({
+          price: z.number().describe("Fill price."),
+          size: z.number().describe("Fill size, in units."),
+        }),
+      )
+      .default([{ price: 100, size: 1 }])
+      .describe(
+        "Your entry fills; their size-weighted average is the break-even.",
+      ),
+    currentPrice: z
+      .number()
+      .default(0)
+      .describe(
+        "Optional current price; greater than 0 shows the unrealized P&L %.",
+      ),
+    label: z.string().default("").describe("Optional caption."),
+  }),
+});
+
+export const checklistMeta = defineFrameMeta({
+  name: "checklist",
+  category: "tools",
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "A tickable checklist — a pre-trade routine, a daily ritual, anything. Tap items to check them off; the checked state persists across reloads (saved into the dashboard). Client-side only, no data provider.",
+  capabilities: [],
+  schema: z.object({
+    title: z
+      .string()
+      .default("Pre-trade checklist")
+      .describe("Heading shown above the list."),
+    items: z
+      .array(z.string())
+      .default([
+        "Trend & bias aligned",
+        "Stop level set",
+        "Risk sized correctly",
+      ])
+      .describe("The checklist items, top to bottom."),
+    checked: z
+      .array(z.boolean())
+      .default([])
+      .describe(
+        "Per-item checked state (by index); persisted automatically by the frame.",
+      ),
+  }),
+});
+
+export const pomodoroMeta = defineFrameMeta({
+  name: "pomodoro",
+  category: "tools",
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "A Pomodoro focus timer — alternating work and break intervals with Start / Pause / Reset and a cycle counter, counting down in MM:SS. Runs entirely client-side with no data provider; timer state is in-session (not persisted).",
+  capabilities: [],
+  schema: z.object({
+    workMin: z
+      .number()
+      .min(1)
+      .max(180)
+      .default(25)
+      .describe("Work interval length, in minutes."),
+    breakMin: z
+      .number()
+      .min(1)
+      .max(120)
+      .default(5)
+      .describe("Break interval length, in minutes."),
+    cycles: z
+      .number()
+      .int()
+      .min(1)
+      .max(20)
+      .default(4)
+      .describe("Work/break cycles before the counter loops."),
+    label: z.string().default("").describe("Optional caption."),
+  }),
+});
+
+export const rulesCardMeta = defineFrameMeta({
+  name: "rules-card",
+  category: "layout",
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "A pinned, auto-numbered list of your trading rules (or any principles) — always fully visible, unlike the rotating `quote` frame. Static text, client-side, no data provider.",
+  capabilities: [],
+  schema: z.object({
+    title: z
+      .string()
+      .default("My rules")
+      .describe("Heading shown above the list."),
+    rules: z
+      .array(z.string())
+      .default([
+        "Cut losers fast, let winners run",
+        "No trade without a stop",
+        "One setup at a time",
+      ])
+      .describe("The rules, in order; rendered as a numbered list."),
+  }),
+});
+
+export const breathingMeta = defineFrameMeta({
+  name: "breathing",
+  category: "layout",
+  chrome: "bare",
+  layout: { w: 2, h: 2, minW: 1, minH: 1 },
+  description:
+    "A chrome-less breathing pacer — a circle that expands and contracts through configurable inhale / hold / exhale / hold phases to steady your breathing between trades. Renders with no card; client-side only, no data provider.",
+  capabilities: [],
+  schema: z.object({
+    inhale: z.number().min(1).max(60).default(4).describe("Inhale seconds."),
+    hold: z
+      .number()
+      .min(0)
+      .max(60)
+      .default(4)
+      .describe("Hold-after-inhale seconds."),
+    exhale: z.number().min(1).max(60).default(4).describe("Exhale seconds."),
+    holdAfter: z
+      .number()
+      .min(0)
+      .max(60)
+      .default(4)
+      .describe("Hold-after-exhale seconds."),
+  }),
+});
+
+export const spotifyEmbedMeta = defineFrameMeta({
+  name: "spotify-embed",
+  category: "layout",
+  layout: { w: 3, h: 4, minW: 2, minH: 2 },
+  description:
+    "Embeds a Spotify track, album, playlist, artist, or show from its public open.spotify.com share link (same embed approach as the `video` frame), using Spotify's official keyless iframe player. Needs an internet connection to play.",
+  capabilities: [],
+  schema: z.object({
+    url: z
+      .string()
+      .default("https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M")
+      .describe(
+        "A Spotify share URL (open.spotify.com/track|album|playlist|artist/…).",
+      ),
+    compact: z
+      .boolean()
+      .default(false)
+      .describe("Use Spotify's compact (single-row) player height."),
+  }),
+});
+
 export const btcFeesMeta = defineFrameMeta({
   name: "btc-fees",
   category: "bitcoin",
