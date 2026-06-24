@@ -32,7 +32,8 @@ export type Capability =
   | "lightning-stats"
   | "options-summary"
   | "volatility-index"
-  | "coin-movers";
+  | "coin-movers"
+  | "portfolio";
 
 export interface DayStats {
   markPx: number;
@@ -623,6 +624,52 @@ export interface CoinMover {
   changePct: Record<string, number>;
 }
 
+/** A connected-account portfolio source: a keyed CEX account or an on-chain address. */
+export type PortfolioSourceKind = "binance" | "wallet";
+
+/** Identifies which account/address a portfolio frame is bound to. */
+export interface PortfolioSource {
+  /** Which kind of source — routes to the provider that serves it. */
+  kind: PortfolioSourceKind;
+  /** For on-chain sources: the public address or ENS name. */
+  address?: string;
+}
+
+/** One asset position in a connected portfolio. */
+export interface Holding {
+  /** Display/native symbol, e.g. "BTC", "ETH", "TSLA". */
+  symbol: string;
+  /** Quantity held. */
+  amount: number;
+  /**
+   * USD value of the position when the provider prices it directly. Omit to let
+   * frames value it live from streamed mids (amount × mid).
+   */
+  valueUsd?: number;
+  /** Average cost basis per unit, USD — keyed sources with trade history only. */
+  costBasisUsd?: number;
+  /** 24h price change percent for the asset, when the provider supplies it. */
+  changePct24h?: number;
+}
+
+/**
+ * A snapshot of a connected account's holdings. Produced identically by keyed
+ * (Binance) and keyless (on-chain wallet) providers, so the portfolio frames are
+ * source-agnostic — they consume this regardless of where it came from.
+ */
+export interface Portfolio {
+  /** Which source kind produced this snapshot. */
+  source: PortfolioSourceKind;
+  /** Human label for the account, e.g. "Binance · main" or "0x12…ab". */
+  label?: string;
+  /** Positions held. */
+  holdings: Holding[];
+  /** Total USD value when the provider computes it; else frames sum the holdings. */
+  totalUsd?: number;
+  /** Epoch milliseconds the snapshot was taken. */
+  asOf: number;
+}
+
 export type Unsubscribe = () => void;
 
 /**
@@ -736,4 +783,18 @@ export interface MarketDataProvider {
    * market cap. `limit` caps how many coins to pull (provider may cap lower).
    */
   getCoinMovers?(limit?: number): Promise<CoinMover[]>;
+  /**
+   * Which portfolio source kinds this provider serves — routing for the
+   * "portfolio" capability, since several providers may advertise it (a keyed
+   * CEX vs an on-chain wallet). A provider implementing `getPortfolio` lists the
+   * kinds it handles here; the host routes by kind.
+   */
+  readonly portfolioKinds?: readonly PortfolioSourceKind[];
+  /**
+   * A connected account's holdings — a keyed CEX account or an on-chain address.
+   * Providers advertising "portfolio" implement this for the kinds in
+   * `portfolioKinds`. Keyed providers read the account behind a local secret
+   * (the source carries no secret); keyless providers read a public `address`.
+   */
+  getPortfolio?(source: PortfolioSource): Promise<Portfolio>;
 }
