@@ -32,6 +32,13 @@
     var(--zf-accent-hue, 242) calc(var(--zf-accent-sat, 90%) - 5%) 72%
   );
 
+  /* The default type family. FRAME_CSS titles and every chart text utility
+     resolve `font-family: var(--font-dmsans)`. To swap the family per dashboard,
+     the renderer/editor redefine --font-dmsans ON the grid/editor container from
+     --zf-font-family (spec.typography.fontFamily) — see `.zf-grid`/`.zf-editor`.
+     It can't be bridged here at :root: a custom property's var() is substituted
+     where it's declared, so a :root indirection would always see an unset
+     --zf-font-family and lock to this default. */
   --font-dmsans: "DM Sans", sans-serif;
 }
 

@@ -25,13 +25,18 @@ import type { FrameInstance } from "./spec";
  * The accent (indigo by default) is expressed as hsl() off two vars —
  * --zf-accent-hue and --zf-accent-sat — so the host can rotate the entire
  * brand to any hue and dial its vividness from one place (spec.theme →
- * renderer/editor). Lightness stays baked per color. Card *surface* knobs ride
- * their own vars too: --zf-border-alpha (rim opacity), --zf-surface-opacity
- * (card translucency), --zf-density (padding scale) and --zf-elevation (shadow
- * depth), all from spec.appearance. Every var defaults to the original look, so
- * an unset var renders exactly as before. Semantic colors (error red, success
- * green) and asset logos are intentionally NOT accent-derived — they carry
- * meaning, so they don't rotate.
+ * renderer/editor). The dark card *surface* itself is likewise expressed off
+ * --zf-base-hue / --zf-base-sat (lightness baked per gradient stop), so the
+ * surface can warm/cool/desaturate while staying dark. Accent and surface
+ * lightness stay baked per color. Other surface knobs ride their own vars:
+ * --zf-border-alpha (rim opacity), --zf-surface-opacity (card translucency),
+ * --zf-density (padding scale) and --zf-elevation (shadow depth), all from
+ * spec.appearance. Typography rides --zf-font-family (resolved through the
+ * --font-dmsans token) and --zf-numeric (digit spacing), both from
+ * spec.typography. Every var defaults to the original look, so an unset var
+ * renders exactly as before. Semantic colors (error red, success green) and
+ * asset logos are intentionally NOT accent-derived — they carry meaning, so
+ * they don't rotate.
  *
  * Lives here (not in renderer.tsx) so both the CSS-grid renderer and the
  * interactive editor render identical cards from one source.
@@ -42,6 +47,12 @@ export const FRAME_CSS = `
   gap: var(--zf-gap, 12px);
   grid-template-columns: repeat(var(--zf-cols, 12), minmax(0, 1fr));
   grid-auto-rows: var(--zf-row-h, 96px);
+  /* Bridge the type family onto the dashboard subtree: redefine --font-dmsans
+     HERE (where --zf-font-family is set inline) so the chart utilities and frame
+     titles that read var(--font-dmsans) pick up the chosen family. Declaring it
+     on this container — not at :root — is what makes the var() substitution see
+     the inline --zf-font-family. (The editor mirrors this on .zf-editor.) */
+  --font-dmsans: var(--zf-font-family, "DM Sans", sans-serif);
 }
 .zf-frame {
   grid-column: var(--zf-col-start, auto) / span var(--zf-col-span, 1);
@@ -52,7 +63,15 @@ export const FRAME_CSS = `
   min-height: 0;
   overflow: hidden;
   padding: calc(16px * var(--zf-density, 1)) calc(18px * var(--zf-density, 1));
-  background: var(--zf-frame-bg, linear-gradient(165deg, rgba(26, 27, 38, calc(0.82 * var(--zf-surface-opacity, 1))) 0%, rgba(14, 15, 22, calc(0.86 * var(--zf-surface-opacity, 1))) 60%, rgba(10, 11, 17, calc(0.9 * var(--zf-surface-opacity, 1))) 100%));
+  /* Digit spacing for everything inside the card. Default \`normal\` is a no-op;
+     spec.typography.numericStyle="tabular" sets --zf-numeric so live prices stop
+     jittering. Hero numerals carry their own tabular-nums regardless. */
+  font-variant-numeric: var(--zf-numeric, normal);
+  /* Card surface. The three dark stops are expressed off --zf-base-hue /
+     --zf-base-sat (spec.theme) with their lightness baked, so the default
+     hsl(233 20% …) reproduces the original navy to within ~1/255, while the base
+     knobs let the whole surface warm, cool, or desaturate toward black. */
+  background: var(--zf-frame-bg, linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 12.5% / calc(0.82 * var(--zf-surface-opacity, 1))) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 7% / calc(0.86 * var(--zf-surface-opacity, 1))) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 5.3% / calc(0.9 * var(--zf-surface-opacity, 1))) 100%));
   border: 1px solid var(--zf-frame-border, hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / var(--zf-border-alpha, 0.22)));
   border-radius: var(--zf-frame-radius, 18px);
   box-shadow: var(--zf-frame-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4), 0 calc(18px * var(--zf-elevation, 1)) calc(44px * var(--zf-elevation, 1)) -26px rgba(0, 0, 0, 0.9));
@@ -72,7 +91,7 @@ export const FRAME_CSS = `
 @media (hover: hover) {
   .zf-frame:hover {
     border-color: var(--zf-frame-border-hover, hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / calc(var(--zf-border-alpha, 0.22) + 0.2)));
-    background: var(--zf-frame-bg-hover, linear-gradient(165deg, rgba(34, 35, 50, calc(0.88 * var(--zf-surface-opacity, 1))) 0%, rgba(18, 19, 28, calc(0.9 * var(--zf-surface-opacity, 1))) 60%, rgba(12, 13, 20, calc(0.92 * var(--zf-surface-opacity, 1))) 100%));
+    background: var(--zf-frame-bg-hover, linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 16.5% / calc(0.88 * var(--zf-surface-opacity, 1))) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 9% / calc(0.9 * var(--zf-surface-opacity, 1))) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 6.3% / calc(0.92 * var(--zf-surface-opacity, 1))) 100%));
     box-shadow: var(--zf-frame-shadow-hover, inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 1px 2px rgba(0, 0, 0, 0.4), 0 calc(26px * var(--zf-elevation, 1)) calc(56px * var(--zf-elevation, 1)) -26px rgba(0, 0, 0, 0.92), 0 0 0 1px hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.12), 0 calc(20px * var(--zf-elevation, 1)) calc(60px * var(--zf-elevation, 1)) -28px hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.4)));
     transform: translateY(-2px);
   }
@@ -176,7 +195,7 @@ export const FRAME_CSS = `
   background: var(
     --zf-frame-error-bg,
     radial-gradient(125% 80% at 50% -12%, rgba(242, 21, 83, 0.13), transparent 60%),
-    linear-gradient(165deg, rgba(26, 27, 38, 0.82) 0%, rgba(14, 15, 22, 0.86) 60%, rgba(10, 11, 17, 0.9) 100%)
+    linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 12.5% / 0.82) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 7% / 0.86) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 5.3% / 0.9) 100%)
   );
 }
 @media (hover: hover) {

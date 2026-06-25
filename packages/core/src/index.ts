@@ -74,13 +74,18 @@ export {
   FrameInstanceSchema,
   GridPositionSchema,
   ThemeSchema,
+  TypographySchema,
+  FONT_FAMILY_STACKS,
+  NUMERIC_VARIANTS,
   type DashboardAppearance,
   type DashboardBackground,
   type DashboardSpec,
   type DashboardTheme,
+  type DashboardTypography,
   type FrameInstance,
   type GridPosition,
 } from "./spec";
+export { THEME_PRESETS, type ThemePreset } from "./presets";
 export {
   FramesProvider,
   useBtcBlocks,
