@@ -139,6 +139,7 @@ async function buildPrompt(
   specFile: string,
   question: string,
   clientContext?: string,
+  catalogue?: string,
 ): Promise<string> {
   let title = "a live market dashboard";
   const symbols = new Set<string>();
@@ -159,16 +160,35 @@ async function buildPrompt(
   }
   const trimmed = clientContext?.trim();
   const grounding = trimmed
-    ? `Here is what the user is looking at on their dashboard right now ` +
+    ? `Here is what the user is looking at on their dashboard "${title}" right now ` +
       `(live values captured from the screen):\n\n${trimmed.slice(
         0,
         MAX_CONTEXT_CHARS,
       )}`
-    : `The symbols on screen right now are: ${
+    : `The user's dashboard is titled "${title}". The symbols on screen right now are: ${
         symbols.size ? [...symbols].join(", ") : "no specific symbols"
       }.`;
+  // The full frame catalogue, when the host supplies it — so the assistant can
+  // answer "what frames exist / what does X show / how do I add one" from the
+  // running build's own metadata, not a guess or a network fetch.
+  const trimmedCatalogue = catalogue?.trim();
+  const frameCatalogue = trimmedCatalogue
+    ? `The frames a user can add in zframes (name — what it shows), by family:\n${trimmedCatalogue}\n\n`
+    : "";
   return (
-    `You are zAI, a market assistant embedded in a live dashboard titled "${title}".\n\n` +
+    // Primer: brief the runner on what zframes is and how it works, so a
+    // general-purpose agent answers as the embedded assistant rather than from
+    // cold. Kept tight — the catalogue + live digest below carry the specifics.
+    `You are zAI, the assistant built into zframes — a keyless, AI-personalizable ` +
+    `live market dashboard for crypto and stocks. Users assemble their own dashboard ` +
+    `from "frames": self-contained widgets for live prices, funding, open interest, ` +
+    `fear & greed, TVL and on-chain activity, macro rates, news, even games. They ` +
+    `arrange frames on a grid in "customise" mode — drag, resize, add, remove, and ` +
+    `configure each — and edits save to a dashboard.json the runtime renders from. ` +
+    `All data comes from free public APIs (no keys, no accounts); stocks are ` +
+    `Hyperliquid HIP-3 equity perps (e.g. "xyz:TSLA") shown alongside crypto. Help ` +
+    `the user read what's on their screen and the markets it tracks.\n\n` +
+    `${frameCatalogue}` +
     `${grounding}\n\n` +
     `Answer the user's question in 2–4 sentences of plain text — no markdown headings, ` +
     `no preamble, no tool use, just the answer.\n\nQuestion: ${question}`
@@ -250,7 +270,12 @@ export async function handleAgents(res: ResLike): Promise<void> {
  * like the spec write. Picks the requested runner if installed, else the first
  * available, runs it read-only, and returns { ok, agent, answer }.
  */
-export function handleAsk(req: ReqLike, res: ResLike, specFile: string): void {
+export function handleAsk(
+  req: ReqLike,
+  res: ResLike,
+  specFile: string,
+  catalogue?: string,
+): void {
   if (req.method !== "POST") {
     res.statusCode = 405;
     res.end();
@@ -308,7 +333,12 @@ export function handleAsk(req: ReqLike, res: ResLike, specFile: string): void {
       return;
     }
     const runner = agents.find((a) => a.id === requested) ?? agents[0];
-    const prompt = await buildPrompt(specFile, question, clientContext);
+    const prompt = await buildPrompt(
+      specFile,
+      question,
+      clientContext,
+      catalogue,
+    );
     const result = await runAgent(runner, prompt, dirname(specFile));
     if (result.ok)
       reply(200, { ok: true, agent: runner.id, answer: result.answer });

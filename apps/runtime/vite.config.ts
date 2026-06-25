@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { catalogueSummary } from "@zframes/core/catalogue";
 import { dashboardWriteback } from "@zframes/core/vite";
+import { frameMetas } from "@zframes/frames/schemas";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -19,8 +21,14 @@ const runtimeVersion = JSON.parse(
 ).version as string;
 
 export default defineConfig({
-  // dashboardWriteback persists in-browser editor changes to src/dashboard.json.
-  plugins: [react(), tailwindcss(), dashboardWriteback()],
+  // dashboardWriteback persists in-browser editor changes to src/dashboard.json,
+  // and serves the zAI ask route. We hand it the frame catalogue (built from the
+  // React-free metas) so every zAI prompt knows what frames exist + what they do.
+  plugins: [
+    react(),
+    tailwindcss(),
+    dashboardWriteback({ catalogue: catalogueSummary(frameMetas) }),
+  ],
   define: {
     __ZFRAMES_VERSION__: JSON.stringify(runtimeVersion),
   },

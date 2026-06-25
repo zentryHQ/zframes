@@ -131,4 +131,4 @@ export {
   useFramePatch,
   type FramePatcher,
 } from "./frame-content";
-export { catalogueForAI } from "./catalogue";
+export { catalogueForAI, catalogueSummary } from "./catalogue";

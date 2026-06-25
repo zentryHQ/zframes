@@ -23,8 +23,15 @@ import {
   handleAccountCredentials,
   handleAccountPortfolio,
 } from "@zframes/core/account";
+import { catalogueSummary } from "@zframes/core/catalogue";
+import { frameMetas } from "@zframes/frames/schemas";
 
 const DEFAULT_PORT = 37263;
+
+// Built once: the compact frame catalogue handed to the zAI ask route so the
+// embedded assistant knows what frames exist and what each does, version-matched
+// to this build (see handleAsk → buildPrompt).
+const FRAME_CATALOGUE = catalogueSummary(frameMetas);
 
 interface ServeArgs {
   file: string;
@@ -130,7 +137,7 @@ export function serve(args: string[]): Promise<number> {
         return;
       }
       if (path === ASK_ROUTE) {
-        handleAsk(req, res, file);
+        handleAsk(req, res, file, FRAME_CATALOGUE);
         return;
       }
       // Keyed-account tier: signed portfolio read relay + the in-app connect

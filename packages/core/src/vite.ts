@@ -45,6 +45,13 @@ export interface DashboardWritebackOptions {
    * Defaults to `ZFRAMES_CONTACT`, else a browser UA the sources accept.
    */
   contact?: string;
+  /**
+   * Compact frame catalogue (from `catalogueSummary`) injected into every zAI
+   * prompt so the assistant can answer questions about what frames exist and do.
+   * The host passes it (built from `@zframes/frames` metas) — core stays
+   * decoupled from the frame set.
+   */
+  catalogue?: string;
 }
 
 export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
@@ -89,7 +96,7 @@ export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
         void handleAgents(res);
       });
       server.middlewares.use(ASK_ROUTE, (req, res) => {
-        handleAsk(req, res, target());
+        handleAsk(req, res, target(), options.catalogue);
       });
       // Keyed-account tier — signed portfolio read relay + the in-app connect
       // form's credential API; the dev mirror of the CLI serve routes.
