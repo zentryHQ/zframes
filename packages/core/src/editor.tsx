@@ -706,7 +706,7 @@ export function DashboardEditor({
   // Which rail panel is showing: dashboard-wide cosmetics (accent/layout/
   // appearance) or the add-a-frame palette. The rail used to stack both; the
   // tabs split them so theme knobs and frame management each get the full panel.
-  const [railTab, setRailTab] = useState<"cosmetics" | "frames">("cosmetics");
+  const [railTab, setRailTab] = useState<"cosmetics" | "frames">("frames");
   // Which frame's settings dialog is open (null = none). The per-item gear
   // button (added imperatively in decorateItem) flips it; the portaled
   // FrameConfigDialog reads it. The ref mirrors it for the imperative deleteItem
@@ -1085,8 +1085,13 @@ export function DashboardEditor({
   // flow-vertical is the classic column grid; flow-horizontal is the coerced
   // wide, height-bounded, side-scrolling grid — the element is forced wide
   // (cols × cell, square cells) so .zf-editor-grid scrolls it sideways.
-  // float:true so explicit (seeded/dragged) placements are preserved, not
-  // gravity-packed. `cols` is the content-fitted column count (ignored vertical).
+  // float:true (both modes) so explicit (seeded/dragged) placements are
+  // preserved, not gravity-packed: with float:false the engine compacts upward
+  // after every drop, so on a busy board a dropped frame can't sit where you put
+  // it and gets yanked to the only free space. The read-only renderer places
+  // frames at their explicit x/y too, so honouring gaps keeps customise mode and
+  // the live dashboard pixel-consistent. `cols` is the content-fitted column
+  // count (ignored vertical).
   const initGrid = useCallback(
     (m: LayoutMode, cols: number): GridStack => {
       const horizontal = m === "flow-horizontal";
@@ -1434,12 +1439,6 @@ export function DashboardEditor({
     setEditing(false);
   }, [restore]);
 
-  const clearAll = useCallback(() => {
-    if (!window.confirm("Remove all frames from the dashboard?")) return;
-    restore([]);
-    setEditingId(null);
-  }, [restore]);
-
   const save = useCallback(async () => {
     const next = collectSpec();
     setEditing(false);
@@ -1603,13 +1602,6 @@ export function DashboardEditor({
               <>
                 <button
                   type="button"
-                  className="zf-btn zf-btn--danger"
-                  onClick={clearAll}
-                >
-                  Clear
-                </button>
-                <button
-                  type="button"
                   className="zf-btn zf-btn--ghost"
                   onClick={cancel}
                 >
@@ -1645,19 +1637,6 @@ export function DashboardEditor({
                 <button
                   type="button"
                   role="tab"
-                  aria-selected={railTab === "cosmetics"}
-                  className={
-                    railTab === "cosmetics"
-                      ? "zf-rail-tab is-active"
-                      : "zf-rail-tab"
-                  }
-                  onClick={() => setRailTab("cosmetics")}
-                >
-                  Cosmetics
-                </button>
-                <button
-                  type="button"
-                  role="tab"
                   aria-selected={railTab === "frames"}
                   className={
                     railTab === "frames"
@@ -1667,6 +1646,19 @@ export function DashboardEditor({
                   onClick={() => setRailTab("frames")}
                 >
                   Frames
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={railTab === "cosmetics"}
+                  className={
+                    railTab === "cosmetics"
+                      ? "zf-rail-tab is-active"
+                      : "zf-rail-tab"
+                  }
+                  onClick={() => setRailTab("cosmetics")}
+                >
+                  Cosmetics
                 </button>
               </div>
 
