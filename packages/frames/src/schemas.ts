@@ -743,6 +743,7 @@ const portfolioConfigShape = {
 export const portfolioValueMeta = defineFrameMeta({
   name: "portfolio-value",
   category: "portfolio",
+  iconUrl: widgetIcon("portfolio-value"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
   description:
     "Your connected portfolio's total USD value as a live equity line, ticking with the market. Source is a connected Binance account (read-only key, entered in-app) or a public on-chain wallet address. Shows total value + session change. Renders a connect prompt until a source is set.",
@@ -764,6 +765,7 @@ export const portfolioValueMeta = defineFrameMeta({
 export const portfolioAllocationMeta = defineFrameMeta({
   name: "portfolio-allocation",
   category: "portfolio",
+  iconUrl: widgetIcon("portfolio-allocation"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
     "Donut of your connected portfolio's allocation — each slice sized by live USD value, total in the center. Source is a connected Binance account (read-only key, in-app) or a public on-chain wallet address. Renders a connect prompt until a source is set.",
@@ -775,6 +777,7 @@ export const portfolioAllocationMeta = defineFrameMeta({
 export const portfolioHoldingsMeta = defineFrameMeta({
   name: "portfolio-holdings",
   category: "portfolio",
+  iconUrl: widgetIcon("portfolio-holdings"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
     "Table of your connected portfolio's positions — asset, amount, live USD value, share of total, 24h change. Source is a connected Binance account (read-only key, in-app) or a public on-chain wallet address. Renders a connect prompt until a source is set.",
@@ -786,6 +789,7 @@ export const portfolioHoldingsMeta = defineFrameMeta({
 export const newsFeedMeta = defineFrameMeta({
   name: "news-feed",
   category: "sentiment",
+  iconUrl: widgetIcon("news-feed"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
     'Scrolling feed of the latest news headlines from a chosen outlet — each row is a clickable headline with its publish time, newest first. Free, keyless RSS sources: crypto press (CoinDesk, Cointelegraph, Decrypt), broad markets/macro (CNBC, Nasdaq), or — source "stocks" — per-company headlines (via Google News) scoped to the specific tickers in `symbols`. IMPORTANT: news feeds are CORS-blocked, so this frame reads them through the zframes runtime\'s data proxy (it ships with `zframes serve` / `vite dev`); on a fully static host with no runtime it shows an empty state.',
@@ -823,6 +827,7 @@ export const newsFeedMeta = defineFrameMeta({
 export const dexVolumeTreemapMeta = defineFrameMeta({
   name: "dex-volume-treemap",
   category: "crypto",
+  iconUrl: widgetIcon("dex-volume-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Treemap of decentralized-exchange (DEX) protocols sized by trailing-24h trading volume, tiles colored green/red by 1-day change. Data from DeFiLlama. One-glance read on where on-chain trading flow is concentrated right now.",
@@ -842,6 +847,7 @@ export const dexVolumeTreemapMeta = defineFrameMeta({
 export const dexVolumeChartMeta = defineFrameMeta({
   name: "dex-volume-chart",
   category: "crypto",
+  iconUrl: widgetIcon("dex-volume-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Multi-series line chart of daily DEX trading volume for several protocols over a lookback window — compare how Uniswap, PancakeSwap, Aerodrome etc. trend against each other. Data from DeFiLlama (daily granularity).",
@@ -865,6 +871,7 @@ export const dexVolumeChartMeta = defineFrameMeta({
 export const protocolTvlTreemapMeta = defineFrameMeta({
   name: "protocol-tvl-treemap",
   category: "crypto",
+  iconUrl: widgetIcon("protocol-tvl-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Treemap of DeFi protocols sized by current total value locked (TVL), tiles colored green/red by 1-day change. Data from DeFiLlama. Unlike tvl-treemap (which groups by blockchain), this ranks individual protocols (Lido, Aave, EigenLayer…).",
@@ -884,6 +891,7 @@ export const protocolTvlTreemapMeta = defineFrameMeta({
 export const protocolTvlChartMeta = defineFrameMeta({
   name: "protocol-tvl-chart",
   category: "crypto",
+  iconUrl: widgetIcon("protocol-tvl-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Multi-series line chart of total value locked (TVL) for several DeFi protocols over a lookback window. Data from DeFiLlama (daily granularity).",
@@ -907,6 +915,7 @@ export const protocolTvlChartMeta = defineFrameMeta({
 export const protocolFeesTreemapMeta = defineFrameMeta({
   name: "protocol-fees-treemap",
   category: "crypto",
+  iconUrl: widgetIcon("protocol-fees-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Treemap of protocols sized by the fees they generated in the last 24h, tiles colored green/red by 1-day change. Data from DeFiLlama. Shows where on-chain users are actually paying for blockspace and services right now.",
@@ -926,6 +935,7 @@ export const protocolFeesTreemapMeta = defineFrameMeta({
 export const marketCapTreemapMeta = defineFrameMeta({
   name: "market-cap-treemap",
   category: "crypto",
+  iconUrl: widgetIcon("market-cap-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Treemap of the largest cryptocurrencies sized by market capitalisation, tiles colored green/red by 24h price change. Data from CoinGecko (free tier). A heat-map of the whole crypto market at a glance.",
@@ -947,6 +957,7 @@ export const marketCapTreemapMeta = defineFrameMeta({
 export const openInterestMeta = defineFrameMeta({
   name: "open-interest",
   category: "derivatives",
+  iconUrl: widgetIcon("open-interest"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
   description:
     'Live open interest across a watchlist of Hyperliquid perps — each symbol is a horizontal bar sized by USD notional, largest first, refreshed on a ~30s poll. Single-venue (Hyperliquid only), so read it as a relative gauge across your symbols, not a market-wide total. Stocks (HIP-3, e.g. "xyz:TSLA") and crypto both work.',
@@ -966,6 +977,7 @@ export const openInterestMeta = defineFrameMeta({
 export const snakeMeta = defineFrameMeta({
   name: "snake",
   category: "games",
+  iconUrl: widgetIcon("snake"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
     "Classic snake game on canvas — steer with the arrow keys (or swipe), eat dots to grow, avoid the walls and your own tail. High score persists locally. For when the market is flat. Needs no data provider.",
@@ -976,6 +988,7 @@ export const snakeMeta = defineFrameMeta({
 export const flappyBirdMeta = defineFrameMeta({
   name: "flappy-bird",
   category: "games",
+  iconUrl: widgetIcon("flappy-bird"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
     "Flappy-bird style game on canvas — tap or press SPACE to flap through the gaps between pipes. High score persists locally. Needs no data provider.",
@@ -986,6 +999,7 @@ export const flappyBirdMeta = defineFrameMeta({
 export const videoMeta = defineFrameMeta({
   name: "video",
   category: "layout",
+  iconUrl: widgetIcon("video"),
   layout: { w: 4, h: 3, minW: 2, minH: 2 },
   description:
     "Embeds a video from a YouTube or Vimeo link (or any direct embed URL) as an iframe — a livestream, a market-news clip, a focus playlist. Needs no data provider.",
@@ -1007,6 +1021,7 @@ export const videoMeta = defineFrameMeta({
 export const drawdyMeta = defineFrameMeta({
   name: "drawdy",
   category: "layout",
+  iconUrl: widgetIcon("drawdy"),
   layout: { w: 8, h: 6, minW: 2, minH: 2 },
   description:
     "Embeds drawdy.io as an interactive whiteboard canvas. No configuration needed.",
@@ -1017,6 +1032,7 @@ export const drawdyMeta = defineFrameMeta({
 export const countdownMeta = defineFrameMeta({
   name: "countdown",
   category: "tools",
+  iconUrl: widgetIcon("countdown"),
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
   description:
     "Live countdown to a target date and time — FOMC decisions, CPI prints, options expiry, earnings, a token unlock, the next market open. Counts down in days / hours / minutes / seconds, ticking every second, and flips to a 'reached' state once the moment passes. Needs no data provider.",
@@ -1044,6 +1060,7 @@ export const countdownMeta = defineFrameMeta({
 export const linkGridMeta = defineFrameMeta({
   name: "link-grid",
   category: "tools",
+  iconUrl: widgetIcon("link-grid"),
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
   description:
     "A grid of quick-launch tiles linking to your favourite sites — TradingView, exchanges, news, docs, your own dashboards. Each tile opens in a new tab and shows the destination site's favicon by default (fetched keyless from a public favicon service), with an optional per-link icon override and a first-letter fallback. Needs no data provider.",
@@ -1095,6 +1112,7 @@ export const linkGridMeta = defineFrameMeta({
 export const calculatorMeta = defineFrameMeta({
   name: "calculator",
   category: "tools",
+  iconUrl: widgetIcon("calculator"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
     "Position-size & risk calculator. Enter account size, risk-per-trade %, entry and stop price; it computes the dollars at risk, the per-unit risk, the position size (units) that respects that risk budget, the resulting position value, and whether the setup is long or short. All math runs client-side — no data provider. Inputs are editable live; the configured values are the starting point.",
@@ -1129,6 +1147,7 @@ export const calculatorMeta = defineFrameMeta({
 export const quoteMeta = defineFrameMeta({
   name: "quote",
   category: "layout",
+  iconUrl: widgetIcon("quote"),
   layout: { w: 4, h: 2, minW: 2, minH: 1 },
   description:
     'Displays a market or trading quote, centered — set one or rotate through several. A calm bit of wall-art for the dashboard: trading maxims, reminders of your own rules, mantras. Write any attribution into the text itself (e.g. "… — Buffett"). Needs no data provider.',
@@ -1159,6 +1178,7 @@ export const quoteMeta = defineFrameMeta({
 export const dividerMeta = defineFrameMeta({
   name: "divider",
   category: "layout",
+  iconUrl: widgetIcon("divider"),
   layout: { w: 12, h: 1, minW: 1, minH: 1 },
   description:
     "A plain rule that separates regions of the dashboard, with an optional centered label. Renders chrome-less (no card) — lighter than a heading. Use a horizontal divider full-width between stacked zones, or set orientation to vertical for a 1-column-wide column separator. Needs no data provider.",
@@ -1187,6 +1207,7 @@ export const dividerMeta = defineFrameMeta({
 export const diceMeta = defineFrameMeta({
   name: "dice",
   category: "tools",
+  iconUrl: widgetIcon("dice"),
   layout: { w: 2, h: 2, minW: 1, minH: 1 },
   description:
     "A click-to-decide widget — a random decision-maker with no data provider. Flip a coin (heads/tails), roll a die (1–6), or pick at random from your own list of options. Click the surface to re-roll. Use it to break a tie, pick what to trade, or settle any small decision.",
@@ -1212,6 +1233,7 @@ export const diceMeta = defineFrameMeta({
 export const riskRewardMeta = defineFrameMeta({
   name: "risk-reward",
   category: "tools",
+  iconUrl: widgetIcon("risk-reward"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
     "Risk:reward planner. Enter entry, stop-loss and profit-target prices; it computes the per-unit risk and reward, their percentages of entry, and the resulting R:R ratio, shown large above a two-segment bar (red risk leg vs green reward leg, sized to scale). Pure client-side math — no data provider. Complements the calculator frame by adding the target/reward leg the position sizer leaves out.",
@@ -1233,6 +1255,7 @@ export const riskRewardMeta = defineFrameMeta({
 export const marqueeMeta = defineFrameMeta({
   name: "marquee",
   category: "layout",
+  iconUrl: widgetIcon("marquee"),
   layout: { w: 6, h: 1, minW: 2, minH: 1 },
   description:
     "A chrome-less scrolling banner that glides custom text continuously right-to-left across the frame (think stadium ticker / news crawl). Renders with no card — it fills the whole frame. Use for a slogan, a reminder, or a hype line. Needs no data provider.",
@@ -1258,6 +1281,7 @@ export const stopwatchMeta = defineFrameMeta({
   name: "stopwatch",
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
   category: "tools",
+  iconUrl: widgetIcon("stopwatch"),
   description:
     "A count-up stopwatch — time-in-trade, a focus session, how long a setup has been live. Start / Pause / Reset, ticking up in H:MM:SS, and it persists across reloads (the running state is saved into the dashboard, so it keeps counting where it left off). Runs entirely client-side — needs no data provider.",
   capabilities: [],
@@ -1281,6 +1305,7 @@ export const stopwatchMeta = defineFrameMeta({
 export const sessionProgressMeta = defineFrameMeta({
   name: "session-progress",
   category: "tools",
+  iconUrl: widgetIcon("session-progress"),
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
   description:
     "A horizontal progress bar showing how far through today's trading session an exchange is — fills from open to close with a percent readout, and a 'closes in …' / 'opens in …' countdown. Pick any exchange code (NYSE, NASDAQ, LSE, TSX, B3, …); sessions are computed client-side from the exchange's timezone and hours, so it needs no data provider.",
@@ -1304,6 +1329,7 @@ export const sessionProgressMeta = defineFrameMeta({
 export const holidayCalendarMeta = defineFrameMeta({
   name: "holiday-calendar",
   category: "tools",
+  iconUrl: widgetIcon("holiday-calendar"),
   layout: { w: 3, h: 4, minW: 2, minH: 2 },
   description:
     "Upcoming market holidays (full closures) for a chosen exchange — the next few dates with their weekday and a countdown ('in 9d'). Pick any exchange code (NYSE, NASDAQ, LSE, TSX, B3, …); dates come from a bundled holiday table and are computed client-side, so it needs no data provider. Note: the bundled table currently covers 2026.",
@@ -1330,6 +1356,7 @@ export const holidayCalendarMeta = defineFrameMeta({
 export const dayMeterMeta = defineFrameMeta({
   name: "day-meter",
   category: "tools",
+  iconUrl: widgetIcon("day-meter"),
   layout: { w: 4, h: 2, minW: 2, minH: 1 },
   description:
     "A strip of the current week's days for a chosen exchange — today highlighted, market holidays flagged in amber, and (optionally) non-trading days greyed. Computed client-side from the exchange's trading days + a bundled holiday table; needs no data provider.",
@@ -1355,6 +1382,7 @@ export const dayMeterMeta = defineFrameMeta({
 export const returnsProjectorMeta = defineFrameMeta({
   name: "returns-projector",
   category: "tools",
+  iconUrl: widgetIcon("returns-projector"),
   layout: { w: 3, h: 4, minW: 2, minH: 3 },
   description:
     "A compound-growth projector — enter a starting principal, a percent return per period, the number of periods, and an optional per-period contribution; it charts the projected balance curve and shows the ending value and total gain. Pure client-side math, no data provider; complements the position-size/risk `calculator`.",
@@ -1383,6 +1411,7 @@ export const returnsProjectorMeta = defineFrameMeta({
 export const breakevenMeta = defineFrameMeta({
   name: "breakeven",
   category: "tools",
+  iconUrl: widgetIcon("breakeven"),
   layout: { w: 3, h: 4, minW: 2, minH: 2 },
   description:
     "A break-even / average-cost calculator — add your fills (price + size) and it computes the size-weighted average entry; set an optional current price to see the unrealized P&L %. Pure client-side math, no data provider.",
@@ -1412,6 +1441,7 @@ export const breakevenMeta = defineFrameMeta({
 export const checklistMeta = defineFrameMeta({
   name: "checklist",
   category: "tools",
+  iconUrl: widgetIcon("checklist"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
     "A tickable checklist — a pre-trade routine, a daily ritual, anything. Tap items to check them off; the checked state persists across reloads (saved into the dashboard). Client-side only, no data provider.",
@@ -1441,6 +1471,7 @@ export const checklistMeta = defineFrameMeta({
 export const pomodoroMeta = defineFrameMeta({
   name: "pomodoro",
   category: "tools",
+  iconUrl: widgetIcon("pomodoro"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
     "A Pomodoro focus timer — alternating work and break intervals with Start / Pause / Reset and a cycle counter, counting down in MM:SS. Runs entirely client-side with no data provider; timer state is in-session (not persisted).",
@@ -1472,6 +1503,7 @@ export const pomodoroMeta = defineFrameMeta({
 export const rulesCardMeta = defineFrameMeta({
   name: "rules-card",
   category: "layout",
+  iconUrl: widgetIcon("rules-card"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
     "A pinned, auto-numbered list of your trading rules (or any principles) — always fully visible, unlike the rotating `quote` frame. Static text, client-side, no data provider.",
@@ -1495,6 +1527,7 @@ export const rulesCardMeta = defineFrameMeta({
 export const breathingMeta = defineFrameMeta({
   name: "breathing",
   category: "layout",
+  iconUrl: widgetIcon("breathing"),
   chrome: "bare",
   layout: { w: 2, h: 2, minW: 1, minH: 1 },
   description:
@@ -1521,6 +1554,7 @@ export const breathingMeta = defineFrameMeta({
 export const spotifyEmbedMeta = defineFrameMeta({
   name: "spotify-embed",
   category: "layout",
+  iconUrl: widgetIcon("spotify-embed"),
   layout: { w: 3, h: 4, minW: 2, minH: 2 },
   description:
     "Embeds a Spotify track, album, playlist, artist, or show from its public open.spotify.com share link (same embed approach as the `video` frame), using Spotify's official keyless iframe player. Needs an internet connection to play.",
