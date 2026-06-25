@@ -613,7 +613,7 @@ body:has(.ui-draggable-dragging) * {
   width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   padding: 14px;
   border-radius: 14px;
   background: linear-gradient(
@@ -623,6 +623,10 @@ body:has(.ui-draggable-dragging) * {
   );
   border: 1px solid rgba(255, 255, 255, 0.08);
   max-height: calc(100vh - 24px);
+  /* Scroll the panel vertically when its sections outrun the viewport (Save /
+     Cancel live in the top editor bar, so nothing needs to stay pinned here).
+     overflow-x stays clipped so the rounded corners and width reveal hold. */
+  overflow-x: hidden;
   overflow-y: auto;
   /* Fade the contents in just behind the reveal so the clip edge isn't stark. */
   opacity: 0;
@@ -631,6 +635,25 @@ body:has(.ui-draggable-dragging) * {
 .zf-editor.zf-customise .zf-rail-inner {
   opacity: 1;
   transition-delay: 0.12s;
+}
+/* Save / Cancel — a fixed header on the panel, so the actions travel with the
+   (sticky) rail instead of floating in a separate toolbar above it. */
+.zf-rail-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+.zf-rail-actions .zf-btn {
+  flex: 1;
+}
+/* The only scrolling region of the panel — tabs + every cosmetic section. */
+.zf-rail-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 @media (prefers-reduced-motion: reduce) {
   .zf-rail,
