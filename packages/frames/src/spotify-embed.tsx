@@ -30,7 +30,9 @@ function SpotifyEmbed({ config }: { config: Config }) {
   const src = useMemo(() => parseSpotifyEmbed(config.url), [config.url]);
 
   if (!src)
-    return <FrameStatus>paste a Spotify track / album / playlist URL</FrameStatus>;
+    return (
+      <FrameStatus>paste a Spotify track / album / playlist URL</FrameStatus>
+    );
   if (state === "error") return <FrameStatus>player unavailable</FrameStatus>;
 
   return (

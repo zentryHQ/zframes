@@ -5,3 +5,4 @@ docs/
 **/*.md
 **/*.html
 packages/cli/templates/app/packages/
+apps/runtime/public/*.umd.mjs

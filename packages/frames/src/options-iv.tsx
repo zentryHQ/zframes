@@ -18,7 +18,11 @@ function OptionsIv({ config }: { config: z.output<typeof schema> }) {
   const { ms, res } = LOOKBACK[config.lookback];
   // Anchor the window start once per lookback so the poll deps stay stable.
   const startMs = useMemo(() => Date.now() - ms, [ms]);
-  const { points, isLoading } = useVolatilityIndex(config.currency, startMs, res);
+  const { points, isLoading } = useVolatilityIndex(
+    config.currency,
+    startMs,
+    res,
+  );
 
   const sparkline = useMemo(
     () =>

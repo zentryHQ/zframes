@@ -615,10 +615,7 @@ export function FrameContent({
   }
 
   return (
-    <div
-      className={cx("zf-frame", className)}
-      style={style}
-    >
+    <div className={cx("zf-frame", className)} style={style}>
       <div
         className={cx(
           "zf-frame-title",

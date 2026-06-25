@@ -20,7 +20,8 @@ function NationalDebt({ config }: { config: z.output<typeof schema> }) {
     [debt?.trend],
   );
 
-  if (isLoading) return <FrameStatus loading>loading national debt…</FrameStatus>;
+  if (isLoading)
+    return <FrameStatus loading>loading national debt…</FrameStatus>;
   if (!debt) return <FrameStatus>no debt data yet</FrameStatus>;
 
   const first = debt.trend[0];

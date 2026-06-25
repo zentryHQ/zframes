@@ -33,7 +33,8 @@ function FinancialStress({ config }: { config: z.output<typeof schema> }) {
     [config.trendDays, stress?.trend],
   );
 
-  if (isLoading) return <FrameStatus loading>loading stress index…</FrameStatus>;
+  if (isLoading)
+    return <FrameStatus loading>loading stress index…</FrameStatus>;
   if (!stress) return <FrameStatus>no stress-index data yet</FrameStatus>;
 
   const color = stressColor(stress.value);
@@ -57,7 +58,9 @@ function FinancialStress({ config }: { config: z.output<typeof schema> }) {
             {stress.value > 0 ? "+" : ""}
             {stress.value.toFixed(2)}
           </div>
-          <div className="caption text-soft mt-1">{classifyStress(stress.value)}</div>
+          <div className="caption text-soft mt-1">
+            {classifyStress(stress.value)}
+          </div>
         </div>
         <div className="caption text-soft max-w-[46%] text-right leading-snug">
           0 = long-run average

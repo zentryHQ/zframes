@@ -532,9 +532,10 @@ export function ZaiOrb({
       // shape, not just its status.
       const ctype = res.headers.get("content-type") ?? "";
       if (!res.body || !ctype.includes("application/x-ndjson")) {
-        const json = (await res.json().catch(() => null)) as
-          | { error?: string; answer?: string }
-          | null;
+        const json = (await res.json().catch(() => null)) as {
+          error?: string;
+          answer?: string;
+        } | null;
         // A non-streaming server still answers with a single { answer } — show
         // it, so an older/stale build degrades to a working (un-streamed) reply
         // instead of a baffling "request failed (HTTP 200)".

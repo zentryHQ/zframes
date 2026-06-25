@@ -21,7 +21,9 @@ function Fundamentals({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus loading>loading SEC financials…</FrameStatus>;
   if (!data || data.metrics.length === 0)
     return (
-      <FrameStatus>no SEC financials for “{tickerOf(config.symbol)}”</FrameStatus>
+      <FrameStatus>
+        no SEC financials for “{tickerOf(config.symbol)}”
+      </FrameStatus>
     );
 
   return (
@@ -35,12 +37,12 @@ function Fundamentals({ config }: { config: z.output<typeof schema> }) {
             SEC EDGAR · XBRL company facts
           </div>
         </div>
-        <div className="caption text-soft shrink-0 text-right">
-          on filing
-        </div>
+        <div className="caption text-soft shrink-0 text-right">on filing</div>
       </div>
 
-      <div className={`grid grid-cols-2 content-start gap-2 ${scrollAreaClass}`}>
+      <div
+        className={`grid grid-cols-2 content-start gap-2 ${scrollAreaClass}`}
+      >
         {data.metrics.map((m) => (
           <div key={m.label} className="rounded bg-white/[0.04] px-3 py-2">
             <div className="caption text-soft truncate">{m.label}</div>

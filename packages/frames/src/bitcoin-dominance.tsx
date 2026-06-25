@@ -42,7 +42,9 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3">
       <div className="flex items-baseline gap-2">
-        <span className="metric-xl text-strong">{formatPct(lead.value, 1)}</span>
+        <span className="metric-xl text-strong">
+          {formatPct(lead.value, 1)}
+        </span>
         <span className="body-md text-soft">{lead.type}</span>
       </div>
 
@@ -61,7 +63,10 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
 
       <div className="grid w-full max-w-sm grid-cols-3">
         {segments.map((item) => (
-          <div key={item.type} className="flex items-center justify-center gap-1.5">
+          <div
+            key={item.type}
+            className="flex items-center justify-center gap-1.5"
+          >
             <div
               className="h-2 w-2 flex-shrink-0 rounded-full"
               style={{ background: SEGMENT_STYLE[item.type] }}

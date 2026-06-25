@@ -64,7 +64,9 @@ function Pomodoro({ config }: { config: Config }) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-1">
       {label && (
-        <div className="caption text-soft uppercase tracking-[0.12em]">{label}</div>
+        <div className="caption text-soft uppercase tracking-[0.12em]">
+          {label}
+        </div>
       )}
       <div className="caption text-soft uppercase tracking-[0.18em]">
         {phase} · {cycle}/{config.cycles}

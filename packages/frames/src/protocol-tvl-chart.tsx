@@ -41,7 +41,8 @@ function ProtocolTvlChart({ config }: { config: z.output<typeof schema> }) {
     [config.protocols, history, cutoff],
   );
 
-  if (isLoading) return <FrameStatus loading>loading protocol TVL…</FrameStatus>;
+  if (isLoading)
+    return <FrameStatus loading>loading protocol TVL…</FrameStatus>;
   if (series.every((s) => s.data.length === 0))
     return <FrameStatus>no protocol TVL data yet</FrameStatus>;
 

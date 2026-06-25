@@ -49,7 +49,8 @@ function ProtocolTvlTreemap({ config }: { config: z.output<typeof schema> }) {
     [entries, config.topN],
   );
 
-  if (isLoading) return <FrameStatus loading>loading protocol TVL…</FrameStatus>;
+  if (isLoading)
+    return <FrameStatus loading>loading protocol TVL…</FrameStatus>;
   if (data.length === 0) return <FrameStatus>no protocol TVL data</FrameStatus>;
 
   return (

@@ -28,7 +28,8 @@ function AllocationDonut({
         .map((holding, i) => ({
           name: tickerOf(holding.symbol),
           value: holding.value ?? 0,
-          color: CHART_COLORS_MULTI_SERIES[i % CHART_COLORS_MULTI_SERIES.length],
+          color:
+            CHART_COLORS_MULTI_SERIES[i % CHART_COLORS_MULTI_SERIES.length],
         }))
         .filter((slice) => slice.value > 0)
         .sort((a, b) => b.value - a.value),
@@ -36,8 +37,7 @@ function AllocationDonut({
   );
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
 
-  if (slices.length === 0)
-    return <FrameStatus>no live prices yet</FrameStatus>;
+  if (slices.length === 0) return <FrameStatus>no live prices yet</FrameStatus>;
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-4">

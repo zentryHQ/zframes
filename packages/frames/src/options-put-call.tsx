@@ -21,13 +21,9 @@ function OptionsPutCall({ config }: { config: z.output<typeof schema> }) {
   if (!summary) return <FrameStatus>no options data yet</FrameStatus>;
 
   const primary =
-    config.basis === "oi"
-      ? summary.putCallRatioOi
-      : summary.putCallRatioVolume;
+    config.basis === "oi" ? summary.putCallRatioOi : summary.putCallRatioVolume;
   const secondary =
-    config.basis === "oi"
-      ? summary.putCallRatioVolume
-      : summary.putCallRatioOi;
+    config.basis === "oi" ? summary.putCallRatioVolume : summary.putCallRatioOi;
   const totalOi = summary.callOi + summary.putOi;
   const callPct = totalOi > 0 ? (summary.callOi / totalOi) * 100 : 50;
   const putPct = 100 - callPct;

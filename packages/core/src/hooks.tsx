@@ -758,14 +758,15 @@ export function useDifficultyAdjustment(refreshMs = 60_000): {
   isLoading: boolean;
 } {
   const provider = useProviderFor("btc-difficulty");
-  const { data: adjustment, isLoading } = usePolled<DifficultyAdjustment | null>(
-    provider?.getDifficultyAdjustment
-      ? () => provider.getDifficultyAdjustment!()
-      : null,
-    null,
-    [provider, refreshMs],
-    refreshMs,
-  );
+  const { data: adjustment, isLoading } =
+    usePolled<DifficultyAdjustment | null>(
+      provider?.getDifficultyAdjustment
+        ? () => provider.getDifficultyAdjustment!()
+        : null,
+      null,
+      [provider, refreshMs],
+      refreshMs,
+    );
   return { adjustment, isLoading };
 }
 

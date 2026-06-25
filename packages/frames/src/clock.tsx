@@ -94,7 +94,12 @@ function Clock({ config }: { config: z.output<typeof schema> }) {
       }
       return { time, date, zone, error: null as string | null };
     } catch {
-      return { time: null, date: null, zone: "", error: tz ?? "invalid timezone" };
+      return {
+        time: null,
+        date: null,
+        zone: "",
+        error: tz ?? "invalid timezone",
+      };
     }
   }, [
     tz,
@@ -140,7 +145,8 @@ function Clock({ config }: { config: z.output<typeof schema> }) {
     format: () => (fmt.date ? fmt.date.format(new Date()) : ""),
   });
 
-  if (fmt.error) return <FrameStatus>unknown timezone: {fmt.error}</FrameStatus>;
+  if (fmt.error)
+    return <FrameStatus>unknown timezone: {fmt.error}</FrameStatus>;
 
   // Seed the spans for the first paint, before the tick takes over.
   const seed = readParts(fmt.time!);

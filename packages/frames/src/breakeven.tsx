@@ -84,7 +84,9 @@ function Breakeven({ config }: { config: Config }) {
             <button
               type="button"
               onClick={() =>
-                setFills((fs) => (fs.length > 1 ? fs.filter((_, j) => j !== i) : fs))
+                setFills((fs) =>
+                  fs.length > 1 ? fs.filter((_, j) => j !== i) : fs,
+                )
               }
               className="caption text-soft hover:text-strong shrink-0 px-1"
               aria-label="remove fill"

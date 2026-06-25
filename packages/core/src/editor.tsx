@@ -68,7 +68,8 @@ function posFor(
 function colsForHorizontal(frames: FrameInstance[], rows: number): number {
   const cells = frames.reduce(
     (sum, f) =>
-      sum + Math.max(1, f.position.w) * Math.min(Math.max(1, f.position.h), rows),
+      sum +
+      Math.max(1, f.position.w) * Math.min(Math.max(1, f.position.h), rows),
     0,
   );
   return Math.max(H_COLS_MIN, Math.ceil((cells / rows) * 1.25) + 8);
@@ -1132,7 +1133,12 @@ export function DashboardEditor({
         const def = registryRef.current.get(frame);
         const w = node?.w ?? def?.layout?.w ?? 4;
         const h = node?.h ?? def?.layout?.h ?? 3;
-        const dropPos: GridPosition = { x: node?.x ?? 0, y: node?.y ?? 0, w, h };
+        const dropPos: GridPosition = {
+          x: node?.x ?? 0,
+          y: node?.y ?? 0,
+          w,
+          h,
+        };
         const instance: FrameInstance =
           modeRef.current === "flow-horizontal"
             ? {
@@ -1270,7 +1276,11 @@ export function DashboardEditor({
         const editorEl = gridRef.current?.closest(".zf-editor");
         if (editorEl) {
           const cs = getComputedStyle(editorEl);
-          for (const v of ["--zf-accent-hue", "--zf-accent-sat", "--font-dmsans"]) {
+          for (const v of [
+            "--zf-accent-hue",
+            "--zf-accent-sat",
+            "--font-dmsans",
+          ]) {
             const value = cs.getPropertyValue(v).trim();
             if (value) helper.style.setProperty(v, value);
           }
@@ -2111,7 +2121,11 @@ export function DashboardEditor({
                           style={{ fontFamily: FONT_FAMILY_STACKS[f] }}
                           onClick={() => setFontFamily(f)}
                         >
-                          {f === "sans" ? "Sans" : f === "mono" ? "Mono" : "Serif"}
+                          {f === "sans"
+                            ? "Sans"
+                            : f === "mono"
+                              ? "Mono"
+                              : "Serif"}
                         </button>
                       ))}
                     </div>
@@ -2135,8 +2149,12 @@ export function DashboardEditor({
                           aria-pressed={numericStyle === n}
                           onClick={() => setNumericStyle(n)}
                         >
-                          <span style={{ fontVariantNumeric: NUMERIC_VARIANTS[n] }}>
-                            {n === "proportional" ? "Normal 1,071" : "Tabular 1,071"}
+                          <span
+                            style={{ fontVariantNumeric: NUMERIC_VARIANTS[n] }}
+                          >
+                            {n === "proportional"
+                              ? "Normal 1,071"
+                              : "Tabular 1,071"}
                           </span>
                         </button>
                       ))}

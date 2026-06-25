@@ -102,7 +102,10 @@ function Dice({ config }: { config: Config }) {
       <span
         aria-live="polite"
         className={`${resultClass} max-w-full break-words text-center leading-none transition-transform`}
-        style={{ color: accent, transform: rolling ? "scale(1.08)" : undefined }}
+        style={{
+          color: accent,
+          transform: rolling ? "scale(1.08)" : undefined,
+        }}
       >
         {result}
       </span>

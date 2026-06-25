@@ -41,8 +41,7 @@ function CurveSvg({ rates }: { rates: number[] }) {
 function YieldCurve({ config }: { config: z.output<typeof schema> }) {
   const { curve, isLoading } = useYieldCurve();
 
-  if (isLoading)
-    return <FrameStatus loading>loading yield curve…</FrameStatus>;
+  if (isLoading) return <FrameStatus loading>loading yield curve…</FrameStatus>;
   if (!curve || curve.points.length < 2)
     return <FrameStatus>no yield-curve data yet</FrameStatus>;
 
@@ -60,8 +59,12 @@ function YieldCurve({ config }: { config: z.output<typeof schema> }) {
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="caption text-soft uppercase">Treasury yield curve</div>
-          <div className="body-sm text-normal">U.S. Treasury · {curve.date}</div>
+          <div className="caption text-soft uppercase">
+            Treasury yield curve
+          </div>
+          <div className="body-sm text-normal">
+            U.S. Treasury · {curve.date}
+          </div>
         </div>
         <div className="caption text-soft text-right">daily</div>
       </div>
@@ -88,7 +91,9 @@ function YieldCurve({ config }: { config: z.output<typeof schema> }) {
 
       <div
         className="grid gap-1"
-        style={{ gridTemplateColumns: `repeat(${keys.length}, minmax(0, 1fr))` }}
+        style={{
+          gridTemplateColumns: `repeat(${keys.length}, minmax(0, 1fr))`,
+        }}
       >
         {keys.map((label) => {
           const r = rate(label);

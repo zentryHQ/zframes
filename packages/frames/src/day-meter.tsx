@@ -74,7 +74,11 @@ function DayMeter({ config }: { config: Config }) {
                     : "Closed"
               }
               className={`flex flex-1 flex-col items-center justify-center rounded-md border px-1 py-1 ${
-                c.isToday ? "text-strong" : dim ? "text-disabled" : "text-normal"
+                c.isToday
+                  ? "text-strong"
+                  : dim
+                    ? "text-disabled"
+                    : "text-normal"
               }`}
               style={{
                 borderColor: c.isToday
