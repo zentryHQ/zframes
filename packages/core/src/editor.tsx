@@ -573,17 +573,24 @@ export function DashboardEditor({
     const groups: {
       key: string;
       label: string;
+      description: string;
       frames: AnyFrameDefinition[];
     }[] = FRAME_CATEGORIES.map((c) => ({
       key: c.key as string,
       label: c.label as string,
+      description: c.description as string,
       frames: byCategory.get(c.key) ?? [],
     }));
     const leftovers = [...byCategory.entries()]
       .filter(([key]) => !known.includes(key as FrameCategory))
       .flatMap(([, frames]) => frames);
     if (leftovers.length)
-      groups.push({ key: "other", label: "Other", frames: leftovers });
+      groups.push({
+        key: "other",
+        label: "Other",
+        description: "",
+        frames: leftovers,
+      });
     return groups
       .filter((g) => g.frames.length > 0)
       .map((g) => ({
@@ -591,6 +598,22 @@ export function DashboardEditor({
         frames: [...g.frames].sort((a, b) => a.name.localeCompare(b.name)),
       }));
   }, [registry]);
+
+  // The palette is a category accordion — one collapsible section per group, so
+  // the ~40-frame catalogue reads as a scannable menu instead of an endless
+  // scroll. Open the first group by default so a fresh Frames tab still shows
+  // some draggable cards; the rest reveal on click. Multiple may be open at once.
+  const [expandedCats, setExpandedCats] = useState<Set<string>>(
+    () => new Set(paletteGroups[0] ? [paletteGroups[0].key] : []),
+  );
+  const toggleCat = useCallback((key: string) => {
+    setExpandedCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
 
   const defaultConfig = useCallback(
     (def?: AnyFrameDefinition): Record<string, unknown> =>
@@ -884,8 +907,9 @@ export function DashboardEditor({
   }, [editing, decorateItem, undecorateItem]);
 
   // Register palette cards as GridStack drag sources while customising. The
-  // palette only mounts on the Frames tab, so re-run when that tab opens too —
-  // otherwise the freshly-mounted cards wouldn't be draggable.
+  // palette only mounts on the Frames tab, and each category's cards only mount
+  // while that section is expanded — so re-run when the tab opens or the set of
+  // open categories changes, else freshly-mounted cards wouldn't be draggable.
   useEffect(() => {
     if (!editing || railTab !== "frames" || !gridInstanceRef.current) return;
     GridStack.setupDragIn(".zf-newwidget", {
@@ -908,7 +932,7 @@ export function DashboardEditor({
         return helper;
       },
     });
-  }, [editing, railTab, paletteGroups]);
+  }, [editing, railTab, paletteGroups, expandedCats]);
 
   const collectSpec = useCallback((): DashboardSpec => {
     const grid = gridInstanceRef.current;
@@ -1389,50 +1413,96 @@ export function DashboardEditor({
                 <section>
                   <h3 className="zf-rail-title">Add a frame</h3>
                   <p className="zf-palette-hint">
-                    Click to add, or drag onto the grid.
+                    Open a category, then click a frame to add it — or drag it
+                    onto the grid.
                   </p>
-                  {paletteGroups.map((group) => (
-                    <div key={group.key} className="zf-palette-group">
-                      <h4 className="zf-palette-group-title">{group.label}</h4>
-                      <div className="zf-palette">
-                        {group.frames.map((def) => (
-                          <div
-                            key={def.name}
-                            className="zf-newwidget"
-                            data-frame={def.name}
-                            role="button"
-                            tabIndex={0}
-                            title={`Add ${def.name.replace(/-/g, " ")}`}
-                            onClick={() => addFrame(def.name)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                addFrame(def.name);
-                              }
-                            }}
+                  <div className="zf-palette-cats">
+                    {paletteGroups.map((group) => {
+                      const open = expandedCats.has(group.key);
+                      return (
+                        <div
+                          key={group.key}
+                          className={
+                            open ? "zf-palette-cat is-open" : "zf-palette-cat"
+                          }
+                        >
+                          <button
+                            type="button"
+                            className="zf-palette-cat-header"
+                            aria-expanded={open}
+                            onClick={() => toggleCat(group.key)}
                           >
-                            {def.iconUrl && (
-                              <img
-                                className="zf-newwidget-icon"
-                                src={def.iconUrl}
-                                alt=""
-                                loading="lazy"
-                                draggable={false}
+                            <svg
+                              className="zf-palette-cat-chevron"
+                              viewBox="0 0 16 16"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M6 4l4 4-4 4"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.6"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
                               />
-                            )}
-                            <div className="zf-newwidget-copy">
-                              <div className="zf-newwidget-name">
-                                {def.name.replace(/-/g, " ")}
-                              </div>
-                              <div className="zf-newwidget-desc">
-                                {def.description}
+                            </svg>
+                            <span className="zf-palette-cat-label">
+                              {group.label}
+                            </span>
+                            <span className="zf-palette-cat-count">
+                              {group.frames.length}
+                            </span>
+                          </button>
+                          {open && (
+                            <div className="zf-palette-cat-body">
+                              {group.description && (
+                                <p className="zf-palette-cat-desc">
+                                  {group.description}
+                                </p>
+                              )}
+                              <div className="zf-palette">
+                                {group.frames.map((def) => (
+                                  <div
+                                    key={def.name}
+                                    className="zf-newwidget"
+                                    data-frame={def.name}
+                                    role="button"
+                                    tabIndex={0}
+                                    title={`Add ${def.name.replace(/-/g, " ")}`}
+                                    onClick={() => addFrame(def.name)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        addFrame(def.name);
+                                      }
+                                    }}
+                                  >
+                                    {def.iconUrl && (
+                                      <img
+                                        className="zf-newwidget-icon"
+                                        src={def.iconUrl}
+                                        alt=""
+                                        loading="lazy"
+                                        draggable={false}
+                                      />
+                                    )}
+                                    <div className="zf-newwidget-copy">
+                                      <div className="zf-newwidget-name">
+                                        {def.name.replace(/-/g, " ")}
+                                      </div>
+                                      <div className="zf-newwidget-desc">
+                                        {def.description}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </section>
               )}
             </div>
