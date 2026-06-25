@@ -54,6 +54,29 @@ export const FRAME_CSS = `
      the inline --zf-font-family. (The editor mirrors this on .zf-editor.) */
   --font-dmsans: var(--zf-font-family, "DM Sans", sans-serif);
 }
+/* flow-horizontal: the board is bounded to the viewport height as --zf-h-rows
+   equal bands and grows rightward, scrolling sideways. The vertical position
+   can't be honoured here (its y runs to 100+ rows), so each frame uses its own
+   stored horizontal layout instead: the renderer emits real --zf-col/row-start
+   for a frame that HAS a horizontal layout (explicit placement, via the base
+   .zf-frame rule), and OMITS them for one that doesn't (the auto var-fallback)
+   so grid-auto-flow: column dense packs it by w/h size — the fallback for
+   un-edited / agent-generated specs. Column tracks reuse the vertical row height
+   (--zf-row-h) so cells stay roughly square. Gated above the phone breakpoint so
+   phones keep the single-column reflow below. */
+@media (min-width: 641px) {
+  .zf-grid.zf-flow-horizontal {
+    grid-template-columns: none;
+    grid-template-rows: repeat(var(--zf-h-rows, 6), minmax(0, 1fr));
+    grid-auto-flow: column dense;
+    grid-auto-columns: var(--zf-row-h, 96px);
+    height: var(--zf-h-height, calc(100vh - 220px));
+    min-height: 420px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    align-content: stretch;
+  }
+}
 .zf-frame {
   grid-column: var(--zf-col-start, auto) / span var(--zf-col-span, 1);
   grid-row: var(--zf-row-start, auto) / span var(--zf-row-span, 1);

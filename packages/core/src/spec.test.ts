@@ -40,4 +40,33 @@ describe("DashboardSpecSchema migration + coercion + defaults", () => {
     const r = DashboardSpecSchema.safeParse({ frames: [] });
     expect(r.success).toBe(false);
   });
+
+  it("defaults grid.mode to flow-vertical and grid.rows to 6", () => {
+    const r = DashboardSpecSchema.parse(base);
+    expect(r.grid.mode).toBe("flow-vertical");
+    expect(r.grid.rows).toBe(6);
+  });
+
+  it("keeps `position` (vertical) and the per-mode `layouts` override side by side", () => {
+    const r = DashboardSpecSchema.parse({
+      ...base,
+      grid: { mode: "flow-horizontal" },
+      frames: [
+        {
+          id: "a",
+          frame: "note",
+          position: { x: 0, y: 5, w: 4, h: 3 },
+          layouts: { "flow-horizontal": { x: 8, y: 1, w: 4, h: 2 } },
+          config: {},
+        },
+      ],
+    });
+    expect(r.frames[0].position).toEqual({ x: 0, y: 5, w: 4, h: 3 });
+    expect(r.frames[0].layouts?.["flow-horizontal"]).toEqual({
+      x: 8,
+      y: 1,
+      w: 4,
+      h: 2,
+    });
+  });
 });
