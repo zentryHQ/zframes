@@ -38,8 +38,10 @@ the runtime comes from the CLI.
   modelled on package.json: `version` (semver string), `title`, `author` (pass
   `--author` if the user gave a name, else it's left blank), then the 12-column
   `grid` (geometry — columns/rowHeight/`gap`), the unicorn `background`, the
-  accent `theme` (`accentHue`/`accentSat`), and the card-surface `appearance`
-  (`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`) — with an
+  `theme` colours (`accentHue`/`accentSat` for the accent + `baseHue`/`baseSat`
+  for the dark card-surface tint), the `typography` (`fontFamily`
+  sans/mono/serif + `numericStyle` proportional/tabular), and the card-surface
+  `appearance` (`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`) — with an
   **empty `frames` array**. You never author that boilerplate or its
   geometry by hand; you only fill in `frames` (step 4). The
   spec is `<dir>/dashboard.json`; that single file is everything the user owns.
@@ -101,11 +103,13 @@ For "update my dashboard" requests, skip the funnel — read the existing
 
 Edit the file `init` scaffolded (or the existing one for updates): add objects to
 the `frames` array. **Leave the envelope alone** — `version`, `grid`,
-`background`, `theme`, and `appearance` are already set; only touch them if the
-user explicitly asks (e.g. "more spacing" → bump `grid.gap`, "square corners" →
-`appearance.radius: 0`, "muted accent" → lower `theme.accentSat`, "glassy cards"
-→ lower `appearance.surfaceOpacity`, "no animation" → `background.type:
-"gradient"`).
+`background`, `theme`, `typography`, and `appearance` are already set; only
+touch them if the user explicitly asks (e.g. "more spacing" → bump `grid.gap`,
+"square corners" → `appearance.radius: 0`, "muted accent" → lower
+`theme.accentSat`, "warmer/blacker cards" → shift `theme.baseHue` / lower
+`theme.baseSat`, "terminal look" → `typography.fontFamily: "mono"`, "stop the
+numbers jumping" → `typography.numericStyle: "tabular"`, "glassy cards" → lower
+`appearance.surfaceOpacity`, "no animation" → `background.type: "gradient"`).
 
 **Show the full frame set — every dashboard gets all the market frames.** You
 don't cherry-pick frames by interest; build the whole comprehensive set and
