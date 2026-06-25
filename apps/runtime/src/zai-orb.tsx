@@ -5,8 +5,10 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import type { DashboardSpec, FrameRegistry } from "@zframes/core";
 import { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/core/routes";
 import { OrbCanvas } from "./unicorn/orb-scene";
+import { useScreenSnapshot } from "./screen-context";
 import type { UnicornSceneType } from "./unicorn/types";
 
 // The zAI orb — host chrome (not a frame), pinned bottom-right above the ticker
@@ -293,6 +295,8 @@ const ORB_CSS = `
 export function ZaiOrb({
   onOpenChange,
   onThinkingChange,
+  spec,
+  registry,
 }: {
   /** Notified whenever the orb expands/collapses, so host chrome (e.g. the
       dashboard background) can react to the orb being opened. */
@@ -301,7 +305,11 @@ export function ZaiOrb({
       host can make the background come alive — cycle hue + breathe — while zAI is
       working, mirroring how the orb's own scene speeds up. */
   onThinkingChange?: (thinking: boolean) => void;
-} = {}) {
+  /** The live dashboard spec + frame registry, snapshotted as grounding context
+      and attached to every question (see ./screen-context). */
+  spec: DashboardSpec;
+  registry: FrameRegistry;
+}) {
   const [agents, setAgents] = useState<Agent[] | null>(null);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -314,6 +322,9 @@ export function ZaiOrb({
   const [phShow, setPhShow] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const sceneRef = useRef<UnicornSceneType | null>(null);
+  // Snapshots what's on the dashboard right now — attached to every question so
+  // zAI answers about the live screen, not in the abstract. Lazy: runs on ask.
+  const captureContext = useScreenSnapshot(spec, registry);
 
   // Drive the orb scene's effect-layer speed: gentle when idle, fast while the
   // agent is thinking. Mirrors Nexus's AIAvatar isLoading behaviour.
@@ -420,10 +431,17 @@ export function ZaiOrb({
     setValue("");
     setBusy(true);
     try {
+      // Grounding is best-effort: a null snapshot (no frames / capture failed)
+      // is simply omitted, and the server falls back to its spec-only prompt.
+      const context = await captureContext();
       const res = await fetch(ASK_ROUTE, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question, agent: activeAgent }),
+        body: JSON.stringify({
+          question,
+          agent: activeAgent,
+          context: context ?? undefined,
+        }),
       });
       const json = (await res.json()) as {
         ok?: boolean;
