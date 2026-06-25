@@ -63,15 +63,24 @@ const accentSaturation = (accentSat: number) =>
  * desaturates it via saturate(), so the backdrop tracks the dashboard's accent
  * (live as the sliders drag); the defaults (hue 242, sat 90) map to a no-op, so
  * an unrolled dashboard renders the scene exactly as authored.
+ *
+ * `thinking` (the zAI orb's busy state, lifted in App) brings the backdrop to
+ * life while zAI works: it continuously cycles its hue AND breathes (a saturation
+ * + brightness pulse). Two stacked filter layers nested *inside* the accent-tint
+ * layer — one per animation, since both animate `filter` and would otherwise
+ * clobber each other — so they compose on top of the static accent tint (and the
+ * orb-open charge) instead of replacing it. Both self-disable under reduced-motion.
  */
 export function DashboardBackground({
   background,
   active = false,
+  thinking = false,
   accentHue = ACCENT_DEFAULT_HUE,
   accentSat = ACCENT_DEFAULT_SAT,
 }: {
   background: BackgroundConfig;
   active?: boolean;
+  thinking?: boolean;
   accentHue?: number;
   accentSat?: number;
 }) {
@@ -116,16 +125,31 @@ export function DashboardBackground({
           willChange: "opacity, filter",
         }}
       >
-        <Suspense fallback={null}>
-          <UnicornScene
-            projectId={background.projectId}
-            width="100vw"
-            height="100vh"
-            scale={background.scale}
-            dpi={background.dpi}
-            sdkUrl={SDK_URL}
-          />
-        </Suspense>
+        {/* Two nested layers so the hue cycle and the breathe pulse — both of
+            which animate `filter` — don't clobber each other, and both compose
+            ON TOP of the accent tint above. The animations live in styles.css
+            (.zf-bg-hue + .zf-bg-breathe), gated on prefers-reduced-motion, so
+            these classNames are no-ops when thinking is off or motion is reduced. */}
+        <div
+          className={thinking ? "zf-bg-hue" : undefined}
+          style={{ position: "absolute", inset: 0 }}
+        >
+          <div
+            className={thinking ? "zf-bg-breathe" : undefined}
+            style={{ position: "absolute", inset: 0 }}
+          >
+            <Suspense fallback={null}>
+              <UnicornScene
+                projectId={background.projectId}
+                width="100vw"
+                height="100vh"
+                scale={background.scale}
+                dpi={background.dpi}
+                sdkUrl={SDK_URL}
+              />
+            </Suspense>
+          </div>
+        </div>
       </div>
     </div>
   );

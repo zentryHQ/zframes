@@ -80,6 +80,21 @@ html {
   main > header {
     animation: app-enter 0.45s var(--zf-ease-out) both;
   }
+
+  /* While zAI is thinking, the unicorn backdrop comes alive: it continuously
+     cycles its whole hue AND breathes (a saturation + brightness swell). Two
+     classes on two stacked layers (apps/runtime background.tsx) because both
+     animate `filter` and would otherwise overwrite each other. Hue: a seamless
+     360° sweep (hue-rotate 360deg ≡ 0deg) on a brisk-but-calm linear loop.
+     Breathe: a slow ease-in-out pulse so it inhales/exhales rather than blinks.
+     Only applied while thinking; gating on no-preference keeps the static tint
+     for reduced-motion users. */
+  .zf-bg-hue {
+    animation: zf-bg-hue-cycle 20s linear infinite;
+  }
+  .zf-bg-breathe {
+    animation: zf-bg-breathe 4.5s ease-in-out infinite;
+  }
 }
 
 @keyframes app-enter {
@@ -90,5 +105,26 @@ html {
   to {
     opacity: 1;
     translate: 0 0;
+  }
+}
+
+@keyframes zf-bg-hue-cycle {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(360deg);
+  }
+}
+
+/* The "breath": saturation + brightness swell up at mid-cycle, then settle.
+   ease-in-out on the animation makes the in/out feel like inhale/exhale. */
+@keyframes zf-bg-breathe {
+  0%,
+  100% {
+    filter: saturate(0.9) brightness(0.96);
+  }
+  50% {
+    filter: saturate(1.4) brightness(1.12);
   }
 }
