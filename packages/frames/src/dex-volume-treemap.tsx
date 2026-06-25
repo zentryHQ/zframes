@@ -49,8 +49,7 @@ function DexVolumeTreemap({ config }: { config: z.output<typeof schema> }) {
     [entries, config.topN],
   );
 
-  if (isLoading)
-    return <FrameStatus loading>loading DEX volume…</FrameStatus>;
+  if (isLoading) return <FrameStatus loading>loading DEX volume…</FrameStatus>;
   if (data.length === 0) return <FrameStatus>no DEX volume data</FrameStatus>;
 
   return (

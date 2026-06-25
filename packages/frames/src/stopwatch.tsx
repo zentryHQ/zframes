@@ -70,7 +70,10 @@ function Stopwatch({ config }: { config: Config }) {
           <span
             aria-hidden
             className="inline-block h-1 w-1 rounded-full"
-            style={{ background: accent, boxShadow: running ? accentGlow : undefined }}
+            style={{
+              background: accent,
+              boxShadow: running ? accentGlow : undefined,
+            }}
           />
           {config.label}
         </div>

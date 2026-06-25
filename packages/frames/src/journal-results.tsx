@@ -11,7 +11,9 @@ function JournalResults({ config }: { config: z.output<typeof schema> }) {
   const { resolved } = useJournal();
 
   if (resolved.length === 0)
-    return <JournalEmpty>nothing graded yet — your calls resolve here</JournalEmpty>;
+    return (
+      <JournalEmpty>nothing graded yet — your calls resolve here</JournalEmpty>
+    );
 
   const shown = resolved.slice(0, config.max);
   return (

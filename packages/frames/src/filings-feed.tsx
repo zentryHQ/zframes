@@ -23,10 +23,10 @@ const FORM_LABELS: Record<string, string> = {
   "S-3": "Registration",
   "S-4": "Registration (M&A)",
   "DEF 14A": "Proxy statement",
-  "DEFA14A": "Proxy materials",
+  DEFA14A: "Proxy materials",
   "SC 13D": "Activist stake",
   "SC 13G": "Passive stake",
-  "SD": "Specialized disclosure",
+  SD: "Specialized disclosure",
   "3": "Initial insider ownership",
   "4": "Insider transaction",
   "5": "Annual insider ownership",
@@ -36,7 +36,8 @@ const FORM_LABELS: Record<string, string> = {
 
 // Periodic / material reports — the signal most dashboards want, minus the
 // constant drip of insider Form 4s.
-const IMPORTANT_RE = /^(10-K|10-Q|8-K|20-F|40-F|6-K|S-|F-|424|DEF |DEFA|DEFM|11-K|SC 13|25)/i;
+const IMPORTANT_RE =
+  /^(10-K|10-Q|8-K|20-F|40-F|6-K|S-|F-|424|DEF |DEFA|DEFM|11-K|SC 13|25)/i;
 const INSIDER_RE = /^(3|4|5|144)(\/A)?$/;
 
 // EDGAR returns verbose codes ("SCHEDULE 13G/A"); shorten for the badge + filter.
@@ -54,7 +55,8 @@ function formLabel(filing: SecFiling): string {
   const form = shortForm(filing.form);
   if (FORM_LABELS[form]) return FORM_LABELS[form];
   const base = form.replace(/\/A$/, "");
-  if (base !== form && FORM_LABELS[base]) return `${FORM_LABELS[base]} (amended)`;
+  if (base !== form && FORM_LABELS[base])
+    return `${FORM_LABELS[base]} (amended)`;
   return filing.description &&
     filing.description.toUpperCase() !== filing.form.toUpperCase()
     ? filing.description
@@ -79,7 +81,11 @@ function FilingRow({ filing }: { filing: SecFiling }) {
             ? `items ${filing.items}`
             : filing.accessionNumber
       }
-      meta={filing.filingDate ? timeAgo(new Date(filing.filingDate).getTime()) : undefined}
+      meta={
+        filing.filingDate
+          ? timeAgo(new Date(filing.filingDate).getTime())
+          : undefined
+      }
     />
   );
 }
@@ -97,7 +103,9 @@ function FilingsFeed({ config }: { config: z.output<typeof schema> }) {
 
   if (isLoading) return <FrameStatus loading>loading SEC filings…</FrameStatus>;
   if (!data)
-    return <FrameStatus>no SEC data for “{tickerOf(config.symbol)}”</FrameStatus>;
+    return (
+      <FrameStatus>no SEC data for “{tickerOf(config.symbol)}”</FrameStatus>
+    );
 
   const ticker = data.tickers[0];
   const logoSymbol = config.symbol.includes(":")

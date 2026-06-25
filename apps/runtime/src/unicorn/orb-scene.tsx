@@ -75,5 +75,13 @@ export function OrbCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uniqueId, dpi, scale, fps]);
 
-  return <div ref={elementRef} id={uniqueId} className={className} role="img" aria-hidden />;
+  return (
+    <div
+      ref={elementRef}
+      id={uniqueId}
+      className={className}
+      role="img"
+      aria-hidden
+    />
+  );
 }

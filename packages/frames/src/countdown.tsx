@@ -159,7 +159,9 @@ function Countdown({ config }: { config: Config }) {
         </div>
       ) : (
         config.showTarget &&
-        targetFmt && <div className="caption text-soft tabular-nums">{targetFmt}</div>
+        targetFmt && (
+          <div className="caption text-soft tabular-nums">{targetFmt}</div>
+        )
       )}
     </div>
   );

@@ -95,8 +95,17 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
 
   function submit() {
     if (!reason) return;
-    const claim = note.trim() ? `${reason.label} — ${note.trim()}` : reason.label;
-    logCall({ sym, dir, confidence: conf, claim, cls: reason.cls, entry: price });
+    const claim = note.trim()
+      ? `${reason.label} — ${note.trim()}`
+      : reason.label;
+    logCall({
+      sym,
+      dir,
+      confidence: conf,
+      claim,
+      cls: reason.cls,
+      entry: price,
+    });
     setReasonIdx(null);
     setNote("");
     setFlash(true);
@@ -126,7 +135,9 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
               </span>
             )}
           </span>
-          <span className="caption text-disabled ml-1">{pickerOpen ? "▲" : "▼"}</span>
+          <span className="caption text-disabled ml-1">
+            {pickerOpen ? "▲" : "▼"}
+          </span>
         </button>
 
         {pickerOpen && (
@@ -187,7 +198,9 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
               className="body-sm flex-1 rounded-md py-1.5 font-bold uppercase tracking-wide transition-colors"
               style={{
                 color: sel ? dirColor(d) : "var(--color-soft)",
-                background: sel ? "var(--color-surface)" : "rgba(255,255,255,0.03)",
+                background: sel
+                  ? "var(--color-surface)"
+                  : "rgba(255,255,255,0.03)",
                 border: `1px solid ${sel ? dirColor(d) + "55" : "transparent"}`,
               }}
             >

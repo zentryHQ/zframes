@@ -72,7 +72,10 @@ function SessionProgress({ config }: { config: Config }) {
       <div className="bg-surface h-2 w-full overflow-hidden rounded-full">
         <div
           className="h-full rounded-full transition-[width] duration-500"
-          style={{ width: `${fill * 100}%`, background: "var(--color-highlight)" }}
+          style={{
+            width: `${fill * 100}%`,
+            background: "var(--color-highlight)",
+          }}
         />
       </div>
 

@@ -33,7 +33,9 @@ function Field({
       <span className="caption text-soft uppercase tracking-[0.12em]">
         {label}
       </span>
-      <span className={`flex items-center gap-1 px-2 py-1.5 ${interactiveSurface}`}>
+      <span
+        className={`flex items-center gap-1 px-2 py-1.5 ${interactiveSurface}`}
+      >
         {prefix && <span className="body-sm text-soft">{prefix}</span>}
         <input
           type="number"
@@ -89,12 +91,7 @@ function Calculator({ config }: { config: Config }) {
           onChange={setAccount}
           prefix={cur}
         />
-        <Field
-          label="Risk"
-          value={riskPct}
-          onChange={setRiskPct}
-          suffix="%"
-        />
+        <Field label="Risk" value={riskPct} onChange={setRiskPct} suffix="%" />
         <Field label="Entry" value={entry} onChange={setEntry} prefix={cur} />
         <Field label="Stop" value={stop} onChange={setStop} prefix={cur} />
       </div>
@@ -116,10 +113,7 @@ function Calculator({ config }: { config: Config }) {
           label="Per-unit risk"
           value={r.hasStop ? money(r.perUnit) : "set a stop"}
         />
-        <Row
-          label="Position value"
-          value={r.hasStop ? money(r.value) : "—"}
-        />
+        <Row label="Position value" value={r.hasStop ? money(r.value) : "—"} />
         <Row label="Direction" value={r.side} />
       </div>
     </div>

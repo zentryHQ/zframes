@@ -50,7 +50,12 @@ function ReturnsProjector({ config }: { config: Config }) {
       contrib += contribution;
       pts.push({ date: String(i), value: bal });
     }
-    return { series: pts, ending: bal, contributed: contrib, gain: bal - contrib };
+    return {
+      series: pts,
+      ending: bal,
+      contributed: contrib,
+      gain: bal - contrib,
+    };
   }, [principal, ratePct, periods, contribution]);
 
   const gainPct = contributed > 0 ? (gain / contributed) * 100 : 0;

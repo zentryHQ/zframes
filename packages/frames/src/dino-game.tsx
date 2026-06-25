@@ -1,5 +1,11 @@
 import { defineFrame } from "@zframes/core";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { GAME_HUD, accentColor, drawScore } from "./game-ui";
 import { dinoGameMeta } from "./schemas";
 

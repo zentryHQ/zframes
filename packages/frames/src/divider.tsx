@@ -16,8 +16,16 @@ function Divider({ config }: { config: Config }) {
       className={`shrink ${vertical ? "w-0 flex-1" : "h-0 flex-1"} ${extra ?? ""}`}
       style={
         vertical
-          ? { borderLeftWidth: 1, borderLeftStyle: config.style, borderColor: LINE }
-          : { borderTopWidth: 1, borderTopStyle: config.style, borderColor: LINE }
+          ? {
+              borderLeftWidth: 1,
+              borderLeftStyle: config.style,
+              borderColor: LINE,
+            }
+          : {
+              borderTopWidth: 1,
+              borderTopStyle: config.style,
+              borderColor: LINE,
+            }
       }
     />
   );

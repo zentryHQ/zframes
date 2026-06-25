@@ -28,7 +28,9 @@ function Checklist({ config }: { config: Config }) {
     <div className="flex h-full w-full flex-col">
       <div className="mb-1 flex shrink-0 items-baseline justify-between gap-2">
         {title && (
-          <div className="body-sm text-strong truncate font-semibold">{title}</div>
+          <div className="body-sm text-strong truncate font-semibold">
+            {title}
+          </div>
         )}
         <div className="caption text-soft shrink-0 tabular-nums">
           {done}/{config.items.length}
@@ -48,7 +50,9 @@ function Checklist({ config }: { config: Config }) {
                 borderColor: checked[i]
                   ? "var(--color-highlight)"
                   : "rgba(255,255,255,0.2)",
-                background: checked[i] ? "var(--color-highlight)" : "transparent",
+                background: checked[i]
+                  ? "var(--color-highlight)"
+                  : "transparent",
                 color: checked[i] ? "#0b0e14" : "transparent",
               }}
             >

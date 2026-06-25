@@ -368,7 +368,8 @@ body.zf-dragging * {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 22px 50px -20px rgba(0, 0, 0, 0.85),
-    0 0 0 1px hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.22);
+    0 0 0 1px
+      hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.22);
   color: #eef1f8;
   font-family: var(--font-dmsans, "DM Sans", system-ui, sans-serif);
   -webkit-backdrop-filter: blur(10px) saturate(140%);

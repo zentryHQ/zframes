@@ -101,8 +101,7 @@ function RiskReward({ config }: { config: Config }) {
     const riskShare = total > 0 ? (riskPerUnit / total) * 100 : 50;
     // A valid setup brackets entry correctly for the chosen direction; we still
     // compute magnitudes when inverted, and just flag the mismatch.
-    const valid =
-      direction === "long" ? s < e && e < t : t < e && e < s;
+    const valid = direction === "long" ? s < e && e < t : t < e && e < s;
     return {
       riskPerUnit,
       rewardPerUnit,

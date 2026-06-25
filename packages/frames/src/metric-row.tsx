@@ -18,7 +18,9 @@ export function MetricRow({
   return (
     <div className="flex min-w-0 items-center justify-between gap-3 border-b border-white/[0.06] py-1.5 last:border-b-0">
       <div className="min-w-0">
-        <div className="body-sm text-normal truncate font-semibold">{label}</div>
+        <div className="body-sm text-normal truncate font-semibold">
+          {label}
+        </div>
         {meta !== undefined && meta !== null && (
           <div className="caption text-soft truncate">{meta}</div>
         )}

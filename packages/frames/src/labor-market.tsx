@@ -70,7 +70,9 @@ function LaborMarket({ config }: { config: z.output<typeof schema> }) {
           <div className="metric-xl text-strong leading-none">
             {formatPct(latestRate.value, 1)}
           </div>
-          <div className="caption text-soft mt-1">{unemployment.source} · U-3</div>
+          <div className="caption text-soft mt-1">
+            {unemployment.source} · U-3
+          </div>
         </div>
         {jobsChange !== null && payrollLatest && (
           <div className="text-right">
@@ -89,7 +91,12 @@ function LaborMarket({ config }: { config: z.output<typeof schema> }) {
         )}
       </div>
 
-      <MiniLineChart data={sparkline} width={210} height={44} color={DOWN_COLOR_HEX} />
+      <MiniLineChart
+        data={sparkline}
+        width={210}
+        height={44}
+        color={DOWN_COLOR_HEX}
+      />
       <div className="caption text-soft">
         {unemployment.label} · {unemploymentPoints.length} monthly observations
       </div>

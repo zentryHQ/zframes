@@ -290,7 +290,13 @@ function FlappyBird() {
       ctx.fillRect(0, groundY, canvas.width, 2);
 
       drawBird(ctx, d.birdY, d.birdVel, accentRef.current);
-      drawScore(canvas, ctx, scoreRef.current, highScoreRef.current, accentRef.current);
+      drawScore(
+        canvas,
+        ctx,
+        scoreRef.current,
+        highScoreRef.current,
+        accentRef.current,
+      );
 
       d.frameCount++;
       raf = requestAnimationFrame(loop);

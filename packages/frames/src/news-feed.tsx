@@ -67,7 +67,9 @@ function NewsFeed({ config }: { config: z.output<typeof schema> }) {
   );
 
   if (needsSymbols) {
-    return <FrameStatus>add stock symbols to show company headlines</FrameStatus>;
+    return (
+      <FrameStatus>add stock symbols to show company headlines</FrameStatus>
+    );
   }
   if (isLoading) return <FrameStatus loading>loading headlines…</FrameStatus>;
 

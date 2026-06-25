@@ -196,7 +196,8 @@ export function usePortfolioView(config: PortfolioConfig): {
     view = { state: "needs-connect", source };
   else if (isLoading && !portfolio) view = { state: "loading" };
   else if (!portfolio) view = { state: "error" };
-  else if (portfolio.holdings.length === 0) view = { state: "empty", portfolio };
+  else if (portfolio.holdings.length === 0)
+    view = { state: "empty", portfolio };
   else view = { state: "live", portfolio };
 
   return { view, refresh };
@@ -368,7 +369,9 @@ export function PortfolioGate({
       return <FrameStatus loading>{loadingLabel}</FrameStatus>;
     case "error":
       return (
-        <FrameStatus>couldn&rsquo;t load — check the address or try again</FrameStatus>
+        <FrameStatus>
+          couldn&rsquo;t load — check the address or try again
+        </FrameStatus>
       );
     case "empty":
       return <FrameStatus>no holdings to show</FrameStatus>;

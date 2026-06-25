@@ -28,9 +28,7 @@ export function MoverRow({
   return (
     <div
       className={`grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center ${gap}`}
-      title={
-        price !== undefined ? `${label} · ${formatPrice(price)}` : label
-      }
+      title={price !== undefined ? `${label} · ${formatPrice(price)}` : label}
     >
       <AssetLogo symbol={symbol} size={logoSize} />
       <span className="body-sm truncate font-bold text-strong">{label}</span>
@@ -42,7 +40,9 @@ export function MoverRow({
           changePct === undefined ? " text-disabled" : ""
         }`}
         style={
-          changePct !== undefined ? { color: changeColor(changePct) } : undefined
+          changePct !== undefined
+            ? { color: changeColor(changePct) }
+            : undefined
         }
       >
         {changePct !== undefined ? formatChangePct(changePct) : "…"}

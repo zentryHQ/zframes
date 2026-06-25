@@ -49,7 +49,8 @@ function ProtocolFeesTreemap({ config }: { config: z.output<typeof schema> }) {
     [entries, config.topN],
   );
 
-  if (isLoading) return <FrameStatus loading>loading protocol fees…</FrameStatus>;
+  if (isLoading)
+    return <FrameStatus loading>loading protocol fees…</FrameStatus>;
   if (data.length === 0) return <FrameStatus>no protocol fee data</FrameStatus>;
 
   return (

@@ -32,9 +32,7 @@ function JournalScore(_props: { config: z.output<typeof schema> }) {
     ? Math.round(resolved.reduce((s, c) => s + c.confidence, 0) / n)
     : 0;
   const realized = n
-    ? Math.round(
-        (resolved.filter((c) => c.verdict === "hit").length / n) * 100,
-      )
+    ? Math.round((resolved.filter((c) => c.verdict === "hit").length / n) * 100)
     : 0;
   const gap = stated - realized;
 
@@ -76,10 +74,10 @@ function JournalScore(_props: { config: z.output<typeof schema> }) {
         }}
       >
         <p className="body-sm text-normal leading-snug">
-          <span className="font-semibold text-highlight">zAI ·</span> Sharpest on{" "}
-          {CLASS_LABEL[edge.cls]}. You leak on {CLASS_LABEL[leak.cls]} —{" "}
-          {CLASS_RECORD[leak.cls].hits}/{CLASS_RECORD[leak.cls].n}, and your kill
-          rule tripped on most of them. Size those down.
+          <span className="font-semibold text-highlight">zAI ·</span> Sharpest
+          on {CLASS_LABEL[edge.cls]}. You leak on {CLASS_LABEL[leak.cls]} —{" "}
+          {CLASS_RECORD[leak.cls].hits}/{CLASS_RECORD[leak.cls].n}, and your
+          kill rule tripped on most of them. Size those down.
         </p>
       </div>
     </div>

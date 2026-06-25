@@ -109,7 +109,9 @@ function EquityLine({
             config={config}
             className="caption text-soft"
           />
-          <span className="metric-md text-strong">{formatCompactUsd(total)}</span>
+          <span className="metric-md text-strong">
+            {formatCompactUsd(total)}
+          </span>
         </div>
         <span
           className="body-sm font-semibold tabular-nums"

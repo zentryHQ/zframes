@@ -182,8 +182,9 @@ export default function App() {
   // fall back to the saved spec value). flow-horizontal is full-bleed, so the
   // host's centred max-width has to drop — and that decision lives here, on
   // <main>, above the editor.
-  const [liveMode, setLiveMode] =
-    useState<DashboardSpec["grid"]["mode"] | null>(null);
+  const [liveMode, setLiveMode] = useState<
+    DashboardSpec["grid"]["mode"] | null
+  >(null);
   // Phones get the read-only CSS-grid renderer (single-column reflow at <=640px);
   // desktop gets the editable GridStack editor. Editing stays a desktop activity.
   const isMobile = useIsMobile();
