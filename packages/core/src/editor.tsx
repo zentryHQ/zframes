@@ -983,9 +983,21 @@ export function DashboardEditor({
 
     grid.on("removed", () => setCount(grid.getGridItems().length));
 
+    // Hold the closed-hand cursor for the whole drag. A hover-only rule drops as
+    // soon as GridStack slides the pointer off the dragged content box onto the
+    // placeholder/grid, so pin `grabbing` on <body> from dragstart→dragstop —
+    // covers the placeholder, sibling cards, and any body-appended drag helper.
+    const onDragStart = () => document.body.classList.add("zf-dragging");
+    const onDragStop = () => document.body.classList.remove("zf-dragging");
+    grid.on("dragstart", onDragStart);
+    grid.on("dragstop", onDragStop);
+
     return () => {
       grid.off("dropped");
       grid.off("removed");
+      grid.off("dragstart");
+      grid.off("dragstop");
+      document.body.classList.remove("zf-dragging");
       rootsRef.current.forEach((root) => root.unmount());
       rootsRef.current.clear();
       contentRef.current.clear();

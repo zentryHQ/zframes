@@ -118,6 +118,20 @@
 .zf-editor.zf-customise .grid-stack-item:hover > .grid-stack-item-content {
   outline-color: var(--zf-accent);
 }
+/* The whole content box is the drag surface (no dedicated handle), so it reads
+   as grabbable on hover. Resize handles and the ×/cfg buttons are siblings of
+   the content box, so they keep their own cursors. */
+.zf-editor.zf-customise .grid-stack-item > .grid-stack-item-content {
+  cursor: grab;
+}
+/* While dragging, GridStack slides the pointer off the content box onto the
+   placeholder/grid (or a body-appended helper), so a hover rule would drop back
+   to the default arrow. `zf-dragging` is set on <body> from dragstart→dragstop
+   (see editor.tsx), pinning the closed hand everywhere for the whole drag. */
+body.zf-dragging,
+body.zf-dragging * {
+  cursor: grabbing !important;
+}
 
 /* The iOS-style jiggle, with per-item desync so they don't march in lockstep. */
 @keyframes zf-wiggle {
