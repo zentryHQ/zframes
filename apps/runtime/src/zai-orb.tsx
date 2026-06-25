@@ -427,6 +427,12 @@ export function ZaiOrb({
   async function ask() {
     const question = value.trim();
     if (!question || busy) return;
+    // Snapshot the thread BEFORE pushing the new turn — setState is async, so
+    // `messages` here is still the prior history. Drop errored turns: a failed
+    // answer is noise, not context. The server bounds + truncates it further.
+    const history = messages
+      .filter((m) => !m.error)
+      .map((m) => ({ role: m.role, text: m.text }));
     push({ role: "user", text: question });
     setValue("");
     setBusy(true);
@@ -463,6 +469,9 @@ export function ZaiOrb({
           question,
           agent: activeAgent,
           context: context ?? undefined,
+          // The ephemeral thread so far, so follow-ups ("what about ETH?",
+          // "why?") have context — the orb is otherwise stateless per ask.
+          history: history.length ? history : undefined,
         }),
       });
 

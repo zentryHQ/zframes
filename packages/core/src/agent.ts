@@ -29,6 +29,14 @@ export { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/core/routes";
 const MAX_BODY_BYTES = 64_000; // a question, never an upload
 const RUN_TIMEOUT_MS = 120_000; // bound latency/cost — kill a runaway agent
 const MAX_CONTEXT_CHARS = 12_000; // cap the client's on-screen digest in the prompt
+const MAX_HISTORY_TURNS = 6; // last ~3 exchanges of the orb's ephemeral thread
+const MAX_HISTORY_CHARS = 600; // per turn — orb answers are 2–4 sentences anyway
+
+/** One prior turn of the orb's ephemeral thread, replayed for follow-up context. */
+interface HistoryTurn {
+  role: "user" | "zai";
+  text: string;
+}
 
 // Structural req/res shapes satisfied by both Node http and Vite connect, so
 // this module needs no node/vite type dep (mirrors `./serve`).
@@ -211,6 +219,7 @@ async function buildPrompt(
   question: string,
   clientContext?: string,
   catalogue?: string,
+  history?: HistoryTurn[],
 ): Promise<string> {
   let title = "a live market dashboard";
   const symbols = new Set<string>();
@@ -246,6 +255,25 @@ async function buildPrompt(
   const frameCatalogue = trimmedCatalogue
     ? `The frames a user can add in zframes (name — what it shows), by family:\n${trimmedCatalogue}\n\n`
     : "";
+  // The orb's recent thread, embedded as a transcript so follow-ups ("what about
+  // ETH?", "why?") have context — the runners are one-shot (`claude -p` /
+  // `codex exec`), so prior turns ride in the prompt rather than a session.
+  // Text-only Q/A: the live digest above is always the CURRENT screen, so stale
+  // readings are never replayed; only the conversation is.
+  const recent = (history ?? [])
+    .filter((m) => m.text.trim())
+    .slice(-MAX_HISTORY_TURNS);
+  const transcript = recent.length
+    ? `Conversation so far (most recent last):\n${recent
+        .map(
+          (m) =>
+            `${m.role === "user" ? "User" : "zAI"}: ${m.text
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, MAX_HISTORY_CHARS)}`,
+        )
+        .join("\n")}\n\n`
+    : "";
   return (
     // Primer: brief the runner on what zframes is and how it works, so a
     // general-purpose agent answers as the embedded assistant rather than from
@@ -261,6 +289,7 @@ async function buildPrompt(
     `the user read what's on their screen and the markets it tracks.\n\n` +
     `${frameCatalogue}` +
     `${grounding}\n\n` +
+    `${transcript}` +
     `Answer the user's question in 2–4 sentences of plain text — no markdown headings, ` +
     `no preamble, no tool use, just the answer.\n\nQuestion: ${question}`
   );
@@ -362,9 +391,11 @@ export async function handleAgents(res: ResLike): Promise<void> {
 }
 
 /**
- * POST { question, agent? } — CSRF-guarded (JSON content-type) and size-capped
- * like the spec write. Picks the requested runner if installed, else the first
- * available, runs it read-only, and returns { ok, agent, answer }.
+ * POST { question, agent?, context?, history? } — CSRF-guarded (JSON
+ * content-type) and size-capped like the spec write. Picks the requested runner
+ * if installed, else the first available, runs it read-only, and returns
+ * { ok, agent, answer }. `history` is the orb's ephemeral thread, replayed for
+ * follow-up context (bounded to the last MAX_HISTORY_TURNS turns).
  */
 export function handleAsk(
   req: ReqLike,
@@ -406,11 +437,13 @@ export function handleAsk(
     let question: string;
     let requested: string | undefined;
     let clientContext: string | undefined;
+    let history: HistoryTurn[] | undefined;
     try {
       const parsed = JSON.parse(body) as {
         question?: unknown;
         agent?: unknown;
         context?: unknown;
+        history?: unknown;
       };
       if (typeof parsed.question !== "string" || !parsed.question.trim())
         throw new Error("missing question");
@@ -418,6 +451,18 @@ export function handleAsk(
       requested = typeof parsed.agent === "string" ? parsed.agent : undefined;
       clientContext =
         typeof parsed.context === "string" ? parsed.context : undefined;
+      // Validate the client-sent thread defensively, then keep only the tail.
+      if (Array.isArray(parsed.history))
+        history = parsed.history
+          .filter(
+            (m): m is HistoryTurn =>
+              !!m &&
+              typeof m === "object" &&
+              ((m as { role?: unknown }).role === "user" ||
+                (m as { role?: unknown }).role === "zai") &&
+              typeof (m as { text?: unknown }).text === "string",
+          )
+          .slice(-MAX_HISTORY_TURNS);
     } catch (error) {
       replyJson(400, { ok: false, error: String((error as Error).message) });
       return;
@@ -436,6 +481,7 @@ export function handleAsk(
       question,
       clientContext,
       catalogue,
+      history,
     );
     // Commit to a streamed NDJSON response: one JSON object per line. The orb
     // appends `delta` chunks live, then replaces them with the canonical `done`
