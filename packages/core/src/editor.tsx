@@ -39,8 +39,87 @@ import {
   type DashboardSpec,
   type DashboardTypography,
   type FrameInstance,
+  type GridPosition,
 } from "./spec";
 import type { DayStats, MarketDataProvider } from "./types";
+
+type LayoutMode = DashboardSpec["grid"]["mode"];
+
+// flow-horizontal runs GridStack as a wide, height-bounded grid: the column
+// count is sized to the content (colsForHorizontal) so the forced-wide element
+// fits the frames with little trailing space, while maxRow/minRow lock it to
+// spec.grid.rows bands. This is GridStack coerced out of its native vertical
+// orientation — see the layout-modes plan.
+const H_COLS_MIN = 24;
+
+// The placement a frame uses in a given mode: its own per-mode override if
+// present, else (flow-vertical) the canonical `position`. flow-horizontal with
+// no override returns undefined → the caller seeds/packs it.
+function posFor(
+  instance: FrameInstance,
+  mode: LayoutMode,
+): GridPosition | undefined {
+  if (mode === "flow-horizontal") return instance.layouts?.["flow-horizontal"];
+  return instance.position;
+}
+
+// How many columns the horizontal board needs to hold every frame across `rows`
+// bands, with headroom for fragmentation + a few extra for future additions.
+function colsForHorizontal(frames: FrameInstance[], rows: number): number {
+  const cells = frames.reduce(
+    (sum, f) =>
+      sum + Math.max(1, f.position.w) * Math.min(Math.max(1, f.position.h), rows),
+    0,
+  );
+  return Math.max(H_COLS_MIN, Math.ceil((cells / rows) * 1.25) + 8);
+}
+
+// Fill in a flow-horizontal layout for any frame missing one, dense first-fit
+// packed into `cols` × `rows` (scanning columns left→right, rows top→bottom).
+// Frames that already have a horizontal layout keep it (and block those cells),
+// so the seed only ever lays out the un-arranged frames — the tidy first-time
+// arrangement a dashboard gets the first time it enters horizontal mode. With
+// float:true on the grid, the seed is then freely drag-editable and preserved.
+function seedHorizontal(
+  frames: FrameInstance[],
+  cols: number,
+  rows: number,
+): FrameInstance[] {
+  const taken = new Set<string>();
+  const fill = (x: number, y: number, w: number, h: number) => {
+    for (let i = 0; i < w; i++)
+      for (let j = 0; j < h; j++) {
+        const c = x + i;
+        const r = y + j;
+        if (c >= 0 && r >= 0) taken.add(`${c},${r}`);
+      }
+  };
+  const free = (x: number, y: number, w: number, h: number) => {
+    if (x + w > cols || y + h > rows) return false;
+    for (let i = 0; i < w; i++)
+      for (let j = 0; j < h; j++)
+        if (taken.has(`${x + i},${y + j}`)) return false;
+    return true;
+  };
+  for (const f of frames) {
+    const hl = f.layouts?.["flow-horizontal"];
+    if (hl) fill(hl.x, hl.y, hl.w, Math.min(hl.h, rows));
+  }
+  return frames.map((f) => {
+    if (f.layouts?.["flow-horizontal"]) return f;
+    const w = Math.min(Math.max(1, f.position.w), cols);
+    const h = Math.min(Math.max(1, f.position.h), rows);
+    let placed: GridPosition = { x: 0, y: 0, w, h };
+    search: for (let c = 0; c <= cols - w; c++)
+      for (let r = 0; r <= rows - h; r++)
+        if (free(c, r, w, h)) {
+          placed = { x: c, y: r, w, h };
+          break search;
+        }
+    fill(placed.x, placed.y, placed.w, placed.h);
+    return { ...f, layouts: { ...f.layouts, "flow-horizontal": placed } };
+  });
+}
 
 type SymbolKind = "Stock" | "Crypto" | "Custom";
 
@@ -464,6 +543,7 @@ export function DashboardEditor({
   onFontScaleChange,
   onUpColorChange,
   onDownColorChange,
+  onModeChange,
 }: {
   spec: DashboardSpec;
   registry: FrameRegistry;
@@ -471,6 +551,10 @@ export function DashboardEditor({
   onSave?: (next: DashboardSpec) => void | Promise<void>;
   /** Optional host slot for the collapsed Customise icon. */
   customiseButtonTarget?: HTMLElement | null;
+  /** Notified on every layout-mode change so the host can react to it live —
+   *  flow-horizontal goes full-bleed, which means dropping the page's centred
+   *  max-width, and that lives on the host's <main>, not the editor. */
+  onModeChange?: (mode: DashboardSpec["grid"]["mode"]) => void;
   /** Notified on every accent-hue change (live drag, Reset, Cancel-restore) so
    *  the host can mirror it onto chrome the editor doesn't own — the page header
    *  and the :root-scoped --color-highlight token — in real time, not just after
@@ -496,6 +580,10 @@ export function DashboardEditor({
   const gridRef = useRef<HTMLDivElement>(null);
   const gridInstanceRef = useRef<GridStack | null>(null);
   const gridReadyRef = useRef(false);
+  // Mirrors the `mode` state for the []-deps GridStack callbacks (buildItemEl,
+  // collectSpec, captureLayout) that must read the *current* mode without being
+  // re-created. switchMode sets it before re-initialising the grid.
+  const modeRef = useRef<LayoutMode>(spec.grid.mode);
   // Authoritative per-instance data (frame/title/config). GridStack
   // owns position; we merge the two at save time.
   const instancesRef = useRef<Map<string, FrameInstance>>(new Map());
@@ -509,6 +597,8 @@ export function DashboardEditor({
   const snapshotUpColorRef = useRef(spec.theme.upColor);
   const snapshotDownColorRef = useRef(spec.theme.downColor);
   const snapshotGapRef = useRef(spec.grid.gap);
+  const snapshotModeRef = useRef(spec.grid.mode);
+  const switchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const snapshotRadiusRef = useRef(spec.appearance.radius);
   const snapshotBorderRef = useRef(spec.appearance.borderStrength);
   const snapshotSurfaceRef = useRef(spec.appearance.surfaceOpacity);
@@ -540,6 +630,14 @@ export function DashboardEditor({
   // for a colourblind-safe pair; default green/red.
   const [upColor, setUpColor] = useState(spec.theme.upColor);
   const [downColor, setDownColor] = useState(spec.theme.downColor);
+  // Dashboard layout model (spec.grid.mode). Each mode is its own GridStack
+  // config with an independent per-frame layout (vertical → position; horizontal
+  // → layouts["flow-horizontal"]); switchMode re-inits the grid between them.
+  const [mode, setMode] = useState(spec.grid.mode);
+  // True during a mode swap — drives the blur+fade that masks the structural
+  // reflow between vertical and horizontal (the two layouts can't morph, so we
+  // dissolve through, per the design-eng "blur to mask imperfect transitions").
+  const [switching, setSwitching] = useState(false);
   // The inter-frame gap (px) is grid geometry — applied as GridStack margin/2
   // and saved to spec.grid via collectSpec.
   const [gap, setGap] = useState(spec.grid.gap);
@@ -645,6 +743,14 @@ export function DashboardEditor({
   useEffect(() => {
     onDownColorChange?.(downColor);
   }, [downColor, onDownColorChange]);
+
+  // Mirror the live layout mode up to the host: flow-horizontal is full-bleed,
+  // which means the host's centred max-width has to drop. Reports on the initial
+  // mount, on the toggle, and on Cancel-restore.
+  useEffect(() => {
+    modeRef.current = mode;
+    onModeChange?.(mode);
+  }, [mode, onModeChange]);
 
   // Live gap: GridStack positions items absolutely, so the inter-frame gutter is
   // its `margin` (half on each side → matches the bare renderer's CSS `gap`).
@@ -838,20 +944,28 @@ export function DashboardEditor({
   // where the instance has no meaningful x/y yet).
   const buildItemEl = useCallback(
     (instance: FrameInstance, autoPosition = false): GridItemHTMLElement => {
+      const mode = modeRef.current;
+      const horizontal = mode === "flow-horizontal";
+      // Position in the active mode. flow-horizontal with no stored layout →
+      // pos is undefined: auto-position so GridStack packs it into the bands.
+      const pos = posFor(instance, mode);
+      const w = pos?.w ?? instance.position.w;
+      const rawH = pos?.h ?? instance.position.h;
+      const h = horizontal ? Math.min(rawH, spec.grid.rows) : rawH;
       const def = registryRef.current.get(instance.frame);
       const layout = def?.layout;
       const el = document.createElement("div") as GridItemHTMLElement;
       el.className = "grid-stack-item";
       el.setAttribute("gs-id", instance.id);
       el.setAttribute("data-frame", instance.frame);
-      if (autoPosition) {
+      if (autoPosition || !pos) {
         el.setAttribute("gs-auto-position", "true");
       } else {
-        el.setAttribute("gs-x", String(instance.position.x));
-        el.setAttribute("gs-y", String(instance.position.y));
+        el.setAttribute("gs-x", String(pos.x));
+        el.setAttribute("gs-y", String(pos.y));
       }
-      el.setAttribute("gs-w", String(instance.position.w));
-      el.setAttribute("gs-h", String(instance.position.h));
+      el.setAttribute("gs-w", String(w));
+      el.setAttribute("gs-h", String(h));
       if (layout?.minW) el.setAttribute("gs-min-w", String(layout.minW));
       if (layout?.minH) el.setAttribute("gs-min-h", String(layout.minH));
       if (layout?.maxW) el.setAttribute("gs-max-w", String(layout.maxW));
@@ -862,7 +976,7 @@ export function DashboardEditor({
       contentRef.current.set(instance.id, content);
       return el;
     },
-    [],
+    [spec.grid.rows],
   );
 
   // Tears down all items + roots and rebuilds the grid from a frame list.
@@ -927,70 +1041,155 @@ export function DashboardEditor({
     [buildItemEl, decorateItem, defaultConfig, renderInstance, uniqueId],
   );
 
-  // Mount once: init GridStack, render the spec, wire drag-in drops.
+  // Pixel size of one horizontal band: the height left below the chrome / row
+  // count, so the bands fill the viewport. Measured live from the grid wrapper's
+  // top offset (header + toolbar above it) rather than its clientHeight — the
+  // wrapper is a flex child whose height follows its own content, so reading
+  // clientHeight would feed back its current (too-short) size. Reused as the
+  // column width too (square-ish cells), since GridStack derives column width
+  // from the element's width.
+  const horizontalCellPx = useCallback(() => {
+    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    const top =
+      gridRef.current?.parentElement?.getBoundingClientRect().top ?? 120;
+    const avail = vh - top - 56; // 56 ≈ pinned ticker tape + breathing room
+    return Math.max(80, Math.floor(avail / spec.grid.rows));
+  }, [spec.grid.rows]);
+
+  // Tear down the live GridStack (listeners, React roots, item DOM, inline
+  // sizing) so it can be re-initialised in a different mode. Shared by unmount
+  // and switchMode.
+  const teardownGrid = useCallback(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid) return;
+    const el = grid.el;
+    grid.off("dropped");
+    grid.off("removed");
+    grid.off("drag");
+    rootsRef.current.forEach((root) => root.unmount());
+    rootsRef.current.clear();
+    contentRef.current.clear();
+    grid.destroy(false);
+    if (el) {
+      el.querySelectorAll(".grid-stack-item").forEach((node) => node.remove());
+      el.style.width = "";
+      el.style.height = "";
+    }
+    gridInstanceRef.current = null;
+  }, []);
+
+  // Initialise GridStack for a layout mode and wire its drop/removal handlers.
+  // flow-vertical is the classic column grid; flow-horizontal is the coerced
+  // wide, height-bounded, side-scrolling grid — the element is forced wide
+  // (cols × cell, square cells) so .zf-editor-grid scrolls it sideways.
+  // float:true so explicit (seeded/dragged) placements are preserved, not
+  // gravity-packed. `cols` is the content-fitted column count (ignored vertical).
+  const initGrid = useCallback(
+    (m: LayoutMode, cols: number): GridStack => {
+      const horizontal = m === "flow-horizontal";
+      const cell = horizontal ? horizontalCellPx() : spec.grid.rowHeight;
+      const grid = GridStack.init(
+        {
+          column: horizontal ? cols : spec.grid.columns,
+          cellHeight: cell,
+          margin: spec.grid.gap / 2,
+          float: horizontal,
+          ...(horizontal
+            ? { maxRow: spec.grid.rows, minRow: spec.grid.rows }
+            : {}),
+          animate: true,
+          acceptWidgets: true,
+          disableDrag: true,
+          disableResize: true,
+        },
+        gridRef.current!,
+      );
+      grid.el.style.width = horizontal ? `${cols * cell}px` : "";
+
+      // A palette card dropped onto the grid lands in the *active* mode, so its
+      // position writes to that mode's slot (and seeds the other with a default).
+      grid.on("dropped", (_event, _prev, node?: GridStackNode) => {
+        const el = node?.el as GridItemHTMLElement | undefined;
+        if (!el) return;
+        const content = el.querySelector(
+          ".grid-stack-item-content",
+        ) as HTMLElement | null;
+        const frame = el.getAttribute("data-frame");
+        if (!content || !frame) return;
+        const id = el.getAttribute("gs-id") || uniqueId(frame);
+        el.setAttribute("gs-id", id);
+        const def = registryRef.current.get(frame);
+        const w = node?.w ?? def?.layout?.w ?? 4;
+        const h = node?.h ?? def?.layout?.h ?? 3;
+        const dropPos: GridPosition = { x: node?.x ?? 0, y: node?.y ?? 0, w, h };
+        const instance: FrameInstance =
+          modeRef.current === "flow-horizontal"
+            ? {
+                id,
+                frame,
+                position: { x: 0, y: 0, w, h },
+                layouts: { "flow-horizontal": dropPos },
+                config: defaultConfig(def),
+              }
+            : { id, frame, position: dropPos, config: defaultConfig(def) };
+        instancesRef.current.set(id, instance);
+        contentRef.current.set(id, content);
+        renderInstance(id);
+        decorateItem(el);
+        setCount(grid.getGridItems().length);
+        setEditingId(id);
+      });
+
+      grid.on("removed", () => setCount(grid.getGridItems().length));
+
+      if (horizontal) {
+        // GridStack has no horizontal drag-scroll — nudge the wrapper when the
+        // pointer nears its left/right edge during a drag.
+        grid.on("drag", (event: Event) => {
+          const scroller = gridRef.current?.parentElement;
+          if (!scroller) return;
+          const r = scroller.getBoundingClientRect();
+          const cx =
+            (event as MouseEvent).clientX ??
+            (event as TouchEvent).touches?.[0]?.clientX;
+          if (cx == null) return;
+          const edge = 64;
+          if (cx < r.left + edge) scroller.scrollLeft -= 18;
+          else if (cx > r.right - edge) scroller.scrollLeft += 18;
+        });
+      }
+      return grid;
+    },
+    [
+      horizontalCellPx,
+      spec.grid.columns,
+      spec.grid.rowHeight,
+      spec.grid.rows,
+      spec.grid.gap,
+      uniqueId,
+      defaultConfig,
+      renderInstance,
+      decorateItem,
+    ],
+  );
+
+  // Mount once: init GridStack for the saved mode, render the spec. Horizontal
+  // seeds a tidy layout for any frame that doesn't have one yet.
   useEffect(() => {
     if (!gridRef.current || gridReadyRef.current) return;
     gridReadyRef.current = true;
-
-    const grid = GridStack.init(
-      {
-        column: spec.grid.columns,
-        cellHeight: spec.grid.rowHeight,
-        margin: spec.grid.gap / 2,
-        float: false,
-        animate: true,
-        acceptWidgets: true,
-        disableDrag: true,
-        disableResize: true,
-      },
-      gridRef.current,
+    const horizontal = modeRef.current === "flow-horizontal";
+    const cols = horizontal
+      ? colsForHorizontal(spec.frames, spec.grid.rows)
+      : spec.grid.columns;
+    gridInstanceRef.current = initGrid(modeRef.current, cols);
+    restore(
+      horizontal
+        ? seedHorizontal(spec.frames, cols, spec.grid.rows)
+        : spec.frames,
     );
-    gridInstanceRef.current = grid;
-    restore(spec.frames);
-
-    // A palette card dropped onto the grid: GridStack created the item, we
-    // attach the frame (default config) and render it.
-    grid.on("dropped", (_event, _prev, node?: GridStackNode) => {
-      const el = node?.el as GridItemHTMLElement | undefined;
-      if (!el) return;
-      const content = el.querySelector(
-        ".grid-stack-item-content",
-      ) as HTMLElement | null;
-      const frame = el.getAttribute("data-frame");
-      if (!content || !frame) return;
-
-      const id = el.getAttribute("gs-id") || uniqueId(frame);
-      el.setAttribute("gs-id", id);
-      const def = registryRef.current.get(frame);
-      const instance: FrameInstance = {
-        id,
-        frame,
-        position: {
-          x: node?.x ?? 0,
-          y: node?.y ?? 0,
-          w: node?.w ?? def?.layout?.w ?? 4,
-          h: node?.h ?? def?.layout?.h ?? 3,
-        },
-        config: defaultConfig(def),
-      };
-      instancesRef.current.set(id, instance);
-      contentRef.current.set(id, content);
-      renderInstance(id);
-      decorateItem(el);
-      setCount(grid.getGridItems().length);
-      setEditingId(id);
-    });
-
-    grid.on("removed", () => setCount(grid.getGridItems().length));
-
     return () => {
-      grid.off("dropped");
-      grid.off("removed");
-      rootsRef.current.forEach((root) => root.unmount());
-      rootsRef.current.clear();
-      contentRef.current.clear();
-      grid.destroy(false);
-      gridInstanceRef.current = null;
+      teardownGrid();
       gridReadyRef.current = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1008,6 +1207,22 @@ export function DashboardEditor({
       grid.getGridItems().forEach(undecorateItem);
     }
   }, [editing, decorateItem, undecorateItem]);
+
+  // flow-horizontal is height-locked, but the customise toolbar is a row above
+  // the grid that shrinks/grows the available height as it appears/disappears.
+  // Re-fit the band size live (grid.cellHeight — no re-init, no reload) so the
+  // board keeps filling exactly the room left, rather than being pushed past the
+  // viewport. Deferred a frame so the toolbar's DOM change is measured first.
+  useEffect(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid || modeRef.current !== "flow-horizontal") return;
+    const id = requestAnimationFrame(() => {
+      const cell = horizontalCellPx();
+      grid.cellHeight(cell);
+      grid.el.style.width = `${grid.getColumn() * cell}px`;
+    });
+    return () => cancelAnimationFrame(id);
+  }, [editing, horizontalCellPx]);
 
   // Register palette cards as GridStack drag sources while customising. The
   // palette only mounts on the Frames tab, and each category's cards only mount
@@ -1047,24 +1262,29 @@ export function DashboardEditor({
         const inst = instancesRef.current.get(id);
         if (!inst) continue;
         const node = el.gridstackNode;
-        frames.push({
-          ...inst,
-          position: {
-            x: node?.x ?? inst.position.x,
-            y: node?.y ?? inst.position.y,
-            w: node?.w ?? inst.position.w,
-            h: node?.h ?? inst.position.h,
-          },
-        });
+        // Write the live position into the ACTIVE mode's slot, leaving the other
+        // mode's layout untouched so each stays independently editable.
+        const prev = posFor(inst, mode) ?? inst.position;
+        const pos: GridPosition = {
+          x: node?.x ?? prev.x,
+          y: node?.y ?? prev.y,
+          w: node?.w ?? prev.w,
+          h: node?.h ?? prev.h,
+        };
+        frames.push(
+          mode === "flow-horizontal"
+            ? { ...inst, layouts: { ...inst.layouts, "flow-horizontal": pos } }
+            : { ...inst, position: pos },
+        );
       }
     }
-    // Reading order keeps the written file diff-friendly.
+    // Reading order keeps the written file diff-friendly (by the vertical layout).
     frames.sort(
       (a, b) => a.position.y - b.position.y || a.position.x - b.position.x,
     );
     return {
       ...spec,
-      grid: { ...spec.grid, gap },
+      grid: { ...spec.grid, gap, mode },
       theme: {
         ...spec.theme,
         accentHue,
@@ -1074,7 +1294,12 @@ export function DashboardEditor({
         upColor,
         downColor,
       },
-      typography: { ...spec.typography, fontFamily, numericStyle, scale: fontScale },
+      typography: {
+        ...spec.typography,
+        fontFamily,
+        numericStyle,
+        scale: fontScale,
+      },
       appearance: {
         ...spec.appearance,
         radius,
@@ -1097,6 +1322,7 @@ export function DashboardEditor({
     numericStyle,
     fontScale,
     gap,
+    mode,
     radius,
     borderStrength,
     surfaceOpacity,
@@ -1126,6 +1352,7 @@ export function DashboardEditor({
     snapshotUpColorRef.current = upColor;
     snapshotDownColorRef.current = downColor;
     snapshotGapRef.current = gap;
+    snapshotModeRef.current = mode;
     snapshotRadiusRef.current = radius;
     snapshotBorderRef.current = borderStrength;
     snapshotSurfaceRef.current = surfaceOpacity;
@@ -1144,6 +1371,7 @@ export function DashboardEditor({
     upColor,
     downColor,
     gap,
+    mode,
     radius,
     borderStrength,
     surfaceOpacity,
@@ -1163,6 +1391,7 @@ export function DashboardEditor({
     setUpColor(snapshotUpColorRef.current);
     setDownColor(snapshotDownColorRef.current);
     setGap(snapshotGapRef.current);
+    setMode(snapshotModeRef.current);
     setRadius(snapshotRadiusRef.current);
     setBorderStrength(snapshotBorderRef.current);
     setSurfaceOpacity(snapshotSurfaceRef.current);
@@ -1189,6 +1418,98 @@ export function DashboardEditor({
     else download(next);
   }, [collectSpec, onSave, download]);
 
+  // Persist the CURRENT mode's GridStack positions back into instancesRef before
+  // a mode switch, so the arrangement you just made isn't lost on re-init.
+  const captureLayout = useCallback(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid) return;
+    const m = modeRef.current;
+    for (const el of grid.getGridItems()) {
+      const id = el.getAttribute("gs-id");
+      if (!id) continue;
+      const inst = instancesRef.current.get(id);
+      if (!inst) continue;
+      const node = el.gridstackNode;
+      if (!node) continue;
+      const pos: GridPosition = {
+        x: node.x ?? 0,
+        y: node.y ?? 0,
+        w: node.w ?? 1,
+        h: node.h ?? 1,
+      };
+      instancesRef.current.set(
+        id,
+        m === "flow-horizontal"
+          ? { ...inst, layouts: { ...inst.layouts, "flow-horizontal": pos } }
+          : { ...inst, position: pos },
+      );
+    }
+  }, []);
+
+  // Swap the layout mode behind a brief blur+fade. The two layouts are different
+  // GridStack configs (vertical column grid vs the coerced wide side-scroller)
+  // with independent positions, so we capture the current arrangement, re-init
+  // GridStack for the new mode, and restore each frame at the new mode's layout
+  // — all while the grid is blurred out, so the structural swap is invisible.
+  // Reduced-motion users get the instant swap.
+  const switchMode = useCallback(
+    (next: LayoutMode) => {
+      if (next === modeRef.current) return;
+      const swap = () => {
+        captureLayout();
+        const frames = [...instancesRef.current.values()];
+        const wasEditing = editing;
+        const horizontal = next === "flow-horizontal";
+        const cols = horizontal
+          ? colsForHorizontal(frames, spec.grid.rows)
+          : spec.grid.columns;
+        teardownGrid();
+        modeRef.current = next;
+        setMode(next);
+        const grid = initGrid(next, cols);
+        gridInstanceRef.current = grid;
+        restore(
+          horizontal ? seedHorizontal(frames, cols, spec.grid.rows) : frames,
+        );
+        if (wasEditing) {
+          grid.enableMove(true);
+          grid.enableResize(true);
+          grid.getGridItems().forEach(decorateItem);
+        }
+      };
+      const reduce =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      if (reduce) {
+        swap();
+        return;
+      }
+      if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
+      setSwitching(true); // blur/fade out
+      switchTimerRef.current = setTimeout(() => {
+        swap(); // re-init + restore while invisible
+        requestAnimationFrame(() => setSwitching(false)); // dissolve back in
+      }, 150);
+    },
+    [
+      editing,
+      captureLayout,
+      teardownGrid,
+      initGrid,
+      restore,
+      decorateItem,
+      spec.grid.rows,
+      spec.grid.columns,
+    ],
+  );
+
+  useEffect(
+    () => () => {
+      if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
+    },
+    [],
+  );
+
   const renderCustomiseButton = () => (
     <button
       type="button"
@@ -1207,6 +1528,11 @@ export function DashboardEditor({
   const editingInstance =
     editing && editingId ? instancesRef.current.get(editingId) : undefined;
 
+  // flow-horizontal is now a live GridStack (drag-editable), so it no longer
+  // needs a read-only preview — the same grid renders and edits both modes.
+  // data-mode drives the horizontal scroll wrapper in editor.css.
+  const isHorizontal = mode === "flow-horizontal";
+
   return (
     <>
       <style>{FRAME_CSS}</style>
@@ -1215,6 +1541,7 @@ export function DashboardEditor({
         : null}
       <div
         className={editing ? "zf-editor zf-customise" : "zf-editor"}
+        data-mode={mode}
         style={{
           // Colour identity — accent drives every accent in FRAME_CSS; base
           // tints the dark card surface itself.
@@ -1239,11 +1566,6 @@ export function DashboardEditor({
       >
         {(editing || !customiseButtonTarget) && (
           <div className="zf-editor-bar">
-            {editing && (
-              <span className="zf-editor-hint">
-                drag to move · drag a corner to resize · hover to delete
-              </span>
-            )}
             <div className="zf-editor-bar-spacer" />
             {!editing ? (
               renderCustomiseButton()
@@ -1276,7 +1598,7 @@ export function DashboardEditor({
         )}
 
         <div className="zf-editor-main">
-          <div className="zf-editor-grid">
+          <div className="zf-editor-grid" data-switching={switching}>
             <div ref={gridRef} className="grid-stack" />
           </div>
 
@@ -1520,6 +1842,53 @@ export function DashboardEditor({
                   <section className="zf-theme">
                     <h3 className="zf-rail-title">Layout</h3>
                     <div className="zf-theme-row">
+                      <span className="zf-theme-val">Direction</span>
+                    </div>
+                    <div
+                      className="zf-mode-seg"
+                      role="group"
+                      aria-label="Dashboard layout direction"
+                    >
+                      <button
+                        type="button"
+                        className={
+                          mode === "flow-vertical"
+                            ? "zf-mode-seg-btn is-active"
+                            : "zf-mode-seg-btn"
+                        }
+                        aria-pressed={mode === "flow-vertical"}
+                        onClick={() => switchMode("flow-vertical")}
+                      >
+                        Vertical
+                      </button>
+                      <button
+                        type="button"
+                        className={
+                          mode === "flow-horizontal"
+                            ? "zf-mode-seg-btn is-active"
+                            : "zf-mode-seg-btn"
+                        }
+                        aria-pressed={mode === "flow-horizontal"}
+                        onClick={() => switchMode("flow-horizontal")}
+                      >
+                        Horizontal
+                      </button>
+                      <button
+                        type="button"
+                        className="zf-mode-seg-btn"
+                        disabled
+                        title="Infinite canvas — coming soon"
+                      >
+                        Canvas
+                      </button>
+                    </div>
+                    {isHorizontal && (
+                      <p className="zf-mode-seg-hint">
+                        Rows fill the height; the board scrolls sideways.
+                        Rearranging stays in Vertical for now.
+                      </p>
+                    )}
+                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
                       <span className="zf-theme-val">Frame gap</span>
                       <span className="zf-theme-knob-end">
                         {gap !== 12 && (

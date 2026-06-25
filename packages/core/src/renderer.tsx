@@ -9,17 +9,48 @@ import {
 } from "./spec";
 
 // Placement ships as CSS vars (not direct grid-column/grid-row) so the
-// stylesheet's mobile media query can override it — inline styles would win
-// over a media rule and lock the layout to the desktop grid on phones.
-function positionStyle(instance: FrameInstance, index: number): CSSProperties {
+// stylesheet's media queries can override it — inline styles would win over a
+// media rule and lock the layout to the desktop grid on phones.
+//
+// flow-vertical uses the frame's `position`. flow-horizontal uses its own
+// `layouts["flow-horizontal"]` when present (explicit placement, independent of
+// the vertical layout); a frame with no horizontal layout OMITS its start lines
+// so the `auto` var-fallback lets the grid auto-pack it by w×h size (see
+// FRAME_CSS) — the fallback for un-edited / agent-generated specs. Row span is
+// clamped to the band count so a tall frame can't exceed the bounded board.
+function positionStyle(
+  instance: FrameInstance,
+  index: number,
+  horizontal: boolean,
+  rows: number,
+): CSSProperties {
+  const enter = { ["--zf-enter-i" as string]: index };
+  if (horizontal) {
+    const hl = instance.layouts?.["flow-horizontal"];
+    if (hl) {
+      return {
+        ...enter,
+        ["--zf-col-start" as string]: hl.x + 1,
+        ["--zf-col-span" as string]: hl.w,
+        ["--zf-row-start" as string]: hl.y + 1,
+        ["--zf-row-span" as string]: Math.min(hl.h, rows),
+      };
+    }
+    // No stored horizontal layout → auto-pack: omit start lines (CSS falls back
+    // to `auto`), keep the vertical w/h as the footprint.
+    return {
+      ...enter,
+      ["--zf-col-span" as string]: instance.position.w,
+      ["--zf-row-span" as string]: Math.min(instance.position.h, rows),
+    };
+  }
   const { x, y, w, h } = instance.position;
   return {
+    ...enter,
     ["--zf-col-start" as string]: x + 1,
     ["--zf-col-span" as string]: w,
     ["--zf-row-start" as string]: y + 1,
     ["--zf-row-span" as string]: h,
-    // Drives the entrance-cascade stagger (see .zf-frame animation-delay).
-    ["--zf-enter-i" as string]: index,
   };
 }
 
@@ -30,14 +61,16 @@ export function DashboardRenderer({
   spec: DashboardSpec;
   registry: FrameRegistry;
 }) {
+  const horizontal = spec.grid.mode === "flow-horizontal";
   return (
     <>
       <style>{FRAME_CSS}</style>
       <div
-        className="zf-grid"
+        className={horizontal ? "zf-grid zf-flow-horizontal" : "zf-grid"}
         style={{
           ["--zf-cols" as string]: spec.grid.columns,
           ["--zf-row-h" as string]: `${spec.grid.rowHeight}px`,
+          ["--zf-h-rows" as string]: spec.grid.rows,
           ["--zf-gap" as string]: `${spec.grid.gap}px`,
           // Colour identity (spec.theme): accent hue+sat drive every accent in
           // FRAME_CSS (card rims, title dots, source links); base hue+sat tint
@@ -70,7 +103,7 @@ export function DashboardRenderer({
             key={instance.id}
             instance={instance}
             registry={registry}
-            style={positionStyle(instance, index)}
+            style={positionStyle(instance, index, horizontal, spec.grid.rows)}
           />
         ))}
       </div>
