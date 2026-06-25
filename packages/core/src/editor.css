@@ -339,6 +339,68 @@ body.zf-dragging * {
   border-radius: 18px;
 }
 
+/* Drag ghost: the chip that follows the cursor while a new frame is dragged
+   from the palette onto the board. The GridStack helper lives on <body> (outside
+   .zf-editor), so these rules are GLOBAL and the accent/font vars are copied onto
+   the helper inline (see the setupDragIn helper in editor.tsx). The placeholder
+   above shows WHERE it'll land; this shows WHAT is being dragged.
+   Scoped under .ui-draggable-dragging (GridStack puts that on the helper for the
+   drag's duration, then removes it on drop) so the ghost styling can't leak onto
+   the dropped frame — on drop the helper becomes the real grid item and keeps the
+   .zf-drag-ghost class, but no longer matches this selector. */
+.ui-draggable-dragging > .zf-drag-ghost {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  direction: ltr;
+  border-radius: 12px;
+  background: linear-gradient(
+    165deg,
+    rgba(34, 35, 50, 0.95),
+    rgba(13, 14, 21, 0.96)
+  );
+  border: 1px solid
+    hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 22px 50px -20px rgba(0, 0, 0, 0.85),
+    0 0 0 1px hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.22);
+  color: #eef1f8;
+  font-family: var(--font-dmsans, "DM Sans", system-ui, sans-serif);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  overflow: hidden;
+}
+.ui-draggable-dragging > .zf-drag-ghost > .zf-drag-ghost-icon {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 7px;
+  object-fit: cover;
+}
+.ui-draggable-dragging > .zf-drag-ghost > .zf-drag-ghost-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: capitalize;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* While a GridStack drag is in flight its helper carries .ui-draggable-dragging
+   on <body>; pin the closed-hand cursor everywhere for the duration. Covers the
+   palette drag-in (which doesn't go through the grid's dragstart → body.zf-dragging
+   path) as well as item moves. */
+body:has(.ui-draggable-dragging),
+body:has(.ui-draggable-dragging) * {
+  cursor: grabbing !important;
+}
+
 /* ── Toolbar ───────────────────────────────────────────────────────────── */
 .zf-editor-bar {
   display: flex;
@@ -803,7 +865,12 @@ body.zf-dragging * {
   align-items: center;
   gap: 10px;
   text-align: left;
-  cursor: pointer;
+  /* grab cursor advertises that the card is draggable onto the board (it's also
+     clickable to add). user-select:none stops a press-drag from selecting the
+     card's label instead of starting the HTML5 drag. */
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
   min-height: 58px;
   padding: 7px 10px 7px 8px;
   border-radius: 9px;
