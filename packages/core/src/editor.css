@@ -38,10 +38,42 @@
   min-height: 360px;
   border-radius: 18px;
   border: 1px dashed transparent;
-  transition: border-color 0.2s var(--zf-ease-out);
+  /* Border tween is the original; the rest drive the mode-switch dissolve-in
+     (the slower, ease-out "settle" half — the blur-out half is overridden by
+     the [data-switching] rule below so it can be faster). */
+  transition:
+    border-color 0.2s var(--zf-ease-out),
+    opacity 0.24s var(--zf-ease-out),
+    filter 0.24s var(--zf-ease-out),
+    transform 0.24s var(--zf-ease-out);
+}
+/* Mid-swap: blur + fade + a hair of scale so the two structurally-different
+   layouts dissolve through each other instead of snapping. Faster than the
+   settle so the board is hidden by the time the mode actually flips. */
+.zf-editor-grid[data-switching="true"] {
+  opacity: 0.15;
+  filter: blur(10px);
+  transform: scale(0.985);
+  transition:
+    opacity 0.14s var(--zf-ease-out),
+    filter 0.14s var(--zf-ease-out),
+    transform 0.14s var(--zf-ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .zf-editor-grid[data-switching="true"] {
+    filter: none;
+    transform: none;
+  }
 }
 .zf-editor.zf-customise .zf-editor-grid {
   border-color: rgba(255, 255, 255, 0.08);
+}
+/* flow-horizontal runs GridStack as a forced-wide grid (element width =
+   H_COLS × cell); the editor grid clips + scrolls it sideways, bounded to the
+   band height GridStack sets on the .grid-stack element. */
+.zf-editor[data-mode="flow-horizontal"] .zf-editor-grid {
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 /* Stop GridStack's own scroll/overflow from clipping the delete affordance, the
@@ -304,12 +336,6 @@
 .zf-editor-bar-spacer {
   flex: 1;
 }
-.zf-editor-hint {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-  /* Survives over light dashboard backgrounds without a surface of its own. */
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-}
 
 .zf-btn {
   font: inherit;
@@ -501,6 +527,11 @@
   width: 320px;
   margin-left: 16px;
 }
+/* flow-horizontal runs full-bleed (host main is px-0), so give the cosmetics
+   rail breathing room from the viewport's right edge. */
+.zf-editor.zf-customise[data-mode="flow-horizontal"] .zf-rail {
+  margin-right: 24px;
+}
 .zf-rail-inner {
   box-sizing: border-box;
   width: 320px;
@@ -572,6 +603,59 @@
 .zf-rail-tab:focus-visible {
   outline: 2px solid hsl(var(--zf-accent-hue, 242) 90% 76% / 0.7);
   outline-offset: 1px;
+}
+/* Layout-direction segmented control (Vertical / Horizontal / Canvas) — mirrors
+   the rail tabs above. */
+.zf-mode-seg {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.zf-mode-seg-btn {
+  flex: 1;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.5);
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition:
+    background 0.15s var(--zf-ease-out),
+    color 0.15s var(--zf-ease-out),
+    box-shadow 0.15s var(--zf-ease-out),
+    transform 0.15s var(--zf-ease-out);
+}
+.zf-mode-seg-btn:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.82);
+}
+.zf-mode-seg-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.zf-mode-seg-btn.is-active {
+  color: #fff;
+  background: hsl(var(--zf-accent-hue, 242) 90% 70% / 0.22);
+  box-shadow: inset 0 0 0 1px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.4);
+}
+.zf-mode-seg-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.zf-mode-seg-btn:focus-visible {
+  outline: 2px solid hsl(var(--zf-accent-hue, 242) 90% 76% / 0.7);
+  outline-offset: 1px;
+}
+.zf-mode-seg-hint {
+  margin: 8px 1px 0;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.42);
 }
 .zf-rail-title {
   font-size: 10px;

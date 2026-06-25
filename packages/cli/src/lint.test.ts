@@ -2,17 +2,19 @@ import type { DashboardSpec } from "@zframes/core/spec";
 import { describe, expect, it } from "vitest";
 import { lintSpec } from "./lint";
 
+type Pos = { x: number; y: number; w: number; h: number };
 type FrameInput = {
   id: string;
   frame: string;
-  position: { x: number; y: number; w: number; h: number };
+  position: Pos;
+  layouts?: { "flow-horizontal"?: Pos };
   config: unknown;
 };
 
-// lintSpec only reads spec.frames and spec.grid.columns, so a minimal cast is
-// enough — we don't need the full validated spec here.
-function makeSpec(frames: FrameInput[], columns = 12): DashboardSpec {
-  return { grid: { columns }, frames } as unknown as DashboardSpec;
+// lintSpec only reads spec.frames + spec.grid.{columns,rows}, so a minimal cast
+// is enough — we don't need the full validated spec here.
+function makeSpec(frames: FrameInput[], columns = 12, rows = 6): DashboardSpec {
+  return { grid: { columns, rows }, frames } as unknown as DashboardSpec;
 }
 
 const clock = (id: string, pos: FrameInput["position"]): FrameInput => ({
@@ -80,6 +82,41 @@ describe("lintSpec", () => {
       makeSpec([clock("wide", { x: 10, y: 0, w: 5, h: 2 })], 12),
     );
     expect(issues.some((i) => /overflows the grid/.test(i.message))).toBe(true);
+  });
+
+  it("flags a flow-horizontal layout that overflows the row bands", () => {
+    const overflowing = lintSpec(
+      makeSpec(
+        [
+          {
+            ...clock("h", { x: 0, y: 0, w: 2, h: 2 }),
+            layouts: { "flow-horizontal": { x: 20, y: 4, w: 2, h: 4 } }, // 4+4 > 6
+          },
+        ],
+        12,
+        6,
+      ),
+    );
+    expect(
+      overflowing.some((i) => /horizontal layout overflows/.test(i.message)),
+    ).toBe(true);
+
+    // x grows freely (sideways scroll), so a large x alone is fine.
+    const wideButInBand = lintSpec(
+      makeSpec(
+        [
+          {
+            ...clock("h", { x: 0, y: 0, w: 2, h: 2 }),
+            layouts: { "flow-horizontal": { x: 99, y: 0, w: 2, h: 6 } },
+          },
+        ],
+        12,
+        6,
+      ),
+    );
+    expect(
+      wideButInBand.some((i) => /horizontal layout overflows/.test(i.message)),
+    ).toBe(false);
   });
 
   it("flags overlapping frames but not merely touching ones", () => {

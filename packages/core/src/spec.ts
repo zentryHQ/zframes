@@ -17,6 +17,12 @@ export const FrameInstanceSchema = z.object({
       'Card title shown in the frame\'s chrome. Overrides the default (the frame type name) — set a meaningful per-instance label, e.g. the ticker on a price-chart ("TSLA"). Ignored by chrome-less frames like heading.',
     ),
   position: GridPositionSchema,
+  layouts: z
+    .record(z.string(), GridPositionSchema)
+    .optional()
+    .describe(
+      'Per-mode layout overrides keyed by grid.mode (e.g. "flow-horizontal"). `position` is the canonical flow-vertical layout; this holds the other modes\' placements so each layout mode keeps its own independent arrangement. Editor-managed — agents only need to set `position`.',
+    ),
   config: z
     .record(z.string(), z.unknown())
     .default({})
@@ -307,8 +313,35 @@ export const DashboardSpecSchema = z.preprocess(
       ),
     grid: z
       .object({
-        columns: z.number().int().min(1).default(12),
-        rowHeight: z.number().min(8).default(96),
+        mode: z
+          .enum(["flow-vertical", "flow-horizontal", "canvas"])
+          .default("flow-vertical")
+          .describe(
+            "Layout model. 'flow-vertical' (default): a fixed number of columns fill the viewport width; the board grows downward and scrolls vertically — the classic dashboard. 'flow-horizontal': a fixed number of rows fill the viewport height; the board grows rightward and scrolls horizontally — suited to ultrawide and wall displays. 'canvas': an unbounded pan/zoom plane (not yet implemented; rendered as flow-vertical for now).",
+          ),
+        columns: z
+          .number()
+          .int()
+          .min(1)
+          .default(12)
+          .describe(
+            "Number of columns the grid is divided into across the viewport width (flow-vertical). A frame's `position` x/w are in these column units.",
+          ),
+        rowHeight: z
+          .number()
+          .min(8)
+          .default(96)
+          .describe(
+            "Pixel height of each grid row (flow-vertical). A frame's `position` y/h are in these row units.",
+          ),
+        rows: z
+          .number()
+          .int()
+          .min(1)
+          .default(6)
+          .describe(
+            'Number of height-bounded rows the horizontal board (flow-horizontal) fills before it scrolls sideways. A frame\'s `layouts["flow-horizontal"]` y/h are in these row units. Ignored in flow-vertical.',
+          ),
         gap: z
           .number()
           .min(0)
@@ -317,7 +350,13 @@ export const DashboardSpecSchema = z.preprocess(
             "Pixels of space between frames (the grid gutter). 0 makes the cards flush; the editor's Layout rail exposes this as a slider.",
           ),
       })
-      .default({ columns: 12, rowHeight: 96, gap: 12 }),
+      .default({
+        mode: "flow-vertical",
+        columns: 12,
+        rowHeight: 96,
+        rows: 6,
+        gap: 12,
+      }),
     background: BackgroundSchema.default({
       type: "gradient",
       scale: 1,
