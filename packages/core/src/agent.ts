@@ -42,6 +42,7 @@ interface ReqLike {
 interface ResLike {
   statusCode: number;
   setHeader(name: string, value: string): unknown;
+  write(chunk: string): unknown;
   end(body?: string): unknown;
 }
 
@@ -50,12 +51,71 @@ interface Runner {
   label: string;
   bin: string;
   /**
-   * argv for a one-shot, read-only, plain-text answer. `outFile` is a temp path
-   * a runner may write its final message to (codex) instead of stdout.
+   * argv for a one-shot, read-only answer. `outFile` is a temp path a runner may
+   * write its final message to (codex) instead of stdout.
    */
   buildArgs(prompt: string, outFile: string): string[];
-  /** Pull the answer from stdout, or the out-file for runners that use it. */
+  /**
+   * Streaming runners parse ONE line of their NDJSON stdout into an incremental
+   * text delta (or null for non-text lines), so the answer can be relayed to the
+   * browser token-by-token. Runners that omit it don't stream — their whole
+   * answer is delivered once, via `readResult` on close.
+   */
+  parseDelta?(line: string): string | null;
+  /** The final, canonical answer from full stdout (or the out-file). */
   readResult(stdout: string, outFile: string): Promise<string>;
+}
+
+/** Tolerantly parse one NDJSON line; blank or non-JSON lines yield null. */
+function tryParse<T>(line: string): T | null {
+  const s = line.trim();
+  if (!s) return null;
+  try {
+    return JSON.parse(s) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** The slice of Claude's `--output-format stream-json` events we read. */
+interface ClaudeStreamLine {
+  type?: string;
+  result?: unknown;
+  event?: { type?: string; delta?: { type?: string; text?: unknown } };
+}
+
+/** A single token-level text delta from a Claude stream line, or null. */
+function claudeDelta(line: string): string | null {
+  const o = tryParse<ClaudeStreamLine>(line);
+  if (o?.type !== "stream_event") return null;
+  const delta =
+    o.event?.type === "content_block_delta" ? o.event.delta : undefined;
+  return delta?.type === "text_delta" && typeof delta.text === "string"
+    ? delta.text
+    : null;
+}
+
+/** Claude's canonical answer: the closing `result`, else the joined deltas. */
+function claudeResult(stdout: string): string {
+  let result: string | null = null;
+  let deltas = "";
+  for (const line of stdout.split("\n")) {
+    const o = tryParse<ClaudeStreamLine>(line);
+    if (!o) continue;
+    if (o.type === "result" && typeof o.result === "string") {
+      result = o.result;
+      continue;
+    }
+    if (
+      o.type === "stream_event" &&
+      o.event?.type === "content_block_delta" &&
+      o.event.delta?.type === "text_delta" &&
+      typeof o.event.delta.text === "string"
+    ) {
+      deltas += o.event.delta.text;
+    }
+  }
+  return (result ?? deltas).trim();
 }
 
 const RUNNERS: Runner[] = [
@@ -63,9 +123,20 @@ const RUNNERS: Runner[] = [
     id: "claude",
     label: "Claude",
     bin: "claude",
-    // -p/--print is non-interactive; text format prints just the answer.
-    buildArgs: (prompt) => ["-p", prompt, "--output-format", "text"],
-    readResult: async (stdout) => stdout.trim(),
+    // -p/--print is non-interactive. stream-json emits NDJSON events as the
+    // answer is generated; --verbose is required alongside it under -p, and
+    // --include-partial-messages adds the token-level `content_block_delta`
+    // events we relay live. The canonical answer is the closing `result` event.
+    buildArgs: (prompt) => [
+      "-p",
+      prompt,
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--include-partial-messages",
+    ],
+    parseDelta: claudeDelta,
+    readResult: async (stdout) => claudeResult(stdout),
   },
   {
     id: "codex",
@@ -195,12 +266,15 @@ async function buildPrompt(
   );
 }
 
+type RunResult = { ok: true; answer: string } | { ok: false; error: string };
+
 let askCounter = 0;
 function runAgent(
   runner: Runner,
   prompt: string,
   cwd: string,
-): Promise<{ ok: true; answer: string } | { ok: false; error: string }> {
+  onDelta?: (text: string) => void,
+): Promise<RunResult> {
   const outFile = join(
     tmpdir(),
     `zframes-ask-${process.pid}-${++askCounter}.txt`,
@@ -208,17 +282,22 @@ function runAgent(
   return new Promise((resolve) => {
     let child: ReturnType<typeof spawn>;
     try {
-      child = spawn(runner.bin, runner.buildArgs(prompt, outFile), { cwd });
+      // stdin is /dev/null: no runner reads it (the prompt is an argv), and
+      // `codex exec` otherwise BLOCKS reading stdin for EOF until our timeout
+      // kills it. Closing it also skips claude's ~3s "waiting for stdin" stall.
+      child = spawn(runner.bin, runner.buildArgs(prompt, outFile), {
+        cwd,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
     } catch (error) {
       resolve({ ok: false, error: String(error) });
       return;
     }
     let stdout = "";
     let stderr = "";
+    let lineBuf = ""; // holds the partial trailing line between stdout chunks
     let settled = false;
-    const finish = (
-      r: { ok: true; answer: string } | { ok: false; error: string },
-    ) => {
+    const finish = (r: RunResult) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -228,12 +307,29 @@ function runAgent(
       child.kill("SIGKILL");
       finish({ ok: false, error: `${runner.label} timed out` });
     }, RUN_TIMEOUT_MS);
-    child.stdout?.on("data", (d: Buffer) => (stdout += d));
+    // Relay token deltas live for streaming runners; non-streaming ones (codex,
+    // kimi) skip this and deliver the whole answer once on close.
+    const streaming = Boolean(onDelta && runner.parseDelta);
+    const emit = (line: string) => {
+      const delta = runner.parseDelta?.(line);
+      if (delta) onDelta?.(delta);
+    };
+    child.stdout?.on("data", (d: Buffer) => {
+      stdout += d;
+      if (!streaming) return;
+      lineBuf += d;
+      let nl: number;
+      while ((nl = lineBuf.indexOf("\n")) !== -1) {
+        emit(lineBuf.slice(0, nl));
+        lineBuf = lineBuf.slice(nl + 1);
+      }
+    });
     child.stderr?.on("data", (d: Buffer) => (stderr += d));
     child.on("error", (e: Error) =>
       finish({ ok: false, error: String(e.message) }),
     );
     child.on("close", (code: number | null) => {
+      if (streaming && lineBuf) emit(lineBuf); // flush any trailing partial line
       if (code !== 0) {
         finish({
           ok: false,
@@ -300,7 +396,9 @@ export function handleAsk(
   });
   req.on("end", async () => {
     if (aborted) return;
-    const reply = (status: number, payload: object) => {
+    // Failures BEFORE we commit to streaming come back as a normal JSON body
+    // with a status code; once the agent starts, the answer streams as NDJSON.
+    const replyJson = (status: number, payload: object) => {
       res.statusCode = status;
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify(payload));
@@ -321,12 +419,12 @@ export function handleAsk(
       clientContext =
         typeof parsed.context === "string" ? parsed.context : undefined;
     } catch (error) {
-      reply(400, { ok: false, error: String((error as Error).message) });
+      replyJson(400, { ok: false, error: String((error as Error).message) });
       return;
     }
     const agents = await detectAgents();
     if (agents.length === 0) {
-      reply(503, {
+      replyJson(503, {
         ok: false,
         error: "no agent CLI found — install claude, codex, or kimi",
       });
@@ -339,9 +437,31 @@ export function handleAsk(
       clientContext,
       catalogue,
     );
-    const result = await runAgent(runner, prompt, dirname(specFile));
+    // Commit to a streamed NDJSON response: one JSON object per line. The orb
+    // appends `delta` chunks live, then replaces them with the canonical `done`
+    // answer (or shows `error`). Headers go out now so tokens flush as they
+    // arrive; `send` is guarded so a client that navigated away can't crash us.
+    res.statusCode = 200;
+    res.setHeader("content-type", "application/x-ndjson; charset=utf-8");
+    res.setHeader("cache-control", "no-store");
+    res.setHeader("x-accel-buffering", "no"); // defeat proxy buffering, if any
+    const send = (event: object) => {
+      try {
+        res.write(`${JSON.stringify(event)}\n`);
+      } catch {
+        /* client disconnected — let the run finish and unwind */
+      }
+    };
+    const result = await runAgent(runner, prompt, dirname(specFile), (text) =>
+      send({ type: "delta", text }),
+    );
     if (result.ok)
-      reply(200, { ok: true, agent: runner.id, answer: result.answer });
-    else reply(502, { ok: false, agent: runner.id, error: result.error });
+      send({ type: "done", agent: runner.id, answer: result.answer });
+    else send({ type: "error", agent: runner.id, error: result.error });
+    try {
+      res.end();
+    } catch {
+      /* already torn down */
+    }
   });
 }

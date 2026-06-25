@@ -430,6 +430,28 @@ export function ZaiOrb({
     push({ role: "user", text: question });
     setValue("");
     setBusy(true);
+
+    // The zai reply is appended once (empty) on the first event, then grows in
+    // place as deltas stream in. `replaceZai` rewrites that last zai bubble.
+    let zaiOpen = false;
+    let streamed = "";
+    const openZai = () => {
+      if (zaiOpen) return;
+      zaiOpen = true;
+      push({ role: "zai", text: "" });
+    };
+    const replaceZai = (text: string, error = false) =>
+      setMessages((prev) => {
+        const next = [...prev];
+        for (let i = next.length - 1; i >= 0; i--) {
+          if (next[i].role === "zai") {
+            next[i] = { ...next[i], text, error };
+            break;
+          }
+        }
+        return next;
+      });
+
     try {
       // Grounding is best-effort: a null snapshot (no frames / capture failed)
       // is simply omitted, and the server falls back to its spec-only prompt.
@@ -443,20 +465,60 @@ export function ZaiOrb({
           context: context ?? undefined,
         }),
       });
-      const json = (await res.json()) as {
-        ok?: boolean;
-        answer?: string;
-        error?: string;
-      };
-      if (res.ok && json.ok && json.answer) {
-        push({ role: "zai", text: json.answer });
-      } else {
+
+      // A streamed answer comes back as NDJSON; a pre-stream failure (bad
+      // request, no runner installed) comes back as a single JSON body.
+      const ctype = res.headers.get("content-type") ?? "";
+      if (!res.ok || !res.body || !ctype.includes("application/x-ndjson")) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
         push({
           role: "zai",
           text: json.error ?? `request failed (HTTP ${res.status})`,
           error: true,
         });
+        return;
       }
+
+      // Read NDJSON events line-by-line as they arrive: `delta` appends a token
+      // chunk, `done` swaps in the canonical answer, `error` flags the bubble.
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { value: chunk, done } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(chunk, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) !== -1) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line) continue;
+          let evt: {
+            type?: string;
+            text?: string;
+            answer?: string;
+            error?: string;
+          };
+          try {
+            evt = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (evt.type === "delta" && typeof evt.text === "string") {
+            openZai();
+            streamed += evt.text;
+            replaceZai(streamed);
+          } else if (evt.type === "done") {
+            openZai();
+            replaceZai(evt.answer || streamed);
+          } else if (evt.type === "error") {
+            openZai();
+            replaceZai(evt.error ?? "request failed", true);
+          }
+        }
+      }
+      // Stream closed without any event (rare) — leave a readable trace.
+      if (!zaiOpen) push({ role: "zai", text: "no response", error: true });
     } catch (error) {
       push({ role: "zai", text: String(error), error: true });
     } finally {
