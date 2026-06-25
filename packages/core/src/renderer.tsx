@@ -1,7 +1,12 @@
 import { type CSSProperties } from "react";
 import type { FrameRegistry } from "./frame";
 import { FRAME_CSS, FrameContent } from "./frame-content";
-import type { DashboardSpec, FrameInstance } from "./spec";
+import {
+  FONT_FAMILY_STACKS,
+  NUMERIC_VARIANTS,
+  type DashboardSpec,
+  type FrameInstance,
+} from "./spec";
 
 // Placement ships as CSS vars (not direct grid-column/grid-row) so the
 // stylesheet's mobile media query can override it — inline styles would win
@@ -34,10 +39,19 @@ export function DashboardRenderer({
           ["--zf-cols" as string]: spec.grid.columns,
           ["--zf-row-h" as string]: `${spec.grid.rowHeight}px`,
           ["--zf-gap" as string]: `${spec.grid.gap}px`,
-          // Accent color identity (spec.theme): hue + saturation drive every
-          // accent in FRAME_CSS (card rims, title dots, source links).
+          // Colour identity (spec.theme): accent hue+sat drive every accent in
+          // FRAME_CSS (card rims, title dots, source links); base hue+sat tint
+          // the dark card surface itself.
           ["--zf-accent-hue" as string]: spec.theme.accentHue,
           ["--zf-accent-sat" as string]: `${spec.theme.accentSat}%`,
+          ["--zf-base-hue" as string]: spec.theme.baseHue,
+          ["--zf-base-sat" as string]: `${spec.theme.baseSat}%`,
+          // Typography (spec.typography): family routes through --font-dmsans,
+          // numeric style sets digit spacing.
+          ["--zf-font-family" as string]:
+            FONT_FAMILY_STACKS[spec.typography.fontFamily],
+          ["--zf-numeric" as string]:
+            NUMERIC_VARIANTS[spec.typography.numericStyle],
           // Card surface treatment (spec.appearance): corners, rim opacity,
           // surface translucency, padding density, shadow depth.
           ["--zf-frame-radius" as string]: `${spec.appearance.radius}px`,

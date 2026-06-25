@@ -52,8 +52,9 @@ function resolveDest(target: string): string {
  * The bare dashboard envelope, modelled on package.json's header — `version`
  * (semver string) and `author` lead, then the runtime fields. Everything the
  * agent should *not* have to remember or hand-author lives here: the grid
- * geometry, the signature unicorn background, the accent `theme` (hue +
- * saturation), and the card-surface `appearance` knobs. The `frames` array is
+ * geometry, the signature unicorn background, the `theme` colours (accent hue +
+ * saturation and the dark card-surface tint), the `typography` (family + numeric
+ * style), and the card-surface `appearance` knobs. The `frames` array is
  * intentionally empty: the agent fills it from the
  * user's request (read catalogue → add frames → lint → serve). Built as a
  * literal, then validated through DashboardSpecSchema so a release can never
@@ -70,7 +71,11 @@ function skeleton(title: string, author: string) {
       projectId: "YrTzGatwjK7EoFpCSfgZ",
       opacity: 1,
     },
-    theme: { accentHue: 242, accentSat: 90 },
+    theme: { accentHue: 242, accentSat: 90, baseHue: 233, baseSat: 20 },
+    typography: {
+      fontFamily: "sans" as const,
+      numericStyle: "proportional" as const,
+    },
     appearance: {
       radius: 18,
       borderStrength: 0.22,

@@ -72,14 +72,15 @@ export type DashboardBackground = z.infer<typeof BackgroundSchema>;
 
 /**
  * Dashboard-wide *color* identity. Like `background`, the spec only *declares*
- * it; the renderer/editor apply it as the `--zf-accent-hue` / `--zf-accent-sat`
- * CSS vars, which the chrome stylesheet (frame-content's FRAME_CSS) and the
- * chart highlight token derive every accent color from. Rotating the hue (and
- * dialling the saturation) re-tints the whole brand — card rims, title dots,
- * chart highlights, loading states — while leaving semantic up/down (green/red),
- * asset logos, and explicit per-frame chart colors untouched. Card *surface*
- * treatment (corners, border, opacity, density, shadow) lives separately in
- * `appearance`.
+ * it; the renderer/editor apply it as the `--zf-accent-*` / `--zf-base-*` CSS
+ * vars, which the chrome stylesheet (frame-content's FRAME_CSS) and the chart
+ * highlight token derive every color from. `accentHue`/`accentSat` rotate the
+ * brand accent (card rims, title dots, chart highlights, loading states);
+ * `baseHue`/`baseSat` tint the dark card *surface* itself (warm it, cool it, or
+ * desaturate it toward pure black) without leaving dark mode. Both leave
+ * semantic up/down (green/red), asset logos, and explicit per-frame chart colors
+ * untouched. Card *surface treatment* — corners, border, opacity, density,
+ * shadow — lives separately in `appearance`; this group is colour only.
  */
 export const ThemeSchema = z
   .object({
@@ -100,10 +101,85 @@ export const ThemeSchema = z
       .describe(
         "Accent saturation as an HSL percentage (0–100). 90 is the default vivid zframes accent; lower it for muted/pastel rims and dots, 0 for a near-grayscale monochrome accent. Pairs with accentHue — hue picks the color, saturation picks how vivid it is.",
       ),
+    baseHue: z
+      .number()
+      .int()
+      .min(0)
+      .max(360)
+      .default(233)
+      .describe(
+        "Hue of the dark card surface itself, in degrees (0–360). 233 is the default near-black indigo-navy; rotate it to re-temperature every card — e.g. 30 warms toward charcoal-brown, 150 toward deep forest, 210 toward cool slate. The surface stays dark (lightness is fixed); only its tint moves. Independent of accentHue, which only colours rims/highlights.",
+      ),
+    baseSat: z
+      .number()
+      .min(0)
+      .max(100)
+      .default(20)
+      .describe(
+        "Saturation of the dark card surface as an HSL percentage (0–100). 20 is the default subtle navy tint; raise it for a richer coloured-black surface, drop it toward 0 for a neutral graphite/black with no colour cast. Pairs with baseHue.",
+      ),
   })
-  .describe("Dashboard-wide color identity (accent hue + saturation).");
+  .describe(
+    "Dashboard-wide colour identity — accent (rims/highlights) and the dark card-surface tint (base).",
+  );
 
 export type DashboardTheme = z.infer<typeof ThemeSchema>;
+
+/**
+ * Dashboard-wide *typography*. Same declare-vs-render split as the rest: the
+ * spec carries the choice; the renderer/editor map it to the `--zf-font-family`
+ * and `--zf-numeric` CSS vars that FRAME_CSS — and the chart text utilities, via
+ * the `--font-dmsans` token — read. Every default reproduces the original DM
+ * Sans look, so an absent/default `typography` is a visual no-op.
+ */
+export const TypographySchema = z
+  .object({
+    fontFamily: z
+      .enum(["sans", "mono", "serif"])
+      .default("sans")
+      .describe(
+        "Type family for all dashboard text. 'sans' is the default DM Sans (clean, modern); 'mono' switches to a monospaced system stack (a Bloomberg/terminal feel, numbers in fixed columns); 'serif' uses a system serif (editorial). Affects card titles, labels, and readouts alike.",
+      ),
+    numericStyle: z
+      .enum(["proportional", "tabular"])
+      .default("proportional")
+      .describe(
+        "How digits are spaced everywhere on the dashboard. 'proportional' is the default (natural widths); 'tabular' forces fixed-width figures (font-variant-numeric: tabular-nums) so live prices and tickers stop shifting sideways as digits change — recommended for number-dense dashboards. Hero stat numerals are always tabular regardless.",
+      ),
+  })
+  .describe("Dashboard-wide typography — font family and numeric digit style.");
+
+export type DashboardTypography = z.infer<typeof TypographySchema>;
+
+/**
+ * CSS `font-family` stack for each `typography.fontFamily` choice. Set as
+ * `--zf-font-family` inline on the dashboard container by the renderer/editor;
+ * the `.zf-grid` / `.zf-editor` rules then redefine `--font-dmsans` from it (a
+ * :root indirection can't work — a custom property's var() resolves where it's
+ * declared), so this drives every chart utility and frame title at once. 'sans'
+ * restates the DM Sans default (an explicit no-op); 'mono'/'serif' use keyless
+ * system stacks — no extra web-font load.
+ */
+export const FONT_FAMILY_STACKS: Record<
+  DashboardTypography["fontFamily"],
+  string
+> = {
+  sans: '"DM Sans", sans-serif',
+  mono: 'ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace',
+  serif: 'ui-serif, Georgia, "Times New Roman", serif',
+};
+
+/**
+ * CSS `font-variant-numeric` value for each `typography.numericStyle` choice,
+ * set as `--zf-numeric`. 'proportional' resolves to `normal` (the no-op default).
+ */
+export const NUMERIC_VARIANTS: Record<
+  DashboardTypography["numericStyle"],
+  string
+> = {
+  proportional: "normal",
+  tabular: "tabular-nums",
+};
 
 /**
  * Card *surface* treatment — how each frame card looks, independent of its
@@ -165,10 +241,11 @@ export type DashboardAppearance = z.infer<typeof AppearanceSchema>;
  * diffable, lives in git. Invalid specs fail loudly per frame so the agent
  * can read the errors and self-correct.
  *
- * Three cosmetic groups, by fault line: `grid` is geometry (cell layout),
- * `theme` is the accent color, and `appearance` is per-card surface treatment.
- * A `z.preprocess` migrates legacy specs where `radius` lived under `grid`
- * (it now belongs to `appearance`) so older `dashboard.json` files keep loading.
+ * Cosmetic groups, by fault line: `grid` is geometry (cell layout), `theme` is
+ * colour (accent + the card-surface tint), `typography` is the type family +
+ * numeric style, and `appearance` is per-card surface treatment. A `z.preprocess`
+ * migrates legacy specs where `radius` lived under `grid` (it now belongs to
+ * `appearance`) so older `dashboard.json` files keep loading.
  */
 export const DashboardSpecSchema = z.preprocess(
   (raw) => {
@@ -223,7 +300,16 @@ export const DashboardSpecSchema = z.preprocess(
       dpi: 1.5,
       opacity: 0.16,
     }),
-    theme: ThemeSchema.default({ accentHue: 242, accentSat: 90 }),
+    theme: ThemeSchema.default({
+      accentHue: 242,
+      accentSat: 90,
+      baseHue: 233,
+      baseSat: 20,
+    }),
+    typography: TypographySchema.default({
+      fontFamily: "sans",
+      numericStyle: "proportional",
+    }),
     appearance: AppearanceSchema.default({
       radius: 18,
       borderStrength: 0.22,
