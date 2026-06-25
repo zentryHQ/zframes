@@ -293,7 +293,12 @@ export default function App() {
         )}
       </main>
       <TickerTape />
-      <ZaiOrb onOpenChange={setOrbOpen} onThinkingChange={setOrbThinking} />
+      <ZaiOrb
+        onOpenChange={setOrbOpen}
+        onThinkingChange={setOrbThinking}
+        spec={spec}
+        registry={registry}
+      />
     </FramesProvider>
   );
 }

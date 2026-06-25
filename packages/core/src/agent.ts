@@ -28,6 +28,7 @@ export { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/core/routes";
 
 const MAX_BODY_BYTES = 64_000; // a question, never an upload
 const RUN_TIMEOUT_MS = 120_000; // bound latency/cost — kill a runaway agent
+const MAX_CONTEXT_CHARS = 12_000; // cap the client's on-screen digest in the prompt
 
 // Structural req/res shapes satisfied by both Node http and Vite connect, so
 // this module needs no node/vite type dep (mirrors `./serve`).
@@ -127,10 +128,17 @@ function detectAgents(): Promise<Runner[]> {
   return detected;
 }
 
-/** Read the spec (best-effort) to ground the answer in what's on screen. */
+/**
+ * Ground the answer in what's on screen. The browser sends a live digest of the
+ * dashboard (`clientContext` — frames + current readings, built in the runtime's
+ * screen-context.ts); we prefer it when present. Without it (CLI-only client, or
+ * a capture failure) we fall back to reading the spec from disk for the title +
+ * the symbols, so the bridge still works standalone.
+ */
 async function buildPrompt(
   specFile: string,
   question: string,
+  clientContext?: string,
 ): Promise<string> {
   let title = "a live market dashboard";
   const symbols = new Set<string>();
@@ -149,12 +157,19 @@ async function buildPrompt(
   } catch {
     /* a missing/odd spec just means a less grounded prompt */
   }
-  const universe = symbols.size
-    ? [...symbols].join(", ")
-    : "no specific symbols";
+  const trimmed = clientContext?.trim();
+  const grounding = trimmed
+    ? `Here is what the user is looking at on their dashboard right now ` +
+      `(live values captured from the screen):\n\n${trimmed.slice(
+        0,
+        MAX_CONTEXT_CHARS,
+      )}`
+    : `The symbols on screen right now are: ${
+        symbols.size ? [...symbols].join(", ") : "no specific symbols"
+      }.`;
   return (
-    `You are zAI, a market assistant embedded in a live dashboard titled "${title}". ` +
-    `The symbols on screen right now are: ${universe}. ` +
+    `You are zAI, a market assistant embedded in a live dashboard titled "${title}".\n\n` +
+    `${grounding}\n\n` +
     `Answer the user's question in 2–4 sentences of plain text — no markdown headings, ` +
     `no preamble, no tool use, just the answer.\n\nQuestion: ${question}`
   );
@@ -267,15 +282,19 @@ export function handleAsk(req: ReqLike, res: ResLike, specFile: string): void {
     };
     let question: string;
     let requested: string | undefined;
+    let clientContext: string | undefined;
     try {
       const parsed = JSON.parse(body) as {
         question?: unknown;
         agent?: unknown;
+        context?: unknown;
       };
       if (typeof parsed.question !== "string" || !parsed.question.trim())
         throw new Error("missing question");
       question = parsed.question.trim();
       requested = typeof parsed.agent === "string" ? parsed.agent : undefined;
+      clientContext =
+        typeof parsed.context === "string" ? parsed.context : undefined;
     } catch (error) {
       reply(400, { ok: false, error: String((error as Error).message) });
       return;
@@ -289,7 +308,7 @@ export function handleAsk(req: ReqLike, res: ResLike, specFile: string): void {
       return;
     }
     const runner = agents.find((a) => a.id === requested) ?? agents[0];
-    const prompt = await buildPrompt(specFile, question);
+    const prompt = await buildPrompt(specFile, question, clientContext);
     const result = await runAgent(runner, prompt, dirname(specFile));
     if (result.ok)
       reply(200, { ok: true, agent: runner.id, answer: result.answer });
