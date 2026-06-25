@@ -39,7 +39,7 @@ the runtime comes from the CLI.
   `--author` if the user gave a name, else it's left blank), then the 12-column
   `grid` (geometry — columns/rowHeight/`gap`), the unicorn `background`, the
   `theme` colours (`accentHue`/`accentSat` for the accent + `baseHue`/`baseSat`
-  for the dark card-surface tint), the `typography` (`fontFamily`
+  for the dark card-surface tint + `upColor`/`downColor` for gain/loss), the `typography` (`fontFamily`
   sans/mono/serif + `numericStyle` proportional/tabular + `scale` global text
   size), and the card-surface
   `appearance` (`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`) — with an
@@ -110,7 +110,8 @@ touch them if the user explicitly asks (e.g. "more spacing" → bump `grid.gap`,
 `theme.accentSat`, "warmer/blacker cards" → shift `theme.baseHue` / lower
 `theme.baseSat`, "terminal look" → `typography.fontFamily: "mono"`, "stop the
 numbers jumping" → `typography.numericStyle: "tabular"`, "bigger/smaller text" →
-`typography.scale`, "glassy cards" → lower
+`typography.scale`, "colourblind / custom gain-loss colours" →
+`theme.upColor`/`theme.downColor`, "glassy cards" → lower
 `appearance.surfaceOpacity`, "no animation" → `background.type: "gradient"`).
 
 **Show the full frame set — every dashboard gets all the market frames.** You

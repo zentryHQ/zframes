@@ -46,6 +46,10 @@ export function DashboardRenderer({
           ["--zf-accent-sat" as string]: `${spec.theme.accentSat}%`,
           ["--zf-base-hue" as string]: spec.theme.baseHue,
           ["--zf-base-sat" as string]: `${spec.theme.baseSat}%`,
+          // Semantic gain/loss colours (spec.theme): UP_COLOR/DOWN_COLOR in the
+          // frames resolve these (with the green/red fallback).
+          ["--zf-up" as string]: spec.theme.upColor,
+          ["--zf-down" as string]: spec.theme.downColor,
           // Typography (spec.typography): family routes through --font-dmsans,
           // numeric style sets digit spacing.
           ["--zf-font-family" as string]:

@@ -17,8 +17,11 @@ const EQUITY_DEX_WILDCARDS = ["xyz:*"];
 // and the track is duplicated for the seamless loop (~2× nodes).
 const MAX_SYMBOLS = 200;
 
-const UP = "#3fd08f";
-const DOWN = "#ff6b81";
+// Resolve the semantic gain/loss colors (spec.theme.upColor/downColor) the host
+// pushes to :root, with the original green/red as the fallback. Applied via
+// inline style (where var() resolves), so the ticker follows a custom pair.
+const UP = "var(--zf-up, #3fd08f)";
+const DOWN = "var(--zf-down, #ff6b81)";
 
 function formatPrice(value: number): string {
   if (value >= 1000)

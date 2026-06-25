@@ -462,6 +462,8 @@ export function DashboardEditor({
   onAccentHueChange,
   onAccentSatChange,
   onFontScaleChange,
+  onUpColorChange,
+  onDownColorChange,
 }: {
   spec: DashboardSpec;
   registry: FrameRegistry;
@@ -483,6 +485,11 @@ export function DashboardEditor({
    *  (spec.typography.scale) live — chart text is rem-based, so only the root
    *  font size scales it; a container var can't. Mirrors the accent callbacks. */
   onFontScaleChange?: (scale: number) => void;
+  /** Notified on every semantic gain/loss colour change so the host can push
+   *  --zf-up / --zf-down to :root for chrome outside the dashboard container
+   *  (the ticker tape). The in-grid frames already follow the inline vars. */
+  onUpColorChange?: (color: string) => void;
+  onDownColorChange?: (color: string) => void;
 }) {
   const providers = useProviders();
 
@@ -499,6 +506,8 @@ export function DashboardEditor({
   const snapshotSatRef = useRef(spec.theme.accentSat);
   const snapshotBaseHueRef = useRef(spec.theme.baseHue);
   const snapshotBaseSatRef = useRef(spec.theme.baseSat);
+  const snapshotUpColorRef = useRef(spec.theme.upColor);
+  const snapshotDownColorRef = useRef(spec.theme.downColor);
   const snapshotGapRef = useRef(spec.grid.gap);
   const snapshotRadiusRef = useRef(spec.appearance.radius);
   const snapshotBorderRef = useRef(spec.appearance.borderStrength);
@@ -526,6 +535,11 @@ export function DashboardEditor({
   // re-temperatures every card without leaving dark mode.
   const [baseHue, setBaseHue] = useState(spec.theme.baseHue);
   const [baseSat, setBaseSat] = useState(spec.theme.baseSat);
+  // Semantic gain/loss colours (spec.theme). Applied as --zf-up/--zf-down on
+  // .zf-editor below; the frames' UP_COLOR/DOWN_COLOR resolve them. Customisable
+  // for a colourblind-safe pair; default green/red.
+  const [upColor, setUpColor] = useState(spec.theme.upColor);
+  const [downColor, setDownColor] = useState(spec.theme.downColor);
   // The inter-frame gap (px) is grid geometry — applied as GridStack margin/2
   // and saved to spec.grid via collectSpec.
   const [gap, setGap] = useState(spec.grid.gap);
@@ -621,6 +635,16 @@ export function DashboardEditor({
   useEffect(() => {
     onFontScaleChange?.(fontScale);
   }, [fontScale, onFontScaleChange]);
+
+  // Semantic up/down ride inline vars on .zf-editor for the in-grid frames, but
+  // the ticker tape lives outside it — report changes up so the host mirrors
+  // them to :root (same reason as the accent callbacks).
+  useEffect(() => {
+    onUpColorChange?.(upColor);
+  }, [upColor, onUpColorChange]);
+  useEffect(() => {
+    onDownColorChange?.(downColor);
+  }, [downColor, onDownColorChange]);
 
   // Live gap: GridStack positions items absolutely, so the inter-frame gutter is
   // its `margin` (half on each side → matches the bare renderer's CSS `gap`).
@@ -1041,7 +1065,15 @@ export function DashboardEditor({
     return {
       ...spec,
       grid: { ...spec.grid, gap },
-      theme: { ...spec.theme, accentHue, accentSat, baseHue, baseSat },
+      theme: {
+        ...spec.theme,
+        accentHue,
+        accentSat,
+        baseHue,
+        baseSat,
+        upColor,
+        downColor,
+      },
       typography: { ...spec.typography, fontFamily, numericStyle, scale: fontScale },
       appearance: {
         ...spec.appearance,
@@ -1059,6 +1091,8 @@ export function DashboardEditor({
     accentSat,
     baseHue,
     baseSat,
+    upColor,
+    downColor,
     fontFamily,
     numericStyle,
     fontScale,
@@ -1089,6 +1123,8 @@ export function DashboardEditor({
     snapshotSatRef.current = accentSat;
     snapshotBaseHueRef.current = baseHue;
     snapshotBaseSatRef.current = baseSat;
+    snapshotUpColorRef.current = upColor;
+    snapshotDownColorRef.current = downColor;
     snapshotGapRef.current = gap;
     snapshotRadiusRef.current = radius;
     snapshotBorderRef.current = borderStrength;
@@ -1105,6 +1141,8 @@ export function DashboardEditor({
     accentSat,
     baseHue,
     baseSat,
+    upColor,
+    downColor,
     gap,
     radius,
     borderStrength,
@@ -1122,6 +1160,8 @@ export function DashboardEditor({
     setAccentSat(snapshotSatRef.current);
     setBaseHue(snapshotBaseHueRef.current);
     setBaseSat(snapshotBaseSatRef.current);
+    setUpColor(snapshotUpColorRef.current);
+    setDownColor(snapshotDownColorRef.current);
     setGap(snapshotGapRef.current);
     setRadius(snapshotRadiusRef.current);
     setBorderStrength(snapshotBorderRef.current);
@@ -1182,6 +1222,9 @@ export function DashboardEditor({
           ["--zf-accent-sat" as string]: `${accentSat}%`,
           ["--zf-base-hue" as string]: baseHue,
           ["--zf-base-sat" as string]: `${baseSat}%`,
+          // Semantic gain/loss colours — frames' UP_COLOR/DOWN_COLOR resolve these.
+          ["--zf-up" as string]: upColor,
+          ["--zf-down" as string]: downColor,
           // Typography — family routes through --font-dmsans, numeric sets digit
           // spacing; both cascade into every card via FRAME_CSS.
           ["--zf-font-family" as string]: FONT_FAMILY_STACKS[fontFamily],
@@ -1423,6 +1466,55 @@ export function DashboardEditor({
                       aria-label="Surface tint strength"
                       onChange={(e) => setBaseSat(Number(e.target.value))}
                     />
+                  </section>
+
+                  <section className="zf-theme">
+                    <h3 className="zf-rail-title">Gain / Loss</h3>
+                    <div
+                      className="zf-theme-row"
+                      style={{ margin: "10px 0 0" }}
+                    >
+                      <label className="zf-theme-val">
+                        <input
+                          type="color"
+                          className="zf-color"
+                          value={upColor}
+                          aria-label="Gain (up) colour"
+                          onChange={(e) => setUpColor(e.target.value)}
+                        />
+                        Up {upColor}
+                      </label>
+                      {upColor.toLowerCase() !== "#3fd08f" && (
+                        <button
+                          type="button"
+                          className="zf-theme-reset"
+                          onClick={() => setUpColor("#3fd08f")}
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    <div className="zf-theme-row" style={{ marginTop: 9 }}>
+                      <label className="zf-theme-val">
+                        <input
+                          type="color"
+                          className="zf-color"
+                          value={downColor}
+                          aria-label="Loss (down) colour"
+                          onChange={(e) => setDownColor(e.target.value)}
+                        />
+                        Down {downColor}
+                      </label>
+                      {downColor.toLowerCase() !== "#ff6b81" && (
+                        <button
+                          type="button"
+                          className="zf-theme-reset"
+                          onClick={() => setDownColor("#ff6b81")}
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
                   </section>
 
                   <section className="zf-theme">

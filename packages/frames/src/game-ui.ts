@@ -1,4 +1,4 @@
-import { DOWN_COLOR } from "./format";
+import { DOWN_COLOR_HEX } from "./format";
 
 /**
  * The dashboard accent as a canvas-ready hsla string, read from the live
@@ -21,13 +21,14 @@ export function accentColor(el: Element | null, light = 70, alpha = 1): string {
 /**
  * Static HUD colors shared by the canvas games (snake, flappy-bird, dino) so
  * their text and game-over readouts match. Gameplay-art colors (snake body,
- * pipes, cactus, bird) stay local to each game. `gameOver` is the dashboard's
- * semantic down/red.
+ * pipes, cactus, bird) stay local to each game. `gameOver` is the semantic
+ * down/red as a literal hex — canvas `fillStyle` can't resolve the `--zf-down`
+ * var, so it uses the default and doesn't follow a custom downColor (v2 gap).
  */
 export const GAME_HUD = {
   text: "rgba(255, 255, 255, 0.85)",
   textSoft: "rgba(255, 255, 255, 0.6)",
-  gameOver: DOWN_COLOR,
+  gameOver: DOWN_COLOR_HEX,
 } as const;
 
 /**
