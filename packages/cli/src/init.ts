@@ -71,7 +71,14 @@ function skeleton(title: string, author: string) {
       projectId: "YrTzGatwjK7EoFpCSfgZ",
       opacity: 1,
     },
-    theme: { accentHue: 242, accentSat: 90, baseHue: 233, baseSat: 20 },
+    theme: {
+      accentHue: 242,
+      accentSat: 90,
+      baseHue: 233,
+      baseSat: 20,
+      upColor: "#3fd08f",
+      downColor: "#ff6b81",
+    },
     typography: {
       fontFamily: "sans" as const,
       numericStyle: "proportional" as const,

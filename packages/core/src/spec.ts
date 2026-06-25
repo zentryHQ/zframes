@@ -118,9 +118,23 @@ export const ThemeSchema = z
       .describe(
         "Saturation of the dark card surface as an HSL percentage (0–100). 20 is the default subtle navy tint; raise it for a richer coloured-black surface, drop it toward 0 for a neutral graphite/black with no colour cast. Pairs with baseHue.",
       ),
+    upColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/, "must be a 6-digit hex colour like #3fd08f")
+      .default("#3fd08f")
+      .describe(
+        "Semantic colour for gains / positive change / bullish (up). 6-digit hex; default #3fd08f (green). Tints every gain delta, mover row, up-candle, and 'long'/'call' marker. Set this and downColor to a non-green/red pair (e.g. blue/orange) for a colourblind-friendly dashboard. Distinct from the accent (which is brand colour, not meaning) and from the error red.",
+      ),
+    downColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/, "must be a 6-digit hex colour like #ff6b81")
+      .default("#ff6b81")
+      .describe(
+        "Semantic colour for losses / negative change / bearish (down). 6-digit hex; default #ff6b81 (red). The counterpart to upColor — tints every loss delta, mover row, down-candle, and 'short'/'put' marker.",
+      ),
   })
   .describe(
-    "Dashboard-wide colour identity — accent (rims/highlights) and the dark card-surface tint (base).",
+    "Dashboard-wide colour identity — accent (rims/highlights), the dark card-surface tint (base), and the semantic up/down (gain/loss) colours.",
   );
 
 export type DashboardTheme = z.infer<typeof ThemeSchema>;
@@ -315,6 +329,8 @@ export const DashboardSpecSchema = z.preprocess(
       accentSat: 90,
       baseHue: 233,
       baseSat: 20,
+      upColor: "#3fd08f",
+      downColor: "#ff6b81",
     }),
     typography: TypographySchema.default({
       fontFamily: "sans",

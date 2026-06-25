@@ -25,9 +25,23 @@ export function formatFundingPct(percent: number): string {
 
 /** The semantic up/down colors — the single source of truth for gain/loss tint.
  *  Import these (or {@link changeColor}) instead of re-typing the literals; they
- *  carry meaning, so they intentionally do NOT rotate with the accent hue. */
-export const UP_COLOR = "#3fd08f";
-export const DOWN_COLOR = "#ff6b81";
+ *  carry meaning, so they intentionally do NOT rotate with the accent hue.
+ *
+ *  They resolve `--zf-up`/`--zf-down` (spec.theme.upColor/downColor, set on the
+ *  dashboard container by the renderer/editor) with the original green/red as
+ *  the fallback — so the user can recolour gain/loss (e.g. a colourblind-safe
+ *  blue/orange). Use ONLY in CSS contexts (inline `style`, SVG `style`) where
+ *  `var()` resolves; for canvas (`fillStyle`) or D3 `.attr()` consumers, which
+ *  can't resolve a CSS var, use {@link UP_COLOR_HEX} / {@link DOWN_COLOR_HEX}. */
+export const UP_COLOR = "var(--zf-up, #3fd08f)";
+export const DOWN_COLOR = "var(--zf-down, #ff6b81)";
+
+/** Literal hex of the *default* up/down colors, for canvas / D3 `.attr()`
+ *  consumers where a `var()` string wouldn't resolve. These do NOT follow a
+ *  custom upColor/downColor — a known v2 gap (canvas games, the mini-line
+ *  sparkline, the heatmap/tree magnitude ramps). */
+export const UP_COLOR_HEX = "#3fd08f";
+export const DOWN_COLOR_HEX = "#ff6b81";
 
 export function changeColor(changePct: number): string {
   return changePct >= 0 ? UP_COLOR : DOWN_COLOR;

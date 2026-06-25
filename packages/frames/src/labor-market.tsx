@@ -2,7 +2,12 @@ import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useMacroSeries } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { DOWN_COLOR, changeColor, formatCompact, formatPct } from "./format";
+import {
+  DOWN_COLOR_HEX,
+  changeColor,
+  formatCompact,
+  formatPct,
+} from "./format";
 import { laborMarketMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -84,7 +89,7 @@ function LaborMarket({ config }: { config: z.output<typeof schema> }) {
         )}
       </div>
 
-      <MiniLineChart data={sparkline} width={210} height={44} color={DOWN_COLOR} />
+      <MiniLineChart data={sparkline} width={210} height={44} color={DOWN_COLOR_HEX} />
       <div className="caption text-soft">
         {unemployment.label} · {unemploymentPoints.length} monthly observations
       </div>

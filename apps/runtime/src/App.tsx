@@ -172,6 +172,12 @@ export default function App() {
   // the rem-based chart text and titles scale; held here, above the editor, so
   // it follows the slider live, not just on reload.
   const [liveScale, setLiveScale] = useState<number | null>(null);
+  // Live semantic up/down colors the editor reports while customising. Pushed to
+  // :root below so host chrome that lives OUTSIDE the dashboard container —
+  // notably the ticker tape — follows them too (the in-grid frames already get
+  // them from the container's inline vars). null = not editing → saved spec.
+  const [liveUp, setLiveUp] = useState<string | null>(null);
+  const [liveDown, setLiveDown] = useState<string | null>(null);
   // Phones get the read-only CSS-grid renderer (single-column reflow at <=640px);
   // desktop gets the editable GridStack editor. Editing stays a desktop activity.
   const isMobile = useIsMobile();
@@ -188,6 +194,10 @@ export default function App() {
     liveSat ?? (load.status === "ready" ? load.spec.theme.accentSat : null);
   const fontScale =
     liveScale ?? (load.status === "ready" ? load.spec.typography.scale : null);
+  const upColor =
+    liveUp ?? (load.status === "ready" ? load.spec.theme.upColor : null);
+  const downColor =
+    liveDown ?? (load.status === "ready" ? load.spec.theme.downColor : null);
   // --color-highlight (chart layer) is declared in @theme → resolved at :root,
   // so it only follows the accent if :root carries the knobs. Pushing both here
   // lets the heading-frame dots and chart highlights track the sliders live.
@@ -212,6 +222,17 @@ export default function App() {
     if (fontScale == null) return;
     document.documentElement.style.fontSize = `${fontScale * 100}%`;
   }, [fontScale]);
+  // Push the semantic up/down colors to :root so the ticker tape (host chrome,
+  // outside the dashboard container) tints its deltas with them, matching the
+  // in-grid frames. UP_COLOR/DOWN_COLOR resolve --zf-up/--zf-down.
+  useEffect(() => {
+    if (upColor == null) return;
+    document.documentElement.style.setProperty("--zf-up", upColor);
+  }, [upColor]);
+  useEffect(() => {
+    if (downColor == null) return;
+    document.documentElement.style.setProperty("--zf-down", downColor);
+  }, [downColor]);
 
   useEffect(() => {
     // Fetch once on mount. StrictMode runs this twice in dev; the `cancelled`
@@ -303,6 +324,8 @@ export default function App() {
               onAccentHueChange={setLiveHue}
               onAccentSatChange={setLiveSat}
               onFontScaleChange={setLiveScale}
+              onUpColorChange={setLiveUp}
+              onDownColorChange={setLiveDown}
             />
           </Suspense>
         )}
