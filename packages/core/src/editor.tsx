@@ -32,7 +32,14 @@ import {
 } from "./frame";
 import { FRAME_CSS, FrameContent, FramePatchContext } from "./frame-content";
 import { FramesProvider, useProviders } from "./hooks";
-import type { DashboardSpec, FrameInstance } from "./spec";
+import { THEME_PRESETS, type ThemePreset } from "./presets";
+import {
+  FONT_FAMILY_STACKS,
+  NUMERIC_VARIANTS,
+  type DashboardSpec,
+  type DashboardTypography,
+  type FrameInstance,
+} from "./spec";
 import type { DayStats, MarketDataProvider } from "./types";
 
 type SymbolKind = "Stock" | "Crypto" | "Custom";
@@ -485,12 +492,16 @@ export function DashboardEditor({
   const snapshotRef = useRef<FrameInstance[]>([]);
   const snapshotHueRef = useRef(spec.theme.accentHue);
   const snapshotSatRef = useRef(spec.theme.accentSat);
+  const snapshotBaseHueRef = useRef(spec.theme.baseHue);
+  const snapshotBaseSatRef = useRef(spec.theme.baseSat);
   const snapshotGapRef = useRef(spec.grid.gap);
   const snapshotRadiusRef = useRef(spec.appearance.radius);
   const snapshotBorderRef = useRef(spec.appearance.borderStrength);
   const snapshotSurfaceRef = useRef(spec.appearance.surfaceOpacity);
   const snapshotDensityRef = useRef(spec.appearance.density);
   const snapshotElevationRef = useRef(spec.appearance.elevation);
+  const snapshotFontFamilyRef = useRef(spec.typography.fontFamily);
+  const snapshotNumericRef = useRef(spec.typography.numericStyle);
   const counterRef = useRef(0);
 
   const [editing, setEditing] = useState(false);
@@ -503,6 +514,12 @@ export function DashboardEditor({
   // Accent saturation (0–100%) — pairs with the hue to set how vivid the accent
   // reads. Rides spec.theme alongside accentHue via collectSpec.
   const [accentSat, setAccentSat] = useState(spec.theme.accentSat);
+  // Base surface tint (spec.theme): hue + saturation of the dark card surface
+  // itself. Applied as --zf-base-hue/--zf-base-sat on .zf-editor below; the card
+  // gradient in FRAME_CSS is expressed off them with lightness baked, so this
+  // re-temperatures every card without leaving dark mode.
+  const [baseHue, setBaseHue] = useState(spec.theme.baseHue);
+  const [baseSat, setBaseSat] = useState(spec.theme.baseSat);
   // The inter-frame gap (px) is grid geometry — applied as GridStack margin/2
   // and saved to spec.grid via collectSpec.
   const [gap, setGap] = useState(spec.grid.gap);
@@ -519,6 +536,51 @@ export function DashboardEditor({
   );
   const [density, setDensity] = useState(spec.appearance.density);
   const [elevation, setElevation] = useState(spec.appearance.elevation);
+  // Typography (spec.typography): the type family routes through --zf-font-family
+  // (→ the --font-dmsans token), the numeric style sets --zf-numeric (digit
+  // spacing). Both applied inline on .zf-editor below and saved via collectSpec.
+  const [fontFamily, setFontFamily] = useState<
+    DashboardTypography["fontFamily"]
+  >(spec.typography.fontFamily);
+  const [numericStyle, setNumericStyle] = useState<
+    DashboardTypography["numericStyle"]
+  >(spec.typography.numericStyle);
+
+  // One-click looks. A preset sets the full colour, typography, and card-surface
+  // state it owns (everything except grid geometry) — no separate render path, so
+  // it round-trips through the spec exactly like a hand-tuned look; tweak any
+  // slider afterwards to drift off it.
+  const applyPreset = useCallback((p: ThemePreset) => {
+    setAccentHue(p.theme.accentHue);
+    setAccentSat(p.theme.accentSat);
+    setBaseHue(p.theme.baseHue);
+    setBaseSat(p.theme.baseSat);
+    setFontFamily(p.typography.fontFamily);
+    setNumericStyle(p.typography.numericStyle);
+    setRadius(p.appearance.radius);
+    setBorderStrength(p.appearance.borderStrength);
+    setSurfaceOpacity(p.appearance.surfaceOpacity);
+    setDensity(p.appearance.density);
+    setElevation(p.appearance.elevation);
+  }, []);
+
+  // The preset whose every owned value matches the live state, if any, so its
+  // chip reads as selected (and drifts to none once a slider moves).
+  const activePresetKey =
+    THEME_PRESETS.find(
+      (p) =>
+        p.theme.accentHue === accentHue &&
+        p.theme.accentSat === accentSat &&
+        p.theme.baseHue === baseHue &&
+        p.theme.baseSat === baseSat &&
+        p.typography.fontFamily === fontFamily &&
+        p.typography.numericStyle === numericStyle &&
+        p.appearance.radius === radius &&
+        p.appearance.borderStrength === borderStrength &&
+        p.appearance.surfaceOpacity === surfaceOpacity &&
+        p.appearance.density === density &&
+        p.appearance.elevation === elevation,
+    )?.key ?? null;
   // Which rail panel is showing: dashboard-wide cosmetics (accent/layout/
   // appearance) or the add-a-frame palette. The rail used to stack both; the
   // tabs split them so theme knobs and frame management each get the full panel.
@@ -962,7 +1024,8 @@ export function DashboardEditor({
     return {
       ...spec,
       grid: { ...spec.grid, gap },
-      theme: { ...spec.theme, accentHue, accentSat },
+      theme: { ...spec.theme, accentHue, accentSat, baseHue, baseSat },
+      typography: { ...spec.typography, fontFamily, numericStyle },
       appearance: {
         ...spec.appearance,
         radius,
@@ -977,6 +1040,10 @@ export function DashboardEditor({
     spec,
     accentHue,
     accentSat,
+    baseHue,
+    baseSat,
+    fontFamily,
+    numericStyle,
     gap,
     radius,
     borderStrength,
@@ -1002,35 +1069,47 @@ export function DashboardEditor({
     snapshotRef.current = collectSpec().frames;
     snapshotHueRef.current = accentHue;
     snapshotSatRef.current = accentSat;
+    snapshotBaseHueRef.current = baseHue;
+    snapshotBaseSatRef.current = baseSat;
     snapshotGapRef.current = gap;
     snapshotRadiusRef.current = radius;
     snapshotBorderRef.current = borderStrength;
     snapshotSurfaceRef.current = surfaceOpacity;
     snapshotDensityRef.current = density;
     snapshotElevationRef.current = elevation;
+    snapshotFontFamilyRef.current = fontFamily;
+    snapshotNumericRef.current = numericStyle;
     setEditing(true);
   }, [
     collectSpec,
     accentHue,
     accentSat,
+    baseHue,
+    baseSat,
     gap,
     radius,
     borderStrength,
     surfaceOpacity,
     density,
     elevation,
+    fontFamily,
+    numericStyle,
   ]);
 
   const cancel = useCallback(() => {
     restore(snapshotRef.current);
     setAccentHue(snapshotHueRef.current);
     setAccentSat(snapshotSatRef.current);
+    setBaseHue(snapshotBaseHueRef.current);
+    setBaseSat(snapshotBaseSatRef.current);
     setGap(snapshotGapRef.current);
     setRadius(snapshotRadiusRef.current);
     setBorderStrength(snapshotBorderRef.current);
     setSurfaceOpacity(snapshotSurfaceRef.current);
     setDensity(snapshotDensityRef.current);
     setElevation(snapshotElevationRef.current);
+    setFontFamily(snapshotFontFamilyRef.current);
+    setNumericStyle(snapshotNumericRef.current);
     setEditingId(null);
     setEditing(false);
   }, [restore]);
@@ -1076,9 +1155,16 @@ export function DashboardEditor({
       <div
         className={editing ? "zf-editor zf-customise" : "zf-editor"}
         style={{
-          // Color identity — hue + saturation drive every accent in FRAME_CSS.
+          // Colour identity — accent drives every accent in FRAME_CSS; base
+          // tints the dark card surface itself.
           ["--zf-accent-hue" as string]: accentHue,
           ["--zf-accent-sat" as string]: `${accentSat}%`,
+          ["--zf-base-hue" as string]: baseHue,
+          ["--zf-base-sat" as string]: `${baseSat}%`,
+          // Typography — family routes through --font-dmsans, numeric sets digit
+          // spacing; both cascade into every card via FRAME_CSS.
+          ["--zf-font-family" as string]: FONT_FAMILY_STACKS[fontFamily],
+          ["--zf-numeric" as string]: NUMERIC_VARIANTS[numericStyle],
           // Card surface treatment — each cascades into every card via FRAME_CSS.
           ["--zf-frame-radius" as string]: `${radius}px`,
           ["--zf-border-alpha" as string]: borderStrength,
@@ -1172,6 +1258,36 @@ export function DashboardEditor({
                 <>
                   <section className="zf-theme">
                     <h3 className="zf-rail-title" style={{ margin: 0 }}>
+                      Presets
+                    </h3>
+                    <div className="zf-presets">
+                      {THEME_PRESETS.map((p) => (
+                        <button
+                          key={p.key}
+                          type="button"
+                          className={
+                            activePresetKey === p.key
+                              ? "zf-preset is-active"
+                              : "zf-preset"
+                          }
+                          title={p.description}
+                          aria-pressed={activePresetKey === p.key}
+                          onClick={() => applyPreset(p)}
+                        >
+                          <span
+                            className="zf-preset-swatch"
+                            style={{
+                              background: `linear-gradient(135deg, hsl(${p.theme.baseHue} ${p.theme.baseSat}% 16%) 0 52%, hsl(${p.theme.accentHue} ${p.theme.accentSat}% 62%) 52% 100%)`,
+                            }}
+                          />
+                          <span className="zf-preset-label">{p.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="zf-theme">
+                    <h3 className="zf-rail-title" style={{ margin: 0 }}>
                       Accent
                     </h3>
                     <div
@@ -1224,6 +1340,67 @@ export function DashboardEditor({
                       value={accentSat}
                       aria-label="Accent saturation"
                       onChange={(e) => setAccentSat(Number(e.target.value))}
+                    />
+                  </section>
+
+                  <section className="zf-theme">
+                    <h3 className="zf-rail-title">Surface</h3>
+                    <div
+                      className="zf-theme-row"
+                      style={{ margin: "10px 0 0" }}
+                    >
+                      <span className="zf-theme-val">
+                        <span
+                          className="zf-theme-swatch"
+                          style={{
+                            background: `hsl(${baseHue} ${baseSat}% 32%)`,
+                            boxShadow: "none",
+                          }}
+                        />
+                        Tint {baseHue}°
+                      </span>
+                      {baseHue !== 233 && (
+                        <button
+                          type="button"
+                          className="zf-theme-reset"
+                          onClick={() => setBaseHue(233)}
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-hue-slider"
+                      min={0}
+                      max={360}
+                      value={baseHue}
+                      aria-label="Surface tint hue"
+                      onChange={(e) => setBaseHue(Number(e.target.value))}
+                    />
+                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                      <span className="zf-theme-val">Tint strength</span>
+                      <span className="zf-theme-knob-end">
+                        {baseSat !== 20 && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setBaseSat(20)}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="zf-theme-val">{baseSat}%</span>
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-range"
+                      min={0}
+                      max={100}
+                      value={baseSat}
+                      aria-label="Surface tint strength"
+                      onChange={(e) => setBaseSat(Number(e.target.value))}
                     />
                   </section>
 
@@ -1405,6 +1582,61 @@ export function DashboardEditor({
                         )
                       }
                     />
+                  </section>
+
+                  <section className="zf-theme">
+                    <h3 className="zf-rail-title">Typography</h3>
+                    <div className="zf-theme-row">
+                      <span className="zf-theme-val">Font</span>
+                    </div>
+                    <div
+                      className="zf-seg"
+                      role="group"
+                      aria-label="Font family"
+                    >
+                      {(["sans", "mono", "serif"] as const).map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          className={
+                            fontFamily === f
+                              ? "zf-seg-btn is-active"
+                              : "zf-seg-btn"
+                          }
+                          aria-pressed={fontFamily === f}
+                          style={{ fontFamily: FONT_FAMILY_STACKS[f] }}
+                          onClick={() => setFontFamily(f)}
+                        >
+                          {f === "sans" ? "Sans" : f === "mono" ? "Mono" : "Serif"}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                      <span className="zf-theme-val">Numbers</span>
+                    </div>
+                    <div
+                      className="zf-seg"
+                      role="group"
+                      aria-label="Numeric style"
+                    >
+                      {(["proportional", "tabular"] as const).map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          className={
+                            numericStyle === n
+                              ? "zf-seg-btn is-active"
+                              : "zf-seg-btn"
+                          }
+                          aria-pressed={numericStyle === n}
+                          onClick={() => setNumericStyle(n)}
+                        >
+                          <span style={{ fontVariantNumeric: NUMERIC_VARIANTS[n] }}>
+                            {n === "proportional" ? "Normal 1,071" : "Tabular 1,071"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </section>
                 </>
               )}

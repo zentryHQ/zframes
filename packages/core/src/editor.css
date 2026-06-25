@@ -11,6 +11,12 @@
      and desaturates with it. The element carries --zf-accent-hue / --zf-accent-sat
      inline (from spec.theme). */
   --zf-accent: hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76%);
+  /* Bridge the type family onto the editor subtree: redefine --font-dmsans HERE
+     (where --zf-font-family is set inline, from spec.typography.fontFamily) so
+     the chart utilities and frame titles that read var(--font-dmsans) pick up the
+     chosen family. Mirrors the .zf-grid bridge in FRAME_CSS — declaring it on the
+     container, not at :root, is what lets the var() see the inline value. */
+  --font-dmsans: var(--zf-font-family, "DM Sans", sans-serif);
   /* Shared strong ease-out for the editor chrome — the same curve the frame
      cards use (frame-content.tsx). Defined here so @zframes/core is
      self-contained: every transition below reads var(--zf-ease-out) instead of
@@ -1355,6 +1361,94 @@
   border: 2px solid #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
   cursor: pointer;
+}
+
+/* ── Preset chips ───────────────────────────────────────────────────────────
+   One-click looks at the top of the Cosmetics rail. Each chip pairs a split
+   swatch (surface tint ▸ accent) with a label; the active chip — every value the
+   preset owns matches the live state — gets an accent ring. */
+.zf-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-top: 10px;
+}
+.zf-preset {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.7);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.15s var(--zf-ease-out, ease),
+    background 0.15s var(--zf-ease-out, ease),
+    color 0.15s var(--zf-ease-out, ease);
+}
+.zf-preset:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.9);
+}
+.zf-preset.is-active {
+  border-color: var(--zf-accent);
+  color: #fff;
+  box-shadow: 0 0 0 1px var(--zf-accent);
+}
+.zf-preset-swatch {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.zf-preset-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Segmented control (typography) ─────────────────────────────────────────
+   A row of equal-width buttons for an enum choice; the active option carries an
+   accent fill. Each font button renders its own label in its own family. */
+.zf-seg {
+  display: flex;
+  gap: 6px;
+}
+.zf-seg-btn {
+  flex: 1;
+  padding: 7px 6px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.62);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s var(--zf-ease-out, ease),
+    background 0.15s var(--zf-ease-out, ease),
+    color 0.15s var(--zf-ease-out, ease);
+}
+.zf-seg-btn:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.85);
+}
+.zf-seg-btn.is-active {
+  border-color: var(--zf-accent);
+  background: hsl(
+    var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 60% / 0.14
+  );
+  color: #fff;
 }
 
 /* ── Per-frame settings dialog ─────────────────────────────────────────────
