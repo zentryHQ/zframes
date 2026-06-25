@@ -167,6 +167,11 @@ export default function App() {
   // and the background scene's saturate() filter follow the slider live, not just
   // on reload (the editor's own cards already track it via an inline var).
   const [liveSat, setLiveSat] = useState<number | null>(null);
+  // Live text scale the editor reports while customising (null = not editing →
+  // fall back to the saved spec value). Applied as the root font size below so
+  // the rem-based chart text and titles scale; held here, above the editor, so
+  // it follows the slider live, not just on reload.
+  const [liveScale, setLiveScale] = useState<number | null>(null);
   // Phones get the read-only CSS-grid renderer (single-column reflow at <=640px);
   // desktop gets the editable GridStack editor. Editing stays a desktop activity.
   const isMobile = useIsMobile();
@@ -181,6 +186,8 @@ export default function App() {
     liveHue ?? (load.status === "ready" ? load.spec.theme.accentHue : null);
   const accentSat =
     liveSat ?? (load.status === "ready" ? load.spec.theme.accentSat : null);
+  const fontScale =
+    liveScale ?? (load.status === "ready" ? load.spec.typography.scale : null);
   // --color-highlight (chart layer) is declared in @theme → resolved at :root,
   // so it only follows the accent if :root carries the knobs. Pushing both here
   // lets the heading-frame dots and chart highlights track the sliders live.
@@ -198,6 +205,13 @@ export default function App() {
       `${accentSat}%`,
     );
   }, [accentSat]);
+  // spec.typography.scale rides the root font size: chart text and card titles
+  // are rem-based, so scaling <html>'s font-size is the only lever that grows
+  // them together. 1 → 100% (the browser default), a no-op.
+  useEffect(() => {
+    if (fontScale == null) return;
+    document.documentElement.style.fontSize = `${fontScale * 100}%`;
+  }, [fontScale]);
 
   useEffect(() => {
     // Fetch once on mount. StrictMode runs this twice in dev; the `cancelled`
@@ -288,6 +302,7 @@ export default function App() {
               customiseButtonTarget={customiseButtonTarget}
               onAccentHueChange={setLiveHue}
               onAccentSatChange={setLiveSat}
+              onFontScaleChange={setLiveScale}
             />
           </Suspense>
         )}

@@ -40,7 +40,8 @@ the runtime comes from the CLI.
   `grid` (geometry — columns/rowHeight/`gap`), the unicorn `background`, the
   `theme` colours (`accentHue`/`accentSat` for the accent + `baseHue`/`baseSat`
   for the dark card-surface tint), the `typography` (`fontFamily`
-  sans/mono/serif + `numericStyle` proportional/tabular), and the card-surface
+  sans/mono/serif + `numericStyle` proportional/tabular + `scale` global text
+  size), and the card-surface
   `appearance` (`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`) — with an
   **empty `frames` array**. You never author that boilerplate or its
   geometry by hand; you only fill in `frames` (step 4). The
@@ -108,7 +109,8 @@ touch them if the user explicitly asks (e.g. "more spacing" → bump `grid.gap`,
 "square corners" → `appearance.radius: 0`, "muted accent" → lower
 `theme.accentSat`, "warmer/blacker cards" → shift `theme.baseHue` / lower
 `theme.baseSat`, "terminal look" → `typography.fontFamily: "mono"`, "stop the
-numbers jumping" → `typography.numericStyle: "tabular"`, "glassy cards" → lower
+numbers jumping" → `typography.numericStyle: "tabular"`, "bigger/smaller text" →
+`typography.scale`, "glassy cards" → lower
 `appearance.surfaceOpacity`, "no animation" → `background.type: "gradient"`).
 
 **Show the full frame set — every dashboard gets all the market frames.** You

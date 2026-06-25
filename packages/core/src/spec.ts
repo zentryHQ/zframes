@@ -146,8 +146,18 @@ export const TypographySchema = z
       .describe(
         "How digits are spaced everywhere on the dashboard. 'proportional' is the default (natural widths); 'tabular' forces fixed-width figures (font-variant-numeric: tabular-nums) so live prices and tickers stop shifting sideways as digits change — recommended for number-dense dashboards. Hero stat numerals are always tabular regardless.",
       ),
+    scale: z
+      .number()
+      .min(0.85)
+      .max(1.25)
+      .default(1)
+      .describe(
+        "Global text-size multiplier (0.85–1.25). 1 is the default. Scales all dashboard text together by setting the root font size, so chart labels, readouts, and titles grow or shrink as one — raise it for legibility on a large display, lower it to pack more in. Distinct from appearance.density, which scales card padding, not text. Grid cell heights are in pixels and stay fixed, so text can overflow a small card at high scale.",
+      ),
   })
-  .describe("Dashboard-wide typography — font family and numeric digit style.");
+  .describe(
+    "Dashboard-wide typography — font family, numeric digit style, and global text scale.",
+  );
 
 export type DashboardTypography = z.infer<typeof TypographySchema>;
 
@@ -309,6 +319,7 @@ export const DashboardSpecSchema = z.preprocess(
     typography: TypographySchema.default({
       fontFamily: "sans",
       numericStyle: "proportional",
+      scale: 1,
     }),
     appearance: AppearanceSchema.default({
       radius: 18,
