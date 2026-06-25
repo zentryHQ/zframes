@@ -292,10 +292,15 @@ const ORB_CSS = `
 
 export function ZaiOrb({
   onOpenChange,
+  onThinkingChange,
 }: {
   /** Notified whenever the orb expands/collapses, so host chrome (e.g. the
       dashboard background) can react to the orb being opened. */
   onOpenChange?: (open: boolean) => void;
+  /** Notified whenever the agent starts/stops thinking (the `busy` flag), so the
+      host can make the background come alive — cycle hue + breathe — while zAI is
+      working, mirroring how the orb's own scene speeds up. */
+  onThinkingChange?: (thinking: boolean) => void;
 } = {}) {
   const [agents, setAgents] = useState<Agent[] | null>(null);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
@@ -398,6 +403,12 @@ export function ZaiOrb({
   useEffect(() => {
     onOpenChange?.(open);
   }, [open, onOpenChange]);
+
+  // Surface the thinking state too, so the background can come alive while zAI
+  // works (App lifts it to the background, same as open above).
+  useEffect(() => {
+    onThinkingChange?.(busy);
+  }, [busy, onThinkingChange]);
 
   const push = (msg: Message) =>
     setMessages((prev) => [...prev, msg].slice(-MAX_MESSAGES));

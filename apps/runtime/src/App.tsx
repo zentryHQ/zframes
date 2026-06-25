@@ -173,6 +173,9 @@ export default function App() {
   // Lifted from the zAI orb: when the orb is open, the background recolors +
   // brightens so opening zAI visibly "charges" the scene behind the dashboard.
   const [orbOpen, setOrbOpen] = useState(false);
+  // Also lifted from the orb: while zAI is *thinking* (busy answering), the
+  // background comes alive — it cycles its hue and breathes (see background.tsx).
+  const [orbThinking, setOrbThinking] = useState(false);
 
   const accentHue =
     liveHue ?? (load.status === "ready" ? load.spec.theme.accentHue : null);
@@ -233,6 +236,7 @@ export default function App() {
       <DashboardBackground
         background={spec.background}
         active={orbOpen}
+        thinking={orbThinking}
         accentHue={accentHue ?? spec.theme.accentHue}
         accentSat={accentSat ?? spec.theme.accentSat}
       />
@@ -289,7 +293,7 @@ export default function App() {
         )}
       </main>
       <TickerTape />
-      <ZaiOrb onOpenChange={setOrbOpen} />
+      <ZaiOrb onOpenChange={setOrbOpen} onThinkingChange={setOrbThinking} />
     </FramesProvider>
   );
 }
