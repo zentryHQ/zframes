@@ -79,6 +79,12 @@ export const FRAME_CATEGORIES = [
     description: "Your own holdings and their live allocation.",
   },
   {
+    key: "journal",
+    label: "Decision Journal",
+    description:
+      "Your decision journal — log market calls, watch them play out, see them graded, and track how calibrated your judgment is over time.",
+  },
+  {
     key: "tools",
     label: "Tools & Utility",
     description:
