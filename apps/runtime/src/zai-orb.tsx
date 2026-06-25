@@ -86,8 +86,8 @@ const ORB_CSS = `
 .zai-scrim[data-open="true"] {
   opacity: 1;
   pointer-events: auto;
-  backdrop-filter: blur(3.5px) saturate(1.06);
-  -webkit-backdrop-filter: blur(3.5px) saturate(1.06);
+  backdrop-filter: blur(1.75px) saturate(1.06);
+  -webkit-backdrop-filter: blur(1.75px) saturate(1.06);
 }
 .zai-dock {
   position: fixed;
