@@ -5,6 +5,10 @@ export { portfolioHoldingsFrame } from "./portfolio-holdings";
 export { bitcoinDominanceFrame } from "./bitcoin-dominance";
 export { clockFrame } from "./clock";
 export { dailyAnalysisFrame } from "./daily-analysis";
+export { journalLogFrame } from "./journal-log";
+export { journalOpenFrame } from "./journal-open";
+export { journalResultsFrame } from "./journal-results";
+export { journalScoreFrame } from "./journal-score";
 export { dinoGameFrame } from "./dino-game";
 export { fearGreedFrame } from "./fear-greed";
 export { filingsFeedFrame } from "./filings-feed";
@@ -79,6 +83,10 @@ import { portfolioHoldingsFrame } from "./portfolio-holdings";
 import { bitcoinDominanceFrame } from "./bitcoin-dominance";
 import { clockFrame } from "./clock";
 import { dailyAnalysisFrame } from "./daily-analysis";
+import { journalLogFrame } from "./journal-log";
+import { journalOpenFrame } from "./journal-open";
+import { journalResultsFrame } from "./journal-results";
+import { journalScoreFrame } from "./journal-score";
 import { dinoGameFrame } from "./dino-game";
 import { fearGreedFrame } from "./fear-greed";
 import { filingsFeedFrame } from "./filings-feed";
@@ -154,6 +162,10 @@ export const allFrames: AnyFrameDefinition[] = [
   bitcoinDominanceFrame,
   clockFrame,
   dailyAnalysisFrame,
+  journalLogFrame,
+  journalOpenFrame,
+  journalResultsFrame,
+  journalScoreFrame,
   dinoGameFrame,
   fearGreedFrame,
   filingsFeedFrame,
