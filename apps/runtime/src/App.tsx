@@ -178,6 +178,12 @@ export default function App() {
   // them from the container's inline vars). null = not editing → saved spec.
   const [liveUp, setLiveUp] = useState<string | null>(null);
   const [liveDown, setLiveDown] = useState<string | null>(null);
+  // Live layout mode the editor reports while customising (null = not editing →
+  // fall back to the saved spec value). flow-horizontal is full-bleed, so the
+  // host's centred max-width has to drop — and that decision lives here, on
+  // <main>, above the editor.
+  const [liveMode, setLiveMode] =
+    useState<DashboardSpec["grid"]["mode"] | null>(null);
   // Phones get the read-only CSS-grid renderer (single-column reflow at <=640px);
   // desktop gets the editable GridStack editor. Editing stays a desktop activity.
   const isMobile = useIsMobile();
@@ -265,6 +271,10 @@ export default function App() {
   if (load.status === "error") return <LoadError message={load.message} />;
   if (load.status === "invalid") return <SpecError issues={load.issues} />;
   const spec = load.spec;
+  // flow-horizontal is full-bleed: it drops the centred max-width so the board
+  // uses the whole viewport width and scrolls sideways. liveMode wins while
+  // customising; otherwise the saved spec decides.
+  const isHorizontal = (liveMode ?? spec.grid.mode) === "flow-horizontal";
 
   return (
     <FramesProvider providers={providers}>
@@ -276,7 +286,11 @@ export default function App() {
         accentSat={accentSat ?? spec.theme.accentSat}
       />
       <main
-        className="relative z-10 mx-auto max-w-[1320px] px-4 pb-24 pt-5 sm:px-6"
+        className={`relative z-10 mx-auto pt-5 ${
+          isHorizontal
+            ? "h-[100dvh] max-w-none overflow-hidden px-0"
+            : "max-w-[1320px] px-4 pb-24 sm:px-6"
+        }`}
         style={
           {
             ["--zf-accent-hue"]: accentHue ?? spec.theme.accentHue,
@@ -284,7 +298,11 @@ export default function App() {
           } as CSSProperties
         }
       >
-        <header className="mb-5 flex flex-col gap-2 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <header
+          className={`mb-5 flex flex-col gap-2 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-center sm:justify-between ${
+            isHorizontal ? "px-4 sm:px-6" : ""
+          }`}
+        >
           <div className="flex items-baseline gap-3">
             <h1 className="font-dmsans text-strong text-lg font-extrabold tracking-tight">
               /
@@ -326,6 +344,7 @@ export default function App() {
               onFontScaleChange={setLiveScale}
               onUpColorChange={setLiveUp}
               onDownColorChange={setLiveDown}
+              onModeChange={setLiveMode}
             />
           </Suspense>
         )}

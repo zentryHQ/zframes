@@ -52,6 +52,15 @@ export function lintSpec(spec: DashboardSpec): LintIssue[] {
         frameId: instance.id,
         message: `overflows the grid: x(${instance.position.x}) + w(${instance.position.w}) > ${spec.grid.columns} columns`,
       });
+
+    // The horizontal layout (when present) is height-bounded to grid.rows bands;
+    // x grows freely (the board scrolls sideways), so only y+h is constrained.
+    const horizontal = instance.layouts?.["flow-horizontal"];
+    if (horizontal && horizontal.y + horizontal.h > spec.grid.rows)
+      issues.push({
+        frameId: instance.id,
+        message: `horizontal layout overflows: y(${horizontal.y}) + h(${horizontal.h}) > ${spec.grid.rows} rows`,
+      });
   }
 
   // Pairwise overlap check — overlapping frames render on top of each other.
