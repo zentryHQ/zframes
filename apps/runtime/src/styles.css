@@ -74,6 +74,19 @@ html {
   background-color: var(--zf-scrollbar-thumb-hover);
 }
 
+/* Vertical (portrait) customise mode: drop the page's right gutter so the
+   customise rail reaches the right edge. On a narrow portrait viewport the
+   320px rail already crowds the grid, and the page's right padding is dead
+   space next to the panel. Scoped with :has() to the open rail (.zf-customise)
+   so the gutter only collapses while customising — landscape, phones (which
+   render read-only), and plain view mode keep their symmetric padding. The
+   extra width flows to the grid (flex:1); the rail sits flush right. */
+@media (orientation: portrait) {
+  main:has(.zf-editor.zf-customise) {
+    padding-right: 0;
+  }
+}
+
 /* The header leads the frame cascade in: it lands first, then the grid
    staggers below it — one continuous arrival rather than two events. */
 @media (prefers-reduced-motion: no-preference) {

@@ -1096,11 +1096,14 @@ export function DashboardEditor({
           column: horizontal ? cols : spec.grid.columns,
           cellHeight: cell,
           margin: spec.grid.gap / 2,
-          float: horizontal,
+          float: true,
           ...(horizontal
             ? { maxRow: spec.grid.rows, minRow: spec.grid.rows }
             : {}),
           animate: true,
+          // The drop accept check is `el.matches('.grid-stack-item')`, so the
+          // palette cards carry that class (see the `.zf-newwidget` markup) —
+          // else GridStack silently rejects the drag and nothing lands.
           acceptWidgets: true,
           disableDrag: true,
           disableResize: true,
@@ -1256,7 +1259,24 @@ export function DashboardEditor({
         if (layout?.minH) helper.setAttribute("gs-min-h", String(layout.minH));
         if (layout?.maxW) helper.setAttribute("gs-max-w", String(layout.maxW));
         if (layout?.maxH) helper.setAttribute("gs-max-h", String(layout.maxH));
-        helper.innerHTML = `<div class="grid-stack-item-content" data-frame="${frame}"></div>`;
+        // The helper is appended to <body>, outside .zf-editor, so it can't
+        // inherit the accent/font vars — copy the live ones onto it so the drag
+        // ghost reads in-theme. (See .zf-drag-ghost in editor.css.)
+        const editorEl = gridRef.current?.closest(".zf-editor");
+        if (editorEl) {
+          const cs = getComputedStyle(editorEl);
+          for (const v of ["--zf-accent-hue", "--zf-accent-sat", "--font-dmsans"]) {
+            const value = cs.getPropertyValue(v).trim();
+            if (value) helper.style.setProperty(v, value);
+          }
+        }
+        // A visible ghost (frame icon + name) so the user can see what they're
+        // dragging — not just the empty footprint of the drop placeholder.
+        const label = frame.replace(/-/g, " ");
+        const icon = def?.iconUrl
+          ? `<img class="zf-drag-ghost-icon" src="${def.iconUrl}" alt="" />`
+          : "";
+        helper.innerHTML = `<div class="grid-stack-item-content zf-drag-ghost" data-frame="${frame}">${icon}<span class="zf-drag-ghost-name">${label}</span></div>`;
         return helper;
       },
     });
@@ -2219,11 +2239,26 @@ export function DashboardEditor({
                                 {group.frames.map((def) => (
                                   <div
                                     key={def.name}
-                                    className="zf-newwidget"
+                                    // `grid-stack-item` makes GridStack accept the
+                                    // card as a drag-in source (its accept check is
+                                    // el.matches('.grid-stack-item')); the gs-* attrs
+                                    // size the drop placeholder while dragging. Safe
+                                    // off-grid: gridstack's position:absolute rule is
+                                    // scoped to `.grid-stack > .grid-stack-item`.
+                                    className="grid-stack-item zf-newwidget"
                                     data-frame={def.name}
+                                    gs-w={def.layout?.w ?? 4}
+                                    gs-h={def.layout?.h ?? 3}
+                                    gs-min-w={def.layout?.minW}
+                                    gs-min-h={def.layout?.minH}
+                                    gs-max-w={def.layout?.maxW}
+                                    gs-max-h={def.layout?.maxH}
                                     role="button"
                                     tabIndex={0}
-                                    title={`Add ${def.name.replace(/-/g, " ")}`}
+                                    title={`Drag onto the board, or click to add ${def.name.replace(
+                                      /-/g,
+                                      " ",
+                                    )}`}
                                     onClick={() => addFrame(def.name)}
                                     onKeyDown={(e) => {
                                       if (e.key === "Enter" || e.key === " ") {
