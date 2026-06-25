@@ -461,6 +461,7 @@ export function DashboardEditor({
   customiseButtonTarget,
   onAccentHueChange,
   onAccentSatChange,
+  onFontScaleChange,
 }: {
   spec: DashboardSpec;
   registry: FrameRegistry;
@@ -478,6 +479,10 @@ export function DashboardEditor({
    *  filter live — a muted accent then reads muted everywhere, not just on the
    *  editor's own cards. */
   onAccentSatChange?: (sat: number) => void;
+  /** Notified on every text-scale change so the host can set the root font size
+   *  (spec.typography.scale) live — chart text is rem-based, so only the root
+   *  font size scales it; a container var can't. Mirrors the accent callbacks. */
+  onFontScaleChange?: (scale: number) => void;
 }) {
   const providers = useProviders();
 
@@ -502,6 +507,7 @@ export function DashboardEditor({
   const snapshotElevationRef = useRef(spec.appearance.elevation);
   const snapshotFontFamilyRef = useRef(spec.typography.fontFamily);
   const snapshotNumericRef = useRef(spec.typography.numericStyle);
+  const snapshotFontScaleRef = useRef(spec.typography.scale);
   const counterRef = useRef(0);
 
   const [editing, setEditing] = useState(false);
@@ -545,6 +551,10 @@ export function DashboardEditor({
   const [numericStyle, setNumericStyle] = useState<
     DashboardTypography["numericStyle"]
   >(spec.typography.numericStyle);
+  // Global text scale (spec.typography.scale). Bubbled to the host via
+  // onFontScaleChange below — chart text is rem-based, so the host sets the root
+  // font size (the editor can't scale rem text with an inline var).
+  const [fontScale, setFontScale] = useState(spec.typography.scale);
 
   // One-click looks. A preset sets the full colour, typography, and card-surface
   // state it owns (everything except grid geometry) — no separate render path, so
@@ -604,6 +614,13 @@ export function DashboardEditor({
   useEffect(() => {
     onAccentSatChange?.(accentSat);
   }, [accentSat, onAccentSatChange]);
+
+  // Text scale lives on the root font size (chart text is rem-based), which is
+  // above .zf-editor — so, like the accent, report it up for the host to apply
+  // live rather than only on save + reload.
+  useEffect(() => {
+    onFontScaleChange?.(fontScale);
+  }, [fontScale, onFontScaleChange]);
 
   // Live gap: GridStack positions items absolutely, so the inter-frame gutter is
   // its `margin` (half on each side → matches the bare renderer's CSS `gap`).
@@ -1025,7 +1042,7 @@ export function DashboardEditor({
       ...spec,
       grid: { ...spec.grid, gap },
       theme: { ...spec.theme, accentHue, accentSat, baseHue, baseSat },
-      typography: { ...spec.typography, fontFamily, numericStyle },
+      typography: { ...spec.typography, fontFamily, numericStyle, scale: fontScale },
       appearance: {
         ...spec.appearance,
         radius,
@@ -1044,6 +1061,7 @@ export function DashboardEditor({
     baseSat,
     fontFamily,
     numericStyle,
+    fontScale,
     gap,
     radius,
     borderStrength,
@@ -1079,6 +1097,7 @@ export function DashboardEditor({
     snapshotElevationRef.current = elevation;
     snapshotFontFamilyRef.current = fontFamily;
     snapshotNumericRef.current = numericStyle;
+    snapshotFontScaleRef.current = fontScale;
     setEditing(true);
   }, [
     collectSpec,
@@ -1094,6 +1113,7 @@ export function DashboardEditor({
     elevation,
     fontFamily,
     numericStyle,
+    fontScale,
   ]);
 
   const cancel = useCallback(() => {
@@ -1110,6 +1130,7 @@ export function DashboardEditor({
     setElevation(snapshotElevationRef.current);
     setFontFamily(snapshotFontFamilyRef.current);
     setNumericStyle(snapshotNumericRef.current);
+    setFontScale(snapshotFontScaleRef.current);
     setEditingId(null);
     setEditing(false);
   }, [restore]);
@@ -1637,6 +1658,37 @@ export function DashboardEditor({
                         </button>
                       ))}
                     </div>
+                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                      <span className="zf-theme-val">Text size</span>
+                      <span className="zf-theme-knob-end">
+                        {fontScale !== 1 && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setFontScale(1)}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="zf-theme-val">
+                          {Math.round(fontScale * 100)}%
+                        </span>
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-range"
+                      min={0.85}
+                      max={1.25}
+                      step={0.05}
+                      value={fontScale}
+                      aria-label="Text size"
+                      onChange={(e) =>
+                        setFontScale(
+                          Math.round(Number(e.target.value) * 100) / 100,
+                        )
+                      }
+                    />
                   </section>
                 </>
               )}

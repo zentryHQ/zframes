@@ -117,7 +117,10 @@ export const FRAME_CSS = `
   gap: 7px;
   margin-bottom: 12px;
   font-family: var(--font-dmsans, inherit);
-  font-size: 10px;
+  /* rem (not px) so spec.typography.scale — applied as the root font size by the
+     host — grows the card title along with the rem-based chart text it sits above.
+     0.625rem = 10px at the default root size, so scale 1 is a no-op. */
+  font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;

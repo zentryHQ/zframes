@@ -75,6 +75,7 @@ function skeleton(title: string, author: string) {
     typography: {
       fontFamily: "sans" as const,
       numericStyle: "proportional" as const,
+      scale: 1,
     },
     appearance: {
       radius: 18,
