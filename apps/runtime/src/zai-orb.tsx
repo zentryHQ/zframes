@@ -31,6 +31,23 @@ const EFFECT_LAYER_ID = "effect2";
 // Keep the floating history bounded — it's an ambient readout, not a transcript.
 const MAX_MESSAGES = 8;
 
+// Rotating placeholder suggestions — cycle while the input is empty and idle so
+// the orb keeps hinting at what zAI can answer, instead of one static prompt.
+const PLACEHOLDERS = [
+  "what's going on?",
+  "what's moving today?",
+  "how's BTC funding looking?",
+  "what should I be watching?",
+  "summarize the market for me",
+  "explain my dashboard",
+  "is it fear or greed right now?",
+  "anything unusual today?",
+];
+// Each suggestion holds, then cross-fades to the next; the fade window is how
+// long it sits invisible mid-swap (matches the CSS opacity transition).
+const PLACEHOLDER_HOLD_MS = 3600;
+const PLACEHOLDER_FADE_MS = 320;
+
 interface Agent {
   id: string;
   label: string;
@@ -42,6 +59,34 @@ interface Message {
 }
 
 const ORB_CSS = `
+/* Focus scrim: opening the orb blurs + dims the dashboard behind so attention
+   lands on the conversation. Sits below the orb dock (z 40) and above the
+   ticker tape (z 30), so the orb + chat stay sharp while everything else
+   recedes. Clicking it dismisses the orb (click-away-to-close). */
+.zai-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    135% 135% at 100% 100%,
+    rgba(7, 8, 16, 0.08),
+    rgba(7, 8, 16, 0.5) 72%
+  );
+  backdrop-filter: blur(0px) saturate(1);
+  -webkit-backdrop-filter: blur(0px) saturate(1);
+  transition:
+    opacity 0.42s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    backdrop-filter 0.42s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    -webkit-backdrop-filter 0.42s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.zai-scrim[data-open="true"] {
+  opacity: 1;
+  pointer-events: auto;
+  backdrop-filter: blur(3.5px) saturate(1.06);
+  -webkit-backdrop-filter: blur(3.5px) saturate(1.06);
+}
 .zai-dock {
   position: fixed;
   right: 18px;
@@ -79,7 +124,19 @@ const ORB_CSS = `
   border: 1px solid hsla(263, 80%, 72%, 0.24);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
 }
+/* The input and its animated placeholder share one box: the placeholder is an
+   absolutely-positioned layer behind the (transparent) input, so the real
+   caret/text sit on top while the hint cross-fades underneath. */
+.zai-input-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
 .zai-input {
+  position: relative;
+  z-index: 1;
   flex: 1;
   min-width: 0;
   background: transparent;
@@ -88,7 +145,35 @@ const ORB_CSS = `
   color: #e7e9f3;
   font-size: 13px;
 }
-.zai-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.zai-ph {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateY(-50%) translateY(5px);
+  transition:
+    opacity ${PLACEHOLDER_FADE_MS}ms var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    transform ${PLACEHOLDER_FADE_MS}ms var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.zai-ph[data-show="true"] {
+  opacity: 1;
+  transform: translateY(-50%) translateY(0);
+}
+/* While thinking, the hint shimmers instead of cycling (overrides opacity). */
+.zai-ph-busy {
+  animation: zai-ph-pulse 1.5s ease-in-out infinite;
+}
+@keyframes zai-ph-pulse {
+  0%, 100% { opacity: 0.34; }
+  50% { opacity: 0.7; }
+}
 .zai-agent {
   flex: none;
   font-size: 10px;
@@ -198,6 +283,10 @@ const ORB_CSS = `
 @media (prefers-reduced-motion: reduce) {
   .zai-msg { animation: none; }
   .zai-panel { transition: none; }
+  .zai-ph { transition: opacity 0.15s linear; transform: translateY(-50%); }
+  .zai-ph[data-show="true"] { transform: translateY(-50%); }
+  .zai-ph-busy { animation: none; opacity: 0.5; }
+  .zai-scrim { transition: opacity 0.2s linear; }
 }
 `;
 
@@ -216,6 +305,8 @@ export function ZaiOrb({
   const [messages, setMessages] = useState<Message[]>([]);
   const [webglReady, setWebglReady] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
+  const [phIndex, setPhIndex] = useState(0);
+  const [phShow, setPhShow] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const sceneRef = useRef<UnicornSceneType | null>(null);
 
@@ -279,6 +370,29 @@ export function ZaiOrb({
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
+
+  // Cycle the placeholder suggestions while the orb is open and idle: fade the
+  // current hint out, swap the text mid-fade, fade the next one in. Paused while
+  // busy (the input shows a shimmering "thinking…") and while closed (no timers
+  // running behind a hidden panel).
+  useEffect(() => {
+    if (!open || busy) {
+      setPhShow(true);
+      return;
+    }
+    let fade: ReturnType<typeof setTimeout>;
+    const cycle = setInterval(() => {
+      setPhShow(false);
+      fade = setTimeout(() => {
+        setPhIndex((i) => (i + 1) % PLACEHOLDERS.length);
+        setPhShow(true);
+      }, PLACEHOLDER_FADE_MS);
+    }, PLACEHOLDER_HOLD_MS);
+    return () => {
+      clearInterval(cycle);
+      clearTimeout(fade);
+    };
+  }, [open, busy]);
 
   // Surface the open/closed state to the host (App lifts it to the background).
   useEffect(() => {
@@ -346,6 +460,12 @@ export function ZaiOrb({
   return (
     <>
       <style>{ORB_CSS}</style>
+      <div
+        className="zai-scrim"
+        data-open={open}
+        onClick={() => setOpen(false)}
+        aria-hidden="true"
+      />
       <div className="zai-dock" data-open={open} data-busy={busy}>
         {open && messages.length > 0 && (
           <div className="zai-history" aria-live="polite">
@@ -365,16 +485,25 @@ export function ZaiOrb({
         )}
         <div className="zai-panel">
           <div className="zai-input-wrap">
-            <input
-              ref={inputRef}
-              className="zai-input"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder={busy ? "thinking…" : "what's going on?"}
-              disabled={busy}
-              aria-label="Ask zAI"
-            />
+            <div className="zai-input-field">
+              <input
+                ref={inputRef}
+                className="zai-input"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder=""
+                disabled={busy}
+                aria-label="Ask zAI"
+              />
+              <span
+                className={`zai-ph${busy ? " zai-ph-busy" : ""}`}
+                data-show={!value && (busy || phShow)}
+                aria-hidden="true"
+              >
+                {busy ? "thinking…" : PLACEHOLDERS[phIndex]}
+              </span>
+            </div>
             <span
               className="zai-agent"
               onClick={cycleAgent}
