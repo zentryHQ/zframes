@@ -40,6 +40,7 @@ const PROXY_ALLOW_HOSTS = new Set<string>([
   "www.nyse.com",
   "markets.newyorkfed.org",
   "api.fiscaldata.treasury.gov",
+  "home.treasury.gov",
   "api.bls.gov",
   "cdn.finra.org",
   // News-outlet RSS feeds (CORS-blocked, so the news-feed frame reads them
