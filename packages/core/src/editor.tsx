@@ -1070,6 +1070,18 @@ export function DashboardEditor({
     else download(next);
   }, [collectSpec, onSave, download]);
 
+  // Reclaim empty space in the ACTIVE grid (float:true otherwise preserves gaps).
+  // Mode-aware: the vertical column grid reflows top-left to fill any hole
+  // ('compact'); the horizontal side-scroller closes gaps while keeping its
+  // deliberate left->right order ('list'), so a curated arrangement isn't
+  // reshuffled. collectSpec reads positions live off gridstackNode, so the
+  // tidied layout round-trips through Save with no extra bookkeeping.
+  const tidy = useCallback(() => {
+    gridInstanceRef.current?.compact(
+      modeRef.current === "flow-horizontal" ? "list" : "compact",
+    );
+  }, []);
+
   // Persist the CURRENT mode's GridStack positions back into instancesRef before
   // a mode switch, so the arrangement you just made isn't lost on re-init.
   const captureLayout = useCallback(() => {
@@ -1223,6 +1235,14 @@ export function DashboardEditor({
               renderCustomiseButton()
             ) : (
               <>
+                <button
+                  type="button"
+                  className="zf-btn zf-btn--ghost"
+                  onClick={tidy}
+                  title="Reclaim empty grid space"
+                >
+                  Tidy
+                </button>
                 <button
                   type="button"
                   className="zf-btn zf-btn--ghost"
