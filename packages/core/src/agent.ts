@@ -290,6 +290,16 @@ async function buildPrompt(
     `${frameCatalogue}` +
     `${grounding}\n\n` +
     `${transcript}` +
+    // Scope guard: zAI is a market analyst embedded in the dashboard, not a
+    // general chatbot. Keep it on-topic so it stays grounded and on-brand —
+    // off-topic asks get a one-line decline that points back to what it can do.
+    `Stay strictly on topic. Only answer questions about zframes itself (its frames, ` +
+    `data, dashboard, and how to use it) and about markets and finance — stocks, ` +
+    `crypto, prices, funding, market caps, on-chain and macro data, and the symbols ` +
+    `on screen. If the question is about anything else (general knowledge, coding, ` +
+    `personal advice, writing, other software, etc.), do not answer it: reply in one ` +
+    `sentence that you only cover zframes and the markets it tracks, and invite a ` +
+    `market or dashboard question instead.\n\n` +
     `Answer the user's question in 2–4 sentences of plain text — no markdown headings, ` +
     `no preamble, no tool use, just the answer.\n\nQuestion: ${question}`
   );
