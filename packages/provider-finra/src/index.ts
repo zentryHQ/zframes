@@ -4,11 +4,10 @@ import type {
   ShortVolumeEntry,
 } from "@zframes/core";
 import { TtlCache } from "@zframes/core/cache";
+import { fetchText } from "@zframes/core/fetch";
 
 const DAILY_URL = (yyyymmdd: string) =>
   `https://cdn.finra.org/equity/regsho/daily/CNMSshvol${yyyymmdd}.txt`;
-
-const USER_AGENT = "zframes (+https://github.com/zentryhq/zframes)";
 
 /** How far back to look for the most recent published file (covers holidays + long weekends). */
 const MAX_LOOKBACK_DAYS = 7;
@@ -45,18 +44,6 @@ function yyyymmdd(date: Date): string {
   );
 }
 
-async function fetchText(url: string, timeoutMs = 15_000): Promise<string> {
-  const headers = new Headers();
-  // Browsers forbid setting User-Agent; only set a descriptive one in Node.
-  if (typeof document === "undefined") headers.set("User-Agent", USER_AGENT);
-  const res = await fetch(url, {
-    headers,
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`${url} failed: ${res.status}`);
-  return res.text();
-}
-
 function parseReport(text: string): ShortVolumeReport {
   const lines = text.split(/\r?\n/);
   const bySymbol = new Map<string, ShortVolumeEntry>();
@@ -91,8 +78,10 @@ function parseReport(text: string): ShortVolumeReport {
 
 /**
  * Free, no-API-key provider for FINRA's daily consolidated short-sale volume
- * file (`cdn.finra.org/equity/regsho/daily`), which is keyless and CORS-safe.
- * Exposes the `short-volume` capability.
+ * file (`cdn.finra.org/equity/regsho/daily`). cdn.finra.org sends no CORS
+ * headers, so browser fetches are relayed through the runtime's same-origin
+ * proxy (`cdn.finra.org` is allowlisted in core/serve.ts); in Node the fetch
+ * is direct. Exposes the `short-volume` capability.
  *
  * The published file is *reported short volume* — daily sell-side short flow,
  * including market-maker hedging — NOT short interest. Frames must label it as
@@ -124,7 +113,12 @@ export class FinraProvider implements MarketDataProvider {
     for (let i = 0; i <= MAX_LOOKBACK_DAYS; i++) {
       const day = new Date(base - i * 86_400_000);
       try {
-        return parseReport(await fetchText(DAILY_URL(yyyymmdd(day))));
+        return parseReport(
+          await fetchText(DAILY_URL(yyyymmdd(day)), {
+            proxied: true,
+            timeoutMs: 15_000,
+          }),
+        );
       } catch {
         // 403/404 until the day's file publishes, or a holiday gap — step back.
       }

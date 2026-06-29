@@ -9,7 +9,7 @@ import type {
   YieldPoint,
 } from "@zframes/core";
 import { TtlCache } from "@zframes/core/cache";
-import { fetchJson } from "@zframes/core/fetch";
+import { fetchJson, fetchText } from "@zframes/core/fetch";
 
 const TREASURY_AVG_RATES_URL =
   "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page%5Bsize%5D=20&format=json";
@@ -29,8 +29,6 @@ const AUCTIONS_URL = (size: number) =>
 
 const YIELD_CURVE_URL = (yyyymm: string) =>
   `https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value_month=${yyyymm}`;
-
-const USER_AGENT = "zframes (+https://github.com/zentryhq/zframes)";
 
 // Treasury data publishes once a business day, so every capability goes through
 // the shared cache with a 3-hour TTL (well under the 6-hour poll): a fresh value
@@ -116,18 +114,6 @@ function finiteNumber(value: unknown): number | null {
   return Number.isFinite(number) ? number : null;
 }
 
-async function fetchText(url: string, timeoutMs = 15_000): Promise<string> {
-  const headers = new Headers();
-  // Browsers forbid setting User-Agent; only set a descriptive one in Node.
-  if (typeof document === "undefined") headers.set("User-Agent", USER_AGENT);
-  const res = await fetch(url, {
-    headers,
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!res.ok) throw new Error(`${url} failed: ${res.status}`);
-  return res.text();
-}
-
 function yyyymm(date: Date): string {
   return `${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
@@ -161,11 +147,10 @@ function parseYieldCurve(xml: string): YieldCurve | null {
  * - `yield-curve`: the daily par yield curve (Treasury data-center XML).
  * - `national-debt`: total public debt + recent trend (Fiscal Data API).
  * - `treasury-auctions`: recent completed auctions (Fiscal Data API).
- * The data-center XML and avg-rates endpoint are CORS-safe (fetched direct);
- * national-debt and auctions hit fiscaldata, which isn't reliably CORS-reachable,
- * so they relay through the runtime proxy in the browser (direct in Node). All
- * four publish about once a business day, so every capability is cached — see
- * the cache notes above.
+ * All four endpoints are CORS-blocked in the browser and relay through the
+ * runtime's same-origin proxy (allowlisted hosts in core/serve.ts); in Node
+ * the fetches are direct. All four publish about once a business day, so every
+ * capability is cached — see the cache notes above.
  */
 export class TreasuryProvider implements MarketDataProvider {
   readonly name = "treasury";
@@ -182,15 +167,19 @@ export class TreasuryProvider implements MarketDataProvider {
 
   private async fetchYieldCurve(): Promise<YieldCurve> {
     // The XML is keyed by month; near a month boundary the current month may be
-    // empty, so fall back one month. CORS-safe — fetched directly, no proxy.
+    // empty, so fall back one month. home.treasury.gov is CORS-blocked in the
+    // browser, so the fetch is relayed through the runtime's same-origin proxy
+    // (the host will be added to the allowlist in core/serve.ts separately);
+    // in Node the fetch is direct.
     const base = new Date();
     for (let back = 0; back <= 1; back++) {
       const month = new Date(
         Date.UTC(base.getUTCFullYear(), base.getUTCMonth() - back, 1),
       );
-      const xml = await fetchText(YIELD_CURVE_URL(yyyymm(month))).catch(
-        () => "",
-      );
+      const xml = await fetchText(YIELD_CURVE_URL(yyyymm(month)), {
+        proxied: true,
+        timeoutMs: 15_000,
+      }).catch(() => "");
       const curve = parseYieldCurve(xml);
       if (curve) return curve;
     }
@@ -202,8 +191,12 @@ export class TreasuryProvider implements MarketDataProvider {
   }
 
   private async fetchTreasuryAverageRates(): Promise<TreasuryAverageRate[]> {
+    // fiscaldata isn't reliably browser-CORS-reachable; relay via the runtime
+    // proxy in the browser (allowlisted host). No-op (direct) in Node.
     const body = await fetchJson<TreasuryAvgRatesResponse>(
       TREASURY_AVG_RATES_URL,
+      undefined,
+      { proxied: true },
     );
     if (!Array.isArray(body?.data))
       throw new Error("treasury average rates: unexpected response shape");
