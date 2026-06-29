@@ -133,3 +133,84 @@ export const THEME_PRESETS: ThemePreset[] = [
     },
   },
 ];
+
+/**
+ * A named animated background scene. Each entry points at a public Unicorn
+ * Studio project; the editor's Cosmetics rail lists them as one-click swatches
+ * (under the "Scene" background style) and the runtime's <Background> renders
+ * the chosen `projectId`. Pure data — picking one just sets the spec's
+ * `background.type = "unicorn"` + `background.projectId`, so it round-trips
+ * through dashboard.json exactly like any other cosmetic choice; the agent can
+ * pick one too.
+ *
+ * Adding a scene = drop a `{ key, label, projectId }` here. A dead or unknown
+ * projectId degrades to the body gradient (see runtime's background.tsx), so
+ * only ship IDs verified to load. `swatch` is a representative CSS background
+ * (the rail has no live thumbnail — selecting a scene repaints the real
+ * full-bleed backdrop instantly), best matched to the scene's actual palette.
+ */
+export type BackgroundScene = {
+  /** Stable id (kebab-case). */
+  key: string;
+  /** Short human label shown on the swatch. */
+  label: string;
+  /** One line on the feel, for tooltips / agent reasoning. */
+  description: string;
+  /** Unicorn Studio public project id rendered behind the dashboard. */
+  projectId: string;
+  /** Representative CSS `background` for the rail swatch (no live thumbnail). */
+  swatch: string;
+};
+
+export const BACKGROUND_SCENES: BackgroundScene[] = [
+  {
+    key: "aurora",
+    label: "Aurora",
+    description:
+      "The signature zframes scene — a slow indigo aurora drifting over near-black. The default backdrop.",
+    projectId: "YrTzGatwjK7EoFpCSfgZ",
+    swatch:
+      "radial-gradient(120% 120% at 30% 20%, hsl(248 80% 60%) 0%, hsl(250 70% 22%) 45%, hsl(240 40% 6%) 100%)",
+  },
+  {
+    key: "nebula",
+    label: "Nebula",
+    description:
+      "A deeper violet nebula with brighter drifting cores — a touch more energy than Aurora.",
+    projectId: "K42KSY4FXeXhjVOj9RgT",
+    swatch:
+      "radial-gradient(120% 120% at 70% 30%, hsl(280 75% 62%) 0%, hsl(262 65% 26%) 45%, hsl(250 45% 7%) 100%)",
+  },
+  {
+    key: "ember",
+    label: "Ember",
+    description: "Warm ember tones drifting over charcoal.",
+    projectId: "E4221P7lwTy049d7ISxc",
+    swatch:
+      "radial-gradient(120% 120% at 30% 25%, hsl(24 85% 58%) 0%, hsl(12 65% 28%) 45%, hsl(8 40% 7%) 100%)",
+  },
+  {
+    key: "tide",
+    label: "Tide",
+    description: "Cool teal currents on deep blue-black.",
+    projectId: "cYpXuEzDqm4r3fdp4TGx",
+    swatch:
+      "radial-gradient(120% 120% at 70% 25%, hsl(180 70% 55%) 0%, hsl(196 65% 26%) 45%, hsl(205 45% 7%) 100%)",
+  },
+  {
+    key: "verdant",
+    label: "Verdant",
+    description: "Soft green light over near-black.",
+    projectId: "PrFtFGDE5duemLmr2YKQ",
+    swatch:
+      "radial-gradient(120% 120% at 30% 25%, hsl(140 65% 55%) 0%, hsl(152 55% 24%) 45%, hsl(160 40% 6%) 100%)",
+  },
+  {
+    key: "dusk",
+    label: "Dusk",
+    description: "Magenta-pink glow fading into dark.",
+    projectId: "qpoj0wFWmgwRVXmzRMiL",
+    swatch:
+      "radial-gradient(120% 120% at 70% 30%, hsl(320 80% 62%) 0%, hsl(300 60% 28%) 45%, hsl(290 45% 7%) 100%)",
+  },
+];

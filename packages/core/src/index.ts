@@ -85,7 +85,12 @@ export {
   type FrameInstance,
   type GridPosition,
 } from "./spec";
-export { THEME_PRESETS, type ThemePreset } from "./presets";
+export {
+  THEME_PRESETS,
+  type ThemePreset,
+  BACKGROUND_SCENES,
+  type BackgroundScene,
+} from "./presets";
 export {
   FramesProvider,
   useBtcBlocks,

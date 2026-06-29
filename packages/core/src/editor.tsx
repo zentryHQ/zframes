@@ -26,10 +26,11 @@ import {
 } from "./frame";
 import { FRAME_CSS, FrameContent, FramePatchContext } from "./frame-content";
 import { FramesProvider, useProviders } from "./hooks";
-import { THEME_PRESETS, type ThemePreset } from "./presets";
+import { BACKGROUND_SCENES, THEME_PRESETS, type ThemePreset } from "./presets";
 import {
   FONT_FAMILY_STACKS,
   NUMERIC_VARIANTS,
+  type DashboardBackground,
   type DashboardSpec,
   type DashboardTypography,
   type FrameInstance,
@@ -61,6 +62,7 @@ export function DashboardEditor({
   onUpColorChange,
   onDownColorChange,
   onModeChange,
+  onBackgroundChange,
 }: {
   spec: DashboardSpec;
   registry: FrameRegistry;
@@ -91,6 +93,11 @@ export function DashboardEditor({
    *  (the ticker tape). The in-grid frames already follow the inline vars. */
   onUpColorChange?: (color: string) => void;
   onDownColorChange?: (color: string) => void;
+  /** Notified on every background change (style toggle, scene pick, opacity, and
+   *  Cancel-restore) so the host can repaint the live full-bleed backdrop — the
+   *  <Background> the editor doesn't own lives above .zf-editor on <FramesProvider>.
+   *  Mirrors the accent/mode callbacks; the picked spec lands via collectSpec. */
+  onBackgroundChange?: (background: DashboardBackground) => void;
 }) {
   const providers = useProviders();
 
@@ -124,6 +131,13 @@ export function DashboardEditor({
   const snapshotFontFamilyRef = useRef(spec.typography.fontFamily);
   const snapshotNumericRef = useRef(spec.typography.numericStyle);
   const snapshotFontScaleRef = useRef(spec.typography.scale);
+  const snapshotBgTypeRef = useRef(spec.background.type);
+  const snapshotBgProjectIdRef = useRef(spec.background.projectId);
+  const snapshotBgOpacityRef = useRef(spec.background.opacity);
+  const snapshotBgColorRef = useRef(spec.background.color);
+  const snapshotBgGradFromRef = useRef(spec.background.gradientFrom);
+  const snapshotBgGradToRef = useRef(spec.background.gradientTo);
+  const snapshotBgGradAngleRef = useRef(spec.background.gradientAngle);
   const counterRef = useRef(0);
 
   const [editing, setEditing] = useState(false);
@@ -184,6 +198,22 @@ export function DashboardEditor({
   // onFontScaleChange below — chart text is rem-based, so the host sets the root
   // font size (the editor can't scale rem text with an inline var).
   const [fontScale, setFontScale] = useState(spec.typography.scale);
+  // Dashboard background (spec.background). The host renders the actual backdrop
+  // (the heavy WebGL engine never reaches @zframes/core), so these are reported
+  // up via onBackgroundChange for a live repaint and saved via collectSpec. The
+  // projectId stays "sticky" across a none/gradient detour so toggling back to a
+  // scene restores the last pick; default to the first curated scene if unset.
+  const [bgType, setBgType] = useState(spec.background.type);
+  const [bgProjectId, setBgProjectId] = useState(
+    spec.background.projectId ?? BACKGROUND_SCENES[0].projectId,
+  );
+  const [bgOpacity, setBgOpacity] = useState(spec.background.opacity);
+  // Solid-colour fill (type "color") and the custom two-colour gradient (type
+  // "gradient": from → to at an angle). Schema-defaulted, so always defined.
+  const [bgColor, setBgColor] = useState(spec.background.color);
+  const [bgGradFrom, setBgGradFrom] = useState(spec.background.gradientFrom);
+  const [bgGradTo, setBgGradTo] = useState(spec.background.gradientTo);
+  const [bgGradAngle, setBgGradAngle] = useState(spec.background.gradientAngle);
 
   // One-click looks. A preset sets the full colour, typography, and card-surface
   // state it owns (everything except grid geometry) — no separate render path, so
@@ -268,6 +298,33 @@ export function DashboardEditor({
     modeRef.current = mode;
     onModeChange?.(mode);
   }, [mode, onModeChange]);
+
+  // The full-bleed backdrop lives on the host's <FramesProvider>, above
+  // .zf-editor — so report every background change up for the host to repaint
+  // live (scene swap, opacity, none/gradient toggle) instead of only on save +
+  // reload. Built off spec.background so scale/dpi (no UI knob) ride along.
+  useEffect(() => {
+    onBackgroundChange?.({
+      ...spec.background,
+      type: bgType,
+      projectId: bgProjectId,
+      opacity: bgOpacity,
+      color: bgColor,
+      gradientFrom: bgGradFrom,
+      gradientTo: bgGradTo,
+      gradientAngle: bgGradAngle,
+    });
+  }, [
+    bgType,
+    bgProjectId,
+    bgOpacity,
+    bgColor,
+    bgGradFrom,
+    bgGradTo,
+    bgGradAngle,
+    spec.background,
+    onBackgroundChange,
+  ]);
 
   // Live gap: GridStack positions items absolutely, so the inter-frame gutter is
   // its `margin` (half on each side → matches the bare renderer's CSS `gap`).
@@ -846,6 +903,16 @@ export function DashboardEditor({
     return {
       ...spec,
       grid: { ...spec.grid, gap, mode },
+      background: {
+        ...spec.background,
+        type: bgType,
+        projectId: bgProjectId,
+        opacity: bgOpacity,
+        color: bgColor,
+        gradientFrom: bgGradFrom,
+        gradientTo: bgGradTo,
+        gradientAngle: bgGradAngle,
+      },
       theme: {
         ...spec.theme,
         accentHue,
@@ -889,6 +956,13 @@ export function DashboardEditor({
     surfaceOpacity,
     density,
     elevation,
+    bgType,
+    bgProjectId,
+    bgOpacity,
+    bgColor,
+    bgGradFrom,
+    bgGradTo,
+    bgGradAngle,
   ]);
 
   const download = useCallback((next: DashboardSpec) => {
@@ -922,6 +996,13 @@ export function DashboardEditor({
     snapshotFontFamilyRef.current = fontFamily;
     snapshotNumericRef.current = numericStyle;
     snapshotFontScaleRef.current = fontScale;
+    snapshotBgTypeRef.current = bgType;
+    snapshotBgProjectIdRef.current = bgProjectId;
+    snapshotBgOpacityRef.current = bgOpacity;
+    snapshotBgColorRef.current = bgColor;
+    snapshotBgGradFromRef.current = bgGradFrom;
+    snapshotBgGradToRef.current = bgGradTo;
+    snapshotBgGradAngleRef.current = bgGradAngle;
     setEditing(true);
   }, [
     collectSpec,
@@ -941,6 +1022,13 @@ export function DashboardEditor({
     fontFamily,
     numericStyle,
     fontScale,
+    bgType,
+    bgProjectId,
+    bgOpacity,
+    bgColor,
+    bgGradFrom,
+    bgGradTo,
+    bgGradAngle,
   ]);
 
   const cancel = useCallback(() => {
@@ -961,6 +1049,15 @@ export function DashboardEditor({
     setFontFamily(snapshotFontFamilyRef.current);
     setNumericStyle(snapshotNumericRef.current);
     setFontScale(snapshotFontScaleRef.current);
+    setBgType(snapshotBgTypeRef.current);
+    setBgProjectId(
+      snapshotBgProjectIdRef.current ?? BACKGROUND_SCENES[0].projectId,
+    );
+    setBgOpacity(snapshotBgOpacityRef.current);
+    setBgColor(snapshotBgColorRef.current);
+    setBgGradFrom(snapshotBgGradFromRef.current);
+    setBgGradTo(snapshotBgGradToRef.current);
+    setBgGradAngle(snapshotBgGradAngleRef.current);
     setEditingId(null);
     setEditing(false);
   }, [restore]);
@@ -1385,6 +1482,178 @@ export function DashboardEditor({
                         </button>
                       )}
                     </div>
+                  </section>
+
+                  <section className="zf-theme">
+                    <h3 className="zf-rail-title">Background</h3>
+                    <div
+                      className="zf-seg"
+                      role="group"
+                      aria-label="Background style"
+                    >
+                      {(["none", "color", "gradient", "unicorn"] as const).map(
+                        (t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            className={
+                              bgType === t
+                                ? "zf-seg-btn is-active"
+                                : "zf-seg-btn"
+                            }
+                            aria-pressed={bgType === t}
+                            onClick={() => setBgType(t)}
+                          >
+                            {t === "none"
+                              ? "Glow"
+                              : t === "color"
+                                ? "Color"
+                                : t === "gradient"
+                                  ? "Gradient"
+                                  : "Scene"}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                    {bgType === "color" && (
+                      <div className="zf-theme-row" style={{ marginTop: 12 }}>
+                        <label className="zf-theme-val">
+                          <input
+                            type="color"
+                            className="zf-color"
+                            value={bgColor}
+                            aria-label="Background colour"
+                            onChange={(e) => setBgColor(e.target.value)}
+                          />
+                          {bgColor}
+                        </label>
+                        {bgColor.toLowerCase() !== "#0a0a12" && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setBgColor("#0a0a12")}
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {bgType === "gradient" && (
+                      <>
+                        <div className="zf-theme-row" style={{ marginTop: 12 }}>
+                          <label className="zf-theme-val">
+                            <input
+                              type="color"
+                              className="zf-color"
+                              value={bgGradFrom}
+                              aria-label="Gradient start colour"
+                              onChange={(e) => setBgGradFrom(e.target.value)}
+                            />
+                            From {bgGradFrom}
+                          </label>
+                        </div>
+                        <div className="zf-theme-row" style={{ marginTop: 9 }}>
+                          <label className="zf-theme-val">
+                            <input
+                              type="color"
+                              className="zf-color"
+                              value={bgGradTo}
+                              aria-label="Gradient end colour"
+                              onChange={(e) => setBgGradTo(e.target.value)}
+                            />
+                            To {bgGradTo}
+                          </label>
+                        </div>
+                        <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                          <span className="zf-theme-val">Angle</span>
+                          <span className="zf-theme-knob-end">
+                            {bgGradAngle !== 160 && (
+                              <button
+                                type="button"
+                                className="zf-theme-reset"
+                                onClick={() => setBgGradAngle(160)}
+                              >
+                                Reset
+                              </button>
+                            )}
+                            <span className="zf-theme-val">{bgGradAngle}°</span>
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          className="zf-range"
+                          min={0}
+                          max={360}
+                          value={bgGradAngle}
+                          aria-label="Gradient angle"
+                          onChange={(e) =>
+                            setBgGradAngle(Number(e.target.value))
+                          }
+                        />
+                      </>
+                    )}
+                    {bgType === "unicorn" && (
+                      <>
+                        <div
+                          className="zf-presets"
+                          style={{ marginTop: 12 }}
+                          role="group"
+                          aria-label="Background scene"
+                        >
+                          {BACKGROUND_SCENES.map((s) => (
+                            <button
+                              key={s.key}
+                              type="button"
+                              className={
+                                bgProjectId === s.projectId
+                                  ? "zf-preset is-active"
+                                  : "zf-preset"
+                              }
+                              title={s.description}
+                              aria-pressed={bgProjectId === s.projectId}
+                              onClick={() => setBgProjectId(s.projectId)}
+                            >
+                              <span
+                                className="zf-preset-swatch"
+                                style={{ background: s.swatch }}
+                              />
+                              <span className="zf-preset-label">{s.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                          <span className="zf-theme-val">Opacity</span>
+                          <span className="zf-theme-knob-end">
+                            {bgOpacity !== 0.16 && (
+                              <button
+                                type="button"
+                                className="zf-theme-reset"
+                                onClick={() => setBgOpacity(0.16)}
+                              >
+                                Reset
+                              </button>
+                            )}
+                            <span className="zf-theme-val">
+                              {Math.round(bgOpacity * 100)}%
+                            </span>
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          className="zf-range"
+                          min={0}
+                          max={0.6}
+                          step={0.02}
+                          value={bgOpacity}
+                          aria-label="Background scene opacity"
+                          onChange={(e) =>
+                            setBgOpacity(
+                              Math.round(Number(e.target.value) * 100) / 100,
+                            )
+                          }
+                        />
+                      </>
+                    )}
                   </section>
 
                   <section className="zf-theme">

@@ -185,6 +185,13 @@ export default function App() {
   const [liveMode, setLiveMode] = useState<
     DashboardSpec["grid"]["mode"] | null
   >(null);
+  // Live background the editor reports while customising (null = not editing →
+  // fall back to the saved spec). Held above the editor because the full-bleed
+  // <DashboardBackground> renders here, outside the editor — so a scene swap,
+  // opacity drag, or none/gradient toggle repaints the real backdrop live.
+  const [liveBackground, setLiveBackground] = useState<
+    DashboardSpec["background"] | null
+  >(null);
   // Phones get the read-only CSS-grid renderer (single-column reflow at <=640px);
   // desktop gets the editable GridStack editor. Editing stays a desktop activity.
   const isMobile = useIsMobile();
@@ -280,7 +287,7 @@ export default function App() {
   return (
     <FramesProvider providers={providers}>
       <DashboardBackground
-        background={spec.background}
+        background={liveBackground ?? spec.background}
         active={orbOpen}
         thinking={orbThinking}
         accentHue={accentHue ?? spec.theme.accentHue}
@@ -346,6 +353,7 @@ export default function App() {
               onUpColorChange={setLiveUp}
               onDownColorChange={setLiveDown}
               onModeChange={setLiveMode}
+              onBackgroundChange={setLiveBackground}
             />
           </Suspense>
         )}
