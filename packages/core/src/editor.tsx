@@ -1722,7 +1722,8 @@ export function DashboardEditor({
                     {isHorizontal && (
                       <p className="zf-mode-seg-hint">
                         Rows fill the height; the board scrolls sideways.
-                        Rearranging stays in Vertical for now.
+                        Arrange it freely — this layout is saved separately
+                        from Vertical.
                       </p>
                     )}
                     <div className="zf-theme-row" style={{ marginTop: 13 }}>
