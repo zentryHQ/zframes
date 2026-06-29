@@ -16,8 +16,13 @@ const LOOKBACK: Record<string, { ms: number; res: number }> = {
 
 function OptionsIv({ config }: { config: z.output<typeof schema> }) {
   const { ms, res } = LOOKBACK[config.lookback];
-  // Anchor the window start once per lookback so the poll deps stay stable.
-  const startMs = useMemo(() => Date.now() - ms, [ms]);
+  // Snap the window start to its resolution so it's stable across remounts:
+  // the provider's cache key includes startMs, and TtlCache has no eviction,
+  // so a drifting Date.now()-based start would churn a fresh entry each mount.
+  const startMs = useMemo(() => {
+    const resMs = res * 1000;
+    return Math.floor((Date.now() - ms) / resMs) * resMs;
+  }, [ms, res]);
   const { points, isLoading } = useVolatilityIndex(
     config.currency,
     startMs,
