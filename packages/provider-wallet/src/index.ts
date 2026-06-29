@@ -232,11 +232,13 @@ function shortAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
-// Per-address, short TTL under the 60s poll, in-flight dedup across the value +
-// allocation + holdings frames. Not persisted (keep wallet reads out of storage).
+// Per-address TTL, in-flight dedup across the value + allocation + holdings
+// frames. 2 min eases public RPC + CoinGecko pressure; the 60s poll still
+// refreshes in the background once the entry expires. Not persisted (keep
+// wallet reads out of storage).
 const walletCache = new TtlCache<Portfolio>({
   namespace: "zframes:wallet:portfolio",
-  ttlMs: 45_000,
+  ttlMs: 120_000,
   persist: false,
 });
 
