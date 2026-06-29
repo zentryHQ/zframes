@@ -31,3 +31,15 @@ apps/runtime/public/daily-analysis.json
 # Only docs/assets/ (README images) stays tracked.
 docs/*.html
 docs/decisions/
+
+# Local-only scratch & promo tooling (root-level only) — Python generators and
+# their large generated JSON outputs (theme variants, gap-test fixtures). Local
+# working files, not project source, never committed to the public repo. The
+# leading slash anchors to the repo root so the CLI's own packages/cli/scripts/
+# stays tracked.
+/scripts/
+/promo/
+
+# Python bytecode — should never be committed anywhere in this JS/TS repo.
+__pycache__/
+*.pyc
