@@ -40,10 +40,32 @@ export const FrameInstanceSchema = z.object({
 export const BackgroundSchema = z
   .object({
     type: z
-      .enum(["none", "gradient", "unicorn"])
-      .default("gradient")
+      .enum(["none", "color", "gradient", "unicorn"])
+      .default("none")
       .describe(
-        "Background style: 'gradient' (built-in dark glow), 'unicorn' (animated Unicorn Studio scene), or 'none'.",
+        "Background style: 'none' (the signature dark indigo glow — the default), 'color' (a solid colour), 'gradient' (a custom two-colour linear gradient), or 'unicorn' (an animated Unicorn Studio scene).",
+      ),
+    color: z
+      .string()
+      .default("#0a0a12")
+      .describe(
+        "Solid background colour (any CSS colour). Used when type is 'color'.",
+      ),
+    gradientFrom: z
+      .string()
+      .default("#1b1e4d")
+      .describe("Gradient start colour. Used when type is 'gradient'."),
+    gradientTo: z
+      .string()
+      .default("#07070c")
+      .describe("Gradient end colour. Used when type is 'gradient'."),
+    gradientAngle: z
+      .number()
+      .min(0)
+      .max(360)
+      .default(160)
+      .describe(
+        "Gradient angle in degrees (0 = upward, 90 = rightward, 180 = downward). Used when type is 'gradient'.",
       ),
     projectId: z
       .string()
@@ -280,13 +302,13 @@ export type DashboardAppearance = z.infer<typeof AppearanceSchema>;
 export const DashboardSpecSchema = z.preprocess(
   (raw) => {
     if (!raw || typeof raw !== "object") return raw;
-    const r = raw as Record<string, unknown>;
+    let r = raw as Record<string, unknown>;
     const grid = r.grid;
     if (grid && typeof grid === "object" && "radius" in grid) {
       const { radius, ...restGrid } = grid as Record<string, unknown>;
       // Hoist the legacy grid.radius into appearance; an explicit
       // appearance.radius (new shape) still wins.
-      return {
+      r = {
         ...r,
         grid: restGrid,
         appearance: {
@@ -295,7 +317,23 @@ export const DashboardSpecSchema = z.preprocess(
         },
       };
     }
-    return raw;
+    // Legacy `background.type: "gradient"` meant the built-in dark glow (no
+    // colours of its own). "gradient" now means a *custom* two-colour gradient,
+    // so a legacy gradient with no gradientFrom is the signature glow → map it to
+    // "none" (which renders that glow), keeping older dashboards pixel-identical.
+    const bg = r.background;
+    if (
+      bg &&
+      typeof bg === "object" &&
+      (bg as Record<string, unknown>).type === "gradient" &&
+      !("gradientFrom" in (bg as Record<string, unknown>))
+    ) {
+      r = {
+        ...r,
+        background: { ...(bg as Record<string, unknown>), type: "none" },
+      };
+    }
+    return r;
   },
   z.object({
     version: z.coerce
@@ -358,7 +396,11 @@ export const DashboardSpecSchema = z.preprocess(
         gap: 12,
       }),
     background: BackgroundSchema.default({
-      type: "gradient",
+      type: "none",
+      color: "#0a0a12",
+      gradientFrom: "#1b1e4d",
+      gradientTo: "#07070c",
+      gradientAngle: 160,
       scale: 1,
       dpi: 1.5,
       opacity: 0.16,
