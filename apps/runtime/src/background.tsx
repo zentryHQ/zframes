@@ -84,6 +84,28 @@ export function DashboardBackground({
   accentHue?: number;
   accentSat?: number;
 }) {
+  // Solid colour / custom gradient: a single opaque full-bleed fill painted
+  // straight from the spec (the orb's recolor filters are scene-specific, so a
+  // static fill doesn't take them). "none" renders nothing here — the body's
+  // signature indigo glow (styles.css) shows through.
+  if (background.type === "color" || background.type === "gradient") {
+    const fill =
+      background.type === "color"
+        ? background.color
+        : `linear-gradient(${background.gradientAngle}deg, ${background.gradientFrom}, ${background.gradientTo})`;
+    return (
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          background: fill,
+        }}
+      />
+    );
+  }
   if (background.type !== "unicorn" || !background.projectId) return null;
 
   // Compose the accent spin + desaturation with the orb's "charge" filter: the
@@ -139,7 +161,11 @@ export function DashboardBackground({
             style={{ position: "absolute", inset: 0 }}
           >
             <Suspense fallback={null}>
+              {/* key on projectId so switching scenes (e.g. from the editor's
+                  Background gallery) fully remounts the WebGL scene rather than
+                  trying to mutate a live one. */}
               <UnicornScene
+                key={background.projectId}
                 projectId={background.projectId}
                 width="100vw"
                 height="100vh"
