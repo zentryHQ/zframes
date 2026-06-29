@@ -197,7 +197,11 @@ export class DeribitProvider implements MarketDataProvider {
     resolutionSec: number,
   ): Promise<VolatilityPoint[]> {
     const ccy = currency.toUpperCase();
-    return dvolCache.get(`${ccy}:${resolutionSec}`, async () => {
+    // Key on every input that shapes the response — including the window start,
+    // not just the resolution. The caller quantizes startTimeMs to the
+    // resolution so keys reuse across remounts rather than churning the
+    // (eviction-less) entry map. See providers/log-2026-06-29.
+    return dvolCache.get(`${ccy}:${resolutionSec}:${startTimeMs}`, async () => {
       const body = await fetchJson<JsonRpc<DvolResult>>(
         `${API}/get_volatility_index_data?currency=${ccy}` +
           `&start_timestamp=${startTimeMs}&end_timestamp=${Date.now()}` +
