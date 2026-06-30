@@ -83,9 +83,14 @@ three-step funnel, each step narrowing from the one before:
    like `short-volume` for stocks; `bitcoin-dominance` / `tvl-treemap` for
    crypto; *both* → all of them). If they're vague, default to **stocks**.
 2. **Which categories?** Built from their step-1 answer, so they pick from groups
-   instead of recalling tickers cold. Offer a short multi-select menu:
-   - **Stocks** → sectors: *Big Tech, Semiconductors, EV & Auto, Banks &
-     Finance, Energy, Healthcare, Consumer & Retail*.
+   instead of recalling tickers cold. Offer a short multi-select menu (≤4 options
+   — pick the subset that fits what they said; don't dump the whole palette):
+   - **Stocks** → the `xyz` dex is **cross-asset**, so the groups span asset
+     classes, not just equity sectors: equities *Big Tech, Semiconductors &
+     Memory, AI & Data-Center, Crypto-adjacent, EV & Auto, Space & Defense,
+     Consumer & Health* — plus *Indices* (S&P 500, Nasdaq-100), *Commodities*
+     (metals, energy), and *FX* (EUR/JPY/GBP). The **xyz symbol reference** below
+     maps every group to its valid tickers.
    - **Crypto** → themes: *Majors (BTC/ETH), Layer-1s, DeFi, Layer-2s, AI,
      Memecoins*.
    - **Both** → offer both groupings.
@@ -108,6 +113,31 @@ never by frame name.
 
 For "update my dashboard" requests, skip the funnel — read the existing
 `dashboard.json` first and change only what they asked for.
+
+### xyz symbol reference (valid tickers by category)
+
+The interview yields plain tickers; you write `xyz:<TICKER>`. `xyz` is the only
+liquid HIP-3 dex — every symbol below lives there. Pick from this list so you
+never emit a ticker the dex doesn't carry.
+
+| Category | Liquid tickers — write `xyz:…` |
+|---|---|
+| **Indices** | `XYZ100` (Nasdaq-100), `SP500` (S&P 500) · thin: `JP225` `KR200` `NIFTY` `DXY` `VIX` |
+| **Big Tech** | `AAPL` `MSFT` `GOOGL` `AMZN` `META` `NVDA` `ORCL` |
+| **Semiconductors & Memory** | `MU` `SKHX` `SNDK` `DRAM` `NVDA` `AMD` `AVGO` `ARM` `TSM` `MRVL` `QCOM` · ETF `SMH` |
+| **AI & Data-Center** | `PLTR` `NBIS` `CRWV` `BE` |
+| **Crypto-adjacent** | `MSTR` `COIN` `HOOD` `CRCL` |
+| **EV & Auto** | `TSLA` `RIVN` `HYUNDAI` |
+| **Space & Defense** | `SPCX` (SpaceX) `RKLB` |
+| **Commodities** | metals `GOLD` `SILVER` `COPPER` `PLATINUM` `PALLADIUM` · energy `CL` (WTI) `BRENTOIL` `NATGAS` · ETFs `XLE` `URNM` |
+| **FX** | `EUR` `JPY` `NOK` `GBP` |
+| **Consumer & Health** | `NFLX` `COST` `DKNG` `GME` `HIMS` `LLY` `BABA` `BX` |
+
+Gotchas: it's `xyz:SP500` (**not `SPY`** — that symbol doesn't exist on the dex),
+`xyz:XYZ100` for the Nasdaq-100 (not `NDX`/`QQQ`), `xyz:CL` for WTI crude (not
+`WTI`/`USOIL`), `xyz:SPCX` for SpaceX. Crypto stays bare (`BTC`, `ETH`). Ignore
+the other HIP-3 dexes (`km`/`flx`/`vntl`/…) — they're ~$0 volume; only `xyz` has
+liquidity. The full live universe with 24h volumes is in `docs/xyz-universe.html`.
 
 ## 4. Fill in the frames
 

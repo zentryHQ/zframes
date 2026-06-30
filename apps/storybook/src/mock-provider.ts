@@ -60,19 +60,30 @@ const BASELINE_NOW = Date.now();
 
 const DAY = 86_400_000;
 
+// Cross-asset, mirroring the real xyz dex: indices + mega-cap tech + the
+// semis/memory complex + crypto-adjacent names + commodities + FX + an ETF, so
+// the auto-populated stock frames (movers, tickers) read as a cross-asset desk.
 const STOCKS = [
-  "xyz:TSLA",
+  "xyz:XYZ100",
+  "xyz:SP500",
   "xyz:NVDA",
+  "xyz:TSLA",
   "xyz:AAPL",
   "xyz:MSFT",
-  "xyz:META",
-  "xyz:AMD",
   "xyz:GOOGL",
-  "xyz:AMZN",
-  "xyz:NFLX",
+  "xyz:META",
+  "xyz:MU",
+  "xyz:AMD",
   "xyz:AVGO",
+  "xyz:SKHX",
   "xyz:MSTR",
   "xyz:COIN",
+  "xyz:GOLD",
+  "xyz:SILVER",
+  "xyz:CL",
+  "xyz:BRENTOIL",
+  "xyz:EUR",
+  "xyz:SMH",
 ];
 const CRYPTO = [
   "BTC",
@@ -88,6 +99,9 @@ const CRYPTO = [
 ];
 const UNIVERSE = [...STOCKS, ...CRYPTO];
 
+// Plausible anchors so the cross-asset universe renders at believable levels
+// (an FX pair near 1.14, crude near 71, the S&P index near 7400) instead of the
+// hashed [40,600) fallback. Values track the live xyz dex contexts.
 const FIXED_PRICE: Record<string, number> = {
   BTC: 67_432,
   ETH: 3_380,
@@ -99,6 +113,31 @@ const FIXED_PRICE: Record<string, number> = {
   LINK: 14.2,
   AVAX: 36.1,
   SUI: 1.05,
+  // Indices
+  "xyz:XYZ100": 29_958,
+  "xyz:SP500": 7_444,
+  // Mega-cap tech & semis/memory
+  "xyz:NVDA": 196.76,
+  "xyz:TSLA": 409.99,
+  "xyz:AAPL": 283.67,
+  "xyz:MSFT": 370.97,
+  "xyz:GOOGL": 351.9,
+  "xyz:META": 557.39,
+  "xyz:MU": 1_140,
+  "xyz:AMD": 549.79,
+  "xyz:AVGO": 376.75,
+  "xyz:SKHX": 1_715,
+  // Crypto-adjacent
+  "xyz:MSTR": 85.3,
+  "xyz:COIN": 145.06,
+  // Commodities
+  "xyz:GOLD": 4_025,
+  "xyz:SILVER": 59.05,
+  "xyz:CL": 70.82,
+  "xyz:BRENTOIL": 74.11,
+  // FX & ETF
+  "xyz:EUR": 1.1402,
+  "xyz:SMH": 644.14,
 };
 
 const NAMES: Record<string, string> = {

@@ -8,18 +8,12 @@ import { FrameStatus } from "./ui";
 
 const schema = topMoversMeta.schema;
 
-const MOVER_UNIVERSE = [
-  "xyz:*",
-  "km:GOLD",
-  "km:SILVER",
-  "km:USOIL",
-  "km:USENERGY",
-  "km:US500",
-  "km:SMALL2000",
-  "km:USTECH",
-  "km:SEMI",
-  "km:GLDMINE",
-] as const;
+// The "xyz:*" wildcard returns that dex's entire 97-symbol universe — every
+// equity, index (XYZ100/SP500), commodity (GOLD/SILVER/CL/BRENTOIL/…), and FX
+// pair. It's the only HIP-3 dex with real liquidity, so one wildcard covers the
+// whole cross-asset movers board; the other builder dexes (km/flx/vntl/…) are
+// effectively $0-volume and were only ever duplicating symbols already in xyz.
+const MOVER_UNIVERSE = ["xyz:*"] as const;
 
 function TopMovers({ config }: { config: z.output<typeof schema> }) {
   const { stats, isLoading } = useDayStatsState(MOVER_UNIVERSE, 60_000);
