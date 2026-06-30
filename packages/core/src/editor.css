@@ -94,10 +94,13 @@
    card falls back → :hover re-fires → it bounces up and down. The content box
    stays put (never transformed — only inset by the gap margin), so it holds the
    whole hover state —
-   lift and accent chrome — steady through the 2px lift. Values mirror
-   .zf-frame:hover in frame-content.tsx via the same --zf-frame-*-hover vars, so
-   host theming keeps working; the self-:hover there stays as the fallback driver
-   for the 2px the card pokes above its box. */
+   lift and accent chrome — steady through the 2px lift. It mirrors
+   .zf-frame:hover in frame-content.tsx: the transform + border-color land on the
+   card here, while the surface brightening + accent glow ride the shared
+   opacity-faded ::after overlay (defined in FRAME_CSS), so host theming keeps
+   working and neither path re-rasterizes the card's gradient/shadow per frame.
+   The self-:hover there stays as the fallback driver for the 2px the card pokes
+   above its box. */
 @media (hover: hover) {
   .zf-editor:not(.zf-customise) .grid-stack-item-content:hover > .zf-frame {
     transform: translateY(-2px);
@@ -105,23 +108,11 @@
       --zf-frame-border-hover,
       hsl(var(--zf-accent-hue, 242) 90% 76% / 0.42)
     );
-    background: var(
-      --zf-frame-bg-hover,
-      linear-gradient(
-        165deg,
-        rgba(34, 35, 50, 0.88) 0%,
-        rgba(18, 19, 28, 0.9) 60%,
-        rgba(12, 13, 20, 0.92) 100%
-      )
-    );
-    box-shadow: var(
-      --zf-frame-shadow-hover,
-      inset 0 1px 0 rgba(255, 255, 255, 0.09),
-      0 1px 2px rgba(0, 0, 0, 0.4),
-      0 26px 56px -26px rgba(0, 0, 0, 0.92),
-      0 0 0 1px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.12),
-      0 20px 60px -28px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.4)
-    );
+  }
+  .zf-editor:not(.zf-customise)
+    .grid-stack-item-content:hover
+    > .zf-frame:not(.zf-frame--error)::after {
+    opacity: 1;
   }
 }
 .zf-fill {
