@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useDayStats, useMids } from "@zframes/core";
+import { useEffect, useMemo, useRef } from "react";
+import { useDayStats, useProviderFor } from "@zframes/core";
 // Import from the leaf module, not the package index — the index statically
 // pulls in all 76 frame components, which would defeat the per-frame code-split
 // (the runtime registry loads components lazily via @zframes/frames/lazy).
@@ -46,8 +46,6 @@ const TAPE_CSS = `
   align-items: center;
   overflow: hidden;
   background: rgba(10, 11, 17, 0.86);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-family: var(--font-dmsans, system-ui, sans-serif);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 2.5%, #000 97.5%, transparent);
@@ -105,7 +103,48 @@ export function TickerTape() {
     return { symbols: ordered, stats: { ...cryptoStats, ...equityStats } };
   }, [equityStats, cryptoStats]);
 
-  const mids = useMids(symbols);
+  const provider = useProviderFor("quote-stream");
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  // Live prices are streamed straight into the DOM, NOT through React state.
+  // The Hyperliquid allMids socket fans out several times a second; routing that
+  // through useMids() re-rendered this ~400-node marquee on every tick, which
+  // repainted the animated track and stuttered the scroll (worse in active
+  // markets — the "sometimes laggy"). Instead we keep the latest mids in a ref
+  // and flush only the price text on a slow interval, so React reconciles the
+  // track solely when the symbol set changes (the 60s day-stats poll). The
+  // change %/color come from `stats`, not mids, so price text is all that moves.
+  const symbolsKey = symbols.join(",");
+  useEffect(() => {
+    const root = trackRef.current;
+    if (!root || !provider?.subscribeMids || symbols.length === 0) return;
+    let latest: Record<string, number> = {};
+    const flush = () => {
+      for (const el of root.querySelectorAll<HTMLElement>("[data-zf-px]")) {
+        const px = latest[el.dataset.zfPx ?? ""];
+        if (px === undefined) continue;
+        const next = formatPrice(px);
+        // Skip the write when unchanged so an idle tape never reflows.
+        if (el.textContent !== next) el.textContent = next;
+      }
+    };
+    const unsubscribe = provider.subscribeMids((all) => {
+      latest = all;
+    }, symbols);
+    // First flush replaces the day-stats fallback promptly; then a slow cadence,
+    // decoupled from the WS push rate, keeps it live without ever competing with
+    // the scroll animation.
+    const first = window.setTimeout(flush, 400);
+    const interval = window.setInterval(flush, 1500);
+    return () => {
+      unsubscribe();
+      clearTimeout(first);
+      clearInterval(interval);
+    };
+    // symbols is derived from symbolsKey; listing the key keeps the effect from
+    // re-subscribing on every render (symbols is a fresh array each time).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider, symbolsKey]);
 
   if (symbols.length === 0) return null;
 
@@ -116,14 +155,18 @@ export function TickerTape() {
     symbols.map((sym) => {
       const stat = stats[sym];
       if (!stat) return null;
-      const price = mids[sym] ?? stat.markPx;
       const color = stat.changePct >= 0 ? UP : DOWN;
       const sign = stat.changePct >= 0 ? "+" : "";
       return (
         <span key={`${prefix}-${sym}`} className="zf-tape-item">
           <AssetLogo symbol={sym} size={15} />
           <span className="zf-tape-sym">{tickerOf(sym)}</span>
-          <span className="zf-tape-px">{formatPrice(price)}</span>
+          {/* data-zf-px lets the mids effect write the live price straight to
+              the DOM without re-rendering the track; seeds with the day-stats
+              mark price. */}
+          <span className="zf-tape-px" data-zf-px={sym}>
+            {formatPrice(stat.markPx)}
+          </span>
           <span className="zf-tape-chg" style={{ color }}>
             {sign}
             {stat.changePct.toFixed(2)}%
@@ -139,6 +182,7 @@ export function TickerTape() {
         {/* Two identical tracks; the loop translates by -50% so the second
             copy seamlessly takes over. The duplicate is decorative. */}
         <div
+          ref={trackRef}
           className="zf-tape-track"
           style={{ animationDuration: `${duration}s` }}
         >
