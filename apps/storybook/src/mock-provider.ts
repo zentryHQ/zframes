@@ -12,6 +12,7 @@ import type {
   FearGreedPoint,
   FinancialStress,
   FundingPoint,
+  FxRate,
   GlobalMarket,
   LightningStats,
   MacroSeries,
@@ -231,6 +232,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "options-summary",
     "volatility-index",
     "coin-movers",
+    "fx-rates",
     "portfolio",
   ];
   readonly portfolioKinds: readonly PortfolioSourceKind[] = [
@@ -580,6 +582,42 @@ export class MockMarketDataProvider implements MarketDataProvider {
         source: "NY Fed",
       },
     ]);
+  }
+
+  getFxRates(base: string, symbols: string[]): Promise<FxRate[]> {
+    const b = base.toUpperCase();
+    // Plausible anchors — units of the currency per 1 USD; others get a seed.
+    const ANCHOR: Record<string, number> = {
+      EUR: 0.877,
+      GBP: 0.756,
+      JPY: 161.9,
+      CHF: 0.815,
+      CAD: 1.37,
+      AUD: 1.52,
+      CNY: 7.18,
+      INR: 83.4,
+      MXN: 18.6,
+      BRL: 5.42,
+    };
+    return this.gate<FxRate[]>([], () =>
+      symbols
+        .map((s) => s.toUpperCase())
+        .filter((s) => s && s !== b)
+        .map((symbol) => {
+          const r = rng(`fx:${b}:${symbol}`);
+          const anchor = ANCHOR[symbol] ?? round(0.5 + r() * 4, 4);
+          const history: SeriesPoint[] = [];
+          let v = anchor * (0.97 + r() * 0.04);
+          for (let i = 29; i >= 0; i--) {
+            v *= 1 + (r() - 0.5) * 0.01;
+            history.push({ time: BASELINE_NOW - i * DAY, value: round(v, 5) });
+          }
+          const latest = history[history.length - 1].value;
+          const prev = history[history.length - 2].value;
+          const changePct = round(((latest - prev) / prev) * 100, 2);
+          return { symbol, base: b, rate: latest, changePct, history };
+        }),
+    );
   }
 
   getTreasuryAverageRates(): Promise<TreasuryAverageRate[]> {

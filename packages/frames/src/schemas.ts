@@ -44,6 +44,7 @@ const SOURCES = {
   mempool: { name: "mempool.space", url: "https://mempool.space" },
   deribit: { name: "Deribit", url: "https://www.deribit.com" },
   coinpaprika: { name: "Coinpaprika", url: "https://coinpaprika.com" },
+  frankfurter: { name: "Frankfurter (ECB)", url: "https://frankfurter.dev" },
 } satisfies Record<string, FrameSource>;
 
 export const clockMeta = defineFrameMeta({
@@ -356,6 +357,38 @@ export const ratesBoardMeta = defineFrameMeta({
       .max(8)
       .default(4)
       .describe("How many Treasury average-rate rows to show."),
+  }),
+});
+
+export const fxBoardMeta = defineFrameMeta({
+  name: "fx-board",
+  category: "macro",
+  iconUrl: widgetIcon("fx-board"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Foreign-exchange board from the ECB's free daily reference rates (via Frankfurter, no key): each currency's latest rate vs a base, its day-over-day change, and a short trend sparkline. Daily reference data with broader currency coverage than the handful of FX perps — not a live intraday quote feed.",
+  capabilities: ["fx-rates"],
+  source: SOURCES.frankfurter,
+  schema: z.object({
+    base: z
+      .string()
+      .length(3)
+      .default("USD")
+      .describe(
+        'Base currency (ISO 4217 code) each rate is quoted against, e.g. "USD". One unit of the base buys the shown amount of each listed currency.',
+      ),
+    symbols: z
+      .array(z.string().length(3))
+      .min(1)
+      .max(12)
+      .default(["EUR", "GBP", "JPY", "CHF", "CAD", "AUD"])
+      .describe(
+        'Currencies to show (ISO 4217 codes), e.g. ["EUR","GBP","JPY"]. The ECB publishes ~30; a code equal to the base is skipped.',
+      ),
+    showSparkline: z
+      .boolean()
+      .default(true)
+      .describe("Show a small ~30-day trend sparkline next to each rate."),
   }),
 });
 
@@ -1920,6 +1953,7 @@ export const frameMetas: FrameMeta[] = [
   priceLivelineMeta,
   priceTickerMeta,
   ratesBoardMeta,
+  fxBoardMeta,
   shortVolumeMeta,
   topMoversMeta,
   tvlTreemapMeta,
