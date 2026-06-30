@@ -1,5 +1,9 @@
 import { existsSync, statSync } from "node:fs";
-import { createServer } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sirv from "sirv";
@@ -12,6 +16,18 @@ import {
   handleSpecWrite,
 } from "@zframes/core/serve";
 import {
+  DASHBOARD_LIST_ROUTE,
+  DASHBOARD_SWITCH_ROUTE,
+} from "@zframes/core/routes";
+import {
+  dashboardPath,
+  dashboardsDir,
+  isValidName,
+  listDashboards,
+  resolveServeTarget,
+  type ResolvedTarget,
+} from "@zframes/core/store";
+import {
   AGENTS_LIST_ROUTE,
   ASK_ROUTE,
   handleAgents,
@@ -22,11 +38,13 @@ import {
   ACCOUNT_PORTFOLIO_ROUTE,
   handleAccountCredentials,
   handleAccountPortfolio,
+  isLocalRequest,
 } from "@zframes/core/account";
 import { catalogueSummary } from "@zframes/core/catalogue";
 import { frameMetas } from "@zframes/frames/schemas";
 
 const DEFAULT_PORT = 37263;
+const MAX_SWITCH_BODY_BYTES = 100_000;
 
 // Built once: the compact frame catalogue handed to the zAI ask route so the
 // embedded assistant knows what frames exist and what each does, version-matched
@@ -34,13 +52,14 @@ const DEFAULT_PORT = 37263;
 const FRAME_CATALOGUE = catalogueSummary(frameMetas);
 
 interface ServeArgs {
-  file: string;
+  /** The positional dashboard arg (store name or path); undefined → resolve a default. */
+  file?: string;
   port: number;
   contact?: string;
 }
 
 function parseArgs(args: string[]): ServeArgs | { error: string } {
-  let file = "dashboard.json";
+  let file: string | undefined;
   let port = DEFAULT_PORT;
   let contact = process.env.ZFRAMES_CONTACT;
   for (let i = 0; i < args.length; i++) {
@@ -65,23 +84,44 @@ function parseArgs(args: string[]): ServeArgs | { error: string } {
   return { file, port, contact };
 }
 
+function isFile(file: string): boolean {
+  return existsSync(file) && statSync(file).isFile();
+}
+
+/** Send a JSON body with a status (no-store — the switcher state is live). */
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  res.statusCode = status;
+  res.setHeader("content-type", "application/json");
+  res.setHeader("cache-control", "no-store");
+  res.end(JSON.stringify(body));
+}
+
 export function serve(args: string[]): Promise<number> {
   const parsed = parseArgs(args);
   if ("error" in parsed) {
     console.error(`✗ ${parsed.error}`);
     console.error(
-      "usage: zframes serve [dashboard.json] [--port <n>] [--contact <email>]",
+      "usage: zframes serve [name|dashboard.json] [--port <n>] [--contact <email>]",
     );
     return Promise.resolve(1);
   }
 
-  const file = resolve(process.cwd(), parsed.file);
-  if (!existsSync(file) || !statSync(file).isFile()) {
-    console.error(`✗ no dashboard.json at ${parsed.file}`);
-    console.error("  pass a path, or run from a directory that has one.");
+  const target = resolveServeTarget(parsed.file, process.cwd());
+  if ("error" in target) {
+    console.error(`✗ ${target.error}`);
     return Promise.resolve(1);
   }
-  const userDir = resolve(file, "..");
+
+  // The dashboard the server currently hosts. Mutable: the in-app switcher
+  // (POST /__zframes/switch) re-points it among store dashboards, and the
+  // read/write/ask routes always act on whatever it points at right now.
+  let current: ResolvedTarget = target;
+  // Switching is offered only when serving from the store — store dashboards
+  // share the stable `dashboards/` sibling root, so the sirv instance below
+  // stays correct across switches. An explicit path serves exactly one file.
+  const canSwitch = target.kind === "store";
+  const siblingRoot =
+    target.kind === "store" ? dashboardsDir() : resolve(target.file, "..");
 
   // The prebuilt runtime ships next to dist/ (see scripts/build-runtime.mjs).
   const bundleDir = fileURLToPath(new URL("../runtime", import.meta.url));
@@ -94,11 +134,78 @@ export function serve(args: string[]): Promise<number> {
   // Static serving via sirv (MIME, ETag, range, traversal safety). `dev: true`
   // re-stats per request so a saved sibling file or a rebuilt bundle is never
   // served stale — the right trade for a localhost live-editing tool. Three
-  // roots tried in order: bundle assets, then sibling files next to
-  // dashboard.json, then the bundle's index.html as the SPA fallback.
+  // roots tried in order: bundle assets, then sibling files next to the
+  // dashboard, then the bundle's index.html as the SPA fallback.
   const serveBundle = sirv(bundleDir, { dev: true });
-  const serveSiblings = sirv(userDir, { dev: true });
+  const serveSiblings = sirv(siblingRoot, { dev: true });
   const serveSpa = sirv(bundleDir, { dev: true, single: true });
+
+  // POST /__zframes/switch { name } → re-point `current` at another store
+  // dashboard. Loopback-guarded (defeats DNS-rebinding, which the JSON
+  // content-type/CSRF check alone can't) and bounded; `isValidName` forbids
+  // "/"/".." so there is no path-traversal vector, and the target must already
+  // exist in the store — switching never creates a file.
+  function handleSwitch(req: IncomingMessage, res: ServerResponse): void {
+    if (!isLocalRequest(req)) {
+      sendJson(res, 403, { ok: false, error: "loopback only" });
+      return;
+    }
+    if (req.method !== "POST") {
+      res.statusCode = 405;
+      res.end();
+      return;
+    }
+    if (!canSwitch) {
+      sendJson(res, 409, {
+        ok: false,
+        error: "switching is only available when serving from the store",
+      });
+      return;
+    }
+    if (
+      !String(req.headers["content-type"] ?? "").includes("application/json")
+    ) {
+      res.statusCode = 415;
+      res.end();
+      return;
+    }
+    let body = "";
+    let aborted = false;
+    req.on("data", (chunk: Buffer) => {
+      if (aborted) return;
+      body += chunk;
+      if (body.length > MAX_SWITCH_BODY_BYTES) {
+        aborted = true;
+        res.statusCode = 413;
+        res.end();
+        req.destroy();
+      }
+    });
+    req.on("end", () => {
+      if (aborted) return;
+      let name: unknown;
+      try {
+        name = (JSON.parse(body || "{}") as { name?: unknown }).name;
+      } catch {
+        sendJson(res, 400, { ok: false, error: "invalid JSON body" });
+        return;
+      }
+      if (typeof name !== "string" || !isValidName(name)) {
+        sendJson(res, 400, { ok: false, error: "invalid dashboard name" });
+        return;
+      }
+      const file = dashboardPath(name);
+      if (!isFile(file)) {
+        sendJson(res, 404, {
+          ok: false,
+          error: `no dashboard named "${name}" in the store`,
+        });
+        return;
+      }
+      current = { kind: "store", name, file };
+      sendJson(res, 200, { ok: true, name });
+    });
+  }
 
   return new Promise<number>((done) => {
     const server = createServer((req, res) => {
@@ -112,10 +219,12 @@ export function serve(args: string[]): Promise<number> {
         return;
       }
 
-      // 1. Reserved routes — the spec read/write contract (shared with dev).
+      // 1. Reserved routes — the spec read/write contract (shared with dev). All
+      //    spec routes act on `current.file`, so a mid-session switch is picked
+      //    up by the very next request.
       if (path === DASHBOARD_READ_ROUTE) {
         if (req.method === "GET" || req.method === "HEAD") {
-          void handleSpecRead(file, res);
+          void handleSpecRead(current.file, res);
         } else {
           res.statusCode = 405;
           res.end();
@@ -123,7 +232,37 @@ export function serve(args: string[]): Promise<number> {
         return;
       }
       if (path === DASHBOARD_WRITE_ROUTE) {
-        handleSpecWrite(req, res, file);
+        handleSpecWrite(req, res, current.file);
+        return;
+      }
+      // Global-store switcher: list available dashboards + which is current, and
+      // switch among them. Both only meaningful when serving from the store, and
+      // both loopback-guarded (the list leaks dashboard names — keep it local).
+      if (path === DASHBOARD_LIST_ROUTE) {
+        if (!isLocalRequest(req)) {
+          sendJson(res, 403, { ok: false, error: "loopback only" });
+          return;
+        }
+        if (req.method === "GET" || req.method === "HEAD") {
+          sendJson(res, 200, {
+            current: current.kind === "store" ? current.name : null,
+            canSwitch,
+            dashboards: canSwitch
+              ? listDashboards().map((e) => ({
+                  name: e.name,
+                  title: e.title,
+                  isDefault: e.isDefault,
+                }))
+              : [],
+          });
+        } else {
+          res.statusCode = 405;
+          res.end();
+        }
+        return;
+      }
+      if (path === DASHBOARD_SWITCH_ROUTE) {
+        handleSwitch(req, res);
         return;
       }
       // The zAI orb's keyless agent bridge (opt-in, shells to a local CLI).
@@ -137,7 +276,7 @@ export function serve(args: string[]): Promise<number> {
         return;
       }
       if (path === ASK_ROUTE) {
-        handleAsk(req, res, file, FRAME_CATALOGUE);
+        handleAsk(req, res, current.file, FRAME_CATALOGUE);
         return;
       }
       // Keyed-account tier: signed portfolio read relay + the in-app connect
@@ -171,7 +310,7 @@ export function serve(args: string[]): Promise<number> {
       }
 
       // 2. Bundle assets ("/" → index.html, hashed /assets/*) → 3. sibling
-      //    files next to dashboard.json (e.g. /daily-analysis.json, local
+      //    files next to the dashboard (e.g. /daily-analysis.json, local
       //    images) → 4. SPA fallback to the bundle's index.html.
       serveBundle(req, res, () =>
         serveSiblings(req, res, () =>
@@ -200,10 +339,19 @@ export function serve(args: string[]): Promise<number> {
       // Bind to loopback, but show `localhost` — friendlier and click-through
       // in terminals (it resolves to 127.0.0.1 either way).
       const url = `http://localhost:${parsed.port}`;
+      const label =
+        target.kind === "store"
+          ? `"${target.name}" from your store`
+          : target.file;
       console.log(`⚡ zframes is live at ${url}`);
       console.log(
-        `   serving ${parsed.file} — live editing on; drag, resize, then Save writes back.`,
+        `   serving ${label} — live editing on; drag, resize, then Save writes back.`,
       );
+      if (canSwitch && listDashboards().length > 1) {
+        console.log(
+          "   switch dashboards from the header dropdown in the app.",
+        );
+      }
     });
   });
 }

@@ -33,6 +33,7 @@ import { SecProvider } from "@zframes/provider-sec";
 import { TreasuryProvider } from "@zframes/provider-treasury";
 import { WalletProvider } from "@zframes/provider-wallet";
 import { DashboardBackground } from "./background";
+import { DashboardSwitcher } from "./dashboard-switcher";
 import { createLazyRegistry } from "./lazy-registry";
 import { TickerTape } from "./ticker-tape";
 import { useIsDesktop } from "./use-is-desktop";
@@ -323,7 +324,7 @@ export default function App() {
                 zframes
               </span>
             </h1>
-            <span className="body-sm text-soft">{spec.title}</span>
+            <DashboardSwitcher currentTitle={spec.title} />
             <span
               className="caption text-soft rounded-full border border-white/[0.08] px-1.5 py-0.5 font-mono leading-none"
               title="zframes runtime version"

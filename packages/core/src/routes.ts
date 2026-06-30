@@ -14,6 +14,16 @@ export const DASHBOARD_READ_ROUTE = "/__zframes/dashboard.json";
 /** Route the editor SAVES its spec to (PUT/POST). */
 export const DASHBOARD_WRITE_ROUTE = "/__zframes/dashboard";
 /**
+ * Global-store switcher, answered only when `serve` hosts a *named* store
+ * dashboard (not an explicit file path). GET lists the dashboards available to
+ * switch among + which is current; POST `{ name }` re-points the running server
+ * at another store dashboard so the app can reload into it. Answered by the CLI
+ * `serve` process, which owns the mutable current-file pointer — under
+ * `vite dev` they're absent, so the app simply hides the switcher.
+ */
+export const DASHBOARD_LIST_ROUTE = "/__zframes/dashboards";
+export const DASHBOARD_SWITCH_ROUTE = "/__zframes/switch";
+/**
  * Same-origin relay for official-data hosts that browsers can't fetch directly
  * (no CORS header, or a UA/bot wall). The browser hits this same-origin route
  * (no CORS check); Node fetches the upstream (no CORS rule applies) and streams
