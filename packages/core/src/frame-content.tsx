@@ -1,6 +1,7 @@
 import {
   Component,
   Fragment,
+  Suspense,
   createContext,
   useContext,
   type CSSProperties,
@@ -405,6 +406,23 @@ export const FRAME_CSS = `
     transform: none;
   }
 }
+/* Suspense fallback while a frame's component chunk loads (lazy registry). A
+   quiet pulsing fill sized to the card body — no layout shift since the grid
+   item already holds its slot. */
+.zf-frame-skeleton {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  animation: zf-skeleton-pulse 1.2s ease-in-out infinite;
+}
+@keyframes zf-skeleton-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.85; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zf-frame-skeleton { animation: none; }
+}
 `;
 
 /**
@@ -627,7 +645,9 @@ export function FrameContent({
     return (
       <div className={cx("zf-bare", className)} style={style}>
         <FrameErrorBoundary>
-          <FrameComponent config={parsed.data} />
+          <Suspense fallback={null}>
+            <FrameComponent config={parsed.data} />
+          </Suspense>
         </FrameErrorBoundary>
       </div>
     );
@@ -641,7 +661,11 @@ export function FrameContent({
           TitleIcon ? "zf-frame-title--icon" : "",
         )}
       >
-        {TitleIcon ? <TitleIcon config={parsed.data} /> : null}
+        {TitleIcon ? (
+          <Suspense fallback={null}>
+            <TitleIcon config={parsed.data} />
+          </Suspense>
+        ) : null}
         <span className="zf-frame-title-text">
           {instance.title ?? instance.frame.replace(/-/g, " ")}
         </span>
@@ -649,7 +673,9 @@ export function FrameContent({
       </div>
       <div className="zf-frame-body">
         <FrameErrorBoundary>
-          <FrameComponent config={parsed.data} />
+          <Suspense fallback={<div className="zf-frame-skeleton" />}>
+            <FrameComponent config={parsed.data} />
+          </Suspense>
         </FrameErrorBoundary>
       </div>
     </div>

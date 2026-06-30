@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { useDayStats, useMids } from "@zframes/core";
-import { AssetLogo, tickerOf } from "@zframes/frames";
+// Import from the leaf module, not the package index — the index statically
+// pulls in all 76 frame components, which would defeat the per-frame code-split
+// (the runtime registry loads components lazily via @zframes/frames/lazy).
+import { AssetLogo, tickerOf } from "@zframes/frames/asset-logo";
 
 // A pinned Bloomberg-style tape across the viewport bottom, surfacing the live
 // Hyperliquid universe with logos. It's host chrome (not a frame): always
