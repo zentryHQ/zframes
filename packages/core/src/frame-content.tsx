@@ -367,6 +367,25 @@ export const FRAME_CSS = `
     padding: calc(12px * var(--zf-density, 1)) calc(14px * var(--zf-density, 1));
   }
 }
+/* Tablets / small laptops (641-1023px): the absolute grid built for --zf-cols
+   columns is too tight here, but a single column wastes the width. Reflow the
+   vertical board to two columns — frames auto-place in spec order (dense, so
+   gaps backfill), keep their row span, and a frame that spanned at least half
+   the design grid takes both columns (--zf-col-span-sm = 2, set by the
+   renderer), everything else takes one. flow-horizontal is excluded: it keeps
+   its own ≥641px side-scroller. Above 1023px the editable GridStack takes over
+   (editing is desktop-only) and the read-only renderer is only the fallback. */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .zf-grid:not(.zf-flow-horizontal) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-flow: row dense;
+  }
+  .zf-grid:not(.zf-flow-horizontal) .zf-frame,
+  .zf-grid:not(.zf-flow-horizontal) .zf-bare {
+    grid-column: auto / span var(--zf-col-span-sm, 1);
+    grid-row: auto / span var(--zf-row-span, 1);
+  }
+}
 @keyframes zf-enter {
   from { opacity: 0; translate: 0 10px; }
   to { opacity: 1; translate: 0 0; }

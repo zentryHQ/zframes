@@ -36,7 +36,7 @@ import { TreasuryProvider } from "@zframes/provider-treasury";
 import { WalletProvider } from "@zframes/provider-wallet";
 import { DashboardBackground } from "./background";
 import { TickerTape } from "./ticker-tape";
-import { useIsMobile } from "./use-is-mobile";
+import { useIsDesktop } from "./use-is-desktop";
 import { ZaiOrb } from "./zai-orb";
 
 // The GridStack editor is desktop-only and heavy (GridStack + its CSS side-effect
@@ -192,9 +192,10 @@ export default function App() {
   const [liveBackground, setLiveBackground] = useState<
     DashboardSpec["background"] | null
   >(null);
-  // Phones get the read-only CSS-grid renderer (single-column reflow at <=640px);
-  // desktop gets the editable GridStack editor. Editing stays a desktop activity.
-  const isMobile = useIsMobile();
+  // Editing stays a desktop activity: only >=1024px gets the editable GridStack
+  // editor. Phones and tablets get the read-only CSS-grid renderer, which
+  // reflows itself (single column <=640px, two columns 641-1023px).
+  const isDesktop = useIsDesktop();
   // Lifted from the zAI orb: when the orb is open, the background recolors +
   // brightens so opening zAI visibly "charges" the scene behind the dashboard.
   const [orbOpen, setOrbOpen] = useState(false);
@@ -336,7 +337,7 @@ export default function App() {
             className="flex min-h-9 items-center justify-end"
           />
         </header>
-        {isMobile ? (
+        {!isDesktop ? (
           <DashboardRenderer spec={spec} registry={registry} />
         ) : (
           <Suspense
