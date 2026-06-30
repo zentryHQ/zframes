@@ -18,37 +18,46 @@ dashboard runtime) per run, so there's nothing to clone, install, or keep
 current. The commands you'll use below are `init`, `catalogue`, `lint`, and
 `serve` (written `zframes <cmd>` for brevity — always run them through `npx`).
 
-## 1. Pick where the dashboard lives — and scaffold it
+## 1. Name the dashboard — and scaffold it
 
 The only artifact is a single `dashboard.json`. There is **no app to scaffold** —
-the runtime comes from the CLI.
+the runtime comes from the CLI. Dashboards live in a **global store**
+(`$XDG_CONFIG_HOME/zframes/dashboards`, default `~/.config/zframes/dashboards`),
+so the user can run `zframes` from anywhere and keep several side by side, each
+addressed by a short **name** (`main`, `crypto`, …).
 
-- **Updating an existing dashboard?** Find the `dashboard.json` the user is
-  serving (or one in the current directory), read it first, and go to step 2 to
-  change only what they asked for. Don't re-init — you'd wipe their frames.
-- **New dashboard?** Pick a directory for it — the current directory, or a fresh
-  one the user names (e.g. `~/zframes`) — then **scaffold the file with `init`
-  instead of hand-writing the envelope**:
+- **Updating an existing dashboard?** Run `zframes list` to see the store (the
+  `*` marks the default), or find the `dashboard.json` the user is serving / one
+  in the current directory. Read it first, then go to step 2 and change only what
+  they asked for. Don't re-init — you'd wipe their frames.
+- **New dashboard?** Give it a **name** and `init` it into the store — don't
+  hand-write the envelope:
 
   ```bash
-  npx --yes zframes@latest init <dir> --title "<dashboard title>" --author "<name>"
+  npx --yes zframes@latest init <name> --title "<dashboard title>" --author "<who>"
   ```
 
-  This writes a bare, already-valid `<dir>/dashboard.json` — the fixed envelope,
-  modelled on package.json: `version` (semver string), `title`, `author` (pass
-  `--author` if the user gave a name, else it's left blank), then the 12-column
-  `grid` (geometry — columns/rowHeight/`gap`), the unicorn `background`, the
-  `theme` colours (`accentHue`/`accentSat` for the accent + `baseHue`/`baseSat`
-  for the dark card-surface tint + `upColor`/`downColor` for gain/loss), the `typography` (`fontFamily`
-  sans/mono/serif + `numericStyle` proportional/tabular + `scale` global text
-  size), and the card-surface
-  `appearance` (`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`) — with an
-  **empty `frames` array**. You never author that boilerplate or its
-  geometry by hand; you only fill in `frames` (step 4). The
-  spec is `<dir>/dashboard.json`; that single file is everything the user owns.
-  Any sibling files it references (a `daily-analysis.json` brief, a local image)
-  live next to it in `<dir>`. `init` refuses to clobber an existing file unless
-  you pass `--force`.
+  A bare token like `crypto` lands in the store as
+  `<store>/dashboards/crypto.json` and becomes the **default** if you don't have
+  one yet (so a later bare `zframes serve` opens it; pass `--default` to force it).
+  This writes a bare, already-valid dashboard — the fixed envelope, modelled on
+  package.json: `version` (semver string), `title`, `author` (pass `--author` if
+  the user gave a name, else it's left blank), then the 12-column `grid`
+  (geometry — columns/rowHeight/`gap`), the unicorn `background`, the `theme`
+  colours (`accentHue`/`accentSat` for the accent + `baseHue`/`baseSat` for the
+  dark card-surface tint + `upColor`/`downColor` for gain/loss), the `typography`
+  (`fontFamily` sans/mono/serif + `numericStyle` proportional/tabular + `scale`
+  global text size), and the card-surface `appearance`
+  (`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`) — with an
+  **empty `frames` array**. You never author that boilerplate or its geometry by
+  hand; you only fill in `frames` (step 4). That single file is everything the
+  user owns; sibling files it references (a `daily-analysis.json` brief, a local
+  image) live next to it in the store's `dashboards/` dir. `init` refuses to
+  clobber an existing file unless you pass `--force`.
+
+  (Prefer a plain file over the store? Pass a path — `init ./my-dir` or
+  `init ~/dash.json` — and every command takes that path too. A token with a
+  `/` or a `.json` suffix is always a path; a bare token is always a store name.)
 
 ## 2. Read the catalogue — always, before generating
 
@@ -183,7 +192,7 @@ Layout rules for the frames:
 ## 5. Lint — the feedback loop
 
 ```bash
-npx --yes zframes@latest lint <dir>/dashboard.json
+npx --yes zframes@latest lint <name>   # the store name (or a path to a dashboard.json)
 ```
 
 If it reports issues, fix the JSON and re-lint until clean. The error
@@ -198,14 +207,18 @@ up as error cards in the running dashboard; treat those the same way.
 Serve the dashboard and open it for the user:
 
 ```bash
-npx --yes zframes@latest serve <dir>/dashboard.json   # live at http://127.0.0.1:37263
+npx --yes zframes@latest serve <name>   # the store name; live at http://127.0.0.1:37263
 ```
 
-`serve` hosts the prebuilt runtime pointed at that file, streaming live keyless
-data. The user can drag, resize, add, and configure frames **in the browser** —
-Save writes the changes straight back to `dashboard.json`. Edits to the file
-(yours or theirs) show on reload, so further "add X to my dashboard" requests are
-just another edit + the page reloads. Pass `--port <n>` if 37263 is taken.
+`serve` hosts the prebuilt runtime pointed at that dashboard, streaming live
+keyless data. A bare `zframes serve` (no name) opens the **default** store
+dashboard, and when the store holds several the running app shows a **dashboard
+switcher** in the header — the user picks another and the page reloads into it,
+no restart. The user can drag, resize, add, and configure frames **in the
+browser** — Save writes the changes straight back to `dashboard.json`. Edits to
+the file (yours or theirs) show on reload, so further "add X to my dashboard"
+requests are just another edit + the page reloads. Pass `--port <n>` if 37263 is
+taken.
 
 ## Hard rules
 
