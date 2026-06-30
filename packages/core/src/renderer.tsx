@@ -23,8 +23,15 @@ function positionStyle(
   index: number,
   horizontal: boolean,
   rows: number,
+  cols: number,
 ): CSSProperties {
-  const enter = { ["--zf-enter-i" as string]: index };
+  // The tablet tier (641-1023px in FRAME_CSS) reflows the board to two columns:
+  // a frame that spanned at least half the design grid takes both columns, the
+  // rest take one. Computed here so the CSS just reads --zf-col-span-sm.
+  const enter = {
+    ["--zf-enter-i" as string]: index,
+    ["--zf-col-span-sm" as string]: instance.position.w >= cols / 2 ? 2 : 1,
+  };
   if (horizontal) {
     const hl = instance.layouts?.["flow-horizontal"];
     if (hl) {
@@ -103,7 +110,13 @@ export function DashboardRenderer({
             key={instance.id}
             instance={instance}
             registry={registry}
-            style={positionStyle(instance, index, horizontal, spec.grid.rows)}
+            style={positionStyle(
+              instance,
+              index,
+              horizontal,
+              spec.grid.rows,
+              spec.grid.columns,
+            )}
           />
         ))}
       </div>
