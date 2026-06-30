@@ -285,7 +285,8 @@ async function buildPrompt(
     `arrange frames on a grid in "customise" mode — drag, resize, add, remove, and ` +
     `configure each — and edits save to a dashboard.json the runtime renders from. ` +
     `All data comes from free public APIs (no keys, no accounts); stocks are ` +
-    `Hyperliquid HIP-3 equity perps (e.g. "xyz:TSLA") shown alongside crypto. Help ` +
+    `Hyperliquid HIP-3 perps — equities (xyz:TSLA), indices (xyz:SP500), ` +
+    `commodities (xyz:GOLD), FX (xyz:EUR) — shown alongside crypto. Help ` +
     `the user read what's on their screen and the markets it tracks.\n\n` +
     `${frameCatalogue}` +
     `${grounding}\n\n` +

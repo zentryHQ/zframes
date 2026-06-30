@@ -39,21 +39,47 @@ export type SymbolControl =
   | { kind: "symbols"; minItems?: number; maxItems?: number }
   | { kind: "holdings"; minItems?: number; maxItems?: number };
 
+// The picker fetches the whole live `xyz:*` universe; this is the offline
+// fallback AND the priority ranking that floats a hand-picked set to the top.
+// Stocks-first, then crypto — and deliberately spanning every xyz asset class
+// (index / commodity / FX / ETF / semis-memory), not just mega-cap tech, so the
+// top of the list reads as a cross-asset terminal.
 const FALLBACK_SYMBOLS = [
-  "xyz:TSLA",
+  // Indices
+  "xyz:XYZ100",
+  "xyz:SP500",
+  // Mega-cap tech
   "xyz:NVDA",
+  "xyz:TSLA",
   "xyz:AAPL",
   "xyz:MSFT",
   "xyz:GOOGL",
-  "xyz:AMD",
   "xyz:META",
   "xyz:AMZN",
-  "xyz:NFLX",
+  // Semiconductors & memory
+  "xyz:MU",
+  "xyz:AMD",
   "xyz:AVGO",
+  "xyz:ARM",
+  "xyz:TSM",
+  "xyz:SKHX",
+  // Crypto-adjacent & growth
   "xyz:MSTR",
   "xyz:COIN",
   "xyz:HOOD",
   "xyz:PLTR",
+  "xyz:SPCX",
+  // Commodities
+  "xyz:GOLD",
+  "xyz:SILVER",
+  "xyz:CL",
+  "xyz:BRENTOIL",
+  "xyz:COPPER",
+  // FX & broad ETF
+  "xyz:EUR",
+  "xyz:JPY",
+  "xyz:SMH",
+  // Crypto majors
   "BTC",
   "ETH",
   "SOL",
@@ -256,14 +282,16 @@ export function configFields(def: AnyFrameDefinition): ConfigFieldSchema[] {
     .map(([key, shape]) => ({ key, label: humanizeKey(key), shape }));
 }
 
-/** Stocks-first symbols used to seed a newly-added frame's symbol fields. */
+/** Stocks-first symbols used to seed a newly-added frame's symbol fields —
+ *  a cross-asset mix (mega-cap tech + an index + gold) so a freshly-added
+ *  multi-symbol frame renders varied rather than all-tech. */
 const DEFAULT_SYMBOLS = [
   "xyz:TSLA",
   "xyz:NVDA",
   "xyz:AAPL",
   "xyz:MSFT",
-  "xyz:META",
-  "xyz:AMD",
+  "xyz:SP500",
+  "xyz:GOLD",
   "xyz:GOOGL",
   "xyz:AMZN",
 ];

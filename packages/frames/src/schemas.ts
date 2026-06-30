@@ -188,7 +188,7 @@ export const priceChartMeta = defineFrameMeta({
   iconUrl: widgetIcon("price-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
-    "Live animated price chart (candlestick or line) for one symbol — canvas-rendered at 60fps via liveline, streaming live off the Hyperliquid WebSocket. Works for HIP-3 stock perps (xyz:TSLA) and crypto (BTC). The centerpiece frame.",
+    "Live animated price chart (candlestick or line) for one symbol — canvas-rendered at 60fps via liveline, streaming live off the Hyperliquid WebSocket. Works for any HIP-3 perp — stocks (xyz:TSLA), indices (xyz:SP500), commodities (xyz:GOLD) — and crypto (BTC). The centerpiece frame.",
   capabilities: ["ohlcv", "quote-stream"],
   source: SOURCES.hyperliquid,
   schema: z.object({
@@ -196,7 +196,7 @@ export const priceChartMeta = defineFrameMeta({
       .string()
       .min(1)
       .describe(
-        'Hyperliquid symbol to chart. Stocks/HIP-3: "xyz:TSLA", "xyz:NVDA", "xyz:AAPL". Crypto: "BTC", "ETH".',
+        'Hyperliquid symbol to chart. HIP-3 cross-asset: stocks "xyz:TSLA"/"xyz:NVDA", indices "xyz:SP500"/"xyz:XYZ100", commodities "xyz:GOLD"/"xyz:CL", FX "xyz:EUR". Crypto: "BTC", "ETH".',
       ),
     interval: z
       .enum(["1m", "5m", "15m", "1h", "4h", "1d"])
@@ -228,7 +228,7 @@ export const priceLivelineMeta = defineFrameMeta({
       .min(2)
       .max(8)
       .describe(
-        'Hyperliquid symbols to stream together, e.g. ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"] or ["BTC", "ETH", "SOL"]. 2 to 8.',
+        'Hyperliquid symbols to stream together — great cross-asset (the normalized view races a stock vs the index vs gold vs crude), e.g. ["xyz:NVDA", "xyz:SP500", "xyz:GOLD", "xyz:CL"], or all-equity ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"], or crypto ["BTC", "ETH", "SOL"]. 2 to 8.',
       ),
     windowSec: z
       .number()
@@ -262,7 +262,7 @@ export const priceTickerMeta = defineFrameMeta({
       .array(z.string())
       .min(1)
       .describe(
-        'Hyperliquid symbols to track, e.g. ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"]. Crypto works too: "BTC", "ETH".',
+        'Hyperliquid symbols to track — mix asset classes, e.g. ["xyz:NVDA", "xyz:SP500", "xyz:GOLD", "xyz:EUR"] or all-equity ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"]. Crypto works too: "BTC", "ETH".',
       ),
   }),
 });

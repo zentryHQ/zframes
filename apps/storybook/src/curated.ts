@@ -56,6 +56,19 @@ export const curated: Record<string, CuratedFrame> = {
         label: "ETH · line · 15m",
         config: { symbol: "ETH", interval: "15m", mode: "line" },
       },
+      // Cross-asset: the xyz dex is not just equities — index, commodity, FX.
+      {
+        label: "xyz:SP500 · candle · 1d",
+        config: { symbol: "xyz:SP500", interval: "1d", mode: "candle" },
+      },
+      {
+        label: "xyz:CL · line · 4h",
+        config: { symbol: "xyz:CL", interval: "4h", mode: "line" },
+      },
+      {
+        label: "xyz:EUR · line · 1h",
+        config: { symbol: "xyz:EUR", interval: "1h", mode: "line" },
+      },
     ],
   },
 };
