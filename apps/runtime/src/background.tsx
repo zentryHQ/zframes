@@ -1,15 +1,20 @@
 import type { DashboardBackground as BackgroundConfig } from "@zframes/core";
 import { lazy, Suspense } from "react";
 
-// Lazy so dashboards that don't use a Unicorn scene never fetch the SDK bundle.
-const UnicornScene = lazy(() => import("unicornstudio-react"));
+// Lazy so dashboards with no Unicorn scene never load the (tiny) scene module.
+// In-house loader (src/unicorn-scene.tsx), NOT the `unicornstudio-react` npm
+// package: that package inlines a full ~1.3 MB copy of the engine in its module
+// even when you load the engine from a URL (which we always do), so it shipped
+// ~257 kB gzip of dead weight. Ours injects only the self-hosted engine below.
+const UnicornScene = lazy(() => import("./unicorn-scene"));
 
 // Self-hosted from apps/runtime/public/ so the engine ships in the prebuilt
 // bundle instead of being pulled from a CDN. This is the MODERN engine (reads
-// the hosted `layers`-format projects); `unicornstudio-react` loads it onto
-// window.UnicornStudio. The orb deliberately uses a DIFFERENT, isolated legacy
-// engine for its v1.4.29 scene (see src/unicorn/sdk.ts) — the two builds can't
-// be unified, so they're kept on separate globals to avoid a version clash.
+// the hosted `layers`-format projects); our loader injects it onto
+// window.UnicornStudio at runtime. The orb deliberately uses a DIFFERENT,
+// isolated legacy engine for its v1.4.29 scene (see src/unicorn/sdk.ts) — the
+// two builds can't be unified, so they're kept on separate globals to avoid a
+// version clash.
 const SDK_URL = "/unicornStudio.umd.mjs";
 
 // When the zAI orb is open the background "charges": it recolors and brightens.
