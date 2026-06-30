@@ -1,0 +1,34 @@
+{
+  "name": "@zframes/storybook",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "gen": "tsx scripts/gen-stories.ts",
+    "predev": "pnpm gen",
+    "dev": "storybook dev -p 6006 --no-open",
+    "prebuild": "pnpm gen",
+    "build": "storybook build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/charts": "workspace:*",
+    "@zframes/core": "workspace:*",
+    "@zframes/frames": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "^10.4.6",
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/node": "^20.14.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "storybook": "^10.4.6",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.22.4",
+    "typescript": "^5.8.0",
+    "vite": "^6.3.0"
+  }
+}
