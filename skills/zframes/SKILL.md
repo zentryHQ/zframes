@@ -38,8 +38,9 @@ addressed by a short **name** (`main`, `crypto`, …).
   ```
 
   A bare token like `crypto` lands in the store as
-  `<store>/dashboards/crypto.json` and becomes the **default** if you don't have
-  one yet (so a later bare `zframes serve` opens it; pass `--default` to force it).
+  `<store>/dashboards/crypto/dashboard.json` and becomes the **default** if you
+  don't have one yet (so a later bare `zframes serve` opens it; pass `--default`
+  to force it).
   This writes a bare, already-valid dashboard — the fixed envelope, modelled on
   package.json: `version` (semver string), `title`, `author` (pass `--author` if
   the user gave a name, else it's left blank), then the 12-column `grid`
@@ -52,8 +53,9 @@ addressed by a short **name** (`main`, `crypto`, …).
   **empty `frames` array**. You never author that boilerplate or its geometry by
   hand; you only fill in `frames` (step 4). That single file is everything the
   user owns; sibling files it references (a `daily-analysis.json` brief, a local
-  image) live next to it in the store's `dashboards/` dir. `init` refuses to
-  clobber an existing file unless you pass `--force`.
+  image) live next to it in the dashboard's own `dashboards/<name>/` folder, so
+  each dashboard's assets stay isolated. `init` refuses to clobber an existing
+  file unless you pass `--force`.
 
   (Prefer a plain file over the store? Pass a path — `init ./my-dir` or
   `init ~/dash.json` — and every command takes that path too. A token with a

@@ -18,9 +18,11 @@ import { join, resolve } from "node:path";
  * Layout (XDG-respecting — honours `$XDG_CONFIG_HOME`, else `~/.config`):
  *
  *   ~/.config/zframes/
- *     config.json            { "default": "<name>" }
- *     dashboards/<name>.json one file per named dashboard
- *     credentials.json       keyed-account secrets (see ./account)
+ *     config.json                        { "default": "<name>" }
+ *     dashboards/<name>/dashboard.json   one FOLDER per named dashboard, holding
+ *     dashboards/<name>/daily-analysis.json   its spec + its own siblings (the
+ *     dashboards/<name>/<assets>              brief, local images) — isolated
+ *     credentials.json                   keyed-account secrets (see ./account)
  *
  * One home definition lives here; `./account` reads its credential path from
  * this module so the two never drift to different homes.
@@ -55,9 +57,30 @@ export function credentialsFile(): string {
   return join(storeHome(), "credentials.json");
 }
 
-/** Absolute path of a named store dashboard (does not check existence). */
+/**
+ * Absolute path of a named store dashboard's spec file (does not check
+ * existence). Each store dashboard is a FOLDER — `dashboards/<name>/` — holding
+ * its `dashboard.json` plus its own siblings (the `daily-analysis.json` brief,
+ * local images), so two dashboards never share an asset root. This is the
+ * canonical write/target location; `findDashboardFile` adds the existence check
+ * and the legacy-flat fallback.
+ */
 export function dashboardPath(name: string): string {
-  return join(dashboardsDir(), `${name}.json`);
+  return join(dashboardsDir(), name, "dashboard.json");
+}
+
+/**
+ * The existing spec file for a store name, or null. Prefers the folder layout
+ * (`<name>/dashboard.json`); falls back to a legacy flat `<name>.json` so a
+ * store written before the folder switch still resolves on read. Use this
+ * wherever existence matters (serve resolve, switch, list).
+ */
+export function findDashboardFile(name: string): string | null {
+  const folder = dashboardPath(name);
+  if (isFile(folder)) return folder;
+  const flat = join(dashboardsDir(), `${name}.json`);
+  if (isFile(flat)) return flat;
+  return null;
 }
 
 /**
@@ -104,7 +127,8 @@ function looksLikePath(arg: string): boolean {
 
 /** A dashboard the CLI resolved to: either a bare filesystem path or a named
  *  entry in the store. `store` entries are the ones the in-app switcher ranges
- *  over (their assets share the stable `dashboards/` root). */
+ *  over; each lives in its own `dashboards/<name>/` folder, so its asset root is
+ *  isolated and the switcher re-points the sibling server when it switches. */
 export type ResolvedTarget =
   | { kind: "path"; file: string }
   | { kind: "store"; name: string; file: string };
@@ -165,21 +189,33 @@ export interface StoreEntry {
   isDefault: boolean;
 }
 
-/** Every named dashboard in the store, sorted by name, default flagged. */
+/** Every named dashboard in the store, sorted by name, default flagged. Counts
+ *  both folder dashboards (`<name>/dashboard.json`) and any legacy flat
+ *  `<name>.json` still present, deduped by name. */
 export function listDashboards(): StoreEntry[] {
-  let names: string[];
+  const dir = dashboardsDir();
+  const names = new Set<string>();
   try {
-    names = readdirSync(dashboardsDir())
-      .filter((f) => f.toLowerCase().endsWith(".json"))
-      .map((f) => f.slice(0, -5))
-      .filter(isValidName)
-      .sort();
+    for (const ent of readdirSync(dir, { withFileTypes: true })) {
+      if (ent.isDirectory()) {
+        // Folder layout: dashboards/<name>/dashboard.json.
+        if (
+          isValidName(ent.name) &&
+          isFile(join(dir, ent.name, "dashboard.json"))
+        )
+          names.add(ent.name);
+      } else if (ent.isFile() && ent.name.toLowerCase().endsWith(".json")) {
+        // Legacy flat layout: dashboards/<name>.json.
+        const stem = ent.name.slice(0, -5);
+        if (isValidName(stem)) names.add(stem);
+      }
+    }
   } catch {
     return [];
   }
   const def = getDefault();
-  return names.map((name) => {
-    const file = dashboardPath(name);
+  return [...names].sort().map((name) => {
+    const file = findDashboardFile(name) ?? dashboardPath(name);
     let title: string | null = null;
     try {
       const json = JSON.parse(readFileSync(file, "utf8")) as {
@@ -207,12 +243,18 @@ export function resolveServeTarget(
   if (arg !== undefined) {
     const c = classifyTarget(arg, cwd);
     if ("error" in c) return c;
+    if (c.kind === "store") {
+      const file = findDashboardFile(c.name);
+      if (!file) {
+        return {
+          error: `no dashboard named "${c.name}" in the store (${dashboardsDir()})\n  create it with \`zframes init ${c.name}\`, or run \`zframes list\` to see what's there.`,
+        };
+      }
+      return { kind: "store", name: c.name, file };
+    }
     if (!isFile(c.file)) {
       return {
-        error:
-          c.kind === "store"
-            ? `no dashboard named "${c.name}" in the store (${dashboardsDir()})\n  create it with \`zframes init ${c.name}\`, or run \`zframes list\` to see what's there.`
-            : `no dashboard.json at ${arg}\n  pass a path, a store name, or run from a directory that has one.`,
+        error: `no dashboard.json at ${arg}\n  pass a path, a store name, or run from a directory that has one.`,
       };
     }
     return c;
@@ -221,8 +263,8 @@ export function resolveServeTarget(
   // No arg — global-default-first.
   const def = getDefault();
   if (def) {
-    const file = dashboardPath(def);
-    if (isFile(file)) return { kind: "store", name: def, file };
+    const file = findDashboardFile(def);
+    if (file) return { kind: "store", name: def, file };
     // The default points at a missing file — fall through rather than fail hard.
   }
   const cwdFile = join(cwd, "dashboard.json");

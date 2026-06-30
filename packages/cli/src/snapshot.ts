@@ -1,11 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { DashboardSpecSchema, type DashboardSpec } from "@zframes/core/spec";
-import {
-  dashboardsDir,
-  resolveServeTarget,
-  type ResolvedTarget,
-} from "@zframes/core/store";
+import { resolveServeTarget, type ResolvedTarget } from "@zframes/core/store";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
 import { CoinGeckoProvider } from "@zframes/provider-coingecko";
 import { DefiLlamaProvider } from "@zframes/provider-defillama";
@@ -145,26 +141,18 @@ function runMeta(args: string[]) {
 }
 
 /**
- * Where this dashboard's analysis log lives by default, and the URL its
- * `daily-analysis` frame fetches. Store dashboards each get their OWN log beside
- * the dashboard file — `dashboards/<name>.analysis.json`, served at
- * `/<name>.analysis.json` (serve's sibling root is `dashboards/`) — so many
- * dashboards in one store never collide on a single shared brief. A bare path
- * target keeps the pre-store convention: the log in the app's `public/` dir,
- * fetched at `/daily-analysis.json`. (`<name>.analysis.json` is filtered out of
- * `listDashboards`/the switcher — its stem has a `.`, so it's not a valid name.)
+ * Where this dashboard's analysis log lives by default. A store dashboard is its
+ * own folder (`dashboards/<name>/`), so its brief is just a sibling of the spec —
+ * `dashboards/<name>/daily-analysis.json`, served at the frame's default
+ * `/daily-analysis.json` (serve's sibling root is that folder). Per-folder, so
+ * dashboards never collide on one shared brief; no per-name filename needed. A
+ * bare path target keeps the pre-store convention: the log in the app's
+ * `public/` dir, also at `/daily-analysis.json`.
  */
 function defaultLogPath(target: ResolvedTarget): string {
   return target.kind === "store"
-    ? join(dashboardsDir(), `${target.name}.analysis.json`)
+    ? join(dirname(target.file), "daily-analysis.json")
     : resolve(dirname(target.file), "..", "public", "daily-analysis.json");
-}
-
-/** The same-origin URL the dashboard's `daily-analysis` frame should fetch. */
-function analysisSrc(target: ResolvedTarget): string {
-  return target.kind === "store"
-    ? `/${target.name}.analysis.json`
-    : "/daily-analysis.json";
 }
 
 /** The newest entry from a prior analysis log, for grading. Null if none. */
@@ -246,13 +234,13 @@ export async function snapshot(args: string[]): Promise<number> {
     run: runMeta(args),
     // Which dashboard this snapshot is for, and where its brief lives — so the
     // /zframes-brief agent writes the new entry to the RIGHT per-dashboard log
-    // (`logPath`) and points the frame's `src` there, instead of one shared file.
+    // (`logPath`, a sibling of this dashboard inside its folder). The frame reads
+    // it at its default `/daily-analysis.json` — no per-name `src` needed.
     dashboard: {
       kind: resolved.kind,
       name: resolved.kind === "store" ? resolved.name : null,
       file,
       logPath,
-      src: analysisSrc(resolved),
     },
     universe,
     featured,
