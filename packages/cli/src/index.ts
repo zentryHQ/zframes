@@ -35,9 +35,10 @@ usage:
                                 (this is what a generating agent reads)
   zframes lint <name|file>      validate a dashboard; exit 1 with readable errors
                                 (the agent's self-correction feedback)
-  zframes snapshot <name|file>  gather a keyless market snapshot for the symbols
+  zframes snapshot [name|file]  gather a keyless market snapshot for the symbols
                                 on the dashboard + the prior brief, as JSON on
-                                stdout (the deterministic half of /zframes-brief)
+                                stdout (the deterministic half of /zframes-brief;
+                                no target → the default store dashboard)
   zframes help                  this text
 `;
 
