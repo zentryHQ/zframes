@@ -1,7 +1,9 @@
 import { createHmac } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+// Imported by the package subpath (NOT relative "./store") so Vite's Node
+// config-loader can resolve it when it loads this module via `@zframes/core/account`
+// — same contract this file uses for `@zframes/core/routes`.
+import { credentialsFile, storeHome } from "@zframes/core/store";
 import type { Holding, Portfolio } from "./types";
 
 /**
@@ -102,12 +104,12 @@ export interface Credential {
 }
 type CredentialStore = Record<string, Credential>;
 
-const CRED_DIR = join(homedir(), ".zframes");
-const CRED_FILE = join(CRED_DIR, "credentials.json");
-
+// Credentials live in the XDG home (~/.config/zframes/credentials.json).
 async function readStore(): Promise<CredentialStore> {
   try {
-    const parsed = JSON.parse(await readFile(CRED_FILE, "utf8")) as unknown;
+    const parsed = JSON.parse(
+      await readFile(credentialsFile(), "utf8"),
+    ) as unknown;
     return parsed && typeof parsed === "object"
       ? (parsed as CredentialStore)
       : {};
@@ -117,8 +119,11 @@ async function readStore(): Promise<CredentialStore> {
 }
 
 async function writeStore(store: CredentialStore): Promise<void> {
-  await mkdir(CRED_DIR, { recursive: true, mode: 0o700 });
-  await writeFile(CRED_FILE, `${JSON.stringify(store, null, 2)}\n`, {
+  await mkdir(storeHome(), { recursive: true, mode: 0o700 });
+  // mkdir's `mode` is ignored when the dir already exists (e.g. created 0755 by
+  // a prior `zframes init`), so force 0700 — this home holds the secret.
+  await chmod(storeHome(), 0o700).catch(() => {});
+  await writeFile(credentialsFile(), `${JSON.stringify(store, null, 2)}\n`, {
     encoding: "utf8",
     mode: 0o600,
   });
