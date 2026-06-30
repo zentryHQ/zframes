@@ -23,6 +23,10 @@ import {
   handleAccountCredentials,
   handleAccountPortfolio,
 } from "@zframes/core/account";
+// Store lookup, by package subpath (not relative "./store") for the same
+// Vite-Node-loader reason the serve import above is — lets `vite dev` resolve
+// the same default dashboard the CLI's no-arg `serve` does.
+import { findDashboardFile, getDefault } from "@zframes/core/store";
 
 /**
  * Dev-only Vite plugin that serves the dashboard spec to the in-browser app and
@@ -36,7 +40,12 @@ import {
  * already does.
  */
 export interface DashboardWritebackOptions {
-  /** Spec file to read/write, relative to the Vite project root. */
+  /**
+   * Explicit spec file to read/write, relative to the Vite project root. When
+   * omitted (the default), the plugin resolves the store's default dashboard
+   * (global-default-first, exactly like the CLI's no-arg `serve`), falling back
+   * to the legacy in-repo `src/dashboard.json` only if the store is empty.
+   */
   file?: string;
   /** HTTP route the editor PUTs to. */
   route?: string;
@@ -55,7 +64,7 @@ export interface DashboardWritebackOptions {
 }
 
 export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
-  const file = options.file ?? "src/dashboard.json";
+  const explicitFile = options.file;
   const writeRoute = options.route ?? DASHBOARD_WRITE_ROUTE;
   const contact = options.contact ?? process.env.ZFRAMES_CONTACT;
   const proxyUserAgent = contact ? `zframes (${contact})` : undefined;
@@ -72,7 +81,18 @@ export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
         ) => void;
       };
     }) {
-      const target = () => resolve(server.config.root, file);
+      // Resolve per request (not once) so editing the store default mid-session
+      // is picked up: explicit `file` wins, else the store's default dashboard,
+      // else the legacy in-repo spec — the dev mirror of `resolveServeTarget`.
+      const target = () => {
+        if (explicitFile) return resolve(server.config.root, explicitFile);
+        const def = getDefault();
+        if (def) {
+          const stored = findDashboardFile(def);
+          if (stored) return stored;
+        }
+        return resolve(server.config.root, "src/dashboard.json");
+      };
       // Read route is registered first: connect matches by prefix, and the
       // write route is a prefix of the read route ("/__zframes/dashboard" ⊂
       // "/__zframes/dashboard.json"), so the read middleware must win the GET.
