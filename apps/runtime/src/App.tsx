@@ -24,6 +24,7 @@ import { CoinpaprikaProvider } from "@zframes/provider-coinpaprika";
 import { DefiLlamaProvider } from "@zframes/provider-defillama";
 import { DeribitProvider } from "@zframes/provider-deribit";
 import { FinraProvider } from "@zframes/provider-finra";
+import { FxProvider } from "@zframes/provider-fx";
 import { HyperliquidProvider } from "@zframes/provider-hyperliquid";
 import { MempoolProvider } from "@zframes/provider-mempool";
 import { NewsProvider } from "@zframes/provider-news";
@@ -59,6 +60,7 @@ const providers = [
   new SecProvider(),
   new FinraProvider(),
   new OfrProvider(),
+  new FxProvider(),
   new NewsProvider(),
   new MempoolProvider(),
   new DeribitProvider(),

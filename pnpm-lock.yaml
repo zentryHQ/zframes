@@ -70,6 +70,9 @@ importers:
       '@zframes/provider-finra':
         specifier: workspace:*
         version: link:../../packages/provider-finra
+      '@zframes/provider-fx':
+        specifier: workspace:*
+        version: link:../../packages/provider-fx
       '@zframes/provider-hyperliquid':
         specifier: workspace:*
         version: link:../../packages/provider-hyperliquid
@@ -379,6 +382,16 @@ importers:
         version: 5.9.3
 
   packages/provider-finra:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-fx:
     dependencies:
       '@zframes/core':
         specifier: workspace:*

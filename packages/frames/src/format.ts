@@ -10,6 +10,17 @@ export function formatChangePct(changePct: number): string {
   return `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%`;
 }
 
+/** A bare exchange rate at FX precision (no currency symbol): "162.44",
+ *  "0.8776". Use for unit-less ratios like an FX cross where a "$" would be
+ *  wrong; for a dollar *price* use {@link formatPrice}. */
+export function formatRate(value: number): string {
+  const dp = value >= 100 ? 2 : 4;
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: dp,
+    maximumFractionDigits: dp,
+  });
+}
+
 /** Unsigned percentage at a fixed precision: "3.42%". Use for *levels* — rates,
  *  yields, ratios, shares — where there's no positive/negative semantics. For a
  *  signed delta use {@link formatChangePct}; for funding use {@link formatFundingPct}. */

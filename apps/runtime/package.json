@@ -20,6 +20,7 @@
     "@zframes/provider-defillama": "workspace:*",
     "@zframes/provider-deribit": "workspace:*",
     "@zframes/provider-finra": "workspace:*",
+    "@zframes/provider-fx": "workspace:*",
     "@zframes/provider-hyperliquid": "workspace:*",
     "@zframes/provider-mempool": "workspace:*",
     "@zframes/provider-news": "workspace:*",

@@ -1,0 +1,26 @@
+{
+  "name": "@zframes/provider-fx",
+  "version": "0.0.0",
+  "description": "Free keyless zframes data provider for foreign-exchange rates via Frankfurter (ECB daily reference rates): latest rate, daily change, and a short trend per currency (fx-rates capability).",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/provider-fx"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

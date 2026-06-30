@@ -20,6 +20,7 @@ import type {
   FearGreedPoint,
   FinancialStress,
   FundingPoint,
+  FxRate,
   GlobalMarket,
   LightningStats,
   MacroSeries,
@@ -496,6 +497,27 @@ export function useReferenceRates(refreshMs = 15 * 60_000): {
     provider?.getReferenceRates ? () => provider.getReferenceRates!() : null,
     [],
     [provider, refreshMs],
+    refreshMs,
+  );
+  return { rates, isLoading };
+}
+
+/** FX rates for `symbols` quoted against `base`, each with a short trend.
+ *  Polled hourly by default — ECB publishes reference rates once a business
+ *  day, so there's nothing faster to see. */
+export function useFxRates(
+  base: string,
+  symbols: readonly string[],
+  refreshMs = 60 * 60_000,
+): { rates: FxRate[]; isLoading: boolean } {
+  const provider = useProviderFor("fx-rates");
+  const key = symbols.join(",");
+  const { data: rates, isLoading } = usePolled<FxRate[]>(
+    provider?.getFxRates ? () => provider.getFxRates!(base, [...symbols]) : null,
+    [],
+    // `key` (the joined symbol list) drives re-fetch on config change; `symbols`
+    // itself is a fresh array each render and would re-fire every time.
+    [provider, base, key, refreshMs],
     refreshMs,
   );
   return { rates, isLoading };

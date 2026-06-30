@@ -55,6 +55,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "price-liveline": { load: () => import("./price-liveline").then((m) => m.priceLivelineFrame) },
   "price-ticker": { load: () => import("./price-ticker").then((m) => m.priceTickerFrame) },
   "rates-board": { load: () => import("./rates-board").then((m) => m.ratesBoardFrame) },
+  "fx-board": { load: () => import("./fx-board").then((m) => m.fxBoardFrame) },
   "short-volume": { load: () => import("./short-volume").then((m) => m.shortVolumeFrame) },
   "top-movers": { load: () => import("./top-movers").then((m) => m.topMoversFrame) },
   "tvl-treemap": { load: () => import("./tvl-treemap").then((m) => m.tvlTreemapFrame) },

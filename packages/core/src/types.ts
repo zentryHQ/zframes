@@ -33,6 +33,7 @@ export type Capability =
   | "options-summary"
   | "volatility-index"
   | "coin-movers"
+  | "fx-rates"
   | "portfolio";
 
 export interface DayStats {
@@ -58,6 +59,20 @@ export interface Candle {
   low: number;
   close: number;
   volume?: number;
+}
+
+/** One currency's exchange rate vs a base, with a short trend. */
+export interface FxRate {
+  /** Quote currency code, e.g. "EUR" — units of this per 1 `base`. */
+  symbol: string;
+  /** Base currency the rate is quoted against, e.g. "USD". */
+  base: string;
+  /** Latest rate: how many `symbol` one `base` buys. */
+  rate: number;
+  /** Percent change vs the previous available (business) day. */
+  changePct: number;
+  /** Recent daily closes for a sparkline, oldest→newest. */
+  history: SeriesPoint[];
 }
 
 /** Total value locked for one chain/protocol. */
@@ -712,6 +727,8 @@ export interface MarketDataProvider {
   getGlobalMarket?(): Promise<GlobalMarket>;
   /** Official short-rate / repo reference rates. */
   getReferenceRates?(): Promise<ReferenceRate[]>;
+  /** FX rates for `symbols` quoted against `base`, each with a short trend. */
+  getFxRates?(base: string, symbols: string[]): Promise<FxRate[]>;
   /** Treasury average interest rates by security class. */
   getTreasuryAverageRates?(): Promise<TreasuryAverageRate[]>;
   /** US Treasury daily par yield curve (latest available date). */

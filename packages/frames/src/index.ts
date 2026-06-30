@@ -30,6 +30,7 @@ export { priceCompareFrame } from "./price-compare";
 export { priceLivelineFrame } from "./price-liveline";
 export { priceTickerFrame } from "./price-ticker";
 export { ratesBoardFrame } from "./rates-board";
+export { fxBoardFrame } from "./fx-board";
 export { shortVolumeFrame } from "./short-volume";
 export { topMoversFrame } from "./top-movers";
 export { tvlTreemapFrame } from "./tvl-treemap";
@@ -108,6 +109,7 @@ import { priceCompareFrame } from "./price-compare";
 import { priceLivelineFrame } from "./price-liveline";
 import { priceTickerFrame } from "./price-ticker";
 import { ratesBoardFrame } from "./rates-board";
+import { fxBoardFrame } from "./fx-board";
 import { shortVolumeFrame } from "./short-volume";
 import { topMoversFrame } from "./top-movers";
 import { tvlTreemapFrame } from "./tvl-treemap";
@@ -187,6 +189,7 @@ export const allFrames: AnyFrameDefinition[] = [
   priceLivelineFrame,
   priceTickerFrame,
   ratesBoardFrame,
+  fxBoardFrame,
   shortVolumeFrame,
   topMoversFrame,
   tvlTreemapFrame,
