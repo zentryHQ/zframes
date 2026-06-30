@@ -212,9 +212,9 @@ npx --yes zframes@latest serve <name>   # the store name; live at http://127.0.0
 
 `serve` hosts the prebuilt runtime pointed at that dashboard, streaming live
 keyless data. A bare `zframes serve` (no name) opens the **default** store
-dashboard, and when the store holds several the running app shows a **dashboard
-switcher** in the header — the user picks another and the page reloads into it,
-no restart. The user can drag, resize, add, and configure frames **in the
+dashboard, and when the store holds several the header title becomes a
+**dashboard chooser** — the user opens it, picks another, and the page reloads
+into it, no restart. The user can drag, resize, add, and configure frames **in the
 browser** — Save writes the changes straight back to `dashboard.json`. Edits to
 the file (yours or theirs) show on reload, so further "add X to my dashboard"
 requests are just another edit + the page reloads. Pass `--port <n>` if 37263 is
