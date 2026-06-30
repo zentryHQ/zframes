@@ -1,14 +1,20 @@
 ---
 name: zframes
-description: Build or update the user's personal zframes market dashboard. Use when the user says "/zframes", "build me a dashboard", "set up my terminal", "make me a market terminal", "add X to my dashboard", or wants a personalized live market dashboard (crypto + stocks). Writes a validated dashboard.json and serves it live with the CLI — the agent never writes React.
+description: Build, update, or serve the user's personal zframes market dashboard. Use when the user says "/zframes", "build me a dashboard", "set up my terminal", "make me a market terminal", "add X to my dashboard", "start/open/serve my dashboard", or wants a personalized live market dashboard (crypto + stocks). If a dashboard already exists and the user just wants to start it, serve it — don't rebuild from scratch. Writes a validated dashboard.json and serves it live with the CLI — the agent never writes React.
 ---
 
 # zframes — your dashboard, generated
 
-You set up the user's dashboard by driving the **zframes CLI** and writing a
-`dashboard.json` spec. The CLI *is* the runtime: it serves a prebuilt dashboard
-app pointed at that one file, editable in the browser. You only ever write JSON.
-Never create or edit `.tsx` files for this task.
+You set up **and run** the user's dashboard by driving the **zframes CLI** and
+writing a `dashboard.json` spec. The CLI *is* the runtime: it serves a prebuilt
+dashboard app pointed at that one file, editable in the browser. You only ever
+write JSON. Never create or edit `.tsx` files for this task.
+
+**Three jobs, one skill — serve, update, or create.** Decide which the request
+is *before* anything else (step 1). "Start / open / serve my dashboard" just
+serves the one the user already has — the most common ask once a dashboard
+exists — and skips the interview and `init` entirely. Only the *create* path
+runs the full build below.
 
 ## 0. The CLI
 
@@ -18,48 +24,66 @@ dashboard runtime) per run, so there's nothing to clone, install, or keep
 current. The commands you'll use below are `init`, `catalogue`, `lint`, and
 `serve` (written `zframes <cmd>` for brevity — always run them through `npx`).
 
-## 1. Name the dashboard — and scaffold it
+## 1. Route the request — serve, update, or create
+
+**Classify the ask first; it decides everything below.** The skill does three
+jobs, and only one of them builds anything — never run the interview or `init`
+unless you're genuinely creating a dashboard the user doesn't have yet.
+
+- **Serve / open / start an existing dashboard** — "start my dashboard", "open
+  my terminal", "serve it", or a bare `/zframes` when the user already has one.
+  This is the common case once a dashboard exists. **Don't init, don't interview,
+  don't read the catalogue.** Run `zframes list` to see what's there, then jump
+  straight to **step 6** and serve: a bare `zframes serve` opens the default (the
+  `*` in the list), `zframes serve <name>` a specific one. That's the whole job —
+  if the store already holds the dashboard they mean, you're done after step 6.
+- **Update an existing dashboard** — "add X", "swap the tickers", "change the
+  theme". Run `zframes list` (the `*` marks the default) or find the
+  `dashboard.json` the user is serving / one in the current directory. **Read it
+  first**, then change only what they asked for — re-read the catalogue (step 2)
+  if you're adding frames, edit the `frames` array (step 4), then lint + serve
+  (steps 5–6). Don't re-init — you'd wipe their frames.
+- **Create a brand-new dashboard** — only when the user wants one they don't yet
+  have (or explicitly asks for a fresh one alongside their others). Name it,
+  `init` it (below), then run the full build, steps 2 → 6.
 
 The only artifact is a single `dashboard.json`. There is **no app to scaffold** —
 the runtime comes from the CLI. Dashboards live in a **global store**
 (`$XDG_CONFIG_HOME/zframes/dashboards`, default `~/.config/zframes/dashboards`),
 so the user can run `zframes` from anywhere and keep several side by side, each
-addressed by a short **name** (`main`, `crypto`, …).
+addressed by a short **name** (`main`, `crypto`, …). `zframes list` shows them
+all, the `*` marking the one a bare `zframes serve` will open.
 
-- **Updating an existing dashboard?** Run `zframes list` to see the store (the
-  `*` marks the default), or find the `dashboard.json` the user is serving / one
-  in the current directory. Read it first, then go to step 2 and change only what
-  they asked for. Don't re-init — you'd wipe their frames.
-- **New dashboard?** Give it a **name** and `init` it into the store — don't
-  hand-write the envelope:
+To **create** one, give it a **name** and `init` it into the store — don't
+hand-write the envelope:
 
   ```bash
   npx --yes zframes@latest init <name> --title "<dashboard title>" --author "<who>"
   ```
 
-  A bare token like `crypto` lands in the store as
-  `<store>/dashboards/crypto/dashboard.json` and becomes the **default** if you
-  don't have one yet (so a later bare `zframes serve` opens it; pass `--default`
-  to force it).
-  This writes a bare, already-valid dashboard — the fixed envelope, modelled on
-  package.json: `version` (semver string), `title`, `author` (pass `--author` if
-  the user gave a name, else it's left blank), then the 12-column `grid`
-  (geometry — columns/rowHeight/`gap`), the unicorn `background`, the `theme`
-  colours (`accentHue`/`accentSat` for the accent + `baseHue`/`baseSat` for the
-  dark card-surface tint + `upColor`/`downColor` for gain/loss), the `typography`
-  (`fontFamily` sans/mono/serif + `numericStyle` proportional/tabular + `scale`
-  global text size), and the card-surface `appearance`
-  (`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`) — with an
-  **empty `frames` array**. You never author that boilerplate or its geometry by
-  hand; you only fill in `frames` (step 4). That single file is everything the
-  user owns; sibling files it references (a `daily-analysis.json` brief, a local
-  image) live next to it in the dashboard's own `dashboards/<name>/` folder, so
-  each dashboard's assets stay isolated. `init` refuses to clobber an existing
-  file unless you pass `--force`.
+A bare token like `crypto` lands in the store as
+`<store>/dashboards/crypto/dashboard.json` and becomes the **default** if you
+don't have one yet (so a later bare `zframes serve` opens it; pass `--default`
+to force it).
+This writes a bare, already-valid dashboard — the fixed envelope, modelled on
+package.json: `version` (semver string), `title`, `author` (pass `--author` if
+the user gave a name, else it's left blank), then the 12-column `grid`
+(geometry — columns/rowHeight/`gap`), the unicorn `background`, the `theme`
+colours (`accentHue`/`accentSat` for the accent + `baseHue`/`baseSat` for the
+dark card-surface tint + `upColor`/`downColor` for gain/loss), the `typography`
+(`fontFamily` sans/mono/serif + `numericStyle` proportional/tabular + `scale`
+global text size), and the card-surface `appearance`
+(`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`) — with an
+**empty `frames` array**. You never author that boilerplate or its geometry by
+hand; you only fill in `frames` (step 4). That single file is everything the
+user owns; sibling files it references (a `daily-analysis.json` brief, a local
+image) live next to it in the dashboard's own `dashboards/<name>/` folder, so
+each dashboard's assets stay isolated. `init` refuses to clobber an existing
+file unless you pass `--force`.
 
-  (Prefer a plain file over the store? Pass a path — `init ./my-dir` or
-  `init ~/dash.json` — and every command takes that path too. A token with a
-  `/` or a `.json` suffix is always a path; a bare token is always a store name.)
+(Prefer a plain file over the store? Pass a path — `init ./my-dir` or
+`init ~/dash.json` — and every command takes that path too. A token with a
+`/` or a `.json` suffix is always a path; a bare token is always a store name.)
 
 ## 2. Read the catalogue — always, before generating
 
@@ -254,6 +278,10 @@ taken.
 
 ## Hard rules
 
+- **Serve when they just want to look.** If a dashboard already exists and the
+  user says start / open / serve (or sends a bare `/zframes`), serve it
+  (step 1 → step 6) — no interview, no `init`, no rebuild. Build or re-interview
+  only when they're creating a new dashboard or changing an existing one.
 - **The interview only picks tickers, never frames.** Every dashboard ships the
   full market frame set (step 4); the onboarding funnel — asset class →
   categories → specific tickers — exists only to choose which symbols fill them.
