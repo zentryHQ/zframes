@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { DashboardSpecSchema, type DashboardSpec } from "@zframes/core/spec";
+import { classifyTarget } from "@zframes/core/store";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
 import { CoinGeckoProvider } from "@zframes/provider-coingecko";
 import { DefiLlamaProvider } from "@zframes/provider-defillama";
@@ -87,6 +88,30 @@ function flagValue(args: string[], name: string): string | undefined {
   return index >= 0 ? args[index + 1] : undefined;
 }
 
+// Flags that consume the following token as their value. The positional
+// dashboard arg must skip past those values, or `snapshot --model x mydash`
+// would mistake `x` (the --model value) for the dashboard.
+const VALUE_FLAGS = new Set([
+  "--log",
+  "--date",
+  "--model",
+  "--effort",
+  "--config",
+]);
+
+/** First non-flag token, skipping known `--flag value` pairs. */
+function positionalArg(args: string[]): string | undefined {
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a.startsWith("-")) {
+      if (VALUE_FLAGS.has(a)) i++; // step over this flag's value
+      continue;
+    }
+    return a;
+  }
+  return undefined;
+}
+
 /**
  * Engine stamp for the entry — which model/effort/config produced this run, and
  * when. The agent reasoning over the brief is a swappable, stateless engine, so
@@ -139,15 +164,21 @@ function loadPriorEntry(dashboardPath: string, logFlag?: string): unknown {
  * one JSON object to stdout. Writes nothing — the agent owns the file write.
  */
 export async function snapshot(args: string[]): Promise<number> {
-  const file = args.find((arg) => !arg.startsWith("--"));
-  if (!file) {
+  const arg = positionalArg(args);
+  if (!arg) {
     console.error(
-      "usage: zframes snapshot <dashboard.json> [--log <file>] [--date YYYY-MM-DD]\n" +
+      "usage: zframes snapshot <name|dashboard.json> [--log <file>] [--date YYYY-MM-DD]\n" +
         "         [--model <id>] [--effort <level>] [--config <json>]" +
         "  (or ZFRAMES_MODEL / ZFRAMES_EFFORT / ZFRAMES_CONFIG env)",
     );
     return 1;
   }
+  const resolved = classifyTarget(arg, process.cwd());
+  if ("error" in resolved) {
+    console.error(`✗ ${resolved.error}`);
+    return 1;
+  }
+  const file = resolved.file;
   const logFlag = flagValue(args, "--log");
   const dateFlag = flagValue(args, "--date");
 

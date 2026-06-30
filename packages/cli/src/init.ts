@@ -1,14 +1,26 @@
 import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { DashboardSpecSchema } from "@zframes/core/spec";
+import {
+  classifyTarget,
+  dashboardsDir,
+  ensureHome,
+  getDefault,
+  setDefault,
+} from "@zframes/core/store";
 
 interface InitArgs {
-  /** Destination — a `.json` file path, or a directory to drop `dashboard.json` in. */
+  /**
+   * Destination — a bare store *name* (`crypto` → the global store), a `.json`
+   * file path, or a directory to drop `dashboard.json` in.
+   */
   target: string;
   title: string;
   /** Free-form author credit (package.json-style). "" leaves the field blank. */
   author: string;
   force: boolean;
+  /** Make this the default dashboard even if the store already has one. */
+  makeDefault: boolean;
 }
 
 function parseArgs(args: string[]): InitArgs | { error: string } {
@@ -16,6 +28,7 @@ function parseArgs(args: string[]): InitArgs | { error: string } {
   let title = "my dashboard";
   let author = "";
   let force = false;
+  let makeDefault = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === "--title" || a === "-t") {
@@ -28,6 +41,8 @@ function parseArgs(args: string[]): InitArgs | { error: string } {
       author = a.slice("--author=".length);
     } else if (a === "--force" || a === "-f") {
       force = true;
+    } else if (a === "--default") {
+      makeDefault = true;
     } else if (!a.startsWith("-")) {
       target = a;
     } else {
@@ -35,17 +50,26 @@ function parseArgs(args: string[]): InitArgs | { error: string } {
     }
   }
   if (!title.trim()) return { error: "--title cannot be empty" };
-  // A bare `.json`-less target is treated as a directory below; a missing
-  // target defaults to ./dashboard.json. Both are fine.
-  return { target, title, author, force };
+  // A bare `.json`-less path target is treated as a directory below; a bare
+  // name lands in the global store; a missing target defaults to
+  // ./dashboard.json. All are fine.
+  return { target, title, author, force, makeDefault };
 }
 
-/** Resolve the destination file: `.json` paths land as-is; anything else is a
- *  directory we drop `dashboard.json` into (mirroring the skill's "pick a dir"). */
-function resolveDest(target: string): string {
-  const abs = resolve(process.cwd(), target);
-  if (abs.toLowerCase().endsWith(".json")) return abs;
-  return resolve(abs, "dashboard.json");
+/**
+ * Resolve where the dashboard is written. A bare name (`crypto`) goes to the
+ * global store and carries its `name` so init can set it as the default; a path
+ * is honoured verbatim — `.json` lands as-is, anything else is a directory we
+ * drop `dashboard.json` into (mirroring the pre-store "pick a dir" behaviour).
+ */
+function resolveDest(
+  target: string,
+): { dest: string; name?: string } | { error: string } {
+  const c = classifyTarget(target, process.cwd());
+  if ("error" in c) return c;
+  if (c.kind === "store") return { dest: c.file, name: c.name };
+  if (c.file.toLowerCase().endsWith(".json")) return { dest: c.file };
+  return { dest: resolve(c.file, "dashboard.json") };
 }
 
 /**
@@ -100,12 +124,17 @@ export function init(args: string[]): number {
   if ("error" in parsed) {
     console.error(`✗ ${parsed.error}`);
     console.error(
-      "usage: zframes init [dir|file.json] [--title <t>] [--author <a>] [--force]",
+      "usage: zframes init [name|dir|file.json] [--title <t>] [--author <a>] [--default] [--force]",
     );
     return 1;
   }
 
-  const dest = resolveDest(parsed.target);
+  const resolved = resolveDest(parsed.target);
+  if ("error" in resolved) {
+    console.error(`✗ ${resolved.error}`);
+    return 1;
+  }
+  const { dest, name } = resolved;
   if (existsSync(dest)) {
     if (!parsed.force) {
       console.error(`✗ ${dest} already exists`);
@@ -131,7 +160,10 @@ export function init(args: string[]): number {
   }
 
   try {
-    mkdirSync(dirname(dest), { recursive: true });
+    // Store targets go through ensureHome so the secret-bearing home is created
+    // 0700; path targets just need their own parent dir.
+    if (name) ensureHome();
+    else mkdirSync(dirname(dest), { recursive: true });
     // Same shape the editor's Save/writeback produces: 2-space, trailing newline.
     writeFileSync(dest, `${JSON.stringify(spec, null, 2)}\n`);
   } catch (error) {
@@ -139,11 +171,25 @@ export function init(args: string[]): number {
     return 1;
   }
 
-  // Point the follow-up hints at the actual file, even when target was a dir.
-  const hint = parsed.target.toLowerCase().endsWith(".json")
-    ? parsed.target
-    : join(parsed.target, "dashboard.json");
+  // A store dashboard becomes the default when asked, or when none is set yet
+  // (so the first dashboard makes `zframes serve` with no arg land on it; if the
+  // default was never recorded, the next init re-establishes one). No state for
+  // path targets.
+  let madeDefault = false;
+  if (name && (parsed.makeDefault || getDefault() === null)) {
+    setDefault(name);
+    madeDefault = true;
+  }
+
+  // Follow-up hints address the dashboard the way the user will: a store name,
+  // or the resolved file path for a path target.
+  const hint = name ?? dest;
   console.log(`✓ wrote a bare dashboard to ${dest}`);
+  if (name) {
+    console.log(
+      `  it's in your store (${dashboardsDir()})${madeDefault ? " and is now your default" : ""}.`,
+    );
+  }
   console.log("  next: read the catalogue, add frames, then lint + serve:");
   console.log("    npx --yes zframes@latest catalogue");
   console.log(`    npx --yes zframes@latest lint ${hint}`);

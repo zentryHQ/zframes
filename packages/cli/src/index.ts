@@ -2,7 +2,9 @@
 import { readFileSync } from "node:fs";
 import { catalogueForAI } from "@zframes/core/catalogue";
 import { DashboardSpecSchema } from "@zframes/core/spec";
+import { classifyTarget } from "@zframes/core/store";
 import { frameMetas } from "@zframes/frames/schemas";
+import { list, use } from "./dashboards";
 import { init } from "./init";
 import { lintSpec } from "./lint";
 import { serve } from "./serve";
@@ -10,25 +12,42 @@ import { snapshot } from "./snapshot";
 
 const HELP = `zframes — AI-personalizable market dashboards
 
+A dashboard is one dashboard.json. Point at a file, or name one and it lives in
+your global store ($XDG_CONFIG_HOME/zframes, default ~/.config/zframes) so you
+can run from anywhere and keep many. A bare token (e.g. \`crypto\`) is a store
+name; anything with a "/" or a ".json" suffix is a file path.
+
 usage:
-  zframes init [dir|file]     write a bare, valid dashboard.json (envelope only —
-                              version, author, grid, background, theme, empty
-                              frames) for the agent to fill in; --title <t>,
-                              --author <a>, --force to overwrite
-  zframes serve [file]        serve <dashboard.json> (default: ./dashboard.json)
-                              as a live, editable terminal at localhost:37263
-                              (--port <n> to change); Save writes back to the file
-  zframes catalogue           print the frame catalogue as JSON Schema
-                              (this is what a generating agent reads)
-  zframes lint <file>         validate a dashboard.json; exit 1 with readable
-                              errors (the agent's self-correction feedback)
-  zframes snapshot <file>     gather a keyless market snapshot for the symbols
-                              on <dashboard.json> + the prior brief, as JSON on
-                              stdout (the deterministic half of /zframes-brief)
-  zframes help                this text
+  zframes init [name|dir|file]  write a bare, valid dashboard (envelope only —
+                                version, author, grid, background, theme, empty
+                                frames) for the agent to fill in. A name lands in
+                                the store (and becomes the default if you don't
+                                have one yet); --title <t>, --author <a>,
+                                --default, --force
+  zframes serve [name|file]     serve a dashboard as a live, editable terminal at
+                                localhost:37263 (--port <n>). With no arg: the
+                                default store dashboard, else ./dashboard.json,
+                                else a sole store entry. Save writes back; switch
+                                store dashboards from the in-app header dropdown
+  zframes list                  list the dashboards in your store (default *)
+  zframes use <name>            set the default store dashboard
+  zframes catalogue             print the frame catalogue as JSON Schema
+                                (this is what a generating agent reads)
+  zframes lint <name|file>      validate a dashboard; exit 1 with readable errors
+                                (the agent's self-correction feedback)
+  zframes snapshot <name|file>  gather a keyless market snapshot for the symbols
+                                on the dashboard + the prior brief, as JSON on
+                                stdout (the deterministic half of /zframes-brief)
+  zframes help                  this text
 `;
 
-function lint(file: string): number {
+function lint(arg: string): number {
+  const resolved = classifyTarget(arg, process.cwd());
+  if ("error" in resolved) {
+    console.error(`✗ ${resolved.error}`);
+    return 1;
+  }
+  const file = resolved.file;
   let raw: string;
   try {
     raw = readFileSync(file, "utf8");
@@ -84,6 +103,11 @@ async function main(): Promise<number> {
       return lint(arg);
     case "serve":
       return serve(args.slice(1));
+    case "list":
+    case "ls":
+      return list();
+    case "use":
+      return use(args.slice(1));
     case "snapshot":
       return snapshot(args.slice(1));
     case "help":
