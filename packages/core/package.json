@@ -22,6 +22,7 @@
     "./fetch": "./src/fetch.ts",
     "./cache": "./src/cache.ts",
     "./editor": "./src/editor.tsx",
+    "./editor-symbols": "./src/editor-symbols.ts",
     "./vite": "./src/vite.ts",
     "./serve": "./src/serve.ts",
     "./agent": "./src/agent.ts",
