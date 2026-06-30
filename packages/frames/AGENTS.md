@@ -4,7 +4,7 @@ The frame components. Each frame = a Zod meta (in `schemas.ts`) + a component (i
 
 ## Cardinal rule: don't hand-roll — route through the shared primitive
 
-These frames are meant to read as **one system**, not 56 one-offs. Every recurring concern — number formatting, gain/loss color, type scale, loading/empty, scroll, list rows — already has exactly one home. Before you write a compact-`$` formatter, a `#hex`, a `text-[…]`, or a custom spinner, **import the primitive instead**. New divergence is the regression this package was harmonized to remove (see `docs/frame-ui-harmonization.html`).
+These frames are meant to read as **one system**, not a pile of one-offs. Every recurring concern — number formatting, gain/loss color, type scale, loading/empty, scroll, list rows — already has exactly one home. Before you write a compact-`$` formatter, a `#hex`, a `text-[…]`, or a custom spinner, **import the primitive instead**. New divergence is the regression this package was harmonized to remove (see `docs/frame-ui-harmonization.html`).
 
 | Concern | Use | Never |
 |---|---|---|

@@ -3,7 +3,7 @@
  *
  * Frame discovery is React-free: `@zframes/frames/schemas` exports every frame's
  * meta individually (the `frameMetas` array is only a 58-frame curated subset, so
- * we enumerate the module's exports instead to cover all 76). FRAME_CATEGORIES
+ * we enumerate the module's exports instead to cover the full set). FRAME_CATEGORIES
  * comes from the React-free `@zframes/core/frame` subpath. The generated files
  * resolve the real frame (with its component) at runtime via `allFrames.find`.
  */
