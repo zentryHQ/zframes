@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
 import {
   createServer,
   type IncomingMessage,
@@ -20,8 +20,7 @@ import {
   DASHBOARD_SWITCH_ROUTE,
 } from "@zframes/core/routes";
 import {
-  dashboardPath,
-  dashboardsDir,
+  findDashboardFile,
   isValidName,
   listDashboards,
   resolveServeTarget,
@@ -84,10 +83,6 @@ function parseArgs(args: string[]): ServeArgs | { error: string } {
   return { file, port, contact };
 }
 
-function isFile(file: string): boolean {
-  return existsSync(file) && statSync(file).isFile();
-}
-
 /** Send a JSON body with a status (no-store — the switcher state is live). */
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.statusCode = status;
@@ -116,12 +111,11 @@ export function serve(args: string[]): Promise<number> {
   // (POST /__zframes/switch) re-points it among store dashboards, and the
   // read/write/ask routes always act on whatever it points at right now.
   let current: ResolvedTarget = target;
-  // Switching is offered only when serving from the store — store dashboards
-  // share the stable `dashboards/` sibling root, so the sirv instance below
-  // stays correct across switches. An explicit path serves exactly one file.
+  // Switching is offered only when serving from the store. Each store dashboard
+  // is its OWN folder (`dashboards/<name>/`), so the sibling root is the dir the
+  // dashboard file sits in — and it MUST move when the switcher re-points
+  // `current` (see handleSwitch), or we'd serve the previous dashboard's assets.
   const canSwitch = target.kind === "store";
-  const siblingRoot =
-    target.kind === "store" ? dashboardsDir() : resolve(target.file, "..");
 
   // The prebuilt runtime ships next to dist/ (see scripts/build-runtime.mjs).
   const bundleDir = fileURLToPath(new URL("../runtime", import.meta.url));
@@ -137,7 +131,10 @@ export function serve(args: string[]): Promise<number> {
   // roots tried in order: bundle assets, then sibling files next to the
   // dashboard, then the bundle's index.html as the SPA fallback.
   const serveBundle = sirv(bundleDir, { dev: true });
-  const serveSiblings = sirv(siblingRoot, { dev: true });
+  // Rebuilt on every switch so siblings always come from the CURRENT dashboard's
+  // own folder (see handleSwitch). `dev: true` re-stats per request, so a file
+  // saved into that folder is never served stale.
+  let serveSiblings = sirv(resolve(current.file, ".."), { dev: true });
   const serveSpa = sirv(bundleDir, { dev: true, single: true });
 
   // POST /__zframes/switch { name } → re-point `current` at another store
@@ -194,8 +191,8 @@ export function serve(args: string[]): Promise<number> {
         sendJson(res, 400, { ok: false, error: "invalid dashboard name" });
         return;
       }
-      const file = dashboardPath(name);
-      if (!isFile(file)) {
+      const file = findDashboardFile(name);
+      if (!file) {
         sendJson(res, 404, {
           ok: false,
           error: `no dashboard named "${name}" in the store`,
@@ -203,6 +200,8 @@ export function serve(args: string[]): Promise<number> {
         return;
       }
       current = { kind: "store", name, file };
+      // Re-point the sibling server at the new dashboard's own folder.
+      serveSiblings = sirv(resolve(current.file, ".."), { dev: true });
       sendJson(res, 200, { ok: true, name });
     });
   }

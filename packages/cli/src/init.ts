@@ -161,9 +161,11 @@ export function init(args: string[]): number {
 
   try {
     // Store targets go through ensureHome so the secret-bearing home is created
-    // 0700; path targets just need their own parent dir.
+    // 0700; then both store and path targets get the dashboard's own dir made —
+    // for the store that's its per-name folder (`dashboards/<name>/`), for a path
+    // it's the file's parent.
     if (name) ensureHome();
-    else mkdirSync(dirname(dest), { recursive: true });
+    mkdirSync(dirname(dest), { recursive: true });
     // Same shape the editor's Save/writeback produces: 2-space, trailing newline.
     writeFileSync(dest, `${JSON.stringify(spec, null, 2)}\n`);
   } catch (error) {

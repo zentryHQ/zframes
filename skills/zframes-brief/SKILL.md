@@ -65,9 +65,8 @@ This prints one JSON object — capture it. Shape:
   "dashboard": {                                // which dashboard + where its brief lives
     "kind": "store",                            // "store" | "path"
     "name": "crypto",                           // store name (null for a path target)
-    "file": "…/dashboards/crypto.json",
-    "logPath": "…/dashboards/crypto.analysis.json", // WRITE today's entry HERE (step 6)
-    "src": "/crypto.analysis.json"              // the daily-analysis frame's config.src
+    "file": "…/dashboards/crypto/dashboard.json",
+    "logPath": "…/dashboards/crypto/daily-analysis.json" // WRITE today's entry HERE (step 6)
   },
   "universe": ["xyz:TSLA", "xyz:NVDA", ...],   // every symbol on the dashboard
   "featured": "xyz:TSLA",                       // the featured frame's symbol
@@ -96,13 +95,12 @@ hard-coded path:
 
 - **The frame.** If the dashboard has no `daily-analysis` frame, tell the user
   and offer to add one (a single instance, e.g. `{"id":"daily-brief",
-  "frame":"daily-analysis","title":"Daily Brief","position":{...},
-  "config":{"src":"<dashboard.src>"}}`). Set `config.src` to
-  `snapshot.dashboard.src` so a **store** dashboard fetches its OWN per-name log
-  (`/<name>.analysis.json`) instead of a shared one; a path/app dashboard can
-  leave the default (`/daily-analysis.json`). Adding the frame is the one time
-  this flow touches `dashboard.json` — and only with the user's go-ahead. If they
-  decline, the loop still runs; the brief just isn't displayed.
+  "frame":"daily-analysis","title":"Daily Brief","position":{...},"config":{}}`).
+  Leave `config` at its default — the frame fetches `/daily-analysis.json`, which
+  for a store dashboard is served straight out of its own folder
+  (`dashboards/<name>/`), so dashboards never collide. Adding the frame is the
+  one time this flow touches `dashboard.json` — and only with the user's go-ahead.
+  If they decline, the loop still runs; the brief just isn't displayed.
 - **The log.** If `snapshot.dashboard.logPath` is missing, create it — and its
   parent dir — as `{ "entries": [] }`.
 
@@ -180,8 +178,8 @@ write crontab lines or wrap it in `claude -p` — point them at `/schedule`.
 
 **The one requirement:** whatever runs it must be able to **write the
 dashboard's analysis log** (`snapshot.dashboard.logPath` — for a store dashboard
-that's `~/.config/zframes/dashboards/<name>.analysis.json`) — i.e. it runs with
-access to where the log lives.
+that's `~/.config/zframes/dashboards/<name>/daily-analysis.json`) — i.e. it runs
+with access to where the log lives.
 - A runner that has those files (local to that machine, or a routine that clones
   the repo / store and commits the updated log) works.
 - A scheduler with no access to where the log lives can update nothing — if the

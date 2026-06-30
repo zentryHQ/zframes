@@ -1,11 +1,12 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   classifyTarget,
   dashboardPath,
   dashboardsDir,
+  findDashboardFile,
   getDefault,
   isValidName,
   listDashboards,
@@ -22,9 +23,19 @@ let cwd: string;
 let prevXdg: string | undefined;
 
 function writeDash(name: string, title = name): void {
-  mkdirSync(dashboardsDir(), { recursive: true });
+  // Folder layout: dashboards/<name>/dashboard.json.
+  mkdirSync(dirname(dashboardPath(name)), { recursive: true });
   writeFileSync(
     dashboardPath(name),
+    `${JSON.stringify({ title, frames: [] })}\n`,
+  );
+}
+
+/** Write a legacy flat dashboards/<name>.json (pre-folder layout). */
+function writeFlatDash(name: string, title = name): void {
+  mkdirSync(dashboardsDir(), { recursive: true });
+  writeFileSync(
+    join(dashboardsDir(), `${name}.json`),
     `${JSON.stringify({ title, frames: [] })}\n`,
   );
 }
@@ -108,6 +119,37 @@ describe("default + list", () => {
     expect(entries.find((e) => e.name === "main")?.isDefault).toBe(true);
     expect(entries.find((e) => e.name === "crypto")?.isDefault).toBe(false);
     expect(entries.find((e) => e.name === "main")?.title).toBe("Main board");
+  });
+});
+
+describe("folder layout + legacy flat fallback", () => {
+  it("dashboardPath points at <name>/dashboard.json (the folder layout)", () => {
+    expect(dashboardPath("crypto")).toBe(
+      join(dashboardsDir(), "crypto", "dashboard.json"),
+    );
+  });
+
+  it("findDashboardFile prefers the folder, falls back to a legacy flat file", () => {
+    expect(findDashboardFile("ghost")).toBeNull();
+    writeFlatDash("legacy");
+    expect(findDashboardFile("legacy")).toBe(
+      join(dashboardsDir(), "legacy.json"),
+    );
+    writeDash("modern");
+    expect(findDashboardFile("modern")).toBe(dashboardPath("modern"));
+  });
+
+  it("lists and serves a legacy flat dashboard alongside folder ones", () => {
+    writeFlatDash("old", "Old board");
+    writeDash("new", "New board");
+    const entries = listDashboards();
+    expect(entries.map((e) => e.name)).toEqual(["new", "old"]);
+    expect(entries.find((e) => e.name === "old")?.title).toBe("Old board");
+    expect(resolveServeTarget("old", cwd)).toEqual({
+      kind: "store",
+      name: "old",
+      file: join(dashboardsDir(), "old.json"),
+    });
   });
 });
 
