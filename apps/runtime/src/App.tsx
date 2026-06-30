@@ -7,7 +7,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  createRegistry,
   DashboardRenderer,
   DashboardSpecSchema,
   FramesProvider,
@@ -17,7 +16,6 @@ import {
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
 } from "@zframes/core/routes";
-import { allFrames } from "@zframes/frames";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
 import { BinanceProvider } from "@zframes/provider-binance";
 import { BlsProvider } from "@zframes/provider-bls";
@@ -35,6 +33,7 @@ import { SecProvider } from "@zframes/provider-sec";
 import { TreasuryProvider } from "@zframes/provider-treasury";
 import { WalletProvider } from "@zframes/provider-wallet";
 import { DashboardBackground } from "./background";
+import { createLazyRegistry } from "./lazy-registry";
 import { TickerTape } from "./ticker-tape";
 import { useIsDesktop } from "./use-is-desktop";
 import { ZaiOrb } from "./zai-orb";
@@ -46,7 +45,7 @@ const DashboardEditor = lazy(() =>
   import("@zframes/core/editor").then((m) => ({ default: m.DashboardEditor })),
 );
 
-const registry = createRegistry(allFrames);
+const registry = createLazyRegistry();
 const providers = [
   new HyperliquidProvider(),
   new DefiLlamaProvider(),

@@ -1952,3 +1952,35 @@ export const frameMetas: FrameMeta[] = [
   optionsOiStrikeMeta,
   coinMoversMeta,
 ];
+
+/**
+ * Every renderable frame's metadata — the full set the runtime registers (the
+ * React-free twin of `allFrames`), in contrast to `frameMetas` above, which is
+ * the *curated* subset the AI catalogue + CLI/skill expose so the generating
+ * agent only picks data/market frames. The runtime must render all 76 (a human
+ * adds games/journal/tools/layout frames from the editor palette, and saved
+ * specs reference them), so the runtime registry builds from THIS list. Keep in
+ * lockstep with `allFrames` / `frameLoaders` — the parity test in
+ * `frames.test.ts` fails the build if they drift.
+ */
+export const allFrameMetas: FrameMeta[] = [
+  ...frameMetas,
+  breakevenMeta,
+  breathingMeta,
+  checklistMeta,
+  dayMeterMeta,
+  diceMeta,
+  holidayCalendarMeta,
+  journalLogMeta,
+  journalOpenMeta,
+  journalResultsMeta,
+  journalScoreMeta,
+  marqueeMeta,
+  pomodoroMeta,
+  returnsProjectorMeta,
+  riskRewardMeta,
+  rulesCardMeta,
+  sessionProgressMeta,
+  spotifyEmbedMeta,
+  stopwatchMeta,
+];

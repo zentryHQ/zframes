@@ -36,10 +36,12 @@ These intentionally don't go through the generic primitives; don't "harmonize" t
 
 ## Adding a frame
 
-1. `schemas.ts` — add the meta via `defineFrameMeta`. **Set `category`** (one of `FRAME_CATEGORIES`' keys in `@zframes/core` — it's a required field; groups the editor palette and the AI catalogue) and give **every field a `.describe()`** (read by `catalogueForAI`). This file is React-free — no component imports.
+Per-frame metadata lives in **four** lists that must stay in lockstep — `registry-parity.test.ts` fails the build if they drift, and a missing loader/meta makes the frame vanish at runtime as an "Unknown frame" card:
+
+1. `schemas.ts` — add the meta via `defineFrameMeta`. **Set `category`** (one of `FRAME_CATEGORIES`' keys in `@zframes/core` — required; groups the editor palette and the AI catalogue) and give **every field a `.describe()`** (read by `catalogueForAI`). React-free — no component imports. Then add the meta to **`allFrameMetas`** (every renderable frame; the runtime registry's source), and — only if the generating agent should be able to pick it — also to **`frameMetas`** (the curated AI catalogue; games/journal/tools/layout frames are deliberately omitted).
 2. New `<frame>.tsx` — import the meta, build the component using the primitives above, `export const xFrame = defineFrame({ ...xMeta, component: X })`.
-3. `index.ts` — add `xFrame` to `allFrames` (and re-export if hosts need it).
-4. `pnpm typecheck && pnpm lint && pnpm test` from the repo root before committing.
+3. `index.ts` — add `xFrame` to `allFrames` (for hosts that register eagerly). **And `lazy.ts`** — add `"<name>": { load: () => import("./<name>").then((m) => m.xFrame) }` (set `titleIcon: true` if the module exports one). This is the per-frame chunk the runtime lazy-loads; **a missing entry = the frame silently won't render.**
+4. `pnpm typecheck && pnpm lint && pnpm test` from the repo root before committing — the parity test confirms `allFrameMetas` ≡ `lazy.ts` loaders.
 
 ## Footguns
 

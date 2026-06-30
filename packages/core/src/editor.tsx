@@ -38,6 +38,23 @@ import {
 } from "./spec";
 
 /**
+ * Unmount a per-frame React root *after* the current render/commit finishes.
+ * Frame components load lazily (`React.lazy` + `Suspense`), so a root can still
+ * be mid-render when the editor tears the grid down; a synchronous
+ * `root.unmount()` inside React's render phase warns ("Attempted to
+ * synchronously unmount a root while React was already rendering"). Deferring
+ * to a microtask sidesteps it — GridStack has already detached the DOM node, so
+ * the late unmount is harmless and the new grid builds fresh nodes/roots.
+ *
+ * Load-bearing invariant: every caller MUST drop the id from rootsRef/contentRef
+ * before scheduling the deferred unmount, so renderInstance can't reuse a root
+ * that's queued for teardown. All three call sites do this synchronously.
+ */
+function unmountRootSoon(root: Root): void {
+  queueMicrotask(() => root.unmount());
+}
+
+/**
  * Interactive, in-browser dashboard editor — a drag/resize/add/delete
  * "customise mode" on a GridStack 12-column grid.
  *
@@ -462,7 +479,8 @@ export function DashboardEditor({
     if (!grid) return;
     const id = el.getAttribute("gs-id");
     if (id) {
-      rootsRef.current.get(id)?.unmount();
+      const root = rootsRef.current.get(id);
+      if (root) unmountRootSoon(root);
       rootsRef.current.delete(id);
       contentRef.current.delete(id);
       instancesRef.current.delete(id);
@@ -558,7 +576,7 @@ export function DashboardEditor({
     (frames: FrameInstance[]) => {
       const grid = gridInstanceRef.current;
       if (!grid) return;
-      rootsRef.current.forEach((root) => root.unmount());
+      rootsRef.current.forEach(unmountRootSoon);
       rootsRef.current.clear();
       contentRef.current.clear();
       instancesRef.current = new Map(frames.map((f) => [f.id, f]));
@@ -643,7 +661,7 @@ export function DashboardEditor({
     grid.off("dragstart");
     grid.off("dragstop");
     document.body.classList.remove("zf-dragging");
-    rootsRef.current.forEach((root) => root.unmount());
+    rootsRef.current.forEach(unmountRootSoon);
     rootsRef.current.clear();
     contentRef.current.clear();
     grid.destroy(false);
