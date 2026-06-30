@@ -25,6 +25,7 @@
     "./editor-symbols": "./src/editor-symbols.ts",
     "./vite": "./src/vite.ts",
     "./serve": "./src/serve.ts",
+    "./store": "./src/store.ts",
     "./agent": "./src/agent.ts",
     "./account": "./src/account.ts"
   },
