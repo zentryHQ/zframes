@@ -21,11 +21,16 @@ import { fetchJson } from "@zframes/core/fetch";
  * (and a possible BYO data-source key) is a deliberate later step.
  */
 
-// Public, keyless, CORS-open JSON-RPC endpoints, tried in order. One batch call
-// per refresh. publicnode is primary; ankr is the fallback if it's unreachable.
+// Public, keyless, CORS-open JSON-RPC endpoints, tried in order until one returns
+// a valid batch array. publicnode is primary; cloudflare-eth and 1rpc are keyless
+// CORS-open fallbacks. (ankr was dropped — its keyless tier now requires an API
+// key and answers with HTTP 200 + a single JSON-RPC error object, not the batch
+// array, which fetchBalances rejects below so it falls through instead of
+// crashing on a non-iterable response.)
 const RPC_URLS = [
   "https://ethereum-rpc.publicnode.com",
-  "https://rpc.ankr.com/eth",
+  "https://cloudflare-eth.com",
+  "https://1rpc.io/eth",
 ];
 const COINGECKO_PRICE = "https://api.coingecko.com/api/v3/simple/price";
 // balanceOf(address) selector.
@@ -202,7 +207,22 @@ async function fetchBalances(address: string): Promise<Map<string, number>> {
         signal: AbortSignal.timeout(12_000),
       });
       if (!res.ok) throw new Error(`rpc ${res.status}`);
-      rows = (await res.json()) as Array<{ id: number; result?: string }>;
+      const body: unknown = await res.json();
+      // Some "keyless" endpoints answer a throttle with HTTP 200 + a single
+      // JSON-RPC error object instead of the batch array (ankr, cloudflare-eth
+      // under load). Reject anything that isn't an array carrying at least one
+      // result, so we fall through to the next endpoint instead of crashing on a
+      // non-iterable `for…of` or silently reading every balance as zero.
+      if (!Array.isArray(body)) {
+        const message =
+          (body as { error?: { message?: string } })?.error?.message ??
+          "non-array response";
+        throw new Error(`rpc ${url}: ${message}`);
+      }
+      const batchRows = body as Array<{ id: number; result?: string }>;
+      if (!batchRows.some((row) => typeof row.result === "string"))
+        throw new Error(`rpc ${url}: no results (throttled?)`);
+      rows = batchRows;
       break;
     } catch (error) {
       lastError = error;
@@ -222,20 +242,44 @@ async function fetchBalances(address: string): Promise<Map<string, number>> {
 
 type PriceRow = { usd?: number; usd_24h_change?: number };
 
-async function fetchPrices(cgIds: string[]): Promise<Record<string, PriceRow>> {
-  if (cgIds.length === 0) return {};
-  const url = `${COINGECKO_PRICE}?ids=${cgIds.join(",")}&vs_currencies=usd&include_24hr_change=true`;
-  return fetchJson<Record<string, PriceRow>>(url);
+// Every token we might price, deduped — fetched in one call under a single cache
+// key so all wallet frames (any address) share one CoinGecko response.
+const ALL_CG_IDS = [...new Set(TOKENS.map((t) => t.cgId))];
+
+// CoinGecko's keyless tier is the most rate-limited source we touch, and a burst
+// on cold load (this provider + the coin-markets/global frames share one per-IP
+// bucket) earns a 429. Prices are public market data — unlike the wallet's
+// holdings, which stay out of storage (walletCache below) — so they get their own
+// persisted, stale-on-error cache: one call feeds every wallet frame, a reload
+// reuses the persisted prices with no network call, and a 429 serves the last
+// good prices instead of failing the whole portfolio. 10 min TTL sits under the
+// 60 s poll so background refreshes still land while reloads/extra frames reuse
+// it. Keyed by the full id set (constant), not per-wallet, to maximise reuse.
+const priceCache = new TtlCache<Record<string, PriceRow>>({
+  namespace: "zframes:wallet:prices",
+  ttlMs: 10 * 60_000,
+  persist: true,
+});
+
+async function fetchPrices(): Promise<Record<string, PriceRow>> {
+  return priceCache.get("all", async () => {
+    const url = `${COINGECKO_PRICE}?ids=${ALL_CG_IDS.join(",")}&vs_currencies=usd&include_24hr_change=true`;
+    const body = await fetchJson<Record<string, PriceRow>>(url);
+    if (!body || typeof body !== "object" || Array.isArray(body))
+      throw new Error("coingecko simple/price: unexpected response shape");
+    return body;
+  });
 }
 
 function shortAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
-// Per-address TTL, in-flight dedup across the value + allocation + holdings
-// frames. 2 min eases public RPC + CoinGecko pressure; the 60s poll still
-// refreshes in the background once the entry expires. Not persisted (keep
-// wallet reads out of storage).
+// Per-address TTL + in-flight dedup across the value / allocation / holdings
+// frames on one address. 2 min eases public-RPC pressure; the 60 s poll still
+// refreshes in the background once the entry expires. Not persisted — holdings
+// are wallet-specific, so they stay out of storage (prices, which are public,
+// have their own persisted cache above).
 const walletCache = new TtlCache<Portfolio>({
   namespace: "zframes:wallet:portfolio",
   ttlMs: 120_000,
@@ -254,7 +298,7 @@ export class WalletProvider implements MarketDataProvider {
       const address = await resolveAddress(source.address!);
       const amounts = await fetchBalances(address);
       const held = TOKENS.filter((t) => amounts.has(t.symbol));
-      const prices = await fetchPrices(held.map((t) => t.cgId));
+      const prices = held.length ? await fetchPrices() : {};
 
       const holdings: Holding[] = held
         .map((token) => {
