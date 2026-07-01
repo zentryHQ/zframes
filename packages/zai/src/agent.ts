@@ -21,7 +21,7 @@ import { dirname, join } from "node:path";
 // Route strings live in `routes` (React-free AND Node-free) so the browser
 // bundle can import them without pulling in this file's `node:child_process` /
 // `node:fs` deps. Re-exported here for the Node servers that import them
-// alongside the handlers from `@zframes/core/agent`. Imported by package subpath
+// alongside the handlers from `@zframes/zai/agent`. Imported by package subpath
 // (NOT relative `./routes`) because this file is reached by Vite's Node
 // config-loader, which can't resolve a relative extensionless path.
 export { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/spec/routes";

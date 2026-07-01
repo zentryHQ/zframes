@@ -28,8 +28,8 @@
  *    silently skipped on quota / serialisation errors. Persisted values must be
  *    JSON-serialisable (e.g. plain objects, not `Map`s).
  *
- * React-free on purpose (deep export `@zframes/core/cache`) so providers use it
- * without pulling React into their bundle, exactly like `@zframes/core/fetch`.
+ * React-free on purpose (deep export `@zframes/data-primitives/cache`) so providers use it
+ * without pulling React into their bundle, exactly like `@zframes/data-primitives/fetch`.
  */
 export interface TtlCacheOptions<T> {
   /** Prefix for localStorage keys, and a stable label, e.g. "zframes:coingecko". */
