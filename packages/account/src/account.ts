@@ -1,8 +1,8 @@
 import { createHmac } from "node:crypto";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 // Imported by the package subpath (NOT relative "./store") so Vite's Node
-// config-loader can resolve it when it loads this module via `@zframes/core/account`
-// — same contract this file uses for `@zframes/core/routes`.
+// config-loader can resolve it when it loads this module via `@zframes/account/account`
+// — same contract this file uses for `@zframes/spec/routes`.
 import { credentialsFile, storeHome } from "@zframes/store";
 import type { Holding, Portfolio } from "@zframes/spec/types";
 
@@ -19,7 +19,7 @@ import type { Holding, Portfolio } from "@zframes/spec/types";
  * NOT use this path — it reads public data directly.
  *
  * Node-only and React-free (node builtins + type-only imports). Route strings
- * come from `@zframes/core/routes` by package subpath (NOT relative `./routes`)
+ * come from `@zframes/spec/routes` by package subpath (NOT relative `./routes`)
  * so Vite's Node config-loader can resolve them — same contract `./serve` uses.
  */
 export {

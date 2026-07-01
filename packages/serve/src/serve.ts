@@ -13,7 +13,7 @@ import { readFile, writeFile } from "node:fs/promises";
 // The reserved route strings live in `routes` (React-free AND Node-free) so the
 // browser bundle can import them without pulling in this file's `node:fs`
 // dependency. Re-exported here for the Node servers (`./vite`, the CLI) that
-// import them alongside the handlers from `@zframes/core/serve`. Imported by
+// import them alongside the handlers from `@zframes/serve/serve`. Imported by
 // package subpath (NOT relative `./routes`) because this file is reached by
 // Vite's Node config-loader, which can't resolve a relative extensionless path.
 export {

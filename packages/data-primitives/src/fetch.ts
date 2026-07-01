@@ -12,7 +12,7 @@ import { DASHBOARD_PROXY_ROUTE } from "@zframes/spec/routes";
  *    here with a clear message instead of surfacing later as an opaque
  *    "undefined is not an object" deep inside a frame
  *
- * React-free on purpose (deep export `@zframes/core/fetch`) so providers can
+ * React-free on purpose (deep export `@zframes/data-primitives/fetch`) so providers can
  * use it without pulling React into their bundle.
  */
 export interface FetchJsonOptions {

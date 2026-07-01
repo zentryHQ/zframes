@@ -41,7 +41,7 @@ export function catalogueForAI(input: FrameRegistry | Iterable<FrameMeta>) {
  * Note: groups by each meta's own `category` string rather than importing the
  * `FRAME_CATEGORIES` value — this module is reached by Vite's Node config loader
  * (via the host's vite.config), where a relative *value* import of "./frame"
- * fails to resolve (same footgun as @zframes/core/vite). Type-only is fine.
+ * fails to resolve (same footgun as @zframes/vite/vite). Type-only is fine.
  */
 export function catalogueSummary(
   input: FrameRegistry | Iterable<FrameMeta>,
