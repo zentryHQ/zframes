@@ -77,30 +77,43 @@ const ORB_CSS = `
 /* Focus scrim: opening the orb blurs + dims the dashboard behind so attention
    lands on the conversation. Sits below the orb dock (z 40) and above the
    ticker tape (z 30), so the orb + chat stay sharp while everything else
-   recedes. Clicking it dismisses the orb (click-away-to-close). */
+   recedes. Clicking it dismisses the orb (click-away-to-close).
+
+   Two stacked gradients give the open state ATMOSPHERE rather than a flat dim:
+   (1) a warm violet glow spilling from the orb's corner — the room reads as lit
+   by zAI, a glowing source, not just darkened; (2) a deeper, warmer dim toward
+   the far corner — a violet-plum near-black (not the old cold blue-black) so the
+   room genuinely recedes. The near-orb corner stays clear so the conversation
+   sits in the light while everything else falls away. */
 .zai-scrim {
   position: fixed;
   inset: 0;
   z-index: 35;
   opacity: 0;
   pointer-events: none;
-  background: radial-gradient(
-    135% 135% at 100% 100%,
-    rgba(7, 8, 16, 0.08),
-    rgba(7, 8, 16, 0.5) 72%
-  );
+  background:
+    radial-gradient(
+      88% 82% at 100% 100%,
+      hsla(268, 82%, 44%, 0.22),
+      transparent 56%
+    ),
+    radial-gradient(
+      150% 150% at 100% 100%,
+      hsla(266, 44%, 7%, 0.12),
+      hsla(263, 52%, 4%, 0.74) 78%
+    );
   backdrop-filter: blur(0px) saturate(1);
   -webkit-backdrop-filter: blur(0px) saturate(1);
   transition:
-    opacity 0.42s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
-    backdrop-filter 0.42s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
-    -webkit-backdrop-filter 0.42s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+    opacity 0.46s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    backdrop-filter 0.46s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    -webkit-backdrop-filter 0.46s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 .zai-scrim[data-open="true"] {
   opacity: 1;
   pointer-events: auto;
-  backdrop-filter: blur(1.75px) saturate(1.06);
-  -webkit-backdrop-filter: blur(1.75px) saturate(1.06);
+  backdrop-filter: blur(2.5px) saturate(1.12);
+  -webkit-backdrop-filter: blur(2.5px) saturate(1.12);
 }
 .zai-dock {
   position: fixed;
