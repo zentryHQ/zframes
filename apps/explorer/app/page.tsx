@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CommunitySection } from "@/app/lib/CommunitySection";
 import { CURATED } from "@/app/lib/curated-dashboards";
 
 // Gallery home — a server component (no live frames here, so it's SSR/SEO-friendly
@@ -25,6 +26,7 @@ export default function GalleryHome() {
         </p>
       </section>
 
+      <h2 className="mb-4 text-lg font-semibold text-white">Curated</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {CURATED.map((d) => (
           <Link
@@ -54,6 +56,8 @@ export default function GalleryHome() {
           </Link>
         ))}
       </div>
+
+      <CommunitySection />
     </main>
   );
 }

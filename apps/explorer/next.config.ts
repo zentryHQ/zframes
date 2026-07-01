@@ -26,6 +26,9 @@ const nextConfig: NextConfig = {
     "@zframes/provider-sec",
     "@zframes/provider-treasury",
   ],
+  // Keep the DB drivers out of the bundle — PGlite ships WASM and postgres is a
+  // native-ish driver; they must load from node_modules in the Node runtime.
+  serverExternalPackages: ["postgres"],
   // The browser's fetch layer hard-rewrites proxied provider calls to the shared
   // constant `/__zframes/proxy?url=…`. That path can't be an App Router folder
   // (leading `_` = private, excluded from routing), so map it to a normal api

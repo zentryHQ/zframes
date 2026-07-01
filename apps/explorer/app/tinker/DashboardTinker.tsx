@@ -6,17 +6,15 @@ import {
   FramesProvider,
   type DashboardSpec,
 } from "@zframes/core";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import "gridstack/dist/gridstack.min.css";
+import { PublishDialog } from "@/app/lib/PublishDialog";
 import { providers, registry } from "@/app/lib/frames";
 
-// This module is loaded client-only (the page dynamic-imports it with ssr:false),
-// so DashboardEditor (GridStack owns the DOM) and localStorage are all safe to use
-// directly, and the useState initializer runs with `window` defined.
+// Client-only module (the page dynamic-imports it ssr:false) — DashboardEditor
+// (GridStack) + localStorage both run in the browser.
 const STORAGE_KEY = "zframes:tinker-spec";
 
-// Written by "Make it mine" on a preview; falls back to a small starter when the
-// tinker slot is empty (someone opened /tinker directly).
 const STARTER = {
   version: "1.0.0",
   title: "My dashboard",
@@ -51,31 +49,53 @@ function loadSpec(): DashboardSpec {
 
 export default function DashboardTinker() {
   const [spec] = useState<DashboardSpec>(loadSpec);
+  // The editor only reads `spec` at mount; onSave hands us the live spec, which
+  // we keep in a ref so Publish always sends the latest edited state.
+  const latest = useRef<DashboardSpec>(spec);
   const [saved, setSaved] = useState(false);
+  const [showPublish, setShowPublish] = useState(false);
 
-  // Fork model: Save persists to localStorage only — no server write, no reload
-  // (the editor keeps the just-saved spec on screen). This is the whole
-  // "customise it and it's yours (in this browser)" loop.
   const onSave = useCallback(async (next: DashboardSpec) => {
+    latest.current = next;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       setSaved(true);
       window.setTimeout(() => setSaved(false), 2200);
     } catch {
-      /* localStorage unavailable — edits stay on screen, just not persisted */
+      /* storage unavailable — edits stay on screen */
     }
   }, []);
 
   return (
     <FramesProvider providers={providers}>
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 pt-6">
+        <div>
+          <h1 className="text-lg font-semibold text-white">Tinker</h1>
+          <p className="text-xs text-white/40">
+            Customise then Save (this browser), or Publish to a shareable link.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowPublish(true)}
+          className="rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-1.5 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25"
+        >
+          Publish →
+        </button>
+      </div>
+
+      <main className="mx-auto max-w-7xl px-6 py-4">
+        <DashboardEditor spec={spec} registry={registry} onSave={onSave} />
+      </main>
+
+      {showPublish && (
+        <PublishDialog getSpec={() => latest.current} onClose={() => setShowPublish(false)} />
+      )}
       {saved ? (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-4 py-1.5 text-sm text-emerald-200 shadow-lg">
           Saved to this browser
         </div>
       ) : null}
-      <main className="mx-auto max-w-7xl px-6 py-6">
-        <DashboardEditor spec={spec} registry={registry} onSave={onSave} />
-      </main>
     </FramesProvider>
   );
 }
