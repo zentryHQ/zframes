@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { SectionHeading } from "@/app/lib/SectionHeading";
 
 type Row = {
   id: string;
@@ -36,8 +37,12 @@ export default function MyDashboardsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <h1 className="mb-6 text-2xl font-bold text-white">My dashboards</h1>
+    <main className="mx-auto max-w-4xl px-6 py-12">
+      <SectionHeading
+        eyebrow="Your account"
+        title="My dashboards"
+        description="Boards you've published. Preview any live, or manage visibility below."
+      />
 
       {needAuth ? (
         <p className="text-sm text-white/50">
@@ -57,22 +62,30 @@ export default function MyDashboardsPage() {
           editor and hit Publish.
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {rows.map((d) => (
             <li
               key={d.id}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3"
+              className="card-lift hairline flex items-center justify-between gap-4 rounded-xl bg-white/[0.02] px-4 py-3.5"
             >
               <div className="min-w-0">
-                <Link href={`/d/${d.id}`} className="font-medium text-white hover:text-indigo-300">
+                <Link
+                  href={`/d/${d.id}`}
+                  className="font-medium text-white transition-colors hover:text-indigo-300"
+                >
                   {d.title}
                 </Link>
-                <div className="mt-0.5 flex items-center gap-2 text-xs text-white/40">
+                <div className="mt-1 flex items-center gap-2 font-mono text-xs text-white/40">
                   <span
                     className={
-                      d.visibility === "listed" ? "text-emerald-400/80" : "text-white/40"
+                      d.visibility === "listed"
+                        ? "inline-flex items-center gap-1 text-emerald-400/90"
+                        : "text-white/40"
                     }
                   >
+                    {d.visibility === "listed" && (
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    )}
                     {d.visibility}
                   </span>
                   <span>· {d.frameCount} frames</span>
@@ -83,7 +96,7 @@ export default function MyDashboardsPage() {
               <button
                 type="button"
                 onClick={() => del(d.id)}
-                className="text-xs text-white/40 hover:text-rose-400"
+                className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/50 transition-colors hover:border-rose-500/40 hover:text-rose-300"
               >
                 Delete
               </button>

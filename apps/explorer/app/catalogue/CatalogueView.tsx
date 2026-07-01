@@ -60,20 +60,22 @@ function FrameCard({ def }: { def: AnyFrameDefinition }) {
   }, [def, w, h]);
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
+    <div className="card-lift hairline group flex flex-col overflow-hidden rounded-xl bg-white/[0.02]">
       <LazyMount minHeight={boxHeight}>
         <div style={{ height: boxHeight }}>
           <DashboardRenderer spec={spec} registry={registry} />
         </div>
       </LazyMount>
-      <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
-        <code className="text-xs text-white/70">{def.name}</code>
+      <div className="flex items-center justify-between border-t border-white/[0.07] px-3 py-2">
+        <code className="font-mono text-xs text-white/70 transition-colors group-hover:text-indigo-200">
+          {def.name}
+        </code>
         {def.capabilities?.length ? (
-          <span className="text-[10px] text-white/35">
+          <span className="font-mono text-[10px] text-white/35">
             {def.capabilities.join(" · ")}
           </span>
         ) : (
-          <span className="text-[10px] text-white/25">static</span>
+          <span className="font-mono text-[10px] text-white/25">static</span>
         )}
       </div>
     </div>
@@ -91,15 +93,26 @@ export default function CatalogueView() {
     return map;
   }, []);
 
+  const total = allFrames.length;
+
   return (
     <FramesProvider providers={providers}>
-      <main className="mx-auto max-w-7xl px-6 py-10">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-white">Frame catalogue</h1>
-          <p className="mt-2 max-w-2xl text-white/60">
-            Every built-in frame, live, grouped by family. Each renders with a
+      <main className="mx-auto max-w-7xl px-6 py-12">
+        <header className="mb-12 max-w-3xl">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/60">
+            <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            Live · rendering with real data
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            The frame <span className="text-gradient">catalogue</span>
+          </h1>
+          <p className="mt-3 text-base leading-relaxed text-white/60">
+            Every built-in frame, live and grouped by family. Each renders with a
             schema-default config — the same set an agent picks from when generating a
             dashboard.
+          </p>
+          <p className="mt-4 font-mono text-xs text-white/40">
+            {total} frames · {FRAME_CATEGORIES.length} families
           </p>
         </header>
 
@@ -107,9 +120,15 @@ export default function CatalogueView() {
           const frames = byCategory.get(cat.key);
           if (!frames?.length) return null;
           return (
-            <section key={cat.key} className="mb-12">
-              <h2 className="text-lg font-semibold text-white">{cat.label}</h2>
-              <p className="mb-4 text-sm text-white/45">{cat.description}</p>
+            <section key={cat.key} className="mb-14">
+              <div className="mb-5 border-b border-white/[0.07] pb-3">
+                <div className="flex items-baseline gap-3">
+                  <span className="h-4 w-1 rounded-full bg-gradient-to-b from-indigo-400 to-violet-400" />
+                  <h2 className="text-lg font-semibold text-white">{cat.label}</h2>
+                  <span className="font-mono text-xs text-white/30">{frames.length}</span>
+                </div>
+                <p className="mt-1.5 pl-4 text-sm text-white/45">{cat.description}</p>
+              </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {frames.map((def) => (
                   <FrameCard key={def.name} def={def} />
