@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, useId, memo } from "react";
 import * as d3 from "d3";
 import { cn } from "./lib/utils";
 
@@ -12,7 +12,7 @@ interface MiniLineChartProps {
   variant?: "default" | "green" | "red" | "auto" | "blue";
 }
 
-export const MiniLineChart: React.FC<MiniLineChartProps> = ({
+const MiniLineChartComponent: React.FC<MiniLineChartProps> = ({
   data,
   width = 120,
   height = 40,
@@ -21,6 +21,8 @@ export const MiniLineChart: React.FC<MiniLineChartProps> = ({
   variant = "default",
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const rawId = useId();
+  const gradientId = `mini-chart-gradient-${rawId.replace(/:/g, "")}`;
 
   const { strokeColor, isPositive, variantType, customColor } = useMemo(() => {
     if (color) {
@@ -149,7 +151,6 @@ export const MiniLineChart: React.FC<MiniLineChartProps> = ({
       .y1((d) => yScale(d.value))
       .curve(d3.curveMonotoneX);
 
-    const gradientId = `mini-chart-gradient-${Math.random().toString(36).slice(2, 11)}`;
     const defs = svg.append("defs");
     const gradient = defs
       .append("linearGradient")
@@ -282,3 +283,5 @@ export const MiniLineChart: React.FC<MiniLineChartProps> = ({
     />
   );
 };
+
+export const MiniLineChart = memo(MiniLineChartComponent);

@@ -9,6 +9,24 @@
 
 body {
   margin: 0;
+  background: #07070c;
+  color: #dde3ee;
+  font-family: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The ambient corner glows. Previously `background-attachment: fixed` on the
+   body, which forces a full-viewport gradient REPAINT on every scroll frame of
+   a tall dashboard. Hoisting them to a position:fixed layer behind everything
+   (z-index:-1) pins them to the viewport exactly like `fixed` did — pixel-
+   identical, and staying in sync with the position:fixed Unicorn overlay — but
+   they paint once instead of per scroll. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background:
     radial-gradient(
       1240px 660px at 50% -12%,
@@ -24,12 +42,7 @@ body {
       1000px 620px at 6% 10%,
       hsla(200, 60%, 26%, 0.07),
       transparent 60%
-    ),
-    #07070c;
-  background-attachment: fixed;
-  color: #dde3ee;
-  font-family: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
-  -webkit-font-smoothing: antialiased;
+    );
 }
 
 /* Single source for the shared ease-out. The @zframes/core chrome reads

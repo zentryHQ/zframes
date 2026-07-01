@@ -439,7 +439,13 @@ const StackedAreaChart = StackedAreaChartInner as <T extends StackedAreaSeries>(
   props: StackedAreaChartProps<T>,
 ) => React.ReactElement;
 
-export default StackedAreaChart;
+// memo() erases the generic call signature, so cast it back to preserve
+// callers' type inference.
+const StackedAreaChartMemo = React.memo(
+  StackedAreaChartInner,
+) as typeof StackedAreaChart;
+
+export default StackedAreaChartMemo;
 
 export type {
   StackedAreaSeries,

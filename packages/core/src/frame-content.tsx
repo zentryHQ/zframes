@@ -3,10 +3,18 @@ import {
   Fragment,
   Suspense,
   createContext,
+  memo,
   useContext,
+  useEffect,
+  useRef,
   type CSSProperties,
   type ReactNode,
 } from "react";
+import {
+  FrameVisibilityContext,
+  type FrameVisibility,
+  type FrameVisibilityListener,
+} from "./visibility";
 
 export type FramePatcher = (patch: Record<string, unknown>) => void;
 export const FramePatchContext = createContext<FramePatcher | null>(null);
@@ -248,6 +256,18 @@ export const FRAME_CSS = `
      square corners fall within the rounded card and this clip is invisible —
      content/charts/scroll areas clip exactly as before. */
   overflow: hidden;
+  /* Skip rendering the (expensive) body — charts, canvases, long lists — while
+     the card is scrolled off-screen, so a dashboard with dozens of frames only
+     pays layout+paint for what's on screen. Applied to the BODY, not .zf-frame:
+     content-visibility implies paint containment, and putting it on the card
+     would clip the ::after hover glow that intentionally bleeds past the edge.
+     The card's height is fixed by the grid / GridStack (not its content), so
+     skipping the body never reflows the card — no scroll jank. contain-intrinsic
+     -size feeds a placeholder height for not-yet-rendered cards; the auto keyword
+     then remembers each body's real size once it has painted. A no-op for
+     on-screen cards. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--zf-cis-h, 240px);
 }
 .zf-frame-body > * {
   flex: 1;
@@ -595,7 +615,84 @@ class FrameErrorBoundary extends Component<
  * coordinates; the editor lets GridStack position the wrapper and passes a
  * fill `className`. Both get pixel-identical cards from this one component.
  */
-export function FrameContent({
+const cx = (...c: string[]) => c.filter(Boolean).join(" ");
+
+/**
+ * The chrome for a valid (non-error, non-bare) frame. Split out from
+ * FrameContent so it can own a per-card IntersectionObserver and publish the
+ * card's viewport visibility (a stable ref + pub/sub, created once) down to the
+ * frame's data hooks via context — which is why `children` (the frame
+ * component) renders INSIDE the Provider. The observer toggles `visibleRef` and
+ * notifies subscribers ~200px before the card enters/leaves the viewport, so
+ * `usePolled` can pause off-screen polling and refetch on return without any
+ * extra render. A visual no-op: identical markup to the inline card it replaces.
+ */
+function ValidFrameCard({
+  style,
+  className,
+  hasIcon,
+  titleIcon,
+  title,
+  sources,
+  children,
+}: {
+  style?: CSSProperties;
+  className: string;
+  hasIcon: boolean;
+  titleIcon: ReactNode;
+  title: string;
+  sources: FrameSource[];
+  children: ReactNode;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const visibleRef = useRef(true);
+  const listenersRef = useRef<Set<FrameVisibilityListener> | null>(null);
+  if (!listenersRef.current) listenersRef.current = new Set();
+  const visibilityRef = useRef<FrameVisibility | null>(null);
+  if (!visibilityRef.current) {
+    const listeners = listenersRef.current;
+    visibilityRef.current = {
+      visibleRef,
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => {
+          listeners.delete(listener);
+        };
+      },
+    };
+  }
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        const visible = entry.isIntersecting;
+        if (visible === visibleRef.current) return;
+        visibleRef.current = visible;
+        for (const listener of [...listenersRef.current!]) listener(visible);
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <FrameVisibilityContext.Provider value={visibilityRef.current}>
+      <div ref={cardRef} className={cx("zf-frame", className)} style={style}>
+        <div className={cx("zf-frame-title", hasIcon ? "zf-frame-title--icon" : "")}>
+          {titleIcon}
+          <span className="zf-frame-title-text">{title}</span>
+          <SourceCredit sources={sources} />
+        </div>
+        <div className="zf-frame-body">{children}</div>
+      </div>
+    </FrameVisibilityContext.Provider>
+  );
+}
+
+function FrameContentImpl({
   instance,
   registry,
   style,
@@ -608,7 +705,6 @@ export function FrameContent({
 }) {
   const providers = useProviders();
   const def = registry.get(instance.frame);
-  const cx = (...c: string[]) => c.filter(Boolean).join(" ");
 
   if (!def) {
     return (
@@ -706,30 +802,34 @@ export function FrameContent({
   }
 
   return (
-    <div className={cx("zf-frame", className)} style={style}>
-      <div
-        className={cx(
-          "zf-frame-title",
-          TitleIcon ? "zf-frame-title--icon" : "",
-        )}
-      >
-        {TitleIcon ? (
+    <ValidFrameCard
+      style={style}
+      className={className}
+      hasIcon={!!TitleIcon}
+      title={instance.title ?? instance.frame.replace(/-/g, " ")}
+      sources={sources}
+      titleIcon={
+        TitleIcon ? (
           <Suspense fallback={null}>
             <TitleIcon config={parsed.data} />
           </Suspense>
-        ) : null}
-        <span className="zf-frame-title-text">
-          {instance.title ?? instance.frame.replace(/-/g, " ")}
-        </span>
-        <SourceCredit sources={sources} />
-      </div>
-      <div className="zf-frame-body">
-        <FrameErrorBoundary>
-          <Suspense fallback={<div className="zf-frame-skeleton" />}>
-            <FrameComponent config={parsed.data} />
-          </Suspense>
-        </FrameErrorBoundary>
-      </div>
-    </div>
+        ) : null
+      }
+    >
+      <FrameErrorBoundary>
+        <Suspense fallback={<div className="zf-frame-skeleton" />}>
+          <FrameComponent config={parsed.data} />
+        </Suspense>
+      </FrameErrorBoundary>
+    </ValidFrameCard>
   );
 }
+
+/**
+ * Memoized so a host re-render that leaves a frame's props untouched (e.g. the
+ * one-tree DashboardRenderer re-rendering when something elsewhere changes)
+ * doesn't re-run this card's safeParse + capability check. Inert unless the
+ * caller also keeps `style`/`instance` referentially stable — the renderer
+ * memoizes its per-frame style array for exactly this reason.
+ */
+export const FrameContent = memo(FrameContentImpl);

@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   liveline@0.0.7:
-    hash: eago2oxb5zz37nrg32elcfiwxm
+    hash: djwgd6b3h72full22yopzd6lgy
     path: patches/liveline@0.0.7.patch
 
 importers:
@@ -184,6 +184,31 @@ importers:
         specifier: ^6.3.0
         version: 6.4.3(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)
 
+  packages/catalogue:
+    dependencies:
+      '@zframes/charts':
+        specifier: workspace:*
+        version: link:../charts
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+      '@zframes/frames':
+        specifier: workspace:*
+        version: link:../frames
+      react:
+        specifier: '>=18'
+        version: 19.2.7
+      zod:
+        specifier: ^4.1.0
+        version: 4.4.3
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.17
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/charts:
     dependencies:
       clsx:
@@ -296,7 +321,7 @@ importers:
         version: link:../core
       liveline:
         specifier: 0.0.7
-        version: 0.0.7(patch_hash=eago2oxb5zz37nrg32elcfiwxm)(react@19.2.7)
+        version: 0.0.7(patch_hash=djwgd6b3h72full22yopzd6lgy)(react@19.2.7)
       react:
         specifier: '>=18'
         version: 19.2.7
@@ -5054,7 +5079,7 @@ snapshots:
 
   lines-and-columns@1.2.4: {}
 
-  liveline@0.0.7(patch_hash=eago2oxb5zz37nrg32elcfiwxm)(react@19.2.7):
+  liveline@0.0.7(patch_hash=djwgd6b3h72full22yopzd6lgy)(react@19.2.7):
     dependencies:
       react: 19.2.7
 

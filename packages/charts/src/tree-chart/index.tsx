@@ -399,4 +399,8 @@ const TreeChart = TreeChartInner as <T extends TreeNode>(props: {
   tileMode?: TileMode;
 }) => React.ReactElement;
 
-export default TreeChart;
+// memo() erases the generic call signature, so cast it back to preserve
+// callers' type inference.
+const TreeChartMemo = React.memo(TreeChartInner) as typeof TreeChart;
+
+export default TreeChartMemo;

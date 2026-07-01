@@ -78,11 +78,7 @@ function PriceCompare({ config }: { config: z.output<typeof schema> }) {
       series={series}
       timeframe={timeframe}
       height={250}
-      formatValue={
-        config.normalize
-          ? (value) => formatChangePct(value)
-          : (value) => formatPrice(value)
-      }
+      formatValue={config.normalize ? formatChangePct : formatPrice}
     />
   );
 }

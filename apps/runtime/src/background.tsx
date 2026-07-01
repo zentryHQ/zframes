@@ -149,7 +149,11 @@ export function DashboardBackground({
             : background.opacity,
           filter: active ? activeFilter : restFilter,
           transition: ACTIVE_TRANSITION,
-          willChange: "opacity, filter",
+          // Only hint the compositor while something is actually animating
+          // opacity/filter (orb active or thinking). Held permanently it pins a
+          // full-viewport layer backing store for the whole session — pure tax
+          // in the common idle state.
+          willChange: active || thinking ? "opacity, filter" : "auto",
         }}
       >
         {/* Two nested layers so the hue cycle and the breathe pulse — both of

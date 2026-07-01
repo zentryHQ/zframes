@@ -50,7 +50,7 @@ function DexVolumeChart({ config }: { config: z.output<typeof schema> }) {
       series={series}
       timeframe={timeframe}
       height={250}
-      formatValue={(value) => formatCompactUsd(value)}
+      formatValue={formatCompactUsd}
     />
   );
 }
