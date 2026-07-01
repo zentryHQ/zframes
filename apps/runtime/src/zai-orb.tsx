@@ -502,6 +502,29 @@ export function ZaiOrb({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // Cmd/Ctrl+K opens (and toggles) the orb without reaching for the mouse — the
+  // near-universal "open the command/AI surface" chord. Only wired once a runner
+  // is installed (the orb is otherwise absent), and it toggles so the same chord
+  // also closes it (Esc closes too). preventDefault so the browser's own K
+  // binding doesn't also fire. Bare Cmd/Ctrl+K only — Shift/Alt variants are left
+  // to the browser's dev-tools shortcuts.
+  useEffect(() => {
+    if (!agents || agents.length === 0) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        !e.shiftKey &&
+        !e.altKey &&
+        e.key.toLowerCase() === "k"
+      ) {
+        e.preventDefault();
+        setOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [agents]);
+
   // Keep the latest message in view: the thread is bottom-anchored, so a new
   // message (or reopening the orb) scrolls to the bottom rather than leaving
   // the older messages at the top showing. Re-derive the fade-mask state after
@@ -728,6 +751,14 @@ export function ZaiOrb({
   const activeLabel =
     agents.find((a) => a.id === activeAgent)?.label ?? agents[0].label;
 
+  // Platform-aware glyph for the open shortcut, surfaced on the orb's hover
+  // title so the Cmd/Ctrl+K binding is discoverable, not hidden.
+  const shortcutHint =
+    typeof navigator !== "undefined" &&
+    /Mac|iPhone|iPad|iPod/.test(navigator.userAgent)
+      ? "⌘K"
+      : "Ctrl+K";
+
   return (
     <>
       <style>{ORB_CSS}</style>
@@ -811,6 +842,7 @@ export function ZaiOrb({
           data-fallback={webglFailed}
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close zAI" : "Ask zAI"}
+          title={open ? "Close zAI" : `Ask zAI · ${shortcutHint}`}
           aria-expanded={open}
         >
           <OrbCanvas
