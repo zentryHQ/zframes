@@ -70,6 +70,12 @@ interface Runner {
    * answer is delivered once, via `readResult` on close.
    */
   parseDelta?(line: string): string | null;
+  /**
+   * Optional: map ONE stdout line to a short status ("searching the web…") when
+   * the runner starts a tool call, so the orb shows activity during the gap
+   * before the answer streams. Null for lines that aren't a tool start.
+   */
+  parseStatus?(line: string): string | null;
   /** The final, canonical answer from full stdout (or the out-file). */
   readResult(stdout: string, outFile: string): Promise<string>;
 }
@@ -89,7 +95,13 @@ function tryParse<T>(line: string): T | null {
 interface ClaudeStreamLine {
   type?: string;
   result?: unknown;
-  event?: { type?: string; delta?: { type?: string; text?: unknown } };
+  event?: {
+    type?: string;
+    delta?: { type?: string; text?: unknown };
+    // On a `content_block_start`, the block being opened — a `tool_use` block
+    // carries the tool `name` (e.g. WebSearch), which we surface as a status.
+    content_block?: { type?: string; name?: unknown };
+  };
 }
 
 /**
@@ -108,6 +120,28 @@ export function claudeDelta(line: string): string | null {
   return delta?.type === "text_delta" && typeof delta.text === "string"
     ? delta.text
     : null;
+}
+
+/**
+ * A short human-readable status when Claude *starts* a tool call, or null. The
+ * token stream goes quiet while a web lookup runs, so the orb would otherwise
+ * show dead-air "thinking…"; this lets it show "searching the web…" instead.
+ * Only the web tools are surfaced — any other tool start is silent (null).
+ */
+export function claudeStatus(line: string): string | null {
+  const o = tryParse<ClaudeStreamLine>(line);
+  if (o?.type !== "stream_event") return null;
+  if (o.event?.type !== "content_block_start") return null;
+  const block = o.event.content_block;
+  if (block?.type !== "tool_use") return null;
+  switch (block.name) {
+    case "WebSearch":
+      return "searching the web…";
+    case "WebFetch":
+      return "reading a page…";
+    default:
+      return null;
+  }
 }
 
 /** Claude's canonical answer: the closing `result`, else the joined deltas. */
@@ -159,6 +193,7 @@ const RUNNERS: Runner[] = [
       "WebFetch",
     ],
     parseDelta: claudeDelta,
+    parseStatus: claudeStatus,
     readResult: async (stdout) => claudeResult(stdout),
   },
   {
@@ -345,6 +380,7 @@ function runAgent(
   prompt: string,
   cwd: string,
   onDelta?: (text: string) => void,
+  onStatus?: (text: string) => void,
 ): Promise<RunResult> {
   const outFile = join(
     tmpdir(),
@@ -378,12 +414,16 @@ function runAgent(
       child.kill("SIGKILL");
       finish({ ok: false, error: `${runner.label} timed out` });
     }, RUN_TIMEOUT_MS);
-    // Relay token deltas live for streaming runners; non-streaming ones (codex,
-    // kimi) skip this and deliver the whole answer once on close.
-    const streaming = Boolean(onDelta && runner.parseDelta);
+    // Relay token deltas + tool-status live for streaming runners; non-streaming
+    // ones (codex, kimi) skip this and deliver the whole answer once on close.
+    const streaming = Boolean(
+      (onDelta && runner.parseDelta) || (onStatus && runner.parseStatus),
+    );
     const emit = (line: string) => {
       const delta = runner.parseDelta?.(line);
       if (delta) onDelta?.(delta);
+      const status = runner.parseStatus?.(line);
+      if (status) onStatus?.(status);
     };
     child.stdout?.on("data", (d: Buffer) => {
       stdout += d;
@@ -540,8 +580,12 @@ export function handleAsk(
         /* client disconnected — let the run finish and unwind */
       }
     };
-    const result = await runAgent(runner, prompt, dirname(specFile), (text) =>
-      send({ type: "delta", text }),
+    const result = await runAgent(
+      runner,
+      prompt,
+      dirname(specFile),
+      (text) => send({ type: "delta", text }),
+      (text) => send({ type: "status", text }),
     );
     if (result.ok)
       send({ type: "done", agent: runner.id, answer: result.answer });

@@ -2,7 +2,12 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { buildPrompt, claudeDelta, claudeResult } from "@zframes/core/agent";
+import {
+  buildPrompt,
+  claudeDelta,
+  claudeResult,
+  claudeStatus,
+} from "@zframes/core/agent";
 
 // buildPrompt reads the spec off disk, so each case writes a tiny real spec into
 // a temp dir. The parsers (claudeResult/claudeDelta) are pure — no fs needed.
@@ -214,5 +219,43 @@ describe("claudeDelta", () => {
   it("returns null for blank or malformed lines", () => {
     expect(claudeDelta("")).toBeNull();
     expect(claudeDelta("garbage")).toBeNull();
+  });
+});
+
+describe("claudeStatus", () => {
+  const toolStart = (name: string) =>
+    `{"type":"stream_event","event":{"type":"content_block_start","content_block":{"type":"tool_use","name":"${name}"}}}`;
+
+  it("labels a WebSearch tool start", () => {
+    expect(claudeStatus(toolStart("WebSearch"))).toBe("searching the web…");
+  });
+
+  it("labels a WebFetch tool start", () => {
+    expect(claudeStatus(toolStart("WebFetch"))).toBe("reading a page…");
+  });
+
+  it("stays silent for other tools", () => {
+    expect(claudeStatus(toolStart("ToolSearch"))).toBeNull();
+    expect(claudeStatus(toolStart("Bash"))).toBeNull();
+  });
+
+  it("ignores non-tool_use blocks and non-start events", () => {
+    // a text block opening, not a tool
+    expect(
+      claudeStatus(
+        '{"type":"stream_event","event":{"type":"content_block_start","content_block":{"type":"text"}}}',
+      ),
+    ).toBeNull();
+    // a delta, not a block start
+    expect(
+      claudeStatus(
+        '{"type":"stream_event","event":{"type":"content_block_delta","delta":{"type":"text_delta","text":"x"}}}',
+      ),
+    ).toBeNull();
+  });
+
+  it("returns null for blank or malformed lines", () => {
+    expect(claudeStatus("")).toBeNull();
+    expect(claudeStatus("garbage")).toBeNull();
   });
 });
