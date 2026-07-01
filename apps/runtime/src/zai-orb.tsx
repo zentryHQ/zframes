@@ -9,6 +9,7 @@ import type { DashboardSpec, FrameRegistry } from "@zframes/core";
 import { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/core/routes";
 import { OrbCanvas } from "./unicorn/orb-scene";
 import { useScreenSnapshot } from "./screen-context";
+import { MarkdownAnswer } from "./markdown-answer";
 import type { UnicornSceneType } from "./unicorn/types";
 
 // The zAI orb — host chrome (not a frame), pinned bottom-right above the ticker
@@ -311,6 +312,50 @@ const ORB_CSS = `
 .zai-msg-error {
   color: #ffb4bd;
   border-color: rgba(255, 107, 129, 0.4);
+}
+/* Markdown-rendered zAI answers. The chip's own pre-wrap is meant for plain
+   text; inside .zai-md we let block elements control layout instead, and trim
+   the outer margins so the bubble hugs its content. */
+.zai-md {
+  white-space: normal;
+}
+.zai-md > :first-child {
+  margin-top: 0;
+}
+.zai-md > :last-child {
+  margin-bottom: 0;
+}
+.zai-md p {
+  margin: 0 0 0.5em;
+}
+.zai-md a {
+  color: hsla(263, 85%, 82%, 0.95);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-word;
+  transition: color 0.15s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.zai-md a:hover {
+  color: #fff;
+}
+.zai-md ul,
+.zai-md ol {
+  margin: 0.35em 0;
+  padding-left: 1.2em;
+}
+.zai-md li {
+  margin: 0.15em 0;
+}
+.zai-md code {
+  font-family: var(--font-mono, ui-monospace, "SF Mono", monospace);
+  font-size: 0.92em;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.1em 0.35em;
+  border-radius: 5px;
+}
+.zai-md strong {
+  font-weight: 600;
+  color: #f0ecff;
 }
 @keyframes zai-rise {
   from { opacity: 0; transform: translateY(6px); }
@@ -650,18 +695,26 @@ export function ZaiOrb({
             onScroll={(e) => setHistoryMasked(e.currentTarget.scrollTop > 1)}
             aria-live="polite"
           >
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={
-                  m.role === "user"
-                    ? "zai-msg zai-msg-user"
-                    : `zai-msg zai-msg-zai${m.error ? " zai-msg-error" : ""}`
-                }
-              >
-                {m.text}
-              </div>
-            ))}
+            {messages.map((m, i) =>
+              m.role === "zai" && !m.error ? (
+                // zAI answers render as light markdown (clickable citations,
+                // lists, emphasis); user turns + error notices stay plain text.
+                <div key={i} className="zai-msg zai-msg-zai">
+                  <MarkdownAnswer text={m.text} />
+                </div>
+              ) : (
+                <div
+                  key={i}
+                  className={
+                    m.role === "user"
+                      ? "zai-msg zai-msg-user"
+                      : "zai-msg zai-msg-zai zai-msg-error"
+                  }
+                >
+                  {m.text}
+                </div>
+              ),
+            )}
           </div>
         )}
         <div className="zai-panel">
