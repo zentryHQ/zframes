@@ -83,7 +83,9 @@ function NewsFeed({ config }: { config: z.output<typeof schema> }) {
       </div>
       <div className={scrollAreaClass}>
         {items.length > 0 ? (
-          items.map((item) => <HeadlineRow key={item.url} item={item} />)
+          items.map((item, i) => (
+            <HeadlineRow key={`${item.url}-${i}`} item={item} />
+          ))
         ) : (
           <FrameStatus>
             no headlines {isStocks ? "for these symbols" : "available"} — the

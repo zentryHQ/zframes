@@ -932,7 +932,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
       ];
       return Array.from({ length: n }, (_, i) => ({
         title: heads[i % heads.length],
-        url: "https://example.com/article",
+        url: `https://example.com/article-${i}`,
         source,
         publishedAt: BASELINE_NOW - i * 2_400_000,
         summary: "A short synthetic summary for the Storybook mock feed.",
