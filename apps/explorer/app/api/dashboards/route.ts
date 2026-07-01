@@ -7,6 +7,7 @@ import {
   type Visibility,
 } from "@/app/lib/dashboards";
 import { findUnsafeUrls } from "@/app/lib/sanitize-spec";
+import { sameOrigin } from "@/app/lib/same-origin";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,9 @@ export async function GET() {
 
 // POST /api/dashboards — publish (auth-gated). Immutable: mints a new id.
 export async function POST(request: Request) {
+  if (!sameOrigin(request)) {
+    return NextResponse.json({ error: "bad origin" }, { status: 403 });
+  }
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "sign in to publish" }, { status: 401 });

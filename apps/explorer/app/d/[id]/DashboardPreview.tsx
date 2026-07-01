@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { AgentForkButton } from "@/app/lib/AgentForkButton";
+import { ReportButton } from "@/app/lib/ReportButton";
 
 // DashboardView is client-only (shared WS + browser APIs) → dynamic ssr:false.
 const DashboardView = dynamic(() => import("@/app/lib/DashboardView"), {
@@ -39,9 +40,12 @@ export function DashboardPreview({
     <main className="mx-auto max-w-7xl px-6 py-6">
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
-          <Link href="/" className="text-xs text-white/40 hover:text-white/70">
-            ← Gallery
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/" className="text-xs text-white/40 hover:text-white/70">
+              ← Gallery
+            </Link>
+            <ReportButton id={id} />
+          </div>
           <h1 className="text-xl font-semibold text-white">{title}</h1>
         </div>
         <div className="flex items-center gap-2">

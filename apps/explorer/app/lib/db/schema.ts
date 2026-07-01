@@ -84,3 +84,21 @@ export const dashboards = pgTable("dashboards", {
 });
 
 export type DashboardRow = typeof dashboards.$inferSelect;
+
+// ── moderation ───────────────────────────────────────────────────────────────
+// Publish-then-report: anyone can report a listed dashboard; an admin reviews and
+// flips dashboards.status to "removed". reporterId is nullable (anonymous reports
+// allowed) and set-null on user delete.
+export const reports = pgTable("reports", {
+  id: text("id").primaryKey(),
+  dashboardId: text("dashboard_id")
+    .notNull()
+    .references(() => dashboards.id, { onDelete: "cascade" }),
+  reporterId: text("reporter_id").references(() => user.id, {
+    onDelete: "set null",
+  }),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type ReportRow = typeof reports.$inferSelect;
