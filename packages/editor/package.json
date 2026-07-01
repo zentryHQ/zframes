@@ -1,0 +1,43 @@
+{
+  "name": "@zframes/editor",
+  "version": "0.0.0",
+  "description": "zframes dashboard authoring layer (React + GridStack): the DashboardEditor customise mode, per-frame config rail, grid geometry helpers, and the symbol-universe / buildDefaultConfig seed.",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/editor"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./editor": "./src/editor.tsx",
+    "./editor-symbols": "./src/editor-symbols.ts"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/core": "workspace:*",
+    "@zframes/spec": "workspace:*",
+    "gridstack": "^12.1.0",
+    "lucide-react": "^1.21.0",
+    "zod": "^4.1.0"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.8.0"
+  }
+}

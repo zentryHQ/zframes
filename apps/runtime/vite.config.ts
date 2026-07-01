@@ -50,6 +50,7 @@ export default defineConfig({
       "@zframes/core",
       "@zframes/spec",
       "@zframes/data-primitives",
+      "@zframes/editor",
       "@zframes/frames",
       "@zframes/provider-alternativeme",
       "@zframes/provider-bls",

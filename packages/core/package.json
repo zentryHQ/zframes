@@ -21,8 +21,8 @@
     "./routes": "./src/facade/routes.ts",
     "./fetch": "./src/facade/fetch.ts",
     "./cache": "./src/facade/cache.ts",
-    "./editor": "./src/editor.tsx",
-    "./editor-symbols": "./src/editor-symbols.ts",
+    "./editor": "./src/facade/editor.ts",
+    "./editor-symbols": "./src/facade/editor-symbols.ts",
     "./vite": "./src/facade/vite.ts",
     "./serve": "./src/facade/serve.ts",
     "./store": "./src/facade/store.ts",
@@ -40,11 +40,10 @@
     "@zframes/data-primitives": "workspace:*",
     "@zframes/serve": "workspace:*",
     "@zframes/spec": "workspace:*",
+    "@zframes/editor": "workspace:*",
     "@zframes/store": "workspace:*",
     "@zframes/vite": "workspace:*",
     "@zframes/zai": "workspace:*",
-    "gridstack": "^12.1.0",
-    "lucide-react": "^1.21.0",
     "zod": "^4.1.0"
   },
   "peerDependencies": {

@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     "@zframes/core",
     "@zframes/spec",
     "@zframes/data-primitives",
+    "@zframes/editor",
     "@zframes/serve",
     "@zframes/charts",
     "@zframes/frames",

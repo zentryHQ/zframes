@@ -49,6 +49,8 @@ export {
 } from "./hooks";
 export { DashboardRenderer } from "./renderer";
 export {
+  FRAME_CSS,
+  FrameContent,
   FramePatchContext,
   useFramePatch,
   type FramePatcher,
