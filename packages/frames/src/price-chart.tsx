@@ -2,7 +2,7 @@ import { defineFrame, useCandles, useMids } from "@zframes/core";
 import { Liveline, type CandlePoint, type LivelinePoint } from "liveline";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
-import { AssetLogo } from "./asset-logo";
+import { AssetLogo, tickerOf } from "./asset-logo";
 import { formatPrice } from "./format";
 import { useVisibilityRef } from "./live-tick";
 import { priceChartMeta } from "./schemas";
@@ -157,10 +157,41 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
   );
 }
 
+/**
+ * Card title: the bare ticker, plus the live price ONLY in candle mode.
+ * liveline draws its big value readout + the badge pill only in line mode; a
+ * candlestick chart shows no numeric current price, so we surface it in the
+ * title there. In line mode the body already shows the price, so the title
+ * stays ticker-only (no redundancy). `useMids([])` is a no-op, so line mode
+ * opens no extra subscription.
+ */
+function PriceChartTitle({ config }: { config: z.output<typeof schema> }) {
+  const showPrice = config.mode === "candle";
+  const mid = useMids(showPrice ? [config.symbol] : [])[config.symbol];
+  return (
+    <>
+      {tickerOf(config.symbol)}
+      {showPrice && mid !== undefined && (
+        <span
+          style={{
+            marginInlineStart: "0.5em",
+            color: "rgba(255, 255, 255, 0.82)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formatPrice(mid)}
+        </span>
+      )}
+    </>
+  );
+}
+
 export const priceChartFrame = defineFrame({
   ...priceChartMeta,
   component: PriceChart,
   // The asset logo rides in the card title (this is a single-symbol frame), so
   // the chart body stays clean for liveline's own value/axis overlays.
   titleIcon: ({ config }) => <AssetLogo symbol={config.symbol} size={14} />,
+  // Ticker (+ live price in candle mode, where the body shows none).
+  titleContent: PriceChartTitle,
 });

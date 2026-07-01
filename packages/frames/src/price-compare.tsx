@@ -83,7 +83,18 @@ function PriceCompare({ config }: { config: z.output<typeof schema> }) {
   );
 }
 
+/**
+ * Card title: the compared symbols joined by "vs" (uppercased by the title
+ * chrome → "TSLA VS NVDA VS BTC"), replacing the generic "price compare" label.
+ * Pure config — no data hook.
+ */
+function PriceCompareTitle({ config }: { config: z.output<typeof schema> }) {
+  return <>{config.symbols.map(tickerOf).join(" vs ")}</>;
+}
+
 export const priceCompareFrame = defineFrame({
   ...priceCompareMeta,
   component: PriceCompare,
+  // Compared tickers ("TSLA VS NVDA") stand in for the generic frame-name title.
+  titleContent: PriceCompareTitle,
 });

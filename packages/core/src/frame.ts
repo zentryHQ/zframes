@@ -194,6 +194,17 @@ export interface FrameDefinition<
    * in the frame and core just provides the slot.
    */
   titleIcon?: ComponentType<{ config: z.output<S> }>;
+  /**
+   * Optional replacement for the card title *text* — a frame-owned component
+   * that renders inside the same `.zf-frame-title-text` slot (so it inherits
+   * the title's type/tracking/truncation) in place of the frame-name default,
+   * e.g. a live ticker + mid on a price chart or the compared symbols joined by
+   * "VS". Runs inside the frame's provider context, so it may use data hooks.
+   * An explicit per-instance `title` still wins; the leading `titleIcon` and
+   * the source credit are unaffected. Lives on the definition, not the meta,
+   * so the React-free catalogue stays React-free.
+   */
+  titleContent?: ComponentType<{ config: z.output<S> }>;
 }
 
 /** Registry entries erase the schema generic; defineFrame guarantees coherence. */
