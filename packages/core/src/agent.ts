@@ -24,7 +24,7 @@ import { dirname, join } from "node:path";
 // alongside the handlers from `@zframes/core/agent`. Imported by package subpath
 // (NOT relative `./routes`) because this file is reached by Vite's Node
 // config-loader, which can't resolve a relative extensionless path.
-export { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/core/routes";
+export { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/spec/routes";
 
 const MAX_BODY_BYTES = 64_000; // a question, never an upload
 const RUN_TIMEOUT_MS = 120_000; // bound latency/cost — kill a runaway agent

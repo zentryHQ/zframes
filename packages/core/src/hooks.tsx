@@ -45,7 +45,7 @@ import type {
   TvlEntry,
   VolatilityPoint,
   YieldCurve,
-} from "./types";
+} from "@zframes/spec/types";
 
 import { FrameVisibilityContext } from "./visibility";
 

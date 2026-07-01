@@ -15,10 +15,10 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./frame": "./src/frame.ts",
-    "./spec": "./src/spec.ts",
-    "./catalogue": "./src/catalogue.ts",
-    "./routes": "./src/routes.ts",
+    "./frame": "./src/facade/frame.ts",
+    "./spec": "./src/facade/spec.ts",
+    "./catalogue": "./src/facade/catalogue.ts",
+    "./routes": "./src/facade/routes.ts",
     "./fetch": "./src/fetch.ts",
     "./cache": "./src/cache.ts",
     "./editor": "./src/editor.tsx",
@@ -36,6 +36,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@zframes/spec": "workspace:*",
     "gridstack": "^12.1.0",
     "lucide-react": "^1.21.0",
     "zod": "^4.1.0"

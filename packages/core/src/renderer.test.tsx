@@ -3,10 +3,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { z } from "zod";
 import { DashboardRenderer } from "./renderer";
-import { createRegistry, defineFrame } from "./frame";
-import { DashboardSpecSchema, FONT_FAMILY_STACKS } from "./spec";
+import { createRegistry, defineFrame } from "@zframes/spec/frame";
+import { DashboardSpecSchema, FONT_FAMILY_STACKS } from "@zframes/spec/spec";
 import { FramesProvider } from "./hooks";
-import type { Capability, MarketDataProvider } from "./types";
+import type { Capability, MarketDataProvider } from "@zframes/spec/types";
 
 // The renderer's contract is "never crash the dashboard": every failure mode
 // (unknown frame, uncovered capability, invalid config, a render throw) resolves

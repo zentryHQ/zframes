@@ -48,6 +48,7 @@ export default defineConfig({
     exclude: [
       "@zframes/charts",
       "@zframes/core",
+      "@zframes/spec",
       "@zframes/frames",
       "@zframes/provider-alternativeme",
       "@zframes/provider-bls",

@@ -20,7 +20,7 @@ export {
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
   DASHBOARD_PROXY_ROUTE,
-} from "@zframes/core/routes";
+} from "@zframes/spec/routes";
 
 // Hard cap on the request body — a small spec file, never a large upload.
 const MAX_BODY_BYTES = 2_000_000;

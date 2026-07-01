@@ -6,8 +6,8 @@ import {
   useState,
   type RefObject,
 } from "react";
-import type { FrameInstance } from "./spec";
-import type { FrameRegistry } from "./frame";
+import type { FrameInstance } from "@zframes/spec/spec";
+import type { FrameRegistry } from "@zframes/spec/frame";
 import {
   assetLogoUrl,
   configFields,

@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 import { z } from "zod";
 import { FrameConfigDialog } from "./editor-config";
-import { createRegistry, defineFrame } from "./frame";
-import type { FrameInstance } from "./spec";
+import { createRegistry, defineFrame } from "@zframes/spec/frame";
+import type { FrameInstance } from "@zframes/spec/spec";
 
 // The config dialog turns a frame's Zod schema into a form: each field shape maps
 // to a specific control, and every edit is validated live against that schema —

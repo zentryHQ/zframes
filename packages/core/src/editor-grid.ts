@@ -1,4 +1,4 @@
-import type { DashboardSpec, FrameInstance, GridPosition } from "./spec";
+import type { DashboardSpec, FrameInstance, GridPosition } from "@zframes/spec/spec";
 
 export type LayoutMode = DashboardSpec["grid"]["mode"];
 

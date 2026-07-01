@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DashboardSpecSchema } from "@zframes/core/spec";
+import { DashboardSpecSchema } from "./spec";
 
 // `title` + `frames` are the only required fields; everything else defaults.
 const base = { title: "t", frames: [] };

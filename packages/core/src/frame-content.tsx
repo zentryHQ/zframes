@@ -21,9 +21,9 @@ export const FramePatchContext = createContext<FramePatcher | null>(null);
 export function useFramePatch(): FramePatcher | null {
   return useContext(FramePatchContext);
 }
-import type { FrameRegistry, FrameSource } from "./frame";
+import type { FrameRegistry, FrameSource } from "@zframes/spec/frame";
 import { useProviders } from "./hooks";
-import type { FrameInstance } from "./spec";
+import type { FrameInstance } from "@zframes/spec/spec";
 
 /**
  * Frame chrome ships as a tiny stylesheet so cards get hover/transition

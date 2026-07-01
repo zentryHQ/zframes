@@ -20,7 +20,12 @@ const config: StorybookConfig = {
       plugins: [tailwindcss()],
       // workspace packages ship TypeScript source; let Vite transform them
       optimizeDeps: {
-        exclude: ["@zframes/core", "@zframes/frames", "@zframes/charts"],
+        exclude: [
+          "@zframes/core",
+          "@zframes/spec",
+          "@zframes/frames",
+          "@zframes/charts",
+        ],
       },
       // symlinked workspace deps can double-load React → invalid hook calls
       resolve: { dedupe: ["react", "react-dom"] },
