@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     "@zframes/core",
     "@zframes/spec",
+    "@zframes/data-primitives",
     "@zframes/charts",
     "@zframes/frames",
     "@zframes/provider-alternativeme",

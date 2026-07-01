@@ -384,6 +384,9 @@ importers:
 
   packages/core:
     dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
       '@zframes/spec':
         specifier: workspace:*
         version: link:../spec
@@ -412,6 +415,19 @@ importers:
       '@types/react-dom':
         specifier: ^19.1.0
         version: 19.2.3(@types/react@19.2.17)
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/data-primitives:
+    dependencies:
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+      zod:
+        specifier: ^4.1.0
+        version: 4.4.3
+    devDependencies:
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
