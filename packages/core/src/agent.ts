@@ -135,6 +135,11 @@ const RUNNERS: Runner[] = [
     // answer is generated; --verbose is required alongside it under -p, and
     // --include-partial-messages adds the token-level `content_block_delta`
     // events we relay live. The canonical answer is the closing `result` event.
+    // --allowedTools whitelists WebSearch/WebFetch so zAI can look up news +
+    // context; in headless -p that also KEEPS Bash/Write/Edit blocked (only
+    // allowlisted tools auto-approve), so it can search the web but can't wander
+    // the dashboard folder we run it in. Search results interleave as tool
+    // events the delta parser ignores, then the text answer streams as usual.
     buildArgs: (prompt) => [
       "-p",
       prompt,
@@ -142,6 +147,9 @@ const RUNNERS: Runner[] = [
       "stream-json",
       "--verbose",
       "--include-partial-messages",
+      "--allowedTools",
+      "WebSearch",
+      "WebFetch",
     ],
     parseDelta: claudeDelta,
     readResult: async (stdout) => claudeResult(stdout),
@@ -153,7 +161,12 @@ const RUNNERS: Runner[] = [
     // `exec` is non-interactive; read-only sandbox so a Q&A can't mutate
     // anything, and -o writes ONLY the final message to a file (stdout carries
     // session noise). --skip-git-repo-check so it runs outside a repo too.
+    // --search enables the native web_search tool for news + context (a network
+    // read, orthogonal to the read-only filesystem sandbox). It's a TOP-LEVEL
+    // codex flag, so it must precede the `exec` subcommand — after it, exec's
+    // parser rejects it as an unknown argument.
     buildArgs: (prompt, outFile) => [
+      "--search",
       "exec",
       "--skip-git-repo-check",
       "-s",
@@ -301,8 +314,19 @@ async function buildPrompt(
     `personal advice, writing, other software, etc.), do not answer it: reply in one ` +
     `sentence that you only cover zframes and the markets it tracks, and invite a ` +
     `market or dashboard question instead.\n\n` +
+    // Sourcing rule: web search is on (news, catalysts, context the live feeds
+    // can't carry), so every answer must be explicit about provenance — the
+    // user has to know a figure is from their own live dashboard vs. the web.
+    // The live readings stay the authority for anything on screen, so a stale
+    // web number can never contradict what the user is looking at.
+    `You may use web search when it helps — for news, catalysts, or context not in ` +
+    `the live readings above. Be explicit in your answer about where each fact comes ` +
+    `from: say when a number or fact is from the live dashboard readings above versus ` +
+    `from the web, and name the web source (e.g. "per Reuters"). For anything shown on ` +
+    `the dashboard, treat the live readings above as the source of truth — don't ` +
+    `override them with a web figure.\n\n` +
     `Answer the user's question in 2–4 sentences of plain text — no markdown headings, ` +
-    `no preamble, no tool use, just the answer.\n\nQuestion: ${question}`
+    `no preamble.\n\nQuestion: ${question}`
   );
 }
 
