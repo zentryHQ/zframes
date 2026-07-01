@@ -1,0 +1,20 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap");
+@import "tailwindcss";
+@import "@zframes/charts/src/theme.css";
+
+/* THE GOTCHA, ported from apps/runtime/src/styles.css: workspace packages ship
+ * TS source through node_modules symlinks, which Tailwind's auto-detection
+ * skips — scan them explicitly or every frame renders unstyled with no error.
+ * Paths are relative to THIS file (apps/explorer/app/globals.css → 3 up = repo root). */
+@source "../../../packages/frames/src";
+@source "../../../packages/charts/src";
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1240px 660px at 50% -12%, hsla(248, 84%, 34%, 0.28), transparent 60%),
+    #07070c;
+  background-attachment: fixed;
+  color: #dde3ee;
+  -webkit-font-smoothing: antialiased;
+}
