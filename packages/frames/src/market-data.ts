@@ -14,10 +14,7 @@
  */
 
 export type Region =
-  | "Americas"
-  | "Europe"
-  | "Asia-Pacific"
-  | "Middle East / Africa";
+  "Americas" | "Europe" | "Asia-Pacific" | "Middle East / Africa";
 
 export interface Exchange {
   code: string;

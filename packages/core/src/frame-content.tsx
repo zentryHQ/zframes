@@ -683,7 +683,12 @@ function ValidFrameCard({
   return (
     <FrameVisibilityContext.Provider value={visibilityRef.current}>
       <div ref={cardRef} className={cx("zf-frame", className)} style={style}>
-        <div className={cx("zf-frame-title", hasIcon ? "zf-frame-title--icon" : "")}>
+        <div
+          className={cx(
+            "zf-frame-title",
+            hasIcon ? "zf-frame-title--icon" : "",
+          )}
+        >
           {titleIcon}
           <span className="zf-frame-title-text">{titleContent ?? title}</span>
           <SourceCredit sources={sources} />

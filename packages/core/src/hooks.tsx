@@ -531,7 +531,9 @@ export function useFxRates(
   const provider = useProviderFor("fx-rates");
   const key = symbols.join(",");
   const { data: rates, isLoading } = usePolled<FxRate[]>(
-    provider?.getFxRates ? () => provider.getFxRates!(base, [...symbols]) : null,
+    provider?.getFxRates
+      ? () => provider.getFxRates!(base, [...symbols])
+      : null,
     [],
     // `key` (the joined symbol list) drives re-fetch on config change; `symbols`
     // itself is a fresh array each render and would re-fire every time.

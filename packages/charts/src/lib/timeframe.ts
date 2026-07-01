@@ -9,7 +9,7 @@ export enum ChartTimeframe {
   "7D" = "7D",
   "1M" = "1M",
   "3M" = "3M",
-  "YTD" = "YTD",
+  YTD = "YTD",
 }
 
 export type DataPoint = {

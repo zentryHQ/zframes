@@ -11,10 +11,7 @@ import { DOWN_COLOR, UP_COLOR } from "./format";
 
 export type Dir = "long" | "short";
 export type ThesisClass =
-  | "mean-reversion"
-  | "breakout"
-  | "positioning"
-  | "macro";
+  "mean-reversion" | "breakout" | "positioning" | "macro";
 
 export const CLASS_LABEL: Record<ThesisClass, string> = {
   "mean-reversion": "mean-reversion",

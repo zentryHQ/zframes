@@ -236,8 +236,7 @@ export class SecProvider implements MarketDataProvider {
 
   /** Node-only contact User-Agent (browsers ignore it; the proxy sets its own). */
   private nodeInit():
-    | { init: { headers: { "User-Agent": string } } }
-    | undefined {
+    { init: { headers: { "User-Agent": string } } } | undefined {
     return this.contact && typeof document === "undefined"
       ? { init: { headers: { "User-Agent": `zframes (${this.contact})` } } }
       : undefined;
