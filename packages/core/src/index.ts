@@ -91,6 +91,8 @@ export {
   type ThemePreset,
   BACKGROUND_SCENES,
   type BackgroundScene,
+  SCENE_DEFAULT_HUE,
+  sceneBaseHue,
 } from "./presets";
 export {
   FramesProvider,

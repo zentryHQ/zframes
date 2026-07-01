@@ -10,6 +10,7 @@ import {
   DashboardRenderer,
   DashboardSpecSchema,
   FramesProvider,
+  sceneBaseHue,
   type DashboardSpec,
 } from "@zframes/core";
 import {
@@ -286,15 +287,21 @@ export default function App() {
   // uses the whole viewport width and scrolls sideways. liveMode wins while
   // customising; otherwise the saved spec decides.
   const isHorizontal = (liveMode ?? spec.grid.mode) === "flow-horizontal";
+  // The live edit wins while customising, else the saved spec. Resolve the
+  // backdrop's authored hue from its projectId so the accent hue-rotate spins
+  // the scene relative to its own colour — a preset's paired scene renders as
+  // authored, a rolled accent drifts it from there.
+  const background = liveBackground ?? spec.background;
 
   return (
     <FramesProvider providers={providers}>
       <DashboardBackground
-        background={liveBackground ?? spec.background}
+        background={background}
         active={orbOpen}
         thinking={orbThinking}
         accentHue={accentHue ?? spec.theme.accentHue}
         accentSat={accentSat ?? spec.theme.accentSat}
+        sceneHue={sceneBaseHue(background.projectId)}
       />
       <main
         className={`relative z-10 mx-auto pt-5 ${

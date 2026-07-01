@@ -248,6 +248,15 @@ export function DashboardEditor({
     setSurfaceOpacity(p.appearance.surfaceOpacity);
     setDensity(p.appearance.density);
     setElevation(p.appearance.elevation);
+    // Switch to the preset's paired backdrop so the animated scene matches the
+    // look. Its hue tracks the accent, so the host's accent hue-rotate (relative
+    // to the scene's baseHue) renders it essentially as authored. Unknown key →
+    // leave the backdrop as-is rather than blanking it.
+    const scene = BACKGROUND_SCENES.find((s) => s.key === p.scene);
+    if (scene) {
+      setBgType("unicorn");
+      setBgProjectId(scene.projectId);
+    }
   }, []);
 
   // The preset whose every owned value matches the live state, if any, so its
@@ -266,7 +275,12 @@ export function DashboardEditor({
           p.appearance.borderStrength === borderStrength &&
           p.appearance.surfaceOpacity === surfaceOpacity &&
           p.appearance.density === density &&
-          p.appearance.elevation === elevation,
+          p.appearance.elevation === elevation &&
+          // A preset now owns the backdrop too, so a different scene (or a
+          // non-scene background) counts as drifting off it.
+          bgType === "unicorn" &&
+          BACKGROUND_SCENES.find((s) => s.key === p.scene)?.projectId ===
+            bgProjectId,
       )?.key ?? null,
     [
       accentHue,
@@ -280,6 +294,8 @@ export function DashboardEditor({
       surfaceOpacity,
       density,
       elevation,
+      bgType,
+      bgProjectId,
     ],
   );
   // Which rail panel is showing: dashboard-wide cosmetics (accent/layout/
@@ -1760,14 +1776,6 @@ export function DashboardEditor({
                         onClick={() => switchMode("flow-horizontal")}
                       >
                         Horizontal
-                      </button>
-                      <button
-                        type="button"
-                        className="zf-mode-seg-btn"
-                        disabled
-                        title="Infinite canvas — coming soon"
-                      >
-                        Canvas
                       </button>
                     </div>
                     {isHorizontal && (
