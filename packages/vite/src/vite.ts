@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 // Imported by the package subpath (not a relative "./serve") so that when Vite's
 // config loader runs this file through Node, the extensionless relative import
-// doesn't fail — `@zframes/core/serve` resolves via the exports map and pulls in
+// doesn't fail — `@zframes/serve/serve` resolves via the exports map and pulls in
 // a module with only built-in imports. Same contract the CLI's `serve` uses.
 import {
   DASHBOARD_PROXY_ROUTE,
@@ -10,23 +10,23 @@ import {
   handleProxy,
   handleSpecRead,
   handleSpecWrite,
-} from "@zframes/core/serve";
+} from "@zframes/serve/serve";
 import {
   AGENTS_LIST_ROUTE,
   ASK_ROUTE,
   handleAgents,
   handleAsk,
-} from "@zframes/core/agent";
+} from "@zframes/zai/agent";
 import {
   ACCOUNT_CREDENTIALS_ROUTE,
   ACCOUNT_PORTFOLIO_ROUTE,
   handleAccountCredentials,
   handleAccountPortfolio,
-} from "@zframes/core/account";
+} from "@zframes/account/account";
 // Store lookup, by package subpath (not relative "./store") for the same
 // Vite-Node-loader reason the serve import above is — lets `vite dev` resolve
 // the same default dashboard the CLI's no-arg `serve` does.
-import { findDashboardFile, getDefault } from "@zframes/core/store";
+import { findDashboardFile, getDefault } from "@zframes/store/store";
 
 /**
  * Dev-only Vite plugin that serves the dashboard spec to the in-browser app and

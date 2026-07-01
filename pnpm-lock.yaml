@@ -311,6 +311,22 @@ importers:
         specifier: ^6.3.0
         version: 6.4.3(@types/node@20.19.43)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)
 
+  packages/account:
+    dependencies:
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+      '@zframes/store':
+        specifier: workspace:*
+        version: link:../store
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/charts:
     dependencies:
       clsx:
@@ -384,15 +400,24 @@ importers:
 
   packages/core:
     dependencies:
+      '@zframes/account':
+        specifier: workspace:*
+        version: link:../account
       '@zframes/data-primitives':
         specifier: workspace:*
         version: link:../data-primitives
+      '@zframes/serve':
+        specifier: workspace:*
+        version: link:../serve
       '@zframes/spec':
         specifier: workspace:*
         version: link:../spec
       '@zframes/store':
         specifier: workspace:*
         version: link:../store
+      '@zframes/vite':
+        specifier: workspace:*
+        version: link:../vite
       '@zframes/zai':
         specifier: workspace:*
         version: link:../zai
@@ -633,6 +658,19 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/serve:
+    dependencies:
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/spec:
     dependencies:
       react:
@@ -650,6 +688,28 @@ importers:
         version: 5.9.3
 
   packages/store:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/vite:
+    dependencies:
+      '@zframes/account':
+        specifier: workspace:*
+        version: link:../account
+      '@zframes/serve':
+        specifier: workspace:*
+        version: link:../serve
+      '@zframes/store':
+        specifier: workspace:*
+        version: link:../store
+      '@zframes/zai':
+        specifier: workspace:*
+        version: link:../zai
     devDependencies:
       '@types/node':
         specifier: ^20.14.0

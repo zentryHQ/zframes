@@ -6,7 +6,7 @@ import {
   handleProxy,
   handleSpecRead,
   handleSpecWrite,
-} from "@zframes/core/serve";
+} from "./serve";
 
 // The handlers take the structural ReqLike/ResLike (not Node's http types), so
 // tiny fakes are all the tests need. These aliases pull the param types off the

@@ -1,0 +1,32 @@
+{
+  "name": "@zframes/account",
+  "version": "0.0.0",
+  "description": "zframes keyed-account tier (Node-only): local credential storage and a server-side HMAC-signed read relay for connected CEX accounts. The user's secret never reaches the browser.",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/account"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./account": "./src/account.ts"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/spec": "workspace:*",
+    "@zframes/store": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.8.0"
+  }
+}

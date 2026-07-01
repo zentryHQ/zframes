@@ -3,7 +3,7 @@ import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 // Imported by the package subpath (NOT relative "./store") so Vite's Node
 // config-loader can resolve it when it loads this module via `@zframes/core/account`
 // — same contract this file uses for `@zframes/core/routes`.
-import { credentialsFile, storeHome } from "@zframes/core/store";
+import { credentialsFile, storeHome } from "@zframes/store";
 import type { Holding, Portfolio } from "@zframes/spec/types";
 
 /**
