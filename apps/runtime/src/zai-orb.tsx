@@ -489,6 +489,19 @@ export function ZaiOrb({
     if (open) inputRef.current?.focus();
   }, [open]);
 
+  // Esc closes the orb from anywhere while it's open. The input's own keydown
+  // can't carry this alone — it's disabled while zAI is thinking (so no key
+  // events fire there) and focus can drift to the agent tag or a citation link —
+  // so a window-level listener guarantees Esc always dismisses.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   // Keep the latest message in view: the thread is bottom-anchored, so a new
   // message (or reopening the orb) scrolls to the bottom rather than leaving
   // the older messages at the top showing. Re-derive the fade-mask state after
@@ -687,9 +700,20 @@ export function ZaiOrb({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void ask();
-    } else if (e.key === "Escape") {
-      setOpen(false);
+    } else if (e.key === "Tab" && !e.shiftKey && !busy && !value) {
+      // Accept the currently-shown suggestion as the query (ghost-text style):
+      // Tab fills the input with the hint the placeholder is cycling instead of
+      // moving focus out of the orb. Only when the field is empty and idle —
+      // once there's text (or while thinking) Tab falls back to normal focus
+      // movement, and Shift+Tab always tabs back out for accessibility.
+      const suggestion = suggestions[phIndex % suggestions.length];
+      if (suggestion) {
+        e.preventDefault();
+        setValue(suggestion);
+      }
     }
+    // Escape is handled by a window-level listener (see effect above) so it
+    // closes the orb even while thinking (input disabled) or when focus drifted.
   }
 
   function cycleAgent() {
