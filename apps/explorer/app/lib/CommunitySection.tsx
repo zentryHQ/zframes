@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { DashboardCard } from "@/app/lib/DashboardCard";
+import { synthLayout } from "@/app/lib/DashboardThumb";
+import { SectionHeading } from "@/app/lib/SectionHeading";
 
 type Row = { id: string; title: string; tags: string[]; views: number; frameCount: number };
 
 // Client-fetched so the gallery page stays static (no build-time DB dependency).
-// Reads /api/dashboards (listed + approved community dashboards).
+// Reads /api/dashboards (listed + approved community dashboards). Community rows
+// carry a frame count but not the spec, so the card thumbnail is a synthesized
+// (deterministic) mini-map keyed to the id — still an honest "this is a board".
 export function CommunitySection() {
   const [rows, setRows] = useState<Row[] | null>(null);
 
@@ -18,49 +23,55 @@ export function CommunitySection() {
   }, []);
 
   return (
-    <section className="mt-12">
-      <h2 className="mb-1 text-lg font-semibold text-white">Community</h2>
-      <p className="mb-4 text-sm text-white/45">
-        Dashboards published by people. Preview live, or fork with your AI agent.
-      </p>
+    <div>
+      <SectionHeading
+        eyebrow="Community"
+        title="Published by people"
+        description="Dashboards shared by others. Preview any one live, or fork it onto your machine with your AI agent."
+        action={
+          <Link
+            href="/tinker"
+            className="rounded-xl border border-white/15 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
+          >
+            Build &amp; publish yours →
+          </Link>
+        }
+      />
+
       {rows === null ? (
-        <p className="text-sm text-white/30">Loading…</p>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }, (_, i) => (
+            <div
+              key={i}
+              className="hairline h-64 animate-pulse rounded-2xl bg-white/[0.02]"
+            />
+          ))}
+        </div>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-white/40">
-          Nothing here yet — be the first to{" "}
-          <Link href="/tinker" className="text-indigo-400 hover:underline">
-            build &amp; publish
-          </Link>{" "}
-          one.
-        </p>
+        <div className="hairline flex flex-col items-center rounded-2xl bg-white/[0.02] px-6 py-14 text-center">
+          <p className="text-sm text-white/55">Nothing here yet.</p>
+          <p className="mt-1 text-sm text-white/40">
+            Be the first to{" "}
+            <Link href="/tinker" className="text-indigo-300 underline-offset-2 hover:underline">
+              build &amp; publish
+            </Link>{" "}
+            a dashboard.
+          </p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((d) => (
-            <Link
+            <DashboardCard
               key={d.id}
               href={`/d/${d.id}`}
-              className="group flex flex-col rounded-xl border border-white/10 bg-white/[0.02] p-5 transition-colors hover:border-indigo-400/40 hover:bg-white/[0.04]"
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="font-semibold text-white group-hover:text-indigo-300">
-                  {d.title}
-                </h3>
-                <span className="text-xs text-white/40">{d.frameCount} frames</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {d.tags.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full border border-white/10 px-2 py-0.5 text-[11px] uppercase tracking-wide text-white/45"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </Link>
+              title={d.title}
+              tags={d.tags}
+              frameCount={d.frameCount}
+              frames={synthLayout(d.id, d.frameCount)}
+            />
           ))}
         </div>
       )}
-    </section>
+    </div>
   );
 }

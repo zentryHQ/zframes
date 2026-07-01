@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=JetBrains+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
 @import "@zframes/charts/src/theme.css";
 
@@ -9,12 +9,199 @@
 @source "../../../packages/frames/src";
 @source "../../../packages/charts/src";
 
+/* ── Explorer design tokens ───────────────────────────────────────────────
+ * The explorer is the public front door. Its look is a superset of the runtime
+ * brand (deep near-black + indigo/violet), pushed toward a premium market
+ * terminal. All additive: frames still render through the renderer's own scoped
+ * `.zf-*` stylesheet, so nothing here leaks into a dashboard. */
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-ink: #e7ecf6;
+  --color-brand: #818cf8; /* indigo-400 */
+  --color-brand-strong: #6366f1; /* indigo-500 */
+  --color-violet: #a78bfa; /* violet-400 */
+  --color-up: #34d399; /* emerald-400 */
+  --color-down: #fb7185; /* rose-400 */
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  background:
-    radial-gradient(1240px 660px at 50% -12%, hsla(248, 84%, 34%, 0.28), transparent 60%),
-    #07070c;
-  background-attachment: fixed;
-  color: #dde3ee;
+  min-height: 100vh;
+  background: #06060b;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Layered ambient backdrop: two soft brand glows over near-black, plus a faint
+ * blueprint grid that fades toward the edges. Fixed so it reads as a living
+ * canvas the content floats over — the terminal-in-the-dark feel. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(900px 520px at 12% -8%, hsla(244, 90%, 60%, 0.22), transparent 62%),
+    radial-gradient(820px 620px at 100% 0%, hsla(268, 88%, 62%, 0.16), transparent 58%),
+    radial-gradient(700px 700px at 50% 116%, hsla(224, 80%, 48%, 0.14), transparent 60%),
+    #06060b;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(to right, hsla(226, 40%, 70%, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, hsla(226, 40%, 70%, 0.05) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(1100px 720px at 50% -6%, #000 0%, transparent 72%);
+  mask-image: radial-gradient(1100px 720px at 50% -6%, #000 0%, transparent 72%);
+  opacity: 0.6;
+}
+
+/* ── Utilities ──────────────────────────────────────────────────────────── */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Brand gradient text — used on hero display type + section eyebrows. */
+.text-gradient {
+  background-image: linear-gradient(100deg, #c7d2fe 0%, #a5b4fc 30%, #c4b5fd 68%, #f0abfc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Frosted panel — the shared surface language for cards, the header, and the
+ * hero showcase window. */
+.glass {
+  background:
+    linear-gradient(180deg, hsla(0, 0%, 100%, 0.05), hsla(0, 0%, 100%, 0.02));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Gradient hairline border via mask (crisper than a translucent border on dark). */
+.hairline {
+  position: relative;
+}
+.hairline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg, hsla(0, 0%, 100%, 0.16), hsla(0, 0%, 100%, 0.04) 40%, transparent);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Interactive card: lifts and lights an accent halo on hover. */
+.card-lift {
+  transition:
+    transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    background-color 0.28s ease;
+}
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 20px 44px -22px hsla(244, 90%, 60%, 0.55),
+    0 0 0 1px hsla(244, 90%, 70%, 0.28);
+}
+
+/* Soft outer glow for the hero showcase + primary CTA. */
+.glow-brand {
+  box-shadow: 0 30px 90px -40px hsla(248, 90%, 60%, 0.7);
+}
+
+/* ── Motion ─────────────────────────────────────────────────────────────── */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-floaty {
+  animation: floaty 7s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 hsla(150, 80%, 55%, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 6px hsla(150, 80%, 55%, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 hsla(150, 80%, 55%, 0);
+  }
+}
+.live-dot {
+  animation: live-pulse 2s ease-out infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-fade-up,
+  .animate-floaty,
+  .animate-marquee,
+  .live-dot {
+    animation: none;
+  }
 }
