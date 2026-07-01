@@ -30,6 +30,7 @@
     "@zframes/provider-treasury": "workspace:*",
     "@zframes/provider-wallet": "workspace:*",
     "gridstack": "^12.1.0",
+    "markdown-to-jsx": "^9.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zod": "^4.1.0"
