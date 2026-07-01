@@ -1,0 +1,31 @@
+{
+  "name": "@zframes/serve",
+  "version": "0.0.0",
+  "description": "zframes serve infra (Node-only): the dashboard spec read/write contract and the host-allowlisted same-origin official-data proxy. Shared by the dev Vite plugin and the CLI server.",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/serve"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./serve": "./src/serve.ts"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/spec": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.8.0"
+  }
+}

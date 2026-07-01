@@ -4,7 +4,7 @@ import {
   isLocalRequest,
   maskKey,
   signBinance,
-} from "@zframes/core/account";
+} from "./account";
 
 type LocalReq = Parameters<typeof isLocalRequest>[0];
 const req = (headers: Record<string, string>): LocalReq =>

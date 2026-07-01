@@ -23,11 +23,11 @@
     "./cache": "./src/facade/cache.ts",
     "./editor": "./src/editor.tsx",
     "./editor-symbols": "./src/editor-symbols.ts",
-    "./vite": "./src/vite.ts",
-    "./serve": "./src/serve.ts",
+    "./vite": "./src/facade/vite.ts",
+    "./serve": "./src/facade/serve.ts",
     "./store": "./src/facade/store.ts",
     "./agent": "./src/facade/agent.ts",
-    "./account": "./src/account.ts"
+    "./account": "./src/facade/account.ts"
   },
   "sideEffects": [
     "**/*.css"
@@ -36,9 +36,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@zframes/account": "workspace:*",
     "@zframes/data-primitives": "workspace:*",
+    "@zframes/serve": "workspace:*",
     "@zframes/spec": "workspace:*",
     "@zframes/store": "workspace:*",
+    "@zframes/vite": "workspace:*",
     "@zframes/zai": "workspace:*",
     "gridstack": "^12.1.0",
     "lucide-react": "^1.21.0",
