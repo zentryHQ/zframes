@@ -395,6 +395,10 @@ export function ZaiOrb({
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
+  // A transient activity label streamed from the server ("searching the web…")
+  // shown in the input placeholder during the pre-answer gap, so a web lookup
+  // reads as work rather than a hung "thinking…". Cleared once tokens arrive.
+  const [status, setStatus] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [webglReady, setWebglReady] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
@@ -531,6 +535,7 @@ export function ZaiOrb({
     push({ role: "user", text: question });
     setValue("");
     setBusy(true);
+    setStatus(null);
 
     // The zai reply is appended once (empty) on the first event, then grows in
     // place as deltas stream in. `replaceZai` rewrites that last zai bubble.
@@ -621,8 +626,12 @@ export function ZaiOrb({
           } catch {
             continue;
           }
-          if (evt.type === "delta" && typeof evt.text === "string") {
+          if (evt.type === "status" && typeof evt.text === "string") {
+            // Tool activity (e.g. a web search) before/between answer tokens.
+            setStatus(evt.text);
+          } else if (evt.type === "delta" && typeof evt.text === "string") {
             openZai();
+            setStatus(null); // answer tokens are flowing — drop the status label
             streamed += evt.text;
             replaceZai(streamed);
           } else if (evt.type === "done") {
@@ -652,6 +661,7 @@ export function ZaiOrb({
       else push({ role: "zai", text: msg, error: true });
     } finally {
       setBusy(false);
+      setStatus(null);
       inputRef.current?.focus();
     }
   }
@@ -735,7 +745,7 @@ export function ZaiOrb({
                 data-show={!value && (busy || phShow)}
                 aria-hidden="true"
               >
-                {busy ? "thinking…" : PLACEHOLDERS[phIndex]}
+                {busy ? (status ?? "thinking…") : PLACEHOLDERS[phIndex]}
               </span>
             </div>
             <span
