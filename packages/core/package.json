@@ -25,8 +25,8 @@
     "./editor-symbols": "./src/editor-symbols.ts",
     "./vite": "./src/vite.ts",
     "./serve": "./src/serve.ts",
-    "./store": "./src/store.ts",
-    "./agent": "./src/agent.ts",
+    "./store": "./src/facade/store.ts",
+    "./agent": "./src/facade/agent.ts",
     "./account": "./src/account.ts"
   },
   "sideEffects": [
@@ -38,6 +38,8 @@
   "dependencies": {
     "@zframes/data-primitives": "workspace:*",
     "@zframes/spec": "workspace:*",
+    "@zframes/store": "workspace:*",
+    "@zframes/zai": "workspace:*",
     "gridstack": "^12.1.0",
     "lucide-react": "^1.21.0",
     "zod": "^4.1.0"

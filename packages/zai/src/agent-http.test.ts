@@ -10,7 +10,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { handleAsk } from "@zframes/core/agent";
+import { handleAsk } from "@zframes/zai/agent";
 
 // These cover every branch that returns BEFORE handleAsk spawns a runner — the
 // method/content-type/size/JSON guards plus the "no runner installed" path — and
@@ -120,7 +120,7 @@ function binDirWith(...bins: string[]): string {
 async function freshAgent(pathDir: string) {
   process.env.PATH = pathDir;
   vi.resetModules();
-  return import("@zframes/core/agent");
+  return import("@zframes/zai/agent");
 }
 
 describe("handleAsk — pre-spawn guards", () => {

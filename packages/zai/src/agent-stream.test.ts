@@ -19,7 +19,7 @@ import {
 } from "vitest";
 // Type-only: gives us handleAsk's param types without a runtime import (so it
 // never loads/caches the module — every run comes from freshAgent()).
-import type * as AgentModule from "@zframes/core/agent";
+import type * as AgentModule from "@zframes/zai/agent";
 
 type AskReq = Parameters<typeof AgentModule.handleAsk>[0];
 
@@ -109,7 +109,7 @@ const claudeResultLine = (result: string) =>
 async function freshAgent(pathDir: string) {
   process.env.PATH = pathDir;
   vi.resetModules();
-  return import("@zframes/core/agent");
+  return import("@zframes/zai/agent");
 }
 
 interface FakeRes {

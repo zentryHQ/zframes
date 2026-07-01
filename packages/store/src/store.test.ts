@@ -13,7 +13,7 @@ import {
   resolveServeTarget,
   setDefault,
   storeHome,
-} from "@zframes/core/store";
+} from "./store";
 
 // Each test runs against a throwaway XDG_CONFIG_HOME so the real store is never
 // touched and the home reads back deterministically (storeHome reads the env

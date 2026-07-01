@@ -7,7 +7,7 @@ import {
   claudeDelta,
   claudeResult,
   claudeStatus,
-} from "@zframes/core/agent";
+} from "@zframes/zai/agent";
 
 // buildPrompt reads the spec off disk, so each case writes a tiny real spec into
 // a temp dir. The parsers (claudeResult/claudeDelta) are pure — no fs needed.
