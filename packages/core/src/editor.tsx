@@ -23,10 +23,10 @@ import {
   type AnyFrameDefinition,
   type FrameCategory,
   type FrameRegistry,
-} from "./frame";
+} from "@zframes/spec/frame";
 import { FRAME_CSS, FrameContent, FramePatchContext } from "./frame-content";
 import { FramesProvider, useProviders } from "./hooks";
-import { BACKGROUND_SCENES, THEME_PRESETS, type ThemePreset } from "./presets";
+import { BACKGROUND_SCENES, THEME_PRESETS, type ThemePreset } from "@zframes/spec/presets";
 import {
   FONT_FAMILY_STACKS,
   NUMERIC_VARIANTS,
@@ -35,7 +35,7 @@ import {
   type DashboardTypography,
   type FrameInstance,
   type GridPosition,
-} from "./spec";
+} from "@zframes/spec/spec";
 
 /**
  * Unmount a per-frame React root *after* the current render/commit finishes.

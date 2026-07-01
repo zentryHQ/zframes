@@ -1,12 +1,12 @@
 import { useMemo, type CSSProperties } from "react";
-import type { FrameRegistry } from "./frame";
+import type { FrameRegistry } from "@zframes/spec/frame";
 import { FRAME_CSS, FrameContent } from "./frame-content";
 import {
   FONT_FAMILY_STACKS,
   NUMERIC_VARIANTS,
   type DashboardSpec,
   type FrameInstance,
-} from "./spec";
+} from "@zframes/spec/spec";
 
 // Placement ships as CSS vars (not direct grid-column/grid-row) so the
 // stylesheet's media queries can override it — inline styles would win over a

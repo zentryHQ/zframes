@@ -1,0 +1,44 @@
+{
+  "name": "@zframes/spec",
+  "version": "0.0.0",
+  "description": "zframes domain kernel: the dashboard spec schema, frame/registry primitives, route constants, theme presets, and the AI catalogue. React- and Node-free.",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/spec"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./spec": "./src/spec.ts",
+    "./routes": "./src/routes.ts",
+    "./frame": "./src/frame.ts",
+    "./presets": "./src/presets.ts",
+    "./catalogue": "./src/catalogue.ts"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "typescript": "^5.8.0"
+  }
+}

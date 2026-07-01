@@ -8,6 +8,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   transpilePackages: [
     "@zframes/core",
+    "@zframes/spec",
     "@zframes/charts",
     "@zframes/frames",
     "@zframes/provider-alternativeme",

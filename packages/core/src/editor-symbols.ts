@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
-import type { AnyFrameDefinition } from "./frame";
-import type { DayStats, MarketDataProvider } from "./types";
+import type { AnyFrameDefinition } from "@zframes/spec/frame";
+import type { DayStats, MarketDataProvider } from "@zframes/spec/types";
 
 export type SymbolKind = "Stock" | "Crypto" | "Custom";
 

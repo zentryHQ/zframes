@@ -4,7 +4,7 @@ import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 // config-loader can resolve it when it loads this module via `@zframes/core/account`
 // — same contract this file uses for `@zframes/core/routes`.
 import { credentialsFile, storeHome } from "@zframes/core/store";
-import type { Holding, Portfolio } from "./types";
+import type { Holding, Portfolio } from "@zframes/spec/types";
 
 /**
  * The keyed-account tier's Node-only backend: local credential storage plus a
@@ -25,7 +25,7 @@ import type { Holding, Portfolio } from "./types";
 export {
   ACCOUNT_PORTFOLIO_ROUTE,
   ACCOUNT_CREDENTIALS_ROUTE,
-} from "@zframes/core/routes";
+} from "@zframes/spec/routes";
 
 // Minimal structural shapes satisfied by both Node's http and Vite's connect
 // middleware, so neither this module nor `./vite` needs a node/vite type dep.

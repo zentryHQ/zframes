@@ -1,5 +1,5 @@
 import type { ZodType } from "zod";
-import { DASHBOARD_PROXY_ROUTE } from "./routes";
+import { DASHBOARD_PROXY_ROUTE } from "@zframes/spec/routes";
 
 /**
  * Polite, resilient JSON fetch shared by every provider. Centralises the

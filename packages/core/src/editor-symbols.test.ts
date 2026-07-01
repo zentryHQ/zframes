@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import type { AnyFrameDefinition } from "./frame";
+import type { AnyFrameDefinition } from "@zframes/spec/frame";
 import {
   buildDefaultConfig,
   configFields,
