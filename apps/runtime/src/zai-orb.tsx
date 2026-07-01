@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -10,6 +11,7 @@ import { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/core/routes";
 import { OrbCanvas } from "./unicorn/orb-scene";
 import { useScreenSnapshot } from "./screen-context";
 import { MarkdownAnswer } from "./markdown-answer";
+import { suggestionsFor } from "./orb-suggestions";
 import type { UnicornSceneType } from "./unicorn/types";
 
 // The zAI orb — host chrome (not a frame), pinned bottom-right above the ticker
@@ -34,18 +36,11 @@ const EFFECT_LAYER_ID = "effect2";
 // Keep the floating history bounded — it's an ambient readout, not a transcript.
 const MAX_MESSAGES = 8;
 
-// Rotating placeholder suggestions — cycle while the input is empty and idle so
+// Rotating placeholder suggestions cycle while the input is empty and idle so
 // the orb keeps hinting at what zAI can answer, instead of one static prompt.
-const PLACEHOLDERS = [
-  "what's going on?",
-  "what's moving today?",
-  "how's BTC funding looking?",
-  "what should I be watching?",
-  "summarize the market for me",
-  "explain my dashboard",
-  "is it fear or greed right now?",
-  "anything unusual today?",
-];
+// The list itself is derived from the frames on the dashboard (see
+// ./orb-suggestions) so the hints reflect what the user is actually looking at.
+//
 // Each suggestion holds, then cross-fades to the next; the fade window is how
 // long it sits invisible mid-swap (matches the CSS opacity transition).
 const PLACEHOLDER_HOLD_MS = 3600;
@@ -413,6 +408,12 @@ export function ZaiOrb({
   // Snapshots what's on the dashboard right now — attached to every question so
   // zAI answers about the live screen, not in the abstract. Lazy: runs on ask.
   const captureContext = useScreenSnapshot(spec, registry);
+  // Placeholder hints tailored to the frames on this dashboard; recomputed only
+  // when the spec changes (a dashboard edit), never per render.
+  const suggestions = useMemo(
+    () => suggestionsFor(spec, registry),
+    [spec, registry],
+  );
 
   // Drive the orb scene's effect-layer speed: gentle when idle, fast while the
   // agent is thinking. Mirrors Nexus's AIAvatar isLoading behaviour.
@@ -499,7 +500,10 @@ export function ZaiOrb({
     const cycle = setInterval(() => {
       setPhShow(false);
       fade = setTimeout(() => {
-        setPhIndex((i) => (i + 1) % PLACEHOLDERS.length);
+        // Increment unbounded; the render modulos by the current suggestion
+        // count, so a dashboard edit that changes the list length mid-cycle
+        // can never index out of range.
+        setPhIndex((i) => i + 1);
         setPhShow(true);
       }, PLACEHOLDER_FADE_MS);
     }, PLACEHOLDER_HOLD_MS);
@@ -745,7 +749,9 @@ export function ZaiOrb({
                 data-show={!value && (busy || phShow)}
                 aria-hidden="true"
               >
-                {busy ? (status ?? "thinking…") : PLACEHOLDERS[phIndex]}
+                {busy
+                  ? (status ?? "thinking…")
+                  : (suggestions[phIndex % suggestions.length] ?? "")}
               </span>
             </div>
             <span
