@@ -390,6 +390,12 @@ importers:
       '@zframes/spec':
         specifier: workspace:*
         version: link:../spec
+      '@zframes/store':
+        specifier: workspace:*
+        version: link:../store
+      '@zframes/zai':
+        specifier: workspace:*
+        version: link:../zai
       gridstack:
         specifier: ^12.1.0
         version: 12.6.0
@@ -639,6 +645,28 @@ importers:
       '@types/react':
         specifier: ^19.1.0
         version: 19.2.17
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/store:
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/zai:
+    dependencies:
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.0
+        version: 20.19.43
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
