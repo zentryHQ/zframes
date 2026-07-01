@@ -17,7 +17,8 @@
     ".": "./src/index.ts",
     "./schemas": "./src/schemas.ts",
     "./lazy": "./src/lazy.ts",
-    "./asset-logo": "./src/asset-logo.tsx"
+    "./asset-logo": "./src/asset-logo.tsx",
+    "./testing": "./src/testing/mock-provider.ts"
   },
   "sideEffects": false,
   "scripts": {
