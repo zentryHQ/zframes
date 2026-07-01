@@ -23,8 +23,8 @@ zframes is a framework where **AI agents generate personal market terminals**. Y
 ### Why it's different
 
 - 🗣️ **Agent-generated** — you talk; an agent writes the spec and runs it. No dashboard builder UI to learn.
-- 🔑 **Keyless** — Hyperliquid, DeFiLlama, alternative.me, and CoinGecko free public APIs. No signup, no keys, no `.env`.
-- 📈 **Stocks first** — live equity perps stream via Hyperliquid HIP-3 (`xyz:TSLA`, `xyz:NVDA`), with crypto, TVL, and sentiment alongside.
+- 🔑 **Keyless** — fifteen free public data sources (Hyperliquid, CoinGecko, DeFiLlama, Deribit, mempool.space, the U.S. Treasury, the NY Fed, BLS, SEC EDGAR, and more). No signup, no keys, no `.env`.
+- 📈 **Stocks first** — live equity perps stream via Hyperliquid HIP-3 (`xyz:TSLA`, `xyz:NVDA`), with crypto, DeFi, derivatives, and official US macro data alongside.
 - 🧩 **Yours to own** — your dashboard is one git-trackable `dashboard.json`; the CLI serves it locally. No hosted service, no lock-in.
 - 🧠 **Self-improving** — a daily loop grades yesterday's market calls against what actually happened and writes a fresh brief into your dashboard.
 
@@ -75,7 +75,7 @@ The contract the agent works against is the **catalogue** (frame names + config 
 | [**`zframes`**](skills/zframes/SKILL.md) | Builds & edits your dashboard — reads the catalogue, writes `dashboard.json`, lints it, serves it live in your browser. | *"build me a TSLA + NVDA terminal"* |
 | [**`zframes-brief`**](skills/zframes-brief/SKILL.md) | Daily analyst loop — analyzes the symbols on your dashboard, grades yesterday's calls, writes today's brief into the `daily-analysis` frame. | *"run my daily brief"* |
 
-> **🚧 Pre-release.** `npx skills add zentryhq/zframes` installs the skills from GitHub today. The `zframes` **CLI** they drive bundles the dashboard runtime, so `npx zframes serve` is the entire runtime — no clone, no install. That CLI is being published to npm now; until it lands, the standalone `npx` flow isn't live yet.
+> `npx skills add zentryhq/zframes` installs the skills into any skills-aware agent. The [`zframes`](https://www.npmjs.com/package/zframes) **CLI** they drive is published on npm and bundles the dashboard runtime, so `npx zframes serve` fetches the whole runtime on each run — no clone, no install.
 
 ---
 
@@ -90,23 +90,22 @@ The contract the agent works against is the **catalogue** (frame names + config 
 
 ## Frame catalogue
 
-Thirteen built-in frames ([`packages/frames`](packages/frames)):
+Over 70 built-in frames ([`packages/frames`](packages/frames)), grouped into 12 categories. Each frame's Zod schema is the AI-facing API, so the live, authoritative list is whatever `zframes catalogue` prints — never a hand-kept table. The families:
 
-| Frame | What it shows |
+| Category | Frames include |
 |---|---|
-| `price-chart` | Live candle/line chart for one symbol (liveline) — HIP-3 stock perps + crypto |
-| `price-ticker` | Streaming watchlist with 24h change |
-| `top-movers` | Biggest gainers/losers across the perp universe |
-| `funding-rate-chart` | Multi-series funding rates across coins |
-| `funding-heatmap` | Funding rates as a coins × time heatmap |
-| `tvl-treemap` | Total value locked per chain (DeFiLlama) |
-| `fear-greed` | Crypto Fear & Greed index with sparkline |
-| `bitcoin-dominance` | BTC / ETH / Others dominance bar |
-| `daily-analysis` | The daily brief — dated analysis + scored calls, written by the `zframes-brief` loop |
-| `note` | Free-form pinned text (trading plan, reminders) |
-| `image` | Image from a URL |
-| `heading` | Section divider to group frames into zones |
-| `dino-game` | Chrome-dino runner, for when the market's flat |
+| **Prices & Markets** | `price-chart`, `price-liveline`, `price-ticker`, `top-movers`, `price-compare` |
+| **Crypto & On-chain** | `bitcoin-dominance`, `market-cap-treemap`, `tvl-treemap`, `dex-volume-*`, `protocol-tvl-*`, `protocol-fees-treemap`, `coin-movers` |
+| **Bitcoin Network** | `btc-fees`, `btc-mempool`, `btc-blocks`, `btc-hashrate`, `btc-difficulty`, `mining-pools`, `lightning-stats` |
+| **Derivatives & Options** | `funding-rate-chart`, `funding-heatmap`, `open-interest`, `options-put-call`, `options-iv`, `options-oi-strike` |
+| **Macro & Rates** | `rates-board`, `yield-curve`, `inflation-pulse`, `labor-market`, `national-debt`, `treasury-auctions`, `financial-stress`, `fx-board` |
+| **Equities & Filings** | `fundamentals`, `filings-feed`, `short-volume` |
+| **Sentiment & News** | `fear-greed`, `news-feed` |
+| **Portfolio** | `portfolio-value`, `portfolio-allocation`, `portfolio-holdings` |
+| **Decision Journal** | `journal-log`, `journal-open`, `journal-results`, `journal-score` |
+| **Tools & Utility** | `daily-analysis` (the daily brief), `clock`, `countdown`, `calculator`, `link-grid`, `market-hours`, `checklist` |
+| **Layout & Media** | `heading`, `divider`, `note`, `image`, `video`, `quote` |
+| **Games** | `dino-game`, `snake`, `flappy-bird`, `drawdy`, `dice` |
 
 Stocks are the lead use case — equity perps via Hyperliquid HIP-3 builder dexes, namespaced by Hyperliquid itself (`xyz:TSLA`, `xyz:NVDA`, `km:US500`) over the same free WebSocket, no extra adapter. Crypto (`BTC`, `ETH`) works identically.
 
@@ -114,14 +113,29 @@ Stocks are the lead use case — equity perps via Hyperliquid HIP-3 builder dexe
 
 ## Providers
 
-All free, all keyless ([`packages/provider-*`](packages)):
+Fifteen free, keyless providers ([`packages/provider-*`](packages)) fulfil frame capabilities:
 
-| Provider | Capabilities |
+| Provider | Covers |
 |---|---|
-| **Hyperliquid** | `quote-stream`, `day-stats`, `funding-history`, `ohlcv` — crypto + HIP-3 stock perps |
-| **DeFiLlama** | `tvl` |
+| **Hyperliquid** | `quote-stream`, `day-stats`, `funding-history`, `ohlcv`, `open-interest` — crypto + HIP-3 stock perps |
+| **CoinGecko** (free tier) | `global-market` (marketcap + dominance), `coin-markets` |
+| **Coinpaprika** | `coin-movers` across ~2000 coins |
 | **alternative.me** | `sentiment` (Fear & Greed) |
-| **CoinGecko** (free tier) | `global-market` (total marketcap + dominance) |
+| **DeFiLlama** | `tvl`, `dex-volume`, `protocol-tvl`, `protocol-fees` |
+| **mempool.space** | Bitcoin fees, mempool, blocks, hashrate, difficulty, mining pools, Lightning |
+| **Deribit** | put-call ratio, OI-by-strike, DVOL volatility index |
+| **U.S. Treasury** | average interest rates, debt-to-penny, auctions, daily yield curve |
+| **NY Fed** | SOFR, EFFR, repo reference rates |
+| **OFR** | `financial-stress` index |
+| **BLS** | CPI, unemployment, and other public time series |
+| **FINRA** | `short-volume` (daily reported short-sale volume) |
+| **SEC EDGAR** | company filings + XBRL fundamentals |
+| **News (RSS)** | `news` headlines from public outlet feeds |
+| **Frankfurter / ECB** | `fx-rates` (daily reference FX rates) |
+
+Official US sources (Treasury, NY Fed, OFR, BLS, FINRA, SEC) are keyless but CORS-blocked in the browser, so the runtime relays them through a same-origin allowlisted proxy.
+
+An **opt-in keyed tier** (a connected **Binance** account and a public on-chain **wallet** address, both `portfolio`) also exists, but it's separate from the keyless set and **not wired into the published CLI**.
 
 ---
 
@@ -147,7 +161,7 @@ pnpm install
 pnpm dev          # runtime at http://localhost:37263
 ```
 
-The runtime streams real prices from Hyperliquid's public WebSocket and renders the dashboard in [`apps/runtime/src/dashboard.json`](apps/runtime/src/dashboard.json). Edit that file — by hand or with your agent — and it hot-reloads. You can also drag, resize, and add frames right in the browser; **Save** writes the changes back to the same `dashboard.json`.
+The runtime streams real prices from Hyperliquid's public WebSocket and renders a `dashboard.json` — resolved the same way `zframes serve` resolves it (your global-store default, else a local `./dashboard.json`). Edit that file — by hand or with your agent — and it hot-reloads. You can also drag, resize, and add frames right in the browser; **Save** writes the changes back to the same file.
 
 ```bash
 pnpm typecheck    # tsc across all packages
@@ -160,13 +174,16 @@ The skill drives this CLI; you can run the same commands yourself.
 
 ```bash
 pnpm build:cli                      # build the bin (also builds the prebuilt runtime serve ships)
+pnpm zframes init [name|dir]        # write a bare, valid dashboard.json envelope for the agent to fill
 pnpm zframes catalogue              # frame catalogue as JSON Schema (what the agent reads)
-pnpm zframes lint <dashboard.json>  # validate a spec; exit 1 with readable, per-frame errors
-pnpm zframes snapshot <dashboard.json>   # keyless market snapshot of the spec's symbols (feeds the brief)
-pnpm zframes serve [dashboard.json] # serve a dashboard.json as a live, editable terminal (:37263)
+pnpm zframes lint <name|file>       # validate a spec; exit 1 with readable, per-frame errors
+pnpm zframes snapshot [name|file]   # keyless market snapshot of the spec's symbols (feeds the brief)
+pnpm zframes serve [name|file]      # serve a dashboard as a live, editable terminal (:37263)
+pnpm zframes list                   # list dashboards in the global store
+pnpm zframes use <name>             # set the default store dashboard
 ```
 
-`zframes serve` hosts a prebuilt dashboard runtime pointed at your `dashboard.json` (bound to `127.0.0.1`), with in-browser editing that saves back to the file — you own just that one file, no app to maintain. (Publishing the CLI to npm — so the agent can `npx zframes serve` per run — is on the roadmap.)
+A dashboard is one `dashboard.json`. Point at a file, or name one and it lives in your global store (`$XDG_CONFIG_HOME/zframes`, default `~/.config/zframes`) so the CLI runs from anywhere and holds many. `zframes serve` hosts a prebuilt dashboard runtime pointed at it (bound to `127.0.0.1`), with in-browser editing that saves back to the file — you own just that one file, no app to maintain. The CLI is [published on npm](https://www.npmjs.com/package/zframes), so the agent runs `npx zframes serve` per run without a clone.
 
 ---
 
@@ -176,13 +193,12 @@ pnpm zframes serve [dashboard.json] # serve a dashboard.json as a live, editable
 packages/
   core                     frame primitives, spec schema, renderer, editor, provider hooks, catalogue
   charts                   D3 base chart layer (ported from zTerminal) + theme tokens
-  frames                   the 13 built-in frames + their AI-facing schemas
-  provider-hyperliquid     keyless live market data (crypto + HIP-3 stocks)
-  provider-defillama       TVL
-  provider-alternativeme   Fear & Greed
-  provider-coingecko       global market / dominance
-  cli                      zframes catalogue | lint | snapshot | serve
-apps/runtime               Vite app that renders src/dashboard.json (editable in-browser)
+  frames                   the built-in frames + their AI-facing schemas
+  provider-*               15 keyless data providers (Hyperliquid, CoinGecko, DeFiLlama,
+                           Deribit, mempool, Treasury, NY Fed, OFR, BLS, FINRA, SEC, …)
+                           + 2 opt-in keyed providers (binance, wallet)
+  cli                      zframes init | serve | list | use | catalogue | lint | snapshot
+apps/runtime               Vite app that renders a dashboard.json (editable in-browser)
 skills/zframes             the build-my-dashboard skill
 skills/zframes-brief       the daily-analyst loop skill
 ```
@@ -193,4 +209,4 @@ Packages ship TypeScript source (`main: src/index.ts`); the runtime's Vite consu
 
 ## License
 
-[Apache-2.0](LICENSE) · Copyright 2026 Zentry. See [`NOTICE`](NOTICE) for third-party components (liveline, d3, unicornstudio-react). Distribution is `npx zframes serve` — one CLI that bundles the runtime, pointed at your `dashboard.json`. The npm publish that makes `npx zframes` resolve is the remaining step.
+[Apache-2.0](LICENSE) · Copyright 2026 Zentry. See [`NOTICE`](NOTICE) for third-party components (liveline, d3, unicornstudio-react). Distribution is `npx zframes serve` — one [published](https://www.npmjs.com/package/zframes) CLI that bundles the runtime, pointed at your `dashboard.json`.
