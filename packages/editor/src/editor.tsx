@@ -24,8 +24,13 @@ import {
   type FrameCategory,
   type FrameRegistry,
 } from "@zframes/spec/frame";
-import { FRAME_CSS, FrameContent, FramePatchContext } from "./frame-content";
-import { FramesProvider, useProviders } from "./hooks";
+import {
+  FRAME_CSS,
+  FrameContent,
+  FramePatchContext,
+  FramesProvider,
+  useProviders,
+} from "@zframes/core";
 import { BACKGROUND_SCENES, THEME_PRESETS, type ThemePreset } from "@zframes/spec/presets";
 import {
   FONT_FAMILY_STACKS,

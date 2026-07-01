@@ -23,6 +23,7 @@ const config: StorybookConfig = {
         exclude: [
           "@zframes/core",
           "@zframes/spec",
+          "@zframes/editor",
           "@zframes/frames",
           "@zframes/charts",
         ],

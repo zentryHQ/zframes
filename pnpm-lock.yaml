@@ -406,6 +406,9 @@ importers:
       '@zframes/data-primitives':
         specifier: workspace:*
         version: link:../data-primitives
+      '@zframes/editor':
+        specifier: workspace:*
+        version: link:../editor
       '@zframes/serve':
         specifier: workspace:*
         version: link:../serve
@@ -421,12 +424,6 @@ importers:
       '@zframes/zai':
         specifier: workspace:*
         version: link:../zai
-      gridstack:
-        specifier: ^12.1.0
-        version: 12.6.0
-      lucide-react:
-        specifier: ^1.21.0
-        version: 1.21.0(react@19.2.7)
       react:
         specifier: '>=18'
         version: 19.2.7
@@ -459,6 +456,40 @@ importers:
         specifier: ^4.1.0
         version: 4.4.3
     devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/editor:
+    dependencies:
+      '@zframes/core':
+        specifier: workspace:*
+        version: link:../core
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+      gridstack:
+        specifier: ^12.1.0
+        version: 12.6.0
+      lucide-react:
+        specifier: ^1.21.0
+        version: 1.21.0(react@19.2.7)
+      react:
+        specifier: '>=18'
+        version: 19.2.7
+      react-dom:
+        specifier: '>=18'
+        version: 19.2.7(react@19.2.7)
+      zod:
+        specifier: ^4.1.0
+        version: 4.4.3
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.1.0
+        version: 19.2.3(@types/react@19.2.17)
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
