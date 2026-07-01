@@ -3,8 +3,8 @@ import type { AnyFrameDefinition, FrameRegistry } from "@zframes/core";
 import { frameLoaders } from "@zframes/frames/lazy";
 import { allFrameMetas } from "@zframes/frames/schemas";
 
-/** Title-icon fallback for a frame whose module exports none. */
-const NullIcon = () => null;
+/** Fallback for a frame flagged with a title slot but exporting none. */
+const NullSlot = () => null;
 
 /**
  * Build the runtime frame registry with **lazily-loaded** components.
@@ -19,9 +19,10 @@ const NullIcon = () => null;
  * The registry carries the full meta eagerly (schema, capabilities, category,
  * layout, source) so config validation, missing-capability checks, error
  * cards, and the editor palette all work without downloading any component
- * code. Only `component` (and the optional `titleIcon`) are deferred behind
- * `React.lazy`, resolved from a per-frame chunk the first time the frame
- * renders. `FrameContent` renders these through a `<Suspense>` boundary.
+ * code. Only `component` (and the optional `titleIcon` / `titleContent`) are
+ * deferred behind `React.lazy`, resolved from a per-frame chunk the first time
+ * the frame renders. `FrameContent` renders these through a `<Suspense>`
+ * boundary.
  */
 export function createLazyRegistry(): FrameRegistry {
   const registry: FrameRegistry = new Map();
@@ -58,7 +59,19 @@ export function createLazyRegistry(): FrameRegistry {
                 `[zframes] frame "${meta.name}" is flagged titleIcon but its module exports none`,
               );
             }
-            return { default: def.titleIcon ?? NullIcon };
+            return { default: def.titleIcon ?? NullSlot };
+          }),
+        )
+      : undefined;
+    const titleContent = loader.titleContent
+      ? lazy(() =>
+          get().then((def) => {
+            if (!def.titleContent) {
+              console.warn(
+                `[zframes] frame "${meta.name}" is flagged titleContent but its module exports none`,
+              );
+            }
+            return { default: def.titleContent ?? NullSlot };
           }),
         )
       : undefined;
@@ -66,6 +79,7 @@ export function createLazyRegistry(): FrameRegistry {
       ...meta,
       component,
       titleIcon,
+      titleContent,
     } as AnyFrameDefinition);
   }
   return registry;

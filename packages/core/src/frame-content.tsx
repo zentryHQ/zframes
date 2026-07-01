@@ -633,6 +633,7 @@ function ValidFrameCard({
   hasIcon,
   titleIcon,
   title,
+  titleContent,
   sources,
   children,
 }: {
@@ -641,6 +642,7 @@ function ValidFrameCard({
   hasIcon: boolean;
   titleIcon: ReactNode;
   title: string;
+  titleContent?: ReactNode;
   sources: FrameSource[];
   children: ReactNode;
 }) {
@@ -683,7 +685,7 @@ function ValidFrameCard({
       <div ref={cardRef} className={cx("zf-frame", className)} style={style}>
         <div className={cx("zf-frame-title", hasIcon ? "zf-frame-title--icon" : "")}>
           {titleIcon}
-          <span className="zf-frame-title-text">{title}</span>
+          <span className="zf-frame-title-text">{titleContent ?? title}</span>
           <SourceCredit sources={sources} />
         </div>
         <div className="zf-frame-body">{children}</div>
@@ -781,6 +783,7 @@ function FrameContentImpl({
 
   const FrameComponent = def.component;
   const TitleIcon = def.titleIcon;
+  const TitleContent = def.titleContent;
   const sources = def.source
     ? Array.isArray(def.source)
       ? def.source
@@ -814,6 +817,15 @@ function FrameContentImpl({
             <TitleIcon config={parsed.data} />
           </Suspense>
         ) : null
+      }
+      // A frame-owned dynamic title (live ticker+price, compared symbols) only
+      // takes over when the instance hasn't set an explicit title.
+      titleContent={
+        instance.title == null && TitleContent ? (
+          <Suspense fallback={null}>
+            <TitleContent config={parsed.data} />
+          </Suspense>
+        ) : undefined
       }
     >
       <FrameErrorBoundary>
