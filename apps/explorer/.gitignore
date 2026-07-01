@@ -6,3 +6,8 @@ next-env.d.ts
 
 # deps (also covered by the root .gitignore)
 /node_modules
+
+# env + local dev database (PGlite)
+.env*
+!.env.example
+/.pglite

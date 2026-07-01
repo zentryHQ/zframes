@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { AuthNav } from "@/app/lib/AuthNav";
 import "./globals.css";
 
 export const metadata = {
@@ -27,6 +28,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <Link href="/tinker" className="transition-colors hover:text-white">
                 Tinker
               </Link>
+            </div>
+            <div className="ml-auto">
+              <AuthNav />
             </div>
           </nav>
         </header>

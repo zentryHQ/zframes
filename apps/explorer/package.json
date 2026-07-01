@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.3",
     "@zframes/charts": "workspace:*",
     "@zframes/core": "workspace:*",
     "@zframes/frames": "workspace:*",
@@ -28,16 +29,22 @@
     "@zframes/provider-ofr": "workspace:*",
     "@zframes/provider-sec": "workspace:*",
     "@zframes/provider-treasury": "workspace:*",
+    "better-auth": "^1.6.23",
+    "drizzle-orm": "^0.45.2",
+    "nanoid": "^5.1.16",
     "next": "^15.5.0",
+    "postgres": "^3.4.9",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zod": "^4.1.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite-socket": "^0.2.6",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^20.14.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "drizzle-kit": "^0.31.10",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.8.0"
   }
