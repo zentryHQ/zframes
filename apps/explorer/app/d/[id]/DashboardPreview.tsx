@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
+import { AgentForkButton } from "@/app/lib/AgentForkButton";
 
 // DashboardView is client-only (shared WS + browser APIs) → dynamic ssr:false.
 const DashboardView = dynamic(() => import("@/app/lib/DashboardView"), {
@@ -13,6 +14,7 @@ const DashboardView = dynamic(() => import("@/app/lib/DashboardView"), {
 const TINKER_KEY = "zframes:tinker-spec";
 
 export function DashboardPreview({
+  id,
   title,
   spec,
 }: {
@@ -42,13 +44,16 @@ export function DashboardPreview({
           </Link>
           <h1 className="text-xl font-semibold text-white">{title}</h1>
         </div>
-        <button
-          type="button"
-          onClick={fork}
-          className="rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-1.5 text-sm font-medium text-indigo-200 transition-colors hover:bg-indigo-500/20"
-        >
-          Make it mine →
-        </button>
+        <div className="flex items-center gap-2">
+          <AgentForkButton id={id} />
+          <button
+            type="button"
+            onClick={fork}
+            className="rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-1.5 text-sm font-medium text-indigo-200 transition-colors hover:bg-indigo-500/20"
+          >
+            Tinker here →
+          </button>
+        </div>
       </div>
       <DashboardView spec={spec} />
     </main>

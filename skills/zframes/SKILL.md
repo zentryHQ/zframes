@@ -1,6 +1,6 @@
 ---
 name: zframes
-description: Build, update, or serve the user's personal zframes market dashboard. Use when the user says "/zframes", "build me a dashboard", "set up my terminal", "make me a market terminal", "add X to my dashboard", "start/open/serve my dashboard", or wants a personalized live market dashboard (crypto + stocks). If a dashboard already exists and the user just wants to start it, serve it — don't rebuild from scratch. Writes a validated dashboard.json and serves it live with the CLI — the agent never writes React.
+description: Build, update, serve, or fork the user's personal zframes market dashboard. Use when the user says "/zframes", "build me a dashboard", "set up my terminal", "make me a market terminal", "add X to my dashboard", "start/open/serve my dashboard", "fork this dashboard <url>", "run this shared zframes link", or wants a personalized live market dashboard (crypto + stocks). If they give a zframes explorer link (a .../d/<id> URL), fork it onto their machine. If a dashboard already exists and the user just wants to start it, serve it — don't rebuild from scratch. Writes a validated dashboard.json and serves it live with the CLI — the agent never writes React.
 ---
 
 # zframes — your dashboard, generated
@@ -46,6 +46,11 @@ unless you're genuinely creating a dashboard the user doesn't have yet.
 - **Create a brand-new dashboard** — only when the user wants one they don't yet
   have (or explicitly asks for a fresh one alongside their others). Name it,
   `init` it (below), then run the full build, steps 2 → 6.
+- **Fork a shared dashboard** — the user gives a zframes **explorer link**
+  (`.../d/<id>` or `.../d/<id>/dashboard.json`), or pastes the "fork" prompt.
+  They want that shared dashboard **on their machine** to keep and extend. Don't
+  interview or build — fetch it, land it in the store, serve, then offer to
+  personalize. See **Fork a shared dashboard** below.
 
 The only artifact is a single `dashboard.json`. There is **no app to scaffold** —
 the runtime comes from the CLI. Dashboards live in a **global store**
@@ -84,6 +89,43 @@ file unless you pass `--force`.
 (Prefer a plain file over the store? Pass a path — `init ./my-dir` or
 `init ~/dash.json` — and every command takes that path too. A token with a
 `/` or a `.json` suffix is always a path; a bare token is always a store name.)
+
+## Fork a shared dashboard (from an explorer link)
+
+When the user gives you a zframes **explorer link** — a `.../d/<id>` URL, a
+`.../d/<id>/dashboard.json` URL, or the pasted fork prompt — they want that shared
+dashboard **on their own machine** to own and personalize. Don't interview or
+build from scratch; fetch it, serve it, then offer to tweak it. This is the
+web→local handoff: the explorer is the showroom; forking pulls the artifact home.
+
+1. **Fetch the spec.** Resolve the raw URL: if the link already ends in
+   `/dashboard.json`, use it as-is; otherwise append `/dashboard.json`. Fetch it:
+
+   ```bash
+   curl -fsSL "<url>/dashboard.json" -o /tmp/zframes-fork.json
+   ```
+
+   (Or use your own web-fetch tool.) The result is a complete, valid
+   `dashboard.json` — the whole dashboard, not a fragment.
+
+2. **Land it in the store under a name.** Pick a short name from the title, `init`
+   the store entry, then **replace its file wholesale** with the fetched spec:
+
+   ```bash
+   npx --yes zframes@latest init <name> --title "<title from the spec>"
+   ```
+
+   `init` prints the store path it created
+   (`~/.config/zframes/dashboards/<name>/dashboard.json`). Overwrite that file with
+   the contents of `/tmp/zframes-fork.json` — the fetched spec is the entire
+   dashboard, so replace, don't merge.
+
+3. **Lint + serve** (steps 5–6): `zframes lint <name>`, then `zframes serve <name>`.
+   Now it's a real file they own, running live.
+
+4. **Offer to personalize.** It's now an ordinary "update" (step 4 rules) — "want
+   me to swap in your tickers, add a frame, or retheme it?" Read the file, change
+   only what they ask, re-lint, and the page reloads.
 
 ## 2. Read the catalogue — always, before generating
 
