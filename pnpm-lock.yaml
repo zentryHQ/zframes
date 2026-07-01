@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   liveline@0.0.7:
-    hash: djwgd6b3h72full22yopzd6lgy
+    hash: fawe6cnjpywtxwetsilnnsir5u
     path: patches/liveline@0.0.7.patch
 
 importers:
@@ -100,6 +100,9 @@ importers:
       gridstack:
         specifier: ^12.1.0
         version: 12.6.0
+      markdown-to-jsx:
+        specifier: ^9.5.0
+        version: 9.8.2(react@19.2.7)
       react:
         specifier: ^19.1.0
         version: 19.2.7
@@ -321,7 +324,7 @@ importers:
         version: link:../core
       liveline:
         specifier: 0.0.7
-        version: 0.0.7(patch_hash=djwgd6b3h72full22yopzd6lgy)(react@19.2.7)
+        version: 0.0.7(patch_hash=fawe6cnjpywtxwetsilnnsir5u)(react@19.2.7)
       react:
         specifier: '>=18'
         version: 19.2.7
@@ -2653,6 +2656,24 @@ packages:
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
+
+  markdown-to-jsx@9.8.2:
+    resolution: {integrity: sha512-rWUuxKB5NsuJmSfUOuXkQ0O5qk0J/Lr3Lk6dzxKoKQI/jeHYlsVfz3zJdMLAhI46hHoXDYERWhtBOiqtWDZ4LA==}
+    engines: {node: '>= 18'}
+    peerDependencies:
+      react: '>= 16.0.0'
+      react-native: '*'
+      solid-js: '>=1.0.0'
+      vue: '>=3.0.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-native:
+        optional: true
+      solid-js:
+        optional: true
+      vue:
+        optional: true
 
   min-indent@1.0.1:
     resolution: {integrity: sha512-I9jwMn07Sy/IwOj3zVkVik2JTvgpaykDZEigL6Rx6N9LbMywwUSMtxET+7lVoDLLd3O3IXwJwvuuns8UB/HeAg==}
@@ -5079,7 +5100,7 @@ snapshots:
 
   lines-and-columns@1.2.4: {}
 
-  liveline@0.0.7(patch_hash=djwgd6b3h72full22yopzd6lgy)(react@19.2.7):
+  liveline@0.0.7(patch_hash=fawe6cnjpywtxwetsilnnsir5u)(react@19.2.7):
     dependencies:
       react: 19.2.7
 
@@ -5106,6 +5127,10 @@ snapshots:
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  markdown-to-jsx@9.8.2(react@19.2.7):
+    optionalDependencies:
+      react: 19.2.7
 
   min-indent@1.0.1: {}
 

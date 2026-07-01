@@ -1,5 +1,6 @@
 import type { DashboardBackground as BackgroundConfig } from "@zframes/core";
 import { lazy, Suspense } from "react";
+import { useLowEndDevice } from "./use-low-end-device";
 
 // Lazy so dashboards with no Unicorn scene never load the (tiny) scene module.
 // In-house loader (src/unicorn-scene.tsx), NOT the `unicornstudio-react` npm
@@ -98,6 +99,11 @@ export function DashboardBackground({
    *  (host resolves it from the projectId via @zframes/core's sceneBaseHue). */
   sceneHue?: number;
 }) {
+  // On weak / metered / small-touch devices, skip the WebGL scene entirely —
+  // it's a fixed full-screen GPU + bandwidth tax that a low-end phone can't
+  // spare. The static fills below (and the unicorn downgrade) still apply.
+  const isLowEnd = useLowEndDevice();
+
   // Solid colour / custom gradient: a single opaque full-bleed fill painted
   // straight from the spec (the orb's recolor filters are scene-specific, so a
   // static fill doesn't take them). "none" renders nothing here — the body's
@@ -121,6 +127,13 @@ export function DashboardBackground({
     );
   }
   if (background.type !== "unicorn" || !background.projectId) return null;
+
+  // Low-end: downgrade the WebGL scene to the body's static gradient glow
+  // (styles.css body::before) — the same graceful default used when the engine
+  // fails to load. Returning here means the lazy <UnicornScene> never mounts, so
+  // the self-hosted engine is never even fetched. The orb's active/thinking
+  // recolor is scene-only, so it's a no-op here — acceptable on weak hardware.
+  if (isLowEnd) return null;
 
   // Compose the accent spin + desaturation with the orb's "charge" filter: the
   // rolled/muted scene is the base, the orb's invert/rotate/saturate stacks on
