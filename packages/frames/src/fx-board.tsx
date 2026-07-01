@@ -51,16 +51,18 @@ function FxBoard({ config }: { config: z.output<typeof schema> }) {
               </span>
               <div className="flex-1" />
               {config.showSparkline && spark.length > 1 && (
-                <MiniLineChart data={spark} width={72} height={20} color={color} />
+                <MiniLineChart
+                  data={spark}
+                  width={72}
+                  height={20}
+                  color={color}
+                />
               )}
               <span className="whitespace-nowrap text-right tabular-nums">
                 <span className="body-sm text-strong">
                   {formatRate(fx.rate)}
                 </span>
-                <span
-                  className="caption ml-2 font-bold"
-                  style={{ color }}
-                >
+                <span className="caption ml-2 font-bold" style={{ color }}>
                   {formatChangePct(fx.changePct)}
                 </span>
               </span>

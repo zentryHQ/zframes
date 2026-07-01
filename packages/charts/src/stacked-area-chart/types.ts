@@ -71,11 +71,7 @@ export interface StackedAreaChartDimensions {
  * Stacking order options
  */
 export type StackOrder =
-  | "none"
-  | "ascending"
-  | "descending"
-  | "insideOut"
-  | "reverse";
+  "none" | "ascending" | "descending" | "insideOut" | "reverse";
 
 /**
  * Stacking offset options
