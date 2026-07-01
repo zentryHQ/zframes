@@ -6,6 +6,7 @@ import {
   publishDashboard,
   type Visibility,
 } from "@/app/lib/dashboards";
+import { findUnsafeUrls } from "@/app/lib/sanitize-spec";
 
 export const runtime = "nodejs";
 
@@ -56,6 +57,20 @@ export async function POST(request: Request) {
       {
         error: "invalid dashboard spec",
         issues: parsed.error.issues.slice(0, 8),
+      },
+      { status: 400 },
+    );
+  }
+
+  // Untrusted-render guard: this spec will render for other people. Reject any
+  // dangerous URL scheme (javascript:/data:/vbscript:/file:) in frame configs.
+  const unsafe = findUnsafeUrls(parsed.data);
+  if (unsafe.length) {
+    return NextResponse.json(
+      {
+        error:
+          "unsafe URL scheme in a frame config (javascript:/data:/vbscript:/file:)",
+        offending: unsafe.slice(0, 5),
       },
       { status: 400 },
     );

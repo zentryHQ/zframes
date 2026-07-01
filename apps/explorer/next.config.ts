@@ -36,6 +36,22 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/__zframes/proxy", destination: "/api/zframes-proxy" }];
   },
+  // Non-breaking security headers (defense-in-depth alongside the publish-time
+  // URL sanitizer). A full script/connect-src CSP is a tracked follow-up — it
+  // needs browser testing against the live WS + cross-origin provider fetches.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-DNS-Prefetch-Control", value: "off" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
