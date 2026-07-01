@@ -52,7 +52,7 @@ function FundingRateChart({ config }: { config: z.output<typeof schema> }) {
       series={series}
       timeframe={timeframe}
       height={250}
-      formatValue={(value) => formatFundingPct(value)}
+      formatValue={formatFundingPct}
     />
   );
 }

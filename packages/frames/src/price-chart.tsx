@@ -1,9 +1,10 @@
 import { defineFrame, useCandles, useMids } from "@zframes/core";
 import { Liveline, type CandlePoint, type LivelinePoint } from "liveline";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
 import { AssetLogo } from "./asset-logo";
 import { formatPrice } from "./format";
+import { useVisibilityRef } from "./live-tick";
 import { priceChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -38,14 +39,26 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
   const mid = mids[config.symbol];
 
   // Accumulate live ticks for the line layer / live dot.
+  const { ref: rootRef, visibleRef } = useVisibilityRef<HTMLDivElement>();
+  const wasHiddenRef = useRef(false);
   const [ticks, setTicks] = useState<LivelinePoint[]>([]);
   useEffect(() => {
     if (mid === undefined) return;
+    // Off-screen: skip the live-tick append + re-render (liveline's canvas is
+    // frozen). Reseed the live tail on return so it doesn't bridge the gap; the
+    // candle history seeded into lineData is untouched.
+    if (!visibleRef.current) {
+      wasHiddenRef.current = true;
+      return;
+    }
+    const reseed = wasHiddenRef.current;
+    wasHiddenRef.current = false;
     setTicks((prev) => {
-      const next = [...prev, { time: Date.now() / 1000, value: mid }];
+      const base = reseed ? [] : prev;
+      const next = [...base, { time: Date.now() / 1000, value: mid }];
       return next.length > 900 ? next.slice(-600) : next;
     });
-  }, [mid]);
+  }, [mid, visibleRef]);
   // New symbol = new tape.
   useEffect(() => setTicks([]), [config.symbol]);
 
@@ -118,7 +131,7 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus loading>loading chart…</FrameStatus>;
 
   return (
-    <div className="h-full min-h-0">
+    <div ref={rootRef} className="h-full min-h-0">
       <Liveline
         mode={config.mode}
         data={lineData}
@@ -130,7 +143,7 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
         color={config.color}
         theme="dark"
         loading={isLoading}
-        formatValue={(v) => formatPrice(v)}
+        formatValue={formatPrice}
         formatTime={formatTime}
         padding={PRICE_CHART_PADDING}
         showValue={true}

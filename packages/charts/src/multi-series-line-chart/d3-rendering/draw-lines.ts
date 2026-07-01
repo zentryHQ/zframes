@@ -7,6 +7,7 @@ export const drawLines = (
   seriesColors: { [seriesId: string]: string },
   xScale: d3.ScaleTime<number, number, never>,
   yScale: d3.ScaleLinear<number, number, never>,
+  animate: boolean = true,
 ): void => {
   const line = d3
     .line<{ date: Date; value: number }>()
@@ -31,6 +32,13 @@ export const drawLines = (
       .attr("opacity", 1)
       .attr("data-series-id", seriesData.id)
       .attr("d", line);
+
+    if (!animate) {
+      // Redraw (data poll / incidental re-render): show the final line
+      // instantly, no dash offset and no transition to re-run.
+      path.attr("stroke-dasharray", null).attr("stroke-dashoffset", null);
+      return;
+    }
 
     const totalLength = (path.node() as SVGPathElement).getTotalLength();
 

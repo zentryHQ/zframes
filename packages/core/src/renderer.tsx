@@ -1,4 +1,4 @@
-import { type CSSProperties } from "react";
+import { useMemo, type CSSProperties } from "react";
 import type { FrameRegistry } from "./frame";
 import { FRAME_CSS, FrameContent } from "./frame-content";
 import {
@@ -69,6 +69,22 @@ export function DashboardRenderer({
   registry: FrameRegistry;
 }) {
   const horizontal = spec.grid.mode === "flow-horizontal";
+  // Memoized so each frame's grid-placement style keeps a stable identity across
+  // re-renders that don't touch the grid — without this the fresh style object
+  // per frame would defeat React.memo(FrameContent) and re-render every card.
+  const styles = useMemo(
+    () =>
+      spec.frames.map((instance, index) =>
+        positionStyle(
+          instance,
+          index,
+          horizontal,
+          spec.grid.rows,
+          spec.grid.columns,
+        ),
+      ),
+    [spec.frames, horizontal, spec.grid.rows, spec.grid.columns],
+  );
   return (
     <>
       <style>{FRAME_CSS}</style>
@@ -110,13 +126,7 @@ export function DashboardRenderer({
             key={instance.id}
             instance={instance}
             registry={registry}
-            style={positionStyle(
-              instance,
-              index,
-              horizontal,
-              spec.grid.rows,
-              spec.grid.columns,
-            )}
+            style={styles[index]}
           />
         ))}
       </div>

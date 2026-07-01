@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo } from "react";
 
 const COLORS = ["#FF1F5F", "#81FE90"];
 
@@ -180,4 +180,4 @@ const PieChart = ({
   );
 };
 
-export default PieChart;
+export default memo(PieChart);

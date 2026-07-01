@@ -336,4 +336,8 @@ const HeatmapChart = HeatmapChartInner as <T extends HeatmapCell>(
   props: HeatmapChartProps<T>,
 ) => React.ReactElement;
 
-export default HeatmapChart;
+// memo() erases the generic call signature, so cast it back to preserve
+// callers' type inference.
+const HeatmapChartMemo = React.memo(HeatmapChartInner) as typeof HeatmapChart;
+
+export default HeatmapChartMemo;

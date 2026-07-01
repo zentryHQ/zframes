@@ -47,6 +47,8 @@ import type {
   YieldCurve,
 } from "./types";
 
+import { FrameVisibilityContext } from "./visibility";
+
 const ProvidersContext = createContext<MarketDataProvider[]>([]);
 
 export function FramesProvider({
@@ -94,6 +96,9 @@ function usePolled<T>(
 ): { data: T; isLoading: boolean } {
   const [data, setData] = useState<T>(fallback);
   const [isLoading, setIsLoading] = useState(true);
+  // Published by the enclosing card (FrameContent → ValidFrameCard). Null when a
+  // frame renders outside a card (e.g. Storybook) — then polling never pauses.
+  const visibility = useContext(FrameVisibilityContext);
   useEffect(() => {
     if (!load) {
       setIsLoading(false);
@@ -103,6 +108,11 @@ function usePolled<T>(
     setData(fallback);
     setIsLoading(true);
     const run = () => {
+      // Off-screen: skip the network round-trip + state update, keeping the last
+      // good value on the card. The subscribe() below fires an immediate run()
+      // the moment the frame scrolls back into view, so it refreshes on return
+      // instead of waiting out the interval.
+      if (visibility && !visibility.visibleRef.current) return;
       load()
         .then((next) => {
           if (cancelled) return;
@@ -128,9 +138,13 @@ function usePolled<T>(
       );
     };
     schedule();
+    const unsubscribe = visibility?.subscribe((visible) => {
+      if (visible && !cancelled) run();
+    });
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      unsubscribe?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
@@ -202,7 +216,9 @@ export function useDayStatsState(
   refreshMs = 30_000,
 ): { stats: Record<string, DayStats>; isLoading: boolean } {
   const provider = useProviderFor("day-stats");
-  const key = symbols ? symbols.join(",") : "*";
+  // Sorted so order-variant symbol tuples (["ETH","BTC"] vs ["BTC","ETH"])
+  // collapse to one effect identity here AND one provider cache key downstream.
+  const key = symbols ? [...symbols].sort().join(",") : "*";
   const wanted = key === "*" ? undefined : key.split(",").filter(Boolean);
   const { data: stats, isLoading } = usePolled<Record<string, DayStats>>(
     provider?.getDayStats ? () => provider.getDayStats!(wanted) : null,
@@ -441,7 +457,9 @@ export function useOpenInterest(
   refreshMs = 30_000,
 ): { entries: OpenInterestEntry[]; isLoading: boolean } {
   const provider = useProviderFor("open-interest");
-  const key = symbols ? symbols.join(",") : "*";
+  // Sorted so order-variant symbol tuples (["ETH","BTC"] vs ["BTC","ETH"])
+  // collapse to one effect identity here AND one provider cache key downstream.
+  const key = symbols ? [...symbols].sort().join(",") : "*";
   const wanted = key === "*" ? undefined : key.split(",").filter(Boolean);
   const { data: entries, isLoading } = usePolled<OpenInterestEntry[]>(
     provider?.getOpenInterest ? () => provider.getOpenInterest!(wanted) : null,

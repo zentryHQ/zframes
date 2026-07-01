@@ -1,5 +1,5 @@
 diff --git a/dist/index.cjs b/dist/index.cjs
-index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..cca71c2b823afea90b0938d4ed2f243702945424 100644
+index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75bafefc28588 100644
 --- a/dist/index.cjs
 +++ b/dist/index.cjs
 @@ -202,9 +202,8 @@ function getDpr() {
@@ -78,7 +78,42 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..cca71c2b823afea90b0938d4ed2f2437
    const badgeTop = badgeY - pillH / 2;
    badge.container.style.transform = `translate3d(${badgeLeft}px, ${badgeTop}px, 0)`;
    if (cfg.badgeVariant === "minimal") {
-@@ -2639,6 +2633,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -2484,17 +2478,32 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+     mql.addEventListener("change", onChange);
+     return () => mql.removeEventListener("change", onChange);
+   }, []);
++  const visibleRef = (0, import_react.useRef)(true);
+   (0, import_react.useEffect)(() => {
+     const onVisibility = () => {
+-      if (!document.hidden && !rafRef.current) {
++      if (!document.hidden && visibleRef.current && !rafRef.current) {
+         rafRef.current = requestAnimationFrame(draw);
+       }
+     };
+     document.addEventListener("visibilitychange", onVisibility);
+     return () => document.removeEventListener("visibilitychange", onVisibility);
+   }, []);
++  (0, import_react.useEffect)(() => {
++    const container = containerRef.current;
++    if (!container) return;
++    const io = new IntersectionObserver((entries) => {
++      const entry = entries[0];
++      if (!entry) return;
++      visibleRef.current = entry.isIntersecting;
++      if (entry.isIntersecting && !document.hidden && !rafRef.current) {
++        rafRef.current = requestAnimationFrame(draw);
++      }
++    }, { rootMargin: "200px" });
++    io.observe(container);
++    return () => io.disconnect();
++  }, [containerRef]);
+   const draw = (0, import_react.useCallback)(() => {
+-    if (document.hidden) {
++    if (document.hidden || !visibleRef.current) {
+       rafRef.current = 0;
+       return;
+     }
+@@ -2639,6 +2648,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        }
      }
      if (!hasData && !useStash && !useMultiStash) {
@@ -86,7 +121,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..cca71c2b823afea90b0938d4ed2f2437
        const loadingColor = isCandle || cfg.isMultiSeries || lastMultiSeriesRef.current.length > 0 ? cfg.palette.gridLabel : void 0;
        if (loadingAlpha > 0.01) {
          drawLoading(ctx, w, h, pad, cfg.palette, now_ms, loadingAlpha, loadingColor);
-@@ -2659,6 +2654,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -2659,6 +2669,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        return;
      }
      if (isCandle) {
@@ -94,7 +129,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..cca71c2b823afea90b0938d4ed2f2437
        const candleBuffer = CANDLE_BUFFER_NO_BADGE;
        if (hasData) frozenNowRef.current = Date.now() / 1e3 - timeDebtRef.current;
        const now = hasData || chartReveal < 5e-3 ? Date.now() / 1e3 - timeDebtRef.current : frozenNowRef.current;
-@@ -3064,6 +3060,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3064,6 +3075,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
          }
        }
      } else if (cfg.isMultiSeries && cfg.multiSeries && cfg.multiSeries.length > 0 || useMultiStash) {
@@ -102,7 +137,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..cca71c2b823afea90b0938d4ed2f2437
        const effectiveMultiSeries = useMultiStash ? lastMultiSeriesRef.current : cfg.multiSeries;
        let labelReserve = 0;
        if (effectiveMultiSeries.some((s) => s.label)) {
-@@ -3330,7 +3327,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3330,7 +3342,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        const chartW = w - pad.left - pad.right;
        const baseBuffer = cfg.showBadge ? WINDOW_BUFFER : WINDOW_BUFFER_NO_BADGE;
        const needsArrowRoom = cfg.showMomentum && cfg.showBadge;
@@ -111,7 +146,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..cca71c2b823afea90b0938d4ed2f2437
        const transition = windowTransitionRef.current;
        if (hasData) frozenNowRef.current = Date.now() / 1e3 - timeDebtRef.current;
        const now = useStash ? frozenNowRef.current : Date.now() / 1e3 - timeDebtRef.current;
-@@ -3364,6 +3361,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3364,6 +3376,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
          rafRef.current = requestAnimationFrame(draw);
          return;
        }
@@ -120,7 +155,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..cca71c2b823afea90b0938d4ed2f2437
        const isWindowTransitioning = transition.startMs > 0;
        const rangeResult = updateRange(
 diff --git a/dist/index.js b/dist/index.js
-index fd0506272e9a54432a0882c3a389ee74302e4718..e9d035dbc7bdb4a9b0b07f9c47e425ab4e4ccd43 100644
+index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f019ee95dd 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -175,9 +175,8 @@ function getDpr() {
@@ -199,7 +234,42 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..e9d035dbc7bdb4a9b0b07f9c47e425ab
    const badgeTop = badgeY - pillH / 2;
    badge.container.style.transform = `translate3d(${badgeLeft}px, ${badgeTop}px, 0)`;
    if (cfg.badgeVariant === "minimal") {
-@@ -2612,6 +2606,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -2457,17 +2451,32 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+     mql.addEventListener("change", onChange);
+     return () => mql.removeEventListener("change", onChange);
+   }, []);
++  const visibleRef = useRef(true);
+   useEffect(() => {
+     const onVisibility = () => {
+-      if (!document.hidden && !rafRef.current) {
++      if (!document.hidden && visibleRef.current && !rafRef.current) {
+         rafRef.current = requestAnimationFrame(draw);
+       }
+     };
+     document.addEventListener("visibilitychange", onVisibility);
+     return () => document.removeEventListener("visibilitychange", onVisibility);
+   }, []);
++  useEffect(() => {
++    const container = containerRef.current;
++    if (!container) return;
++    const io = new IntersectionObserver((entries) => {
++      const entry = entries[0];
++      if (!entry) return;
++      visibleRef.current = entry.isIntersecting;
++      if (entry.isIntersecting && !document.hidden && !rafRef.current) {
++        rafRef.current = requestAnimationFrame(draw);
++      }
++    }, { rootMargin: "200px" });
++    io.observe(container);
++    return () => io.disconnect();
++  }, [containerRef]);
+   const draw = useCallback(() => {
+-    if (document.hidden) {
++    if (document.hidden || !visibleRef.current) {
+       rafRef.current = 0;
+       return;
+     }
+@@ -2612,6 +2621,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        }
      }
      if (!hasData && !useStash && !useMultiStash) {
@@ -207,7 +277,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..e9d035dbc7bdb4a9b0b07f9c47e425ab
        const loadingColor = isCandle || cfg.isMultiSeries || lastMultiSeriesRef.current.length > 0 ? cfg.palette.gridLabel : void 0;
        if (loadingAlpha > 0.01) {
          drawLoading(ctx, w, h, pad, cfg.palette, now_ms, loadingAlpha, loadingColor);
-@@ -2632,6 +2627,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -2632,6 +2642,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        return;
      }
      if (isCandle) {
@@ -215,7 +285,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..e9d035dbc7bdb4a9b0b07f9c47e425ab
        const candleBuffer = CANDLE_BUFFER_NO_BADGE;
        if (hasData) frozenNowRef.current = Date.now() / 1e3 - timeDebtRef.current;
        const now = hasData || chartReveal < 5e-3 ? Date.now() / 1e3 - timeDebtRef.current : frozenNowRef.current;
-@@ -3037,6 +3033,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3037,6 +3048,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
          }
        }
      } else if (cfg.isMultiSeries && cfg.multiSeries && cfg.multiSeries.length > 0 || useMultiStash) {
@@ -223,7 +293,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..e9d035dbc7bdb4a9b0b07f9c47e425ab
        const effectiveMultiSeries = useMultiStash ? lastMultiSeriesRef.current : cfg.multiSeries;
        let labelReserve = 0;
        if (effectiveMultiSeries.some((s) => s.label)) {
-@@ -3303,7 +3300,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3303,7 +3315,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        const chartW = w - pad.left - pad.right;
        const baseBuffer = cfg.showBadge ? WINDOW_BUFFER : WINDOW_BUFFER_NO_BADGE;
        const needsArrowRoom = cfg.showMomentum && cfg.showBadge;
@@ -232,7 +302,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..e9d035dbc7bdb4a9b0b07f9c47e425ab
        const transition = windowTransitionRef.current;
        if (hasData) frozenNowRef.current = Date.now() / 1e3 - timeDebtRef.current;
        const now = useStash ? frozenNowRef.current : Date.now() / 1e3 - timeDebtRef.current;
-@@ -3337,6 +3334,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3337,6 +3349,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
          rafRef.current = requestAnimationFrame(draw);
          return;
        }

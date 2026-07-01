@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useState,
   useCallback,
+  memo,
 } from "react";
 import * as d3 from "d3";
 import { cn } from "../lib/utils";
@@ -53,6 +54,7 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const legendRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
 
   const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
 
@@ -168,7 +170,15 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
       innerWidth,
     );
 
-    drawLines(g, filteredSeries, seriesColors, xScale, yScale);
+    drawLines(
+      g,
+      filteredSeries,
+      seriesColors,
+      xScale,
+      yScale,
+      !hasAnimatedRef.current,
+    );
+    hasAnimatedRef.current = true;
 
     const { onMouseMove, onMouseLeave, destroy } = createInteractions({
       g,
@@ -334,5 +344,5 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
   );
 };
 
-export const MultiSeriesLineChart = MultiSeriesLineChartComponent;
+export const MultiSeriesLineChart = memo(MultiSeriesLineChartComponent);
 export type { MultiSeriesData, MultiSeriesLineChartProps } from "./types";

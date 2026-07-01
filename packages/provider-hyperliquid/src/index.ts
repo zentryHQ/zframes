@@ -8,6 +8,7 @@ import type {
   Unsubscribe,
 } from "@zframes/core";
 import { fetchJson } from "@zframes/core/fetch";
+import { TtlCache } from "@zframes/core/cache";
 
 const WS_URL = "wss://api.hyperliquid.xyz/ws";
 const INFO_URL = "https://api.hyperliquid.xyz/info";
@@ -63,6 +64,41 @@ async function info<T>(body: Record<string, unknown>): Promise<T> {
   });
 }
 
+// Hyperliquid is the busiest source (day-stats, OI, candles, funding all flow
+// through one `info` endpoint) and was the only provider hitting the network
+// uncached, so N frames on the same data fired N requests. These module-level
+// TtlCaches give every method in-flight dedup + a freshness window: concurrent
+// frames (and StrictMode's double-invoke) coalesce to one round-trip, and the
+// TTL sits just UNDER each hook's poll interval so scheduled background polls
+// still refresh while reloads/extra frames reuse the cache.
+//
+// Day-stats / OI are keyed by the SORTED symbol set so order variants collapse,
+// while the three request shapes (undefined→"*" default universe, "<dex>:*"
+// wildcard, concrete symbols) map to distinct keys — a precise-symbol frame
+// never receives a whole-universe payload. Live snapshots aren't persisted
+// (cold-start fresh, not from a stale blob); candles/funding persist so a cold
+// reload paints last-known immediately.
+const dayStatsCache = new TtlCache<Record<string, DayStats>>({
+  namespace: "zframes:hyperliquid:daystats",
+  ttlMs: 25_000,
+});
+const openInterestCache = new TtlCache<OpenInterestEntry[]>({
+  namespace: "zframes:hyperliquid:oi",
+  ttlMs: 25_000,
+});
+const candlesCache = new TtlCache<Candle[]>({
+  namespace: "zframes:hyperliquid:candles",
+  ttlMs: 55_000,
+  persist: true,
+});
+const fundingCache = new TtlCache<Record<string, FundingPoint[]>>({
+  namespace: "zframes:hyperliquid:funding",
+  ttlMs: 4.5 * 60_000,
+  persist: true,
+});
+const sortedKey = (symbols?: readonly string[]): string =>
+  symbols ? [...symbols].sort().join(",") : "*";
+
 /**
  * Free, no-API-key provider backed by Hyperliquid's public API.
  * - quote-stream: `allMids` WebSocket (one subscription per dex, lazily added
@@ -111,7 +147,15 @@ export class HyperliquidProvider implements MarketDataProvider {
     };
   }
 
-  async getDayStats(symbols?: string[]): Promise<Record<string, DayStats>> {
+  getDayStats(symbols?: string[]): Promise<Record<string, DayStats>> {
+    return dayStatsCache.get(sortedKey(symbols), () =>
+      this.fetchDayStats(symbols),
+    );
+  }
+
+  private async fetchDayStats(
+    symbols?: string[],
+  ): Promise<Record<string, DayStats>> {
     // Three request shapes, all routed through `metaAndAssetCtxs` per dex:
     //   • no symbols           → the default-dex universe (crypto)
     //   • "<dex>:*" wildcard   → that dex's *entire* universe (e.g. "xyz:*"
@@ -156,7 +200,15 @@ export class HyperliquidProvider implements MarketDataProvider {
     return out;
   }
 
-  async getOpenInterest(symbols?: string[]): Promise<OpenInterestEntry[]> {
+  getOpenInterest(symbols?: string[]): Promise<OpenInterestEntry[]> {
+    return openInterestCache.get(sortedKey(symbols), () =>
+      this.fetchOpenInterest(symbols),
+    );
+  }
+
+  private async fetchOpenInterest(
+    symbols?: string[],
+  ): Promise<OpenInterestEntry[]> {
     // Same `metaAndAssetCtxs`-per-dex resolution as getDayStats; we read
     // `openInterest` (base units) × `markPx` for USD notional. Live snapshot
     // only — Hyperliquid exposes no OI history endpoint.
@@ -194,7 +246,17 @@ export class HyperliquidProvider implements MarketDataProvider {
     return out.sort((a, b) => b.openInterestUsd - a.openInterestUsd);
   }
 
-  async getFundingHistory(
+  getFundingHistory(
+    symbols: string[],
+    startTimeMs: number,
+  ): Promise<Record<string, FundingPoint[]>> {
+    return fundingCache.get(
+      `${[...symbols].sort().join(",")}|${startTimeMs}`,
+      () => this.fetchFundingHistory(symbols, startTimeMs),
+    );
+  }
+
+  private async fetchFundingHistory(
     symbols: string[],
     startTimeMs: number,
   ): Promise<Record<string, FundingPoint[]>> {
@@ -220,7 +282,17 @@ export class HyperliquidProvider implements MarketDataProvider {
     return Object.fromEntries(results);
   }
 
-  async getCandles(
+  getCandles(
+    symbol: string,
+    interval: string,
+    startTimeMs: number,
+  ): Promise<Candle[]> {
+    return candlesCache.get(`${symbol}|${interval}|${startTimeMs}`, () =>
+      this.fetchCandles(symbol, interval, startTimeMs),
+    );
+  }
+
+  private async fetchCandles(
     symbol: string,
     interval: string,
     startTimeMs: number,

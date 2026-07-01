@@ -5,10 +5,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
 import { changeColor, formatChangePct, formatPrice } from "./format";
+import { onHeartbeat, useVisibilityRef } from "./live-tick";
 import { priceLivelineMeta } from "./schemas";
 
 const MAX_POINTS = 720;
-const HEARTBEAT_MS = 1_000;
 const MIN_WINDOW_SECS = 3;
 const PADDING = { top: 12, right: 58, bottom: 28, left: 8 };
 
@@ -63,6 +63,8 @@ function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
   const symbolKey = symbols.join("|");
   const mids = useMids(symbols);
   const stats = useDayStats(symbols);
+  const { ref: rootRef, visibleRef } = useVisibilityRef<HTMLDivElement>();
+  const wasHiddenRef = useRef(false);
   const [buffers, setBuffers] = useState<PriceBuffers>({});
   const [hiddenSymbols, setHiddenSymbols] = useState<Set<string>>(
     () => new Set(),
@@ -123,22 +125,29 @@ function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
   );
 
   const appendCurrentPrices = useCallback(() => {
+    // Off-screen: stop growing the buffer (and the per-tick re-render it would
+    // trigger); liveline has already frozen its canvas. Mark stale so the first
+    // on-screen append reseeds a fresh segment instead of bridging the gap.
+    if (!visibleRef.current) {
+      wasHiddenRef.current = true;
+      return;
+    }
     const snapshot = currentPricesRef.current;
     if (Object.keys(snapshot).length === 0) return;
     const nowSecs = Date.now() / 1000;
+    const reseed = wasHiddenRef.current;
+    wasHiddenRef.current = false;
     setBuffers((previous) =>
-      appendSnapshot(previous, symbols, snapshot, nowSecs),
+      appendSnapshot(reseed ? {} : previous, symbols, snapshot, nowSecs),
     );
-  }, [symbolKey, symbols]);
+  }, [symbolKey, symbols, visibleRef]);
 
   useEffect(() => {
     appendCurrentPrices();
   }, [appendCurrentPrices, currentPrices]);
 
-  useEffect(() => {
-    const timer = window.setInterval(appendCurrentPrices, HEARTBEAT_MS);
-    return () => window.clearInterval(timer);
-  }, [appendCurrentPrices]);
+  // One shared 1 Hz ticker for every live frame, not one setInterval each.
+  useEffect(() => onHeartbeat(appendCurrentPrices), [appendCurrentPrices]);
 
   const series = useMemo<LivelineSeries[]>(
     () =>
@@ -192,7 +201,7 @@ function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
   const hasSeries = series.some((item) => item.data.length > 1);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div ref={rootRef} className="flex h-full min-h-0 flex-col">
       <div className="grid flex-none grid-cols-1 gap-x-3 gap-y-1.5 border-b border-white/[0.06] pb-2 sm:grid-cols-2">
         {symbols.map((symbol, index) => {
           const price = currentPrices[symbol];

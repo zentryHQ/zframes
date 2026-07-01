@@ -166,7 +166,9 @@ body.zf-dragging * {
     transform: rotate(0.4deg);
   }
 }
-.zf-editor.zf-customise .grid-stack-item > .grid-stack-item-content {
+.zf-editor.zf-customise:not([data-wiggle="off"])
+  .grid-stack-item
+  > .grid-stack-item-content {
   animation: zf-wiggle 0.32s ease-in-out infinite;
 }
 .zf-editor.zf-customise

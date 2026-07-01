@@ -252,21 +252,36 @@ export function DashboardEditor({
 
   // The preset whose every owned value matches the live state, if any, so its
   // chip reads as selected (and drifts to none once a slider moves).
-  const activePresetKey =
-    THEME_PRESETS.find(
-      (p) =>
-        p.theme.accentHue === accentHue &&
-        p.theme.accentSat === accentSat &&
-        p.theme.baseHue === baseHue &&
-        p.theme.baseSat === baseSat &&
-        p.typography.fontFamily === fontFamily &&
-        p.typography.numericStyle === numericStyle &&
-        p.appearance.radius === radius &&
-        p.appearance.borderStrength === borderStrength &&
-        p.appearance.surfaceOpacity === surfaceOpacity &&
-        p.appearance.density === density &&
-        p.appearance.elevation === elevation,
-    )?.key ?? null;
+  const activePresetKey = useMemo(
+    () =>
+      THEME_PRESETS.find(
+        (p) =>
+          p.theme.accentHue === accentHue &&
+          p.theme.accentSat === accentSat &&
+          p.theme.baseHue === baseHue &&
+          p.theme.baseSat === baseSat &&
+          p.typography.fontFamily === fontFamily &&
+          p.typography.numericStyle === numericStyle &&
+          p.appearance.radius === radius &&
+          p.appearance.borderStrength === borderStrength &&
+          p.appearance.surfaceOpacity === surfaceOpacity &&
+          p.appearance.density === density &&
+          p.appearance.elevation === elevation,
+      )?.key ?? null,
+    [
+      accentHue,
+      accentSat,
+      baseHue,
+      baseSat,
+      fontFamily,
+      numericStyle,
+      radius,
+      borderStrength,
+      surfaceOpacity,
+      density,
+      elevation,
+    ],
+  );
   // Which rail panel is showing: dashboard-wide cosmetics (accent/layout/
   // appearance) or the add-a-frame palette. The rail used to stack both; the
   // tabs split them so theme knobs and frame management each get the full panel.
@@ -1050,7 +1065,20 @@ export function DashboardEditor({
   ]);
 
   const cancel = useCallback(() => {
-    restore(snapshotRef.current);
+    // restore() unmounts + recreates EVERY frame's React root (re-subscribing
+    // WS/poll hooks and replaying first-render for each) — a real hitch on a big
+    // board. Skip it when the frames are byte-for-byte unchanged: collectSpec()
+    // reads the same shape the snapshot was taken from (positions AND configs),
+    // so an identical JSON means nothing structural changed and the live roots
+    // already show the snapshot state. A mode switch re-inited the grid under a
+    // different layout, so it always needs the restore. The cosmetic setters
+    // below always run, so an accent/appearance/background tweak still reverts.
+    const modeChanged = snapshotModeRef.current !== modeRef.current;
+    const changed =
+      modeChanged ||
+      JSON.stringify(collectSpec().frames) !==
+        JSON.stringify(snapshotRef.current);
+    if (changed) restore(snapshotRef.current);
     setAccentHue(snapshotHueRef.current);
     setAccentSat(snapshotSatRef.current);
     setBaseHue(snapshotBaseHueRef.current);
@@ -1078,7 +1106,7 @@ export function DashboardEditor({
     setBgGradAngle(snapshotBgGradAngleRef.current);
     setEditingId(null);
     setEditing(false);
-  }, [restore]);
+  }, [restore, collectSpec]);
 
   const save = useCallback(async () => {
     const next = collectSpec();
@@ -1224,6 +1252,11 @@ export function DashboardEditor({
       <div
         className={editing ? "zf-editor zf-customise" : "zf-editor"}
         data-mode={mode}
+        // Past ~12 frames the per-item jiggle promotes that many compositing
+        // layers and repaints them continuously through customise mode; drop the
+        // animation (a pure affordance) on big boards. The dashed outline + grab
+        // cursor still signal editability.
+        data-wiggle={editing && count > 12 ? "off" : undefined}
         style={{
           // Colour identity — accent drives every accent in FRAME_CSS; base
           // tints the dark card surface itself.
