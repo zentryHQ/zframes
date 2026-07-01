@@ -4,9 +4,12 @@ import type { AnyFrameDefinition } from "@zframes/core";
 import type { StoryGlobals } from "../.storybook/preview";
 import { FrameCanvas } from "./frame-canvas";
 import { curated } from "./curated";
-import type { MockMode } from "./mock-provider";
+import type { MockMode } from "@zframes/frames/testing";
 
-type Render = (args: Record<string, unknown>, context: { globals: StoryGlobals }) => React.ReactElement;
+type Render = (
+  args: Record<string, unknown>,
+  context: { globals: StoryGlobals },
+) => React.ReactElement;
 type Variant = { label: string; config: Record<string, unknown> };
 
 const VARIANT_CAP = 12;
@@ -41,7 +44,9 @@ function isType(shape: JsonShape, t: string): boolean {
 }
 
 /** Storybook Controls derived from the frame's Zod schema. */
-export function argTypesFor(frame: AnyFrameDefinition): Record<string, unknown> {
+export function argTypesFor(
+  frame: AnyFrameDefinition,
+): Record<string, unknown> {
   const schema = jsonSchema(frame);
   const props = schema?.properties ?? {};
   const out: Record<string, unknown> = {};
@@ -53,7 +58,14 @@ export function argTypesFor(frame: AnyFrameDefinition): Record<string, unknown> 
     } else if (isType(shape, "number") || isType(shape, "integer")) {
       out[key] =
         shape.minimum != null && shape.maximum != null
-          ? { control: { type: "range", min: shape.minimum, max: shape.maximum, step: 1 } }
+          ? {
+              control: {
+                type: "range",
+                min: shape.minimum,
+                max: shape.maximum,
+                step: 1,
+              },
+            }
           : { control: "number" };
     } else if (isType(shape, "string")) {
       out[key] = { control: "text" };
@@ -74,7 +86,10 @@ function deriveVariants(frame: AnyFrameDefinition): Variant[] {
   for (const [key, shape] of Object.entries(schema?.properties ?? {})) {
     if (Array.isArray(shape.enum) && shape.enum.length > 1) {
       for (const value of shape.enum) {
-        out.push({ label: `${key}: ${String(value)}`, config: { ...base, [key]: value } });
+        out.push({
+          label: `${key}: ${String(value)}`,
+          config: { ...base, [key]: value },
+        });
       }
     } else if (isType(shape, "boolean")) {
       out.push({ label: `${key}: on`, config: { ...base, [key]: true } });
@@ -87,7 +102,10 @@ function deriveVariants(frame: AnyFrameDefinition): Variant[] {
     ) {
       const mid = Math.round((shape.minimum + shape.maximum) / 2);
       for (const value of [shape.minimum, mid, shape.maximum]) {
-        out.push({ label: `${key}: ${value}`, config: { ...base, [key]: value } });
+        out.push({
+          label: `${key}: ${value}`,
+          config: { ...base, [key]: value },
+        });
       }
     }
   }
@@ -99,7 +117,12 @@ function deriveVariants(frame: AnyFrameDefinition): Variant[] {
 /** The single Default canvas — args (editable via Controls) drive the config. */
 export function canvasRender(frame: AnyFrameDefinition): Render {
   return (args, context) => (
-    <FrameCanvas frame={frame} config={args} mode="normal" globals={context.globals} />
+    <FrameCanvas
+      frame={frame}
+      config={args}
+      mode="normal"
+      globals={context.globals}
+    />
   );
 }
 
@@ -107,7 +130,13 @@ function Grid({ children }: { children: React.ReactNode }) {
   return <div className="sb-grid">{children}</div>;
 }
 
-function Cell({ label, children }: { label: string; children: React.ReactNode }) {
+function Cell({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="sb-cell">
       <div className="sb-cell-label">{label}</div>
@@ -122,7 +151,12 @@ export function variantsRender(frame: AnyFrameDefinition): Render {
     <Grid>
       {deriveVariants(frame).map((v, i) => (
         <Cell key={`${v.label}-${i}`} label={v.label}>
-          <FrameCanvas frame={frame} config={v.config} mode="normal" globals={context.globals} />
+          <FrameCanvas
+            frame={frame}
+            config={v.config}
+            mode="normal"
+            globals={context.globals}
+          />
         </Cell>
       ))}
     </Grid>
@@ -143,7 +177,12 @@ export function statesRender(frame: AnyFrameDefinition): Render {
     <Grid>
       {STATES.map((s) => (
         <Cell key={s.mode} label={s.label}>
-          <FrameCanvas frame={frame} config={base} mode={s.mode} globals={context.globals} />
+          <FrameCanvas
+            frame={frame}
+            config={base}
+            mode={s.mode}
+            globals={context.globals}
+          />
         </Cell>
       ))}
     </Grid>

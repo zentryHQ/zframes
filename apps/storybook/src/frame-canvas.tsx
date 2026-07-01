@@ -10,7 +10,7 @@ import {
 } from "@zframes/core";
 import type { StoryGlobals } from "../.storybook/preview";
 import { registry } from "./registry";
-import { MockMarketDataProvider, type MockMode } from "./mock-provider";
+import { MockMarketDataProvider, type MockMode } from "@zframes/frames/testing";
 
 const ROW = 96;
 const GAP = 12;
@@ -70,7 +70,13 @@ export function FrameCanvas({
       THEME_PRESETS.find((p) => p.key === themePreset) ?? THEME_PRESETS[0];
     const base = DashboardSpecSchema.parse({
       title: "storybook",
-      grid: { mode: "flow-vertical", columns: w, rowHeight: ROW, gap: GAP, rows: h },
+      grid: {
+        mode: "flow-vertical",
+        columns: w,
+        rowHeight: ROW,
+        gap: GAP,
+        rows: h,
+      },
       frames: [
         { id: "sb", frame: frame.name, position: { x: 0, y: 0, w, h }, config },
       ],
