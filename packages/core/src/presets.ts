@@ -6,16 +6,24 @@ import type {
 
 /**
  * A named cosmetic look. Presets bundle the colour identity (`theme`),
- * typography, and the full card-surface treatment (`appearance`) into a single
- * one-click choice, so a user (or the generating agent) can pick a coherent
- * style without dialling every slider. Applying a preset just sets those spec
- * values — it's pure data, never a separate code path, so an applied preset
- * round-trips through `dashboard.json` exactly like a hand-tuned one. The editor
- * lists these as chips at the top of the Cosmetics rail; tweak any slider
- * afterwards to drift off the preset (its chip de-selects).
+ * typography, the full card-surface treatment (`appearance`), AND the matching
+ * animated backdrop (`scene`) into a single one-click choice, so a user (or the
+ * generating agent) can pick a coherent style without dialling every slider.
+ * Applying a preset just sets those spec values — it's pure data, never a
+ * separate code path, so an applied preset round-trips through `dashboard.json`
+ * exactly like a hand-tuned one. The editor lists these as chips at the top of
+ * the Cosmetics rail; tweak any slider (or swap the scene) afterwards to drift
+ * off the preset (its chip de-selects).
  *
- * A preset deliberately owns colour + type + surface, but NOT grid geometry
- * (columns/rowHeight/gap) — that's the user's layout, independent of the "look".
+ * A preset deliberately owns colour + type + surface + backdrop scene, but NOT
+ * grid geometry (columns/rowHeight/gap) — that's the user's layout, independent
+ * of the "look".
+ *
+ * The backdrop pairing is a `BackgroundScene` key whose authored hue tracks the
+ * preset's accent, so once applied the accent hue-rotate (see the runtime's
+ * background.tsx, which rotates relative to the loaded scene's `baseHue`) renders
+ * the scene essentially as authored — the backdrop *matches* the look rather than
+ * being an unrelated leftover.
  *
  * The first entry ("zframes") reproduces every default, so picking it is a full
  * reset of the cosmetic groups it owns.
@@ -39,6 +47,12 @@ export type ThemePreset = {
     DashboardAppearance,
     "radius" | "borderStrength" | "surfaceOpacity" | "density" | "elevation"
   >;
+  /**
+   * `BackgroundScene.key` of the animated backdrop this preset switches to (its
+   * hue is chosen to match the preset's accent). Applying the preset sets
+   * `background.type = "unicorn"` + that scene's `projectId`.
+   */
+  scene: string;
 };
 
 export const THEME_PRESETS: ThemePreset[] = [
@@ -56,6 +70,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       density: 1,
       elevation: 1,
     },
+    scene: "aurora",
   },
   {
     key: "terminal",
@@ -71,6 +86,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       density: 0.85,
       elevation: 0.4,
     },
+    scene: "verdant",
   },
   {
     key: "amber",
@@ -86,6 +102,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       density: 0.9,
       elevation: 0.6,
     },
+    scene: "ember",
   },
   {
     key: "graphite",
@@ -101,6 +118,9 @@ export const THEME_PRESETS: ThemePreset[] = [
       density: 1,
       elevation: 0.35,
     },
+    // aurora, but the near-zero accent saturation crushes it to grayscale via
+    // the backdrop's saturate() — so the scene reads as calm neutral drift.
+    scene: "aurora",
   },
   {
     key: "synthwave",
@@ -116,6 +136,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       density: 1,
       elevation: 1.7,
     },
+    scene: "dusk",
   },
   {
     key: "editorial",
@@ -131,6 +152,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       density: 1.15,
       elevation: 0.8,
     },
+    scene: "ember",
   },
 ];
 
@@ -158,6 +180,14 @@ export type BackgroundScene = {
   description: string;
   /** Unicorn Studio public project id rendered behind the dashboard. */
   projectId: string;
+  /**
+   * The scene's authored dominant hue (0–360). The runtime hue-rotates the
+   * backdrop by how far the dashboard accent has drifted from *this* hue (see
+   * `sceneBaseHue` + the runtime's background.tsx), so a scene paired to a
+   * matching accent (a preset's) renders as authored, and a rolled accent spins
+   * it from there. Kept roughly in step with `swatch`'s dominant hue.
+   */
+  baseHue: number;
   /** Representative CSS `background` for the rail swatch (no live thumbnail). */
   swatch: string;
 };
@@ -169,6 +199,8 @@ export const BACKGROUND_SCENES: BackgroundScene[] = [
     description:
       "The signature zframes scene — a slow indigo aurora drifting over near-black. The default backdrop.",
     projectId: "YrTzGatwjK7EoFpCSfgZ",
+    // 242 = the zframes accent default, so an unrolled dashboard hue-rotates by 0°.
+    baseHue: 242,
     swatch:
       "radial-gradient(120% 120% at 30% 20%, hsl(248 80% 60%) 0%, hsl(250 70% 22%) 45%, hsl(240 40% 6%) 100%)",
   },
@@ -178,6 +210,7 @@ export const BACKGROUND_SCENES: BackgroundScene[] = [
     description:
       "A deeper violet nebula with brighter drifting cores — a touch more energy than Aurora.",
     projectId: "K42KSY4FXeXhjVOj9RgT",
+    baseHue: 268,
     swatch:
       "radial-gradient(120% 120% at 70% 30%, hsl(280 75% 62%) 0%, hsl(262 65% 26%) 45%, hsl(250 45% 7%) 100%)",
   },
@@ -186,6 +219,7 @@ export const BACKGROUND_SCENES: BackgroundScene[] = [
     label: "Ember",
     description: "Warm ember tones drifting over charcoal.",
     projectId: "E4221P7lwTy049d7ISxc",
+    baseHue: 24,
     swatch:
       "radial-gradient(120% 120% at 30% 25%, hsl(24 85% 58%) 0%, hsl(12 65% 28%) 45%, hsl(8 40% 7%) 100%)",
   },
@@ -194,6 +228,7 @@ export const BACKGROUND_SCENES: BackgroundScene[] = [
     label: "Tide",
     description: "Cool teal currents on deep blue-black.",
     projectId: "cYpXuEzDqm4r3fdp4TGx",
+    baseHue: 190,
     swatch:
       "radial-gradient(120% 120% at 70% 25%, hsl(180 70% 55%) 0%, hsl(196 65% 26%) 45%, hsl(205 45% 7%) 100%)",
   },
@@ -202,6 +237,7 @@ export const BACKGROUND_SCENES: BackgroundScene[] = [
     label: "Verdant",
     description: "Soft green light over near-black.",
     projectId: "PrFtFGDE5duemLmr2YKQ",
+    baseHue: 150,
     swatch:
       "radial-gradient(120% 120% at 30% 25%, hsl(140 65% 55%) 0%, hsl(152 55% 24%) 45%, hsl(160 40% 6%) 100%)",
   },
@@ -210,7 +246,29 @@ export const BACKGROUND_SCENES: BackgroundScene[] = [
     label: "Dusk",
     description: "Magenta-pink glow fading into dark.",
     projectId: "qpoj0wFWmgwRVXmzRMiL",
+    baseHue: 320,
     swatch:
       "radial-gradient(120% 120% at 70% 30%, hsl(320 80% 62%) 0%, hsl(300 60% 28%) 45%, hsl(290 45% 7%) 100%)",
   },
 ];
+
+/**
+ * The authored hue the runtime rotates the backdrop *away from* when no scene is
+ * known — the signature indigo. Equals the aurora scene's `baseHue` and the
+ * accent default, so an unrolled default dashboard hue-rotates by 0°.
+ */
+export const SCENE_DEFAULT_HUE = 242;
+
+/**
+ * The authored dominant hue of the scene with this `projectId`, or
+ * {@link SCENE_DEFAULT_HUE} if it isn't one of the curated scenes (a custom
+ * projectId, or none). The host feeds this to the backdrop as the reference the
+ * dashboard accent hue-rotates the scene relative to — so a preset's paired scene
+ * (accent ≈ scene hue) renders essentially as authored, and a rolled accent spins
+ * it from there. Kept host-side so the heavy runtime background stays a dumb
+ * renderer and @zframes/core owns the scene registry.
+ */
+export function sceneBaseHue(projectId: string | undefined): number {
+  const scene = BACKGROUND_SCENES.find((s) => s.projectId === projectId);
+  return scene ? scene.baseHue : SCENE_DEFAULT_HUE;
+}

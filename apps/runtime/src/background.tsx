@@ -32,14 +32,18 @@ const activeOpacity = (resting: number) => Math.min(0.42, resting * 2.4);
 // The scene's colors are baked into the hosted Unicorn project — the host can't
 // repaint the WebGL, but a CSS hue-rotate on the wrapper spins the whole scene
 // (engine-agnostic, the same trick the orb's "charge" uses). We rotate by how far
-// the dashboard accent has moved from its default, so accentHue 242 (the zframes
-// purple) is a 0° no-op that renders the scene exactly as authored, and any
-// rolled/edited hue spins the backdrop in lockstep with the card accents.
+// the dashboard accent has moved from the *loaded scene's* own authored hue
+// (`sceneHue`), so a scene paired to a matching accent — every theme preset pairs
+// one — is a 0° no-op rendered exactly as authored, and any rolled/edited accent
+// spins the backdrop from there, in lockstep with the card accents. The signature
+// aurora scene is authored at 242 (the zframes purple), the default sceneHue, so
+// an unrolled default dashboard is unchanged.
 const ACCENT_DEFAULT_HUE = 242;
+const DEFAULT_SCENE_HUE = 242;
 // Shortest spin: map the offset into (-180, 180] so the transition never sweeps
 // the long way round the wheel.
-const accentRotation = (accentHue: number) => {
-  const d = (((accentHue - ACCENT_DEFAULT_HUE) % 360) + 360) % 360;
+const accentRotation = (accentHue: number, sceneHue: number) => {
+  const d = (((accentHue - sceneHue) % 360) + 360) % 360;
   return d > 180 ? d - 360 : d;
 };
 // Accent saturation rides along too: a muted accent (low accentSat) desaturates
@@ -64,10 +68,11 @@ const accentSaturation = (accentSat: number) =>
  * `active` (the zAI orb's open state, lifted in App) recolors + brightens the
  * scene so opening zAI visibly energizes the backdrop.
  *
- * `accentHue` spins the whole scene via a CSS hue-rotate and `accentSat`
- * desaturates it via saturate(), so the backdrop tracks the dashboard's accent
- * (live as the sliders drag); the defaults (hue 242, sat 90) map to a no-op, so
- * an unrolled dashboard renders the scene exactly as authored.
+ * `accentHue` spins the whole scene via a CSS hue-rotate (relative to `sceneHue`,
+ * the loaded scene's authored hue) and `accentSat` desaturates it via saturate(),
+ * so the backdrop tracks the dashboard's accent (live as the sliders drag). A
+ * scene whose authored hue matches the accent (every preset pairs one) and the
+ * default sat 90 map to a no-op, so it renders the scene exactly as authored.
  *
  * `thinking` (the zAI orb's busy state, lifted in App) brings the backdrop to
  * life while zAI works: it continuously cycles its hue AND breathes (a saturation
@@ -82,12 +87,16 @@ export function DashboardBackground({
   thinking = false,
   accentHue = ACCENT_DEFAULT_HUE,
   accentSat = ACCENT_DEFAULT_SAT,
+  sceneHue = DEFAULT_SCENE_HUE,
 }: {
   background: BackgroundConfig;
   active?: boolean;
   thinking?: boolean;
   accentHue?: number;
   accentSat?: number;
+  /** The loaded scene's authored hue — the reference the accent rotates from
+   *  (host resolves it from the projectId via @zframes/core's sceneBaseHue). */
+  sceneHue?: number;
 }) {
   // Solid colour / custom gradient: a single opaque full-bleed fill painted
   // straight from the spec (the orb's recolor filters are scene-specific, so a
@@ -116,7 +125,7 @@ export function DashboardBackground({
   // Compose the accent spin + desaturation with the orb's "charge" filter: the
   // rolled/muted scene is the base, the orb's invert/rotate/saturate stacks on
   // top when it's open. Default hue 242 + sat 90 collapse to no filter at all.
-  const rotation = accentRotation(accentHue);
+  const rotation = accentRotation(accentHue, sceneHue);
   const saturation = accentSaturation(accentSat);
   const baseFilter = [
     rotation === 0 ? "" : `hue-rotate(${rotation}deg)`,
