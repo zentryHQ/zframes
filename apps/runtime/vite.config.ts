@@ -49,6 +49,7 @@ export default defineConfig({
       "@zframes/charts",
       "@zframes/core",
       "@zframes/spec",
+      "@zframes/data-primitives",
       "@zframes/frames",
       "@zframes/provider-alternativeme",
       "@zframes/provider-bls",

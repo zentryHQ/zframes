@@ -19,8 +19,8 @@
     "./spec": "./src/facade/spec.ts",
     "./catalogue": "./src/facade/catalogue.ts",
     "./routes": "./src/facade/routes.ts",
-    "./fetch": "./src/fetch.ts",
-    "./cache": "./src/cache.ts",
+    "./fetch": "./src/facade/fetch.ts",
+    "./cache": "./src/facade/cache.ts",
     "./editor": "./src/editor.tsx",
     "./editor-symbols": "./src/editor-symbols.ts",
     "./vite": "./src/vite.ts",
@@ -36,6 +36,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@zframes/data-primitives": "workspace:*",
     "@zframes/spec": "workspace:*",
     "gridstack": "^12.1.0",
     "lucide-react": "^1.21.0",
