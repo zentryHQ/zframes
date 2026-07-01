@@ -33,7 +33,7 @@ const MAX_HISTORY_TURNS = 6; // last ~3 exchanges of the orb's ephemeral thread
 const MAX_HISTORY_CHARS = 600; // per turn — orb answers are 2–4 sentences anyway
 
 /** One prior turn of the orb's ephemeral thread, replayed for follow-up context. */
-interface HistoryTurn {
+export interface HistoryTurn {
   role: "user" | "zai";
   text: string;
 }
@@ -92,8 +92,15 @@ interface ClaudeStreamLine {
   event?: { type?: string; delta?: { type?: string; text?: unknown } };
 }
 
-/** A single token-level text delta from a Claude stream line, or null. */
-function claudeDelta(line: string): string | null {
+/**
+ * A single token-level text delta from a Claude stream line, or null.
+ *
+ * `claudeDelta`, `claudeResult`, and `buildPrompt` are exported purely as unit
+ * seams for `agent-prompt.test.ts` — they're deterministic string logic with no
+ * subprocess. They are NOT part of the server contract (only `handleAgents` /
+ * `handleAsk` are); the private `@zframes/core` package inlines this file wholesale.
+ */
+export function claudeDelta(line: string): string | null {
   const o = tryParse<ClaudeStreamLine>(line);
   if (o?.type !== "stream_event") return null;
   const delta =
@@ -104,7 +111,7 @@ function claudeDelta(line: string): string | null {
 }
 
 /** Claude's canonical answer: the closing `result`, else the joined deltas. */
-function claudeResult(stdout: string): string {
+export function claudeResult(stdout: string): string {
   let result: string | null = null;
   let deltas = "";
   for (const line of stdout.split("\n")) {
@@ -227,7 +234,7 @@ function detectAgents(): Promise<Runner[]> {
  * a capture failure) we fall back to reading the spec from disk for the title +
  * the symbols, so the bridge still works standalone.
  */
-async function buildPrompt(
+export async function buildPrompt(
   specFile: string,
   question: string,
   clientContext?: string,
