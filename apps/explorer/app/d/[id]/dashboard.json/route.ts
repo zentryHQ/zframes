@@ -1,4 +1,4 @@
-import { getDashboard } from "@/app/lib/dashboards";
+import { resolveDashboard } from "@/app/lib/resolve-dashboard";
 
 export const runtime = "nodejs";
 
@@ -12,11 +12,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const row = await getDashboard(id);
-  if (!row) {
+  const entry = await resolveDashboard(id);
+  if (!entry) {
     return Response.json({ error: "not found" }, { status: 404 });
   }
-  return Response.json(row.spec, {
+  return Response.json(entry.spec, {
     headers: {
       "content-type": "application/json; charset=utf-8",
       "content-disposition": `inline; filename="dashboard.json"`,
