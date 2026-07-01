@@ -1,10 +1,16 @@
 diff --git a/dist/index.cjs b/dist/index.cjs
-index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75bafefc28588 100644
+index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..cf793fe58cf73bf226d5e9003874d625cb1bdd41 100644
 --- a/dist/index.cjs
 +++ b/dist/index.cjs
-@@ -202,9 +202,8 @@ function getDpr() {
+@@ -200,11 +200,13 @@ function interpolateAtTime(points, time) {
+ // src/canvas/dpr.ts
+ function getDpr() {
    if (typeof window === "undefined") return 1;
-   return Math.min(window.devicePixelRatio || 1, 3);
+-  return Math.min(window.devicePixelRatio || 1, 3);
++  const isLowEnd =
++    (navigator.deviceMemory ?? 8) <= 4 ||
++    (navigator.hardwareConcurrency ?? 8) <= 4;
++  return Math.min(window.devicePixelRatio || 1, isLowEnd ? 2 : 3);
  }
 -function applyDpr(ctx, dpr, w, h) {
 +function applyDpr(ctx, dpr, _w, _h) {
@@ -13,7 +19,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
  }
  
  // src/draw/grid.ts
-@@ -256,7 +255,7 @@ function drawGrid(ctx, layout, palette, formatValue, state, dt) {
+@@ -256,7 +258,7 @@ function drawGrid(ctx, layout, palette, formatValue, state, dt) {
      if (y < pad.top - 2 || y > h - pad.bottom + 2) continue;
      const isCoarse = divisible(val, coarse);
      const target = (isCoarse ? 1 : fineTarget) * edgeAlpha(y);
@@ -22,7 +28,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
      targets.set(key, target);
    }
    for (const [key, alpha] of state.labels) {
-@@ -282,7 +281,7 @@ function drawGrid(ctx, layout, palette, formatValue, state, dt) {
+@@ -282,7 +284,7 @@ function drawGrid(ctx, layout, palette, formatValue, state, dt) {
    ctx.textAlign = "left";
    for (const [key, alpha] of state.labels) {
      if (alpha < 0.02) continue;
@@ -31,7 +37,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
      const y = toY(val);
      if (y < pad.top - 10 || y > h - pad.bottom + 10) continue;
      ctx.save();
-@@ -1945,27 +1944,22 @@ function drawLoading(ctx, w, h, pad, palette, now_ms, alpha = 1, strokeColor) {
+@@ -1945,27 +1947,22 @@ function drawLoading(ctx, w, h, pad, palette, now_ms, alpha = 1, strokeColor) {
  
  // src/draw/badge.ts
  function badgeSvgPath(pillW, pillH, tailLen, tailSpread) {
@@ -69,7 +75,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
      "Z"
    ].join(" ");
  }
-@@ -2178,7 +2172,7 @@ function updateBadgeDOM(badge, cfg, smoothValue, layout, momentum, badgeY, badge
+@@ -2178,7 +2175,7 @@ function updateBadgeDOM(badge, cfg, smoothValue, layout, momentum, badgeY, badge
      const badgeSpeed = isWindowTransitioning ? BADGE_Y_LERP_TRANSITIONING : BADGE_Y_LERP;
      badgeY = lerp(badgeY, targetBadgeY, badgeSpeed, dt);
    }
@@ -78,7 +84,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
    const badgeTop = badgeY - pillH / 2;
    badge.container.style.transform = `translate3d(${badgeLeft}px, ${badgeTop}px, 0)`;
    if (cfg.badgeVariant === "minimal") {
-@@ -2484,17 +2478,32 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -2484,17 +2481,32 @@ function useLivelineEngine(canvasRef, containerRef, config) {
      mql.addEventListener("change", onChange);
      return () => mql.removeEventListener("change", onChange);
    }, []);
@@ -113,7 +119,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
        rafRef.current = 0;
        return;
      }
-@@ -2639,6 +2648,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -2639,6 +2651,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        }
      }
      if (!hasData && !useStash && !useMultiStash) {
@@ -121,7 +127,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
        const loadingColor = isCandle || cfg.isMultiSeries || lastMultiSeriesRef.current.length > 0 ? cfg.palette.gridLabel : void 0;
        if (loadingAlpha > 0.01) {
          drawLoading(ctx, w, h, pad, cfg.palette, now_ms, loadingAlpha, loadingColor);
-@@ -2659,6 +2669,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -2659,6 +2672,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        return;
      }
      if (isCandle) {
@@ -129,7 +135,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
        const candleBuffer = CANDLE_BUFFER_NO_BADGE;
        if (hasData) frozenNowRef.current = Date.now() / 1e3 - timeDebtRef.current;
        const now = hasData || chartReveal < 5e-3 ? Date.now() / 1e3 - timeDebtRef.current : frozenNowRef.current;
-@@ -3064,6 +3075,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3064,6 +3078,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
          }
        }
      } else if (cfg.isMultiSeries && cfg.multiSeries && cfg.multiSeries.length > 0 || useMultiStash) {
@@ -137,7 +143,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
        const effectiveMultiSeries = useMultiStash ? lastMultiSeriesRef.current : cfg.multiSeries;
        let labelReserve = 0;
        if (effectiveMultiSeries.some((s) => s.label)) {
-@@ -3330,7 +3342,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3330,7 +3345,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        const chartW = w - pad.left - pad.right;
        const baseBuffer = cfg.showBadge ? WINDOW_BUFFER : WINDOW_BUFFER_NO_BADGE;
        const needsArrowRoom = cfg.showMomentum && cfg.showBadge;
@@ -146,7 +152,7 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
        const transition = windowTransitionRef.current;
        if (hasData) frozenNowRef.current = Date.now() / 1e3 - timeDebtRef.current;
        const now = useStash ? frozenNowRef.current : Date.now() / 1e3 - timeDebtRef.current;
-@@ -3364,6 +3376,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3364,6 +3379,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
          rafRef.current = requestAnimationFrame(draw);
          return;
        }
@@ -155,12 +161,18 @@ index 4709730f1d6608dee4ffb3a386d1732f776c5f5c..fbea052f5bf4595bac907392f9f75baf
        const isWindowTransitioning = transition.startMs > 0;
        const rangeResult = updateRange(
 diff --git a/dist/index.js b/dist/index.js
-index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f019ee95dd 100644
+index fd0506272e9a54432a0882c3a389ee74302e4718..cfd7a9353dd9743a273fb43d037396cef763c136 100644
 --- a/dist/index.js
 +++ b/dist/index.js
-@@ -175,9 +175,8 @@ function getDpr() {
+@@ -173,11 +173,13 @@ function interpolateAtTime(points, time) {
+ // src/canvas/dpr.ts
+ function getDpr() {
    if (typeof window === "undefined") return 1;
-   return Math.min(window.devicePixelRatio || 1, 3);
+-  return Math.min(window.devicePixelRatio || 1, 3);
++  const isLowEnd =
++    (navigator.deviceMemory ?? 8) <= 4 ||
++    (navigator.hardwareConcurrency ?? 8) <= 4;
++  return Math.min(window.devicePixelRatio || 1, isLowEnd ? 2 : 3);
  }
 -function applyDpr(ctx, dpr, w, h) {
 +function applyDpr(ctx, dpr, _w, _h) {
@@ -169,7 +181,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f0
  }
  
  // src/draw/grid.ts
-@@ -229,7 +228,7 @@ function drawGrid(ctx, layout, palette, formatValue, state, dt) {
+@@ -229,7 +231,7 @@ function drawGrid(ctx, layout, palette, formatValue, state, dt) {
      if (y < pad.top - 2 || y > h - pad.bottom + 2) continue;
      const isCoarse = divisible(val, coarse);
      const target = (isCoarse ? 1 : fineTarget) * edgeAlpha(y);
@@ -178,7 +190,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f0
      targets.set(key, target);
    }
    for (const [key, alpha] of state.labels) {
-@@ -255,7 +254,7 @@ function drawGrid(ctx, layout, palette, formatValue, state, dt) {
+@@ -255,7 +257,7 @@ function drawGrid(ctx, layout, palette, formatValue, state, dt) {
    ctx.textAlign = "left";
    for (const [key, alpha] of state.labels) {
      if (alpha < 0.02) continue;
@@ -187,7 +199,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f0
      const y = toY(val);
      if (y < pad.top - 10 || y > h - pad.bottom + 10) continue;
      ctx.save();
-@@ -1918,27 +1917,22 @@ function drawLoading(ctx, w, h, pad, palette, now_ms, alpha = 1, strokeColor) {
+@@ -1918,27 +1920,22 @@ function drawLoading(ctx, w, h, pad, palette, now_ms, alpha = 1, strokeColor) {
  
  // src/draw/badge.ts
  function badgeSvgPath(pillW, pillH, tailLen, tailSpread) {
@@ -225,7 +237,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f0
      "Z"
    ].join(" ");
  }
-@@ -2151,7 +2145,7 @@ function updateBadgeDOM(badge, cfg, smoothValue, layout, momentum, badgeY, badge
+@@ -2151,7 +2148,7 @@ function updateBadgeDOM(badge, cfg, smoothValue, layout, momentum, badgeY, badge
      const badgeSpeed = isWindowTransitioning ? BADGE_Y_LERP_TRANSITIONING : BADGE_Y_LERP;
      badgeY = lerp(badgeY, targetBadgeY, badgeSpeed, dt);
    }
@@ -234,7 +246,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f0
    const badgeTop = badgeY - pillH / 2;
    badge.container.style.transform = `translate3d(${badgeLeft}px, ${badgeTop}px, 0)`;
    if (cfg.badgeVariant === "minimal") {
-@@ -2457,17 +2451,32 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -2457,17 +2454,32 @@ function useLivelineEngine(canvasRef, containerRef, config) {
      mql.addEventListener("change", onChange);
      return () => mql.removeEventListener("change", onChange);
    }, []);
@@ -269,7 +281,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f0
        rafRef.current = 0;
        return;
      }
-@@ -2612,6 +2621,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -2612,6 +2624,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        }
      }
      if (!hasData && !useStash && !useMultiStash) {
@@ -277,7 +289,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f0
        const loadingColor = isCandle || cfg.isMultiSeries || lastMultiSeriesRef.current.length > 0 ? cfg.palette.gridLabel : void 0;
        if (loadingAlpha > 0.01) {
          drawLoading(ctx, w, h, pad, cfg.palette, now_ms, loadingAlpha, loadingColor);
-@@ -2632,6 +2642,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -2632,6 +2645,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        return;
      }
      if (isCandle) {
@@ -285,7 +297,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f0
        const candleBuffer = CANDLE_BUFFER_NO_BADGE;
        if (hasData) frozenNowRef.current = Date.now() / 1e3 - timeDebtRef.current;
        const now = hasData || chartReveal < 5e-3 ? Date.now() / 1e3 - timeDebtRef.current : frozenNowRef.current;
-@@ -3037,6 +3048,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3037,6 +3051,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
          }
        }
      } else if (cfg.isMultiSeries && cfg.multiSeries && cfg.multiSeries.length > 0 || useMultiStash) {
@@ -293,7 +305,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f0
        const effectiveMultiSeries = useMultiStash ? lastMultiSeriesRef.current : cfg.multiSeries;
        let labelReserve = 0;
        if (effectiveMultiSeries.some((s) => s.label)) {
-@@ -3303,7 +3315,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3303,7 +3318,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
        const chartW = w - pad.left - pad.right;
        const baseBuffer = cfg.showBadge ? WINDOW_BUFFER : WINDOW_BUFFER_NO_BADGE;
        const needsArrowRoom = cfg.showMomentum && cfg.showBadge;
@@ -302,7 +314,7 @@ index fd0506272e9a54432a0882c3a389ee74302e4718..33674e1379bc8bf60e2e7fd379d880f0
        const transition = windowTransitionRef.current;
        if (hasData) frozenNowRef.current = Date.now() / 1e3 - timeDebtRef.current;
        const now = useStash ? frozenNowRef.current : Date.now() / 1e3 - timeDebtRef.current;
-@@ -3337,6 +3349,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
+@@ -3337,6 +3352,7 @@ function useLivelineEngine(canvasRef, containerRef, config) {
          rafRef.current = requestAnimationFrame(draw);
          return;
        }
