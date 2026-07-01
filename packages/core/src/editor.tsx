@@ -2130,10 +2130,7 @@ export function DashboardEditor({
                                     gs-max-h={def.layout?.maxH}
                                     role="button"
                                     tabIndex={0}
-                                    title={`Drag onto the board, or click to add ${def.name.replace(
-                                      /-/g,
-                                      " ",
-                                    )}`}
+                                    title={`Drag onto the board, or click to add ${def.label}`}
                                     onClick={() => addFrame(def.name)}
                                     onKeyDown={(e) => {
                                       if (e.key === "Enter" || e.key === " ") {
@@ -2153,7 +2150,7 @@ export function DashboardEditor({
                                     )}
                                     <div className="zf-newwidget-copy">
                                       <div className="zf-newwidget-name">
-                                        {def.name.replace(/-/g, " ")}
+                                        {def.label}
                                       </div>
                                       <div className="zf-newwidget-desc">
                                         {def.description}

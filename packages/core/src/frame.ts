@@ -131,6 +131,13 @@ export interface FrameMeta<S extends z.ZodType = z.ZodType> {
   /** Unique frame name, referenced by dashboard specs. */
   name: string;
   /**
+   * Human-readable display name. It's the card's default title when an instance
+   * sets no `title`, and the name shown in the editor palette / AI catalogue.
+   * Required so every frame ships a polished default and no dashboard has to
+   * hand-author a title just to avoid a raw `frame-id` label.
+   */
+  label: string;
+  /**
    * The family this frame belongs to — groups the editor palette and the AI
    * catalogue. One of {@link FRAME_CATEGORIES}' keys; see that list for the
    * label and blurb each category renders with.

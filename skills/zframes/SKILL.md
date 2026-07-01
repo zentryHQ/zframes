@@ -234,11 +234,13 @@ Layout rules for the frames:
   each group of related frames — e.g. "Markets", "On-chain", "Desk". Headings
   render as bare section dividers (no card); they're what make a dashboard read
   as designed instead of a widget dump. A good dashboard has 2–3 zones.
-- **Title each card.** Set a per-instance `"title"` (sibling of `frame`/`position`)
-  to label the card; it overrides the default, which is just the frame-type name.
-  Required on every `price-chart` — use the ticker (`"title": "TSLA"`, not
-  `"PRICE CHART"`) so a wall of charts is readable. Useful on any frame whose
-  type name is ambiguous; skip it for `heading` (bare, no card chrome).
+- **Titles: usually omit.** Every frame renders a polished default title from its
+  catalogue `label` (e.g. "OI by Strike", "Funding Heatmap"), so **leave `"title"`
+  unset by default** — don't re-state the default and never abbreviate. Set a
+  per-instance `"title"` (sibling of `frame`/`position`) only when the label the
+  default can't know matters: **required on every `price-chart`** — use the ticker
+  (`"title": "TSLA"`, not `"PRICE CHART"`) — and useful to distinguish otherwise
+  identical cards (e.g. which outlet a `news-feed` shows). Ignored by `heading`.
 - Big charts: `w: 6–12, h: 3`. Lists/tickers: `w: 3–4, h: 3`. Small cards
   (fear-greed, bitcoin-dominance): `w: 2–3, h: 3`.
 - No overlaps; no frame past column 12; every `id` unique and human-readable.

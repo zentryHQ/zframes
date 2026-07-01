@@ -49,6 +49,7 @@ const SOURCES = {
 
 export const clockMeta = defineFrameMeta({
   name: "clock",
+  label: "Clock",
   category: "tools",
   iconUrl: widgetIcon("clock"),
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
@@ -97,6 +98,7 @@ export const clockMeta = defineFrameMeta({
 
 export const marketHoursMeta = defineFrameMeta({
   name: "market-hours",
+  label: "Market Hours",
   category: "tools",
   iconUrl: widgetIcon("market-hours"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
@@ -121,6 +123,7 @@ export const marketHoursMeta = defineFrameMeta({
 
 export const fearGreedMeta = defineFrameMeta({
   name: "fear-greed",
+  label: "Fear & Greed",
   category: "sentiment",
   iconUrl: widgetIcon("fear-greed"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
@@ -141,6 +144,7 @@ export const fearGreedMeta = defineFrameMeta({
 
 export const fundingRateChartMeta = defineFrameMeta({
   name: "funding-rate-chart",
+  label: "Funding Rate Chart",
   category: "derivatives",
   iconUrl: widgetIcon("funding-rate-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
@@ -165,6 +169,7 @@ export const fundingRateChartMeta = defineFrameMeta({
 
 export const noteMeta = defineFrameMeta({
   name: "note",
+  label: "Note",
   category: "layout",
   iconUrl: widgetIcon("note"),
   layout: { w: 4, h: 3, minW: 2, minH: 2 },
@@ -185,6 +190,7 @@ export const noteMeta = defineFrameMeta({
 
 export const priceChartMeta = defineFrameMeta({
   name: "price-chart",
+  label: "Price Chart",
   category: "markets",
   iconUrl: widgetIcon("price-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
@@ -216,6 +222,7 @@ export const priceChartMeta = defineFrameMeta({
 
 export const priceLivelineMeta = defineFrameMeta({
   name: "price-liveline",
+  label: "Price Liveline",
   category: "markets",
   iconUrl: widgetIcon("price-liveline"),
   layout: { w: 6, h: 3, minW: 4, minH: 2 },
@@ -251,6 +258,7 @@ export const priceLivelineMeta = defineFrameMeta({
 
 export const priceTickerMeta = defineFrameMeta({
   name: "price-ticker",
+  label: "Price Ticker",
   category: "markets",
   iconUrl: widgetIcon("price-ticker"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
@@ -270,6 +278,7 @@ export const priceTickerMeta = defineFrameMeta({
 
 export const topMoversMeta = defineFrameMeta({
   name: "top-movers",
+  label: "Top Movers",
   category: "markets",
   iconUrl: widgetIcon("top-movers"),
   layout: { w: 5, h: 3, minW: 3, minH: 3 },
@@ -290,6 +299,7 @@ export const topMoversMeta = defineFrameMeta({
 
 export const tvlTreemapMeta = defineFrameMeta({
   name: "tvl-treemap",
+  label: "TVL Treemap",
   category: "crypto",
   iconUrl: widgetIcon("tvl-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
@@ -310,6 +320,7 @@ export const tvlTreemapMeta = defineFrameMeta({
 
 export const bitcoinDominanceMeta = defineFrameMeta({
   name: "bitcoin-dominance",
+  label: "Bitcoin Dominance",
   category: "crypto",
   iconUrl: widgetIcon("bitcoin-dominance"),
   layout: { w: 4, h: 2, minW: 3, minH: 2 },
@@ -329,6 +340,7 @@ export const bitcoinDominanceMeta = defineFrameMeta({
 
 export const ratesBoardMeta = defineFrameMeta({
   name: "rates-board",
+  label: "Rates Board",
   category: "macro",
   iconUrl: widgetIcon("rates-board"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
@@ -362,6 +374,7 @@ export const ratesBoardMeta = defineFrameMeta({
 
 export const fxBoardMeta = defineFrameMeta({
   name: "fx-board",
+  label: "FX Board",
   category: "macro",
   iconUrl: widgetIcon("fx-board"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
@@ -394,6 +407,7 @@ export const fxBoardMeta = defineFrameMeta({
 
 export const inflationPulseMeta = defineFrameMeta({
   name: "inflation-pulse",
+  label: "Inflation Pulse",
   category: "macro",
   iconUrl: widgetIcon("inflation-pulse"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
@@ -414,6 +428,7 @@ export const inflationPulseMeta = defineFrameMeta({
 
 export const financialStressMeta = defineFrameMeta({
   name: "financial-stress",
+  label: "Financial Stress",
   category: "macro",
   iconUrl: widgetIcon("financial-stress"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
@@ -440,6 +455,7 @@ export const financialStressMeta = defineFrameMeta({
 
 export const nationalDebtMeta = defineFrameMeta({
   name: "national-debt",
+  label: "National Debt",
   category: "macro",
   iconUrl: widgetIcon("national-debt"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
@@ -468,6 +484,7 @@ export const nationalDebtMeta = defineFrameMeta({
 
 export const laborMarketMeta = defineFrameMeta({
   name: "labor-market",
+  label: "Labor Market",
   category: "macro",
   iconUrl: widgetIcon("labor-market"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
@@ -488,6 +505,7 @@ export const laborMarketMeta = defineFrameMeta({
 
 export const treasuryAuctionsMeta = defineFrameMeta({
   name: "treasury-auctions",
+  label: "Treasury Auctions",
   category: "macro",
   iconUrl: widgetIcon("treasury-auctions"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
@@ -508,6 +526,7 @@ export const treasuryAuctionsMeta = defineFrameMeta({
 
 export const filingsFeedMeta = defineFrameMeta({
   name: "filings-feed",
+  label: "Filings Feed",
   category: "equities",
   iconUrl: widgetIcon("filings-feed"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
@@ -540,6 +559,7 @@ export const filingsFeedMeta = defineFrameMeta({
 
 export const yieldCurveMeta = defineFrameMeta({
   name: "yield-curve",
+  label: "Yield Curve",
   category: "macro",
   iconUrl: widgetIcon("yield-curve"),
   layout: { w: 4, h: 3, minW: 3, minH: 3 },
@@ -577,6 +597,7 @@ export const yieldCurveMeta = defineFrameMeta({
 
 export const fundamentalsMeta = defineFrameMeta({
   name: "fundamentals",
+  label: "Fundamentals",
   category: "equities",
   iconUrl: widgetIcon("fundamentals"),
   layout: { w: 4, h: 3, minW: 3, minH: 3 },
@@ -596,6 +617,7 @@ export const fundamentalsMeta = defineFrameMeta({
 
 export const shortVolumeMeta = defineFrameMeta({
   name: "short-volume",
+  label: "Short Volume",
   category: "equities",
   iconUrl: widgetIcon("short-volume"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
@@ -622,6 +644,7 @@ export const shortVolumeMeta = defineFrameMeta({
 
 export const fundingHeatmapMeta = defineFrameMeta({
   name: "funding-heatmap",
+  label: "Funding Heatmap",
   category: "derivatives",
   iconUrl: widgetIcon("funding-heatmap"),
   layout: { w: 6, h: 3, minW: 4, minH: 3 },
@@ -642,6 +665,7 @@ export const fundingHeatmapMeta = defineFrameMeta({
 
 export const dinoGameMeta = defineFrameMeta({
   name: "dino-game",
+  label: "Dino Game",
   category: "games",
   iconUrl: widgetIcon("dino-game"),
   layout: { w: 4, h: 3, minW: 3, minH: 3 },
@@ -653,6 +677,7 @@ export const dinoGameMeta = defineFrameMeta({
 
 export const imageMeta = defineFrameMeta({
   name: "image",
+  label: "Image",
   category: "layout",
   iconUrl: widgetIcon("image"),
   layout: { w: 3, h: 3, minW: 1, minH: 1 },
@@ -673,6 +698,7 @@ export const imageMeta = defineFrameMeta({
 
 export const headingMeta = defineFrameMeta({
   name: "heading",
+  label: "Heading",
   category: "layout",
   iconUrl: widgetIcon("heading"),
   layout: { w: 12, h: 1, minW: 2, minH: 1, maxH: 1 },
@@ -691,6 +717,7 @@ export const headingMeta = defineFrameMeta({
 
 export const dailyAnalysisMeta = defineFrameMeta({
   name: "daily-analysis",
+  label: "Daily Analysis",
   category: "tools",
   iconUrl: widgetIcon("daily-analysis"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
@@ -731,6 +758,7 @@ export const dailyAnalysisMeta = defineFrameMeta({
 // mock store; production round-trips a journal.json like the daily brief.)
 export const journalLogMeta = defineFrameMeta({
   name: "journal-log",
+  label: "Journal · Log",
   category: "journal",
   iconUrl: widgetIcon("journal-log"),
   layout: { w: 4, h: 5, minW: 3, minH: 4 },
@@ -743,6 +771,7 @@ export const journalLogMeta = defineFrameMeta({
 
 export const journalOpenMeta = defineFrameMeta({
   name: "journal-open",
+  label: "Journal · Open",
   category: "journal",
   iconUrl: widgetIcon("journal-open"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
@@ -763,6 +792,7 @@ export const journalOpenMeta = defineFrameMeta({
 
 export const journalResultsMeta = defineFrameMeta({
   name: "journal-results",
+  label: "Journal · Results",
   category: "journal",
   iconUrl: widgetIcon("journal-results"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
@@ -782,6 +812,7 @@ export const journalResultsMeta = defineFrameMeta({
 
 export const journalScoreMeta = defineFrameMeta({
   name: "journal-score",
+  label: "Journal · Scoreboard",
   category: "journal",
   iconUrl: widgetIcon("journal-score"),
   layout: { w: 4, h: 2, minW: 3, minH: 2 },
@@ -793,6 +824,7 @@ export const journalScoreMeta = defineFrameMeta({
 
 export const priceCompareMeta = defineFrameMeta({
   name: "price-compare",
+  label: "Price Compare",
   category: "markets",
   iconUrl: widgetIcon("price-compare"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
@@ -842,6 +874,7 @@ const portfolioConfigShape = {
 
 export const portfolioValueMeta = defineFrameMeta({
   name: "portfolio-value",
+  label: "Portfolio Value",
   category: "portfolio",
   iconUrl: widgetIcon("portfolio-value"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
@@ -864,6 +897,7 @@ export const portfolioValueMeta = defineFrameMeta({
 
 export const portfolioAllocationMeta = defineFrameMeta({
   name: "portfolio-allocation",
+  label: "Portfolio Allocation",
   category: "portfolio",
   iconUrl: widgetIcon("portfolio-allocation"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
@@ -876,6 +910,7 @@ export const portfolioAllocationMeta = defineFrameMeta({
 
 export const portfolioHoldingsMeta = defineFrameMeta({
   name: "portfolio-holdings",
+  label: "Portfolio Holdings",
   category: "portfolio",
   iconUrl: widgetIcon("portfolio-holdings"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
@@ -888,6 +923,7 @@ export const portfolioHoldingsMeta = defineFrameMeta({
 
 export const newsFeedMeta = defineFrameMeta({
   name: "news-feed",
+  label: "News Feed",
   category: "sentiment",
   iconUrl: widgetIcon("news-feed"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
@@ -926,6 +962,7 @@ export const newsFeedMeta = defineFrameMeta({
 
 export const dexVolumeTreemapMeta = defineFrameMeta({
   name: "dex-volume-treemap",
+  label: "DEX Volume Treemap",
   category: "crypto",
   iconUrl: widgetIcon("dex-volume-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
@@ -946,6 +983,7 @@ export const dexVolumeTreemapMeta = defineFrameMeta({
 
 export const dexVolumeChartMeta = defineFrameMeta({
   name: "dex-volume-chart",
+  label: "DEX Volume Chart",
   category: "crypto",
   iconUrl: widgetIcon("dex-volume-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
@@ -970,6 +1008,7 @@ export const dexVolumeChartMeta = defineFrameMeta({
 
 export const protocolTvlTreemapMeta = defineFrameMeta({
   name: "protocol-tvl-treemap",
+  label: "Protocol TVL Treemap",
   category: "crypto",
   iconUrl: widgetIcon("protocol-tvl-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
@@ -990,6 +1029,7 @@ export const protocolTvlTreemapMeta = defineFrameMeta({
 
 export const protocolTvlChartMeta = defineFrameMeta({
   name: "protocol-tvl-chart",
+  label: "Protocol TVL Chart",
   category: "crypto",
   iconUrl: widgetIcon("protocol-tvl-chart"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
@@ -1014,6 +1054,7 @@ export const protocolTvlChartMeta = defineFrameMeta({
 
 export const protocolFeesTreemapMeta = defineFrameMeta({
   name: "protocol-fees-treemap",
+  label: "Protocol Fees Treemap",
   category: "crypto",
   iconUrl: widgetIcon("protocol-fees-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
@@ -1034,6 +1075,7 @@ export const protocolFeesTreemapMeta = defineFrameMeta({
 
 export const marketCapTreemapMeta = defineFrameMeta({
   name: "market-cap-treemap",
+  label: "Market Cap Treemap",
   category: "crypto",
   iconUrl: widgetIcon("market-cap-treemap"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
@@ -1056,6 +1098,7 @@ export const marketCapTreemapMeta = defineFrameMeta({
 
 export const openInterestMeta = defineFrameMeta({
   name: "open-interest",
+  label: "Open Interest",
   category: "derivatives",
   iconUrl: widgetIcon("open-interest"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
@@ -1076,6 +1119,7 @@ export const openInterestMeta = defineFrameMeta({
 
 export const snakeMeta = defineFrameMeta({
   name: "snake",
+  label: "Snake",
   category: "games",
   iconUrl: widgetIcon("snake"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
@@ -1087,6 +1131,7 @@ export const snakeMeta = defineFrameMeta({
 
 export const flappyBirdMeta = defineFrameMeta({
   name: "flappy-bird",
+  label: "Flappy Bird",
   category: "games",
   iconUrl: widgetIcon("flappy-bird"),
   layout: { w: 4, h: 4, minW: 3, minH: 3 },
@@ -1098,6 +1143,7 @@ export const flappyBirdMeta = defineFrameMeta({
 
 export const videoMeta = defineFrameMeta({
   name: "video",
+  label: "Video",
   category: "layout",
   iconUrl: widgetIcon("video"),
   layout: { w: 4, h: 3, minW: 2, minH: 2 },
@@ -1120,6 +1166,7 @@ export const videoMeta = defineFrameMeta({
 
 export const drawdyMeta = defineFrameMeta({
   name: "drawdy",
+  label: "Drawdy",
   category: "layout",
   iconUrl: widgetIcon("drawdy"),
   layout: { w: 8, h: 6, minW: 2, minH: 2 },
@@ -1131,6 +1178,7 @@ export const drawdyMeta = defineFrameMeta({
 
 export const countdownMeta = defineFrameMeta({
   name: "countdown",
+  label: "Countdown",
   category: "tools",
   iconUrl: widgetIcon("countdown"),
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
@@ -1159,6 +1207,7 @@ export const countdownMeta = defineFrameMeta({
 
 export const linkGridMeta = defineFrameMeta({
   name: "link-grid",
+  label: "Quick Links",
   category: "tools",
   iconUrl: widgetIcon("link-grid"),
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
@@ -1211,6 +1260,7 @@ export const linkGridMeta = defineFrameMeta({
 
 export const calculatorMeta = defineFrameMeta({
   name: "calculator",
+  label: "Position Calculator",
   category: "tools",
   iconUrl: widgetIcon("calculator"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
@@ -1246,6 +1296,7 @@ export const calculatorMeta = defineFrameMeta({
 
 export const quoteMeta = defineFrameMeta({
   name: "quote",
+  label: "Quote",
   category: "layout",
   iconUrl: widgetIcon("quote"),
   layout: { w: 4, h: 2, minW: 2, minH: 1 },
@@ -1277,6 +1328,7 @@ export const quoteMeta = defineFrameMeta({
 
 export const dividerMeta = defineFrameMeta({
   name: "divider",
+  label: "Divider",
   category: "layout",
   iconUrl: widgetIcon("divider"),
   layout: { w: 12, h: 1, minW: 1, minH: 1 },
@@ -1306,6 +1358,7 @@ export const dividerMeta = defineFrameMeta({
 
 export const diceMeta = defineFrameMeta({
   name: "dice",
+  label: "Dice",
   category: "tools",
   iconUrl: widgetIcon("dice"),
   layout: { w: 2, h: 2, minW: 1, minH: 1 },
@@ -1332,6 +1385,7 @@ export const diceMeta = defineFrameMeta({
 
 export const riskRewardMeta = defineFrameMeta({
   name: "risk-reward",
+  label: "Risk / Reward",
   category: "tools",
   iconUrl: widgetIcon("risk-reward"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
@@ -1354,6 +1408,7 @@ export const riskRewardMeta = defineFrameMeta({
 
 export const marqueeMeta = defineFrameMeta({
   name: "marquee",
+  label: "Marquee",
   category: "layout",
   iconUrl: widgetIcon("marquee"),
   layout: { w: 6, h: 1, minW: 2, minH: 1 },
@@ -1379,6 +1434,7 @@ export const marqueeMeta = defineFrameMeta({
 
 export const stopwatchMeta = defineFrameMeta({
   name: "stopwatch",
+  label: "Stopwatch",
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
   category: "tools",
   iconUrl: widgetIcon("stopwatch"),
@@ -1404,6 +1460,7 @@ export const stopwatchMeta = defineFrameMeta({
 
 export const sessionProgressMeta = defineFrameMeta({
   name: "session-progress",
+  label: "Session Progress",
   category: "tools",
   iconUrl: widgetIcon("session-progress"),
   layout: { w: 3, h: 2, minW: 2, minH: 1 },
@@ -1428,6 +1485,7 @@ export const sessionProgressMeta = defineFrameMeta({
 
 export const holidayCalendarMeta = defineFrameMeta({
   name: "holiday-calendar",
+  label: "Holiday Calendar",
   category: "tools",
   iconUrl: widgetIcon("holiday-calendar"),
   layout: { w: 3, h: 4, minW: 2, minH: 2 },
@@ -1455,6 +1513,7 @@ export const holidayCalendarMeta = defineFrameMeta({
 
 export const dayMeterMeta = defineFrameMeta({
   name: "day-meter",
+  label: "Day Meter",
   category: "tools",
   iconUrl: widgetIcon("day-meter"),
   layout: { w: 4, h: 2, minW: 2, minH: 1 },
@@ -1481,6 +1540,7 @@ export const dayMeterMeta = defineFrameMeta({
 
 export const returnsProjectorMeta = defineFrameMeta({
   name: "returns-projector",
+  label: "Returns Projector",
   category: "tools",
   iconUrl: widgetIcon("returns-projector"),
   layout: { w: 3, h: 4, minW: 2, minH: 3 },
@@ -1510,6 +1570,7 @@ export const returnsProjectorMeta = defineFrameMeta({
 
 export const breakevenMeta = defineFrameMeta({
   name: "breakeven",
+  label: "Break-even",
   category: "tools",
   iconUrl: widgetIcon("breakeven"),
   layout: { w: 3, h: 4, minW: 2, minH: 2 },
@@ -1540,6 +1601,7 @@ export const breakevenMeta = defineFrameMeta({
 
 export const checklistMeta = defineFrameMeta({
   name: "checklist",
+  label: "Checklist",
   category: "tools",
   iconUrl: widgetIcon("checklist"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
@@ -1570,6 +1632,7 @@ export const checklistMeta = defineFrameMeta({
 
 export const pomodoroMeta = defineFrameMeta({
   name: "pomodoro",
+  label: "Pomodoro",
   category: "tools",
   iconUrl: widgetIcon("pomodoro"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
@@ -1602,6 +1665,7 @@ export const pomodoroMeta = defineFrameMeta({
 
 export const rulesCardMeta = defineFrameMeta({
   name: "rules-card",
+  label: "Rules",
   category: "layout",
   iconUrl: widgetIcon("rules-card"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
@@ -1626,6 +1690,7 @@ export const rulesCardMeta = defineFrameMeta({
 
 export const breathingMeta = defineFrameMeta({
   name: "breathing",
+  label: "Breathing",
   category: "layout",
   iconUrl: widgetIcon("breathing"),
   chrome: "bare",
@@ -1653,6 +1718,7 @@ export const breathingMeta = defineFrameMeta({
 
 export const spotifyEmbedMeta = defineFrameMeta({
   name: "spotify-embed",
+  label: "Spotify",
   category: "layout",
   iconUrl: widgetIcon("spotify-embed"),
   layout: { w: 3, h: 4, minW: 2, minH: 2 },
@@ -1675,6 +1741,7 @@ export const spotifyEmbedMeta = defineFrameMeta({
 
 export const btcFeesMeta = defineFrameMeta({
   name: "btc-fees",
+  label: "BTC Fees",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-fees"),
   layout: { w: 3, h: 2, minW: 2, minH: 2 },
@@ -1696,6 +1763,7 @@ export const btcFeesMeta = defineFrameMeta({
 
 export const btcMempoolMeta = defineFrameMeta({
   name: "btc-mempool",
+  label: "BTC Mempool",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-mempool"),
   layout: { w: 5, h: 3, minW: 3, minH: 2 },
@@ -1718,6 +1786,7 @@ export const btcMempoolMeta = defineFrameMeta({
 
 export const btcBlocksMeta = defineFrameMeta({
   name: "btc-blocks",
+  label: "BTC Blocks",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-blocks"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
@@ -1738,6 +1807,7 @@ export const btcBlocksMeta = defineFrameMeta({
 
 export const btcHashrateMeta = defineFrameMeta({
   name: "btc-hashrate",
+  label: "BTC Hashrate",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-hashrate"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
@@ -1755,6 +1825,7 @@ export const btcHashrateMeta = defineFrameMeta({
 
 export const btcDifficultyMeta = defineFrameMeta({
   name: "btc-difficulty",
+  label: "BTC Difficulty",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-difficulty"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
@@ -1774,6 +1845,7 @@ export const btcDifficultyMeta = defineFrameMeta({
 
 export const miningPoolsMeta = defineFrameMeta({
   name: "mining-pools",
+  label: "Mining Pools",
   category: "bitcoin",
   iconUrl: widgetIcon("mining-pools"),
   layout: { w: 6, h: 4, minW: 3, minH: 3 },
@@ -1800,6 +1872,7 @@ export const miningPoolsMeta = defineFrameMeta({
 
 export const lightningStatsMeta = defineFrameMeta({
   name: "lightning-stats",
+  label: "Lightning Network",
   category: "bitcoin",
   iconUrl: widgetIcon("lightning-stats"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
@@ -1819,6 +1892,7 @@ export const lightningStatsMeta = defineFrameMeta({
 
 export const optionsPutCallMeta = defineFrameMeta({
   name: "options-put-call",
+  label: "Put / Call Ratio",
   category: "derivatives",
   iconUrl: widgetIcon("options-put-call"),
   layout: { w: 4, h: 3, minW: 3, minH: 2 },
@@ -1844,6 +1918,7 @@ export const optionsPutCallMeta = defineFrameMeta({
 
 export const optionsIvMeta = defineFrameMeta({
   name: "options-iv",
+  label: "Implied Volatility",
   category: "derivatives",
   iconUrl: widgetIcon("options-iv"),
   layout: { w: 6, h: 3, minW: 3, minH: 2 },
@@ -1865,6 +1940,7 @@ export const optionsIvMeta = defineFrameMeta({
 
 export const optionsOiStrikeMeta = defineFrameMeta({
   name: "options-oi-strike",
+  label: "OI by Strike",
   category: "derivatives",
   iconUrl: widgetIcon("options-oi-strike"),
   layout: { w: 6, h: 4, minW: 4, minH: 3 },
@@ -1891,6 +1967,7 @@ export const optionsOiStrikeMeta = defineFrameMeta({
 
 export const coinMoversMeta = defineFrameMeta({
   name: "coin-movers",
+  label: "Coin Movers",
   category: "markets",
   iconUrl: widgetIcon("coin-movers"),
   layout: { w: 5, h: 4, minW: 3, minH: 3 },
