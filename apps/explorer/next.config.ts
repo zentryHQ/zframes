@@ -29,6 +29,14 @@ const nextConfig: NextConfig = {
   // Keep the DB drivers out of the bundle — PGlite ships WASM and postgres is a
   // native-ish driver; they must load from node_modules in the Node runtime.
   serverExternalPackages: ["postgres"],
+  // The OG image reads assets/DMSans.ttf via fs at request time — force-trace it
+  // into the serverless bundle so the font ships to prod.
+  outputFileTracingIncludes: {
+    "/d/[id]/opengraph-image": [
+      "./assets/DMSans-Regular.ttf",
+      "./assets/DMSans-Bold.ttf",
+    ],
+  },
   // The browser's fetch layer hard-rewrites proxied provider calls to the shared
   // constant `/__zframes/proxy?url=…`. That path can't be an App Router folder
   // (leading `_` = private, excluded from routing), so map it to a normal api
