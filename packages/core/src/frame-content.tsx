@@ -809,7 +809,7 @@ function FrameContentImpl({
       style={style}
       className={className}
       hasIcon={!!TitleIcon}
-      title={instance.title ?? instance.frame.replace(/-/g, " ")}
+      title={instance.title ?? def.label}
       sources={sources}
       titleIcon={
         TitleIcon ? (

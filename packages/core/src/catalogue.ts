@@ -15,6 +15,10 @@ export function catalogueForAI(input: FrameRegistry | Iterable<FrameMeta>) {
     input instanceof Map ? [...input.values()] : [...input];
   return metas.map((meta) => ({
     name: meta.name,
+    // The frame's default card title. An instance that omits `title` renders
+    // this, so the agent should leave `title` unset unless it wants a custom
+    // label — never re-state the default or hand-author an abbreviation.
+    label: meta.label,
     category: meta.category,
     description: meta.description,
     iconUrl: meta.iconUrl,

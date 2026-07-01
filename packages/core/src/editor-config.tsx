@@ -36,8 +36,9 @@ import {
  * (plus the richer ticker picker for symbol fields), validated live against the
  * frame's own schema: a valid draft is pushed to the shared instance and
  * re-renders that frame; an invalid one surfaces an error and stays local, so
- * inputs never snap back mid-edit. A frame's title is author-set in the spec,
- * not editable here.
+ * inputs never snap back mid-edit. A card-title field sits above the config
+ * controls; it edits the instance `title` directly (not `config`) and clears
+ * to the frame's default when blank.
  *
  * Portaled to <body> (outside .zf-editor), so it re-establishes --zf-accent-hue
  * / --zf-accent from the live hue and is keyed by frame id by the caller, which
@@ -75,6 +76,10 @@ export function FrameConfigDialog({
     ...(instance.config ?? {}),
   }));
   const [error, setError] = useState<string | null>(null);
+  // The card title lives on the instance, not in `config`, so it gets its own
+  // draft + commit path parallel to the config one below. Blank clears it, so
+  // the frame's default (its `label`, or a `titleContent` live title) rides.
+  const [title, setTitle] = useState<string>(instance.title ?? "");
   const instanceId = instance.id;
 
   const commit = useCallback(
@@ -100,6 +105,21 @@ export function FrameConfigDialog({
     [def, instanceId, instancesRef, onApply],
   );
 
+  const commitTitle = useCallback(
+    (next: string) => {
+      setTitle(next);
+      const current = instancesRef.current.get(instanceId);
+      if (!current) return;
+      const trimmed = next.trim();
+      instancesRef.current.set(instanceId, {
+        ...current,
+        title: trimmed === "" ? undefined : trimmed,
+      });
+      onApply(instanceId);
+    },
+    [instanceId, instancesRef, onApply],
+  );
+
   // Esc closes the dialog.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -111,7 +131,7 @@ export function FrameConfigDialog({
 
   const setField = (key: string, value: unknown) =>
     commit({ ...config, [key]: value });
-  const frameLabel = instance.frame.replace(/-/g, " ");
+  const frameLabel = def?.label ?? instance.frame.replace(/-/g, " ");
 
   return (
     <div
@@ -140,6 +160,27 @@ export function FrameConfigDialog({
           </button>
         </header>
         <div className="zf-dialog-body">
+          {def?.chrome !== "bare" && (
+            <div className="zf-field">
+              <label
+                htmlFor="zf-instance-title"
+                title="Card title shown in the frame's chrome."
+              >
+                Title
+              </label>
+              <input
+                id="zf-instance-title"
+                className="zf-input"
+                value={title}
+                placeholder={def?.titleContent ? "Auto (live)" : frameLabel}
+                spellCheck={false}
+                onChange={(e) => commitTitle(e.target.value)}
+              />
+              <p className="zf-field-hint">
+                Leave blank to use the frame&rsquo;s default.
+              </p>
+            </div>
+          )}
           {symbolControl && (
             <TickerConfigEditor
               control={symbolControl}

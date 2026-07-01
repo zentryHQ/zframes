@@ -14,7 +14,7 @@ export const FrameInstanceSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Card title shown in the frame\'s chrome. Overrides the default (the frame type name) — set a meaningful per-instance label, e.g. the ticker on a price-chart ("TSLA"). Ignored by chrome-less frames like heading.',
+      'Optional custom card title. Omit it to use the frame\'s own polished default label (its catalogue `label`, e.g. "OI by Strike") — that is the norm. Only set this for a genuinely instance-specific label the default can\'t know, e.g. the ticker on a price-chart ("TSLA") or which outlet a news-feed shows. Never abbreviate. Ignored by chrome-less frames like heading.',
     ),
   position: GridPositionSchema,
   layouts: z

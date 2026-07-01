@@ -944,6 +944,12 @@ body:has(.ui-draggable-dragging) * {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.55);
 }
+.zf-field-hint {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.38);
+  line-height: 1.4;
+  margin: 0;
+}
 .zf-input,
 .zf-textarea {
   font: inherit;
