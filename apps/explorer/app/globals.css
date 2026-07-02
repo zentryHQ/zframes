@@ -10,63 +10,93 @@
 @source "../../../packages/charts/src";
 
 /* ── Explorer design tokens ───────────────────────────────────────────────
- * The explorer is the public front door. Its look is a superset of the runtime
- * brand (deep near-black + indigo/violet), pushed toward a premium market
- * terminal. All additive: frames still render through the renderer's own scoped
- * `.zf-*` stylesheet, so nothing here leaks into a dashboard. */
+ * The explorer IS a zframes surface, so its chrome is built from the SAME
+ * tokens a generated dashboard uses. The values below mirror the runtime's
+ * defaults 1:1 — the `--zf-*` accent/base system from FRAME_CSS (packages/core),
+ * the exact semantic up/down pair, DM Sans, and the shared quint ease-out — so a
+ * card here is materially indistinguishable from a card on a real board. Frames
+ * still render through the renderer's own scoped `.zf-*` stylesheet, so nothing
+ * here leaks into an embedded dashboard. */
 @theme {
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --color-ink: #e7ecf6;
-  --color-brand: #818cf8; /* indigo-400 */
+  --color-brand: #818cf8; /* indigo-400 — accent hue 242 in Tailwind-token form */
   --color-brand-strong: #6366f1; /* indigo-500 */
   --color-violet: #a78bfa; /* violet-400 */
-  --color-up: #34d399; /* emerald-400 */
-  --color-down: #fb7185; /* rose-400 */
+  --color-up: #3fd08f; /* the dashboard's exact semantic gain */
+  --color-down: #ff6b81; /* the dashboard's exact semantic loss */
+}
+
+/* The dashboard token system (FRAME_CSS parity), as raw vars the terminal-surface
+ * utilities below compute against — exactly how packages/core builds card chrome.
+ * Change a value here and every panel, rim, and label tracks it in lockstep. */
+:root {
+  --zf-accent-hue: 242;
+  --zf-accent-sat: 90%;
+  --zf-base-hue: 233;
+  --zf-base-sat: 20%;
+  --zf-border-alpha: 0.22;
+  --zf-surface-opacity: 1;
+  --zf-radius: 18px;
+  --zf-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Track-less scrollbar thumb, matching the runtime's chrome idiom. */
+  --zf-scrollbar-thumb: hsla(0, 0%, 100%, 0.14);
+  --zf-scrollbar-thumb-hover: hsla(0, 0%, 100%, 0.28);
 }
 
 html {
   scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--zf-scrollbar-thumb) transparent;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: #06060b;
+  background: #07070c; /* the runtime's near-black */
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-/* Layered ambient backdrop: two soft brand glows over near-black, plus a faint
- * blueprint grid that fades toward the edges. Fixed so it reads as a living
- * canvas the content floats over — the terminal-in-the-dark feel. */
+/* Ambient corner glows — the runtime's exact stack (apps/runtime/src/styles.css).
+ * This is the STATIC fallback that shows through when the live Aurora scene is
+ * off (reduced-motion, low-end, or engine failure); when the scene runs it sits
+ * one layer behind it (z-index below <UnicornBackground>'s -1). */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -2;
+  pointer-events: none;
   background:
-    radial-gradient(900px 520px at 12% -8%, hsla(244, 90%, 60%, 0.22), transparent 62%),
-    radial-gradient(820px 620px at 100% 0%, hsla(268, 88%, 62%, 0.16), transparent 58%),
-    radial-gradient(700px 700px at 50% 116%, hsla(224, 80%, 48%, 0.14), transparent 60%),
-    #06060b;
+    radial-gradient(1240px 660px at 50% -12%, hsla(248, 84%, 34%, 0.28), transparent 60%),
+    radial-gradient(940px 540px at 86% -4%, hsla(266, 72%, 32%, 0.14), transparent 56%),
+    radial-gradient(1000px 620px at 6% 10%, hsla(200, 60%, 26%, 0.07), transparent 60%);
 }
 
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-image:
-    linear-gradient(to right, hsla(226, 40%, 70%, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, hsla(226, 40%, 70%, 0.05) 1px, transparent 1px);
-  background-size: 56px 56px;
-  -webkit-mask-image: radial-gradient(1100px 720px at 50% -6%, #000 0%, transparent 72%);
-  mask-image: radial-gradient(1100px 720px at 50% -6%, #000 0%, transparent 72%);
-  opacity: 0.6;
+/* ── Scrollbar (track-less floating pill) ─────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--zf-scrollbar-thumb);
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.15s ease;
+}
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--zf-scrollbar-thumb-hover);
 }
 
 /* ── Utilities ──────────────────────────────────────────────────────────── */
@@ -74,24 +104,93 @@ body::after {
   font-family: var(--font-mono);
 }
 
-/* Brand gradient text — used on hero display type + section eyebrows. */
-.text-gradient {
-  background-image: linear-gradient(100deg, #c7d2fe 0%, #a5b4fc 30%, #c4b5fd 68%, #f0abfc 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+/* ── Terminal surface (the FRAME_CSS card, ported) ─────────────────────────
+ * The explorer's primary panel material: an opaque 165° navy-tinted gradient off
+ * --zf-base-hue, a faint indigo-tinted rim off --zf-accent-hue, an 18px radius,
+ * the dashboard's exact shadow stack, and a 1px top sheen — pixel-for-pixel the
+ * `.zf-frame` chrome a generated board renders. Use on cards, panels, dialogs. */
+.zf-surface {
+  position: relative;
+  border-radius: var(--zf-radius);
+  background: linear-gradient(
+    165deg,
+    hsl(var(--zf-base-hue) var(--zf-base-sat) 12.5% / calc(0.82 * var(--zf-surface-opacity))) 0%,
+    hsl(var(--zf-base-hue) var(--zf-base-sat) 7% / calc(0.86 * var(--zf-surface-opacity))) 60%,
+    hsl(var(--zf-base-hue) var(--zf-base-sat) 5.3% / calc(0.9 * var(--zf-surface-opacity))) 100%
+  );
+  border: 1px solid hsl(var(--zf-accent-hue) var(--zf-accent-sat) 76% / var(--zf-border-alpha));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 18px 44px -26px rgba(0, 0, 0, 0.9);
+}
+/* Top edge sheen — a hairline catch-light inset from the corners. */
+.zf-surface::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  pointer-events: none;
 }
 
-/* Frosted panel — the shared surface language for cards, the header, and the
- * hero showcase window. */
+/* Interactive lift — the frame's hover: rises, the rim brightens, an accent halo
+ * blooms under it. Compose with .zf-surface on links/buttons. */
+.zf-interactive {
+  transition:
+    transform 0.28s var(--zf-ease-out),
+    border-color 0.28s var(--zf-ease-out),
+    box-shadow 0.28s var(--zf-ease-out);
+}
+.zf-interactive:hover {
+  transform: translateY(-3px);
+  border-color: hsl(var(--zf-accent-hue) var(--zf-accent-sat) 76% / calc(var(--zf-border-alpha) + 0.22));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 0 0 1px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 76% / 0.14),
+    0 26px 64px -28px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 60% / 0.6);
+}
+
+/* Terminal label — the dashboard's card-title motif (accent dot + tracked
+ * uppercase). The explorer's ONE deliberate, named label system; reused for
+ * section kickers so they read as the terminal's own signature, not generic
+ * eyebrows. */
+.zf-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--color-ink) 58%, transparent);
+}
+.zf-label::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: hsl(var(--zf-accent-hue) var(--zf-accent-sat) 70%);
+  box-shadow: 0 0 8px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 70% / 0.85);
+  flex: none;
+}
+
+/* Terminal glass — the header + overlay material. Navy-tinted translucency off
+ * the base hue (NOT white glass), so it reads as darkened terminal chrome. */
 .glass {
-  background:
-    linear-gradient(180deg, hsla(0, 0%, 100%, 0.05), hsla(0, 0%, 100%, 0.02));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: linear-gradient(
+    180deg,
+    hsl(var(--zf-base-hue) var(--zf-base-sat) 12% / 0.6),
+    hsl(var(--zf-base-hue) var(--zf-base-sat) 6% / 0.5)
+  );
+  backdrop-filter: blur(14px) saturate(1.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
 }
 
-/* Gradient hairline border via mask (crisper than a translucent border on dark). */
+/* Gradient hairline rim via mask — now indigo-tinted off the accent (was white),
+ * so every element still using .hairline picks up the terminal rim automatically. */
 .hairline {
   position: relative;
 }
@@ -101,7 +200,12 @@ body::after {
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(180deg, hsla(0, 0%, 100%, 0.16), hsla(0, 0%, 100%, 0.04) 40%, transparent);
+  background: linear-gradient(
+    180deg,
+    hsl(var(--zf-accent-hue) var(--zf-accent-sat) 76% / 0.36),
+    hsl(var(--zf-accent-hue) var(--zf-accent-sat) 76% / 0.08) 45%,
+    transparent
+  );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -110,24 +214,24 @@ body::after {
   pointer-events: none;
 }
 
-/* Interactive card: lifts and lights an accent halo on hover. */
+/* Interactive card: lifts and lights an accent halo on hover (accent hue 242). */
 .card-lift {
   transition:
-    transform 0.28s cubic-bezier(0.2, 0.7, 0.2, 1),
-    border-color 0.28s ease,
-    box-shadow 0.28s ease,
-    background-color 0.28s ease;
+    transform 0.28s var(--zf-ease-out),
+    border-color 0.28s var(--zf-ease-out),
+    box-shadow 0.28s var(--zf-ease-out),
+    background-color 0.28s var(--zf-ease-out);
 }
 .card-lift:hover {
   transform: translateY(-4px);
   box-shadow:
-    0 20px 44px -22px hsla(244, 90%, 60%, 0.55),
-    0 0 0 1px hsla(244, 90%, 70%, 0.28);
+    0 24px 60px -26px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 60% / 0.6),
+    0 0 0 1px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 74% / 0.3);
 }
 
-/* Soft outer glow for the hero showcase + primary CTA. */
+/* Soft outer glow for the hero showcase + primary CTA — accent-tinted. */
 .glow-brand {
-  box-shadow: 0 30px 90px -40px hsla(248, 90%, 60%, 0.7);
+  box-shadow: 0 30px 90px -40px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 60% / 0.72);
 }
 
 /* ── Motion ─────────────────────────────────────────────────────────────── */
@@ -142,7 +246,7 @@ body::after {
   }
 }
 .animate-fade-up {
-  animation: fade-up 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: fade-up 0.7s var(--zf-ease-out) both;
 }
 
 @keyframes floaty {
@@ -160,13 +264,13 @@ body::after {
 
 @keyframes live-pulse {
   0% {
-    box-shadow: 0 0 0 0 hsla(150, 80%, 55%, 0.55);
+    box-shadow: 0 0 0 0 hsla(150, 70%, 52%, 0.55);
   }
   70% {
-    box-shadow: 0 0 0 6px hsla(150, 80%, 55%, 0);
+    box-shadow: 0 0 0 6px hsla(150, 70%, 52%, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 hsla(150, 80%, 55%, 0);
+    box-shadow: 0 0 0 0 hsla(150, 70%, 52%, 0);
   }
 }
 .live-dot {
@@ -185,15 +289,6 @@ body::after {
   animation: marquee 40s linear infinite;
 }
 
-@keyframes shimmer {
-  from {
-    background-position: -200% 0;
-  }
-  to {
-    background-position: 200% 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -203,5 +298,18 @@ body::after {
   .animate-marquee,
   .live-dot {
     animation: none;
+  }
+  /* No hover lift when motion is reduced — the material shift alone reads. */
+  .zf-interactive:hover,
+  .card-lift:hover {
+    transform: none;
+  }
+}
+
+/* No hover lift on touch (the hover state sticks after tap on coarse pointers). */
+@media (hover: none) {
+  .zf-interactive:hover,
+  .card-lift:hover {
+    transform: none;
   }
 }
