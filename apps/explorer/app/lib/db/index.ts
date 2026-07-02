@@ -20,9 +20,19 @@ const globalForDb = globalThis as unknown as {
   __zfDb?: PostgresJsDatabase<typeof schema>;
 };
 
+// The dev PGlite socket server handles ONE wire connection at a time — a
+// default 10-connection pool makes concurrent renders race it and surface as
+// random `read ECONNRESET` "Failed query" errors. Serialize through a single
+// connection against the local socket; Neon (prod) keeps the normal pool.
+const isPgliteSocket = /127\.0\.0\.1:5433|localhost:5433/.test(url);
 const client =
   globalForDb.__zfSql ??
-  (globalForDb.__zfSql = postgres(url, { prepare: false }));
+  (globalForDb.__zfSql = postgres(url, {
+    prepare: false,
+    // idle_timeout releases the one dev connection between requests so
+    // drizzle-kit push / ad-hoc scripts can share the socket.
+    ...(isPgliteSocket ? { max: 1, idle_timeout: 3 } : {}),
+  }));
 export const db =
   globalForDb.__zfDb ?? (globalForDb.__zfDb = drizzle(client, { schema }));
 export { schema };
