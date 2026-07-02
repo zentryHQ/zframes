@@ -43,3 +43,4 @@ docs/decisions/
 # Python bytecode — should never be committed anywhere in this JS/TS repo.
 __pycache__/
 *.pyc
+.claude/
