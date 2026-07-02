@@ -16,6 +16,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "packages/cli/runtime/**", // vendored prebuilt bundle (gitignored)
       "apps/*/public/**", // vendored SDKs (e.g. unicornStudio.umd.mjs)
+      ".claude/**", // session worktrees + agent config (gitignored)
       ".design-sync/**",
       ".ds-sync/**",
       "ds-bundle/**",
@@ -88,6 +89,14 @@ export default tseslint.config(
       "@typescript-eslint/no-restricted-imports": [
         "error",
         {
+          paths: [
+            {
+              name: "react",
+              allowTypeImports: true,
+              message:
+                "spec must stay React-runtime-free — type-only React imports (component types) are fine, value imports are not.",
+            },
+          ],
           patterns: [
             {
               group: [
@@ -146,9 +155,14 @@ export default tseslint.config(
                 "@zframes/store/*",
                 "@zframes/vite",
                 "@zframes/vite/*",
+                // Core's own facade aliases: internal code imports siblings
+                // relatively; the @zframes/core/* subpaths exist for external
+                // back-compat consumers only.
+                "@zframes/core",
+                "@zframes/core/*",
               ],
               message:
-                "core is the presentation layer — depend on @zframes/spec (and @zframes/data-primitives) only; editor/serve/zai/account/store/vite are reached only through the facade shims.",
+                "core is the presentation layer — depend on @zframes/spec (and @zframes/data-primitives) only; editor/serve/zai/account/store/vite are reached only through the facade shims, and core's own facade subpaths are for external consumers.",
             },
             {
               group: ["gridstack", "gridstack/*"],
@@ -175,10 +189,21 @@ export default tseslint.config(
                 "@zframes/zai/*",
                 "@zframes/account",
                 "@zframes/account/*",
+                "@zframes/store",
+                "@zframes/store/*",
                 "@zframes/vite",
                 "@zframes/vite/*",
+                // The same Node infra via core's back-compat facade aliases,
+                // plus editor's own facade (editor imports itself relatively).
+                "@zframes/core/serve",
+                "@zframes/core/store",
+                "@zframes/core/vite",
+                "@zframes/core/agent",
+                "@zframes/core/account",
+                "@zframes/core/editor",
+                "@zframes/core/editor-symbols",
               ],
-              message: "editor is browser authoring UI — no Node-infra imports.",
+              message: "editor is browser authoring UI — no Node-infra imports (direct or via @zframes/core/* facade aliases).",
             },
           ],
         },
@@ -198,6 +223,16 @@ export default tseslint.config(
               name: "react-dom",
               message: "providers are React-free data layers.",
             },
+            {
+              // The core root barrel pulls in the React renderer/hooks — a
+              // value import would drag React into a provider bundle. Types
+              // (MarketDataProvider, Candle, …) are runtime-erased and fine
+              // until the repoint pass moves providers onto @zframes/spec.
+              name: "@zframes/core",
+              allowTypeImports: true,
+              message:
+                "providers may TYPE-import @zframes/core; value imports of the React barrel are banned — use @zframes/spec / @zframes/data-primitives.",
+            },
           ],
           patterns: [
             {
@@ -210,11 +245,148 @@ export default tseslint.config(
                 "@zframes/zai/*",
                 "@zframes/account",
                 "@zframes/account/*",
+                "@zframes/store",
+                "@zframes/store/*",
+                "@zframes/vite",
+                "@zframes/vite/*",
+                // The same layers via core's back-compat facade aliases. The
+                // React-free facades (/fetch /cache /frame /spec /routes
+                // /catalogue) stay allowed until the repoint pass.
+                "@zframes/core/editor",
+                "@zframes/core/editor-symbols",
+                "@zframes/core/serve",
+                "@zframes/core/store",
+                "@zframes/core/vite",
+                "@zframes/core/agent",
+                "@zframes/core/account",
+              ],
+              message:
+                "providers import @zframes/spec (types) + the transport (@zframes/data-primitives; today via the @zframes/core/fetch and /cache facades) only.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // @zframes/data-primitives is the React-free provider transport: it may
+    // import @zframes/spec (route constants) and nothing else of ours.
+    files: ["packages/data-primitives/src/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            { name: "react", message: "data-primitives is React-free." },
+            { name: "react-dom", message: "data-primitives is React-free." },
+          ],
+          patterns: [
+            {
+              group: [
+                "@zframes/core",
+                "@zframes/core/*",
+                "@zframes/editor",
+                "@zframes/editor/*",
+                "@zframes/serve",
+                "@zframes/serve/*",
+                "@zframes/zai",
+                "@zframes/zai/*",
+                "@zframes/account",
+                "@zframes/account/*",
+                "@zframes/store",
+                "@zframes/store/*",
                 "@zframes/vite",
                 "@zframes/vite/*",
               ],
               message:
-                "providers import @zframes/spec (types) + @zframes/core/fetch + @zframes/core/cache only.",
+                "data-primitives is a leaf transport layer — @zframes/spec is its only in-house dependency.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Frames compose the presentation layer (core) + charts; they never touch
+    // the authoring UI or Node infra, directly or via core's facade aliases.
+    // Tests are exempt: frame-smoke seeds configs via the editor's
+    // buildDefaultConfig (editor-symbols) to mirror the authoring flow.
+    files: ["packages/frames/src/**/*.{ts,tsx}"],
+    ignores: ["packages/frames/src/**/*.test.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: [
+                "@zframes/editor",
+                "@zframes/editor/*",
+                "@zframes/serve",
+                "@zframes/serve/*",
+                "@zframes/zai",
+                "@zframes/zai/*",
+                "@zframes/account",
+                "@zframes/account/*",
+                "@zframes/store",
+                "@zframes/store/*",
+                "@zframes/vite",
+                "@zframes/vite/*",
+                "@zframes/core/editor",
+                "@zframes/core/editor-symbols",
+                "@zframes/core/serve",
+                "@zframes/core/store",
+                "@zframes/core/vite",
+                "@zframes/core/agent",
+                "@zframes/core/account",
+              ],
+              message:
+                "frames build on @zframes/core (presentation) + @zframes/charts + @zframes/spec only — no authoring UI, no Node infra.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Charts are the implementation-agnostic base layer: no business logic,
+    // no data fetching — and no @zframes imports at all.
+    files: ["packages/charts/src/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@zframes/*", "@zframes/*/*"],
+              message:
+                "charts are the generic base layer — frames own data and composition; charts must not import other @zframes packages.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Package-boundary escape hatches, workspace-wide. Uses the CORE
+    // no-restricted-imports rule (not the @typescript-eslint one) so it
+    // composes with — rather than overriding — the per-package layer rules
+    // above (flat config: last matching block wins PER RULE ID).
+    files: ["packages/*/src/**/*.{ts,tsx}", "apps/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["../**/src/**"],
+              message:
+                "relative import escapes the package — import the sibling package's public subpath instead.",
+            },
+            {
+              group: ["@zframes/*/src/**"],
+              message:
+                "deep import into a package's src — use its exports-map subpath instead.",
             },
           ],
         },
