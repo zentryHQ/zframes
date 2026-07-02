@@ -11,7 +11,7 @@ export default function DashboardView({ spec }: { spec: unknown }) {
   const parsed = DashboardSpecSchema.safeParse(spec);
   if (!parsed.success) {
     return (
-      <pre className="m-6 rounded-lg border border-rose-500/40 bg-rose-500/5 p-4 text-xs text-rose-300 whitespace-pre-wrap">
+      <pre className="m-6 rounded-lg border border-down/40 bg-down/5 p-4 text-xs text-down whitespace-pre-wrap">
         {`Invalid dashboard spec:\n${JSON.stringify(parsed.error.issues, null, 2)}`}
       </pre>
     );
