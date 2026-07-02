@@ -2,7 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 
 /**
  * The dashboard read/write contract, shared verbatim by the dev Vite plugin
- * (`./vite`) and the CLI's `serve` http server. Both hand these helpers the
+ * (`@zframes/vite`) and the CLI's `serve` http server. Both hand these helpers the
  * same Node `(req, res)` shape, so the in-browser editor's load + save round
  * trip identically whether the app runs under `vite dev` or `zframes serve`.
  *

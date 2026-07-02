@@ -1,9 +1,10 @@
 import { createHmac } from "node:crypto";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
-// Imported by the package subpath (NOT relative "./store") so Vite's Node
-// config-loader can resolve it when it loads this module via `@zframes/account/account`
-// — same contract this file uses for `@zframes/spec/routes`.
-import { credentialsFile, storeHome } from "@zframes/store";
+// Imported by the package SUBPATH (not the root barrel, whose relative
+// extensionless `export *` the Vite Node config-loader can't resolve when it
+// loads this module via `@zframes/account/account`) — same contract this file
+// uses for `@zframes/spec/routes`.
+import { credentialsFile, storeHome } from "@zframes/store/store";
 import type { Holding, Portfolio } from "@zframes/spec/types";
 
 /**
