@@ -4,6 +4,7 @@ import { AuthNav } from "@/app/lib/AuthNav";
 import { BrandMark } from "@/app/lib/BrandMark";
 import { Footer } from "@/app/lib/Footer";
 import { NavLinks } from "@/app/lib/NavLinks";
+import { UnicornBackground } from "@/app/lib/UnicornBackground";
 import "./globals.css";
 
 export const metadata = {
@@ -16,7 +17,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="flex min-h-screen flex-col">
-        <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#06060b]/70 backdrop-blur-xl">
+        {/* The living Aurora canvas — the same scene a generated dashboard renders
+            on — fixed behind every page. Degrades to the body gradient on
+            reduced-motion / low-end / load failure. */}
+        <UnicornBackground />
+
+        <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-[#07070c]/70 backdrop-blur-xl">
           <nav className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-3 text-sm">
             <Link href="/" className="group flex items-center gap-2.5">
               <BrandMark
