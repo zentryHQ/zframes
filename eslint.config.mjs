@@ -78,10 +78,10 @@ export default tseslint.config(
   // Enforced with the built-in @typescript-eslint/no-restricted-imports (no new
   // dep). The DAG: @zframes/spec (kernel) <- everything; @zframes/core
   // (presentation) depends on spec only; @zframes/editor may use core+spec;
-  // providers stay React-free; Node infra (serve/zai/account/store/vite) never
-  // imports React or the presentation/authoring layers. The facade shims in
-  // packages/core/src/facade/** intentionally re-export the higher packages, so
-  // they are exempted (they are the whole point of the back-compat facade).
+  // providers import spec + data-primitives only; Node infra
+  // (serve/zai/account/store/vite) never imports React or the
+  // presentation/authoring layers. `tests/dep-dag.test.ts` pins the same DAG
+  // at the package.json level.
   {
     // @zframes/spec is the leaf kernel: React-runtime-free and Node-free.
     files: ["packages/spec/src/**/*.{ts,tsx}"],
@@ -131,11 +131,8 @@ export default tseslint.config(
     },
   },
   {
-    // @zframes/core presentation: depends on spec (+ data-primitives) only.
-    // The facade shims are exempt because re-exporting the higher packages is
-    // exactly their job.
+    // @zframes/core presentation: depends on spec only.
     files: ["packages/core/src/**/*.{ts,tsx}"],
-    ignores: ["packages/core/src/facade/**"],
     rules: {
       "@typescript-eslint/no-restricted-imports": [
         "error",
@@ -155,14 +152,12 @@ export default tseslint.config(
                 "@zframes/store/*",
                 "@zframes/vite",
                 "@zframes/vite/*",
-                // Core's own facade aliases: internal code imports siblings
-                // relatively; the @zframes/core/* subpaths exist for external
-                // back-compat consumers only.
+                // Self-imports: internal code imports siblings relatively.
                 "@zframes/core",
                 "@zframes/core/*",
               ],
               message:
-                "core is the presentation layer — depend on @zframes/spec (and @zframes/data-primitives) only; editor/serve/zai/account/store/vite are reached only through the facade shims, and core's own facade subpaths are for external consumers.",
+                "core is the presentation layer — it depends on @zframes/spec only.",
             },
             {
               group: ["gridstack", "gridstack/*"],
@@ -193,17 +188,11 @@ export default tseslint.config(
                 "@zframes/store/*",
                 "@zframes/vite",
                 "@zframes/vite/*",
-                // The same Node infra via core's back-compat facade aliases,
-                // plus editor's own facade (editor imports itself relatively).
-                "@zframes/core/serve",
-                "@zframes/core/store",
-                "@zframes/core/vite",
-                "@zframes/core/agent",
-                "@zframes/core/account",
-                "@zframes/core/editor",
-                "@zframes/core/editor-symbols",
+                // Editor imports itself relatively, never via its package name.
+                "@zframes/editor",
+                "@zframes/editor/*",
               ],
-              message: "editor is browser authoring UI — no Node-infra imports (direct or via @zframes/core/* facade aliases).",
+              message: "editor is browser authoring UI — no Node-infra imports.",
             },
           ],
         },
@@ -223,20 +212,12 @@ export default tseslint.config(
               name: "react-dom",
               message: "providers are React-free data layers.",
             },
-            {
-              // The core root barrel pulls in the React renderer/hooks — a
-              // value import would drag React into a provider bundle. Types
-              // (MarketDataProvider, Candle, …) are runtime-erased and fine
-              // until the repoint pass moves providers onto @zframes/spec.
-              name: "@zframes/core",
-              allowTypeImports: true,
-              message:
-                "providers may TYPE-import @zframes/core; value imports of the React barrel are banned — use @zframes/spec / @zframes/data-primitives.",
-            },
           ],
           patterns: [
             {
               group: [
+                "@zframes/core",
+                "@zframes/core/*",
                 "@zframes/editor",
                 "@zframes/editor/*",
                 "@zframes/serve",
@@ -249,19 +230,9 @@ export default tseslint.config(
                 "@zframes/store/*",
                 "@zframes/vite",
                 "@zframes/vite/*",
-                // The same layers via core's back-compat facade aliases. The
-                // React-free facades (/fetch /cache /frame /spec /routes
-                // /catalogue) stay allowed until the repoint pass.
-                "@zframes/core/editor",
-                "@zframes/core/editor-symbols",
-                "@zframes/core/serve",
-                "@zframes/core/store",
-                "@zframes/core/vite",
-                "@zframes/core/agent",
-                "@zframes/core/account",
               ],
               message:
-                "providers import @zframes/spec (types) + the transport (@zframes/data-primitives; today via the @zframes/core/fetch and /cache facades) only.",
+                "providers import @zframes/spec (types) + @zframes/data-primitives (transport) only.",
             },
           ],
         },
@@ -308,9 +279,9 @@ export default tseslint.config(
   },
   {
     // Frames compose the presentation layer (core) + charts; they never touch
-    // the authoring UI or Node infra, directly or via core's facade aliases.
-    // Tests are exempt: frame-smoke seeds configs via the editor's
-    // buildDefaultConfig (editor-symbols) to mirror the authoring flow.
+    // the authoring UI or Node infra. Tests are exempt: frame-smoke seeds
+    // configs via the editor's buildDefaultConfig (editor-symbols) to mirror
+    // the authoring flow.
     files: ["packages/frames/src/**/*.{ts,tsx}"],
     ignores: ["packages/frames/src/**/*.test.{ts,tsx}"],
     rules: {
@@ -332,13 +303,6 @@ export default tseslint.config(
                 "@zframes/store/*",
                 "@zframes/vite",
                 "@zframes/vite/*",
-                "@zframes/core/editor",
-                "@zframes/core/editor-symbols",
-                "@zframes/core/serve",
-                "@zframes/core/store",
-                "@zframes/core/vite",
-                "@zframes/core/agent",
-                "@zframes/core/account",
               ],
               message:
                 "frames build on @zframes/core (presentation) + @zframes/charts + @zframes/spec only — no authoring UI, no Node infra.",
