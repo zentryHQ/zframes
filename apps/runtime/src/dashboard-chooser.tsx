@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import {
   DASHBOARD_LIST_ROUTE,
   DASHBOARD_SWITCH_ROUTE,
-} from "@zframes/core/routes";
+} from "@zframes/spec/routes";
 
 // The dashboard chooser. `zframes serve` always opens the default dashboard; this
 // adds an on-demand picker for the OTHER store dashboards. It asks the server

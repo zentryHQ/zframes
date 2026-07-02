@@ -4,9 +4,9 @@ import type {
   Portfolio,
   PortfolioSource,
   PortfolioSourceKind,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { ACCOUNT_PORTFOLIO_ROUTE } from "@zframes/core/routes";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { ACCOUNT_PORTFOLIO_ROUTE } from "@zframes/spec/routes";
 
 // One signed relay call shared across every portfolio frame on the dashboard
 // (value + allocation + holdings) via in-flight dedup + a short TTL under the

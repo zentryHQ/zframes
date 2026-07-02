@@ -5,9 +5,9 @@ import type {
   MarketDataProvider,
   SecCompanyFilings,
   SecFiling,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchJson } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchJson } from "@zframes/data-primitives/fetch";
 import { padCik, resolveCik } from "./tickers";
 
 export { TICKER_TO_CIK, padCik, resolveCik } from "./tickers";

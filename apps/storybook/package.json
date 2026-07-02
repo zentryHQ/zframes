@@ -14,7 +14,9 @@
   "dependencies": {
     "@zframes/charts": "workspace:*",
     "@zframes/core": "workspace:*",
+    "@zframes/editor": "workspace:*",
     "@zframes/frames": "workspace:*",
+    "@zframes/spec": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "zod": "^4.1.0"

@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
 // every @zframes/* workspace package ships TypeScript source (`main: src/index.ts`),
 // so Next must transpile them itself. This must list ALL @zframes packages the app
 // imports — core/charts/frames plus every keyless provider wired into the preview,
-// and @zframes/core/serve (imported by the proxy Route Handler).
+// and @zframes/serve/serve (imported by the proxy Route Handler).
 const nextConfig: NextConfig = {
   transpilePackages: [
     "@zframes/core",

@@ -1,13 +1,13 @@
 import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { DashboardSpecSchema } from "@zframes/core/spec";
+import { DashboardSpecSchema } from "@zframes/spec/spec";
 import {
   classifyTarget,
   dashboardsDir,
   ensureHome,
   getDefault,
   setDefault,
-} from "@zframes/core/store";
+} from "@zframes/store/store";
 
 interface InitArgs {
   /**

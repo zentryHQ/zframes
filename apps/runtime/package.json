@@ -11,6 +11,8 @@
   "dependencies": {
     "@zframes/charts": "workspace:*",
     "@zframes/core": "workspace:*",
+    "@zframes/data-primitives": "workspace:*",
+    "@zframes/editor": "workspace:*",
     "@zframes/frames": "workspace:*",
     "@zframes/provider-alternativeme": "workspace:*",
     "@zframes/provider-binance": "workspace:*",
@@ -29,6 +31,8 @@
     "@zframes/provider-sec": "workspace:*",
     "@zframes/provider-treasury": "workspace:*",
     "@zframes/provider-wallet": "workspace:*",
+    "@zframes/spec": "workspace:*",
+    "@zframes/vite": "workspace:*",
     "gridstack": "^12.1.0",
     "markdown-to-jsx": "^9.5.0",
     "react": "^19.1.0",

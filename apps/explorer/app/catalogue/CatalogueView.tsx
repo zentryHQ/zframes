@@ -8,7 +8,7 @@ import {
   type AnyFrameDefinition,
   type FrameCategory,
 } from "@zframes/core";
-import { buildDefaultConfig } from "@zframes/core/editor-symbols";
+import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
 import { allFrames } from "@zframes/frames";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { providers, registry } from "@/app/lib/frames";

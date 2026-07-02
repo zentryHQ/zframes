@@ -6,9 +6,9 @@ import type {
   MarketDataProvider,
   OpenInterestEntry,
   Unsubscribe,
-} from "@zframes/core";
-import { fetchJson } from "@zframes/core/fetch";
-import { TtlCache } from "@zframes/core/cache";
+} from "@zframes/spec";
+import { fetchJson } from "@zframes/data-primitives/fetch";
+import { TtlCache } from "@zframes/data-primitives/cache";
 
 const WS_URL = "wss://api.hyperliquid.xyz/ws";
 const INFO_URL = "https://api.hyperliquid.xyz/info";

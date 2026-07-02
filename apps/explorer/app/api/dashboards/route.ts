@@ -1,4 +1,4 @@
-import { DashboardSpecSchema } from "@zframes/core/spec";
+import { DashboardSpecSchema } from "@zframes/spec/spec";
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/app/lib/auth-session";
 import {

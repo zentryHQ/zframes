@@ -1,7 +1,7 @@
 {
   "name": "@zframes/provider-binance",
   "version": "0.0.0",
-  "description": "Keyed zframes data provider for a connected Binance account (portfolio capability), read through the runtime's server-side signed relay — the secret never reaches the browser.",
+  "description": "Keyed zframes data provider for a connected Binance account (portfolio capability), read through the runtime's server-side signed relay \u2014 the secret never reaches the browser.",
   "license": "Apache-2.0",
   "author": "Zentry",
   "repository": {
@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@zframes/core": "workspace:*"
+    "@zframes/data-primitives": "workspace:*",
+    "@zframes/spec": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.8.0"

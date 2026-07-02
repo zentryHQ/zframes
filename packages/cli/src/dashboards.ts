@@ -5,7 +5,7 @@ import {
   isValidName,
   listDashboards,
   setDefault,
-} from "@zframes/core/store";
+} from "@zframes/store/store";
 
 /** `zframes list` — show the named dashboards in the global store, default flagged. */
 export function list(): number {

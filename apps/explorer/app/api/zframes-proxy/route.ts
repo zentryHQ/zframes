@@ -1,11 +1,11 @@
-import { handleProxy } from "@zframes/core/serve";
+import { handleProxy } from "@zframes/serve/serve";
 
 // Reached via a next.config rewrite: the browser calls `/__zframes/proxy?url=…`
 // (a shared constant in @zframes/core), which Next rewrites here. It can't live
 // at app/__zframes/proxy because Next treats `_`-prefixed folders as PRIVATE
 // (excluded from routing), so an underscore route file never registers.
 //
-// @zframes/core/serve imports node:fs/promises, so this must run on the Node
+// @zframes/serve/serve imports node:fs/promises, so this must run on the Node
 // runtime, not Edge. `force-dynamic` keeps it per-request (it's a live relay);
 // edge caching is driven by the CDN-Cache-Control header below, orthogonal to
 // Next's build-time dynamic flag.

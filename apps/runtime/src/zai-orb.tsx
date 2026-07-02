@@ -7,7 +7,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import type { DashboardSpec, FrameRegistry } from "@zframes/core";
-import { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/core/routes";
+import { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/spec/routes";
 import { OrbCanvas } from "./unicorn/orb-scene";
 import { useScreenSnapshot } from "./screen-context";
 import { MarkdownAnswer } from "./markdown-answer";

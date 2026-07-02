@@ -16,7 +16,7 @@ import {
 import {
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
-} from "@zframes/core/routes";
+} from "@zframes/spec/routes";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
 import { BinanceProvider } from "@zframes/provider-binance";
 import { BlsProvider } from "@zframes/provider-bls";
@@ -45,7 +45,7 @@ import { ZaiOrb } from "./zai-orb";
 // import + editor-only icons). Lazy-load it so the dashboard paints through
 // DashboardRenderer first and the editor chunk swaps in once it's loaded.
 const DashboardEditor = lazy(() =>
-  import("@zframes/core/editor").then((m) => ({ default: m.DashboardEditor })),
+  import("@zframes/editor/editor").then((m) => ({ default: m.DashboardEditor })),
 );
 
 const registry = createLazyRegistry();
@@ -70,9 +70,9 @@ const providers = [
 ];
 
 // The runtime serves the user's dashboard.json at DASHBOARD_READ_ROUTE. Both
-// `vite dev` (via @zframes/core/vite) and `zframes serve` answer it, so a single
+// `vite dev` (via @zframes/vite/vite) and `zframes serve` answer it, so a single
 // prebuilt bundle renders whatever file the server is pointed at — the spec is
-// never compiled in. The route strings come from @zframes/core/routes so the
+// never compiled in. The route strings come from @zframes/spec/routes so the
 // app and the servers can't drift apart.
 
 type SpecIssue = { path: PropertyKey[]; message: string };
@@ -136,7 +136,7 @@ function SpecError({ issues }: { issues: SpecIssue[] }) {
 }
 
 // Persist editor changes back to the real dashboard.json via the runtime's
-// write-back endpoint (the @zframes/core/vite plugin in dev, the `zframes serve`
+// write-back endpoint (the @zframes/vite/vite plugin in dev, the `zframes serve`
 // http server in prod). On success we reload so the editor re-renders from the
 // file it just wrote — the round-trip is the proof. The endpoint is always
 // hosted, so a failure is unexpected: surface it and keep the edits on screen

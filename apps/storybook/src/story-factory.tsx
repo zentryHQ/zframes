@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { buildDefaultConfig } from "@zframes/core/editor-symbols";
+import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
 import type { AnyFrameDefinition } from "@zframes/core";
 import type { StoryGlobals } from "../.storybook/preview";
 import { FrameCanvas } from "./frame-canvas";

@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardEditor } from "@zframes/core/editor";
+import { DashboardEditor } from "@zframes/editor/editor";
 import {
   DashboardSpecSchema,
   FramesProvider,

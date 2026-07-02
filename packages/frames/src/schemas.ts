@@ -2,7 +2,7 @@ import {
   defineFrameMeta,
   type FrameMeta,
   type FrameSource,
-} from "@zframes/core/frame";
+} from "@zframes/spec/frame";
 import { z } from "zod";
 
 /**

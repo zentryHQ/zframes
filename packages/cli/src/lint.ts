@@ -1,4 +1,4 @@
-import type { DashboardSpec } from "@zframes/core/spec";
+import type { DashboardSpec } from "@zframes/spec/spec";
 import { frameMetas } from "@zframes/frames/schemas";
 
 // Extracted from index.ts so it's importable without running the CLI: index.ts

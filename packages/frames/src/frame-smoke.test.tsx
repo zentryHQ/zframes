@@ -8,7 +8,7 @@ import {
   FramesProvider,
   type DashboardSpec,
 } from "@zframes/core";
-import { buildDefaultConfig } from "@zframes/core/editor-symbols";
+import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
 import { allFrames } from "./index";
 import { MockMarketDataProvider, type MockMode } from "./testing/mock-provider";
 

@@ -4,7 +4,7 @@ import type { HyperliquidProvider as HyperliquidProviderType } from "./index";
 // The TtlCaches in index.ts are MODULE-LEVEL singletons shared by every
 // provider instance, so a fresh `new HyperliquidProvider()` does NOT reset
 // them. To keep each test isolated we `vi.resetModules()` and dynamically
-// re-import the module, minting fresh caches per test. `@zframes/core/fetch`
+// re-import the module, minting fresh caches per test. `@zframes/data-primitives/fetch`
 // reads the global `fetch` at call time, so stubbing the global still applies
 // to the freshly-imported provider.
 type Ctor = new () => HyperliquidProviderType;
