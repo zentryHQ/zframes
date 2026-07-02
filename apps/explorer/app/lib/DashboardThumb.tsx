@@ -19,8 +19,8 @@ const ACCENTS = {
   brand: "#818cf8",
   violet: "#a78bfa",
   cyan: "#38bdf8",
-  up: "#34d399",
-  down: "#fb7185",
+  up: "#3fd08f",
+  down: "#ff6b81",
   neutral: "#c7cbe0",
 } as const;
 

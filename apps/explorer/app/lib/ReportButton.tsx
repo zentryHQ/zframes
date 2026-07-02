@@ -26,7 +26,7 @@ export function ReportButton({ id }: { id: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-xs text-white/30 transition-colors hover:text-white/60"
+        className="text-xs text-white/45 transition-colors hover:text-white/60"
       >
         Report
       </button>
@@ -37,7 +37,7 @@ export function ReportButton({ id }: { id: string }) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0d0d14] p-6"
+            className="zf-surface w-full max-w-md p-6"
             onClick={(e) => e.stopPropagation()}
           >
             {done ? (
@@ -59,7 +59,7 @@ export function ReportButton({ id }: { id: string }) {
                   What's wrong with it? (optional)
                 </p>
                 <textarea
-                  className="h-24 w-full rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-sm text-white"
+                  className="h-24 w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white"
                   placeholder="e.g. spam, misleading, sketchy link…"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}

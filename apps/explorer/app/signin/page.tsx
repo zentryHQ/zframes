@@ -37,17 +37,17 @@ export default function SignInPage() {
   }
 
   const inputCls =
-    "w-full rounded-lg border border-white/12 bg-white/[0.03] px-3.5 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-white/30 focus:border-indigo-400/50 focus:bg-white/[0.05]";
+    "w-full rounded-lg border border-white/12 bg-white/[0.04] px-3.5 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-white/45 focus:border-indigo-400/50 focus:bg-white/[0.05]";
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-md flex-col justify-center px-6 py-16">
-      <div className="hairline glass rounded-2xl p-7">
+      <div className="zf-surface p-7">
         <div className="mb-6 flex flex-col items-center text-center">
           <BrandMark idKey="signin" className="h-10 w-10" />
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">
             {mode === "up" ? "Create your account" : "Welcome back"}
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-white/50">
+          <p className="mt-2 text-sm leading-relaxed text-white/60">
             An account is only needed to <strong className="text-white/70">publish</strong> or
             save dashboards — browsing, preview, and tinker stay open.
           </p>
@@ -80,7 +80,7 @@ export default function SignInPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && (
-            <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+            <p className="rounded-lg border border-[#ff6b81]/30 bg-[#ff6b81]/10 px-3 py-2 text-sm text-[#ff6b81]">
               {error}
             </p>
           )}
@@ -107,12 +107,12 @@ export default function SignInPage() {
         </div>
       </div>
 
-      <p className="mt-5 text-center text-xs text-white/30">
+      <p className="mt-5 text-center text-xs text-white/45">
         GitHub &amp; Google sign-in enable automatically in production once their
         credentials are configured.
       </p>
       <p className="mt-4 text-center text-sm">
-        <Link href="/" className="text-white/40 transition-colors hover:text-white/70">
+        <Link href="/" className="text-white/55 transition-colors hover:text-white/70">
           ← Back to gallery
         </Link>
       </p>

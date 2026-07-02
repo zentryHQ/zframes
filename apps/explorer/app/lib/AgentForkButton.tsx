@@ -31,7 +31,7 @@ export function AgentForkButton({ id }: { id: string }) {
           onClick={() => setOpen(false)}
         >
           <div
-            className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0d0d14] p-6"
+            className="zf-surface w-full max-w-lg p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold text-white">Fork with your AI agent</h2>

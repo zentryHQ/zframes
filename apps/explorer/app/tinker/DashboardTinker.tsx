@@ -71,7 +71,7 @@ export default function DashboardTinker() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 pt-6">
         <div>
           <h1 className="text-lg font-semibold text-white">Tinker</h1>
-          <p className="text-xs text-white/40">
+          <p className="text-xs text-white/55">
             Customise then Save (this browser), or Publish to a shareable link.
           </p>
         </div>
@@ -92,7 +92,7 @@ export default function DashboardTinker() {
         <PublishDialog getSpec={() => latest.current} onClose={() => setShowPublish(false)} />
       )}
       {saved ? (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-4 py-1.5 text-sm text-emerald-200 shadow-lg">
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-[#3fd08f]/40 bg-[#3fd08f]/15 px-4 py-1.5 text-sm text-[#3fd08f] shadow-lg">
           Saved to this browser
         </div>
       ) : null}

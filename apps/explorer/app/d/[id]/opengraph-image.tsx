@@ -226,7 +226,7 @@ export default async function Image({
               width: 8,
               height: 8,
               borderRadius: 999,
-              backgroundColor: "#34d399",
+              backgroundColor: "#3fd08f",
             }}
           />
           <div style={{ display: "flex", fontSize: 20, color: "rgba(231,236,246,0.5)" }}>
