@@ -22,7 +22,7 @@ export function CopyCommand({ command }: { command: string }) {
       <span className="text-white/85">{command}</span>
       <span className="ml-1 text-white/40 transition-colors group-hover:text-white/70">
         {copied ? (
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="#34d399" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="#3fd08f" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
             <path d="m5 12 5 5L20 7" />
           </svg>
         ) : (

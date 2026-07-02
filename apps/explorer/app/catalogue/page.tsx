@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 const CatalogueView = dynamic(() => import("./CatalogueView"), {
   ssr: false,
   loading: () => (
-    <div className="mx-auto max-w-7xl px-6 py-16 text-white/40">Loading catalogue…</div>
+    <div className="mx-auto max-w-7xl px-6 py-16 text-white/55">Loading catalogue…</div>
   ),
 });
 

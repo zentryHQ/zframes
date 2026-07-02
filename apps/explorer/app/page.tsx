@@ -18,21 +18,21 @@ export default function GalleryHome() {
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative mx-auto max-w-7xl px-6 pt-16 pb-10 sm:pt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/60">
-            <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-wide text-white/75">
+            <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-[#3fd08f]" />
             Agent-generated · keyless · stocks first
           </div>
 
           <h1 className="animate-fade-up mt-6 text-balance text-4xl font-bold leading-[1.06] tracking-tight text-white sm:text-6xl" style={{ animationDelay: "60ms" }}>
             Describe your dashboard.
             <br className="hidden sm:block" />{" "}
-            <span className="text-gradient">An agent builds it.</span>
+            <span className="text-indigo-200">An agent builds it.</span>
           </h1>
 
-          <p className="animate-fade-up mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-white/60 sm:text-lg" style={{ animationDelay: "120ms" }}>
+          <p className="animate-fade-up mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-white/75 sm:text-lg" style={{ animationDelay: "120ms" }}>
             zframes turns your coding agent into a market-terminal builder. Install a
             skill, describe what you want, and it reads the frame catalogue, writes a
-            live <code className="rounded bg-white/[0.06] px-1 py-0.5 font-mono text-[0.85em] text-indigo-200">dashboard.json</code>, and serves it with real data —
+            live <code className="rounded bg-white/[0.08] px-1 py-0.5 font-mono text-[0.85em] text-indigo-200">dashboard.json</code>, and serves it with real data —
             keyless, stocks first, and it gets sharper every day.
           </p>
 
@@ -53,12 +53,12 @@ export default function GalleryHome() {
 
           {/* The real entry point (README §Quickstart): install the skill, then talk. */}
           <div className="animate-fade-up mt-8 flex flex-col items-center gap-2.5" style={{ animationDelay: "240ms" }}>
-            <span className="text-xs uppercase tracking-widest text-white/35">
+            <span className="text-xs uppercase tracking-widest text-white/55">
               Install in your agent, then just talk
             </span>
             <CopyCommand command="npx skills add zentryhq/zframes" />
-            <span className="font-mono text-xs text-white/35">
-              <span className="text-indigo-300/70">/zframes</span> build me a TSLA + NVDA
+            <span className="font-mono text-xs text-white/55">
+              <span className="text-indigo-300">/zframes</span> build me a TSLA + NVDA
               terminal with funding &amp; fear-greed
             </span>
           </div>
@@ -86,7 +86,7 @@ export default function GalleryHome() {
             />
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
           </div>
-          <figcaption className="mt-4 text-center text-sm text-white/40">
+          <figcaption className="mt-4 text-center text-sm text-white/55">
             A generated zframes dashboard — every card is a validated frame fed by
             keyless public data.
           </figcaption>
@@ -146,7 +146,7 @@ export default function GalleryHome() {
               </>
             }
           />
-          <div className="hairline flex flex-col justify-center rounded-2xl bg-gradient-to-br from-indigo-500/10 to-violet-500/[0.06] p-6">
+          <div className="zf-surface flex flex-col justify-center p-6">
             <p className="text-sm leading-relaxed text-white/70">
               Preview any board below with live data, then fork it onto your machine
               with a single prompt.
@@ -201,7 +201,7 @@ function ValueCard({
   icon: ReactNode;
 }) {
   return (
-    <div className="hairline rounded-2xl bg-white/[0.02] p-6">
+    <div className="zf-surface p-6">
       <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-400/25 bg-indigo-500/10 text-indigo-300">
         <svg
           viewBox="0 0 24 24"
@@ -216,7 +216,7 @@ function ValueCard({
         </svg>
       </div>
       <h3 className="font-semibold text-white">{title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-white/50">{body}</p>
+      <p className="mt-1.5 text-sm leading-relaxed text-white/60">{body}</p>
     </div>
   );
 }

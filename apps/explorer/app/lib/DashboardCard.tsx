@@ -22,7 +22,7 @@ export function DashboardCard({
   return (
     <Link
       href={href}
-      className="card-lift hairline group relative flex flex-col overflow-hidden rounded-2xl bg-white/[0.02]"
+      className="card-lift zf-surface group relative flex flex-col overflow-hidden"
     >
       {/* Preview window — the board's real silhouette over a faint glow. */}
       <div className="relative overflow-hidden border-b border-white/[0.07] bg-gradient-to-br from-[#0a0a14] to-[#08080f]">
@@ -53,14 +53,14 @@ export function DashboardCard({
           </span>
         </div>
         {description && (
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/50">{description}</p>
+          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/60">{description}</p>
         )}
         {tags.length > 0 && (
           <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
             {tags.map((t) => (
               <span
                 key={t}
-                className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white/45"
+                className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white/55"
               >
                 {t}
               </span>

@@ -31,7 +31,7 @@ export function CommunitySection() {
         action={
           <Link
             href="/tinker"
-            className="rounded-xl border border-white/15 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
+            className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
           >
             Build &amp; publish yours →
           </Link>
@@ -43,14 +43,14 @@ export function CommunitySection() {
           {Array.from({ length: 3 }, (_, i) => (
             <div
               key={i}
-              className="hairline h-64 animate-pulse rounded-2xl bg-white/[0.02]"
+              className="hairline h-64 animate-pulse rounded-2xl bg-white/[0.04]"
             />
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <div className="hairline flex flex-col items-center rounded-2xl bg-white/[0.02] px-6 py-14 text-center">
+        <div className="hairline flex flex-col items-center rounded-2xl bg-white/[0.04] px-6 py-14 text-center">
           <p className="text-sm text-white/55">Nothing here yet.</p>
-          <p className="mt-1 text-sm text-white/40">
+          <p className="mt-1 text-sm text-white/55">
             Be the first to{" "}
             <Link href="/tinker" className="text-indigo-300 underline-offset-2 hover:underline">
               build &amp; publish

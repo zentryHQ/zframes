@@ -9,7 +9,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div>
-      <div className="mb-1 text-xs uppercase tracking-wide text-white/35">{label}</div>
+      <div className="mb-1 text-xs uppercase tracking-wide text-white/55">{label}</div>
       <div className="flex items-center gap-2">
         <code className="flex-1 truncate rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white/80">
           {value}
@@ -82,7 +82,7 @@ export function PublishDialog({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0d0d14] p-6"
+        className="zf-surface w-full max-w-lg p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {!data?.user ? (
@@ -128,11 +128,11 @@ export function PublishDialog({
             <h2 className="text-lg font-semibold text-white">Publish dashboard</h2>
             <div className="mt-4 space-y-4">
               <div>
-                <label className="mb-1 block text-xs uppercase tracking-wide text-white/35">
+                <label className="mb-1 block text-xs uppercase tracking-wide text-white/55">
                   Title
                 </label>
                 <input
-                  className="w-full rounded-lg border border-white/15 bg-white/[0.03] px-3 py-2 text-sm text-white"
+                  className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />

@@ -52,7 +52,7 @@ export default function MyDashboardsPage() {
           to see the dashboards you've published.
         </p>
       ) : rows === null ? (
-        <p className="text-sm text-white/40">Loading…</p>
+        <p className="text-sm text-white/55">Loading…</p>
       ) : rows.length === 0 ? (
         <p className="text-sm text-white/50">
           Nothing published yet — build one in the{" "}
@@ -66,7 +66,7 @@ export default function MyDashboardsPage() {
           {rows.map((d) => (
             <li
               key={d.id}
-              className="card-lift hairline flex items-center justify-between gap-4 rounded-xl bg-white/[0.02] px-4 py-3.5"
+              className="zf-surface card-lift flex items-center justify-between gap-4 px-4 py-3.5"
             >
               <div className="min-w-0">
                 <Link
@@ -75,28 +75,28 @@ export default function MyDashboardsPage() {
                 >
                   {d.title}
                 </Link>
-                <div className="mt-1 flex items-center gap-2 font-mono text-xs text-white/40">
+                <div className="mt-1 flex items-center gap-2 font-mono text-xs text-white/55">
                   <span
                     className={
                       d.visibility === "listed"
-                        ? "inline-flex items-center gap-1 text-emerald-400/90"
-                        : "text-white/40"
+                        ? "inline-flex items-center gap-1 text-[#3fd08f]"
+                        : "text-white/55"
                     }
                   >
                     {d.visibility === "listed" && (
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#3fd08f]" />
                     )}
                     {d.visibility}
                   </span>
                   <span>· {d.frameCount} frames</span>
                   <span>· {d.views} views</span>
-                  <code className="text-white/30">/d/{d.id}</code>
+                  <code className="text-white/45">/d/{d.id}</code>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => del(d.id)}
-                className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/50 transition-colors hover:border-rose-500/40 hover:text-rose-300"
+                className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-rose-500/40 hover:text-rose-300"
               >
                 Delete
               </button>

@@ -41,7 +41,7 @@ export function DashboardPreview({
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-xs text-white/40 hover:text-white/70">
+            <Link href="/" className="text-xs text-white/55 hover:text-white">
               ← Gallery
             </Link>
             <ReportButton id={id} />

@@ -7,7 +7,7 @@ import { authClient } from "@/app/lib/auth-client";
 export function AuthNav() {
   const { data, isPending } = authClient.useSession();
 
-  if (isPending) return <span className="text-xs text-white/25">…</span>;
+  if (isPending) return <span className="text-xs text-white/45">…</span>;
 
   if (!data?.user) {
     return (
@@ -25,11 +25,11 @@ export function AuthNav() {
       <Link href="/mine" className="text-white/60 transition-colors hover:text-white">
         My dashboards
       </Link>
-      <span className="hidden text-xs text-white/35 sm:inline">{data.user.email}</span>
+      <span className="hidden text-xs text-white/55 sm:inline">{data.user.email}</span>
       <button
         type="button"
         onClick={() => authClient.signOut().then(() => window.location.reload())}
-        className="text-white/40 transition-colors hover:text-white/80"
+        className="text-white/55 transition-colors hover:text-white/80"
       >
         Sign out
       </button>

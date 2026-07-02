@@ -7,7 +7,7 @@ import dynamic from "next/dynamic";
 const DashboardTinker = dynamic(() => import("./DashboardTinker"), {
   ssr: false,
   loading: () => (
-    <div className="mx-auto max-w-7xl px-6 py-16 text-white/40">Loading editor…</div>
+    <div className="mx-auto max-w-7xl px-6 py-16 text-white/55">Loading editor…</div>
   ),
 });
 
