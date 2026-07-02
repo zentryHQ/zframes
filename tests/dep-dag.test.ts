@@ -1,9 +1,10 @@
 // Pins the package-level layer DAG: which @zframes packages each workspace
 // package may declare under `dependencies`. ESLint polices import statements;
-// this polices the manifests — a new edge (or a returning core⇄editor cycle
-// after the facade repoint) must be a conscious edit to the table below.
-// devDependencies are exempt: they are build/test-time only (e.g. the CLI
-// inlines @zframes/* via tsup from devDependencies).
+// this polices the manifests — a new edge (or a returning core⇄editor cycle,
+// retired with the facade on 2026-07-03) must be a conscious edit to the
+// table below. devDependencies are exempt: they are build/test-time only
+// (e.g. the CLI inlines @zframes/* via tsup from devDependencies; frames
+// dev-depends on editor for the frame-smoke config seed).
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
@@ -11,9 +12,7 @@ import { describe, expect, it } from "vitest";
 
 const PACKAGES_DIR = fileURLToPath(new URL("../packages", import.meta.url));
 
-// Exact allowed sets (sorted). `core`'s editor/vite/zai/account/serve/store
-// edges are facade-transitional — they exist only for src/facade/* and are
-// deleted by the repoint pass (shrink this entry then).
+// Exact allowed sets (sorted).
 const DAG: Record<string, string[]> = {
   spec: [],
   "data-primitives": ["@zframes/spec"],
@@ -28,28 +27,14 @@ const DAG: Record<string, string[]> = {
     "@zframes/zai",
   ],
   editor: ["@zframes/core", "@zframes/spec"],
-  core: [
-    "@zframes/account",
-    "@zframes/data-primitives",
-    "@zframes/editor",
-    "@zframes/serve",
-    "@zframes/spec",
-    "@zframes/store",
-    "@zframes/vite",
-    "@zframes/zai",
-  ],
+  core: ["@zframes/spec"],
   charts: [],
-  frames: ["@zframes/charts", "@zframes/core"],
+  frames: ["@zframes/charts", "@zframes/core", "@zframes/spec"],
   cli: [],
 };
 
-// Providers are uniform: today they reach the kernel + transport through the
-// @zframes/core facade; after the repoint they use spec + data-primitives.
-const PROVIDER_ALLOWED = new Set([
-  "@zframes/core",
-  "@zframes/spec",
-  "@zframes/data-primitives",
-]);
+// Providers are uniform: kernel types + transport, nothing else.
+const PROVIDER_ALLOWED = new Set(["@zframes/spec", "@zframes/data-primitives"]);
 
 // Local-only packages excluded from the workspace (see pnpm-workspace.yaml).
 const SKIP = new Set(["catalogue"]);
