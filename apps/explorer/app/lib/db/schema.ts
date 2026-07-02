@@ -65,7 +65,7 @@ export const verification = pgTable("verification", {
 // One row per published dashboard. Immutable-per-publish: publishing again mints
 // a new id (an "update" is a new row), so a shared link is a stable snapshot.
 // ownerId → user.id is a real FK (Better Auth users live in this same DB), so
-// "my dashboards" + moderation are native joins.
+// "my dashboards" is a native join.
 
 export const dashboards = pgTable("dashboards", {
   id: text("id").primaryKey(), // short id (nanoid)
@@ -75,7 +75,10 @@ export const dashboards = pgTable("dashboards", {
   title: text("title").notNull(),
   spec: jsonb("spec").notNull(), // the DashboardSpec (validated before insert)
   visibility: text("visibility").notNull().default("unlisted"), // listed | unlisted
-  status: text("status").notNull().default("approved"), // pending | approved | removed (Phase 4 moderation)
+  // Publishing is open (no review queue / admin UI). `status` stays as the
+  // operator's SQL-only takedown lever: set "removed" and the dashboard drops
+  // from the gallery AND its preview/raw-spec 404 (see dashboards.ts filters).
+  status: text("status").notNull().default("approved"), // approved | removed
   tags: text("tags").array().notNull().default([]),
   views: integer("views").notNull().default(0),
   forks: integer("forks").notNull().default(0),
@@ -84,21 +87,3 @@ export const dashboards = pgTable("dashboards", {
 });
 
 export type DashboardRow = typeof dashboards.$inferSelect;
-
-// ── moderation ───────────────────────────────────────────────────────────────
-// Publish-then-report: anyone can report a listed dashboard; an admin reviews and
-// flips dashboards.status to "removed". reporterId is nullable (anonymous reports
-// allowed) and set-null on user delete.
-export const reports = pgTable("reports", {
-  id: text("id").primaryKey(),
-  dashboardId: text("dashboard_id")
-    .notNull()
-    .references(() => dashboards.id, { onDelete: "cascade" }),
-  reporterId: text("reporter_id").references(() => user.id, {
-    onDelete: "set null",
-  }),
-  reason: text("reason").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export type ReportRow = typeof reports.$inferSelect;
