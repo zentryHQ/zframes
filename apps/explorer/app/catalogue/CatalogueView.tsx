@@ -6,6 +6,7 @@ import {
   FRAME_CATEGORIES,
   FramesProvider,
   type AnyFrameDefinition,
+  type FrameCategory,
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/core/editor-symbols";
 import { allFrames } from "@zframes/frames";
@@ -14,6 +15,35 @@ import { providers, registry } from "@/app/lib/frames";
 
 const ROW = 96;
 const GAP = 12;
+
+// Stocks-first DISPLAY order for the public catalogue: lead with the
+// equity-relevant families (live prices, single-company fundamentals & filings,
+// macro context), then the crypto families, then everything else. This reorders
+// the catalogue's sections only — the global FRAME_CATEGORIES order (which drives
+// the editor palette and the AI catalogue) is deliberately left untouched.
+const CATALOGUE_CATEGORY_ORDER: FrameCategory[] = [
+  "markets", // Prices & Markets — equity perps lead
+  "equities", // Equities & Filings
+  "macro", // Macro & Rates — market context
+  "crypto", // Crypto & On-chain
+  "bitcoin", // Bitcoin Network
+  "derivatives", // Derivatives & Options
+  "sentiment", // Sentiment & News
+  "portfolio",
+  "journal",
+  "tools",
+  "layout",
+  "games",
+];
+// Rank by the list above; any category not listed (e.g. a family added to core
+// later) sorts to the end rather than silently jumping to the front.
+const categoryRank = (key: FrameCategory) => {
+  const i = CATALOGUE_CATEGORY_ORDER.indexOf(key);
+  return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+};
+const ORDERED_CATEGORIES = [...FRAME_CATEGORIES].sort(
+  (a, b) => categoryRank(a.key) - categoryRank(b.key),
+);
 
 // Mount a frame's live renderer only when it scrolls near the viewport — 76
 // frames rendering + fetching at once would jank the page and hammer the free
@@ -60,7 +90,7 @@ function FrameCard({ def }: { def: AnyFrameDefinition }) {
   }, [def, w, h]);
 
   return (
-    <div className="card-lift hairline group flex flex-col overflow-hidden rounded-xl bg-white/[0.02]">
+    <div className="card-lift hairline group flex flex-col overflow-hidden rounded-xl bg-black/20">
       <LazyMount minHeight={boxHeight}>
         <div style={{ height: boxHeight }}>
           <DashboardRenderer spec={spec} registry={registry} />
@@ -71,11 +101,11 @@ function FrameCard({ def }: { def: AnyFrameDefinition }) {
           {def.name}
         </code>
         {def.capabilities?.length ? (
-          <span className="font-mono text-[10px] text-white/35">
+          <span className="font-mono text-[10px] text-white/55">
             {def.capabilities.join(" · ")}
           </span>
         ) : (
-          <span className="font-mono text-[10px] text-white/25">static</span>
+          <span className="font-mono text-[10px] text-white/40">static</span>
         )}
       </div>
     </div>
@@ -99,24 +129,24 @@ export default function CatalogueView() {
     <FramesProvider providers={providers}>
       <main className="mx-auto max-w-7xl px-6 py-12">
         <header className="mb-12 max-w-3xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-white/60">
-            <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-wide text-white/75">
+            <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-[#3fd08f]" />
             Live · rendering with real data
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            The frame <span className="text-gradient">catalogue</span>
+            The frame <span className="text-indigo-200">catalogue</span>
           </h1>
-          <p className="mt-3 text-base leading-relaxed text-white/60">
+          <p className="mt-3 text-base leading-relaxed text-white/75">
             Every built-in frame, live and grouped by family. Each renders with a
             schema-default config — the same set an agent picks from when generating a
             dashboard.
           </p>
-          <p className="mt-4 font-mono text-xs text-white/40">
+          <p className="mt-4 font-mono text-xs text-white/55">
             {total} frames · {FRAME_CATEGORIES.length} families
           </p>
         </header>
 
-        {FRAME_CATEGORIES.map((cat) => {
+        {ORDERED_CATEGORIES.map((cat) => {
           const frames = byCategory.get(cat.key);
           if (!frames?.length) return null;
           return (
@@ -125,9 +155,9 @@ export default function CatalogueView() {
                 <div className="flex items-baseline gap-3">
                   <span className="h-4 w-1 rounded-full bg-gradient-to-b from-indigo-400 to-violet-400" />
                   <h2 className="text-lg font-semibold text-white">{cat.label}</h2>
-                  <span className="font-mono text-xs text-white/30">{frames.length}</span>
+                  <span className="font-mono text-xs text-white/45">{frames.length}</span>
                 </div>
-                <p className="mt-1.5 pl-4 text-sm text-white/45">{cat.description}</p>
+                <p className="mt-1.5 pl-4 text-sm text-white/60">{cat.description}</p>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {frames.map((def) => (
