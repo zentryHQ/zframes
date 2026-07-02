@@ -39,18 +39,15 @@ export function CommunitySection() {
       />
 
       {rows === null ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
           {Array.from({ length: 3 }, (_, i) => (
-            <div
-              key={i}
-              className="hairline h-64 animate-pulse rounded-2xl bg-white/[0.04]"
-            />
+            <div key={i} className="zf-surface h-64 animate-pulse" />
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <div className="hairline flex flex-col items-center rounded-2xl bg-white/[0.04] px-6 py-14 text-center">
-          <p className="text-sm text-white/55">Nothing here yet.</p>
-          <p className="mt-1 text-sm text-white/55">
+        <div className="zf-surface flex flex-col items-center px-6 py-14 text-center">
+          <p className="text-sm text-white/65">Nothing here yet.</p>
+          <p className="mt-1 text-sm text-white/65">
             Be the first to{" "}
             <Link href="/tinker" className="text-indigo-300 underline-offset-2 hover:underline">
               build &amp; publish

@@ -105,7 +105,7 @@ function FrameCard({ def }: { def: AnyFrameDefinition }) {
             {def.capabilities.join(" · ")}
           </span>
         ) : (
-          <span className="font-mono text-[10px] text-white/40">static</span>
+          <span className="font-mono text-[10px] text-white/50">static</span>
         )}
       </div>
     </div>
@@ -133,7 +133,7 @@ export default function CatalogueView() {
             <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-[#3fd08f]" />
             Live · rendering with real data
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h1 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
             The frame <span className="text-indigo-200">catalogue</span>
           </h1>
           <p className="mt-3 text-base leading-relaxed text-white/75">
@@ -141,7 +141,7 @@ export default function CatalogueView() {
             schema-default config — the same set an agent picks from when generating a
             dashboard.
           </p>
-          <p className="mt-4 font-mono text-xs text-white/55">
+          <p className="mt-4 font-mono text-xs text-white/60">
             {total} frames · {FRAME_CATEGORIES.length} families
           </p>
         </header>
@@ -153,9 +153,9 @@ export default function CatalogueView() {
             <section key={cat.key} className="mb-14">
               <div className="mb-5 border-b border-white/[0.07] pb-3">
                 <div className="flex items-baseline gap-3">
-                  <span className="h-4 w-1 rounded-full bg-gradient-to-b from-indigo-400 to-violet-400" />
+                  <span className="h-4 w-1 rounded-full bg-brand" />
                   <h2 className="text-lg font-semibold text-white">{cat.label}</h2>
-                  <span className="font-mono text-xs text-white/45">{frames.length}</span>
+                  <span className="font-mono text-xs text-white/55">{frames.length}</span>
                 </div>
                 <p className="mt-1.5 pl-4 text-sm text-white/60">{cat.description}</p>
               </div>

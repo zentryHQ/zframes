@@ -36,7 +36,7 @@ export function DashboardCard({
         <div className="relative aspect-[16/9] p-3">
           <DashboardThumb frames={frames} gap={3} radius={4} />
         </div>
-        <span className="absolute right-3 top-3 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[10px] text-white/60 backdrop-blur">
+        <span className="absolute right-3 top-3 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[10px] text-white/70 backdrop-blur">
           {frameCount} {frameCount === 1 ? "frame" : "frames"}
         </span>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-400/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -60,7 +60,7 @@ export function DashboardCard({
             {tags.map((t) => (
               <span
                 key={t}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white/55"
+                className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-white/60"
               >
                 {t}
               </span>

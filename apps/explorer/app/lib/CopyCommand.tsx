@@ -15,7 +15,7 @@ export function CopyCommand({ command }: { command: string }) {
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1500);
       }}
-      className="hairline group flex items-center gap-3 rounded-xl bg-black/30 px-4 py-2.5 font-mono text-sm text-white/80 transition-colors hover:bg-black/50"
+      className="hairline zf-press group flex items-center gap-3 rounded-xl bg-black/30 px-4 py-2.5 font-mono text-sm text-white/80 transition-colors hover:bg-black/50"
       aria-label="Copy install command"
     >
       <span className="select-none text-indigo-300/70">$</span>

@@ -53,7 +53,7 @@ export function DashboardPreview({
           <button
             type="button"
             onClick={fork}
-            className="rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-1.5 text-sm font-medium text-indigo-200 transition-colors hover:bg-indigo-500/20"
+            className="zf-press rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-1.5 text-sm font-medium text-indigo-200 transition-colors hover:bg-indigo-500/20"
           >
             Tinker here →
           </button>

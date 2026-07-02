@@ -78,7 +78,7 @@ export default function DashboardTinker() {
         <button
           type="button"
           onClick={() => setShowPublish(true)}
-          className="rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-1.5 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25"
+          className="zf-press rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-1.5 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25"
         >
           Publish →
         </button>
@@ -92,8 +92,13 @@ export default function DashboardTinker() {
         <PublishDialog getSpec={() => latest.current} onClose={() => setShowPublish(false)} />
       )}
       {saved ? (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-[#3fd08f]/40 bg-[#3fd08f]/15 px-4 py-1.5 text-sm text-[#3fd08f] shadow-lg">
-          Saved to this browser
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+          <div
+            role="status"
+            className="animate-dialog-in rounded-full border border-up/40 bg-up/15 px-4 py-1.5 text-sm text-up shadow-lg"
+          >
+            Saved to this browser
+          </div>
         </div>
       ) : null}
     </FramesProvider>

@@ -16,7 +16,10 @@ export default function GalleryHome() {
   return (
     <main>
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative mx-auto max-w-7xl px-6 pt-16 pb-10 sm:pt-24">
+      {/* overflow-x-clip: the showcase glow bleeds 40px past the figure on
+          purpose; without the clip that bleed becomes horizontal scroll on
+          phone widths. clip (not hidden) so no scroll container is created. */}
+      <section className="relative mx-auto max-w-7xl overflow-x-clip px-6 pt-16 pb-10 sm:pt-24">
         <div className="mx-auto max-w-3xl text-center">
           <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-wide text-white/75">
             <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-[#3fd08f]" />
@@ -39,13 +42,13 @@ export default function GalleryHome() {
           <div className="animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "180ms" }}>
             <Link
               href="#curated"
-              className="glow-brand rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5"
+              className="glow-brand zf-press rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5"
             >
               Browse the gallery
             </Link>
             <Link
               href="/catalogue"
-              className="rounded-xl border border-white/15 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
+              className="zf-press rounded-xl border border-white/15 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
             >
               Explore {frameCount} frames →
             </Link>
