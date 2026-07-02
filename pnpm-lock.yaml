@@ -430,9 +430,6 @@ importers:
       react-dom:
         specifier: '>=18'
         version: 19.2.7(react@19.2.7)
-      zod:
-        specifier: ^4.1.0
-        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^20.14.0
@@ -446,6 +443,9 @@ importers:
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
+      zod:
+        specifier: ^4.1.0
+        version: 4.4.3
 
   packages/data-primitives:
     dependencies:

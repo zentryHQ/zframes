@@ -43,14 +43,14 @@
     "@zframes/editor": "workspace:*",
     "@zframes/store": "workspace:*",
     "@zframes/vite": "workspace:*",
-    "@zframes/zai": "workspace:*",
-    "zod": "^4.1.0"
+    "@zframes/zai": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18"
   },
   "devDependencies": {
+    "zod": "^4.1.0",
     "@types/node": "^20.14.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
