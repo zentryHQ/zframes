@@ -4,13 +4,13 @@
  * Frame discovery is React-free: `@zframes/frames/schemas` exports every frame's
  * meta individually (the `frameMetas` array is only a 58-frame curated subset, so
  * we enumerate the module's exports instead to cover the full set). FRAME_CATEGORIES
- * comes from the React-free `@zframes/core/frame` subpath. The generated files
+ * comes from the React-free `@zframes/spec/frame` subpath. The generated files
  * resolve the real frame (with its component) at runtime via `allFrames.find`.
  */
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { FRAME_CATEGORIES } from "@zframes/core/frame";
+import { FRAME_CATEGORIES } from "@zframes/spec/frame";
 import * as schemas from "@zframes/frames/schemas";
 
 const here = dirname(fileURLToPath(import.meta.url));

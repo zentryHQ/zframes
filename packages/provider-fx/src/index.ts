@@ -3,9 +3,9 @@ import type {
   FxRate,
   MarketDataProvider,
   SeriesPoint,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchJson } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchJson } from "@zframes/data-primitives/fetch";
 
 const BASE_URL = "https://api.frankfurter.dev/v1";
 

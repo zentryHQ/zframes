@@ -3,9 +3,9 @@ import type {
   CoinMarketEntry,
   GlobalMarket,
   MarketDataProvider,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchJson } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchJson } from "@zframes/data-primitives/fetch";
 
 const GLOBAL_URL = "https://api.coingecko.com/api/v3/global";
 const MARKETS_URL =

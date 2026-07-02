@@ -2,9 +2,9 @@ import type {
   Capability,
   FearGreedPoint,
   MarketDataProvider,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchJson } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchJson } from "@zframes/data-primitives/fetch";
 
 const FNG_URL = "https://api.alternative.me/fng/";
 

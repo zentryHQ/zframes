@@ -7,9 +7,9 @@ import type {
   TreasuryAverageRate,
   YieldCurve,
   YieldPoint,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchJson, fetchText } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchJson, fetchText } from "@zframes/data-primitives/fetch";
 
 const TREASURY_AVG_RATES_URL =
   "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page%5Bsize%5D=20&format=json";

@@ -1,4 +1,4 @@
-import type { DashboardSpec } from "@zframes/core/spec";
+import type { DashboardSpec } from "@zframes/spec/spec";
 import { describe, expect, it } from "vitest";
 import { lintSpec } from "./lint";
 

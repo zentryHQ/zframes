@@ -14,32 +14,32 @@ import {
   handleProxy,
   handleSpecRead,
   handleSpecWrite,
-} from "@zframes/core/serve";
+} from "@zframes/serve/serve";
 import {
   DASHBOARD_LIST_ROUTE,
   DASHBOARD_SWITCH_ROUTE,
-} from "@zframes/core/routes";
+} from "@zframes/spec/routes";
 import {
   findDashboardFile,
   isValidName,
   listDashboards,
   resolveServeTarget,
   type ResolvedTarget,
-} from "@zframes/core/store";
+} from "@zframes/store/store";
 import {
   AGENTS_LIST_ROUTE,
   ASK_ROUTE,
   handleAgents,
   handleAsk,
-} from "@zframes/core/agent";
+} from "@zframes/zai/agent";
 import {
   ACCOUNT_CREDENTIALS_ROUTE,
   ACCOUNT_PORTFOLIO_ROUTE,
   handleAccountCredentials,
   handleAccountPortfolio,
   isLocalRequest,
-} from "@zframes/core/account";
-import { catalogueSummary } from "@zframes/core/catalogue";
+} from "@zframes/account/account";
+import { catalogueSummary } from "@zframes/spec/catalogue";
 import { frameMetas } from "@zframes/frames/schemas";
 
 const DEFAULT_PORT = 37263;

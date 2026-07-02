@@ -6,7 +6,7 @@ import {
   type Portfolio,
   type PortfolioSource,
 } from "@zframes/core";
-import { ACCOUNT_CREDENTIALS_ROUTE } from "@zframes/core/routes";
+import { ACCOUNT_CREDENTIALS_ROUTE } from "@zframes/spec/routes";
 import {
   useCallback,
   useEffect,

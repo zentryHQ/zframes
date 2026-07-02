@@ -1,6 +1,6 @@
-import type { Capability, CoinMover, MarketDataProvider } from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchJson } from "@zframes/core/fetch";
+import type { Capability, CoinMover, MarketDataProvider } from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchJson } from "@zframes/data-primitives/fetch";
 
 // 300 coins (~245 KB) covers far past anything a movers list needs while staying
 // well inside the 2000-coin free cap and the 10 req/s limit.

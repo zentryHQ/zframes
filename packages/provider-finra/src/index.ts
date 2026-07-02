@@ -2,9 +2,9 @@ import type {
   Capability,
   MarketDataProvider,
   ShortVolumeEntry,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchText } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchText } from "@zframes/data-primitives/fetch";
 
 const DAILY_URL = (yyyymmdd: string) =>
   `https://cdn.finra.org/equity/regsho/daily/CNMSshvol${yyyymmdd}.txt`;

@@ -61,6 +61,12 @@ importers:
       '@zframes/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../../packages/data-primitives
+      '@zframes/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@zframes/frames':
         specifier: workspace:*
         version: link:../../packages/frames
@@ -109,6 +115,12 @@ importers:
       '@zframes/provider-treasury':
         specifier: workspace:*
         version: link:../../packages/provider-treasury
+      '@zframes/serve':
+        specifier: workspace:*
+        version: link:../../packages/serve
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../../packages/spec
       better-auth:
         specifier: ^1.6.23
         version: 1.6.23(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@electric-sql/pglite@0.5.3)(kysely@0.29.2)(postgres@3.4.9))(next@15.5.19(@babel/core@7.29.7)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(vitest@4.1.9(@types/node@20.19.43)(jsdom@29.1.1(@noble/hashes@2.2.0))(vite@6.4.3(@types/node@22.19.21)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)))
@@ -167,6 +179,12 @@ importers:
       '@zframes/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../../packages/data-primitives
+      '@zframes/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@zframes/frames':
         specifier: workspace:*
         version: link:../../packages/frames
@@ -221,6 +239,12 @@ importers:
       '@zframes/provider-wallet':
         specifier: workspace:*
         version: link:../../packages/provider-wallet
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../../packages/spec
+      '@zframes/vite':
+        specifier: workspace:*
+        version: link:../../packages/vite
       gridstack:
         specifier: ^12.1.0
         version: 12.6.0
@@ -267,9 +291,15 @@ importers:
       '@zframes/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@zframes/editor':
+        specifier: workspace:*
+        version: link:../../packages/editor
       '@zframes/frames':
         specifier: workspace:*
         version: link:../../packages/frames
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../../packages/spec
       react:
         specifier: ^19.1.0
         version: 19.2.7
@@ -373,9 +403,9 @@ importers:
       '@types/node':
         specifier: ^20.14.0
         version: 20.19.43
-      '@zframes/core':
+      '@zframes/account':
         specifier: workspace:*
-        version: link:../core
+        version: link:../account
       '@zframes/frames':
         specifier: workspace:*
         version: link:../frames
@@ -391,24 +421,6 @@ importers:
       '@zframes/provider-hyperliquid':
         specifier: workspace:*
         version: link:../provider-hyperliquid
-      tsup:
-        specifier: ^8.3.0
-        version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
-      typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
-
-  packages/core:
-    dependencies:
-      '@zframes/account':
-        specifier: workspace:*
-        version: link:../account
-      '@zframes/data-primitives':
-        specifier: workspace:*
-        version: link:../data-primitives
-      '@zframes/editor':
-        specifier: workspace:*
-        version: link:../editor
       '@zframes/serve':
         specifier: workspace:*
         version: link:../serve
@@ -418,12 +430,21 @@ importers:
       '@zframes/store':
         specifier: workspace:*
         version: link:../store
-      '@zframes/vite':
-        specifier: workspace:*
-        version: link:../vite
       '@zframes/zai':
         specifier: workspace:*
         version: link:../zai
+      tsup:
+        specifier: ^8.3.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.15)(tsx@4.22.4)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/core:
+    dependencies:
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
       react:
         specifier: '>=18'
         version: 19.2.7
@@ -502,6 +523,9 @@ importers:
       '@zframes/core':
         specifier: workspace:*
         version: link:../core
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
       liveline:
         specifier: 0.0.7
         version: 0.0.7(patch_hash=fawe6cnjpywtxwetsilnnsir5u)(react@19.2.7)
@@ -515,15 +539,21 @@ importers:
       '@types/react':
         specifier: ^19.1.0
         version: 19.2.17
+      '@zframes/editor':
+        specifier: workspace:*
+        version: link:../editor
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
 
   packages/provider-alternativeme:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -531,9 +561,12 @@ importers:
 
   packages/provider-binance:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -541,9 +574,12 @@ importers:
 
   packages/provider-bls:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -551,9 +587,12 @@ importers:
 
   packages/provider-coingecko:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -561,9 +600,12 @@ importers:
 
   packages/provider-coinpaprika:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -571,9 +613,12 @@ importers:
 
   packages/provider-defillama:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -581,9 +626,12 @@ importers:
 
   packages/provider-deribit:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -591,9 +639,12 @@ importers:
 
   packages/provider-finra:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -601,9 +652,12 @@ importers:
 
   packages/provider-fx:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -611,9 +665,12 @@ importers:
 
   packages/provider-hyperliquid:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -621,9 +678,12 @@ importers:
 
   packages/provider-mempool:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -631,9 +691,12 @@ importers:
 
   packages/provider-news:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -641,9 +704,12 @@ importers:
 
   packages/provider-nyfed:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -651,9 +717,12 @@ importers:
 
   packages/provider-ofr:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -661,9 +730,12 @@ importers:
 
   packages/provider-sec:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -671,9 +743,12 @@ importers:
 
   packages/provider-treasury:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0
@@ -681,9 +756,12 @@ importers:
 
   packages/provider-wallet:
     dependencies:
-      '@zframes/core':
+      '@zframes/data-primitives':
         specifier: workspace:*
-        version: link:../core
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
     devDependencies:
       typescript:
         specifier: ^5.8.0

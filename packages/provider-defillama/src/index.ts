@@ -6,9 +6,9 @@ import type {
   ProtocolTvlEntry,
   SeriesPoint,
   TvlEntry,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchJson } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchJson } from "@zframes/data-primitives/fetch";
 
 const CHAINS_URL = "https://api.llama.fi/v2/chains";
 const DEXS_URL = "https://api.llama.fi/overview/dexs";

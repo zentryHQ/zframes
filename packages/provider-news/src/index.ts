@@ -3,8 +3,8 @@ import type {
   MarketDataProvider,
   NewsItem,
   NewsQuery,
-} from "@zframes/core";
-import { fetchText } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { fetchText } from "@zframes/data-primitives/fetch";
 
 /**
  * Named outlet feeds. The key is exactly what the `news-feed` frame's `source`

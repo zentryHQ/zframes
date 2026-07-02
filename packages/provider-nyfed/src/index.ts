@@ -2,9 +2,9 @@ import type {
   Capability,
   MarketDataProvider,
   ReferenceRate,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchJson } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchJson } from "@zframes/data-primitives/fetch";
 
 const NY_FED_RATES_URL =
   "https://markets.newyorkfed.org/api/rates/all/latest.json";

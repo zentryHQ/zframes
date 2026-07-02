@@ -4,9 +4,9 @@ import type {
   FinancialStressCategory,
   FinancialStressPoint,
   MarketDataProvider,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchText } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchText } from "@zframes/data-primitives/fetch";
 
 const FSI_CSV_URL =
   "https://www.financialresearch.gov/financial-stress-index/data/fsi.csv";

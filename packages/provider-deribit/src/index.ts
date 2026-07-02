@@ -4,9 +4,9 @@ import type {
   OptionsExpiryStrikes,
   OptionsSummary,
   VolatilityPoint,
-} from "@zframes/core";
-import { TtlCache } from "@zframes/core/cache";
-import { fetchJson } from "@zframes/core/fetch";
+} from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
+import { fetchJson } from "@zframes/data-primitives/fetch";
 
 const API = "https://www.deribit.com/api/v2/public";
 

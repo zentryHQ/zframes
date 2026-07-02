@@ -1,7 +1,7 @@
 {
   "name": "@zframes/core",
   "version": "0.0.0",
-  "description": "Core runtime for zframes: frame/registry primitives, the dashboard spec schema, the renderer, capability-routed provider hooks, and the AI catalogue.",
+  "description": "zframes presentation layer: DashboardRenderer, the shared frame chrome (FrameContent/FRAME_CSS), capability-routed provider hooks, and visibility gating. Re-exports the @zframes/spec kernel, so the root barrel stays the stable public surface.",
   "license": "Apache-2.0",
   "author": "Zentry",
   "repository": {
@@ -14,20 +14,7 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./frame": "./src/facade/frame.ts",
-    "./spec": "./src/facade/spec.ts",
-    "./catalogue": "./src/facade/catalogue.ts",
-    "./routes": "./src/facade/routes.ts",
-    "./fetch": "./src/facade/fetch.ts",
-    "./cache": "./src/facade/cache.ts",
-    "./editor": "./src/facade/editor.ts",
-    "./editor-symbols": "./src/facade/editor-symbols.ts",
-    "./vite": "./src/facade/vite.ts",
-    "./serve": "./src/facade/serve.ts",
-    "./store": "./src/facade/store.ts",
-    "./agent": "./src/facade/agent.ts",
-    "./account": "./src/facade/account.ts"
+    ".": "./src/index.ts"
   },
   "sideEffects": [
     "**/*.css"
@@ -36,14 +23,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@zframes/account": "workspace:*",
-    "@zframes/data-primitives": "workspace:*",
-    "@zframes/serve": "workspace:*",
-    "@zframes/spec": "workspace:*",
-    "@zframes/editor": "workspace:*",
-    "@zframes/store": "workspace:*",
-    "@zframes/vite": "workspace:*",
-    "@zframes/zai": "workspace:*"
+    "@zframes/spec": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18",

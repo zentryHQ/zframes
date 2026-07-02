@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { DashboardSpecSchema, type DashboardSpec } from "@zframes/core/spec";
-import { resolveServeTarget, type ResolvedTarget } from "@zframes/core/store";
+import { DashboardSpecSchema, type DashboardSpec } from "@zframes/spec/spec";
+import { resolveServeTarget, type ResolvedTarget } from "@zframes/store/store";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
 import { CoinGeckoProvider } from "@zframes/provider-coingecko";
 import { DefiLlamaProvider } from "@zframes/provider-defillama";

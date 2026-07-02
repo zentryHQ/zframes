@@ -1,5 +1,5 @@
 // NOTE: this config imports workspace packages that ship raw TypeScript source
-// (@zframes/core/*, @zframes/frames/schemas). Vite's default config loader
+// (@zframes/spec, @zframes/vite, @zframes/frames/schemas). Vite's default config loader
 // bundles this file with esbuild but *externalizes* those bare imports, leaving
 // Node to `import()` the .ts files directly — which only works on Node that
 // strips types natively (>=22.18 / >=23.6). On Node 20 (CI) it throws
@@ -9,8 +9,8 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { catalogueSummary } from "@zframes/core/catalogue";
-import { dashboardWriteback } from "@zframes/core/vite";
+import { catalogueSummary } from "@zframes/spec/catalogue";
+import { dashboardWriteback } from "@zframes/vite/vite";
 import { frameMetas } from "@zframes/frames/schemas";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";

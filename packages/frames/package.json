@@ -27,6 +27,7 @@
   "dependencies": {
     "@zframes/charts": "workspace:*",
     "@zframes/core": "workspace:*",
+    "@zframes/spec": "workspace:*",
     "liveline": "0.0.7",
     "zod": "^4.1.0"
   },
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@types/react": "^19.1.0",
+    "@zframes/editor": "workspace:*",
     "typescript": "^5.8.0"
   }
 }

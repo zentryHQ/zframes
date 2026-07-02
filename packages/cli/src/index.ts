@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { catalogueForAI } from "@zframes/core/catalogue";
-import { DashboardSpecSchema } from "@zframes/core/spec";
-import { classifyTarget } from "@zframes/core/store";
+import { catalogueForAI } from "@zframes/spec/catalogue";
+import { DashboardSpecSchema } from "@zframes/spec/spec";
+import { classifyTarget } from "@zframes/store/store";
 import { frameMetas } from "@zframes/frames/schemas";
 import { list, use } from "./dashboards";
 import { init } from "./init";

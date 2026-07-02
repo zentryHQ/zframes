@@ -4,7 +4,7 @@ import type {
   TreasuryAuction,
   TreasuryAverageRate,
   YieldCurve,
-} from "@zframes/core";
+} from "@zframes/spec";
 
 // The TreasuryProvider's four TtlCaches are module-level singletons keyed by a
 // fixed namespace, so a value cached by one test would leak into the next. Every

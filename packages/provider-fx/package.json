@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@zframes/core": "workspace:*"
+    "@zframes/data-primitives": "workspace:*",
+    "@zframes/spec": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.8.0"
