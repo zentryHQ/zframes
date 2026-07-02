@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Dialog } from "@/app/lib/Dialog";
 
 // Agent-agnostic "take it home" fork: copy a prompt into ANY AI agent (Claude
 // Code, Codex, Cursor, Aider…). The agent ensures the zframes skill is installed
@@ -20,51 +21,43 @@ export function AgentForkButton({ id }: { id: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg border border-white/15 px-3 py-1.5 text-sm text-white/80 transition-colors hover:border-white/30 hover:text-white"
+        className="zf-press rounded-lg border border-white/15 px-3 py-1.5 text-sm text-white/80 transition-colors hover:border-white/30 hover:text-white"
       >
         Fork with your AI ↗
       </button>
 
       {open && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="zf-surface w-full max-w-lg p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-semibold text-white">Fork with your AI agent</h2>
-            <p className="mt-1 mb-4 text-sm text-white/55">
-              Works with any agent. Paste this — it installs the zframes skill,
-              pulls this dashboard onto your machine, serves it live, and helps you
-              personalize it.
-            </p>
-            <pre className="whitespace-pre-wrap rounded-lg border border-white/10 bg-black/30 p-3 text-xs text-white/80">
-              {prompt}
-            </pre>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard?.writeText(prompt);
-                  setCopied(true);
-                  window.setTimeout(() => setCopied(false), 1500);
-                }}
-                className="rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-100"
-              >
-                {copied ? "Copied" : "Copy prompt"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="px-3 py-2 text-sm text-white/50"
-              >
-                Close
-              </button>
-            </div>
+        <Dialog onClose={() => setOpen(false)}>
+          <h2 className="text-lg font-semibold text-white">Fork with your AI agent</h2>
+          <p className="mt-1 mb-4 text-sm text-white/55">
+            Works with any agent. Paste this — it installs the zframes skill,
+            pulls this dashboard onto your machine, serves it live, and helps you
+            personalize it.
+          </p>
+          <pre className="whitespace-pre-wrap rounded-lg border border-white/10 bg-black/30 p-3 text-xs text-white/80">
+            {prompt}
+          </pre>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard?.writeText(prompt);
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 1500);
+              }}
+              className="zf-press rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25"
+            >
+              {copied ? "Copied" : "Copy prompt"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/75"
+            >
+              Close
+            </button>
           </div>
-        </div>
+        </Dialog>
       )}
     </>
   );

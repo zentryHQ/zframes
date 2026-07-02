@@ -16,6 +16,8 @@ type Row = {
 export default function MyDashboardsPage() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [needAuth, setNeedAuth] = useState(false);
+  // Two-step destructive action: first click arms this id, second click deletes.
+  const [armed, setArmed] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const r = await fetch("/api/dashboards/mine");
@@ -31,7 +33,14 @@ export default function MyDashboardsPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!armed) return;
+    const t = window.setTimeout(() => setArmed(null), 3500);
+    return () => window.clearTimeout(t);
+  }, [armed]);
+
   async function del(id: string) {
+    setArmed(null);
     await fetch(`/api/dashboards/${id}`, { method: "DELETE" });
     load();
   }
@@ -45,22 +54,37 @@ export default function MyDashboardsPage() {
       />
 
       {needAuth ? (
-        <p className="text-sm text-white/50">
-          <Link href="/signin" className="text-indigo-400 hover:underline">
+        <div className="zf-surface flex flex-col items-start gap-3 p-6">
+          <p className="text-sm text-white/70">
+            Sign in to see the dashboards you've published. Browsing, preview,
+            and tinker never need an account — only publishing does.
+          </p>
+          <Link
+            href="/signin?next=/mine"
+            className="zf-press rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-2 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25"
+          >
             Sign in
-          </Link>{" "}
-          to see the dashboards you've published.
-        </p>
+          </Link>
+        </div>
       ) : rows === null ? (
-        <p className="text-sm text-white/55">Loading…</p>
+        <div className="space-y-2.5" aria-hidden>
+          {Array.from({ length: 3 }, (_, i) => (
+            <div key={i} className="zf-surface h-[74px] animate-pulse" />
+          ))}
+        </div>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-white/50">
-          Nothing published yet — build one in the{" "}
-          <Link href="/tinker" className="text-indigo-400 hover:underline">
-            tinker
-          </Link>{" "}
-          editor and hit Publish.
-        </p>
+        <div className="zf-surface flex flex-col items-start gap-3 p-6">
+          <p className="text-sm text-white/70">
+            Nothing published yet — build a board in the tinker editor, then hit
+            Publish to get a shareable link.
+          </p>
+          <Link
+            href="/tinker"
+            className="zf-press rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-2 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25"
+          >
+            Open the tinker editor →
+          </Link>
+        </div>
       ) : (
         <ul className="space-y-2.5">
           {rows.map((d) => (
@@ -79,27 +103,37 @@ export default function MyDashboardsPage() {
                   <span
                     className={
                       d.visibility === "listed"
-                        ? "inline-flex items-center gap-1 text-[#3fd08f]"
+                        ? "inline-flex items-center gap-1 text-up"
                         : "text-white/55"
                     }
                   >
                     {d.visibility === "listed" && (
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#3fd08f]" />
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-up" />
                     )}
                     {d.visibility}
                   </span>
                   <span>· {d.frameCount} frames</span>
                   <span>· {d.views} views</span>
-                  <code className="text-white/45">/d/{d.id}</code>
+                  <code className="text-white/55">/d/{d.id}</code>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => del(d.id)}
-                className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-rose-500/40 hover:text-rose-300"
-              >
-                Delete
-              </button>
+              {armed === d.id ? (
+                <button
+                  type="button"
+                  onClick={() => del(d.id)}
+                  className="shrink-0 rounded-lg border border-down/50 bg-down/15 px-3 py-1.5 text-xs font-medium text-down transition-colors hover:bg-down/25"
+                >
+                  Confirm delete
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setArmed(d.id)}
+                  className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-down/40 hover:text-down"
+                >
+                  Delete
+                </button>
+              )}
             </li>
           ))}
         </ul>

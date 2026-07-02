@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { DashboardSpec } from "@zframes/core";
 import { authClient } from "@/app/lib/auth-client";
+import { Dialog } from "@/app/lib/Dialog";
 
 function CopyRow({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
@@ -77,14 +78,8 @@ export function PublishDialog({
     : "";
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="zf-surface w-full max-w-lg p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Dialog onClose={onClose}>
+      <>
         {!data?.user ? (
           <>
             <h2 className="text-lg font-semibold text-white">Sign in to publish</h2>
@@ -94,12 +89,15 @@ export function PublishDialog({
             </p>
             <div className="mt-4 flex gap-2">
               <Link
-                href="/signin"
-                className="rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-2 text-sm text-indigo-100"
+                href="/signin?next=/tinker"
+                className="rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-2 text-sm text-indigo-100 transition-colors hover:bg-indigo-500/25"
               >
                 Sign in
               </Link>
-              <button onClick={onClose} className="px-3 py-2 text-sm text-white/50">
+              <button
+                onClick={onClose}
+                className="px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/75"
+              >
                 Cancel
               </button>
             </div>
@@ -115,10 +113,16 @@ export function PublishDialog({
               <CopyRow label="Fork with any AI agent" value={forkPrompt} />
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <Link href={`/d/${result.id}`} className="rounded-lg border border-white/15 px-3 py-2 text-sm text-white/80">
+              <Link
+                href={`/d/${result.id}`}
+                className="rounded-lg border border-white/15 px-3 py-2 text-sm text-white/80 transition-colors hover:border-white/30 hover:text-white"
+              >
                 Open preview
               </Link>
-              <button onClick={onClose} className="px-3 py-2 text-sm text-white/50">
+              <button
+                onClick={onClose}
+                className="px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/75"
+              >
                 Done
               </button>
             </div>
@@ -132,7 +136,7 @@ export function PublishDialog({
                   Title
                 </label>
                 <input
-                  className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white"
+                  className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-indigo-400/50 focus:bg-white/[0.05]"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
@@ -140,28 +144,32 @@ export function PublishDialog({
               <label className="flex items-center gap-2 text-sm text-white/70">
                 <input
                   type="checkbox"
+                  className="accent-indigo-500"
                   checked={listed}
                   onChange={(e) => setListed(e.target.checked)}
                 />
                 List in the community gallery (otherwise unlisted — link-only)
               </label>
-              {error && <p className="text-sm text-rose-400">{error}</p>}
+              {error && <p className="text-sm text-down">{error}</p>}
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={onClose} className="px-3 py-2 text-sm text-white/50">
+              <button
+                onClick={onClose}
+                className="px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/75"
+              >
                 Cancel
               </button>
               <button
                 onClick={publish}
                 disabled={busy}
-                className="rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-100 disabled:opacity-50"
+                className="rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25 disabled:opacity-50"
               >
                 {busy ? "Publishing…" : "Publish"}
               </button>
             </div>
           </>
         )}
-      </div>
-    </div>
+      </>
+    </Dialog>
   );
 }
