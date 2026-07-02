@@ -4,21 +4,16 @@ import Link from "next/link";
 import { authClient } from "@/app/lib/auth-client";
 
 // Header auth widget — rendered inside the (server) layout nav.
+//
+// Deliberately NO persistent "Sign in" CTA: an account is the price of writing
+// (publish, My dashboards), never of using the product, so the prompt surfaces
+// in-context at those gated moments (PublishDialog, /mine) instead of nagging
+// from the chrome. Logged-out (and while the session resolves) this renders
+// nothing — the layout's GitHub link keeps the header's right slot occupied.
 export function AuthNav() {
   const { data, isPending } = authClient.useSession();
 
-  if (isPending) return <span className="text-xs text-white/45">…</span>;
-
-  if (!data?.user) {
-    return (
-      <Link
-        href="/signin"
-        className="rounded-lg border border-white/15 px-3 py-1 text-white/80 transition-colors hover:border-white/30 hover:text-white"
-      >
-        Sign in
-      </Link>
-    );
-  }
+  if (isPending || !data?.user) return null;
 
   return (
     <div className="flex items-center gap-3">

@@ -32,7 +32,11 @@ export default function SignInPage() {
       setError(res.error.message || "Something went wrong");
       return;
     }
-    router.push("/mine");
+    // Return to the gated action that sent the user here (?next=/tinker from
+    // Publish, ?next=/mine, …). Same-site paths only — never an external URL.
+    const next = new URLSearchParams(window.location.search).get("next");
+    const dest = next && next.startsWith("/") && !next.startsWith("//") ? next : "/mine";
+    router.push(dest);
     router.refresh();
   }
 
@@ -58,6 +62,7 @@ export default function SignInPage() {
             <input
               className={inputCls}
               placeholder="Name"
+              aria-label="Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -66,7 +71,9 @@ export default function SignInPage() {
             className={inputCls}
             type="email"
             required
+            autoFocus
             placeholder="you@example.com"
+            aria-label="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -76,18 +83,19 @@ export default function SignInPage() {
             required
             minLength={8}
             placeholder="Password (8+ chars)"
+            aria-label="Password (8+ characters)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && (
-            <p className="rounded-lg border border-[#ff6b81]/30 bg-[#ff6b81]/10 px-3 py-2 text-sm text-[#ff6b81]">
+            <p className="rounded-lg border border-down/30 bg-down/10 px-3 py-2 text-sm text-down">
               {error}
             </p>
           )}
           <button
             type="submit"
             disabled={busy}
-            className="glow-brand w-full rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-3 py-2.5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
+            className="glow-brand zf-press w-full rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-3 py-2.5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
           >
             {busy ? "…" : mode === "up" ? "Create account" : "Sign in"}
           </button>
