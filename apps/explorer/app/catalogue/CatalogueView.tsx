@@ -10,7 +10,14 @@ import {
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
 import { allFrames } from "@zframes/frames";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { providers, registry } from "@/app/lib/frames";
 
 const ROW = 96;
@@ -92,7 +99,21 @@ function FrameCard({ def }: { def: AnyFrameDefinition }) {
   return (
     <div className="card-lift hairline group flex flex-col overflow-hidden rounded-xl bg-black/20">
       <LazyMount minHeight={boxHeight}>
-        <div style={{ height: boxHeight }}>
+        {/* The outer tile IS the card here (hairline rim + footer). Flatten the
+            frame's own chrome into it via the --zf-frame-* override hooks so the
+            live preview sits flush instead of nesting a second bordered card. */}
+        <div
+          className="zf-flush"
+          style={
+            {
+              height: boxHeight,
+              "--zf-frame-border": "transparent",
+              "--zf-frame-radius": "0px",
+              "--zf-frame-shadow": "none",
+              "--zf-frame-bg": "transparent",
+            } as CSSProperties
+          }
+        >
           <DashboardRenderer spec={spec} registry={registry} />
         </div>
       </LazyMount>

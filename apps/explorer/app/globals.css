@@ -229,6 +229,22 @@ body::before {
     0 0 0 1px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 74% / 0.3);
 }
 
+/* Catalogue tiles: the outer .card-lift IS the card and owns the hover. Flatten
+ * the frame's own chrome so nothing nests — including on hover, where the frame
+ * otherwise re-paints its accent border + a 1px ring / glow via ::after and
+ * lifts on its own. The base border/radius/shadow/bg are already neutralised by
+ * the --zf-frame-* inline vars in CatalogueView; these kill the hover chrome the
+ * vars can't reach. */
+.zf-flush .zf-frame,
+.zf-flush .zf-frame:hover {
+  border-color: transparent;
+  transform: none;
+}
+.zf-flush .zf-frame::after,
+.zf-flush .zf-frame::before {
+  display: none;
+}
+
 /* Soft outer glow for the hero showcase + primary CTA — accent-tinted. */
 .glow-brand {
   box-shadow: 0 30px 90px -40px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 60% / 0.72);
