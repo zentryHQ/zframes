@@ -65,6 +65,7 @@ export function CommunitySection() {
               tags={d.tags}
               frameCount={d.frameCount}
               frames={synthLayout(d.id, d.frameCount)}
+              thumbSrc={`/api/thumbs/${d.id}`}
             />
           ))}
         </div>

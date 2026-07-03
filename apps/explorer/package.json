@@ -9,6 +9,7 @@
     "prebuild": "node ../../packages/frames/scripts/copy-widget-icons.mjs",
     "build": "next build",
     "start": "next start -p 37264",
+    "thumbs:capture": "tsx scripts/capture-thumbs.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -51,7 +52,9 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "drizzle-kit": "^0.31.10",
+    "playwright-core": "^1.53.0",
     "tailwindcss": "^4.1.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.8.0"
   }
 }

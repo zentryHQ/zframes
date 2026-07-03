@@ -1,0 +1,49 @@
+name: Nightly dashboard thumbnails
+
+# Screenshots every gallery dashboard (curated + listed community) on the live
+# explorer site and upserts the images into the dashboard_thumbs table
+# (apps/explorer/scripts/capture-thumbs.ts). Gallery cards fade these in over
+# their SVG mini-map fallback.
+#
+# Requires (skips gracefully until both are configured):
+#   secret THUMBS_DATABASE_URL — the prod (Neon) DATABASE_URL
+#   var    EXPLORER_BASE_URL   — the deployed explorer origin (e.g. https://…)
+
+on:
+  schedule:
+    - cron: "20 3 * * *" # nightly, off the hour to dodge cron congestion
+  workflow_dispatch:
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest # ships a system Chrome — the script uses channel "chrome"
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.THUMBS_DATABASE_URL }}
+      EXPLORER_BASE_URL: ${{ vars.EXPLORER_BASE_URL }}
+    steps:
+      - name: Skip — not configured
+        if: env.DATABASE_URL == '' || env.EXPLORER_BASE_URL == ''
+        run: echo "THUMBS_DATABASE_URL secret / EXPLORER_BASE_URL var not set — skipping."
+
+      - uses: actions/checkout@v4
+        if: env.DATABASE_URL != '' && env.EXPLORER_BASE_URL != ''
+
+      - name: Install pnpm
+        if: env.DATABASE_URL != '' && env.EXPLORER_BASE_URL != ''
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.6.0
+
+      - name: Set up Node
+        if: env.DATABASE_URL != '' && env.EXPLORER_BASE_URL != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+        if: env.DATABASE_URL != '' && env.EXPLORER_BASE_URL != ''
+
+      - run: pnpm --filter @zframes/explorer thumbs:capture
+        if: env.DATABASE_URL != '' && env.EXPLORER_BASE_URL != ''
