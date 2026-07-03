@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node ../../packages/frames/scripts/copy-widget-icons.mjs",
     "dev": "vite --configLoader runner",
+    "prebuild": "node ../../packages/frames/scripts/copy-widget-icons.mjs",
     "build": "vite build --configLoader runner",
     "typecheck": "tsc --noEmit"
   },
