@@ -7,3 +7,4 @@ docs/
 packages/cli/templates/app/packages/
 apps/runtime/public/*.umd.mjs
 .claude/
+**/.next/
