@@ -192,13 +192,20 @@ export type BackgroundScene = {
   swatch: string;
 };
 
+/**
+ * The default backdrop scene's Unicorn Studio project id — Aurora, the
+ * signature indigo. The single source every host reads: the CLI's `init`
+ * skeleton, the explorer's front door, and the aurora entry below.
+ */
+export const SCENE_DEFAULT_PROJECT_ID = "YrTzGatwjK7EoFpCSfgZ";
+
 export const BACKGROUND_SCENES: BackgroundScene[] = [
   {
     key: "aurora",
     label: "Aurora",
     description:
       "The signature zframes scene — a slow indigo aurora drifting over near-black. The default backdrop.",
-    projectId: "YrTzGatwjK7EoFpCSfgZ",
+    projectId: SCENE_DEFAULT_PROJECT_ID,
     // 242 = the zframes accent default, so an unrolled dashboard hue-rotates by 0°.
     baseHue: 242,
     swatch:

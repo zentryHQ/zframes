@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { SCENE_DEFAULT_PROJECT_ID } from "@zframes/spec/presets";
 import { DashboardSpecSchema } from "@zframes/spec/spec";
 import {
   classifyTarget,
@@ -92,7 +93,7 @@ function skeleton(title: string, author: string) {
     grid: { columns: 12, rowHeight: 96, gap: 12 },
     background: {
       type: "unicorn" as const,
-      projectId: "YrTzGatwjK7EoFpCSfgZ",
+      projectId: SCENE_DEFAULT_PROJECT_ID,
       opacity: 1,
     },
     theme: {

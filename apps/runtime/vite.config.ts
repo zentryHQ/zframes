@@ -64,6 +64,7 @@ export default defineConfig({
       "@zframes/provider-nyfed",
       "@zframes/provider-sec",
       "@zframes/provider-treasury",
+      "@zframes/unicorn",
     ],
   },
   build: {
