@@ -148,7 +148,7 @@ The `zframes-brief` skill turns the terminal into something that learns. On each
 3. **grades yesterday's calls** against what the market actually did, tracking a running hit-rate,
 4. writes today's analysis + a few fresh, checkable calls, and appends it to one log file.
 
-The `daily-analysis` frame renders that log on the dashboard. The loop **only** writes the analysis log — it never edits `dashboard.json`. See [`docs/daily-brief-flow.html`](docs/daily-brief-flow.html).
+The `daily-analysis` frame renders that log on the dashboard. The loop **only** writes the analysis log — it never edits `dashboard.json`. See [`docs/specs/daily-brief-flow.html`](docs/specs/daily-brief-flow.html).
 
 ---
 
