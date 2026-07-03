@@ -26,11 +26,12 @@ packages/cli/runtime/
 apps/runtime/src/dashboard.json
 apps/runtime/public/daily-analysis.json
 
-# Local-only docs — kept on disk, never committed to the public repo:
-# HTML working artifacts (plans, reports, audits) and the decision logs.
-# Only docs/assets/ (README images) stays tracked.
-docs/*.html
-docs/decisions/
+# Local-only docs — kept on disk, never committed to the public repo.
+# Everything under docs/ is local working material (the six-slot taxonomy:
+# central-plan/, decisions/, specs/, reference/, artifacts/, archive/) EXCEPT
+# docs/assets/ (README images), which stays tracked.
+docs/*
+!docs/assets/
 
 # Local-only scratch & promo tooling (root-level only) — Python generators and
 # their large generated JSON outputs (theme variants, gap-test fixtures). Local
