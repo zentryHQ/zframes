@@ -31,6 +31,26 @@ const DAG: Record<string, string[]> = {
   charts: [],
   frames: ["@zframes/charts", "@zframes/core", "@zframes/spec"],
   cli: [],
+  // Composition leaf: aggregates the keyless provider set for the apps. Sits
+  // above the providers, below the apps; imports providers + spec (the type).
+  "providers-keyless": [
+    "@zframes/provider-alternativeme",
+    "@zframes/provider-bls",
+    "@zframes/provider-coingecko",
+    "@zframes/provider-coinpaprika",
+    "@zframes/provider-defillama",
+    "@zframes/provider-deribit",
+    "@zframes/provider-finra",
+    "@zframes/provider-fx",
+    "@zframes/provider-hyperliquid",
+    "@zframes/provider-mempool",
+    "@zframes/provider-news",
+    "@zframes/provider-nyfed",
+    "@zframes/provider-ofr",
+    "@zframes/provider-sec",
+    "@zframes/provider-treasury",
+    "@zframes/spec",
+  ],
 };
 
 // Providers are uniform: kernel types + transport, nothing else.

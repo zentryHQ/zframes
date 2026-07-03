@@ -70,51 +70,9 @@ importers:
       '@zframes/frames':
         specifier: workspace:*
         version: link:../../packages/frames
-      '@zframes/provider-alternativeme':
+      '@zframes/providers-keyless':
         specifier: workspace:*
-        version: link:../../packages/provider-alternativeme
-      '@zframes/provider-bls':
-        specifier: workspace:*
-        version: link:../../packages/provider-bls
-      '@zframes/provider-coingecko':
-        specifier: workspace:*
-        version: link:../../packages/provider-coingecko
-      '@zframes/provider-coinpaprika':
-        specifier: workspace:*
-        version: link:../../packages/provider-coinpaprika
-      '@zframes/provider-defillama':
-        specifier: workspace:*
-        version: link:../../packages/provider-defillama
-      '@zframes/provider-deribit':
-        specifier: workspace:*
-        version: link:../../packages/provider-deribit
-      '@zframes/provider-finra':
-        specifier: workspace:*
-        version: link:../../packages/provider-finra
-      '@zframes/provider-fx':
-        specifier: workspace:*
-        version: link:../../packages/provider-fx
-      '@zframes/provider-hyperliquid':
-        specifier: workspace:*
-        version: link:../../packages/provider-hyperliquid
-      '@zframes/provider-mempool':
-        specifier: workspace:*
-        version: link:../../packages/provider-mempool
-      '@zframes/provider-news':
-        specifier: workspace:*
-        version: link:../../packages/provider-news
-      '@zframes/provider-nyfed':
-        specifier: workspace:*
-        version: link:../../packages/provider-nyfed
-      '@zframes/provider-ofr':
-        specifier: workspace:*
-        version: link:../../packages/provider-ofr
-      '@zframes/provider-sec':
-        specifier: workspace:*
-        version: link:../../packages/provider-sec
-      '@zframes/provider-treasury':
-        specifier: workspace:*
-        version: link:../../packages/provider-treasury
+        version: link:../../packages/providers-keyless
       '@zframes/serve':
         specifier: workspace:*
         version: link:../../packages/serve
@@ -194,57 +152,15 @@ importers:
       '@zframes/frames':
         specifier: workspace:*
         version: link:../../packages/frames
-      '@zframes/provider-alternativeme':
-        specifier: workspace:*
-        version: link:../../packages/provider-alternativeme
       '@zframes/provider-binance':
         specifier: workspace:*
         version: link:../../packages/provider-binance
-      '@zframes/provider-bls':
-        specifier: workspace:*
-        version: link:../../packages/provider-bls
-      '@zframes/provider-coingecko':
-        specifier: workspace:*
-        version: link:../../packages/provider-coingecko
-      '@zframes/provider-coinpaprika':
-        specifier: workspace:*
-        version: link:../../packages/provider-coinpaprika
-      '@zframes/provider-defillama':
-        specifier: workspace:*
-        version: link:../../packages/provider-defillama
-      '@zframes/provider-deribit':
-        specifier: workspace:*
-        version: link:../../packages/provider-deribit
-      '@zframes/provider-finra':
-        specifier: workspace:*
-        version: link:../../packages/provider-finra
-      '@zframes/provider-fx':
-        specifier: workspace:*
-        version: link:../../packages/provider-fx
-      '@zframes/provider-hyperliquid':
-        specifier: workspace:*
-        version: link:../../packages/provider-hyperliquid
-      '@zframes/provider-mempool':
-        specifier: workspace:*
-        version: link:../../packages/provider-mempool
-      '@zframes/provider-news':
-        specifier: workspace:*
-        version: link:../../packages/provider-news
-      '@zframes/provider-nyfed':
-        specifier: workspace:*
-        version: link:../../packages/provider-nyfed
-      '@zframes/provider-ofr':
-        specifier: workspace:*
-        version: link:../../packages/provider-ofr
-      '@zframes/provider-sec':
-        specifier: workspace:*
-        version: link:../../packages/provider-sec
-      '@zframes/provider-treasury':
-        specifier: workspace:*
-        version: link:../../packages/provider-treasury
       '@zframes/provider-wallet':
         specifier: workspace:*
         version: link:../../packages/provider-wallet
+      '@zframes/providers-keyless':
+        specifier: workspace:*
+        version: link:../../packages/providers-keyless
       '@zframes/spec':
         specifier: workspace:*
         version: link:../../packages/spec
@@ -765,6 +681,61 @@ importers:
       '@zframes/data-primitives':
         specifier: workspace:*
         version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/providers-keyless:
+    dependencies:
+      '@zframes/provider-alternativeme':
+        specifier: workspace:*
+        version: link:../provider-alternativeme
+      '@zframes/provider-bls':
+        specifier: workspace:*
+        version: link:../provider-bls
+      '@zframes/provider-coingecko':
+        specifier: workspace:*
+        version: link:../provider-coingecko
+      '@zframes/provider-coinpaprika':
+        specifier: workspace:*
+        version: link:../provider-coinpaprika
+      '@zframes/provider-defillama':
+        specifier: workspace:*
+        version: link:../provider-defillama
+      '@zframes/provider-deribit':
+        specifier: workspace:*
+        version: link:../provider-deribit
+      '@zframes/provider-finra':
+        specifier: workspace:*
+        version: link:../provider-finra
+      '@zframes/provider-fx':
+        specifier: workspace:*
+        version: link:../provider-fx
+      '@zframes/provider-hyperliquid':
+        specifier: workspace:*
+        version: link:../provider-hyperliquid
+      '@zframes/provider-mempool':
+        specifier: workspace:*
+        version: link:../provider-mempool
+      '@zframes/provider-news':
+        specifier: workspace:*
+        version: link:../provider-news
+      '@zframes/provider-nyfed':
+        specifier: workspace:*
+        version: link:../provider-nyfed
+      '@zframes/provider-ofr':
+        specifier: workspace:*
+        version: link:../provider-ofr
+      '@zframes/provider-sec':
+        specifier: workspace:*
+        version: link:../provider-sec
+      '@zframes/provider-treasury':
+        specifier: workspace:*
+        version: link:../provider-treasury
       '@zframes/spec':
         specifier: workspace:*
         version: link:../spec
