@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { DashboardThumb, type ThumbFrame } from "@/app/lib/DashboardThumb";
+import { ThumbImage } from "@/app/lib/ThumbImage";
 
 // Shared gallery card — a live-preview link with a mini-map of the board, its
 // title, frame count, an optional blurb, and tag chips. Presentational and
-// server-safe; used by both the curated grid and the community grid.
+// server-safe; used by both the curated grid and the community grid. When a
+// nightly screenshot exists (`thumbSrc`), it fades in over the SVG mini-map;
+// otherwise (404 — no capture yet) the silhouette stays.
 export function DashboardCard({
   href,
   title,
@@ -11,6 +14,7 @@ export function DashboardCard({
   tags = [],
   frameCount,
   frames,
+  thumbSrc,
 }: {
   href: string;
   title: string;
@@ -18,6 +22,7 @@ export function DashboardCard({
   tags?: string[];
   frameCount: number;
   frames: ThumbFrame[];
+  thumbSrc?: string;
 }) {
   return (
     <Link
@@ -35,6 +40,7 @@ export function DashboardCard({
         />
         <div className="relative aspect-[16/9] p-3">
           <DashboardThumb frames={frames} gap={3} radius={4} />
+          {thumbSrc && <ThumbImage src={thumbSrc} alt={`${title} — live preview`} />}
         </div>
         <span className="absolute right-3 top-3 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[10px] text-white/70 backdrop-blur">
           {frameCount} {frameCount === 1 ? "frame" : "frames"}

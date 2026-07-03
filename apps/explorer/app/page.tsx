@@ -79,7 +79,6 @@ export default function GalleryHome() {
             }}
           />
           <div className="hairline glow-brand overflow-hidden rounded-2xl">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/showcase-dashboard.png"
               alt="A generated zframes stocks desk — a live TSLA candlestick chart, a multi-asset stock liveline (TSLA, NVDA, AAPL, MSFT), a price ticker, top movers, and a live ticker tape, all keyless HIP-3 stock perps + crypto"
@@ -181,6 +180,7 @@ export default function GalleryHome() {
               tags={d.tags}
               frameCount={d.spec.frames.length}
               frames={d.spec.frames}
+              thumbSrc={`/api/thumbs/${d.id}`}
             />
           ))}
         </div>

@@ -1,5 +1,6 @@
 import {
   boolean,
+  customType,
   integer,
   jsonb,
   pgTable,
@@ -87,3 +88,23 @@ export const dashboards = pgTable("dashboards", {
 });
 
 export type DashboardRow = typeof dashboards.$inferSelect;
+
+// ── nightly dashboard screenshots ────────────────────────────────────────────
+// Real browser captures of /d/[id], refreshed by scripts/capture-thumbs.ts on a
+// nightly cron. A SEPARATE table (not a column on `dashboards`) so gallery
+// queries (listCommunity/listByOwner select full rows) never drag image blobs
+// over the wire. Keyed by dashboard id — covers BOTH community rows and the
+// static curated ids (which have no `dashboards` row). No FK on purpose.
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
+
+export const dashboardThumbs = pgTable("dashboard_thumbs", {
+  id: text("id").primaryKey(), // dashboard id (curated slug or nanoid)
+  image: bytea("image").notNull(),
+  contentType: text("content_type").notNull().default("image/jpeg"),
+  capturedAt: timestamp("captured_at").notNull().defaultNow(),
+});
