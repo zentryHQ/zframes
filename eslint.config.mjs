@@ -13,6 +13,8 @@ export default tseslint.config(
   {
     ignores: [
       "**/dist/**",
+      "**/.next/**", // Next build output (apps/explorer)
+      "**/next-env.d.ts", // Next-generated (gitignored) — triple-slash refs
       "**/node_modules/**",
       "packages/cli/runtime/**", // vendored prebuilt bundle (gitignored)
       "apps/*/public/**", // vendored SDKs (e.g. unicornStudio.umd.mjs)
