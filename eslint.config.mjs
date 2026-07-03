@@ -242,6 +242,51 @@ export default tseslint.config(
     },
   },
   {
+    // @zframes/providers-keyless is a React-free composition leaf: it aggregates
+    // the keyless provider packages and imports @zframes/spec for the type. It
+    // must never grow a React or infra (core/editor/serve/…) dependency.
+    files: ["packages/providers-keyless/src/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "react",
+              message: "the provider bundle is a React-free data layer.",
+            },
+            {
+              name: "react-dom",
+              message: "the provider bundle is a React-free data layer.",
+            },
+          ],
+          patterns: [
+            {
+              group: [
+                "@zframes/core",
+                "@zframes/core/*",
+                "@zframes/editor",
+                "@zframes/editor/*",
+                "@zframes/serve",
+                "@zframes/serve/*",
+                "@zframes/zai",
+                "@zframes/zai/*",
+                "@zframes/account",
+                "@zframes/account/*",
+                "@zframes/store",
+                "@zframes/store/*",
+                "@zframes/vite",
+                "@zframes/vite/*",
+              ],
+              message:
+                "the provider bundle imports @zframes/provider-* + @zframes/spec (types) only.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // @zframes/data-primitives is the React-free provider transport: it may
     // import @zframes/spec (route constants) and nothing else of ours.
     files: ["packages/data-primitives/src/**/*.{ts,tsx}"],

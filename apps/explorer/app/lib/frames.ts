@@ -8,39 +8,11 @@
 // (Binance, Wallet) are intentionally excluded from the public explorer.
 import { createRegistry } from "@zframes/core";
 import { allFrames } from "@zframes/frames";
-import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
-import { BlsProvider } from "@zframes/provider-bls";
-import { CoinGeckoProvider } from "@zframes/provider-coingecko";
-import { CoinpaprikaProvider } from "@zframes/provider-coinpaprika";
-import { DefiLlamaProvider } from "@zframes/provider-defillama";
-import { DeribitProvider } from "@zframes/provider-deribit";
-import { FinraProvider } from "@zframes/provider-finra";
-import { FxProvider } from "@zframes/provider-fx";
-import { HyperliquidProvider } from "@zframes/provider-hyperliquid";
-import { MempoolProvider } from "@zframes/provider-mempool";
-import { NewsProvider } from "@zframes/provider-news";
-import { NyFedProvider } from "@zframes/provider-nyfed";
-import { OfrProvider } from "@zframes/provider-ofr";
-import { SecProvider } from "@zframes/provider-sec";
-import { TreasuryProvider } from "@zframes/provider-treasury";
+import { createKeylessProviders } from "@zframes/providers-keyless";
 
-export const providers = [
-  new HyperliquidProvider(),
-  new DefiLlamaProvider(),
-  new AlternativeMeProvider(),
-  new CoinGeckoProvider(),
-  new CoinpaprikaProvider(),
-  new NyFedProvider(),
-  new TreasuryProvider(),
-  new BlsProvider(),
-  new SecProvider(),
-  new FinraProvider(),
-  new OfrProvider(),
-  new FxProvider(),
-  new NewsProvider(),
-  new MempoolProvider(),
-  new DeribitProvider(),
-];
+// Keyless set only — the shared factory never imports the keyed tier
+// (Binance/Wallet), so they can't enter the public explorer's bundle.
+export const providers = createKeylessProviders();
 
 // Eager registry over all built-in frames. Lazy per-frame splitting is a later
 // bundle optimization; eager is correct and simplest.
