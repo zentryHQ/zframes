@@ -29,6 +29,7 @@ const nextConfig: NextConfig = {
     "@zframes/provider-ofr",
     "@zframes/provider-sec",
     "@zframes/provider-treasury",
+    "@zframes/unicorn",
   ],
   // Keep the DB drivers out of the bundle — PGlite ships WASM and postgres is a
   // native-ish driver; they must load from node_modules in the Node runtime.

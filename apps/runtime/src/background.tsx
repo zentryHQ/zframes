@@ -1,13 +1,14 @@
 import type { DashboardBackground as BackgroundConfig } from "@zframes/core";
+import { useLowEndDevice } from "@zframes/unicorn";
 import { lazy, Suspense } from "react";
-import { useLowEndDevice } from "./use-low-end-device";
 
 // Lazy so dashboards with no Unicorn scene never load the (tiny) scene module.
-// In-house loader (src/unicorn-scene.tsx), NOT the `unicornstudio-react` npm
-// package: that package inlines a full ~1.3 MB copy of the engine in its module
-// even when you load the engine from a URL (which we always do), so it shipped
-// ~257 kB gzip of dead weight. Ours injects only the self-hosted engine below.
-const UnicornScene = lazy(() => import("./unicorn-scene"));
+// In-house loader (@zframes/unicorn, shared with the explorer), NOT the
+// `unicornstudio-react` npm package: that package inlines a full ~1.3 MB copy of
+// the engine in its module even when you load the engine from a URL (which we
+// always do), so it shipped ~257 kB gzip of dead weight. Ours injects only the
+// self-hosted engine below.
+const UnicornScene = lazy(() => import("@zframes/unicorn/scene"));
 
 // Self-hosted from apps/runtime/public/ so the engine ships in the prebuilt
 // bundle instead of being pulled from a CDN. This is the MODERN engine (reads

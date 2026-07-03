@@ -92,6 +92,7 @@ export {
   BACKGROUND_SCENES,
   type BackgroundScene,
   SCENE_DEFAULT_HUE,
+  SCENE_DEFAULT_PROJECT_ID,
   sceneBaseHue,
 } from "./presets";
 export { catalogueForAI, catalogueSummary } from "./catalogue";

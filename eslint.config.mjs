@@ -379,6 +379,26 @@ export default tseslint.config(
     },
   },
   {
+    // The Unicorn Studio loader is a generic browser leaf: it script-injects
+    // the self-hosted engine and exposes the device gates — it knows nothing
+    // about the spec or presentation layers, so no @zframes imports at all.
+    files: ["packages/unicorn/src/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@zframes/*", "@zframes/*/*"],
+              message:
+                "@zframes/unicorn is a generic leaf — hosts compose it with the spec; it must not import other @zframes packages.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Package-boundary escape hatches, workspace-wide. Uses the CORE
     // no-restricted-imports rule (not the @typescript-eslint one) so it
     // composes with — rather than overriding — the per-package layer rules

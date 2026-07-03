@@ -17,6 +17,7 @@ exports[`root @zframes/core barrel surface is pinned 1`] = `
   "GridPositionSchema",
   "NUMERIC_VARIANTS",
   "SCENE_DEFAULT_HUE",
+  "SCENE_DEFAULT_PROJECT_ID",
   "THEME_PRESETS",
   "ThemeSchema",
   "TypographySchema",

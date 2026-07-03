@@ -29,6 +29,8 @@ const DAG: Record<string, string[]> = {
   editor: ["@zframes/core", "@zframes/spec"],
   core: ["@zframes/spec"],
   charts: [],
+  // Generic browser leaf (engine loader + device gates); no @zframes deps.
+  unicorn: [],
   frames: ["@zframes/charts", "@zframes/core", "@zframes/spec"],
   cli: [],
   // Composition leaf: aggregates the keyless provider set for the apps. Sits
