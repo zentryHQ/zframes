@@ -207,17 +207,6 @@ export function UnicornBackground({
           transition: "opacity 0.9s var(--zf-ease-out, cubic-bezier(0.23,1,0.32,1))",
         }}
       />
-      {/* Contrast scrim: darkens the top (header + hero copy) and bottom (footer)
-          so text stays legible, letting the aurora breathe through the middle
-          band. Painted in the body's own near-black so it reads as one surface. */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(180deg, rgba(7,7,12,0.80) 0%, rgba(7,7,12,0.42) 24%, rgba(7,7,12,0.38) 60%, rgba(7,7,12,0.84) 100%)",
-        }}
-      />
     </div>
   );
 }
