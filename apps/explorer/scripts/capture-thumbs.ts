@@ -35,6 +35,9 @@ const SETTLE_MS = Number(process.env.THUMBS_SETTLE_MS ?? 9000);
 // the capture as failed rather than overwrite a good thumb with an empty one.
 const MIN_BYTES = 5_000;
 
+// Margin of page backdrop kept around the grid in the capture.
+const CAPTURE_PAD = 24;
+
 async function main() {
   // max 1: sequential anyway, and the dev PGlite socket handles one wire
   // connection at a time (same serialization as app/lib/db). idle_timeout
@@ -115,17 +118,38 @@ async function main() {
       // aren't observable from the DOM), and live prices tick in over the WS.
       await page.waitForTimeout(SETTLE_MS);
 
-      // The site nav is sticky — a board taller than the viewport makes the
-      // element screenshot scroll-stitch, smearing the nav into the capture.
-      // Hide it (and the preview page's own header row) for a clean board shot.
+      // Hide the page chrome around the board: the sticky site nav would smear
+      // into a scroll-stitched shot, and the preview page's title row (main's
+      // first child) sits inside the capture margin. visibility (not display)
+      // keeps layout geometry so the grid's bounding box is unaffected.
       await page.addStyleTag({
-        content: "header { display: none !important; }",
+        content:
+          "header, main > div:first-child { visibility: hidden !important; }",
       });
 
-      const image = await page
-        .locator(".zf-grid")
-        .first()
-        .screenshot({ type: "jpeg", quality: 80, timeout: 30_000 });
+      // Clip the full-page shot to the grid's box plus a margin of the page's
+      // own backdrop, so cards don't sit flush against the image edges (a bare
+      // element screenshot clips exactly to .zf-grid, which has no padding).
+      const box = await page.locator(".zf-grid").first().boundingBox();
+      if (!box) throw new Error("no .zf-grid bounding box");
+      const pageSize = await page.evaluate(() => ({
+        w: document.documentElement.scrollWidth,
+        h: document.documentElement.scrollHeight,
+      }));
+      const x = Math.max(0, box.x - CAPTURE_PAD);
+      const y = Math.max(0, box.y - CAPTURE_PAD);
+      const image = await page.screenshot({
+        type: "jpeg",
+        quality: 80,
+        timeout: 30_000,
+        fullPage: true, // lets the clip extend past the viewport on tall boards
+        clip: {
+          x,
+          y,
+          width: Math.min(box.width + CAPTURE_PAD * 2, pageSize.w - x),
+          height: Math.min(box.height + CAPTURE_PAD * 2, pageSize.h - y),
+        },
+      });
       if (image.length < MIN_BYTES)
         throw new Error(`capture too small (${image.length}B)`);
 
