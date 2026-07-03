@@ -91,6 +91,28 @@ async function main() {
         timeout: 60_000,
       });
       await page.waitForSelector(".zf-frame", { timeout: 45_000 });
+
+      // Wait for every frame to leave its loading state: data loading renders
+      // the shared FrameStatus skeleton (role="status" aria-busy), lazy chunk
+      // loads render .zf-frame-skeleton. Soft-fail after 30s — a permanently
+      // loading frame (dead provider) shouldn't sink the whole board's thumb,
+      // and the MIN_BYTES floor still guards a fully blank shot.
+      await page
+        .waitForFunction(
+          () =>
+            !document.querySelector(
+              '.zf-grid [aria-busy="true"], .zf-grid .zf-frame-skeleton',
+            ),
+          { timeout: 30_000 },
+        )
+        .catch(() =>
+          console.warn(
+            `  … ${id}: frames still loading after 30s — capturing anyway`,
+          ),
+        );
+
+      // Then a settle tail: charts draw/animate after data lands (canvas paints
+      // aren't observable from the DOM), and live prices tick in over the WS.
       await page.waitForTimeout(SETTLE_MS);
 
       // The site nav is sticky — a board taller than the viewport makes the
