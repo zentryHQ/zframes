@@ -28,6 +28,10 @@ copyright and license; consult the respective package for full terms.
   - sirv (with @polka/url, mrmime, totalist) — MIT — static file serving for
     the `serve` runtime (assets, sibling files, SPA fallback).
   - d3, d3-hierarchy — ISC — chart math and layout.
-  - unicornstudio-react — MIT — optional animated background (host-only; the
-    Unicorn Studio SDK itself loads lazily from a CDN at runtime).
+  - Unicorn Studio engine (unicornStudio.umd.mjs) — proprietary, © Unicorn
+    Studio (https://github.com/hiunicornstudio/unicornstudio.js; use granted
+    for integration with Unicorn Studio projects) — the optional animated
+    background. A copy of the publicly distributed web-embed engine is
+    self-hosted in the prebuilt runtime and used only to render Unicorn
+    Studio-hosted scenes.
   - react, react-dom — MIT — bundled into the prebuilt runtime the CLI serves.
