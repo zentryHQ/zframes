@@ -21,12 +21,21 @@ import type {
   MempoolState,
   MiningPools,
   NationalDebt,
+  EthSupply,
+  EtfFlows,
+  FeesOverview,
+  FundingComparison,
+  MarketSector,
   NewsItem,
   NewsQuery,
   OnchainExtras,
   OnchainValuation,
   OpenInterestEntry,
   OptionsSummary,
+  PredictionMarket,
+  StablecoinSupply,
+  TrendingCoin,
+  YieldPool,
   Portfolio,
   PortfolioSource,
   PortfolioSourceKind,
@@ -240,6 +249,15 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "price-history-daily",
     "onchain-cycle-extras",
     "dollar-index",
+    "stablecoins",
+    "yields",
+    "fees-overview",
+    "funding-comparison",
+    "eth-supply",
+    "prediction-markets",
+    "etf-flows",
+    "trending-coins",
+    "sector-performance",
     "portfolio",
   ];
   readonly portfolioKinds: readonly PortfolioSourceKind[] = [
@@ -389,6 +407,265 @@ export class MockMarketDataProvider implements MarketDataProvider {
         changePct: round(((latest - prev) / prev) * 100, 2),
         history,
       };
+    });
+  }
+
+  // ── market-data expansion ───────────────────────────────────────────────
+  getStablecoinSupply(): Promise<StablecoinSupply> {
+    const empty: StablecoinSupply = {
+      totalUsd: 0,
+      changePct1d: 0,
+      changePct7d: 0,
+      changePct30d: 0,
+      history: [],
+      topChains: [],
+    };
+    return this.gate<StablecoinSupply>(empty, () => {
+      const total = 245e9;
+      return {
+        totalUsd: total,
+        changePct1d: 0.12,
+        changePct7d: 0.9,
+        changePct30d: 3.4,
+        history: [
+          { time: BASELINE_NOW - 30 * DAY, value: round(total * 0.967, 0) },
+          { time: BASELINE_NOW - 7 * DAY, value: round(total * 0.991, 0) },
+          { time: BASELINE_NOW - DAY, value: round(total * 0.999, 0) },
+          { time: BASELINE_NOW, value: total },
+        ],
+        topChains: [
+          { name: "Ethereum", usd: 130e9 },
+          { name: "Tron", usd: 90e9 },
+          { name: "Solana", usd: 12e9 },
+          { name: "BSC", usd: 6e9 },
+        ],
+      };
+    });
+  }
+
+  getYieldPools(): Promise<YieldPool[]> {
+    return this.gate<YieldPool[]>([], () => {
+      const base: [string, string, string, number, number, boolean][] = [
+        ["Ethereum", "lido", "STETH", 16e9, 2.9, false],
+        ["Ethereum", "aave-v3", "USDC", 2.1e9, 4.6, true],
+        ["Solana", "kamino", "USDC", 900e6, 7.2, true],
+        ["Ethereum", "sky", "SUSDS", 5e9, 3.6, true],
+        ["Base", "aerodrome", "USDC-ETH", 300e6, 12.4, false],
+        ["Arbitrum", "gmx", "GLP", 180e6, 9.1, false],
+      ];
+      return base.map(([chain, project, symbol, tvlUsd, apy, stable], i) => ({
+        pool: `mock-${i}`,
+        chain,
+        project,
+        symbol,
+        tvlUsd,
+        apy,
+        apyBase: round(apy * 0.8, 2),
+        apyReward: round(apy * 0.2, 2),
+        apyPct7D: round((rng(`y${i}`)() - 0.5) * 2, 2),
+        stablecoin: stable,
+        ilRisk: stable ? "no" : "yes",
+      }));
+    });
+  }
+
+  getFeesOverview(): Promise<FeesOverview> {
+    const empty: FeesOverview = {
+      total24h: 0,
+      total7d: null,
+      changePct: null,
+      history: [],
+    };
+    return this.gate<FeesOverview>(empty, () => {
+      const r = rng("fees");
+      const n = 30;
+      const history: SeriesPoint[] = [];
+      for (let i = 0; i < n; i++)
+        history.push({
+          time: BASELINE_NOW - (n - 1 - i) * DAY,
+          value: round(30e6 + r() * 20e6, 0),
+        });
+      return {
+        total24h: history[history.length - 1].value,
+        total7d: 300e6,
+        changePct: 2.1,
+        history,
+      };
+    });
+  }
+
+  getFundingComparison(): Promise<FundingComparison[]> {
+    return this.gate<FundingComparison[]>([], () => {
+      const coins = ["BTC", "ETH", "SOL", "HYPE", "DOGE", "XRP"];
+      return coins
+        .map((coin) => {
+          const r = rng(`fc${coin}`);
+          const venues = ["Hyperliquid", "Binance", "Bybit"].map((venue) => {
+            const annualizedPct = round((r() - 0.4) * 30, 2);
+            return {
+              venue,
+              rawRate: annualizedPct / 8760,
+              intervalHours: venue === "Hyperliquid" ? 1 : 8,
+              annualizedPct,
+            };
+          });
+          const rates = venues.map((v) => v.annualizedPct);
+          return {
+            coin,
+            venues,
+            spreadPct: round(Math.max(...rates) - Math.min(...rates), 2),
+          };
+        })
+        .sort((a, b) => b.spreadPct - a.spreadPct);
+    });
+  }
+
+  getEthSupply(): Promise<EthSupply> {
+    const empty: EthSupply = {
+      supply: 0,
+      burnRateYearlyEth: 0,
+      issuanceRateYearlyEth: 0,
+      supplyGrowthYearlyPct: 0,
+      supplyGrowthYearlyPowPct: 0,
+      stakingAprPct: 0,
+      burnEthPerMin: 0,
+      history: [],
+    };
+    return this.gate<EthSupply>(empty, () => {
+      const r = rng("eth");
+      const n = 30;
+      const history: SeriesPoint[] = [];
+      let s = 120_700_000;
+      for (let i = 0; i < n; i++) {
+        s += (r() - 0.5) * 2000;
+        history.push({
+          time: BASELINE_NOW - (n - 1 - i) * DAY,
+          value: round(s, 0),
+        });
+      }
+      return {
+        supply: history[history.length - 1].value,
+        burnRateYearlyEth: 900_000,
+        issuanceRateYearlyEth: 850_000,
+        supplyGrowthYearlyPct: -0.04,
+        supplyGrowthYearlyPowPct: 3.8,
+        stakingAprPct: 3.1,
+        burnEthPerMin: 1.7,
+        history,
+      };
+    });
+  }
+
+  getPredictionMarkets(limit = 12): Promise<PredictionMarket[]> {
+    return this.gate<PredictionMarket[]>([], () => {
+      const qs: [string, number][] = [
+        ["Fed cuts rates in September?", 0.62],
+        ["BTC above $100k by year end?", 0.48],
+        ["ETH ETF net inflow positive this week?", 0.71],
+        ["US recession in 2026?", 0.29],
+        ["Solana flips Ethereum by 2027?", 0.14],
+        ["Government shutdown this quarter?", 0.37],
+      ];
+      return qs.slice(0, limit).map(([question, p]) => ({
+        question,
+        outcomes: [
+          { label: "Yes", prob: p },
+          { label: "No", prob: round(1 - p, 2) },
+        ],
+        volume24h: round(1e5 + (1 - p) * 5e6, 0),
+        endDate: new Date(BASELINE_NOW + 30 * DAY).toISOString(),
+      }));
+    });
+  }
+
+  getEtfFlows(asset: string): Promise<EtfFlows> {
+    const empty: EtfFlows = {
+      asset,
+      date: "",
+      dailyTotalNetInflow: 0,
+      cumNetInflow: 0,
+      totalNetAssets: 0,
+      issuers: [],
+      history: [],
+    };
+    return this.gate<EtfFlows>(empty, () => {
+      const r = rng(`etf${asset}`);
+      const n = 30;
+      const history: SeriesPoint[] = [];
+      for (let i = 0; i < n; i++)
+        history.push({
+          time: BASELINE_NOW - (n - 1 - i) * DAY,
+          value: round((r() - 0.4) * 400e6, 0),
+        });
+      const issuers = (
+        [
+          ["IBIT", "BlackRock"],
+          ["FBTC", "Fidelity"],
+          ["ARKB", "Ark"],
+          ["GBTC", "Grayscale"],
+          ["BITB", "Bitwise"],
+        ] as [string, string][]
+      ).map(([ticker, institute], i) => ({
+        ticker,
+        institute,
+        dailyNetInflow: round((rng(`e${asset}${i}`)() - 0.4) * 150e6, 0),
+        netAssets: round((5 - i) * 10e9, 0),
+        cumNetInflow: round((5 - i) * 12e9, 0),
+      }));
+      return {
+        asset,
+        date: new Date(BASELINE_NOW).toISOString().slice(0, 10),
+        dailyTotalNetInflow: history[history.length - 1].value,
+        cumNetInflow: 51e9,
+        totalNetAssets: 75e9,
+        issuers,
+        history,
+      };
+    });
+  }
+
+  getTrendingCoins(): Promise<TrendingCoin[]> {
+    return this.gate<TrendingCoin[]>([], () => {
+      const coins: [string, string, string, number][] = [
+        ["bitcoin", "Bitcoin", "BTC", 1],
+        ["ethereum", "Ethereum", "ETH", 2],
+        ["solana", "Solana", "SOL", 5],
+        ["hyperliquid", "Hyperliquid", "HYPE", 11],
+        ["dogecoin", "Dogecoin", "DOGE", 8],
+        ["pepe", "Pepe", "PEPE", 24],
+      ];
+      return coins.map(([id, name, symbol, rank]) => ({
+        id,
+        name,
+        symbol,
+        rank,
+        price: round(priceFor(symbol), 2),
+        changePct24h: round((rng(`t${id}`)() - 0.4) * 20, 2),
+      }));
+    });
+  }
+
+  getSectorPerformance(): Promise<MarketSector[]> {
+    return this.gate<MarketSector[]>([], () => {
+      const sectors = [
+        "Layer 1",
+        "DeFi",
+        "AI Agents",
+        "Meme",
+        "RWA",
+        "Layer 2",
+        "Gaming",
+        "DePIN",
+        "Liquid Staking",
+        "Oracle",
+      ];
+      return sectors
+        .map((name, i) => ({
+          name,
+          marketCap: round((10 - i) * 8e9, 0),
+          changePct24h: round((rng(`s${name}`)() - 0.45) * 15, 2),
+        }))
+        .sort((a, b) => b.marketCap - a.marketCap);
     });
   }
 

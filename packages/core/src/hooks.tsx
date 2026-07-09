@@ -48,6 +48,15 @@ import type {
   TvlEntry,
   VolatilityPoint,
   YieldCurve,
+  StablecoinSupply,
+  YieldPool,
+  FeesOverview,
+  FundingComparison,
+  EthSupply,
+  PredictionMarket,
+  EtfFlows,
+  TrendingCoin,
+  MarketSector,
 } from "@zframes/spec/types";
 
 import { FrameVisibilityContext } from "./visibility";
@@ -994,4 +1003,151 @@ export function useDollarIndex(refreshMs = 60 * 60_000): {
     refreshMs,
   );
   return { dxy, isLoading };
+}
+
+/** Total stablecoin supply + change + per-chain split, polled hourly (daily data). */
+export function useStablecoinSupply(refreshMs = 60 * 60_000): {
+  supply: StablecoinSupply | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("stablecoins");
+  const { data: supply, isLoading } = usePolled<StablecoinSupply | null>(
+    provider?.getStablecoinSupply
+      ? () => provider.getStablecoinSupply!()
+      : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { supply, isLoading };
+}
+
+/** DeFi yield pools (descending by TVL), polled every ~15 min (large payload). */
+export function useYieldPools(refreshMs = 15 * 60_000): {
+  pools: YieldPool[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("yields");
+  const { data: pools, isLoading } = usePolled<YieldPool[]>(
+    provider?.getYieldPools ? () => provider.getYieldPools!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { pools, isLoading };
+}
+
+/** Aggregate DeFi fees/revenue + trend, polled every ~10 min. */
+export function useFeesOverview(refreshMs = 10 * 60_000): {
+  fees: FeesOverview | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("fees-overview");
+  const { data: fees, isLoading } = usePolled<FeesOverview | null>(
+    provider?.getFeesOverview ? () => provider.getFeesOverview!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { fees, isLoading };
+}
+
+/** Cross-venue predicted funding per coin, polled every ~5 min. */
+export function useFundingComparison(refreshMs = 5 * 60_000): {
+  comparison: FundingComparison[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("funding-comparison");
+  const { data: comparison, isLoading } = usePolled<FundingComparison[]>(
+    provider?.getFundingComparison
+      ? () => provider.getFundingComparison!()
+      : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { comparison, isLoading };
+}
+
+/** Ethereum supply economics (burn/issuance/net growth/staking), polled every ~2 min. */
+export function useEthSupply(refreshMs = 2 * 60_000): {
+  supply: EthSupply | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("eth-supply");
+  const { data: supply, isLoading } = usePolled<EthSupply | null>(
+    provider?.getEthSupply ? () => provider.getEthSupply!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { supply, isLoading };
+}
+
+/** Prediction-market odds (top markets by volume), polled every ~5 min. */
+export function usePredictionMarkets(
+  limit = 12,
+  refreshMs = 5 * 60_000,
+): { markets: PredictionMarket[]; isLoading: boolean } {
+  const provider = useProviderFor("prediction-markets");
+  const { data: markets, isLoading } = usePolled<PredictionMarket[]>(
+    provider?.getPredictionMarkets
+      ? () => provider.getPredictionMarkets!(limit)
+      : null,
+    [],
+    [provider, limit, refreshMs],
+    refreshMs,
+  );
+  return { markets, isLoading };
+}
+
+/**
+ * Spot-ETF flows for one asset ("btc" | "eth"), polled every ~6h (daily data).
+ * Resolves to null (non-loading) if no provider covers "etf-flows".
+ */
+export function useEtfFlows(
+  asset = "btc",
+  refreshMs = 6 * 60 * 60_000,
+): { flows: EtfFlows | null; isLoading: boolean } {
+  const provider = useProviderFor("etf-flows");
+  const key = asset.toLowerCase();
+  const { data: flows, isLoading } = usePolled<EtfFlows | null>(
+    provider?.getEtfFlows ? () => provider.getEtfFlows!(key) : null,
+    null,
+    [provider, key, refreshMs],
+    refreshMs,
+  );
+  return { flows, isLoading };
+}
+
+/** Trending coins (by search interest), polled every ~10 min. */
+export function useTrendingCoins(refreshMs = 10 * 60_000): {
+  coins: TrendingCoin[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("trending-coins");
+  const { data: coins, isLoading } = usePolled<TrendingCoin[]>(
+    provider?.getTrendingCoins ? () => provider.getTrendingCoins!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { coins, isLoading };
+}
+
+/** Market sectors / categories with aggregate performance, polled every ~12 min. */
+export function useSectorPerformance(refreshMs = 12 * 60_000): {
+  sectors: MarketSector[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("sector-performance");
+  const { data: sectors, isLoading } = usePolled<MarketSector[]>(
+    provider?.getSectorPerformance
+      ? () => provider.getSectorPerformance!()
+      : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { sectors, isLoading };
 }

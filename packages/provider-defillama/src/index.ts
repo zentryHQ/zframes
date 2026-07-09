@@ -1,11 +1,14 @@
 import type {
   Capability,
   DexVolumeEntry,
+  FeesOverview,
   MarketDataProvider,
   ProtocolFeesEntry,
   ProtocolTvlEntry,
   SeriesPoint,
+  StablecoinSupply,
   TvlEntry,
+  YieldPool,
 } from "@zframes/spec";
 import { TtlCache } from "@zframes/data-primitives/cache";
 import { fetchJson } from "@zframes/data-primitives/fetch";
@@ -14,6 +17,10 @@ const CHAINS_URL = "https://api.llama.fi/v2/chains";
 const DEXS_URL = "https://api.llama.fi/overview/dexs";
 const FEES_URL = "https://api.llama.fi/overview/fees";
 const PROTOCOLS_URL = "https://api.llama.fi/protocols";
+const STABLES_URL =
+  "https://stablecoins.llama.fi/stablecoins?includePrices=true";
+const STABLECHAINS_URL = "https://stablecoins.llama.fi/stablecoinchains";
+const YIELDS_URL = "https://yields.llama.fi/pools";
 
 // Every DeFiLlama endpoint is a slow-moving snapshot (TVL / volume / fees refresh
 // on the order of hours), so each goes through the shared cache: a fresh value is
@@ -50,6 +57,21 @@ const protocolHistoryCache = new TtlCache<Record<string, SeriesPoint[]>>({
   namespace: "zframes:defillama:protocol-history",
   ttlMs: HISTORY_TTL_MS,
 });
+// Stablecoin supply + yields move on a daily cadence; slightly longer TTLs, and
+// persisted since the derived aggregates are small and useful across reloads.
+const stablecoinsCache = new TtlCache<StablecoinSupply>({
+  namespace: "zframes:defillama:stablecoins",
+  ttlMs: 30 * 60_000,
+  persist: true,
+});
+const yieldsCache = new TtlCache<YieldPool[]>({
+  namespace: "zframes:defillama:yields",
+  ttlMs: 12 * 60_000,
+});
+const feesOverviewCache = new TtlCache<FeesOverview>({
+  namespace: "zframes:defillama:fees-overview",
+  ttlMs: SNAPSHOT_TTL_MS,
+});
 
 /** Stable cache key for a set of slugs, order-independent. */
 const slugKey = (slugs: string[]): string => [...slugs].sort().join(",");
@@ -62,6 +84,47 @@ interface LlamaChain {
 /** Shared shape of the `/overview/{dexs,fees}` dimension endpoints. */
 interface LlamaOverview {
   protocols?: LlamaOverviewProtocol[];
+  /** Top-level aggregate fields (present on `/overview/fees`). */
+  total24h?: number | null;
+  total7d?: number | null;
+  change_1d?: number | null;
+  totalDataChart?: [number, number][];
+}
+
+interface LlamaPeggedSnapshot {
+  peggedUSD?: number;
+}
+interface LlamaPeggedAsset {
+  symbol: string;
+  pegType?: string;
+  circulating?: LlamaPeggedSnapshot;
+  circulatingPrevDay?: LlamaPeggedSnapshot;
+  circulatingPrevWeek?: LlamaPeggedSnapshot;
+  circulatingPrevMonth?: LlamaPeggedSnapshot;
+}
+interface LlamaStablecoinsResp {
+  peggedAssets?: LlamaPeggedAsset[];
+}
+interface LlamaStablecoinChain {
+  name: string;
+  totalCirculatingUSD?: { peggedUSD?: number };
+}
+interface LlamaYieldPool {
+  pool: string;
+  chain: string;
+  project: string;
+  symbol: string;
+  tvlUsd: number | null;
+  apy: number | null;
+  apyBase: number | null;
+  apyReward: number | null;
+  apyPct7D: number | null;
+  stablecoin?: boolean;
+  ilRisk?: string;
+}
+interface LlamaYieldsResp {
+  status?: string;
+  data?: LlamaYieldPool[];
 }
 interface LlamaOverviewProtocol {
   name: string;
@@ -111,6 +174,9 @@ export class DefiLlamaProvider implements MarketDataProvider {
     "dex-volume",
     "protocol-tvl",
     "protocol-fees",
+    "stablecoins",
+    "yields",
+    "fees-overview",
   ];
 
   async getTvlByChain(): Promise<TvlEntry[]> {
@@ -223,6 +289,106 @@ export class DefiLlamaProvider implements MarketDataProvider {
           changePct: changeOf(p.change_1d),
         }))
         .sort((a, b) => b.fees24h - a.fees24h);
+    });
+  }
+
+  async getStablecoinSupply(): Promise<StablecoinSupply> {
+    return stablecoinsCache.get("supply", async () => {
+      const [assetsBody, chains] = await Promise.all([
+        fetchJson<LlamaStablecoinsResp>(STABLES_URL),
+        fetchJson<LlamaStablecoinChain[]>(STABLECHAINS_URL).catch(() => []),
+      ]);
+      const assets = assetsBody?.peggedAssets;
+      if (!Array.isArray(assets))
+        throw new Error("defillama stablecoins: unexpected response shape");
+      // USD-pegged aggregate: DeFiLlama exposes no top-level total, so sum
+      // peggedUSD across USD stablecoins for each snapshot and diff for deltas.
+      let now = 0;
+      let d1 = 0;
+      let d7 = 0;
+      let d30 = 0;
+      for (const a of assets) {
+        if (a.pegType && a.pegType !== "peggedUSD") continue;
+        now += a.circulating?.peggedUSD ?? 0;
+        d1 += a.circulatingPrevDay?.peggedUSD ?? 0;
+        d7 += a.circulatingPrevWeek?.peggedUSD ?? 0;
+        d30 += a.circulatingPrevMonth?.peggedUSD ?? 0;
+      }
+      if (now <= 0) throw new Error("defillama stablecoins: empty aggregate");
+      const pct = (prev: number) =>
+        prev > 0 ? ((now - prev) / prev) * 100 : 0;
+      const nowMs = Date.now();
+      const history: SeriesPoint[] = [
+        { time: nowMs - 30 * 86_400_000, value: d30 },
+        { time: nowMs - 7 * 86_400_000, value: d7 },
+        { time: nowMs - 86_400_000, value: d1 },
+        { time: nowMs, value: now },
+      ].filter((p) => p.value > 0);
+      const topChains = (Array.isArray(chains) ? chains : [])
+        .map((c) => ({
+          name: c.name,
+          usd: c.totalCirculatingUSD?.peggedUSD ?? 0,
+        }))
+        .filter((c) => c.usd > 0)
+        .sort((a, b) => b.usd - a.usd)
+        .slice(0, 12);
+      return {
+        totalUsd: now,
+        changePct1d: pct(d1),
+        changePct7d: pct(d7),
+        changePct30d: pct(d30),
+        history,
+        topChains,
+      };
+    });
+  }
+
+  async getYieldPools(): Promise<YieldPool[]> {
+    return yieldsCache.get("pools", async () => {
+      const body = await fetchJson<LlamaYieldsResp>(YIELDS_URL);
+      const data = body?.data;
+      if (!Array.isArray(data))
+        throw new Error("defillama yields: unexpected response shape");
+      return data
+        .filter(
+          (p) =>
+            Number.isFinite(p.tvlUsd) &&
+            (p.tvlUsd ?? 0) > 0 &&
+            Number.isFinite(p.apy),
+        )
+        .map((p) => ({
+          pool: p.pool,
+          chain: p.chain,
+          project: p.project,
+          symbol: p.symbol,
+          tvlUsd: p.tvlUsd as number,
+          apy: p.apy as number,
+          apyBase: Number.isFinite(p.apyBase) ? p.apyBase : null,
+          apyReward: Number.isFinite(p.apyReward) ? p.apyReward : null,
+          apyPct7D: Number.isFinite(p.apyPct7D) ? p.apyPct7D : null,
+          stablecoin: !!p.stablecoin,
+          ilRisk: p.ilRisk ?? "unknown",
+        }))
+        .sort((a, b) => b.tvlUsd - a.tvlUsd)
+        .slice(0, 250);
+    });
+  }
+
+  async getFeesOverview(): Promise<FeesOverview> {
+    return feesOverviewCache.get("overview", async () => {
+      const body = await fetchJson<LlamaOverview>(FEES_URL);
+      if (!body || !Number.isFinite(body.total24h))
+        throw new Error("defillama fees-overview: unexpected response shape");
+      return {
+        total24h: body.total24h as number,
+        total7d: Number.isFinite(body.total7d)
+          ? (body.total7d as number)
+          : null,
+        changePct: Number.isFinite(body.change_1d)
+          ? (body.change_1d as number)
+          : null,
+        history: toSeries(body.totalDataChart),
+      };
     });
   }
 }

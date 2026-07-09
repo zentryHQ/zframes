@@ -50,6 +50,15 @@ export {
   useTreasuryAverageRates,
   useTvlByChain,
   useYieldCurve,
+  useStablecoinSupply,
+  useYieldPools,
+  useFeesOverview,
+  useFundingComparison,
+  useEthSupply,
+  usePredictionMarkets,
+  useEtfFlows,
+  useTrendingCoins,
+  useSectorPerformance,
 } from "./hooks";
 export { DashboardRenderer } from "./renderer";
 export {

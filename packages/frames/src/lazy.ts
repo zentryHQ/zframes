@@ -254,6 +254,43 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "cycle-signals": {
     load: () => import("./cycle-signals").then((m) => m.cycleSignalsFrame),
   },
+  "stablecoin-supply": {
+    load: () =>
+      import("./stablecoin-supply").then((m) => m.stablecoinSupplyFrame),
+  },
+  "yield-scanner": {
+    load: () => import("./yield-scanner").then((m) => m.yieldScannerFrame),
+  },
+  "defi-revenue": {
+    load: () => import("./defi-revenue").then((m) => m.defiRevenueFrame),
+  },
+  "funding-comparison": {
+    load: () =>
+      import("./funding-comparison").then((m) => m.fundingComparisonFrame),
+  },
+  "eth-supply": {
+    load: () => import("./eth-supply").then((m) => m.ethSupplyFrame),
+  },
+  "eth-staking": {
+    load: () => import("./eth-staking").then((m) => m.ethStakingFrame),
+  },
+  "prediction-markets": {
+    load: () =>
+      import("./prediction-markets").then((m) => m.predictionMarketsFrame),
+  },
+  "etf-flows": {
+    load: () => import("./etf-flows").then((m) => m.etfFlowsFrame),
+  },
+  "trending-coins": {
+    load: () => import("./trending-coins").then((m) => m.trendingCoinsFrame),
+  },
+  "sector-performance": {
+    load: () =>
+      import("./sector-performance").then((m) => m.sectorPerformanceFrame),
+  },
+  "macro-calendar": {
+    load: () => import("./macro-calendar").then((m) => m.macroCalendarFrame),
+  },
   "holiday-calendar": {
     load: () =>
       import("./holiday-calendar").then((m) => m.holidayCalendarFrame),

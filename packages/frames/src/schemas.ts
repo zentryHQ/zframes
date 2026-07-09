@@ -47,6 +47,9 @@ const SOURCES = {
   frankfurter: { name: "Frankfurter (ECB)", url: "https://frankfurter.dev" },
   coinMetrics: { name: "Coin Metrics", url: "https://coinmetrics.io" },
   bitcoinData: { name: "bitcoin-data.com", url: "https://bitcoin-data.com" },
+  ultrasound: { name: "ultrasound.money", url: "https://ultrasound.money" },
+  polymarket: { name: "Polymarket", url: "https://polymarket.com" },
+  sosovalue: { name: "SoSoValue", url: "https://sosovalue.com" },
 } satisfies Record<string, FrameSource>;
 
 export const clockMeta = defineFrameMeta({
@@ -2235,6 +2238,236 @@ export const cycleSignalsMeta = defineFrameMeta({
   }),
 });
 
+// ── Market-data expansion: liquidity, yields, funding, ETH, ETF, sentiment ──
+
+export const stablecoinSupplyMeta = defineFrameMeta({
+  name: "stablecoin-supply",
+  label: "Stablecoin Supply",
+  category: "crypto",
+  iconUrl: widgetIcon("stablecoin-supply"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Total USD-stablecoin circulating supply — a market-wide liquidity gauge. Rising supply = fresh capital entering crypto (risk-on dry powder); contraction = risk-off. Shows the total, 1d/7d/30d change, and the largest chains. Keyless (DeFiLlama).",
+  capabilities: ["stablecoins"],
+  source: SOURCES.defillama,
+  schema: z.object({}),
+});
+
+export const yieldScannerMeta = defineFrameMeta({
+  name: "yield-scanner",
+  label: "Yield Scanner",
+  category: "crypto",
+  iconUrl: widgetIcon("yield-scanner"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Top DeFi yield pools ranked by APY, across every chain and protocol — the 'where's the yield' board. Filter to stablecoin pools or a TVL floor. Shows APY (base + reward), TVL, chain, and IL risk. Keyless (DeFiLlama yields).",
+  capabilities: ["yields"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(20)
+      .default(8)
+      .describe("How many pools to list."),
+    stablecoinOnly: z
+      .boolean()
+      .default(false)
+      .describe("Only show stablecoin pools (lower impermanent-loss risk)."),
+    minTvlUsd: z
+      .number()
+      .min(0)
+      .default(1_000_000)
+      .describe("Minimum pool TVL in USD — a liquidity floor to hide dust."),
+  }),
+});
+
+export const defiRevenueMeta = defineFrameMeta({
+  name: "defi-revenue",
+  label: "DeFi Fees & Revenue",
+  category: "crypto",
+  iconUrl: widgetIcon("defi-revenue"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Aggregate DeFi protocol fees across all of crypto — trailing-24h total with a daily trend. A read on real on-chain economic activity. Keyless (DeFiLlama).",
+  capabilities: ["fees-overview"],
+  source: SOURCES.defillama,
+  schema: z.object({}),
+});
+
+export const fundingComparisonMeta = defineFrameMeta({
+  name: "funding-comparison",
+  label: "Cross-Venue Funding",
+  category: "derivatives",
+  iconUrl: widgetIcon("funding-comparison"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Predicted perpetual funding rates compared across venues (Hyperliquid vs Binance vs Bybit), annualized, per coin — ranked by the cross-venue spread. A large spread flags a funding-arbitrage or crowded-positioning signal. Keyless (Hyperliquid predicted fundings).",
+  capabilities: ["funding-comparison"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(20)
+      .default(8)
+      .describe("How many coins (by funding spread) to show."),
+  }),
+});
+
+export const ethSupplyMeta = defineFrameMeta({
+  name: "eth-supply",
+  label: "ETH Ultrasound",
+  category: "crypto",
+  iconUrl: widgetIcon("eth-supply"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Ethereum supply economics — EIP-1559 burn vs PoS issuance and the resulting net annual supply growth. Negative growth = deflationary ('ultrasound money'). Shows the net rate, burn/issuance, and vs the counterfactual PoW issuance. Keyless (ultrasound.money).",
+  capabilities: ["eth-supply"],
+  source: SOURCES.ultrasound,
+  schema: z.object({}),
+});
+
+export const ethStakingMeta = defineFrameMeta({
+  name: "eth-staking",
+  label: "ETH Staking APR",
+  category: "crypto",
+  iconUrl: widgetIcon("eth-staking"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Ethereum staking yield — total validator APR broken into consensus issuance, MEV, and priority tips. The 'risk-free' ETH rate. Keyless (ultrasound.money).",
+  capabilities: ["eth-supply"],
+  source: SOURCES.ultrasound,
+  schema: z.object({}),
+});
+
+export const predictionMarketsMeta = defineFrameMeta({
+  name: "prediction-markets",
+  label: "Prediction Markets",
+  category: "sentiment",
+  iconUrl: widgetIcon("prediction-markets"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Live Polymarket odds — the highest-volume open prediction markets with their market-implied probabilities (macro, rates, crypto, politics). A real-money sentiment gauge. Keyless (Polymarket Gamma API).",
+  capabilities: ["prediction-markets"],
+  source: SOURCES.polymarket,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(20)
+      .default(6)
+      .describe("How many markets (by volume) to show."),
+  }),
+});
+
+export const etfFlowsMeta = defineFrameMeta({
+  name: "etf-flows",
+  label: "Spot ETF Flows",
+  category: "crypto",
+  iconUrl: widgetIcon("etf-flows"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Spot Bitcoin or Ethereum ETF daily net flows — per-issuer (IBIT, FBTC, GBTC, …) plus the total, with a recent trend. The biggest institutional-demand signal. Keyless (SoSoValue); best-effort, may show empty if the source is unavailable.",
+  capabilities: ["etf-flows"],
+  source: SOURCES.sosovalue,
+  schema: z.object({
+    asset: z
+      .enum(["btc", "eth"])
+      .default("btc")
+      .describe("Which spot-ETF complex to show."),
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(8)
+      .describe("How many issuers to list."),
+  }),
+});
+
+export const trendingCoinsMeta = defineFrameMeta({
+  name: "trending-coins",
+  label: "Trending Coins",
+  category: "crypto",
+  iconUrl: widgetIcon("trending-coins"),
+  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  description:
+    "The coins with the most search interest right now on CoinGecko — a retail-attention gauge. Shows rank, price, and 24h change. Keyless (CoinGecko).",
+  capabilities: ["trending-coins"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(7)
+      .describe("How many trending coins to show."),
+  }),
+});
+
+export const sectorPerformanceMeta = defineFrameMeta({
+  name: "sector-performance",
+  label: "Sector Performance",
+  category: "crypto",
+  iconUrl: widgetIcon("sector-performance"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Crypto sector rotation — market categories (L1s, DeFi, AI, memes, RWA, …) ranked by 24h market-cap change. Shows where capital is rotating. Keyless (CoinGecko categories).",
+  capabilities: ["sector-performance"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(4)
+      .max(30)
+      .default(10)
+      .describe("How many sectors to show."),
+  }),
+});
+
+export const macroCalendarMeta = defineFrameMeta({
+  name: "macro-calendar",
+  label: "Macro Calendar",
+  category: "macro",
+  iconUrl: widgetIcon("macro-calendar"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Countdown to upcoming scheduled macro events — defaults to the 2026 FOMC rate decisions, fully editable. No data feed; the dates are known in advance.",
+  capabilities: [],
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(12)
+      .default(5)
+      .describe("How many upcoming events to show."),
+    events: z
+      .array(
+        z.object({
+          date: z.string().describe("Event date, ISO YYYY-MM-DD."),
+          label: z.string().describe("Event name, e.g. 'FOMC decision'."),
+        }),
+      )
+      .default([
+        { date: "2026-07-29", label: "FOMC decision" },
+        { date: "2026-09-16", label: "FOMC decision" },
+        { date: "2026-10-28", label: "FOMC decision" },
+        { date: "2026-12-09", label: "FOMC decision" },
+        { date: "2027-01-27", label: "FOMC decision" },
+      ])
+      .describe(
+        "Scheduled events (date + label). Defaults to the 2026 FOMC meetings; edit to add CPI/NFP/earnings dates.",
+      ),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   newsFeedMeta,
@@ -2307,6 +2540,17 @@ export const frameMetas: FrameMeta[] = [
   volumeProfileMeta,
   dxyMeta,
   cycleSignalsMeta,
+  stablecoinSupplyMeta,
+  yieldScannerMeta,
+  defiRevenueMeta,
+  fundingComparisonMeta,
+  ethSupplyMeta,
+  ethStakingMeta,
+  predictionMarketsMeta,
+  etfFlowsMeta,
+  trendingCoinsMeta,
+  sectorPerformanceMeta,
+  macroCalendarMeta,
 ];
 
 /**

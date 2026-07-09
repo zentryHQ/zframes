@@ -38,6 +38,15 @@ export type Capability =
   | "price-history-daily"
   | "onchain-cycle-extras"
   | "dollar-index"
+  | "stablecoins"
+  | "yields"
+  | "fees-overview"
+  | "funding-comparison"
+  | "eth-supply"
+  | "prediction-markets"
+  | "etf-flows"
+  | "trending-coins"
+  | "sector-performance"
   | "portfolio";
 
 export interface DayStats {
@@ -766,6 +775,169 @@ export interface Portfolio {
 
 export type Unsubscribe = () => void;
 
+/** Total stablecoin supply — a market-wide liquidity-regime gauge. */
+export interface StablecoinSupply {
+  /** Total USD-pegged stablecoin circulating supply, USD. */
+  totalUsd: number;
+  /** Percent change vs 1 day / 7 days / 30 days ago. */
+  changePct1d: number;
+  changePct7d: number;
+  changePct30d: number;
+  /** Coarse trend: [30d ago, 7d ago, 1d ago, now], for a sparkline. */
+  history: SeriesPoint[];
+  /** Largest chains by stablecoin circulating supply, descending. */
+  topChains: { name: string; usd: number }[];
+}
+
+/** One DeFi yield pool. */
+export interface YieldPool {
+  /** DeFiLlama pool uuid. */
+  pool: string;
+  chain: string;
+  project: string;
+  symbol: string;
+  /** Total value locked, USD. */
+  tvlUsd: number;
+  /** Total APY, percent. */
+  apy: number;
+  /** Base (organic) APY, percent, when reported. */
+  apyBase: number | null;
+  /** Reward (incentive) APY, percent, when reported. */
+  apyReward: number | null;
+  /** 7-day APY change, percentage points, when reported. */
+  apyPct7D: number | null;
+  /** Whether the pool is a stablecoin pool. */
+  stablecoin: boolean;
+  /** Impermanent-loss risk flag ("no" | "yes"). */
+  ilRisk: string;
+}
+
+/** Aggregate DeFi fees/revenue snapshot with a trend. */
+export interface FeesOverview {
+  /** Trailing-24h protocol fees across all of DeFi, USD. */
+  total24h: number;
+  /** Trailing-7d fees, USD (when reported). */
+  total7d: number | null;
+  /** 1-day change in 24h fees, percent (when reported). */
+  changePct: number | null;
+  /** Daily fees history, oldest→newest. */
+  history: SeriesPoint[];
+}
+
+/** One venue's funding rate for a coin, annualized for cross-venue comparison. */
+export interface FundingVenueRate {
+  /** Venue label, e.g. "Hyperliquid", "Binance", "Bybit". */
+  venue: string;
+  /** Raw funding rate for the interval, decimal. */
+  rawRate: number;
+  /** Funding interval in hours (varies by venue — 1h vs 8h vs 4h). */
+  intervalHours: number;
+  /** Annualized funding, percent (rawRate × periods-per-year × 100). */
+  annualizedPct: number;
+}
+
+/** Cross-venue predicted funding for one coin. */
+export interface FundingComparison {
+  /** Coin symbol, e.g. "BTC". */
+  coin: string;
+  /** Per-venue annualized funding. */
+  venues: FundingVenueRate[];
+  /** Max − min annualized funding across venues, percentage points. */
+  spreadPct: number;
+}
+
+/** Ethereum supply economics — EIP-1559 burn vs PoS issuance, net growth, staking. */
+export interface EthSupply {
+  /** Current total ETH supply, coins. */
+  supply: number;
+  /** Annualized burn, ETH/yr. */
+  burnRateYearlyEth: number;
+  /** Annualized PoS issuance, ETH/yr. */
+  issuanceRateYearlyEth: number;
+  /** Net annual supply growth, percent (negative = deflationary). */
+  supplyGrowthYearlyPct: number;
+  /** Counterfactual PoW annual supply growth, percent. */
+  supplyGrowthYearlyPowPct: number;
+  /** Total staking yield, percent (issuance + MEV + tips APR). */
+  stakingAprPct: number;
+  /** Live burn, ETH/minute. */
+  burnEthPerMin: number;
+  /** Recent supply history, oldest→newest, for a sparkline. */
+  history: SeriesPoint[];
+}
+
+/** One outcome of a prediction market, with its implied probability. */
+export interface PredictionOutcome {
+  /** Outcome label, e.g. "Yes". */
+  label: string;
+  /** Market-implied probability, 0–1. */
+  prob: number;
+}
+
+/** One prediction-market question with outcome probabilities. */
+export interface PredictionMarket {
+  /** The market question. */
+  question: string;
+  /** Outcomes with implied probabilities. */
+  outcomes: PredictionOutcome[];
+  /** Trailing-24h volume, USD. */
+  volume24h: number;
+  /** ISO end date. */
+  endDate: string;
+}
+
+/** One issuer's spot-ETF flow figures. */
+export interface EtfIssuerFlow {
+  ticker: string;
+  institute: string;
+  /** Latest-day net inflow, USD (negative = outflow). */
+  dailyNetInflow: number;
+  /** Net assets under management, USD. */
+  netAssets: number;
+  /** Cumulative net inflow since inception, USD. */
+  cumNetInflow: number;
+}
+
+/** Spot-ETF flows for one asset (BTC or ETH), per-issuer + total, with history. */
+export interface EtfFlows {
+  /** "btc" | "eth". */
+  asset: string;
+  /** ISO date of the latest reading. */
+  date: string;
+  /** Latest-day total net inflow across all issuers, USD. */
+  dailyTotalNetInflow: number;
+  /** Cumulative net inflow, USD. */
+  cumNetInflow: number;
+  /** Total net assets across all issuers, USD. */
+  totalNetAssets: number;
+  /** Per-issuer breakdown, descending by net assets. */
+  issuers: EtfIssuerFlow[];
+  /** Daily total-net-inflow history, oldest→newest. */
+  history: SeriesPoint[];
+}
+
+/** One trending coin (by search interest). */
+export interface TrendingCoin {
+  id: string;
+  name: string;
+  symbol: string;
+  /** Market-cap rank, when known. */
+  rank: number | null;
+  /** Current price, USD, when reported. */
+  price: number | null;
+  /** 24h price change, percent, when reported. */
+  changePct24h: number | null;
+}
+
+/** One market sector / category with its aggregate performance. */
+export interface MarketSector {
+  name: string;
+  /** Aggregate market cap, USD. */
+  marketCap: number;
+  /** 24h market-cap change, percent. */
+  changePct24h: number;
+}
+
 /**
  * A data provider fulfills frame capabilities. Every data method is optional —
  * a provider implements the methods matching the capabilities it advertises,
@@ -819,6 +991,24 @@ export interface MarketDataProvider {
   getDailyCloseHistory?(asset?: string): Promise<SeriesPoint[]>;
   /** Bitcoin on-chain cycle oscillators (SOPR, Puell, Reserve Risk). */
   getOnchainExtras?(): Promise<OnchainExtras>;
+  /** Total stablecoin supply + change + per-chain distribution. */
+  getStablecoinSupply?(): Promise<StablecoinSupply>;
+  /** DeFi yield pools (descending by TVL); frames filter/sort client-side. */
+  getYieldPools?(): Promise<YieldPool[]>;
+  /** Aggregate DeFi fees/revenue with a daily trend. */
+  getFeesOverview?(): Promise<FeesOverview>;
+  /** Cross-venue predicted funding per coin (spread across venues). */
+  getFundingComparison?(): Promise<FundingComparison[]>;
+  /** Ethereum supply economics (burn/issuance/net growth/staking). */
+  getEthSupply?(): Promise<EthSupply>;
+  /** Prediction-market questions with outcome probabilities, by volume. */
+  getPredictionMarkets?(limit?: number): Promise<PredictionMarket[]>;
+  /** Spot-ETF flows for `asset` ("btc" | "eth"): per-issuer + total + history. */
+  getEtfFlows?(asset: string): Promise<EtfFlows>;
+  /** Trending coins (by search interest). */
+  getTrendingCoins?(): Promise<TrendingCoin[]>;
+  /** Market sectors / categories with aggregate performance. */
+  getSectorPerformance?(): Promise<MarketSector[]>;
   /** Treasury average interest rates by security class. */
   getTreasuryAverageRates?(): Promise<TreasuryAverageRate[]>;
   /** US Treasury daily par yield curve (latest available date). */

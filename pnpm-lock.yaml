@@ -591,6 +591,19 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-etf-flows:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-finra:
     dependencies:
       '@zframes/data-primitives':
@@ -682,6 +695,19 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-polymarket:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-sec:
     dependencies:
       '@zframes/data-primitives':
@@ -696,6 +722,19 @@ importers:
         version: 5.9.3
 
   packages/provider-treasury:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-ultrasound:
     dependencies:
       '@zframes/data-primitives':
         specifier: workspace:*
@@ -747,6 +786,9 @@ importers:
       '@zframes/provider-deribit':
         specifier: workspace:*
         version: link:../provider-deribit
+      '@zframes/provider-etf-flows':
+        specifier: workspace:*
+        version: link:../provider-etf-flows
       '@zframes/provider-finra':
         specifier: workspace:*
         version: link:../provider-finra
@@ -768,12 +810,18 @@ importers:
       '@zframes/provider-ofr':
         specifier: workspace:*
         version: link:../provider-ofr
+      '@zframes/provider-polymarket':
+        specifier: workspace:*
+        version: link:../provider-polymarket
       '@zframes/provider-sec':
         specifier: workspace:*
         version: link:../provider-sec
       '@zframes/provider-treasury':
         specifier: workspace:*
         version: link:../provider-treasury
+      '@zframes/provider-ultrasound':
+        specifier: workspace:*
+        version: link:../provider-ultrasound
       '@zframes/spec':
         specifier: workspace:*
         version: link:../spec

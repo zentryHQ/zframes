@@ -1,0 +1,27 @@
+{
+  "name": "@zframes/provider-ultrasound",
+  "version": "0.0.0",
+  "description": "Free, no-API-key zframes data provider for Ethereum supply economics via ultrasound.money — EIP-1559 burn, PoS issuance, net supply growth, and staking APR (eth-supply capability).",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/provider-ultrasound"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/data-primitives": "workspace:*",
+    "@zframes/spec": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
