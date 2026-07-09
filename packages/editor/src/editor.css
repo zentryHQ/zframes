@@ -36,6 +36,10 @@
   flex: 1;
   min-width: 0;
   min-height: 360px;
+  /* Horizontal grid inset (spec.grid.paddingX): pad the wrapper so the
+     GridStack element inside shrinks — its items are positioned in % of that
+     element's width, so they reflow live with no JS. */
+  padding-inline: var(--zf-pad-x, 0);
   border-radius: 18px;
   border: 1px dashed transparent;
   /* Border tween is the original; the rest drive the mode-switch dissolve-in
