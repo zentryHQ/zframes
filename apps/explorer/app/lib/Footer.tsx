@@ -38,7 +38,6 @@ export function Footer() {
       <div className="border-t border-white/[0.06]">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} zframes</span>
-          <span className="font-mono">stocks · crypto · macro — keyless, live</span>
         </div>
       </div>
     </footer>
