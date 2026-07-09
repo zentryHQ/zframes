@@ -21,7 +21,7 @@ export function Footer() {
           <span className="col-span-2 mb-1 text-xs font-medium uppercase tracking-widest text-white/45">
             Explore
           </span>
-          <Link href="/" className="text-white/65 transition-colors hover:text-white">
+          <Link href="/gallery" className="text-white/65 transition-colors hover:text-white">
             Gallery
           </Link>
           <Link href="/catalogue" className="text-white/65 transition-colors hover:text-white">

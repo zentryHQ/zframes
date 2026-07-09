@@ -1,10 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { allFrameMetas } from "@zframes/frames/schemas";
-import { CommunitySection } from "@/app/lib/CommunitySection";
 import { CopyCommand } from "@/app/lib/CopyCommand";
-import { CURATED } from "@/app/lib/curated-dashboards";
-import { DashboardCard } from "@/app/lib/DashboardCard";
 import { SectionHeading } from "@/app/lib/SectionHeading";
 
 // Gallery home — the public front door. Server-rendered (no live frames here, so
@@ -41,7 +38,7 @@ export default function GalleryHome() {
 
           <div className="animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "180ms" }}>
             <Link
-              href="#curated"
+              href="/gallery"
               className="glow-brand zf-press rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5"
             >
               Browse the gallery
@@ -163,32 +160,25 @@ export default function GalleryHome() {
         </div>
       </section>
 
-      {/* ── Curated ──────────────────────────────────────────────────────── */}
-      <section id="curated" className="mx-auto max-w-7xl scroll-mt-20 px-6 pt-20">
-        <SectionHeading
-          eyebrow="Curated"
-          title="Boards to start from"
-          description="Hand-built dashboards spanning crypto majors, on-chain data, and official US macro. Preview any one live, then make it yours."
-        />
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {CURATED.map((d) => (
-            <DashboardCard
-              key={d.id}
-              href={`/d/${d.id}`}
-              title={d.title}
-              description={d.description}
-              tags={d.tags}
-              frameCount={d.spec.frames.length}
-              frames={d.spec.frames}
-              thumbSrc={`/api/thumbs/${d.id}`}
-            />
-          ))}
+      {/* ── Browse CTA ───────────────────────────────────────────────────── */}
+      {/* The curated + community grids live on their own page now (/gallery);
+          the front door points to them instead of listing them inline. */}
+      <section className="mx-auto max-w-7xl px-6 pb-24 pt-20">
+        <div className="zf-surface flex flex-col items-center gap-4 px-6 py-14 text-center">
+          <h2 className="text-balance text-2xl font-bold tracking-tight text-white">
+            Browse the gallery
+          </h2>
+          <p className="max-w-xl text-pretty text-sm leading-relaxed text-white/65">
+            Curated boards and dashboards published by the community — preview any
+            one live with real data, then fork it onto your machine.
+          </p>
+          <Link
+            href="/gallery"
+            className="glow-brand zf-press rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5"
+          >
+            Open the gallery →
+          </Link>
         </div>
-      </section>
-
-      {/* ── Community ────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-6 pt-20">
-        <CommunitySection />
       </section>
     </main>
   );
