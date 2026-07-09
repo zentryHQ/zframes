@@ -763,6 +763,68 @@ body:has(.ui-draggable-dragging) * {
   color: rgba(255, 255, 255, 0.4);
   margin: -4px 0 8px;
 }
+/* Palette search field — mirrors the per-frame symbol combobox chrome. */
+.zf-palette-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  margin: 0 0 8px;
+  padding: 0 9px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: rgba(0, 0, 0, 0.28);
+  color: rgba(255, 255, 255, 0.48);
+}
+.zf-palette-search:focus-within {
+  border-color: var(--zf-accent);
+  box-shadow: 0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.12);
+}
+.zf-palette-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 12px;
+}
+.zf-palette-search input::placeholder {
+  color: rgba(255, 255, 255, 0.34);
+}
+.zf-palette-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition:
+    background 0.15s var(--zf-ease-out),
+    color 0.15s var(--zf-ease-out);
+}
+.zf-palette-search-clear:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.zf-palette-search-clear svg {
+  width: 12px;
+  height: 12px;
+}
+.zf-palette-empty {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 6px 2px;
+  margin: 0;
+}
 /* Frame palette: a category accordion. Each group is a bordered section whose
    header toggles its body open/closed, so the full catalogue reads as a short,
    scannable menu rather than one long scroll. */
