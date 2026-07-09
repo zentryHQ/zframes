@@ -605,7 +605,7 @@ export const fundamentalsMeta = defineFrameMeta({
   label: "Fundamentals",
   category: "equities",
   iconUrl: widgetIcon("fundamentals"),
-  layout: { w: 4, h: 3, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
   description:
     "Headline financials for one US-listed company from SEC EDGAR XBRL company facts — revenue, net income, total assets, shareholders' equity, diluted EPS, and shares outstanding, each labelled with its fiscal period. Income-statement figures are the latest full fiscal year; balance-sheet figures are the latest reported quarter. Keyless official data that updates only when the company files (annual/quarterly), not a live feed. Requires the zframes runtime's data proxy (it ships with `zframes serve` / `vite dev`); resolve by ticker (bundled top-500 map) or raw SEC CIK.",
   capabilities: ["fundamentals"],
@@ -820,7 +820,7 @@ export const journalScoreMeta = defineFrameMeta({
   label: "Journal · Scoreboard",
   category: "journal",
   iconUrl: widgetIcon("journal-score"),
-  layout: { w: 4, h: 2, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 3 },
   description:
     "The decision-journal scoreboard — a story, not a spreadsheet: where your judgment has an edge, where it leaks, and how calibrated your confidence is, plus a one-line read from zAI. Aggregates the calls logged via Journal · Log.",
   capabilities: [],
@@ -1749,7 +1749,7 @@ export const btcFeesMeta = defineFrameMeta({
   label: "BTC Fees",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-fees"),
-  layout: { w: 3, h: 2, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 3 },
   description:
     "Recommended Bitcoin on-chain fee rates (sat/vB) from mempool.space — the next-block ('fastest'), ~30-minute, ~1-hour, economy, and minimum tiers, as a compact gauge. Live mempool data, keyless; updates every ~30s.",
   capabilities: ["btc-fees"],
@@ -2258,7 +2258,7 @@ export const yieldScannerMeta = defineFrameMeta({
   label: "Yield Scanner",
   category: "crypto",
   iconUrl: widgetIcon("yield-scanner"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
   description:
     "Top DeFi yield pools ranked by APY, across every chain and protocol — the 'where's the yield' board. Filter to stablecoin pools or a TVL floor. Shows APY (base + reward), TVL, chain, and IL risk. Keyless (DeFiLlama yields).",
   capabilities: ["yields"],
@@ -2301,7 +2301,7 @@ export const fundingComparisonMeta = defineFrameMeta({
   label: "Cross-Venue Funding",
   category: "derivatives",
   iconUrl: widgetIcon("funding-comparison"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
   description:
     "Predicted perpetual funding rates compared across venues (Hyperliquid vs Binance vs Bybit), annualized, per coin — ranked by the cross-venue spread. A large spread flags a funding-arbitrage or crowded-positioning signal. Keyless (Hyperliquid predicted fundings).",
   capabilities: ["funding-comparison"],
@@ -2322,7 +2322,7 @@ export const ethSupplyMeta = defineFrameMeta({
   label: "ETH Ultrasound",
   category: "crypto",
   iconUrl: widgetIcon("eth-supply"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 4, h: 3, minW: 2, minH: 2 },
   description:
     "Ethereum supply economics — EIP-1559 burn vs PoS issuance and the resulting net annual supply growth. Negative growth = deflationary ('ultrasound money'). Shows the net rate, burn/issuance, and vs the counterfactual PoW issuance. Keyless (ultrasound.money).",
   capabilities: ["eth-supply"],
@@ -2436,7 +2436,7 @@ export const macroCalendarMeta = defineFrameMeta({
   label: "Macro Calendar",
   category: "macro",
   iconUrl: widgetIcon("macro-calendar"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2 },
   description:
     "Countdown to upcoming scheduled macro events — defaults to the 2026 FOMC rate decisions, fully editable. No data feed; the dates are known in advance.",
   capabilities: [],
@@ -2475,7 +2475,7 @@ export const stablecoinChainsMeta = defineFrameMeta({
   label: "Stablecoin Chains",
   category: "crypto",
   iconUrl: widgetIcon("stablecoin-chains"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
   description:
     "Where stablecoin liquidity sits — a treemap of the largest chains by stablecoin circulating supply. Complements the Stablecoin Supply total with the cross-chain distribution. Keyless (DeFiLlama).",
   capabilities: ["stablecoins"],
@@ -2496,7 +2496,7 @@ export const sectorTreemapMeta = defineFrameMeta({
   label: "Sector Treemap",
   category: "crypto",
   iconUrl: widgetIcon("sector-treemap"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
   description:
     "Crypto sector rotation as a treemap — each category sized by market cap and colored by 24h change (green up / red down). The at-a-glance view of where capital is flowing. Keyless (CoinGecko categories).",
   capabilities: ["sector-performance"],
@@ -2517,7 +2517,7 @@ export const etfFlowsChartMeta = defineFrameMeta({
   label: "ETF Flows Chart",
   category: "crypto",
   iconUrl: widgetIcon("etf-flows-chart"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3 },
   description:
     "Spot BTC or ETH ETF daily net flows over time — the inflow/outflow trend as a line, complementing the per-issuer snapshot. Keyless (SoSoValue); best-effort, may be empty if the source is unavailable.",
   capabilities: ["etf-flows"],
@@ -2539,7 +2539,7 @@ export const realizedPriceMeta = defineFrameMeta({
   label: "Realized Price",
   category: "onchain",
   iconUrl: widgetIcon("realized-price"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 4, minH: 3 },
   description:
     "Bitcoin market price vs realized price — the on-chain cost basis of all coins. Market above realized = aggregate profit; crossing below realized has marked cycle bottoms. Keyless (Coin Metrics).",
   capabilities: ["onchain-valuation"],
