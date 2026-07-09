@@ -2468,6 +2468,108 @@ export const macroCalendarMeta = defineFrameMeta({
   }),
 });
 
+// ── Second-view frames over data already fetched (treemaps / history charts) ──
+
+export const stablecoinChainsMeta = defineFrameMeta({
+  name: "stablecoin-chains",
+  label: "Stablecoin Chains",
+  category: "crypto",
+  iconUrl: widgetIcon("stablecoin-chains"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Where stablecoin liquidity sits — a treemap of the largest chains by stablecoin circulating supply. Complements the Stablecoin Supply total with the cross-chain distribution. Keyless (DeFiLlama).",
+  capabilities: ["stablecoins"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(4)
+      .max(16)
+      .default(12)
+      .describe("How many chains to show in the treemap."),
+  }),
+});
+
+export const sectorTreemapMeta = defineFrameMeta({
+  name: "sector-treemap",
+  label: "Sector Treemap",
+  category: "crypto",
+  iconUrl: widgetIcon("sector-treemap"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Crypto sector rotation as a treemap — each category sized by market cap and colored by 24h change (green up / red down). The at-a-glance view of where capital is flowing. Keyless (CoinGecko categories).",
+  capabilities: ["sector-performance"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(6)
+      .max(30)
+      .default(16)
+      .describe("How many sectors to show."),
+  }),
+});
+
+export const etfFlowsChartMeta = defineFrameMeta({
+  name: "etf-flows-chart",
+  label: "ETF Flows Chart",
+  category: "crypto",
+  iconUrl: widgetIcon("etf-flows-chart"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Spot BTC or ETH ETF daily net flows over time — the inflow/outflow trend as a line, complementing the per-issuer snapshot. Keyless (SoSoValue); best-effort, may be empty if the source is unavailable.",
+  capabilities: ["etf-flows"],
+  source: SOURCES.sosovalue,
+  schema: z.object({
+    asset: z
+      .enum(["btc", "eth"])
+      .default("btc")
+      .describe("Which spot-ETF complex to chart."),
+    lookback: z
+      .enum(["1M", "3M", "6M"])
+      .default("3M")
+      .describe("History window for the flow chart."),
+  }),
+});
+
+export const realizedPriceMeta = defineFrameMeta({
+  name: "realized-price",
+  label: "Realized Price",
+  category: "onchain",
+  iconUrl: widgetIcon("realized-price"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Bitcoin market price vs realized price — the on-chain cost basis of all coins. Market above realized = aggregate profit; crossing below realized has marked cycle bottoms. Keyless (Coin Metrics).",
+  capabilities: ["onchain-valuation"],
+  source: SOURCES.coinMetrics,
+  schema: z.object({
+    window: z
+      .enum(["1Y", "2Y", "4Y", "all"])
+      .default("2Y")
+      .describe("How much history the chart shows."),
+  }),
+});
+
+export const reserveRiskMeta = defineFrameMeta({
+  name: "reserve-risk",
+  label: "Reserve Risk",
+  category: "onchain",
+  iconUrl: widgetIcon("reserve-risk"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Reserve Risk — long-term-holder conviction relative to price. Low values = strong conviction at a low price (attractive risk/reward, cycle-bottom territory); high values = conviction spent into a high price. Keyless (bitcoin-data.com).",
+  capabilities: ["onchain-cycle-extras"],
+  source: SOURCES.bitcoinData,
+  schema: z.object({
+    window: z
+      .enum(["90D", "180D", "1Y"])
+      .default("1Y")
+      .describe("How much history the sparkline shows."),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   newsFeedMeta,
@@ -2551,6 +2653,11 @@ export const frameMetas: FrameMeta[] = [
   trendingCoinsMeta,
   sectorPerformanceMeta,
   macroCalendarMeta,
+  stablecoinChainsMeta,
+  sectorTreemapMeta,
+  etfFlowsChartMeta,
+  realizedPriceMeta,
+  reserveRiskMeta,
 ];
 
 /**

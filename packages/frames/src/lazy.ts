@@ -291,6 +291,22 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "macro-calendar": {
     load: () => import("./macro-calendar").then((m) => m.macroCalendarFrame),
   },
+  "stablecoin-chains": {
+    load: () =>
+      import("./stablecoin-chains").then((m) => m.stablecoinChainsFrame),
+  },
+  "sector-treemap": {
+    load: () => import("./sector-treemap").then((m) => m.sectorTreemapFrame),
+  },
+  "etf-flows-chart": {
+    load: () => import("./etf-flows-chart").then((m) => m.etfFlowsChartFrame),
+  },
+  "realized-price": {
+    load: () => import("./realized-price").then((m) => m.realizedPriceFrame),
+  },
+  "reserve-risk": {
+    load: () => import("./reserve-risk").then((m) => m.reserveRiskFrame),
+  },
   "holiday-calendar": {
     load: () =>
       import("./holiday-calendar").then((m) => m.holidayCalendarFrame),
