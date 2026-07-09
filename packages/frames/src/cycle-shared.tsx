@@ -15,7 +15,7 @@ export interface Zone {
  * (which carry gain/loss meaning and rotate with the theme) — these just mark
  * "neutral" and "caution/elevated" and are safe as literals.
  */
-export const ZONE_NEUTRAL = "#94a3b8";
+export const ZONE_NEUTRAL = "#cbd5e1";
 export const ZONE_WARN = "#f5a524";
 
 /**
