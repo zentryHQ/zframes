@@ -72,3 +72,32 @@ export function catalogueSummary(
   }
   return lines.join("\n");
 }
+
+/**
+ * Free-text frame search, shared by the editor palette (customise) and the
+ * explorer catalogue (browse) so both filter identically. Tokenise the query
+ * once with {@link frameSearchTokens}, then test each frame with
+ * {@link frameMatchesSearch}: every whitespace-separated token must appear in
+ * the frame's label / description / name OR its category label — so "crypto"
+ * surfaces the whole family. An empty query yields no tokens and matches
+ * everything.
+ *
+ * React-free, and kept here (not beside FRAME_CATEGORIES) so the Vite Node
+ * config loader can reach it: callers pass the category label in, so there is
+ * no value import of "./frame" (same footgun noted on {@link catalogueSummary}).
+ */
+export function frameSearchTokens(query: string): string[] {
+  const q = query.trim().toLowerCase();
+  return q ? q.split(/\s+/) : [];
+}
+
+export function frameMatchesSearch(
+  meta: { name: string; label: string; description?: string },
+  categoryLabel: string,
+  tokens: string[],
+): boolean {
+  if (tokens.length === 0) return true;
+  const haystack =
+    `${meta.label} ${meta.description ?? ""} ${meta.name} ${categoryLabel}`.toLowerCase();
+  return tokens.every((token) => haystack.includes(token));
+}

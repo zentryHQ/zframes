@@ -26,6 +26,8 @@ exports[`root @zframes/core barrel surface is pinned 1`] = `
   "createRegistry",
   "defineFrame",
   "defineFrameMeta",
+  "frameMatchesSearch",
+  "frameSearchTokens",
   "sceneBaseHue",
   "useBtcBlocks",
   "useBtcFees",
