@@ -4,7 +4,7 @@ import {
   type GridStackNode,
 } from "gridstack";
 import "gridstack/dist/gridstack.min.css";
-import { SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
@@ -434,6 +434,34 @@ export function DashboardEditor({
         frames: [...g.frames].sort((a, b) => a.name.localeCompare(b.name)),
       }));
   }, [registry]);
+
+  // Free-text palette search. An empty query leaves the accordion untouched; a
+  // query filters frames by label / description / name and by their category
+  // label (so "crypto" surfaces the whole family), requiring every
+  // whitespace-separated token to match somewhere. Matching categories are
+  // force-expanded in the render so results are visible without a click.
+  const [paletteQuery, setPaletteQuery] = useState("");
+  const paletteQueryTokens = useMemo(() => {
+    const q = paletteQuery.trim().toLowerCase();
+    return q ? q.split(/\s+/) : [];
+  }, [paletteQuery]);
+  const paletteSearching = paletteQueryTokens.length > 0;
+  const filteredGroups = useMemo(() => {
+    if (paletteQueryTokens.length === 0) return paletteGroups;
+    return paletteGroups
+      .map((group) => {
+        const cat = group.label.toLowerCase();
+        return {
+          ...group,
+          frames: group.frames.filter((def) => {
+            const hay =
+              `${def.label} ${def.description ?? ""} ${def.name} ${cat}`.toLowerCase();
+            return paletteQueryTokens.every((token) => hay.includes(token));
+          }),
+        };
+      })
+      .filter((group) => group.frames.length > 0);
+  }, [paletteGroups, paletteQueryTokens]);
 
   // The palette is a category accordion — one collapsible section per group, so
   // the ~40-frame catalogue reads as a scannable menu instead of an endless
@@ -2068,12 +2096,54 @@ export function DashboardEditor({
                 <section>
                   <h3 className="zf-rail-title">Add a frame</h3>
                   <p className="zf-palette-hint">
-                    Open a category, then click a frame to add it — or drag it
-                    onto the grid.
+                    Search, or open a category, then click a frame to add it — or
+                    drag it onto the grid.
                   </p>
+                  <div className="zf-palette-search">
+                    <Search size={14} aria-hidden="true" />
+                    <input
+                      type="text"
+                      value={paletteQuery}
+                      placeholder="Search frames…"
+                      aria-label="Search frames"
+                      autoComplete="off"
+                      spellCheck={false}
+                      onChange={(e) => setPaletteQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape" && paletteQuery) {
+                          e.preventDefault();
+                          setPaletteQuery("");
+                        }
+                      }}
+                    />
+                    {paletteQuery && (
+                      <button
+                        type="button"
+                        className="zf-palette-search-clear"
+                        aria-label="Clear search"
+                        onClick={() => setPaletteQuery("")}
+                      >
+                        <svg viewBox="0 0 16 16" aria-hidden="true">
+                          <path
+                            d="M4 4l8 8M12 4l-8 8"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.6"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
                   <div className="zf-palette-cats">
-                    {paletteGroups.map((group) => {
-                      const open = expandedCats.has(group.key);
+                    {paletteSearching && filteredGroups.length === 0 && (
+                      <p className="zf-palette-empty">
+                        No frames match “{paletteQuery.trim()}”.
+                      </p>
+                    )}
+                    {filteredGroups.map((group) => {
+                      const open =
+                        paletteSearching || expandedCats.has(group.key);
                       return (
                         <div
                           key={group.key}
