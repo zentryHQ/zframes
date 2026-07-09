@@ -13,13 +13,25 @@ export const createAxes = (
   formatValue?: (value: number) => string,
   innerWidth?: number,
 ): void => {
-  // d3 treats .ticks(n) as a hint and rounds time scales to calendar
-  // boundaries, so narrow charts overflow with overlapping labels.
-  // ~70px per "MMM dd" label keeps them readable at any frame width.
-  const xTicks =
+  // d3 treats .ticks(n) as a HINT and rounds time scales to calendar
+  // boundaries, so .ticks() can still emit more labels than asked and overlap
+  // on narrow charts (the reported "garbled" x-axis was smashed-together
+  // labels). Derive explicit tickValues and hard-cap the count so labels stay
+  // ~72px apart at any frame width, regardless of d3's calendar rounding.
+  const MIN_LABEL_PX = 72; // ~ "Jul 09" at 12px/700 + breathing room
+  const maxXTicks =
     innerWidth !== undefined
-      ? Math.max(2, Math.min(AXIS.xTicks, Math.floor(innerWidth / 70)))
+      ? Math.max(
+          2,
+          Math.min(AXIS.xTicks, Math.floor(innerWidth / MIN_LABEL_PX)),
+        )
       : AXIS.xTicks;
+  const candidateXTicks = xScale.ticks(maxXTicks);
+  const xTickStride = Math.max(
+    1,
+    Math.ceil(candidateXTicks.length / maxXTicks),
+  );
+  const xTickValues = candidateXTicks.filter((_, i) => i % xTickStride === 0);
 
   // X-axis
   const xAxisG = g
@@ -28,7 +40,7 @@ export const createAxes = (
     .call(
       d3
         .axisBottom(xScale)
-        .ticks(xTicks)
+        .tickValues(xTickValues)
         .tickSize(AXIS.tickSize)
         .tickFormat((domainValue: Date | d3.NumberValue) => {
           if (domainValue instanceof Date) {
