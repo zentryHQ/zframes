@@ -28,9 +28,13 @@ export function TreemapLeaf({
       className="flex h-full w-full flex-col items-center justify-center overflow-hidden p-1 text-center"
       title={title}
     >
-      <span className="body-sm truncate font-bold text-strong">{label}</span>
+      <span className="body-sm block w-full min-w-0 truncate font-bold text-strong">
+        {label}
+      </span>
       {!compact && secondary && (
-        <span className="caption text-soft">{secondary}</span>
+        <span className="caption block w-full min-w-0 truncate text-soft">
+          {secondary}
+        </span>
       )}
     </div>
   );
