@@ -7,6 +7,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import type { DashboardSpec, FrameRegistry } from "@zframes/core";
+import { useReducedMotion } from "@zframes/unicorn";
 import { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/spec/routes";
 import { OrbCanvas } from "./unicorn/orb-scene";
 import { useScreenSnapshot } from "./screen-context";
@@ -27,9 +28,11 @@ import type { UnicornSceneType } from "./unicorn/types";
 // rendered into the button and sped up while thinking. If the SDK/scene fails
 // to load it falls back to the CSS orb baked into the button below.
 
-// Idle vs thinking animation speed of the orb's effect layer (mirrors Nexus's
-// AIAvatar "normal" preset: 1 idle, 5 loading).
+// Animation speed of the orb's effect layer: gentle at rest, a small bump on
+// hover (anticipation — it "leans in" before you click), fast while thinking
+// (mirrors Nexus's AIAvatar "normal" preset: 1 idle, 5 loading).
 const SPEED_IDLE = 1;
+const SPEED_HOVER = 2;
 const SPEED_BUSY = 5;
 const EFFECT_LAYER_ID = "effect2";
 
@@ -45,6 +48,18 @@ const MAX_MESSAGES = 8;
 // long it sits invisible mid-swap (matches the CSS opacity transition).
 const PLACEHOLDER_HOLD_MS = 3600;
 const PLACEHOLDER_FADE_MS = 320;
+
+// Idle attention nudge: how long the orb sits untouched (closed + idle, thread
+// still empty) before it floats a single tailored suggestion beside itself, and
+// how long that hint holds before fading. Re-arms while idle; only while no
+// question has been asked yet, so it reads as a first-run affordance, not a nag.
+const NUDGE_IDLE_MS = 38000;
+const NUDGE_VISIBLE_MS = 7200;
+
+// Streaming heartbeat: minimum gap between orb pulses while answer tokens stream,
+// so the orb beats a few times a second (visibly "talking") rather than once per
+// token in a flood.
+const BEAT_THROTTLE_MS = 130;
 
 interface Agent {
   id: string;
@@ -221,6 +236,45 @@ const ORB_CSS = `
 }
 .zai-agent:hover { background: hsla(263, 80%, 60%, 0.28); }
 
+/* Idle attention nudge: after a stretch of inactivity the orb floats a single
+   tailored suggestion beside itself ("here's something you could ask"), then
+   fades it away and re-arms while idle. Clicking it opens the orb prefilled with
+   that question. Always in the DOM (so the fade transition plays) and revealed
+   by data-nudge on the dock; cleared the moment you hover the orb or open it. */
+.zai-nudge {
+  position: absolute;
+  right: 72px;
+  bottom: 14px;
+  max-width: 244px;
+  margin: 0;
+  padding: 9px 13px;
+  border-radius: 14px 14px 4px 14px;
+  background: rgba(12, 13, 20, 0.82);
+  border: 1px solid hsla(263, 80%, 72%, 0.28);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 22px -10px rgba(0, 0, 0, 0.55);
+  color: #e7e9f3;
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateX(10px) scale(0.96);
+  transform-origin: bottom right;
+  pointer-events: none;
+  transition:
+    opacity 0.32s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    transform 0.32s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.zai-dock[data-nudge="true"] .zai-nudge {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+  pointer-events: auto;
+}
+.zai-nudge:hover { border-color: hsla(263, 85%, 78%, 0.45); }
+
 /* The WebGL orb scene IS the orb — clipped to a circle and faded in once ready.
    The button is just a transparent container; nothing is drawn behind the orb. */
 .zai-orb-canvas {
@@ -229,10 +283,44 @@ const ORB_CSS = `
   border-radius: 9999px;
   overflow: hidden;
   opacity: 0;
-  transition: opacity 0.45s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  transform: scale(0.82);
+  transition:
+    opacity 0.45s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    transform 0.45s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   pointer-events: none;
 }
-.zai-orb[data-webgl="true"] .zai-orb-canvas { opacity: 1; }
+/* Wake-in bloom: the first time the WebGL orb is ready it scales up from small
+   with a slight overshoot and fades in, so it "boots" into the dock instead of
+   just appearing. One-shot (fill: both) — once it settles the orb rests at
+   scale 1, where the breathing halo (below) takes over. */
+.zai-orb[data-webgl="true"] .zai-orb-canvas {
+  opacity: 1;
+  transform: scale(1);
+  animation: zai-orb-wake 0.7s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1))
+    both;
+}
+@keyframes zai-orb-wake {
+  0% { opacity: 0; transform: scale(0.7); }
+  60% { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+/* Streaming heartbeat: each burst of answer tokens fires a quick expanding ring
+   from the orb, so it visibly "pulses" as it talks. Keyed on a beat counter in
+   JS (throttled), so each increment remounts the element and replays the
+   one-shot ring. */
+.zai-orb-beat {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid hsla(263, 92%, 80%, 0.6);
+  pointer-events: none;
+  animation: zai-orb-beat 0.52s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1))
+    forwards;
+}
+@keyframes zai-orb-beat {
+  from { opacity: 0.65; transform: scale(0.92); }
+  to { opacity: 0; transform: scale(1.55); }
+}
 .zai-orb-canvas canvas {
   width: 100% !important;
   height: 100% !important;
@@ -253,6 +341,56 @@ const ORB_CSS = `
 }
 .zai-orb:hover { transform: scale(1.06); }
 .zai-orb:active { transform: scale(0.97); }
+/* Breathing halo: a soft violet aura ringing the resting orb, slowly pulsing so
+   the idle orb reads as alive (a slow breath) rather than a static button. It's
+   a ::before behind the canvas, inset negative so only the glow ring past the
+   orb edge shows. Boosted on hover, faster + brighter while thinking. */
+.zai-orb::before {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    hsla(263, 92%, 72%, 0.55),
+    hsla(263, 90%, 60%, 0.12) 60%,
+    transparent 72%
+  );
+  filter: blur(7px);
+  opacity: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition:
+    opacity 0.3s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    transform 0.3s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.zai-orb[data-webgl="true"]::before,
+.zai-orb[data-fallback="true"]::before {
+  animation: zai-orb-breathe 4.5s ease-in-out infinite;
+}
+@keyframes zai-orb-breathe {
+  0%, 100% { opacity: 0.28; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.12); }
+}
+/* Hover anticipation: the aura firms up + brightens (the scene also speeds up,
+   handled in JS) so the orb "leans in" before you click. */
+.zai-orb:hover::before {
+  animation: none;
+  opacity: 0.72;
+  transform: scale(1.16);
+}
+/* While zAI is thinking the halo pulses faster + brighter — the orb visibly
+   works, matching the sped-up scene and the background coming alive. Placed
+   after the hover rule so it wins when both apply. */
+.zai-dock[data-busy="true"] .zai-orb::before {
+  animation: zai-orb-breathe 1.4s ease-in-out infinite;
+  background: radial-gradient(
+    circle,
+    hsla(263, 95%, 76%, 0.72),
+    hsla(263, 92%, 62%, 0.16) 60%,
+    transparent 72%
+  );
+}
 /* Minimal fallback gradient, shown only if the WebGL scene fails to load, so
    the orb stays visible + clickable instead of being an invisible button. */
 .zai-orb[data-fallback="true"] {
@@ -377,6 +515,17 @@ const ORB_CSS = `
   .zai-ph[data-show="true"] { transform: translateY(-50%); }
   .zai-ph-busy { animation: none; opacity: 0.5; }
   .zai-scrim { transition: opacity 0.2s linear; }
+  /* Orb aliveness: keep the presence (a static glow, the nudge chip) but drop
+     the motion — no breathing, wake bloom, hover lean, or heartbeat ring. */
+  .zai-orb::before,
+  .zai-orb[data-webgl="true"]::before,
+  .zai-orb[data-fallback="true"]::before,
+  .zai-dock[data-busy="true"] .zai-orb::before { animation: none; opacity: 0.4; transform: none; }
+  .zai-orb:hover::before { opacity: 0.55; transform: none; }
+  .zai-orb[data-webgl="true"] .zai-orb-canvas { animation: none; transform: none; }
+  .zai-orb-beat { display: none; }
+  .zai-nudge { transition: opacity 0.15s linear; transform: none; }
+  .zai-dock[data-nudge="true"] .zai-nudge { transform: none; }
 }
 `;
 
@@ -415,6 +564,18 @@ export function ZaiOrb({
   // True once the thread has scrolled up off its top edge — gates the top fade
   // mask so a short / top-aligned thread isn't faded at the top (see CSS).
   const [historyMasked, setHistoryMasked] = useState(false);
+  // Aliveness state: hover drives the scene's anticipation speed-bump; nudge is
+  // the idle attention hint (its text + visibility); beat is the streaming
+  // heartbeat counter (each bump replays a one-shot pulse ring, keyed on it).
+  const [hovered, setHovered] = useState(false);
+  const [nudge, setNudge] = useState(false);
+  const [nudgeText, setNudgeText] = useState("");
+  const [beat, setBeat] = useState(0);
+  const lastBeat = useRef(0);
+  const nudgeIx = useRef(0);
+  // Every orb-aliveness animation self-disables under reduced motion: the scene
+  // speed stays flat, the heartbeat is skipped, and the CSS motion is gated too.
+  const reduceMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<UnicornSceneType | null>(null);
@@ -428,31 +589,44 @@ export function ZaiOrb({
     [spec, registry],
   );
 
-  // Drive the orb scene's effect-layer speed: gentle when idle, fast while the
-  // agent is thinking. Mirrors Nexus's AIAvatar isLoading behaviour.
-  const applySpeed = useCallback(
-    (scene: UnicornSceneType, thinking: boolean) => {
+  // Set the orb scene's effect-layer speed. Mirrors Nexus's AIAvatar knob, but
+  // now driven by a computed tier (idle / hover / busy) rather than a bool.
+  const setSceneSpeed = useCallback(
+    (scene: UnicornSceneType, speed: number) => {
       const layer = scene.layers?.find(
         (l) => l.id === EFFECT_LAYER_ID && l.layerType === "effect",
       );
-      if (layer && layer.layerType === "effect")
-        layer.speed = thinking ? SPEED_BUSY : SPEED_IDLE;
+      if (layer && layer.layerType === "effect") layer.speed = speed;
     },
     [],
   );
+
+  // The desired speed: fast while thinking, a small bump on hover (anticipation),
+  // gentle at rest. Reduced motion pins it to idle so nothing accelerates.
+  const sceneSpeed = reduceMotion
+    ? SPEED_IDLE
+    : busy
+      ? SPEED_BUSY
+      : hovered
+        ? SPEED_HOVER
+        : SPEED_IDLE;
+  // Holds the latest desired speed so handleScene can apply it the instant the
+  // scene loads — the effect below only fires on later changes (sceneRef is a
+  // ref, so it wouldn't re-run merely because the scene arrived).
+  const speedRef = useRef(sceneSpeed);
 
   const handleScene = useCallback(
     (scene: UnicornSceneType | null) => {
       sceneRef.current = scene;
       if (scene) {
-        applySpeed(scene, false);
+        setSceneSpeed(scene, speedRef.current);
         setWebglFailed(false);
         setWebglReady(true);
       } else {
         setWebglReady(false);
       }
     },
-    [applySpeed],
+    [setSceneSpeed],
   );
 
   const handleSceneError = useCallback(() => {
@@ -460,10 +634,13 @@ export function ZaiOrb({
     setWebglFailed(true);
   }, []);
 
-  // Re-tune the orb whenever the thinking state flips.
+  // Re-tune the orb whenever the desired speed changes (thinking / hover /
+  // reduced-motion), and keep speedRef current so a scene loading later picks up
+  // the right speed from the start.
   useEffect(() => {
-    if (sceneRef.current) applySpeed(sceneRef.current, busy);
-  }, [busy, applySpeed]);
+    speedRef.current = sceneSpeed;
+    if (sceneRef.current) setSceneSpeed(sceneRef.current, sceneSpeed);
+  }, [sceneSpeed, setSceneSpeed]);
 
   // Detect installed runners once. No runner → the orb stays hidden.
   useEffect(() => {
@@ -561,6 +738,39 @@ export function ZaiOrb({
       clearTimeout(fade);
     };
   }, [open, busy]);
+
+  // Idle attention nudge: while the orb sits closed + idle with an empty thread,
+  // after NUDGE_IDLE_MS it floats one tailored suggestion beside itself, holds it
+  // for NUDGE_VISIBLE_MS, then hides and re-arms. Suppressed once any question has
+  // been asked (messages present) so it stays a first-run affordance, not a nag;
+  // hovering or opening the orb clears it (the hover handler + this guard).
+  useEffect(() => {
+    if (open || busy || !webglReady || messages.length > 0) return;
+    let showT: ReturnType<typeof setTimeout>;
+    let hideT: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      showT = setTimeout(() => {
+        if (suggestions.length) {
+          setNudgeText(suggestions[nudgeIx.current % suggestions.length]);
+          nudgeIx.current += 1;
+          setNudge(true);
+          hideT = setTimeout(() => {
+            setNudge(false);
+            schedule();
+          }, NUDGE_VISIBLE_MS);
+        } else {
+          // No suggestions to show — wait another window and re-check.
+          schedule();
+        }
+      }, NUDGE_IDLE_MS);
+    };
+    schedule();
+    return () => {
+      clearTimeout(showT);
+      clearTimeout(hideT);
+      setNudge(false);
+    };
+  }, [open, busy, webglReady, messages.length, suggestions]);
 
   // Surface the open/closed state to the host (App lifts it to the background).
   useEffect(() => {
@@ -687,6 +897,16 @@ export function ZaiOrb({
             setStatus(null); // answer tokens are flowing — drop the status label
             streamed += evt.text;
             replaceZai(streamed);
+            // Streaming heartbeat: pulse the orb as tokens land, throttled so it
+            // beats a few times a second rather than once per token. Skipped
+            // under reduced motion (the ring is hidden there anyway).
+            if (!reduceMotion) {
+              const t = Date.now();
+              if (t - lastBeat.current > BEAT_THROTTLE_MS) {
+                lastBeat.current = t;
+                setBeat((b) => b + 1);
+              }
+            }
           } else if (evt.type === "done") {
             openZai();
             replaceZai(evt.answer || streamed);
@@ -768,7 +988,7 @@ export function ZaiOrb({
         onClick={() => setOpen(false)}
         aria-hidden="true"
       />
-      <div className="zai-dock" data-open={open} data-busy={busy}>
+      <div className="zai-dock" data-open={open} data-busy={busy} data-nudge={nudge}>
         {open && messages.length > 0 && (
           <div
             className="zai-history"
@@ -799,6 +1019,21 @@ export function ZaiOrb({
             )}
           </div>
         )}
+        {/* Idle nudge: always mounted so its fade transition plays; shown via
+            data-nudge on the dock. Clicking it opens the orb prefilled. */}
+        <button
+          type="button"
+          className="zai-nudge"
+          tabIndex={nudge ? 0 : -1}
+          aria-hidden={!nudge}
+          onClick={() => {
+            setNudge(false);
+            setValue(nudgeText);
+            setOpen(true);
+          }}
+        >
+          {nudgeText}
+        </button>
         <div className="zai-panel">
           <div className="zai-input-wrap">
             <div className="zai-input-field">
@@ -841,6 +1076,11 @@ export function ZaiOrb({
           data-webgl={webglReady}
           data-fallback={webglFailed}
           onClick={() => setOpen((o) => !o)}
+          onMouseEnter={() => {
+            setHovered(true);
+            setNudge(false);
+          }}
+          onMouseLeave={() => setHovered(false)}
           aria-label={open ? "Close zAI" : "Ask zAI"}
           title={open ? "Close zAI" : `Ask zAI · ${shortcutHint}`}
           aria-expanded={open}
@@ -850,6 +1090,11 @@ export function ZaiOrb({
             onScene={handleScene}
             onError={handleSceneError}
           />
+          {/* Streaming heartbeat ring — key on the beat counter so each pulse
+              remounts + replays the one-shot animation. */}
+          {beat > 0 && (
+            <span className="zai-orb-beat" key={beat} aria-hidden="true" />
+          )}
         </button>
       </div>
     </>
