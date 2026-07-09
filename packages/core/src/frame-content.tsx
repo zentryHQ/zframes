@@ -54,6 +54,7 @@ export const FRAME_CSS = `
 .zf-grid {
   display: grid;
   gap: var(--zf-gap, 12px);
+  padding-inline: var(--zf-pad-x, 0);
   grid-template-columns: repeat(var(--zf-cols, 12), minmax(0, 1fr));
   grid-auto-rows: var(--zf-row-h, 96px);
   /* Bridge the type family onto the dashboard subtree: redefine --font-dmsans

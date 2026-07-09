@@ -95,6 +95,7 @@ export function DashboardRenderer({
           ["--zf-row-h" as string]: `${spec.grid.rowHeight}px`,
           ["--zf-h-rows" as string]: spec.grid.rows,
           ["--zf-gap" as string]: `${spec.grid.gap}px`,
+          ["--zf-pad-x" as string]: `${spec.grid.paddingX}px`,
           // Colour identity (spec.theme): accent hue+sat drive every accent in
           // FRAME_CSS (card rims, title dots, source links); base hue+sat tint
           // the dark card surface itself.

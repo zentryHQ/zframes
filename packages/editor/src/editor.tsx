@@ -144,6 +144,7 @@ export function DashboardEditor({
   const snapshotUpColorRef = useRef(spec.theme.upColor);
   const snapshotDownColorRef = useRef(spec.theme.downColor);
   const snapshotGapRef = useRef(spec.grid.gap);
+  const snapshotPaddingXRef = useRef(spec.grid.paddingX);
   const snapshotModeRef = useRef(spec.grid.mode);
   const switchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const snapshotRadiusRef = useRef(spec.appearance.radius);
@@ -195,6 +196,11 @@ export function DashboardEditor({
   // The inter-frame gap (px) is grid geometry — applied as GridStack margin/2
   // and saved to spec.grid via collectSpec.
   const [gap, setGap] = useState(spec.grid.gap);
+  // Horizontal grid padding (px) — the left/right inset between the board and
+  // the viewport edges (spec.grid.paddingX). Applied as --zf-pad-x on
+  // .zf-editor below (which pads .zf-editor-grid, shrinking the GridStack
+  // content box) and saved via collectSpec; default 0 is a visual no-op.
+  const [paddingX, setPaddingX] = useState(spec.grid.paddingX);
   // Card surface knobs — all applied as inline --zf-* vars on .zf-editor below
   // and saved to spec.appearance via collectSpec: corner radius (px), accent rim
   // opacity (0–1), surface translucency (0.3–1), padding density (0.6–1.4) and
@@ -980,7 +986,7 @@ export function DashboardEditor({
     );
     return {
       ...spec,
-      grid: { ...spec.grid, gap, mode },
+      grid: { ...spec.grid, gap, paddingX, mode },
       background: {
         ...spec.background,
         type: bgType,
@@ -1028,6 +1034,7 @@ export function DashboardEditor({
     numericStyle,
     fontScale,
     gap,
+    paddingX,
     mode,
     radius,
     borderStrength,
@@ -1065,6 +1072,7 @@ export function DashboardEditor({
     snapshotUpColorRef.current = upColor;
     snapshotDownColorRef.current = downColor;
     snapshotGapRef.current = gap;
+    snapshotPaddingXRef.current = paddingX;
     snapshotModeRef.current = mode;
     snapshotRadiusRef.current = radius;
     snapshotBorderRef.current = borderStrength;
@@ -1091,6 +1099,7 @@ export function DashboardEditor({
     upColor,
     downColor,
     gap,
+    paddingX,
     mode,
     radius,
     borderStrength,
@@ -1131,6 +1140,7 @@ export function DashboardEditor({
     setUpColor(snapshotUpColorRef.current);
     setDownColor(snapshotDownColorRef.current);
     setGap(snapshotGapRef.current);
+    setPaddingX(snapshotPaddingXRef.current);
     setMode(snapshotModeRef.current);
     setRadius(snapshotRadiusRef.current);
     setBorderStrength(snapshotBorderRef.current);
@@ -1322,6 +1332,9 @@ export function DashboardEditor({
           ["--zf-surface-opacity" as string]: surfaceOpacity,
           ["--zf-density" as string]: density,
           ["--zf-elevation" as string]: elevation,
+          // Grid geometry — horizontal board inset; pads .zf-editor-grid so the
+          // GridStack element (positioned in % of its own width) reflows live.
+          ["--zf-pad-x" as string]: `${paddingX}px`,
         }}
       >
         {(editing || !customiseButtonTarget) && (
@@ -1837,6 +1850,31 @@ export function DashboardEditor({
                       value={gap}
                       aria-label="Frame gap"
                       onChange={(e) => setGap(Number(e.target.value))}
+                    />
+                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                      <span className="zf-theme-val">Side padding</span>
+                      <span className="zf-theme-knob-end">
+                        {paddingX !== 0 && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() => setPaddingX(0)}
+                          >
+                            Reset
+                          </button>
+                        )}
+                        <span className="zf-theme-val">{paddingX}px</span>
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      className="zf-range"
+                      min={0}
+                      max={96}
+                      step={4}
+                      value={paddingX}
+                      aria-label="Grid side padding"
+                      onChange={(e) => setPaddingX(Number(e.target.value))}
                     />
                   </section>
 

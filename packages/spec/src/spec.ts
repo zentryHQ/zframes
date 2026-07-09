@@ -387,6 +387,13 @@ export const DashboardSpecSchema = z.preprocess(
           .describe(
             "Pixels of space between frames (the grid gutter). 0 makes the cards flush; the editor's Layout rail exposes this as a slider.",
           ),
+        paddingX: z
+          .number()
+          .min(0)
+          .default(0)
+          .describe(
+            "Horizontal padding (px) inside the dashboard grid — the left/right gutter between the frames and the viewport edges (the x-axis inset). 0 (default) keeps the board flush to the edges; the editor's Layout rail exposes this as a slider.",
+          ),
       })
       .default({
         mode: "flow-vertical",
@@ -394,6 +401,7 @@ export const DashboardSpecSchema = z.preprocess(
         rowHeight: 96,
         rows: 6,
         gap: 12,
+        paddingX: 0,
       }),
     background: BackgroundSchema.default({
       type: "none",
