@@ -3,6 +3,8 @@ import type {
   CoinMarketEntry,
   GlobalMarket,
   MarketDataProvider,
+  MarketSector,
+  TrendingCoin,
 } from "@zframes/spec";
 import { TtlCache } from "@zframes/data-primitives/cache";
 import { fetchJson } from "@zframes/data-primitives/fetch";
@@ -10,6 +12,8 @@ import { fetchJson } from "@zframes/data-primitives/fetch";
 const GLOBAL_URL = "https://api.coingecko.com/api/v3/global";
 const MARKETS_URL =
   "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h";
+const TRENDING_URL = "https://api.coingecko.com/api/v3/search/trending";
+const CATEGORIES_URL = "https://api.coingecko.com/api/v3/coins/categories";
 
 // CoinGecko's keyless public tier is the most rate-limited of our providers — a
 // burst of requests (the editor reloading on every Save, or several dashboards
@@ -30,6 +34,37 @@ const marketsCache = new TtlCache<CoinMarketEntry[]>({
   ttlMs: 10 * 60_000,
   persist: true,
 });
+const trendingCache = new TtlCache<TrendingCoin[]>({
+  namespace: "zframes:coingecko:trending",
+  ttlMs: 10 * 60_000,
+  persist: true,
+});
+const categoriesCache = new TtlCache<MarketSector[]>({
+  namespace: "zframes:coingecko:categories",
+  ttlMs: 12 * 60_000,
+  persist: true,
+});
+
+interface CoinGeckoTrending {
+  coins?: {
+    item: {
+      id: string;
+      name: string;
+      symbol: string;
+      market_cap_rank: number | null;
+      data?: {
+        price?: number | string;
+        price_change_percentage_24h?: { usd?: number };
+      };
+    };
+  }[];
+}
+
+interface CoinGeckoCategory {
+  name: string;
+  market_cap: number | null;
+  market_cap_change_24h: number | null;
+}
 
 interface CoinGeckoGlobal {
   data: {
@@ -58,7 +93,50 @@ export class CoinGeckoProvider implements MarketDataProvider {
   readonly capabilities: readonly Capability[] = [
     "global-market",
     "coin-markets",
+    "trending-coins",
+    "sector-performance",
   ];
+
+  async getTrendingCoins(): Promise<TrendingCoin[]> {
+    return trendingCache.get("trending", async () => {
+      const body = await fetchJson<CoinGeckoTrending>(TRENDING_URL);
+      if (!Array.isArray(body?.coins))
+        throw new Error("coingecko trending: unexpected response shape");
+      return body.coins.map(({ item }) => {
+        const price = Number(item.data?.price);
+        const chg = Number(item.data?.price_change_percentage_24h?.usd);
+        return {
+          id: item.id,
+          name: item.name,
+          symbol: (item.symbol ?? "").toUpperCase(),
+          rank: Number.isFinite(item.market_cap_rank)
+            ? item.market_cap_rank
+            : null,
+          price: Number.isFinite(price) ? price : null,
+          changePct24h: Number.isFinite(chg) ? chg : null,
+        };
+      });
+    });
+  }
+
+  async getSectorPerformance(): Promise<MarketSector[]> {
+    return categoriesCache.get("categories", async () => {
+      const body = await fetchJson<CoinGeckoCategory[]>(CATEGORIES_URL);
+      if (!Array.isArray(body))
+        throw new Error("coingecko categories: unexpected response shape");
+      return body
+        .filter((c) => Number.isFinite(c.market_cap) && (c.market_cap ?? 0) > 0)
+        .map((c) => ({
+          name: c.name,
+          marketCap: c.market_cap as number,
+          changePct24h: Number.isFinite(c.market_cap_change_24h)
+            ? (c.market_cap_change_24h as number)
+            : 0,
+        }))
+        .sort((a, b) => b.marketCap - a.marketCap)
+        .slice(0, 30);
+    });
+  }
 
   async getGlobalMarket(): Promise<GlobalMarket> {
     return globalCache.get("global", async () => {

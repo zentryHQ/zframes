@@ -70,7 +70,12 @@ describe("CoinGeckoProvider", () => {
   it("advertises its identity and capabilities", () => {
     const provider = new CoinGeckoProvider();
     expect(provider.name).toBe("coingecko");
-    expect(provider.capabilities).toEqual(["global-market", "coin-markets"]);
+    expect(provider.capabilities).toEqual([
+      "global-market",
+      "coin-markets",
+      "trending-coins",
+      "sector-performance",
+    ]);
   });
 
   describe("getGlobalMarket", () => {

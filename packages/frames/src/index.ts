@@ -78,6 +78,17 @@ export { rsiMomentumFrame } from "./rsi-momentum";
 export { volumeProfileFrame } from "./volume-profile";
 export { dxyFrame } from "./dxy";
 export { cycleSignalsFrame } from "./cycle-signals";
+export { stablecoinSupplyFrame } from "./stablecoin-supply";
+export { yieldScannerFrame } from "./yield-scanner";
+export { defiRevenueFrame } from "./defi-revenue";
+export { fundingComparisonFrame } from "./funding-comparison";
+export { ethSupplyFrame } from "./eth-supply";
+export { ethStakingFrame } from "./eth-staking";
+export { predictionMarketsFrame } from "./prediction-markets";
+export { etfFlowsFrame } from "./etf-flows";
+export { trendingCoinsFrame } from "./trending-coins";
+export { sectorPerformanceFrame } from "./sector-performance";
+export { macroCalendarFrame } from "./macro-calendar";
 export { holidayCalendarFrame } from "./holiday-calendar";
 export { dayMeterFrame } from "./day-meter";
 export { returnsProjectorFrame } from "./returns-projector";
@@ -168,6 +179,17 @@ import { rsiMomentumFrame } from "./rsi-momentum";
 import { volumeProfileFrame } from "./volume-profile";
 import { dxyFrame } from "./dxy";
 import { cycleSignalsFrame } from "./cycle-signals";
+import { stablecoinSupplyFrame } from "./stablecoin-supply";
+import { yieldScannerFrame } from "./yield-scanner";
+import { defiRevenueFrame } from "./defi-revenue";
+import { fundingComparisonFrame } from "./funding-comparison";
+import { ethSupplyFrame } from "./eth-supply";
+import { ethStakingFrame } from "./eth-staking";
+import { predictionMarketsFrame } from "./prediction-markets";
+import { etfFlowsFrame } from "./etf-flows";
+import { trendingCoinsFrame } from "./trending-coins";
+import { sectorPerformanceFrame } from "./sector-performance";
+import { macroCalendarFrame } from "./macro-calendar";
 import { holidayCalendarFrame } from "./holiday-calendar";
 import { dayMeterFrame } from "./day-meter";
 import { returnsProjectorFrame } from "./returns-projector";
@@ -259,6 +281,17 @@ export const allFrames: AnyFrameDefinition[] = [
   volumeProfileFrame,
   dxyFrame,
   cycleSignalsFrame,
+  stablecoinSupplyFrame,
+  yieldScannerFrame,
+  defiRevenueFrame,
+  fundingComparisonFrame,
+  ethSupplyFrame,
+  ethStakingFrame,
+  predictionMarketsFrame,
+  etfFlowsFrame,
+  trendingCoinsFrame,
+  sectorPerformanceFrame,
+  macroCalendarFrame,
   holidayCalendarFrame,
   dayMeterFrame,
   returnsProjectorFrame,

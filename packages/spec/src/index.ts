@@ -57,6 +57,18 @@ export type {
   VolatilityPoint,
   YieldCurve,
   YieldPoint,
+  StablecoinSupply,
+  YieldPool,
+  FeesOverview,
+  FundingVenueRate,
+  FundingComparison,
+  EthSupply,
+  PredictionOutcome,
+  PredictionMarket,
+  EtfIssuerFlow,
+  EtfFlows,
+  TrendingCoin,
+  MarketSector,
 } from "./types";
 export {
   defineFrame,

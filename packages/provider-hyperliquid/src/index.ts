@@ -2,7 +2,9 @@ import type {
   Candle,
   Capability,
   DayStats,
+  FundingComparison,
   FundingPoint,
+  FundingVenueRate,
   MarketDataProvider,
   OpenInterestEntry,
   Unsubscribe,
@@ -43,6 +45,21 @@ interface CandleEntry {
   c: string;
   v: string;
 }
+
+/** `predictedFundings`: [coin, [[venue, info|null], …]][] across venues. */
+type PredictedFundingInfo = {
+  fundingRate: string;
+  nextFundingTime: number;
+  fundingIntervalHours?: number;
+} | null;
+type PredictedFundingsResp = Array<
+  [string, Array<[string, PredictedFundingInfo]>]
+>;
+const VENUE_LABELS: Record<string, string> = {
+  HlPerp: "Hyperliquid",
+  BinPerp: "Binance",
+  BybitPerp: "Bybit",
+};
 
 /**
  * HIP-3 builder-dex symbols are namespaced by Hyperliquid itself:
@@ -96,6 +113,12 @@ const fundingCache = new TtlCache<Record<string, FundingPoint[]>>({
   ttlMs: 4.5 * 60_000,
   persist: true,
 });
+// One cheap POST returns predicted funding for every coin across venues; a 5-min
+// TTL sits under the hook poll (funding refreshes hourly-ish).
+const fundingComparisonCache = new TtlCache<FundingComparison[]>({
+  namespace: "zframes:hyperliquid:funding-comparison",
+  ttlMs: 5 * 60_000,
+});
 const sortedKey = (symbols?: readonly string[]): string =>
   symbols ? [...symbols].sort().join(",") : "*";
 
@@ -120,7 +143,58 @@ export class HyperliquidProvider implements MarketDataProvider {
     "funding-history",
     "ohlcv",
     "open-interest",
+    "funding-comparison",
   ];
+
+  async getFundingComparison(): Promise<FundingComparison[]> {
+    return fundingComparisonCache.get("all", async () => {
+      const resp = await info<PredictedFundingsResp>({
+        type: "predictedFundings",
+      });
+      if (!Array.isArray(resp))
+        throw new Error("hyperliquid predictedFundings: unexpected shape");
+      const out: FundingComparison[] = [];
+      for (const entry of resp) {
+        if (!Array.isArray(entry) || entry.length < 2) continue;
+        const [coin, venueList] = entry;
+        if (typeof coin !== "string" || !Array.isArray(venueList)) continue;
+        const venues: FundingVenueRate[] = [];
+        for (const vEntry of venueList) {
+          if (!Array.isArray(vEntry) || vEntry.length < 2) continue;
+          const [venue, meta] = vEntry;
+          if (!meta) continue;
+          const rawRate = parseFloat(meta.fundingRate);
+          if (!Number.isFinite(rawRate)) continue;
+          // Venues fund on different intervals (Hl 1h, Bin/Bybit 4–8h); use the
+          // reported interval, else a per-venue default, to annualize comparably.
+          const reported = Number(meta.fundingIntervalHours);
+          const intervalHours =
+            Number.isFinite(reported) && reported > 0
+              ? reported
+              : venue === "HlPerp"
+                ? 1
+                : 8;
+          venues.push({
+            venue: VENUE_LABELS[venue] ?? venue,
+            rawRate,
+            intervalHours,
+            annualizedPct: rawRate * (8760 / intervalHours) * 100,
+          });
+        }
+        // Need at least two venues for the cross-venue spread to mean anything.
+        if (venues.length < 2) continue;
+        const rates = venues.map((v) => v.annualizedPct);
+        out.push({
+          coin,
+          venues,
+          spreadPct: Math.max(...rates) - Math.min(...rates),
+        });
+      }
+      return out
+        .sort((a, b) => Math.abs(b.spreadPct) - Math.abs(a.spreadPct))
+        .slice(0, 80);
+    });
+  }
 
   private ws: WebSocket | null = null;
   private listeners = new Set<(mids: Record<string, number>) => void>();

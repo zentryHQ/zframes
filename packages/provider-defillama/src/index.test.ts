@@ -39,7 +39,7 @@ describe("DefiLlamaProvider", () => {
   });
 
   describe("capabilities", () => {
-    it("advertises exactly the four DeFiLlama capabilities", async () => {
+    it("advertises exactly its DeFiLlama capabilities", async () => {
       const provider = await freshProvider();
       expect(provider.name).toBe("defillama");
       expect([...provider.capabilities]).toEqual([
@@ -47,6 +47,9 @@ describe("DefiLlamaProvider", () => {
         "dex-volume",
         "protocol-tvl",
         "protocol-fees",
+        "stablecoins",
+        "yields",
+        "fees-overview",
       ]);
     });
   });
