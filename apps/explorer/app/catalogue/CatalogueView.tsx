@@ -5,6 +5,8 @@ import {
   DashboardSpecSchema,
   FRAME_CATEGORIES,
   FramesProvider,
+  frameMatchesSearch,
+  frameSearchTokens,
   type AnyFrameDefinition,
   type FrameCategory,
 } from "@zframes/core";
@@ -146,6 +148,43 @@ export default function CatalogueView() {
 
   const total = allFrames.length;
 
+  // Free-text search, seeded from and synced to the URL (?q=…) so a filtered
+  // view is shareable and survives a refresh. This view is client-only
+  // (page.tsx imports it ssr:false), so reading window here is safe and dodges
+  // the Next 15 useSearchParams-needs-Suspense prerender constraint. We use the
+  // SAME matcher as the editor palette (@zframes/spec), so customise and browse
+  // filter identically.
+  const [query, setQuery] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("q") ?? "";
+  });
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const q = query.trim();
+    if (q) url.searchParams.set("q", q);
+    else url.searchParams.delete("q");
+    window.history.replaceState(null, "", url);
+  }, [query]);
+
+  const tokens = useMemo(() => frameSearchTokens(query), [query]);
+  const searching = tokens.length > 0;
+  // Filter once (label / description / name / category label) and drop empty
+  // families. Filtering BEFORE render also means LazyMount only mounts matches,
+  // so a search shrinks the heavy live-frame grid instead of mounting all 76.
+  const sections = useMemo(() => {
+    return ORDERED_CATEGORIES.map((cat) => {
+      const all = byCategory.get(cat.key) ?? [];
+      const frames = searching
+        ? all.filter((def) => frameMatchesSearch(def, cat.label, tokens))
+        : all;
+      return { cat, frames };
+    }).filter((section) => section.frames.length > 0);
+  }, [byCategory, searching, tokens]);
+  const shown = useMemo(
+    () => sections.reduce((n, section) => n + section.frames.length, 0),
+    [sections],
+  );
+
   return (
     <FramesProvider providers={providers}>
       <main className="mx-auto max-w-7xl px-6 py-12">
@@ -162,15 +201,42 @@ export default function CatalogueView() {
             schema-default config — the same set an agent picks from when generating a
             dashboard.
           </p>
+          <div className="relative mt-6 max-w-md">
+            <svg
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search frames…"
+              aria-label="Search frames"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-3 text-sm text-white outline-none transition-colors placeholder:text-white/40 focus:border-indigo-300/50 focus:bg-white/[0.06]"
+            />
+          </div>
           <p className="mt-4 font-mono text-xs text-white/60">
-            {total} frames · {FRAME_CATEGORIES.length} families
+            {searching
+              ? `${shown} of ${total} frames`
+              : `${total} frames · ${FRAME_CATEGORIES.length} families`}
           </p>
         </header>
 
-        {ORDERED_CATEGORIES.map((cat) => {
-          const frames = byCategory.get(cat.key);
-          if (!frames?.length) return null;
-          return (
+        {sections.length === 0 ? (
+          <p className="text-sm text-white/55">
+            No frames match “{query.trim()}”.
+          </p>
+        ) : (
+          sections.map(({ cat, frames }) => (
             <section key={cat.key} className="mb-14">
               <div className="mb-5 border-b border-white/[0.07] pb-3">
                 <div className="flex items-baseline gap-3">
@@ -186,8 +252,8 @@ export default function CatalogueView() {
                 ))}
               </div>
             </section>
-          );
-        })}
+          ))
+        )}
       </main>
     </FramesProvider>
   );

@@ -110,4 +110,9 @@ export {
   SCENE_DEFAULT_PROJECT_ID,
   sceneBaseHue,
 } from "./presets";
-export { catalogueForAI, catalogueSummary } from "./catalogue";
+export {
+  catalogueForAI,
+  catalogueSummary,
+  frameSearchTokens,
+  frameMatchesSearch,
+} from "./catalogue";

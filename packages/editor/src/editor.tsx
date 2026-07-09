@@ -24,6 +24,7 @@ import {
   type FrameCategory,
   type FrameRegistry,
 } from "@zframes/spec/frame";
+import { frameMatchesSearch, frameSearchTokens } from "@zframes/spec/catalogue";
 import {
   FRAME_CSS,
   FrameContent,
@@ -441,25 +442,20 @@ export function DashboardEditor({
   // whitespace-separated token to match somewhere. Matching categories are
   // force-expanded in the render so results are visible without a click.
   const [paletteQuery, setPaletteQuery] = useState("");
-  const paletteQueryTokens = useMemo(() => {
-    const q = paletteQuery.trim().toLowerCase();
-    return q ? q.split(/\s+/) : [];
-  }, [paletteQuery]);
+  const paletteQueryTokens = useMemo(
+    () => frameSearchTokens(paletteQuery),
+    [paletteQuery],
+  );
   const paletteSearching = paletteQueryTokens.length > 0;
   const filteredGroups = useMemo(() => {
     if (paletteQueryTokens.length === 0) return paletteGroups;
     return paletteGroups
-      .map((group) => {
-        const cat = group.label.toLowerCase();
-        return {
-          ...group,
-          frames: group.frames.filter((def) => {
-            const hay =
-              `${def.label} ${def.description ?? ""} ${def.name} ${cat}`.toLowerCase();
-            return paletteQueryTokens.every((token) => hay.includes(token));
-          }),
-        };
-      })
+      .map((group) => ({
+        ...group,
+        frames: group.frames.filter((def) =>
+          frameMatchesSearch(def, group.label, paletteQueryTokens),
+        ),
+      }))
       .filter((group) => group.frames.length > 0);
   }, [paletteGroups, paletteQueryTokens]);
 
