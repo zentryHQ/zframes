@@ -363,7 +363,11 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
           }}
         >
           <div className="mb-2 text-xs text-white/60">
-            {tooltipState.date?.toLocaleDateString()}
+            {tooltipState.date?.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
           </div>
           <div className="space-y-1">
             {series.map((s) => (

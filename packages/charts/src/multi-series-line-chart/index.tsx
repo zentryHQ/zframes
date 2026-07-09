@@ -87,7 +87,6 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
     yDomain,
     formatValue,
     containerRef,
-    svgRef,
   });
 
   const allDates = useMemo(() => getAllDates(sortedSeries), [sortedSeries]);
