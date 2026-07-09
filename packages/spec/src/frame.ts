@@ -51,6 +51,12 @@ export const FRAME_CATEGORIES = [
       "Bitcoin chain health — fees, mempool, blocks, hashrate, difficulty, mining pools, and Lightning.",
   },
   {
+    key: "onchain",
+    label: "On-chain & Cycle",
+    description:
+      "Bitcoin valuation ratios and cycle timing — MVRV, NUPL, SOPR, Puell, Mayer Multiple, Pi Cycle, moving-average multipliers, RSI momentum, and cycle top/bottom signal checklists.",
+  },
+  {
     key: "derivatives",
     label: "Derivatives & Options",
     description:

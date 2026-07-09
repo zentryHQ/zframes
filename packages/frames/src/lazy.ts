@@ -221,6 +221,39 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "coin-movers": {
     load: () => import("./coin-movers").then((m) => m.coinMoversFrame),
   },
+  mvrv: {
+    load: () => import("./mvrv").then((m) => m.mvrvFrame),
+  },
+  nupl: {
+    load: () => import("./nupl").then((m) => m.nuplFrame),
+  },
+  sopr: {
+    load: () => import("./sopr").then((m) => m.soprFrame),
+  },
+  "puell-multiple": {
+    load: () => import("./puell-multiple").then((m) => m.puellMultipleFrame),
+  },
+  "mayer-multiple": {
+    load: () => import("./mayer-multiple").then((m) => m.mayerMultipleFrame),
+  },
+  "pi-cycle": {
+    load: () => import("./pi-cycle").then((m) => m.piCycleFrame),
+  },
+  "ma-multiplier": {
+    load: () => import("./ma-multiplier").then((m) => m.maMultiplierFrame),
+  },
+  "rsi-momentum": {
+    load: () => import("./rsi-momentum").then((m) => m.rsiMomentumFrame),
+  },
+  "volume-profile": {
+    load: () => import("./volume-profile").then((m) => m.volumeProfileFrame),
+  },
+  dxy: {
+    load: () => import("./dxy").then((m) => m.dxyFrame),
+  },
+  "cycle-signals": {
+    load: () => import("./cycle-signals").then((m) => m.cycleSignalsFrame),
+  },
   "holiday-calendar": {
     load: () =>
       import("./holiday-calendar").then((m) => m.holidayCalendarFrame),

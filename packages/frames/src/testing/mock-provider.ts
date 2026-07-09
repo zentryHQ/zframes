@@ -9,6 +9,7 @@ import type {
   DayStats,
   DexVolumeEntry,
   DifficultyAdjustment,
+  DollarIndex,
   FearGreedPoint,
   FinancialStress,
   FundingPoint,
@@ -22,6 +23,8 @@ import type {
   NationalDebt,
   NewsItem,
   NewsQuery,
+  OnchainExtras,
+  OnchainValuation,
   OpenInterestEntry,
   OptionsSummary,
   Portfolio,
@@ -233,6 +236,10 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "volatility-index",
     "coin-movers",
     "fx-rates",
+    "onchain-valuation",
+    "price-history-daily",
+    "onchain-cycle-extras",
+    "dollar-index",
     "portfolio",
   ];
   readonly portfolioKinds: readonly PortfolioSourceKind[] = [
@@ -251,6 +258,138 @@ export class MockMarketDataProvider implements MarketDataProvider {
     if (this.mode === "loading") return new Promise<T>(() => {});
     if (this.mode === "empty") return Promise.resolve(emptyValue);
     return Promise.resolve(build());
+  }
+
+  // ── on-chain valuation / cycle ──────────────────────────────────────────
+  /** A long seeded daily BTC close series (enough history for a 4Y MA). */
+  private dailyCloses(seed: string): SeriesPoint[] {
+    const r = rng(seed);
+    const n = 1600;
+    const out: SeriesPoint[] = [];
+    let price = 6000;
+    for (let i = 0; i < n; i++) {
+      price *= 1 + (r() - 0.47) * 0.03;
+      price = Math.max(1000, price);
+      out.push({
+        time: BASELINE_NOW - (n - 1 - i) * DAY,
+        value: round(price, 2),
+      });
+    }
+    return out;
+  }
+
+  getDailyCloseHistory(asset = "btc"): Promise<SeriesPoint[]> {
+    return this.gate<SeriesPoint[]>([], () =>
+      this.dailyCloses(`close:${asset}`),
+    );
+  }
+
+  getOnchainValuation(): Promise<OnchainValuation> {
+    const empty: OnchainValuation = {
+      date: "",
+      price: 0,
+      supply: 0,
+      marketCap: 0,
+      realizedCap: 0,
+      realizedPrice: 0,
+      mvrv: 0,
+      mvrvZScore: 0,
+      nupl: 0,
+      history: {
+        price: [],
+        mvrv: [],
+        mvrvZScore: [],
+        nupl: [],
+        realizedPrice: [],
+      },
+    };
+    return this.gate<OnchainValuation>(empty, () => {
+      const closes = this.dailyCloses("valuation");
+      const supply = 19_800_000;
+      const price: SeriesPoint[] = [];
+      const mvrv: SeriesPoint[] = [];
+      const nupl: SeriesPoint[] = [];
+      const mvrvZScore: SeriesPoint[] = [];
+      const realizedPrice: SeriesPoint[] = [];
+      let realized = closes[0].value * 0.7;
+      for (const point of closes) {
+        realized += (point.value - realized) * 0.02; // realized price lags spot
+        const m = point.value / realized;
+        price.push(point);
+        realizedPrice.push({ time: point.time, value: round(realized, 2) });
+        mvrv.push({ time: point.time, value: round(m, 3) });
+        nupl.push({ time: point.time, value: round(1 - 1 / m, 3) });
+        mvrvZScore.push({ time: point.time, value: round((m - 1) * 2.2, 2) });
+      }
+      const last = (s: SeriesPoint[]) => s[s.length - 1].value;
+      return {
+        date: new Date(BASELINE_NOW).toISOString().slice(0, 10),
+        price: last(price),
+        supply,
+        marketCap: last(price) * supply,
+        realizedCap: last(realizedPrice) * supply,
+        realizedPrice: last(realizedPrice),
+        mvrv: last(mvrv),
+        mvrvZScore: last(mvrvZScore),
+        nupl: last(nupl),
+        history: { price, mvrv, mvrvZScore, nupl, realizedPrice },
+      };
+    });
+  }
+
+  getOnchainExtras(): Promise<OnchainExtras> {
+    const empty: OnchainExtras = {
+      date: "",
+      sopr: null,
+      puell: null,
+      reserveRisk: null,
+      history: { sopr: [], puell: [], reserveRisk: [] },
+    };
+    return this.gate<OnchainExtras>(empty, () => {
+      const r = rng("extras");
+      const n = 365;
+      const sopr: SeriesPoint[] = [];
+      const puell: SeriesPoint[] = [];
+      const reserveRisk: SeriesPoint[] = [];
+      for (let i = 0; i < n; i++) {
+        const t = BASELINE_NOW - (n - 1 - i) * DAY;
+        sopr.push({ time: t, value: round(0.97 + r() * 0.08, 4) });
+        puell.push({ time: t, value: round(0.4 + r() * 0.8, 3) });
+        reserveRisk.push({ time: t, value: round(0.0003 + r() * 0.0006, 6) });
+      }
+      const last = (s: SeriesPoint[]) => s[s.length - 1].value;
+      return {
+        date: new Date(BASELINE_NOW).toISOString().slice(0, 10),
+        sopr: last(sopr),
+        puell: last(puell),
+        reserveRisk: last(reserveRisk),
+        history: { sopr, puell, reserveRisk },
+      };
+    });
+  }
+
+  getDollarIndex(): Promise<DollarIndex> {
+    const empty: DollarIndex = { value: 0, changePct: 0, history: [] };
+    return this.gate<DollarIndex>(empty, () => {
+      const r = rng("dxy");
+      const n = 30;
+      const history: SeriesPoint[] = [];
+      let value = 99;
+      for (let i = 0; i < n; i++) {
+        value += (r() - 0.5) * 0.4;
+        history.push({
+          time: BASELINE_NOW - (n - 1 - i) * DAY,
+          value: round(value, 2),
+        });
+      }
+      const latest = history[history.length - 1].value;
+      const prev = history[history.length - 2].value;
+      return {
+        value: latest,
+        changePct: round(((latest - prev) / prev) * 100, 2),
+        history,
+      };
+    });
   }
 
   // ── streaming mids ──────────────────────────────────────────────────────

@@ -67,6 +67,17 @@ export { optionsPutCallFrame } from "./options-put-call";
 export { optionsIvFrame } from "./options-iv";
 export { optionsOiStrikeFrame } from "./options-oi-strike";
 export { coinMoversFrame } from "./coin-movers";
+export { mvrvFrame } from "./mvrv";
+export { nuplFrame } from "./nupl";
+export { soprFrame } from "./sopr";
+export { puellMultipleFrame } from "./puell-multiple";
+export { mayerMultipleFrame } from "./mayer-multiple";
+export { piCycleFrame } from "./pi-cycle";
+export { maMultiplierFrame } from "./ma-multiplier";
+export { rsiMomentumFrame } from "./rsi-momentum";
+export { volumeProfileFrame } from "./volume-profile";
+export { dxyFrame } from "./dxy";
+export { cycleSignalsFrame } from "./cycle-signals";
 export { holidayCalendarFrame } from "./holiday-calendar";
 export { dayMeterFrame } from "./day-meter";
 export { returnsProjectorFrame } from "./returns-projector";
@@ -146,6 +157,17 @@ import { optionsPutCallFrame } from "./options-put-call";
 import { optionsIvFrame } from "./options-iv";
 import { optionsOiStrikeFrame } from "./options-oi-strike";
 import { coinMoversFrame } from "./coin-movers";
+import { mvrvFrame } from "./mvrv";
+import { nuplFrame } from "./nupl";
+import { soprFrame } from "./sopr";
+import { puellMultipleFrame } from "./puell-multiple";
+import { mayerMultipleFrame } from "./mayer-multiple";
+import { piCycleFrame } from "./pi-cycle";
+import { maMultiplierFrame } from "./ma-multiplier";
+import { rsiMomentumFrame } from "./rsi-momentum";
+import { volumeProfileFrame } from "./volume-profile";
+import { dxyFrame } from "./dxy";
+import { cycleSignalsFrame } from "./cycle-signals";
 import { holidayCalendarFrame } from "./holiday-calendar";
 import { dayMeterFrame } from "./day-meter";
 import { returnsProjectorFrame } from "./returns-projector";
@@ -226,6 +248,17 @@ export const allFrames: AnyFrameDefinition[] = [
   optionsIvFrame,
   optionsOiStrikeFrame,
   coinMoversFrame,
+  mvrvFrame,
+  nuplFrame,
+  soprFrame,
+  puellMultipleFrame,
+  mayerMultipleFrame,
+  piCycleFrame,
+  maMultiplierFrame,
+  rsiMomentumFrame,
+  volumeProfileFrame,
+  dxyFrame,
+  cycleSignalsFrame,
   holidayCalendarFrame,
   dayMeterFrame,
   returnsProjectorFrame,

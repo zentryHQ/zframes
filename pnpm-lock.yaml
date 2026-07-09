@@ -500,6 +500,19 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-bitcoin-data:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-bls:
     dependencies:
       '@zframes/data-primitives':
@@ -514,6 +527,19 @@ importers:
         version: 5.9.3
 
   packages/provider-coingecko:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-coinmetrics:
     dependencies:
       '@zframes/data-primitives':
         specifier: workspace:*
@@ -700,12 +726,18 @@ importers:
       '@zframes/provider-alternativeme':
         specifier: workspace:*
         version: link:../provider-alternativeme
+      '@zframes/provider-bitcoin-data':
+        specifier: workspace:*
+        version: link:../provider-bitcoin-data
       '@zframes/provider-bls':
         specifier: workspace:*
         version: link:../provider-bls
       '@zframes/provider-coingecko':
         specifier: workspace:*
         version: link:../provider-coingecko
+      '@zframes/provider-coinmetrics':
+        specifier: workspace:*
+        version: link:../provider-coinmetrics
       '@zframes/provider-coinpaprika':
         specifier: workspace:*
         version: link:../provider-coinpaprika

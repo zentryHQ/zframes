@@ -34,6 +34,10 @@ export type Capability =
   | "volatility-index"
   | "coin-movers"
   | "fx-rates"
+  | "onchain-valuation"
+  | "price-history-daily"
+  | "onchain-cycle-extras"
+  | "dollar-index"
   | "portfolio";
 
 export interface DayStats {
@@ -96,6 +100,81 @@ export interface GlobalMarket {
   marketCapChangePct24h: number;
   /** Market-cap dominance per asset symbol (lowercase), as percentages. */
   dominance: Record<string, number>;
+}
+
+/**
+ * Bitcoin on-chain valuation snapshot — the market-vs-realized-value family
+ * (MVRV, its Z-score, NUPL, realized price/cap). Sourced from a keyless
+ * on-chain metrics API (Coin Metrics community tier). All values are the latest
+ * daily reading; `history` carries the daily series (oldest→newest) each frame
+ * charts. Derived quantities are computed by the provider: `nupl = 1 − 1/mvrv`,
+ * `mvrvZScore = (marketCap − realizedCap) / stddev(marketCap over all history)`,
+ * `realizedPrice = realizedCap / supply`.
+ */
+export interface OnchainValuation {
+  /** ISO date of the latest reading, e.g. "2026-07-08". */
+  date: string;
+  /** Latest market (spot) price, USD. */
+  price: number;
+  /** Circulating supply, coins. */
+  supply: number;
+  /** Market cap = price × supply, USD. */
+  marketCap: number;
+  /** Realized cap — sum of each UTXO valued at its last-moved price, USD. */
+  realizedCap: number;
+  /** Realized price = realizedCap / supply, USD. */
+  realizedPrice: number;
+  /** MVRV ratio = marketCap / realizedCap. */
+  mvrv: number;
+  /** MVRV Z-score — how stretched market cap is above realized cap, in σ. */
+  mvrvZScore: number;
+  /** Net Unrealized Profit/Loss as a fraction (−1…1); = 1 − 1/mvrv. */
+  nupl: number;
+  /** Daily series, oldest→newest, for charts. */
+  history: {
+    price: SeriesPoint[];
+    mvrv: SeriesPoint[];
+    mvrvZScore: SeriesPoint[];
+    nupl: SeriesPoint[];
+    realizedPrice: SeriesPoint[];
+  };
+}
+
+/**
+ * Bitcoin on-chain cycle oscillators from a keyless full-history source
+ * (bitcoin-data.com). Its free tier is hard-capped at 10 requests/hour, so a
+ * provider fetches all of these behind ONE shared long-TTL poll. Any metric the
+ * source didn't return is null. `history` carries a recent tail for sparklines.
+ */
+export interface OnchainExtras {
+  /** ISO date of the latest reading. */
+  date: string;
+  /** SOPR — Spent Output Profit Ratio (>1 coins move in profit, <1 in loss). */
+  sopr: number | null;
+  /** Puell Multiple — daily issuance USD ÷ its 365-day average. */
+  puell: number | null;
+  /** Reserve Risk — conviction-vs-price; low = attractive risk/reward. */
+  reserveRisk: number | null;
+  /** Recent daily tail per metric, oldest→newest. */
+  history: {
+    sopr: SeriesPoint[];
+    puell: SeriesPoint[];
+    reserveRisk: SeriesPoint[];
+  };
+}
+
+/**
+ * Synthetic US Dollar Index (DXY) — the ICE-weighted geometric mean of six
+ * USD pairs, computed from ECB reference rates (a keyless FX source). A live
+ * tick isn't available keyless; this is the daily-granularity workaround.
+ */
+export interface DollarIndex {
+  /** Latest DXY value. */
+  value: number;
+  /** Percent change vs the previous available business day. */
+  changePct: number;
+  /** Recent daily history, oldest→newest, for a trend line/sparkline. */
+  history: SeriesPoint[];
 }
 
 /** One short-rate / repo reference rate observation from an official source. */
@@ -729,6 +808,17 @@ export interface MarketDataProvider {
   getReferenceRates?(): Promise<ReferenceRate[]>;
   /** FX rates for `symbols` quoted against `base`, each with a short trend. */
   getFxRates?(base: string, symbols: string[]): Promise<FxRate[]>;
+  /** Synthetic US Dollar Index (DXY) — latest value, change, and trend. */
+  getDollarIndex?(): Promise<DollarIndex>;
+  /** Bitcoin on-chain valuation (MVRV, MVRV-Z, NUPL, realized price/cap). */
+  getOnchainValuation?(): Promise<OnchainValuation>;
+  /**
+   * Long daily close series for `asset` (default BTC), oldest→newest — enough
+   * history (years) to drive cycle multiples (Mayer, Pi Cycle, 2Y/4Y-MA, RSI).
+   */
+  getDailyCloseHistory?(asset?: string): Promise<SeriesPoint[]>;
+  /** Bitcoin on-chain cycle oscillators (SOPR, Puell, Reserve Risk). */
+  getOnchainExtras?(): Promise<OnchainExtras>;
   /** Treasury average interest rates by security class. */
   getTreasuryAverageRates?(): Promise<TreasuryAverageRate[]>;
   /** US Treasury daily par yield curve (latest available date). */
