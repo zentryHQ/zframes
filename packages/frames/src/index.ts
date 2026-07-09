@@ -89,6 +89,11 @@ export { etfFlowsFrame } from "./etf-flows";
 export { trendingCoinsFrame } from "./trending-coins";
 export { sectorPerformanceFrame } from "./sector-performance";
 export { macroCalendarFrame } from "./macro-calendar";
+export { stablecoinChainsFrame } from "./stablecoin-chains";
+export { sectorTreemapFrame } from "./sector-treemap";
+export { etfFlowsChartFrame } from "./etf-flows-chart";
+export { realizedPriceFrame } from "./realized-price";
+export { reserveRiskFrame } from "./reserve-risk";
 export { holidayCalendarFrame } from "./holiday-calendar";
 export { dayMeterFrame } from "./day-meter";
 export { returnsProjectorFrame } from "./returns-projector";
@@ -190,6 +195,11 @@ import { etfFlowsFrame } from "./etf-flows";
 import { trendingCoinsFrame } from "./trending-coins";
 import { sectorPerformanceFrame } from "./sector-performance";
 import { macroCalendarFrame } from "./macro-calendar";
+import { stablecoinChainsFrame } from "./stablecoin-chains";
+import { sectorTreemapFrame } from "./sector-treemap";
+import { etfFlowsChartFrame } from "./etf-flows-chart";
+import { realizedPriceFrame } from "./realized-price";
+import { reserveRiskFrame } from "./reserve-risk";
 import { holidayCalendarFrame } from "./holiday-calendar";
 import { dayMeterFrame } from "./day-meter";
 import { returnsProjectorFrame } from "./returns-projector";
@@ -292,6 +302,11 @@ export const allFrames: AnyFrameDefinition[] = [
   trendingCoinsFrame,
   sectorPerformanceFrame,
   macroCalendarFrame,
+  stablecoinChainsFrame,
+  sectorTreemapFrame,
+  etfFlowsChartFrame,
+  realizedPriceFrame,
+  reserveRiskFrame,
   holidayCalendarFrame,
   dayMeterFrame,
   returnsProjectorFrame,
