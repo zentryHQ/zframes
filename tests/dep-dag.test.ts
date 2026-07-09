@@ -37,8 +37,10 @@ const DAG: Record<string, string[]> = {
   // above the providers, below the apps; imports providers + spec (the type).
   "providers-keyless": [
     "@zframes/provider-alternativeme",
+    "@zframes/provider-bitcoin-data",
     "@zframes/provider-bls",
     "@zframes/provider-coingecko",
+    "@zframes/provider-coinmetrics",
     "@zframes/provider-coinpaprika",
     "@zframes/provider-defillama",
     "@zframes/provider-deribit",

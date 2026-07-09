@@ -1,4 +1,4 @@
-// The keyless market-data provider set — the 15 free, no-key providers, as ONE
+// The keyless market-data provider set — the 17 free, no-key providers, as ONE
 // factory both apps share. Runtime and explorer used to each keep an identical
 // copy of this list (apps/runtime/src/App.tsx, apps/explorer/app/lib/frames.ts);
 // adding a provider meant editing both and they drifted. Centralising it here
@@ -17,8 +17,10 @@
 // new BinanceProvider(), new WalletProvider()].
 import type { MarketDataProvider } from "@zframes/spec";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
+import { BitcoinDataProvider } from "@zframes/provider-bitcoin-data";
 import { BlsProvider } from "@zframes/provider-bls";
 import { CoinGeckoProvider } from "@zframes/provider-coingecko";
+import { CoinMetricsProvider } from "@zframes/provider-coinmetrics";
 import { CoinpaprikaProvider } from "@zframes/provider-coinpaprika";
 import { DefiLlamaProvider } from "@zframes/provider-defillama";
 import { DeribitProvider } from "@zframes/provider-deribit";
@@ -40,6 +42,8 @@ export function createKeylessProviders(): MarketDataProvider[] {
     new AlternativeMeProvider(),
     new CoinGeckoProvider(),
     new CoinpaprikaProvider(),
+    new CoinMetricsProvider(),
+    new BitcoinDataProvider(),
     new NyFedProvider(),
     new TreasuryProvider(),
     new BlsProvider(),

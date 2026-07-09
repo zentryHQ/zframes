@@ -17,6 +17,7 @@ import type {
   DayStats,
   DexVolumeEntry,
   DifficultyAdjustment,
+  DollarIndex,
   FearGreedPoint,
   FinancialStress,
   FundingPoint,
@@ -30,6 +31,8 @@ import type {
   NationalDebt,
   NetworkHashrate,
   NewsItem,
+  OnchainExtras,
+  OnchainValuation,
   OpenInterestEntry,
   OptionsSummary,
   Portfolio,
@@ -910,4 +913,85 @@ export function useVolatilityIndex(
     refreshMs,
   );
   return { points, isLoading };
+}
+
+/**
+ * Bitcoin on-chain valuation (MVRV, MVRV Z-score, NUPL, realized price/cap)
+ * with daily history. On-chain metrics update once a day, so this polls every
+ * ~3h — several valuation/cycle frames share one cached provider fetch.
+ */
+export function useOnchainValuation(refreshMs = 3 * 60 * 60_000): {
+  valuation: OnchainValuation | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("onchain-valuation");
+  const { data: valuation, isLoading } = usePolled<OnchainValuation | null>(
+    provider?.getOnchainValuation
+      ? () => provider.getOnchainValuation!()
+      : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { valuation, isLoading };
+}
+
+/**
+ * Long daily close series for `asset` (default BTC) — the multi-year history the
+ * compute-in-frame cycle multiples (Mayer, Pi Cycle, 2Y/4Y-MA, RSI) run over.
+ * Polled every ~6h; frames derive their own moving averages from the series.
+ */
+export function useDailyCloseHistory(
+  asset = "btc",
+  refreshMs = 6 * 60 * 60_000,
+): { history: SeriesPoint[]; isLoading: boolean } {
+  const provider = useProviderFor("price-history-daily");
+  const key = asset.toLowerCase();
+  const { data: history, isLoading } = usePolled<SeriesPoint[]>(
+    provider?.getDailyCloseHistory
+      ? () => provider.getDailyCloseHistory!(key)
+      : null,
+    [],
+    [provider, key, refreshMs],
+    refreshMs,
+  );
+  return { history, isLoading };
+}
+
+/**
+ * Bitcoin on-chain cycle oscillators (SOPR, Puell, Reserve Risk). The source
+ * (bitcoin-data.com) is hard-capped at 10 req/hour, so this polls slowly (every
+ * ~12h) and the provider fans all three metrics off one shared daily refresh.
+ */
+export function useOnchainExtras(refreshMs = 12 * 60 * 60_000): {
+  extras: OnchainExtras | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("onchain-cycle-extras");
+  const { data: extras, isLoading } = usePolled<OnchainExtras | null>(
+    provider?.getOnchainExtras ? () => provider.getOnchainExtras!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { extras, isLoading };
+}
+
+/**
+ * Synthetic US Dollar Index (DXY), computed from ECB reference rates. Polled
+ * hourly by default — the source publishes once per business day, so there's
+ * nothing faster to see.
+ */
+export function useDollarIndex(refreshMs = 60 * 60_000): {
+  dxy: DollarIndex | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("dollar-index");
+  const { data: dxy, isLoading } = usePolled<DollarIndex | null>(
+    provider?.getDollarIndex ? () => provider.getDollarIndex!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { dxy, isLoading };
 }

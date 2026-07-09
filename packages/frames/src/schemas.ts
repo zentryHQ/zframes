@@ -45,6 +45,8 @@ const SOURCES = {
   deribit: { name: "Deribit", url: "https://www.deribit.com" },
   coinpaprika: { name: "Coinpaprika", url: "https://coinpaprika.com" },
   frankfurter: { name: "Frankfurter (ECB)", url: "https://frankfurter.dev" },
+  coinMetrics: { name: "Coin Metrics", url: "https://coinmetrics.io" },
+  bitcoinData: { name: "bitcoin-data.com", url: "https://bitcoin-data.com" },
 } satisfies Record<string, FrameSource>;
 
 export const clockMeta = defineFrameMeta({
@@ -2001,6 +2003,238 @@ export const coinMoversMeta = defineFrameMeta({
   }),
 });
 
+// ── On-chain valuation & cycle frames (Coin Metrics + bitcoin-data.com) ──────
+
+export const mvrvMeta = defineFrameMeta({
+  name: "mvrv",
+  label: "MVRV Ratio",
+  category: "onchain",
+  iconUrl: widgetIcon("mvrv"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Bitcoin MVRV ratio — market cap ÷ realized cap. Above ~3 historically marks cycle tops (overvalued); below ~1 marks deep value near bottoms. Shows the current ratio, its valuation zone, the MVRV Z-score, and a history sparkline. Keyless on-chain data from Coin Metrics.",
+  capabilities: ["onchain-valuation"],
+  source: SOURCES.coinMetrics,
+  schema: z.object({
+    window: z
+      .enum(["1Y", "2Y", "4Y", "all"])
+      .default("all")
+      .describe("How much history the sparkline shows."),
+  }),
+});
+
+export const nuplMeta = defineFrameMeta({
+  name: "nupl",
+  label: "NUPL",
+  category: "onchain",
+  iconUrl: widgetIcon("nupl"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Net Unrealized Profit/Loss — the share of Bitcoin's market cap held in unrealized profit. Maps to cycle sentiment phases: Capitulation (<0), Hope/Fear (0–25%), Optimism (25–50%), Belief (50–75%), Euphoria/Greed (>75%). Derived from MVRV; keyless Coin Metrics data.",
+  capabilities: ["onchain-valuation"],
+  source: SOURCES.coinMetrics,
+  schema: z.object({
+    window: z
+      .enum(["1Y", "2Y", "4Y", "all"])
+      .default("all")
+      .describe("How much history the sparkline shows."),
+  }),
+});
+
+export const soprMeta = defineFrameMeta({
+  name: "sopr",
+  label: "SOPR",
+  category: "onchain",
+  iconUrl: widgetIcon("sopr"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Spent Output Profit Ratio — whether coins moving on-chain are, on average, being sold in profit (>1) or loss (<1). Sustained dips below 1 mark capitulation; resets to ~1 in bull markets are healthy. Keyless full-history data from bitcoin-data.com (polled once daily).",
+  capabilities: ["onchain-cycle-extras"],
+  source: SOURCES.bitcoinData,
+  schema: z.object({
+    window: z
+      .enum(["90D", "180D", "1Y"])
+      .default("1Y")
+      .describe("How much history the sparkline shows."),
+  }),
+});
+
+export const puellMultipleMeta = defineFrameMeta({
+  name: "puell-multiple",
+  label: "Puell Multiple",
+  category: "onchain",
+  iconUrl: widgetIcon("puell-multiple"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Puell Multiple — daily miner issuance in USD ÷ its 365-day average. High values (>4) mark cycle tops where miner revenue is stretched; low values (≤0.5) mark miner capitulation near bottoms. Keyless data from bitcoin-data.com (polled once daily).",
+  capabilities: ["onchain-cycle-extras"],
+  source: SOURCES.bitcoinData,
+  schema: z.object({
+    window: z
+      .enum(["90D", "180D", "1Y"])
+      .default("1Y")
+      .describe("How much history the sparkline shows."),
+  }),
+});
+
+export const mayerMultipleMeta = defineFrameMeta({
+  name: "mayer-multiple",
+  label: "Mayer Multiple",
+  category: "onchain",
+  iconUrl: widgetIcon("mayer-multiple"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Mayer Multiple — BTC price ÷ its 200-day moving average. Above ~2.4 has historically been overheated; below ~0.8 marks value zones. Computed in-browser from a keyless long daily price series (Coin Metrics).",
+  capabilities: ["price-history-daily"],
+  source: SOURCES.coinMetrics,
+  schema: z.object({
+    window: z
+      .enum(["1Y", "2Y", "4Y", "all"])
+      .default("2Y")
+      .describe("How much history the sparkline shows."),
+  }),
+});
+
+export const piCycleMeta = defineFrameMeta({
+  name: "pi-cycle",
+  label: "Pi Cycle Top",
+  category: "onchain",
+  iconUrl: widgetIcon("pi-cycle"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Pi Cycle Top indicator — the ratio of the 111-day MA to 2× the 350-day MA. When it crosses 1 (the 111DMA overtakes 2×350DMA) it has historically pinpointed cycle tops within days. Computed in-browser from a keyless long daily price series (Coin Metrics).",
+  capabilities: ["price-history-daily"],
+  source: SOURCES.coinMetrics,
+  schema: z.object({
+    window: z
+      .enum(["1Y", "2Y", "4Y", "all"])
+      .default("2Y")
+      .describe("How much history the sparkline shows."),
+  }),
+});
+
+export const maMultiplierMeta = defineFrameMeta({
+  name: "ma-multiplier",
+  label: "MA Multiplier",
+  category: "onchain",
+  iconUrl: widgetIcon("ma-multiplier"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Long moving-average multiplier — BTC price ÷ its multi-year moving average (2-year or 4-year). The 2Y band flags a buy zone below ÷1.5 and sell tiers at ×2–×5; the 4Y multiple marks tops above ~3.5×. Computed in-browser from a keyless long daily price series (Coin Metrics).",
+  capabilities: ["price-history-daily"],
+  source: SOURCES.coinMetrics,
+  schema: z.object({
+    years: z
+      .enum(["2", "4"])
+      .default("2")
+      .describe("Moving-average window in years."),
+    window: z
+      .enum(["2Y", "4Y", "all"])
+      .default("all")
+      .describe("How much history the sparkline shows."),
+  }),
+});
+
+export const rsiMomentumMeta = defineFrameMeta({
+  name: "rsi-momentum",
+  label: "RSI Momentum",
+  category: "markets",
+  iconUrl: widgetIcon("rsi-momentum"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Wilder RSI on BTC daily closes with a 55/45 momentum regime: above 55 = risk-on, below 45 = risk-off, in between = neutral. Also flags classic overbought (≥80) / oversold (≤30) extremes. Computed in-browser from a keyless long daily price series (Coin Metrics).",
+  capabilities: ["price-history-daily"],
+  source: SOURCES.coinMetrics,
+  schema: z.object({
+    period: z
+      .number()
+      .int()
+      .min(2)
+      .max(50)
+      .default(14)
+      .describe("RSI lookback period in days."),
+    window: z
+      .enum(["90D", "180D", "1Y", "2Y"])
+      .default("180D")
+      .describe("How much history the sparkline shows."),
+  }),
+});
+
+export const volumeProfileMeta = defineFrameMeta({
+  name: "volume-profile",
+  label: "Volume Profile",
+  category: "markets",
+  iconUrl: widgetIcon("volume-profile"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Volume-by-price histogram over a lookback window — the Point of Control (POC, highest-volume price) and the 70% Value Area (VAH/VAL) that frame support/resistance. Computed in-browser from OHLCV candles. Pass any tradable symbol (crypto or a HIP-3 equity like 'xyz:TSLA').",
+  capabilities: ["ohlcv"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    symbol: z
+      .string()
+      .default("BTC")
+      .describe(
+        "Symbol to profile, e.g. 'BTC', 'ETH', or a HIP-3 equity 'xyz:TSLA'.",
+      ),
+    interval: z
+      .enum(["1h", "4h", "1d"])
+      .default("1d")
+      .describe("Candle interval."),
+    lookbackDays: z
+      .number()
+      .int()
+      .min(7)
+      .max(365)
+      .default(90)
+      .describe("How many days of candles to build the profile from."),
+    bins: z
+      .number()
+      .int()
+      .min(8)
+      .max(48)
+      .default(24)
+      .describe("Number of price buckets in the histogram."),
+  }),
+});
+
+export const dxyMeta = defineFrameMeta({
+  name: "dxy",
+  label: "Dollar Index (DXY)",
+  category: "macro",
+  iconUrl: widgetIcon("dxy"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "US Dollar Index (DXY) — the dollar's strength vs a basket of six major currencies. A rising DXY is a macro headwind for risk assets (incl. BTC); a falling DXY a tailwind. Computed as the ICE-weighted geometric mean of keyless ECB reference rates (daily granularity).",
+  capabilities: ["dollar-index"],
+  source: SOURCES.frankfurter,
+  schema: z.object({}),
+});
+
+export const cycleSignalsMeta = defineFrameMeta({
+  name: "cycle-signals",
+  label: "Cycle Signals",
+  category: "onchain",
+  iconUrl: widgetIcon("cycle-signals"),
+  layout: { w: 4, h: 5, minW: 3, minH: 3 },
+  description:
+    "A cycle top- or bottom-signal checklist — MVRV, MVRV Z-score, NUPL, Mayer Multiple, Puell, RSI, and Pi Cycle each checked against its historical extreme, with a live 'X of N firing' tally. A capstone that aggregates the on-chain and cycle metrics into one 'how late in the cycle are we' read. Keyless (Coin Metrics + bitcoin-data.com).",
+  capabilities: [
+    "onchain-valuation",
+    "onchain-cycle-extras",
+    "price-history-daily",
+  ],
+  source: [SOURCES.coinMetrics, SOURCES.bitcoinData],
+  schema: z.object({
+    mode: z
+      .enum(["peak", "bottom"])
+      .default("peak")
+      .describe(
+        "Which checklist to show: cycle-top ('peak') or cycle-bottom ('bottom') signals.",
+      ),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   newsFeedMeta,
@@ -2062,6 +2296,17 @@ export const frameMetas: FrameMeta[] = [
   optionsIvMeta,
   optionsOiStrikeMeta,
   coinMoversMeta,
+  mvrvMeta,
+  nuplMeta,
+  soprMeta,
+  puellMultipleMeta,
+  mayerMultipleMeta,
+  piCycleMeta,
+  maMultiplierMeta,
+  rsiMomentumMeta,
+  volumeProfileMeta,
+  dxyMeta,
+  cycleSignalsMeta,
 ];
 
 /**
