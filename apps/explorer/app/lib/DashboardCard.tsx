@@ -54,7 +54,7 @@ export function DashboardCard({
           <h3 className="font-semibold text-white transition-colors group-hover:text-indigo-200">
             {title}
           </h3>
-          <span className="translate-x-1 text-sm text-indigo-300 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+          <span className="zf-arrow-reveal text-sm text-indigo-300">
             →
           </span>
         </div>

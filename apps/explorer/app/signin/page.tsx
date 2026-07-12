@@ -50,7 +50,7 @@ export default function SignInPage() {
           type="button"
           onClick={signInWithGoogle}
           disabled={busy}
-          className="glow-brand zf-press flex w-full items-center justify-center gap-2.5 rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
+          className="glow-brand zf-press zf-lift flex w-full items-center justify-center gap-2.5 rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-800 disabled:opacity-50"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
             <path

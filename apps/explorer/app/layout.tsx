@@ -27,7 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <Link href="/" className="group flex items-center gap-2.5">
               <BrandMark
                 idKey="hdr"
-                className="h-7 w-7 transition-transform duration-300 group-hover:scale-105"
+                className="zf-grow h-7 w-7"
               />
               <span className="text-[15px] font-semibold tracking-tight text-white">zframes</span>
             </Link>

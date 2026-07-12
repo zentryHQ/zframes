@@ -27,6 +27,11 @@
   --color-violet: #a78bfa; /* violet-400 */
   --color-up: #3fd08f; /* the dashboard's exact semantic gain */
   --color-down: #ff6b81; /* the dashboard's exact semantic loss */
+
+  /* Route every Tailwind transition-* utility through the site's signature
+   * quint ease-out (mirrors --zf-ease-out below — @theme can't var()-reference
+   * a :root token, so the value is repeated verbatim). */
+  --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* The dashboard token system (FRAME_CSS parity), as raw vars the terminal-surface
@@ -140,9 +145,9 @@ body::before {
  * blooms under it. Compose with .zf-surface on links/buttons. */
 .zf-interactive {
   transition:
-    transform 0.28s var(--zf-ease-out),
-    border-color 0.28s var(--zf-ease-out),
-    box-shadow 0.28s var(--zf-ease-out);
+    transform 0.22s var(--zf-ease-out),
+    border-color 0.22s var(--zf-ease-out),
+    box-shadow 0.22s var(--zf-ease-out);
 }
 .zf-interactive:hover {
   transform: translateY(-3px);
@@ -217,10 +222,10 @@ body::before {
 /* Interactive card: lifts and lights an accent halo on hover (accent hue 242). */
 .card-lift {
   transition:
-    transform 0.28s var(--zf-ease-out),
-    border-color 0.28s var(--zf-ease-out),
-    box-shadow 0.28s var(--zf-ease-out),
-    background-color 0.28s var(--zf-ease-out);
+    transform 0.22s var(--zf-ease-out),
+    border-color 0.22s var(--zf-ease-out),
+    box-shadow 0.22s var(--zf-ease-out),
+    background-color 0.22s var(--zf-ease-out);
 }
 .card-lift:hover {
   transform: translateY(-4px);
@@ -257,6 +262,35 @@ body::before {
 }
 .zf-press:active {
   transform: scale(0.97);
+}
+
+/* Gated hover motion for one-off cases that previously used raw Tailwind
+ * utilities — defined here so the reduced-motion and touch blocks below can
+ * neutralise them alongside .zf-interactive/.card-lift/.zf-press. */
+.zf-lift {
+  transition: transform 0.2s var(--zf-ease-out);
+}
+.zf-lift:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+.zf-grow {
+  transition: transform 0.2s var(--zf-ease-out);
+}
+.zf-grow:hover,
+.group:hover .zf-grow {
+  transform: scale(1.05);
+}
+/* Gallery-card hover arrow: slides in + fades. Only transform/opacity animate. */
+.zf-arrow-reveal {
+  opacity: 0;
+  transform: translateX(4px);
+  transition:
+    opacity 0.2s var(--zf-ease-out),
+    transform 0.2s var(--zf-ease-out);
+}
+.group:hover .zf-arrow-reveal {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* ── Motion ─────────────────────────────────────────────────────────────── */
@@ -359,7 +393,15 @@ body::before {
    * alone reads. */
   .zf-interactive:hover,
   .card-lift:hover,
-  .zf-press:active {
+  .zf-press:active,
+  .zf-lift:hover,
+  .zf-grow:hover,
+  .group:hover .zf-grow {
+    transform: none;
+  }
+  /* Arrow keeps its opacity reveal (comprehension) but loses the slide. */
+  .zf-arrow-reveal,
+  .group:hover .zf-arrow-reveal {
     transform: none;
   }
 }
@@ -367,7 +409,10 @@ body::before {
 /* No hover lift on touch (the hover state sticks after tap on coarse pointers). */
 @media (hover: none) {
   .zf-interactive:hover,
-  .card-lift:hover {
+  .card-lift:hover,
+  .zf-lift:hover,
+  .zf-grow:hover,
+  .group:hover .zf-grow {
     transform: none;
   }
 }
