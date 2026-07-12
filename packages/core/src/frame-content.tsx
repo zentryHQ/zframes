@@ -119,8 +119,8 @@ export const FRAME_CSS = `
      every frame over the animated backdrop, which is what made the hover lag.
      Those now ride the opacity-faded ::after overlay defined below. */
   transition:
-    border-color 0.25s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
-    transform 0.25s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+    border-color 0.15s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    transform 0.15s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   /* Frames arrive in a soft top-down cascade on first paint. The translate
      property (not transform) carries the motion, so the hover lift stays
      independent; the backwards fill holds the hidden state through the stagger
@@ -154,7 +154,7 @@ export const FRAME_CSS = `
     inset 0 1px 0 rgba(255, 255, 255, 0.09),
     0 0 0 1px hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.12),
     0 calc(20px * var(--zf-elevation, 1)) calc(60px * var(--zf-elevation, 1)) -28px hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.4);
-  transition: opacity 0.25s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+  transition: opacity 0.15s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 /* Hover lift is pointer-only — on touch it would stick after a tap. The lift
    (transform) + brighter border transition on the card itself; the surface
