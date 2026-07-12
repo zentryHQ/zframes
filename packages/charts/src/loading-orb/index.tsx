@@ -10,7 +10,7 @@ export const LoadingOrb = ({ className }: { className?: string }) => {
             return (
               <div
                 key={`strand1-${index}`}
-                className="absolute size-1.5 rounded-full will-change-transform"
+                className="loading-orb-dot absolute size-1.5 rounded-full will-change-transform"
                 style={{
                   left: `${(index / 6) * 100}%`,
                   animation: `dnaStrand1Move 2s infinite ease-in-out ${-index * 0.2}s, dnaStrand1Scale 2s infinite ease-in-out ${-index * 0.2}s, dnaStrand1Color 2s infinite ease-in-out ${-index * 0.2}s`,
@@ -23,7 +23,7 @@ export const LoadingOrb = ({ className }: { className?: string }) => {
             return (
               <div
                 key={`strand2-${index}`}
-                className="absolute size-1.5 rounded-full"
+                className="loading-orb-dot absolute size-1.5 rounded-full"
                 style={{
                   left: `${(index / 6) * 100}%`,
                   animation: `dnaStrand2Move 2s infinite ease-in-out ${-index * 0.2}s, dnaStrand2Scale 2s infinite ease-in-out ${-index * 0.2}s, dnaStrand2Color 2s infinite ease-in-out ${-index * 0.2}s`,

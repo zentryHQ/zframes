@@ -81,3 +81,22 @@
     background-color: hsl(calc(var(--zf-accent-hue, 242) + 21) 83% 75%);
   }
 }
+
+@keyframes dnaPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* !important beats the inline `animation` shorthand on the dots. Movement
+     (translate/scale) and the color cycle stop; a soft opacity pulse keeps
+     the "loading" signal. */
+  .loading-orb-dot {
+    animation: dnaPulse 2s ease-in-out infinite !important;
+    background-color: hsl(var(--zf-accent-hue, 242) 100% 68%);
+  }
+}

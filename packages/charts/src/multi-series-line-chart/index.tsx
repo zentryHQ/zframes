@@ -9,7 +9,7 @@ import React, {
   memo,
 } from "react";
 import * as d3 from "d3";
-import { cn } from "../lib/utils";
+import { cn, prefersReducedMotion } from "../lib/utils";
 import { Skeleton } from "../lib/skeleton";
 
 import type { MultiSeriesLineChartProps } from "./types";
@@ -175,7 +175,7 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
       seriesColors,
       xScale,
       yScale,
-      !hasAnimatedRef.current,
+      !hasAnimatedRef.current && !prefersReducedMotion(),
     );
     hasAnimatedRef.current = true;
 
