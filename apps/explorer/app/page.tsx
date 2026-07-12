@@ -39,7 +39,7 @@ export default function GalleryHome() {
           <div className="animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "180ms" }}>
             <Link
               href="/gallery"
-              className="glow-brand zf-press rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5"
+              className="glow-brand zf-press zf-lift rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg"
             >
               Browse the gallery
             </Link>
