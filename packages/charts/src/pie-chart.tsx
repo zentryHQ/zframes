@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { useEffect, useRef, memo } from "react";
+import { prefersReducedMotion } from "./lib/utils";
 
 const COLORS = ["#FF1F5F", "#81FE90"];
 
@@ -124,14 +125,14 @@ const PieChart = ({
         d3.select(this)
           .select(".glow-layer")
           .transition()
-          .duration(300)
+          .duration(prefersReducedMotion() ? 0 : 300)
           .style("opacity", 1);
       })
       .on("mouseleave", function () {
         d3.select(this)
           .select(".glow-layer")
           .transition()
-          .duration(300)
+          .duration(prefersReducedMotion() ? 0 : 300)
           .style("opacity", 0);
       });
   }, [data, width, height, innerRadius, outerRadius, colors]);
