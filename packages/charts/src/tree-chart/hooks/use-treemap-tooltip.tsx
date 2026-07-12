@@ -6,7 +6,7 @@ export interface UseTreemapTooltipOptions {
 }
 
 export function useTreemapTooltip<T>(options: UseTreemapTooltipOptions = {}) {
-  const { verticalOffset = 10, delay = 400 } = options;
+  const { verticalOffset = 10, delay = 100 } = options;
 
   const [hoveredData, setHoveredData] = useState<T | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -82,13 +82,13 @@ export function useTreemapTooltip<T>(options: UseTreemapTooltipOptions = {}) {
         if (!isTooltipVisibleRef.current) {
           wrapperRef.current.style.transition = "none";
           wrapperRef.current.style.opacity = "0";
-          wrapperRef.current.style.transform = "scale(0.6)";
+          wrapperRef.current.style.transform = "scale(0.94)";
 
           requestAnimationFrame(() => {
             if (wrapperRef.current) {
               wrapperRef.current.style.transitionProperty =
                 "opacity, transform";
-              wrapperRef.current.style.transitionDuration = "0.2s";
+              wrapperRef.current.style.transitionDuration = "0.15s";
               wrapperRef.current.style.transitionDelay = `${delay}ms`;
               wrapperRef.current.style.transitionTimingFunction =
                 "var(--ease-out-quart)";

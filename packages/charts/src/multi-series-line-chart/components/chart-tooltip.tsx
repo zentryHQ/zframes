@@ -26,7 +26,7 @@ const ChartTooltipComponent: React.FC<ChartTooltipProps> = ({
     return (
       <div
         ref={tooltipRef}
-        className="pointer-events-none absolute left-0 top-0 z-50 rounded-md bg-slate-700 px-6 py-3 text-xs text-white opacity-0 transition-opacity duration-300"
+        className="pointer-events-none absolute left-0 top-0 z-50 rounded-md bg-slate-700 px-6 py-3 text-xs text-white opacity-0 transition-opacity duration-150 ease-out"
       >
         <div className="flex flex-col gap-3">
           <div
@@ -75,7 +75,7 @@ const ChartTooltipComponent: React.FC<ChartTooltipProps> = ({
   return (
     <div
       ref={tooltipRef}
-      className="pointer-events-none absolute left-0 top-0 z-50 min-w-[130px] rounded-md bg-slate-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-300 ease-out"
+      className="pointer-events-none absolute left-0 top-0 z-50 min-w-[130px] rounded-md bg-slate-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-150 ease-out"
     >
       <div className="flex flex-col items-center justify-center gap-3">
         <div

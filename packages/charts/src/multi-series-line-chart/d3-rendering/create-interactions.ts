@@ -3,6 +3,7 @@ import { findClosestDataPoint } from "../utils";
 import { CHART_BREAKPOINTS, TOOLTIP, CHART_MARGIN } from "../constants";
 import type { CombinedDataPoint, MultiSeriesData } from "../types";
 import { parseMarketData } from "../../lib/format";
+import { prefersReducedMotion } from "../../lib/utils";
 
 interface InteractionHandlers {
   onMouseMove: (event: MouseEvent | TouchEvent) => void;
@@ -120,7 +121,7 @@ export const createInteractions = ({
       })
       .style("opacity", 1)
       .transition()
-      .duration(200)
+      .duration(prefersReducedMotion() ? 0 : 200)
       .ease(d3.easeBackOut)
       .attr("transform", (seriesData) => {
         const value = dataPoint.values[seriesData.id];
@@ -290,8 +291,8 @@ export const createInteractions = ({
     hoverDots
       .selectAll("g")
       .transition()
-      .duration(150)
-      .ease(d3.easeBackIn)
+      .duration(prefersReducedMotion() ? 0 : 120)
+      .ease(d3.easeCubicOut)
       .style("opacity", 0)
       .attr("transform", (d, i, nodes) => {
         const g = d3.select(nodes[i]);
