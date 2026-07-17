@@ -60,6 +60,19 @@ export async function listCommunity(limit = 48): Promise<DashboardRow[]> {
     .limit(limit);
 }
 
+// Owner-scoped visibility flip (the WHERE ownerId is the authz — a non-owner's
+// update matches no row). Same row, no new id — unlike publish, this mutates.
+export async function setVisibility(
+  id: string,
+  ownerId: string,
+  visibility: Visibility,
+): Promise<void> {
+  await db
+    .update(dashboards)
+    .set({ visibility })
+    .where(and(eq(dashboards.id, id), eq(dashboards.ownerId, ownerId)));
+}
+
 // Owner-scoped delete (the WHERE ownerId is the authz — a non-owner deletes nothing).
 export async function deleteDashboard(
   id: string,
