@@ -25,6 +25,7 @@
     "@zframes/unicorn": "workspace:*",
     "better-auth": "^1.6.23",
     "drizzle-orm": "^0.45.2",
+    "gridstack": "^12.1.0",
     "nanoid": "^5.1.16",
     "next": "^15.5.0",
     "postgres": "^3.4.9",
