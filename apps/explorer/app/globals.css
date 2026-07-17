@@ -256,12 +256,16 @@ body::before {
 }
 
 /* Press feedback — pressables scale a hair on :active so the UI reads as
- * listening. Compose onto buttons/CTAs; transform-only (GPU, no layout). */
+ * listening. Compose onto buttons/CTAs; transform-only (GPU, no layout).
+ * The press-DOWN is instant (transition-duration:0s on :active) so the click
+ * lands crisply — no mushy eased shrink; the release still settles over 160ms.
+ * This is the ElevenLabs press model: snap in, ease out. */
 .zf-press {
   transition: transform 160ms var(--zf-ease-out);
 }
 .zf-press:active {
   transform: scale(0.97);
+  transition-duration: 0s;
 }
 
 /* Gated hover motion for one-off cases that previously used raw Tailwind

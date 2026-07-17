@@ -261,9 +261,11 @@ body.zf-dragging * {
     0 2px 6px rgba(0, 0, 0, 0.32),
     0 12px 26px -12px rgba(220, 38, 38, 0.85);
 }
-/* Settle back down on press — the click visibly "lands". */
+/* Settle back down on press — the click visibly "lands" instantly (no eased
+   shrink), then eases back up to the hover state on release. */
 .zf-del-btn:active {
   transform: scale(0.98);
+  transition-duration: 0s;
 }
 .zf-editor.zf-customise .grid-stack-item:hover > .zf-del-btn {
   opacity: 1;
@@ -317,9 +319,11 @@ body.zf-dragging * {
     0 2px 6px rgba(0, 0, 0, 0.34),
     0 12px 26px -14px rgba(0, 0, 0, 0.82);
 }
-/* Settle back down on press — the click visibly "lands". */
+/* Settle back down on press — the click visibly "lands" instantly (no eased
+   shrink), then eases back up to the hover state on release. */
 .zf-cfg-btn:active {
   transform: scale(0.98);
+  transition-duration: 0s;
 }
 .zf-cfg-btn > svg {
   display: block;
@@ -463,8 +467,10 @@ body:has(.ui-draggable-dragging) * {
 .zf-btn:active {
   /* Press feedback: drop the hover lift and scale in slightly so the control
      visibly "gives" under the pointer — the press is the moment the user is
-     watching most closely. */
+     watching most closely. The press lands instantly (transition-duration:0s),
+     then eases back on release. */
   transform: translateY(0) scale(0.97);
+  transition-duration: 0s;
   box-shadow:
     inset 0 1px 3px rgba(0, 0, 0, 0.45),
     0 1px 2px rgba(0, 0, 0, 0.3);
@@ -691,6 +697,7 @@ body:has(.ui-draggable-dragging) * {
 }
 .zf-rail-tab:active {
   transform: scale(0.97);
+  transition-duration: 0s;
 }
 .zf-rail-tab.is-active {
   color: #fff;
@@ -734,6 +741,7 @@ body:has(.ui-draggable-dragging) * {
 }
 .zf-mode-seg-btn:active:not(:disabled) {
   transform: scale(0.97);
+  transition-duration: 0s;
 }
 .zf-mode-seg-btn.is-active {
   color: #fff;
@@ -1811,6 +1819,7 @@ body:has(.ui-draggable-dragging) * {
 }
 .zf-dialog-close:active {
   transform: scale(0.94);
+  transition-duration: 0s;
 }
 .zf-dialog-close > svg {
   display: block;

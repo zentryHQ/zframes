@@ -340,7 +340,9 @@ const ORB_CSS = `
   transition: transform 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 .zai-orb:hover { transform: scale(1.06); }
-.zai-orb:active { transform: scale(0.97); }
+/* Press lands instantly (transition-duration:0s), then eases back to the hover
+   scale on release — snappy click, smooth settle. */
+.zai-orb:active { transform: scale(0.97); transition-duration: 0s; }
 /* Breathing halo: a soft violet aura ringing the resting orb, slowly pulsing so
    the idle orb reads as alive (a slow breath) rather than a static button. It's
    a ::before behind the canvas, inset negative so only the glow ring past the
