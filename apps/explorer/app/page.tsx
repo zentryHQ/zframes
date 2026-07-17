@@ -18,11 +18,6 @@ export default function GalleryHome() {
           phone widths. clip (not hidden) so no scroll container is created. */}
       <section className="relative mx-auto max-w-7xl overflow-x-clip px-6 pt-16 pb-10 sm:pt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-wide text-white/75">
-            <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-[#3fd08f]" />
-            Agent-generated · keyless · stocks first
-          </div>
-
           <h1 className="animate-fade-up mt-6 text-balance text-4xl font-bold leading-[1.06] tracking-tight text-white sm:text-6xl" style={{ animationDelay: "60ms" }}>
             Describe your dashboard.
             <br className="hidden sm:block" />{" "}
