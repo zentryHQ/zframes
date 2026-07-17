@@ -45,6 +45,16 @@ export default function MyDashboardsPage() {
     load();
   }
 
+  async function toggleVisibility(id: string, current: Row["visibility"]) {
+    const visibility = current === "listed" ? "unlisted" : "listed";
+    await fetch(`/api/dashboards/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visibility }),
+    });
+    load();
+  }
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
       <SectionHeading
@@ -117,23 +127,32 @@ export default function MyDashboardsPage() {
                   <code className="text-white/55">/d/{d.id}</code>
                 </div>
               </div>
-              {armed === d.id ? (
+              <div className="flex shrink-0 items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => del(d.id)}
-                  className="shrink-0 rounded-lg border border-down/50 bg-down/15 px-3 py-1.5 text-xs font-medium text-down transition-colors hover:bg-down/25"
+                  onClick={() => toggleVisibility(d.id, d.visibility)}
+                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-indigo-400/40 hover:text-indigo-200"
                 >
-                  Confirm delete
+                  {d.visibility === "listed" ? "Unlist" : "List"}
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setArmed(d.id)}
-                  className="shrink-0 rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-down/40 hover:text-down"
-                >
-                  Delete
-                </button>
-              )}
+                {armed === d.id ? (
+                  <button
+                    type="button"
+                    onClick={() => del(d.id)}
+                    className="rounded-lg border border-down/50 bg-down/15 px-3 py-1.5 text-xs font-medium text-down transition-colors hover:bg-down/25"
+                  >
+                    Confirm delete
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setArmed(d.id)}
+                    className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-down/40 hover:text-down"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>
