@@ -38,6 +38,7 @@ const DAG: Record<string, string[]> = {
   "providers-keyless": [
     "@zframes/provider-alternativeme",
     "@zframes/provider-bitcoin-data",
+    "@zframes/provider-blockchair",
     "@zframes/provider-bls",
     "@zframes/provider-coingecko",
     "@zframes/provider-coinmetrics",
@@ -47,6 +48,7 @@ const DAG: Record<string, string[]> = {
     "@zframes/provider-etf-flows",
     "@zframes/provider-finra",
     "@zframes/provider-fx",
+    "@zframes/provider-geckoterminal",
     "@zframes/provider-hyperliquid",
     "@zframes/provider-mempool",
     "@zframes/provider-news",

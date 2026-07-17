@@ -537,6 +537,19 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-blockchair:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-bls:
     dependencies:
       '@zframes/data-primitives':
@@ -642,6 +655,19 @@ importers:
         version: 5.9.3
 
   packages/provider-fx:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-geckoterminal:
     dependencies:
       '@zframes/data-primitives':
         specifier: workspace:*
@@ -792,6 +818,9 @@ importers:
       '@zframes/provider-bitcoin-data':
         specifier: workspace:*
         version: link:../provider-bitcoin-data
+      '@zframes/provider-blockchair':
+        specifier: workspace:*
+        version: link:../provider-blockchair
       '@zframes/provider-bls':
         specifier: workspace:*
         version: link:../provider-bls
@@ -819,6 +848,9 @@ importers:
       '@zframes/provider-fx':
         specifier: workspace:*
         version: link:../provider-fx
+      '@zframes/provider-geckoterminal':
+        specifier: workspace:*
+        version: link:../provider-geckoterminal
       '@zframes/provider-hyperliquid':
         specifier: workspace:*
         version: link:../provider-hyperliquid

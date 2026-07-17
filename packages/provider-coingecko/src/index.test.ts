@@ -75,6 +75,7 @@ describe("CoinGeckoProvider", () => {
       "coin-markets",
       "trending-coins",
       "sector-performance",
+      "nft-market",
     ]);
   });
 
@@ -325,6 +326,113 @@ describe("CoinGeckoProvider", () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+  });
+
+  describe("getNftMarket", () => {
+    /** A canned CoinGecko /nfts/{id} body. */
+    function nftBody(id: string, floorUsd: number, volumeUsd: number) {
+      return {
+        id,
+        name: id.replace(/-/g, " "),
+        floor_price: { native_currency: floorUsd / 2000, usd: floorUsd },
+        floor_price_24h_percentage_change: { usd: -3.5 },
+        market_cap: { usd: floorUsd * 10000 },
+        volume_24h: { usd: volumeUsd },
+        one_day_sales: 12,
+      };
+    }
+
+    /**
+     * Route each /nfts/{id} call to a per-id body via the trailing slug. Any id
+     * NOT in `bodies` (or mapped to null) resolves to a 429 — the real provider
+     * fetches all ~10 curated slugs, so tests supply only the ones they care
+     * about and let the rest throttle.
+     */
+    function nftFetch(bodies: Record<string, ReturnType<typeof nftBody>>) {
+      return vi.fn().mockImplementation((url: string) => {
+        const id = url.split("/").pop() as string;
+        const body = bodies[id];
+        return Promise.resolve(
+          body ? jsonResponse(body) : jsonResponse(null, 429),
+        );
+      });
+    }
+
+    it("maps resolved collections and sorts them by 24h volume desc", async () => {
+      const fetchMock = nftFetch({
+        "bored-ape-yacht-club": nftBody("bored-ape-yacht-club", 16000, 65_000),
+        "pudgy-penguins": nftBody("pudgy-penguins", 12000, 900_000),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const result = await new CoinGeckoProvider().getNftMarket();
+
+      expect(result.map((c) => c.id)).toEqual([
+        "pudgy-penguins", // higher volume first
+        "bored-ape-yacht-club",
+      ]);
+      expect(result[0]).toEqual({
+        id: "pudgy-penguins",
+        name: "pudgy penguins",
+        floorNative: 6,
+        floorUsd: 12000,
+        floorChangePct24h: -3.5,
+        marketCapUsd: 120_000_000,
+        volume24hUsd: 900_000,
+        sales24h: 12,
+      });
+    });
+
+    it("skips a collection missing a finite floor price but keeps the rest", async () => {
+      vi.stubGlobal(
+        "fetch",
+        nftFetch({
+          "bored-ape-yacht-club": nftBody(
+            "bored-ape-yacht-club",
+            16000,
+            65_000,
+          ),
+          azuki: nftBody("azuki", Number.NaN, 5_000),
+        }),
+      );
+
+      const result = await new CoinGeckoProvider().getNftMarket();
+      expect(result.map((c) => c.id)).toEqual(["bored-ape-yacht-club"]);
+    });
+
+    it("skips a collection whose fetch fails (429) and keeps the rest", async () => {
+      vi.stubGlobal(
+        "fetch",
+        nftFetch({ cryptopunks: nftBody("cryptopunks", 40000, 200_000) }),
+      );
+
+      const result = await new CoinGeckoProvider().getNftMarket();
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("cryptopunks");
+    });
+
+    it("throws a labelled error when no collection resolves", async () => {
+      vi.stubGlobal("fetch", nftFetch({}));
+
+      await expect(new CoinGeckoProvider().getNftMarket()).rejects.toThrow(
+        "coingecko nfts: no collections resolved",
+      );
+    });
+
+    it("serves a fresh cached value on the second call without re-fetching", async () => {
+      const fetchMock = nftFetch({
+        "bored-ape-yacht-club": nftBody("bored-ape-yacht-club", 16000, 65_000),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const first = await new CoinGeckoProvider().getNftMarket();
+      const callsAfterFirst = fetchMock.mock.calls.length;
+      const second = await new CoinGeckoProvider().getNftMarket();
+
+      expect(second).toEqual(first);
+      // Second call served from the shared module-level cache — no new fetches.
+      expect(fetchMock.mock.calls.length).toBe(callsAfterFirst);
     });
   });
 });
