@@ -18,20 +18,20 @@ export default function GalleryHome() {
           phone widths. clip (not hidden) so no scroll container is created. */}
       <section className="relative mx-auto max-w-7xl overflow-x-clip px-6 pt-16 pb-10 sm:pt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="animate-fade-up mt-6 text-balance text-4xl font-bold leading-[1.06] tracking-tight text-white sm:text-6xl" style={{ animationDelay: "60ms" }}>
+          <h1 className="animate-fade-up mt-6 text-balance text-4xl font-bold leading-[1.06] tracking-tight text-white [animation-delay:60ms] sm:text-6xl">
             Describe your dashboard.
             <br className="hidden sm:block" />{" "}
             <span className="text-indigo-200">An agent builds it.</span>
           </h1>
 
-          <p className="animate-fade-up mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-white/75 sm:text-lg" style={{ animationDelay: "120ms" }}>
+          <p className="animate-fade-up mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-white/75 [animation-delay:120ms] sm:text-lg">
             zframes turns your coding agent into a market-terminal builder. Install a
             skill, describe what you want, and it reads the frame catalogue, writes a
             live <code className="rounded bg-white/[0.08] px-1 py-0.5 font-mono text-[0.85em] text-indigo-200">dashboard.json</code>, and serves it with real data —
             keyless, stocks first, and it gets sharper every day.
           </p>
 
-          <div className="animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-3" style={{ animationDelay: "180ms" }}>
+          <div className="animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-3 [animation-delay:180ms]">
             <Link
               href="/gallery"
               className="glow-brand zf-cta rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg"
@@ -47,7 +47,7 @@ export default function GalleryHome() {
           </div>
 
           {/* The real entry point (README §Quickstart): install the skill, then talk. */}
-          <div className="animate-fade-up mt-8 flex flex-col items-center gap-2.5" style={{ animationDelay: "240ms" }}>
+          <div className="animate-fade-up mt-8 flex flex-col items-center gap-2.5 [animation-delay:240ms]">
             <span className="text-xs uppercase tracking-widest text-white/55">
               Install in your agent, then just talk
             </span>
@@ -62,14 +62,8 @@ export default function GalleryHome() {
         {/* Hero image — a real generated zframes dashboard (README §hero,
             docs/assets/dashboard-2026-06-20.png). Shown unobstructed in a single
             glowing frame: the image is the hero, every card a validated keyless frame. */}
-        <figure className="animate-fade-up relative mx-auto mt-16 max-w-5xl" style={{ animationDelay: "300ms" }}>
-          <div
-            className="pointer-events-none absolute -inset-x-10 -top-16 -bottom-8 -z-10"
-            style={{
-              background:
-                "radial-gradient(52% 62% at 50% 32%, hsla(258,92%,62%,0.34), transparent 70%)",
-            }}
-          />
+        <figure className="animate-fade-up relative mx-auto mt-16 max-w-5xl [animation-delay:300ms]">
+          <div className="pointer-events-none absolute -inset-x-10 -top-16 -bottom-8 -z-10 bg-[image:radial-gradient(52%_62%_at_50%_32%,hsla(258,92%,62%,0.34),transparent_70%)]" />
           <div className="hairline glow-brand overflow-hidden rounded-2xl">
             <img
               src="/showcase-dashboard.png"
