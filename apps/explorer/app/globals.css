@@ -332,6 +332,37 @@ body::before {
   transition-duration: 0s;
 }
 
+/* Ken-Burns poster — the real nightly screenshot drifts + scales a touch on
+ * hover so a static capture reads as a living preview (the ElevenLabs "media
+ * moves" feel, with no live board per card). Owns its own long transition; the
+ * poster window's overflow-hidden clips the overscan. */
+.zf-kenburns {
+  /* Includes opacity so it doesn't clobber ThumbImage's fade-in — an unlayered
+   * `transition` shorthand wins over the Tailwind transition-opacity utility. */
+  transition:
+    transform 1.1s var(--zf-ease-out),
+    opacity 0.5s var(--zf-ease-out);
+  will-change: transform;
+}
+.group:hover .zf-kenburns {
+  transform: scale(1.06);
+}
+
+/* Caption reveal — the description + "Open" affordance grow in over the bottom
+ * of the fixed-aspect poster on hover (grid 0fr→1fr), so the resting grid stays
+ * media-forward and NOTHING reflows (the poster box height is fixed). */
+.zf-caption {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.34s var(--zf-ease-out);
+}
+.group:hover .zf-caption {
+  grid-template-rows: 1fr;
+}
+.zf-caption > * {
+  overflow: hidden;
+}
+
 /* ── Motion ─────────────────────────────────────────────────────────────── */
 @keyframes fade-up {
   from {
@@ -439,8 +470,14 @@ body::before {
   .zf-cta:hover:not(:disabled),
   .zf-cta:active,
   .zf-cta-light:hover:not(:disabled),
-  .zf-cta-light:active {
+  .zf-cta-light:active,
+  .group:hover .zf-kenburns {
     transform: none;
+  }
+  /* Caption keeps its progressive disclosure but drops the animated height —
+     it snaps open on hover instead of sliding. */
+  .zf-caption {
+    transition: none;
   }
   /* Arrow keeps its opacity reveal (comprehension) but loses the slide. */
   .zf-arrow-reveal,
@@ -459,5 +496,10 @@ body::before {
   .zf-cta:hover:not(:disabled),
   .zf-cta-light:hover:not(:disabled) {
     transform: none;
+  }
+  /* No hover on touch, so the caption would never open — show it always so
+     descriptions stay reachable on mobile. */
+  .zf-caption {
+    grid-template-rows: 1fr;
   }
 }

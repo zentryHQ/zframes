@@ -7,7 +7,15 @@ import { useEffect, useRef, useState } from "react";
 // yet) or any error leaves the silhouette showing, so callers never need to
 // know whether a capture exists. Plain <img>: the source is our own tiny API
 // route, next/image optimization would just proxy it.
-export function ThumbImage({ src, alt }: { src: string; alt: string }) {
+export function ThumbImage({
+  src,
+  alt,
+  className = "",
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
   const ref = useRef<HTMLImageElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -30,7 +38,7 @@ export function ThumbImage({ src, alt }: { src: string; alt: string }) {
       loading="lazy"
       onLoad={() => setLoaded(true)}
       onError={() => setFailed(true)}
-      className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-500 ${
+      className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-500 ${className} ${
         loaded ? "opacity-100" : "opacity-0"
       }`}
     />
