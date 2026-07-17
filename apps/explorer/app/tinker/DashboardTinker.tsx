@@ -3,9 +3,12 @@
 import { DashboardEditor } from "@zframes/editor/editor";
 import {
   DashboardSpecSchema,
+  FRAME_CATEGORIES,
   FramesProvider,
   type DashboardSpec,
 } from "@zframes/core";
+import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
+import { allFrames } from "@zframes/frames";
 import { useCallback, useRef, useState } from "react";
 import "gridstack/dist/gridstack.min.css";
 import { PublishDialog } from "@/app/lib/PublishDialog";
@@ -13,27 +16,112 @@ import { providers, registry } from "@/app/lib/frames";
 
 // Client-only module (the page dynamic-imports it ssr:false) — DashboardEditor
 // (GridStack) + localStorage both run in the browser.
-const STORAGE_KEY = "zframes:tinker-spec";
+// Bumped from v1 (the old 3-frame starter) so the new all-frames default
+// surfaces past any spec a returning browser had saved under the old key.
+const STORAGE_KEY = "zframes:tinker-spec-v3";
 
-const STARTER = {
-  version: "1.0.0",
-  title: "My dashboard",
-  author: "you",
-  background: { type: "none" as const },
-  frames: [
-    {
-      id: "hd",
-      frame: "heading",
-      position: { x: 0, y: 0, w: 12, h: 1 },
-      config: {
-        title: "My dashboard",
-        subtitle: "Customise → drag, resize, add frames. Save persists to this browser.",
-      },
-    },
-    { id: "btc", frame: "price-chart", title: "BTC", position: { x: 0, y: 1, w: 6, h: 3 }, config: { symbol: "BTC" } },
-    { id: "fg", frame: "fear-greed", position: { x: 6, y: 1, w: 3, h: 3 }, config: {} },
-  ],
-};
+const COLS = 12;
+
+// The default tinker board is a showcase: every registered frame, grouped by
+// category (a full-width heading per section), each seeded at its own natural
+// `layout` size (falling back to 4×3). Frames are skyline bin-packed so the
+// 12-col width fills cleanly with no ragged trailing holes: tallest-first, each
+// frame dropped into the lowest columns it fits. `float:true` in the editor
+// keeps these placements exactly as laid out.
+function buildStarter() {
+  const byCat = new Map<string, typeof allFrames>();
+  for (const def of allFrames) {
+    const key = def.category ?? "other";
+    const bucket = byCat.get(key) ?? [];
+    bucket.push(def);
+    byCat.set(key, bucket);
+  }
+  // FRAME_CATEGORIES order first, then any stray categories not in the taxonomy.
+  const order: string[] = FRAME_CATEGORIES.map((c) => c.key);
+  for (const key of byCat.keys()) if (!order.includes(key)) order.push(key);
+  const labelOf = (key: string) =>
+    FRAME_CATEGORIES.find((c) => c.key === key)?.label ?? key;
+
+  const frames: DashboardSpec["frames"] = [];
+  // Per-column skyline: the current filled height (in rows) of each column.
+  const skyline = new Array<number>(COLS).fill(0);
+  let uid = 0;
+
+  const dims = (def: (typeof allFrames)[number]) => ({
+    w: Math.min(Math.max(def.layout?.w ?? 4, 1), COLS),
+    h: Math.max(def.layout?.h ?? 3, 1),
+  });
+  const topOf = (x: number, w: number) => {
+    let top = 0;
+    for (let i = x; i < x + w; i++) top = Math.max(top, skyline[i]);
+    return top;
+  };
+  const settle = (x: number, w: number, bottom: number) => {
+    for (let i = x; i < x + w; i++) skyline[i] = bottom;
+  };
+  const maxSkyline = () => skyline.reduce((m, v) => Math.max(m, v), 0);
+
+  // A full-width banner: lands below everything and resets the whole skyline,
+  // so each section starts flush with no overlap and no cross-section gap.
+  const banner = (id: string, config: Record<string, unknown>) => {
+    const y = maxSkyline();
+    frames.push({ id, frame: "heading", position: { x: 0, y, w: COLS, h: 1 }, config });
+    settle(0, COLS, y + 1);
+  };
+
+  banner("tinker-intro", {
+    title: "All frames",
+    subtitle:
+      "Every zframes frame at its natural size — drag, resize, tweak, then Save or Publish.",
+  });
+
+  for (const cat of order) {
+    const defs = byCat.get(cat);
+    if (!defs || defs.length === 0) continue;
+
+    banner(`sec-${cat}`, { title: labelOf(cat) });
+
+    // Tallest-first (then widest) so tall frames anchor the columns and shorter
+    // ones tuck into the low gaps beside them — a denser skyline fill.
+    const sorted = [...defs].sort((a, b) => {
+      const da = dims(a);
+      const db = dims(b);
+      return db.h - da.h || db.w - da.w;
+    });
+
+    for (const def of sorted) {
+      const { w, h } = dims(def);
+      let bestX = 0;
+      let bestTop = Infinity;
+      for (let x = 0; x + w <= COLS; x++) {
+        const top = topOf(x, w);
+        if (top < bestTop) {
+          bestTop = top;
+          bestX = x;
+        }
+      }
+      frames.push({
+        id: `${def.name}-${uid++}`,
+        frame: def.name,
+        position: { x: bestX, y: bestTop, w, h },
+        config: buildDefaultConfig(def),
+      });
+      settle(bestX, w, bestTop + h);
+    }
+  }
+
+  return {
+    version: "1.0.0",
+    title: "Tinker board",
+    author: "you",
+    background: { type: "none" as const },
+    // A touch more gutter between card borders than the 12px default.
+    grid: { gap: 16 },
+    frames,
+  };
+}
+
+const STARTER = buildStarter();
 
 function loadSpec(): DashboardSpec {
   const fallback = DashboardSpecSchema.parse(STARTER);
