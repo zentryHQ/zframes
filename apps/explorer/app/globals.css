@@ -297,6 +297,41 @@ body::before {
   transform: translateX(0);
 }
 
+/* Filled primary CTA — the hero + sign-in buttons. The outline buttons shift
+ * their border + text colour on hover; a FILLED button has neither to spare, so
+ * the fill itself must react. It brightens + lifts on hover and presses
+ * instantly. One rule owns the whole transition so it never collides with the
+ * per-property .zf-lift / .zf-press transitions (both would otherwise clobber
+ * each other's `transition` when composed). */
+.zf-cta {
+  transition:
+    transform 0.2s var(--zf-ease-out),
+    filter 0.2s var(--zf-ease-out);
+}
+.zf-cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+.zf-cta:active {
+  transform: scale(0.97);
+  transition-duration: 0s;
+}
+/* Light-filled variant (the white Google button): brightness is invisible on
+ * white, so shade the surface toward grey on hover instead. */
+.zf-cta-light {
+  transition:
+    transform 0.2s var(--zf-ease-out),
+    background-color 0.2s var(--zf-ease-out);
+}
+.zf-cta-light:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background-color: #eceef2;
+}
+.zf-cta-light:active {
+  transform: scale(0.97);
+  transition-duration: 0s;
+}
+
 /* ── Motion ─────────────────────────────────────────────────────────────── */
 @keyframes fade-up {
   from {
@@ -400,7 +435,11 @@ body::before {
   .zf-press:active,
   .zf-lift:hover,
   .zf-grow:hover,
-  .group:hover .zf-grow {
+  .group:hover .zf-grow,
+  .zf-cta:hover:not(:disabled),
+  .zf-cta:active,
+  .zf-cta-light:hover:not(:disabled),
+  .zf-cta-light:active {
     transform: none;
   }
   /* Arrow keeps its opacity reveal (comprehension) but loses the slide. */
@@ -416,7 +455,9 @@ body::before {
   .card-lift:hover,
   .zf-lift:hover,
   .zf-grow:hover,
-  .group:hover .zf-grow {
+  .group:hover .zf-grow,
+  .zf-cta:hover:not(:disabled),
+  .zf-cta-light:hover:not(:disabled) {
     transform: none;
   }
 }
