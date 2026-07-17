@@ -21,6 +21,7 @@ import {
   type ReactNode,
 } from "react";
 import { providers, registry } from "@/app/lib/frames";
+import FramePlayground from "./FramePlayground";
 
 const ROW = 96;
 const GAP = 12;
@@ -230,6 +231,10 @@ export default function CatalogueView() {
               : `${total} frames · ${FRAME_CATEGORIES.length} families`}
           </p>
         </header>
+
+        {/* Interactive hero: prove frames reflow + drag before the static browse
+            grid. Hidden while searching so results stay the focus. */}
+        {!searching && <FramePlayground />}
 
         {sections.length === 0 ? (
           <p className="text-sm text-white/55">
