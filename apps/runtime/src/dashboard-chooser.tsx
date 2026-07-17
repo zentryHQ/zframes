@@ -149,7 +149,7 @@ export function DashboardChooser({ currentTitle }: { currentTitle: string }) {
                           ? { borderColor: `${accent} 60%)` }
                           : undefined
                       }
-                      className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left outline-none transition disabled:opacity-50 ${
+                      className={`flex flex-col items-start gap-1 rounded-xl border p-4 text-left outline-none transition active:scale-[0.98] active:duration-0 disabled:opacity-50 ${
                         isCurrent
                           ? "bg-white/[0.04]"
                           : "border-white/[0.08] hover:border-white/25 hover:bg-white/[0.03]"
