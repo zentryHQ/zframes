@@ -53,23 +53,13 @@ export function UnicornBackground({
   return (
     <div
       aria-hidden
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: -1,
-        overflow: "hidden",
-        pointerEvents: "none",
-      }}
+      className="pointer-events-none fixed inset-0 z-[-1] overflow-hidden"
     >
-      {/* The WebGL scene. Fades in once the engine is ready so there's no hard pop. */}
+      {/* The WebGL scene. Fades in once the engine is ready so there's no hard pop.
+          Opacity stays inline — it's a runtime prop, not a static utility. */}
       <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          opacity: ready ? opacity : 0,
-          transition:
-            "opacity 0.9s var(--zf-ease-out, cubic-bezier(0.23,1,0.32,1))",
-        }}
+        className="absolute inset-0 transition-opacity duration-[900ms] ease-[var(--zf-ease-out,cubic-bezier(0.23,1,0.32,1))]"
+        style={{ opacity: ready ? opacity : 0 }}
       >
         <UnicornScene
           projectId={projectId}
