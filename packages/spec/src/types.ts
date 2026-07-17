@@ -47,6 +47,9 @@ export type Capability =
   | "etf-flows"
   | "trending-coins"
   | "sector-performance"
+  | "nft-market"
+  | "dex-pools"
+  | "chain-activity"
   | "portfolio";
 
 export interface DayStats {
@@ -938,6 +941,64 @@ export interface MarketSector {
   changePct24h: number;
 }
 
+/** One NFT collection's market snapshot (floor, volume, sales). */
+export interface NftCollection {
+  /** CoinGecko collection id/slug, e.g. "bored-ape-yacht-club". */
+  id: string;
+  /** Human display name, e.g. "Bored Ape Yacht Club". */
+  name: string;
+  /** Floor price in the collection's native currency (usually ETH). */
+  floorNative: number;
+  /** Floor price in USD. */
+  floorUsd: number;
+  /** 24h change in the floor price, percent (USD basis). */
+  floorChangePct24h: number;
+  /** Collection market cap in USD (floor × supply). */
+  marketCapUsd: number;
+  /** Trailing-24h trading volume in USD. */
+  volume24hUsd: number;
+  /** Number of sales in the last 24h. */
+  sales24h: number;
+}
+
+/** One DEX liquidity pool / trading pair with 24h activity. */
+export interface DexPool {
+  /** Pool/pair label, e.g. "PEPE / WETH". */
+  name: string;
+  /** Network id the pool trades on, e.g. "eth", "solana", "base". */
+  network: string;
+  /** Base-token spot price in USD. */
+  priceUsd: number;
+  /** Trailing-24h volume in USD. */
+  volume24hUsd: number;
+  /** 24h price change, percent. */
+  changePct24h: number;
+  /** Total pool liquidity (reserve) in USD. */
+  reserveUsd: number;
+  /** Fully-diluted valuation of the base token in USD (0 if unknown). */
+  fdvUsd: number;
+  /** Trade count in the last 24h (buys + sells). */
+  txns24h: number;
+}
+
+/** One blockchain's headline network activity over the last 24h. */
+export interface ChainActivity {
+  /** Blockchair chain slug, e.g. "bitcoin", "ethereum". */
+  chain: string;
+  /** Human display label, e.g. "Bitcoin". */
+  label: string;
+  /** Confirmed transactions in the last 24h. */
+  transactions24h: number;
+  /** Blocks produced in the last 24h. */
+  blocks24h: number;
+  /** Transactions currently waiting in the mempool. */
+  mempoolTxns: number;
+  /** Spot price of the chain's native asset in USD. */
+  priceUsd: number;
+  /** 24h change in the native asset price, percent. */
+  priceChangePct24h: number;
+}
+
 /**
  * A data provider fulfills frame capabilities. Every data method is optional —
  * a provider implements the methods matching the capabilities it advertises,
@@ -1009,6 +1070,15 @@ export interface MarketDataProvider {
   getTrendingCoins?(): Promise<TrendingCoin[]>;
   /** Market sectors / categories with aggregate performance. */
   getSectorPerformance?(): Promise<MarketSector[]>;
+  /** Blue-chip NFT collections: floor, 24h change, market cap, volume, sales. */
+  getNftMarket?(): Promise<NftCollection[]>;
+  /**
+   * Trending/hot DEX pools for a network (default the provider's own), each with
+   * base-token price, 24h volume/change, liquidity and trade count.
+   */
+  getDexPools?(network?: string): Promise<DexPool[]>;
+  /** Cross-chain network activity (tx count, blocks, mempool, price) per chain. */
+  getChainActivity?(): Promise<ChainActivity[]>;
   /** Treasury average interest rates by security class. */
   getTreasuryAverageRates?(): Promise<TreasuryAverageRate[]>;
   /** US Treasury daily par yield curve (latest available date). */

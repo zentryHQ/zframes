@@ -1,0 +1,27 @@
+{
+  "name": "@zframes/provider-blockchair",
+  "version": "0.0.0",
+  "description": "Free, no-key zframes data provider for Blockchair: cross-chain network activity (24h transactions, blocks, mempool size, native price) for major L1s (chain-activity capability).",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/provider-blockchair"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/data-primitives": "workspace:*",
+    "@zframes/spec": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

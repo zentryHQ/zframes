@@ -1,4 +1,4 @@
-// The keyless market-data provider set — the 20 free, no-key providers, as ONE
+// The keyless market-data provider set — the 22 free, no-key providers, as ONE
 // factory both apps share. Runtime and explorer used to each keep an identical
 // copy of this list (apps/runtime/src/App.tsx, apps/explorer/app/lib/frames.ts);
 // adding a provider meant editing both and they drifted. Centralising it here
@@ -18,6 +18,7 @@
 import type { MarketDataProvider } from "@zframes/spec";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
 import { BitcoinDataProvider } from "@zframes/provider-bitcoin-data";
+import { BlockchairProvider } from "@zframes/provider-blockchair";
 import { BlsProvider } from "@zframes/provider-bls";
 import { CoinGeckoProvider } from "@zframes/provider-coingecko";
 import { CoinMetricsProvider } from "@zframes/provider-coinmetrics";
@@ -29,6 +30,7 @@ import { UltrasoundProvider } from "@zframes/provider-ultrasound";
 import { DeribitProvider } from "@zframes/provider-deribit";
 import { FinraProvider } from "@zframes/provider-finra";
 import { FxProvider } from "@zframes/provider-fx";
+import { GeckoTerminalProvider } from "@zframes/provider-geckoterminal";
 import { HyperliquidProvider } from "@zframes/provider-hyperliquid";
 import { MempoolProvider } from "@zframes/provider-mempool";
 import { NewsProvider } from "@zframes/provider-news";
@@ -45,6 +47,8 @@ export function createKeylessProviders(): MarketDataProvider[] {
     new AlternativeMeProvider(),
     new CoinGeckoProvider(),
     new CoinpaprikaProvider(),
+    new GeckoTerminalProvider(),
+    new BlockchairProvider(),
     new CoinMetricsProvider(),
     new BitcoinDataProvider(),
     new UltrasoundProvider(),

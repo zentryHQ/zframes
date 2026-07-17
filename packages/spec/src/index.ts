@@ -69,6 +69,9 @@ export type {
   EtfFlows,
   TrendingCoin,
   MarketSector,
+  NftCollection,
+  DexPool,
+  ChainActivity,
 } from "./types";
 export {
   defineFrame,

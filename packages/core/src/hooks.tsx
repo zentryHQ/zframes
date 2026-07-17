@@ -57,6 +57,9 @@ import type {
   EtfFlows,
   TrendingCoin,
   MarketSector,
+  NftCollection,
+  DexPool,
+  ChainActivity,
 } from "@zframes/spec/types";
 
 import { FrameVisibilityContext } from "./visibility";
@@ -1150,4 +1153,56 @@ export function useSectorPerformance(refreshMs = 12 * 60_000): {
     refreshMs,
   );
   return { sectors, isLoading };
+}
+
+/**
+ * Blue-chip NFT collections (floor, 24h change, volume), polled hourly — floors
+ * drift over hours and the source fans out ~10 rate-limited calls per refresh,
+ * so there's nothing faster worth polling for.
+ */
+export function useNftMarket(refreshMs = 60 * 60_000): {
+  collections: NftCollection[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("nft-market");
+  const { data: collections, isLoading } = usePolled<NftCollection[]>(
+    provider?.getNftMarket ? () => provider.getNftMarket!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { collections, isLoading };
+}
+
+/**
+ * Trending/hot DEX pools for a network, polled every ~2 min (GeckoTerminal's
+ * free tier is rate-limited and trending pools rotate over minutes).
+ */
+export function useDexPools(
+  network = "eth",
+  refreshMs = 2 * 60_000,
+): { pools: DexPool[]; isLoading: boolean } {
+  const provider = useProviderFor("dex-pools");
+  const { data: pools, isLoading } = usePolled<DexPool[]>(
+    provider?.getDexPools ? () => provider.getDexPools!(network) : null,
+    [],
+    [provider, network, refreshMs],
+    refreshMs,
+  );
+  return { pools, isLoading };
+}
+
+/** Cross-chain network activity per L1, polled every ~5 min. */
+export function useChainActivity(refreshMs = 5 * 60_000): {
+  chains: ChainActivity[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("chain-activity");
+  const { data: chains, isLoading } = usePolled<ChainActivity[]>(
+    provider?.getChainActivity ? () => provider.getChainActivity!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { chains, isLoading };
 }

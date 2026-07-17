@@ -59,6 +59,9 @@ export {
   useEtfFlows,
   useTrendingCoins,
   useSectorPerformance,
+  useNftMarket,
+  useDexPools,
+  useChainActivity,
 } from "./hooks";
 export { DashboardRenderer } from "./renderer";
 export {

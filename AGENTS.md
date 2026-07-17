@@ -43,12 +43,14 @@ pnpm --filter @zframes/storybook dev  # Storybook — every frame in all variant
 - `packages/charts` — D3 base chart layer ported from zTerminal (`tree-chart`, `heatmap-chart`, `multi-series-line-chart`, `stacked-area-chart`, `pie-chart`, `mini-line-chart`) plus `theme.css` (zTerminal design tokens for Tailwind v4). Implementation-agnostic: no business logic, no data fetching.
 - **Crypto market data (keyless):**
   - `packages/provider-hyperliquid` — free no-key provider: allMids WS (one subscription per HIP-3 dex, added lazily from requested symbols), day stats per dex (full default-dex universe when no symbols given; a `"<dex>:*"` wildcard symbol — e.g. `"xyz:*"` — returns that dex's *entire* universe, used by the ticker tape to surface every HIP-3 equity), fundingHistory, candleSnapshot, open interest (`open-interest` capability — live single-venue notional, read from the same `metaAndAssetCtxs` call as day stats; no history endpoint)
-  - `packages/provider-coingecko` — global marketcap + dominance (`global-market`) and per-coin market caps (`coin-markets`, top-50 by mcap with 24h change); free tier no key, both endpoints cached behind `TtlCache` (stale-on-429)
+  - `packages/provider-coingecko` — global marketcap + dominance (`global-market`), per-coin market caps (`coin-markets`, top-50 by mcap with 24h change), trending coins (`trending-coins`), sector performance (`sector-performance`), and blue-chip NFT collections (`nft-market` — floor/24h-change/volume/sales for ~10 curated slugs, fetched **sequentially** one `/nfts/{id}` call at a time with per-collection skip-on-fail and a long 45 m TTL, since the keyless tier has no bulk NFT endpoint and shares this provider's rate limit); free tier no key, all endpoints cached behind `TtlCache` (stale-on-429)
   - `packages/provider-coinpaprika` — broad multi-window coin movers across ~2000 coins (`coin-movers` capability)
   - `packages/provider-alternativeme` — fear & greed index (`sentiment` capability)
 - **On-chain / DeFi (keyless):**
   - `packages/provider-defillama` — keyless via api.llama.fi (CORS-open): TVL per chain (`tvl`), DEX volume (`dex-volume`, snapshot + per-protocol history), protocol TVL (`protocol-tvl`, snapshot + per-protocol history), protocol fees (`protocol-fees`). Snapshots/histories cached behind `@zframes/data-primitives/cache`'s `TtlCache`
   - `packages/provider-mempool` — Bitcoin fees, mempool, blocks, hashrate, difficulty, mining pools, and Lightning stats (keyless, mempool.space)
+  - `packages/provider-geckoterminal` — trending/hot DEX pools per network (`dex-pools`) via GeckoTerminal's keyless public API (~30 req/min): pair, base-token price, 24h volume/change, liquidity, trade count; keyed by network (eth/solana/base/…), short TTL (not persisted — hot pools are too short-lived)
+  - `packages/provider-blockchair` — cross-chain network activity (`chain-activity`) for major L1s (Bitcoin, Ethereum, Litecoin, Dogecoin, …) via Blockchair's keyless `/{chain}/stats`: 24h tx count, blocks, mempool size, native price + 24h change; per-chain calls fan out in parallel with skip-on-fail, aggregate cached 4 m
 - **Derivatives / options (keyless):**
   - `packages/provider-deribit` — BTC/ETH put-call ratio, OI-by-strike, DVOL volatility index (Deribit public API, no key)
 - **FX (keyless):**
@@ -86,7 +88,7 @@ pnpm --filter @zframes/storybook dev  # Storybook — every frame in all variant
 
 ## Scope
 
-- Keyless by default — the published CLI and all 15 market-data providers are keyless (free public APIs, no key required). An opt-in keyed/account tier exists (`provider-binance` for a connected Binance account, `provider-wallet` for a public on-chain address) but is separate from the default keyless set and not wired into the published CLI. (17 provider packages total: 15 keyless + 2 keyed.)
+- Keyless by default — the published CLI and all 17 market-data providers are keyless (free public APIs, no key required). An opt-in keyed/account tier exists (`provider-binance` for a connected Binance account, `provider-wallet` for a public on-chain address) but is separate from the default keyless set and not wired into the published CLI. (19 provider packages total: 17 keyless + 2 keyed.)
 - Stocks-first — equity perps via Hyperliquid HIP-3 builder dexes (`dex` param, e.g. `xyz:TSLA`), with crypto alongside.
 
 Architecture decisions, the distribution model, and roadmap live in `docs/decisions/` (kept locally, not in the public repo).
