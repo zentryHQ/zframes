@@ -334,4 +334,19 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "spotify-embed": {
     load: () => import("./spotify-embed").then((m) => m.spotifyEmbedFrame),
   },
+  "nft-collections": {
+    load: () => import("./nft-collections").then((m) => m.nftCollectionsFrame),
+  },
+  "dex-hot-pools": {
+    load: () => import("./dex-hot-pools").then((m) => m.dexHotPoolsFrame),
+  },
+  "chain-activity": {
+    load: () => import("./chain-activity").then((m) => m.chainActivityFrame),
+  },
+  "nft-treemap": {
+    load: () => import("./nft-treemap").then((m) => m.nftTreemapFrame),
+  },
+  "dex-pool-treemap": {
+    load: () => import("./dex-pool-treemap").then((m) => m.dexPoolTreemapFrame),
+  },
 };
