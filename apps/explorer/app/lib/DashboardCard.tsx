@@ -3,10 +3,12 @@ import { DashboardThumb, type ThumbFrame } from "@/app/lib/DashboardThumb";
 import { ThumbImage } from "@/app/lib/ThumbImage";
 
 // Shared gallery card — a live-preview link with a mini-map of the board, its
-// title, frame count, an optional blurb, and tag chips. Presentational and
-// server-safe; used by both the curated grid and the community grid. When a
-// nightly screenshot exists (`thumbSrc`), it fades in over the SVG mini-map;
-// otherwise (404 — no capture yet) the silhouette stays.
+// title, frame count, and tag chips. Presentational and server-safe; used by
+// both the curated grid and the community grid. When a nightly screenshot
+// exists (`thumbSrc`), it fades in over the SVG mini-map and drifts (Ken-Burns)
+// on hover; otherwise (404 — no capture yet) the silhouette stays. The blurb +
+// an "Open live preview" affordance live in a caption that reveals over the
+// poster on hover (always shown on touch), keeping the resting grid media-first.
 export function DashboardCard({
   href,
   title,
@@ -40,27 +42,43 @@ export function DashboardCard({
         />
         <div className="relative aspect-[16/9] p-3">
           <DashboardThumb frames={frames} gap={3} radius={4} />
-          {thumbSrc && <ThumbImage src={thumbSrc} alt={`${title} — live preview`} />}
+          {thumbSrc && (
+            <ThumbImage
+              src={thumbSrc}
+              alt={`${title} — live preview`}
+              className="zf-kenburns"
+            />
+          )}
         </div>
         <span className="absolute right-3 top-3 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[10px] text-white/70 backdrop-blur">
           {frameCount} {frameCount === 1 ? "frame" : "frames"}
         </span>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-400/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        {/* Caption reveal — description + an Open affordance grow in over the
+            poster bottom on hover (always shown on touch; see globals). */}
+        <div className="zf-caption pointer-events-none absolute inset-x-0 bottom-0">
+          <div>
+            <div className="bg-gradient-to-t from-black/90 via-black/65 to-transparent px-4 pb-3 pt-9">
+              {description && (
+                <p className="line-clamp-2 text-xs leading-relaxed text-white/80">
+                  {description}
+                </p>
+              )}
+              <span className="mt-1.5 flex items-center gap-1 text-xs font-semibold text-indigo-200">
+                Open live preview
+                <span className="zf-arrow-reveal">→</span>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Body */}
+      {/* Body — title + tags stay at rest; the description lives in the poster
+          caption reveal above. */}
       <div className="flex flex-1 flex-col p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="font-semibold text-white transition-colors group-hover:text-indigo-200">
-            {title}
-          </h3>
-          <span className="zf-arrow-reveal text-sm text-indigo-300">
-            →
-          </span>
-        </div>
-        {description && (
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/60">{description}</p>
-        )}
+        <h3 className="font-semibold text-white transition-colors group-hover:text-indigo-200">
+          {title}
+        </h3>
         {tags.length > 0 && (
           <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
             {tags.map((t) => (
