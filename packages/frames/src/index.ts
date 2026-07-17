@@ -103,6 +103,11 @@ export { pomodoroFrame } from "./pomodoro";
 export { rulesCardFrame } from "./rules-card";
 export { breathingFrame } from "./breathing";
 export { spotifyEmbedFrame } from "./spotify-embed";
+export { nftCollectionsFrame } from "./nft-collections";
+export { dexHotPoolsFrame } from "./dex-hot-pools";
+export { chainActivityFrame } from "./chain-activity";
+export { nftTreemapFrame } from "./nft-treemap";
+export { dexPoolTreemapFrame } from "./dex-pool-treemap";
 
 import type { AnyFrameDefinition } from "@zframes/core";
 import { portfolioValueFrame } from "./portfolio-value";
@@ -209,6 +214,11 @@ import { pomodoroFrame } from "./pomodoro";
 import { rulesCardFrame } from "./rules-card";
 import { breathingFrame } from "./breathing";
 import { spotifyEmbedFrame } from "./spotify-embed";
+import { nftCollectionsFrame } from "./nft-collections";
+import { dexHotPoolsFrame } from "./dex-hot-pools";
+import { chainActivityFrame } from "./chain-activity";
+import { nftTreemapFrame } from "./nft-treemap";
+import { dexPoolTreemapFrame } from "./dex-pool-treemap";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -316,4 +326,9 @@ export const allFrames: AnyFrameDefinition[] = [
   rulesCardFrame,
   breathingFrame,
   spotifyEmbedFrame,
+  nftCollectionsFrame,
+  dexHotPoolsFrame,
+  chainActivityFrame,
+  nftTreemapFrame,
+  dexPoolTreemapFrame,
 ];

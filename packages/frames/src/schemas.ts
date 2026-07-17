@@ -50,6 +50,11 @@ const SOURCES = {
   ultrasound: { name: "ultrasound.money", url: "https://ultrasound.money" },
   polymarket: { name: "Polymarket", url: "https://polymarket.com" },
   sosovalue: { name: "SoSoValue", url: "https://sosovalue.com" },
+  geckoterminal: {
+    name: "GeckoTerminal",
+    url: "https://www.geckoterminal.com",
+  },
+  blockchair: { name: "Blockchair", url: "https://blockchair.com" },
 } satisfies Record<string, FrameSource>;
 
 export const clockMeta = defineFrameMeta({
@@ -2570,6 +2575,111 @@ export const reserveRiskMeta = defineFrameMeta({
   }),
 });
 
+export const nftCollectionsMeta = defineFrameMeta({
+  name: "nft-collections",
+  label: "NFT Collections",
+  category: "crypto",
+  iconUrl: widgetIcon("nft-collections"),
+  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  description:
+    "Blue-chip NFT collections ranked by 24h trading volume — floor price (USD), 24h floor change, and volume, for a hand-picked set of majors (Bored Ape, Pudgy Penguins, CryptoPunks, Azuki, …). Keyless (CoinGecko free tier). A quick read on where the top NFT market is trading.",
+  capabilities: ["nft-market"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    topN: z
+      .number()
+      .int()
+      .min(4)
+      .max(10)
+      .default(8)
+      .describe("How many collections to show (up to 10 curated majors)."),
+  }),
+});
+
+export const dexHotPoolsMeta = defineFrameMeta({
+  name: "dex-hot-pools",
+  label: "Hot DEX Pools",
+  category: "onchain",
+  iconUrl: widgetIcon("dex-hot-pools"),
+  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  description:
+    "Trending DEX liquidity pools on a chain, ranked by 24h volume — each pool's pair, base-token price, 24h price change, and 24h volume. Surfaces what's hot on-chain (new listings, momentum pairs) across Ethereum, Solana, Base and more. Keyless (GeckoTerminal free tier).",
+  capabilities: ["dex-pools"],
+  source: SOURCES.geckoterminal,
+  schema: z.object({
+    network: z
+      .enum(["eth", "solana", "base", "arbitrum", "bsc", "polygon_pos"])
+      .default("eth")
+      .describe("Which chain's trending pools to show."),
+    count: z
+      .number()
+      .int()
+      .min(5)
+      .max(15)
+      .default(10)
+      .describe("How many trending pools to list (up to 15)."),
+  }),
+});
+
+export const chainActivityMeta = defineFrameMeta({
+  name: "chain-activity",
+  label: "Chain Activity",
+  category: "onchain",
+  iconUrl: widgetIcon("chain-activity"),
+  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  description:
+    "Cross-chain network activity for major layer-1s (Bitcoin, Ethereum, Litecoin, …), ranked by 24h transaction count — with blocks mined and mempool backlog per chain. A side-by-side pulse of which chains are busiest right now. Keyless (Blockchair).",
+  capabilities: ["chain-activity"],
+  source: SOURCES.blockchair,
+  schema: z.object({}),
+});
+
+export const nftTreemapMeta = defineFrameMeta({
+  name: "nft-treemap",
+  label: "NFT Treemap",
+  category: "crypto",
+  iconUrl: widgetIcon("nft-treemap"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Treemap of blue-chip NFT collections sized by market capitalisation, tiles colored green/red by 24h floor-price change. A heat-map of the top NFT market at a glance. Keyless (CoinGecko free tier).",
+  capabilities: ["nft-market"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    topN: z
+      .number()
+      .int()
+      .min(4)
+      .max(10)
+      .default(8)
+      .describe("How many collections to show (up to 10 curated majors)."),
+  }),
+});
+
+export const dexPoolTreemapMeta = defineFrameMeta({
+  name: "dex-pool-treemap",
+  label: "DEX Pool Treemap",
+  category: "onchain",
+  iconUrl: widgetIcon("dex-pool-treemap"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Treemap of trending DEX pools on a chain sized by 24h trading volume, tiles colored green/red by 24h price change. Shows at a glance which pairs are pulling the most on-chain volume. Keyless (GeckoTerminal free tier).",
+  capabilities: ["dex-pools"],
+  source: SOURCES.geckoterminal,
+  schema: z.object({
+    network: z
+      .enum(["eth", "solana", "base", "arbitrum", "bsc", "polygon_pos"])
+      .default("eth")
+      .describe("Which chain's trending pools to show."),
+    count: z
+      .number()
+      .int()
+      .min(5)
+      .max(15)
+      .default(12)
+      .describe("How many trending pools to include (up to 15)."),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   newsFeedMeta,
@@ -2658,6 +2768,11 @@ export const frameMetas: FrameMeta[] = [
   etfFlowsChartMeta,
   realizedPriceMeta,
   reserveRiskMeta,
+  nftCollectionsMeta,
+  dexHotPoolsMeta,
+  chainActivityMeta,
+  nftTreemapMeta,
+  dexPoolTreemapMeta,
 ];
 
 /**

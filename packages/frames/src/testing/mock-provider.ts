@@ -51,6 +51,9 @@ import type {
   Unsubscribe,
   VolatilityPoint,
   YieldCurve,
+  NftCollection,
+  DexPool,
+  ChainActivity,
 } from "@zframes/core";
 
 /**
@@ -258,6 +261,9 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "etf-flows",
     "trending-coins",
     "sector-performance",
+    "nft-market",
+    "dex-pools",
+    "chain-activity",
     "portfolio",
   ];
   readonly portfolioKinds: readonly PortfolioSourceKind[] = [
@@ -666,6 +672,100 @@ export class MockMarketDataProvider implements MarketDataProvider {
           changePct24h: round((rng(`s${name}`)() - 0.45) * 15, 2),
         }))
         .sort((a, b) => b.marketCap - a.marketCap);
+    });
+  }
+
+  // ── NFT / DEX / chain activity ──────────────────────────────────────────
+  getNftMarket(): Promise<NftCollection[]> {
+    return this.gate<NftCollection[]>([], () => {
+      const rows: [string, string, number][] = [
+        ["bored-ape-yacht-club", "Bored Ape Yacht Club", 16.2],
+        ["pudgy-penguins", "Pudgy Penguins", 12.4],
+        ["mutant-ape-yacht-club", "Mutant Ape Yacht Club", 2.8],
+        ["cryptopunks", "CryptoPunks", 44.1],
+        ["azuki", "Azuki", 5.3],
+        ["milady", "Milady Maker", 3.1],
+        ["doodles-official", "Doodles", 1.9],
+        ["moonbirds", "Moonbirds", 1.2],
+      ];
+      return rows
+        .map(([id, name, floorEth]) => {
+          const r = rng(`nft:${id}`);
+          const floorUsd = round(floorEth * 3380, 0);
+          return {
+            id,
+            name,
+            floorNative: floorEth,
+            floorUsd,
+            floorChangePct24h: round((r() * 2 - 1) * 10),
+            marketCapUsd: round(floorUsd * 10_000, 0),
+            volume24hUsd: round(r() * 3_000_000, 0),
+            sales24h: Math.round(r() * 60),
+          };
+        })
+        .sort((a, b) => b.volume24hUsd - a.volume24hUsd);
+    });
+  }
+
+  getDexPools(network = "eth"): Promise<DexPool[]> {
+    return this.gate<DexPool[]>([], () => {
+      const pairs = [
+        "PEPE / WETH",
+        "USDC / WETH",
+        "WBTC / WETH",
+        "LINK / WETH",
+        "SHIB / WETH",
+        "UNI / WETH",
+        "ARB / WETH",
+        "AAVE / WETH",
+        "MKR / WETH",
+        "LDO / WETH",
+        "CRV / WETH",
+        "ENA / WETH",
+      ];
+      return pairs
+        .map((name) => {
+          const r = rng(`pool:${network}:${name}`);
+          return {
+            name,
+            network,
+            priceUsd: round(r() * 4, 4),
+            volume24hUsd: round(r() * 50_000_000, 0),
+            changePct24h: round((r() * 2 - 1) * 25),
+            reserveUsd: round(r() * 20_000_000, 0),
+            fdvUsd: round(r() * 500_000_000, 0),
+            txns24h: Math.round(r() * 5000),
+          };
+        })
+        .sort((a, b) => b.volume24hUsd - a.volume24hUsd);
+    });
+  }
+
+  getChainActivity(): Promise<ChainActivity[]> {
+    return this.gate<ChainActivity[]>([], () => {
+      const rows: [string, string, number][] = [
+        ["ethereum", "Ethereum", 3380],
+        ["bitcoin", "Bitcoin", 67432],
+        ["litecoin", "Litecoin", 88],
+        ["dogecoin", "Dogecoin", 0.16],
+        ["bitcoin-cash", "Bitcoin Cash", 420],
+        ["dash", "Dash", 28],
+        ["zcash", "Zcash", 34],
+      ];
+      return rows
+        .map(([chain, label, price]) => {
+          const r = rng(`chain:${chain}`);
+          return {
+            chain,
+            label,
+            transactions24h: Math.round(50_000 + r() * 3_000_000),
+            blocks24h: Math.round(100 + r() * 7000),
+            mempoolTxns: Math.round(r() * 30_000),
+            priceUsd: price,
+            priceChangePct24h: round((r() * 2 - 1) * 6),
+          };
+        })
+        .sort((a, b) => b.transactions24h - a.transactions24h);
     });
   }
 
