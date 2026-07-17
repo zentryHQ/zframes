@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { AgentForkButton } from "@/app/lib/AgentForkButton";
+import { Button } from "@/app/components/ui/button";
 
 // DashboardView is client-only (shared WS + browser APIs) → dynamic ssr:false.
 const DashboardView = dynamic(() => import("@/app/lib/DashboardView"), {
@@ -48,13 +49,9 @@ export function DashboardPreview({
         </div>
         <div className="flex items-center gap-2">
           <AgentForkButton id={id} />
-          <button
-            type="button"
-            onClick={fork}
-            className="zf-press rounded-lg border border-indigo-400/40 bg-indigo-500/10 px-3 py-1.5 text-sm font-medium text-indigo-200 transition-colors hover:bg-indigo-500/20"
-          >
+          <Button variant="accent" size="sm" onClick={fork}>
             Tinker here →
-          </button>
+          </Button>
         </div>
       </div>
       <DashboardView spec={spec} />

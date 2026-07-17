@@ -7,6 +7,7 @@ import { CURATED } from "@/app/lib/curated-dashboards";
 import { DashboardCard } from "@/app/lib/DashboardCard";
 import { synthLayout } from "@/app/lib/DashboardThumb";
 import { SectionHeading } from "@/app/lib/SectionHeading";
+import { Input } from "@/app/components/ui/input";
 
 type Row = { id: string; title: string; tags: string[]; frameCount: number };
 
@@ -87,13 +88,13 @@ export function GalleryView() {
             <circle cx="11" cy="11" r="7" />
             <path d="m21 21-4.3-4.3" />
           </svg>
-          <input
+          <Input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search dashboards…"
             aria-label="Search dashboards"
-            className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-3 text-sm text-white outline-none transition-colors placeholder:text-white/40 focus:border-indigo-300/50 focus:bg-white/[0.06]"
+            className="border-white/10 py-2.5 pl-10 pr-3 focus:border-indigo-300/50 focus:bg-white/[0.06]"
           />
         </div>
       </header>
