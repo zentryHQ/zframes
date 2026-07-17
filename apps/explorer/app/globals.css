@@ -378,19 +378,6 @@ body::before {
   animation: fade-up 0.7s var(--zf-ease-out) both;
 }
 
-@keyframes floaty {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-.animate-floaty {
-  animation: floaty 7s ease-in-out infinite;
-}
-
 @keyframes live-pulse {
   0% {
     box-shadow: 0 0 0 0 hsla(150, 70%, 52%, 0.55);
@@ -404,18 +391,6 @@ body::before {
 }
 .live-dot {
   animation: live-pulse 2s ease-out infinite;
-}
-
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-.animate-marquee {
-  animation: marquee 40s linear infinite;
 }
 
 /* Dialog / toast entrance — scale from 0.97 (never 0) + fade, fast ease-out.
@@ -450,8 +425,6 @@ body::before {
     scroll-behavior: auto;
   }
   .animate-fade-up,
-  .animate-floaty,
-  .animate-marquee,
   .live-dot {
     animation: none;
   }
