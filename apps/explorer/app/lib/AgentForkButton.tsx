@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Dialog } from "@/app/lib/Dialog";
+import { Button } from "@/app/components/ui/button";
 
 // Agent-agnostic "take it home" fork: copy a prompt into ANY AI agent (Claude
 // Code, Codex, Cursor, Aider…). The agent ensures the zframes skill is installed
@@ -18,13 +19,9 @@ export function AgentForkButton({ id }: { id: string }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="zf-press rounded-lg border border-white/15 px-3 py-1.5 text-sm text-white/80 transition-colors hover:border-white/30 hover:text-white"
-      >
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         Fork with your AI ↗
-      </button>
+      </Button>
 
       {open && (
         <Dialog onClose={() => setOpen(false)}>
@@ -38,24 +35,19 @@ export function AgentForkButton({ id }: { id: string }) {
             {prompt}
           </pre>
           <div className="mt-4 flex justify-end gap-2">
-            <button
-              type="button"
+            <Button
+              variant="accent"
               onClick={() => {
                 navigator.clipboard?.writeText(prompt);
                 setCopied(true);
                 window.setTimeout(() => setCopied(false), 1500);
               }}
-              className="zf-press rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25"
             >
               {copied ? "Copied" : "Copy prompt"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/75"
-            >
+            </Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
               Close
-            </button>
+            </Button>
           </div>
         </Dialog>
       )}

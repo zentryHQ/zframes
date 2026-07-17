@@ -5,6 +5,8 @@ import { useState } from "react";
 import type { DashboardSpec } from "@zframes/core";
 import { authClient } from "@/app/lib/auth-client";
 import { Dialog } from "@/app/lib/Dialog";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
 
 function CopyRow({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
@@ -15,17 +17,18 @@ function CopyRow({ label, value }: { label: string; value: string }) {
         <code className="flex-1 truncate rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white/80">
           {value}
         </code>
-        <button
-          type="button"
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs"
           onClick={() => {
             navigator.clipboard?.writeText(value);
             setCopied(true);
             window.setTimeout(() => setCopied(false), 1500);
           }}
-          className="rounded-lg border border-white/15 px-3 py-2 text-xs text-white/70 hover:text-white"
         >
           {copied ? "Copied" : "Copy"}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -88,18 +91,12 @@ export function PublishDialog({
               stay saved in this browser meanwhile.
             </p>
             <div className="mt-4 flex gap-2">
-              <Link
-                href="/signin?next=/tinker"
-                className="rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-2 text-sm text-indigo-100 transition-colors hover:bg-indigo-500/25"
-              >
-                Sign in
-              </Link>
-              <button
-                onClick={onClose}
-                className="px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/75"
-              >
+              <Button asChild variant="accent" size="sm">
+                <Link href="/signin?next=/tinker">Sign in</Link>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={onClose}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </>
         ) : result ? (
@@ -113,18 +110,12 @@ export function PublishDialog({
               <CopyRow label="Fork with any AI agent" value={forkPrompt} />
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <Link
-                href={`/d/${result.id}`}
-                className="rounded-lg border border-white/15 px-3 py-2 text-sm text-white/80 transition-colors hover:border-white/30 hover:text-white"
-              >
-                Open preview
-              </Link>
-              <button
-                onClick={onClose}
-                className="px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/75"
-              >
+              <Button asChild variant="outline" size="sm">
+                <Link href={`/d/${result.id}`}>Open preview</Link>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={onClose}>
                 Done
-              </button>
+              </Button>
             </div>
           </>
         ) : (
@@ -135,8 +126,7 @@ export function PublishDialog({
                 <label className="mb-1 block text-xs uppercase tracking-wide text-white/55">
                   Title
                 </label>
-                <input
-                  className="w-full rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-indigo-400/50 focus:bg-white/[0.05]"
+                <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
@@ -153,19 +143,12 @@ export function PublishDialog({
               {error && <p className="text-sm text-down">{error}</p>}
             </div>
             <div className="mt-5 flex justify-end gap-2">
-              <button
-                onClick={onClose}
-                className="px-3 py-2 text-sm text-white/50 transition-colors hover:text-white/75"
-              >
+              <Button variant="ghost" size="sm" onClick={onClose}>
                 Cancel
-              </button>
-              <button
-                onClick={publish}
-                disabled={busy}
-                className="rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25 disabled:opacity-50"
-              >
+              </Button>
+              <Button variant="accent" onClick={publish} disabled={busy}>
                 {busy ? "Publishing…" : "Publish"}
-              </button>
+              </Button>
             </div>
           </>
         )}

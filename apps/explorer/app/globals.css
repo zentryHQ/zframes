@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=JetBrains+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
 @import "@zframes/charts/src/theme.css";
+@import "tw-animate-css";
 
 /* THE GOTCHA, ported from apps/runtime/src/styles.css: workspace packages ship
  * TS source through node_modules symlinks, which Tailwind's auto-detection
@@ -49,6 +50,69 @@
   /* Track-less scrollbar thumb, matching the runtime's chrome idiom. */
   --zf-scrollbar-thumb: hsla(0, 0%, 100%, 0.14);
   --zf-scrollbar-thumb-hover: hsla(0, 0%, 100%, 0.28);
+}
+
+/* ── shadcn/ui token bridge ────────────────────────────────────────────────
+ * shadcn components (button, dropdown-menu, dialog, input) style themselves off
+ * a fixed set of semantic vars (--background, --popover, --border, --ring, …).
+ * The explorer is dark-only, so we define them ONCE here mapped onto the SAME
+ * terminal palette the .zf-* system uses — the glass popover material, the
+ * indigo accent ring, the semantic down-red for destructive — so a shadcn menu
+ * is indistinguishable from hand-built chrome. No .dark class / light theme:
+ * these ARE the dark values. `@theme inline` below exposes them to Tailwind
+ * utilities (bg-popover, text-foreground, border-border, rounded-md, …). */
+:root {
+  --radius: 0.625rem;
+
+  --background: #07070c;
+  --foreground: #e7ecf6;
+
+  /* Cards/popovers/menus use the navy-tinted glass surface, opaque enough to
+   * sit over the live Aurora scene without content bleed. */
+  --card: hsl(233 20% 10%);
+  --card-foreground: #e7ecf6;
+  --popover: hsl(233 20% 9%);
+  --popover-foreground: #e7ecf6;
+
+  --primary: #818cf8; /* indigo-400 — brand accent */
+  --primary-foreground: #0b0b14;
+  --secondary: hsl(0 0% 100% / 0.06);
+  --secondary-foreground: #e7ecf6;
+  --muted: hsl(0 0% 100% / 0.04);
+  --muted-foreground: hsl(0 0% 100% / 0.55);
+  --accent: hsl(0 0% 100% / 0.08);
+  --accent-foreground: #ffffff;
+  --destructive: #ff6b81; /* the dashboard's exact semantic loss */
+
+  --border: hsl(0 0% 100% / 0.1);
+  --input: hsl(0 0% 100% / 0.14);
+  --ring: #818cf8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 html {

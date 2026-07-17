@@ -12,6 +12,7 @@ import { allFrames } from "@zframes/frames";
 import { useCallback, useRef, useState } from "react";
 import "gridstack/dist/gridstack.min.css";
 import { PublishDialog } from "@/app/lib/PublishDialog";
+import { Button } from "@/app/components/ui/button";
 import { providers, registry } from "@/app/lib/frames";
 
 // Client-only module (the page dynamic-imports it ssr:false) — DashboardEditor
@@ -163,13 +164,9 @@ export default function DashboardTinker() {
             Customise then Save (this browser), or Publish to a shareable link.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowPublish(true)}
-          className="zf-press rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-1.5 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25"
-        >
+        <Button variant="accent" size="sm" onClick={() => setShowPublish(true)}>
           Publish →
-        </button>
+        </Button>
       </div>
 
       <main className="mx-auto max-w-7xl px-6 py-4">

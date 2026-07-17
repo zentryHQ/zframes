@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { SectionHeading } from "@/app/lib/SectionHeading";
+import { Button } from "@/app/components/ui/button";
 
 type Row = {
   id: string;
@@ -69,12 +70,9 @@ export default function MyDashboardsPage() {
             Sign in to see the dashboards you've published. Browsing, preview,
             and tinker never need an account — only publishing does.
           </p>
-          <Link
-            href="/signin?next=/mine"
-            className="zf-press rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-2 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25"
-          >
-            Sign in
-          </Link>
+          <Button asChild variant="accent" size="sm">
+            <Link href="/signin?next=/mine">Sign in</Link>
+          </Button>
         </div>
       ) : rows === null ? (
         <div className="space-y-2.5" aria-hidden>
@@ -88,12 +86,9 @@ export default function MyDashboardsPage() {
             Nothing published yet — build a board in the tinker editor, then hit
             Publish to get a shareable link.
           </p>
-          <Link
-            href="/tinker"
-            className="zf-press rounded-lg border border-indigo-400/40 bg-indigo-500/15 px-3 py-2 text-sm font-medium text-indigo-100 transition-colors hover:bg-indigo-500/25"
-          >
-            Open the tinker editor →
-          </Link>
+          <Button asChild variant="accent" size="sm">
+            <Link href="/tinker">Open the tinker editor →</Link>
+          </Button>
         </div>
       ) : (
         <ul className="space-y-2.5">
@@ -128,29 +123,32 @@ export default function MyDashboardsPage() {
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/10 text-xs text-white/60 hover:border-indigo-400/40 hover:text-indigo-200"
                   onClick={() => toggleVisibility(d.id, d.visibility)}
-                  className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-indigo-400/40 hover:text-indigo-200"
                 >
                   {d.visibility === "listed" ? "Unlist" : "List"}
-                </button>
+                </Button>
                 {armed === d.id ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="text-xs"
                     onClick={() => del(d.id)}
-                    className="rounded-lg border border-down/50 bg-down/15 px-3 py-1.5 text-xs font-medium text-down transition-colors hover:bg-down/25"
                   >
                     Confirm delete
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-white/10 text-xs text-white/60 hover:border-down/40 hover:text-down"
                     onClick={() => setArmed(d.id)}
-                    className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-white/60 transition-colors hover:border-down/40 hover:text-down"
                   >
                     Delete
-                  </button>
+                  </Button>
                 )}
               </div>
             </li>

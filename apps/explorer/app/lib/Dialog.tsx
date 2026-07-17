@@ -1,11 +1,23 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { type ReactNode } from "react";
+import {
+  Dialog as DialogRoot,
+  DialogContent,
+  DialogTitle,
+} from "@/app/components/ui/dialog";
 
 // Shared modal shell — the one overlay + panel used by Publish / AgentFork /
-// Report. Owns the a11y contract (role, aria-modal, Escape, initial focus,
-// click-outside) so each dialog only supplies its content. The panel is a
-// .zf-surface: same material as every other card on the site.
+// Report. Now backed by shadcn/radix Dialog (focus trap, portal, scroll-lock,
+// Escape + click-outside a11y come for free) while KEEPING this component's
+// original API (`onClose` / `children` / `maxWidth`) and look: the panel is a
+// .zf-surface, same terminal material as every other card, so consumers are
+// unchanged and nothing regresses.
+//
+// - shadcn's built-in close (X) is suppressed — each consumer supplies its own
+//   Close/Cancel/Done control.
+// - A visually-hidden DialogTitle satisfies radix's a11y contract; the visible
+//   heading still lives in each consumer's content.
 export function Dialog({
   onClose,
   children,
@@ -15,33 +27,16 @@ export function Dialog({
   children: ReactNode;
   maxWidth?: string;
 }) {
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    // Move focus into the dialog so Escape + tabbing start from the panel.
-    panelRef.current?.focus();
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   return (
-    <div
-      className="animate-overlay-in fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
-      onClick={onClose}
-    >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        tabIndex={-1}
-        className={`animate-dialog-in zf-surface w-full ${maxWidth} p-6 outline-none`}
-        onClick={(e) => e.stopPropagation()}
+    <DialogRoot open onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent
+        showCloseButton={false}
+        aria-describedby={undefined}
+        className={`zf-surface w-full ${maxWidth} border-0 bg-transparent p-6 shadow-none`}
       >
+        <DialogTitle className="sr-only">Dialog</DialogTitle>
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </DialogRoot>
   );
 }

@@ -21,6 +21,7 @@ import {
   type ReactNode,
 } from "react";
 import { providers, registry } from "@/app/lib/frames";
+import { Input } from "@/app/components/ui/input";
 import FramePlayground from "./FramePlayground";
 
 const ROW = 96;
@@ -190,10 +191,6 @@ export default function CatalogueView() {
     <FramesProvider providers={providers}>
       <main className="mx-auto max-w-7xl px-6 py-12">
         <header className="mb-12 max-w-3xl">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-wide text-white/75">
-            <span className="live-dot inline-block h-1.5 w-1.5 rounded-full bg-[#3fd08f]" />
-            Live · rendering with real data
-          </div>
           <h1 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
             The frame <span className="text-indigo-200">catalogue</span>
           </h1>
@@ -216,13 +213,13 @@ export default function CatalogueView() {
               <circle cx="11" cy="11" r="7" />
               <path d="m21 21-4.3-4.3" />
             </svg>
-            <input
+            <Input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search frames…"
               aria-label="Search frames"
-              className="w-full rounded-lg border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-3 text-sm text-white outline-none transition-colors placeholder:text-white/40 focus:border-indigo-300/50 focus:bg-white/[0.06]"
+              className="border-white/10 py-2.5 pl-10 pr-3 focus:border-indigo-300/50 focus:bg-white/[0.06]"
             />
           </div>
           <p className="mt-4 font-mono text-xs text-white/60">
