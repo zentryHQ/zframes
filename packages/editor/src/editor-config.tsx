@@ -6,7 +6,7 @@ import {
   useState,
   type RefObject,
 } from "react";
-import type { FrameInstance } from "@zframes/spec/spec";
+import type { FrameInstance, FrameStyle } from "@zframes/spec/spec";
 import type { FrameRegistry } from "@zframes/spec/frame";
 import {
   assetLogoUrl,
@@ -50,6 +50,7 @@ export function FrameConfigDialog({
   instancesRef,
   symbolUniverse,
   accentHue,
+  inherited,
   onApply,
   onClose,
 }: {
@@ -58,6 +59,11 @@ export function FrameConfigDialog({
   instancesRef: RefObject<Map<string, FrameInstance>>;
   symbolUniverse: SymbolUniverse;
   accentHue: number;
+  /** The live dashboard-level cosmetic values this card inherits when a per-frame
+   *  `style` override is unset. Enabling an override seeds it with the matching
+   *  inherited value, so switching a field from Default → override is a visual
+   *  no-op until the user drags it. */
+  inherited: Required<FrameStyle>;
   onApply: (id: string) => void;
   onClose: () => void;
 }) {
@@ -114,6 +120,32 @@ export function FrameConfigDialog({
       instancesRef.current.set(instanceId, {
         ...current,
         title: trimmed === "" ? undefined : trimmed,
+      });
+      onApply(instanceId);
+    },
+    [instanceId, instancesRef, onApply],
+  );
+
+  // Per-frame cosmetic overrides (spec: instance.style) — a parallel draft +
+  // commit path to config/title. Each field is optional: an absent field
+  // inherits the dashboard theme/appearance. Writing prunes undefined keys, and
+  // an empty override object drops `style` entirely (back to pure inherit), so
+  // the round-tripped spec stays clean and every default is a visual no-op.
+  const [style, setStyle] = useState<FrameStyle>(() => ({
+    ...(instance.style ?? {}),
+  }));
+  const commitStyle = useCallback(
+    (next: FrameStyle) => {
+      const cleaned = Object.fromEntries(
+        Object.entries(next).filter(([, v]) => v !== undefined),
+      ) as FrameStyle;
+      setStyle(cleaned);
+      const current = instancesRef.current.get(instanceId);
+      if (!current) return;
+      const hasAny = Object.keys(cleaned).length > 0;
+      instancesRef.current.set(instanceId, {
+        ...current,
+        style: hasAny ? cleaned : undefined,
       });
       onApply(instanceId);
     },
@@ -204,6 +236,11 @@ export function FrameConfigDialog({
             <p className="zf-rail-empty">This frame has no settings.</p>
           )}
           {error && <div className="zf-config-error">{error}</div>}
+          <FrameStylePanel
+            style={style}
+            inherited={inherited}
+            onChange={commitStyle}
+          />
         </div>
         <footer className="zf-dialog-foot">
           <button
@@ -216,6 +253,144 @@ export function FrameConfigDialog({
         </footer>
       </div>
     </div>
+  );
+}
+
+/**
+ * The per-frame `style` overrides — one row per FrameStyle field, mirroring the
+ * dashboard-wide Cosmetics rail but scoped to THIS card. Each row is a toggle:
+ * off = inherit the dashboard default (field absent from `style`), on = override
+ * with a slider. Enabling a field seeds it with the inherited value, so the
+ * toggle itself is a visual no-op; the slider then drifts it. Collapsed by
+ * default so it never crowds the frame's own settings.
+ */
+type StyleFieldSpec = {
+  key: keyof FrameStyle;
+  label: string;
+  kind: "hue" | "range";
+  min: number;
+  max: number;
+  step: number;
+  format: (v: number) => string;
+};
+
+// Ranges/labels track the dashboard-wide Accent / Surface / Appearance rail so a
+// per-card override reads the same as its global twin. `radius` has no schema
+// max, so it's capped here at the same 32px the Appearance rail uses.
+const STYLE_FIELDS: StyleFieldSpec[] = [
+  { key: "accentHue", label: "Accent hue", kind: "hue", min: 0, max: 360, step: 1, format: (v) => `${Math.round(v)}°` },
+  { key: "accentSat", label: "Accent saturation", kind: "range", min: 0, max: 100, step: 1, format: (v) => `${Math.round(v)}%` },
+  { key: "baseHue", label: "Surface tint", kind: "hue", min: 0, max: 360, step: 1, format: (v) => `${Math.round(v)}°` },
+  { key: "baseSat", label: "Tint strength", kind: "range", min: 0, max: 100, step: 1, format: (v) => `${Math.round(v)}%` },
+  { key: "surfaceOpacity", label: "Card opacity", kind: "range", min: 0.3, max: 1, step: 0.05, format: (v) => `${Math.round(v * 100)}%` },
+  { key: "radius", label: "Corner radius", kind: "range", min: 0, max: 32, step: 1, format: (v) => `${Math.round(v)}px` },
+  { key: "borderStrength", label: "Border", kind: "range", min: 0, max: 1, step: 0.01, format: (v) => `${Math.round(v * 100)}%` },
+  { key: "density", label: "Density", kind: "range", min: 0.6, max: 1.4, step: 0.05, format: (v) => `${Math.round(v * 100)}%` },
+  { key: "elevation", label: "Elevation", kind: "range", min: 0, max: 2, step: 0.1, format: (v) => `${v.toFixed(1)}×` },
+];
+
+function FrameStylePanel({
+  style,
+  inherited,
+  onChange,
+}: {
+  style: FrameStyle;
+  inherited: Required<FrameStyle>;
+  onChange: (next: FrameStyle) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const activeCount = Object.keys(style).length;
+
+  const setField = (key: keyof FrameStyle, value: number) =>
+    onChange({ ...style, [key]: value });
+  const toggleField = (key: keyof FrameStyle, on: boolean) => {
+    if (on) {
+      onChange({ ...style, [key]: inherited[key] });
+    } else {
+      const next = { ...style };
+      delete next[key];
+      onChange(next);
+    }
+  };
+
+  return (
+    <section className={open ? "zf-style-panel is-open" : "zf-style-panel"}>
+      <button
+        type="button"
+        className="zf-style-head"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <ChevronDown size={14} aria-hidden="true" className="zf-style-chevron" />
+        <span className="zf-style-head-label">Style</span>
+        {activeCount > 0 && (
+          <span className="zf-style-count">{activeCount}</span>
+        )}
+        {activeCount > 0 && (
+          <span
+            role="button"
+            tabIndex={0}
+            className="zf-style-clear"
+            title="Reset every override to inherit"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange({});
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                onChange({});
+              }
+            }}
+          >
+            Reset all
+          </span>
+        )}
+      </button>
+      {open && (
+        <div className="zf-style-body">
+          <p className="zf-field-hint" style={{ marginBottom: 4 }}>
+            Override the dashboard look for this card only. Off = inherit.
+          </p>
+          {STYLE_FIELDS.map((f) => {
+            const raw = style[f.key];
+            const enabled = raw !== undefined;
+            const value = enabled ? (raw as number) : inherited[f.key];
+            return (
+              <div className="zf-style-field" key={f.key}>
+                <div className="zf-theme-row" style={{ marginBottom: 0 }}>
+                  <label className="zf-style-toggle">
+                    <input
+                      type="checkbox"
+                      checked={enabled}
+                      aria-label={`Override ${f.label}`}
+                      onChange={(e) => toggleField(f.key, e.target.checked)}
+                    />
+                    <span className="zf-theme-val">{f.label}</span>
+                  </label>
+                  <span className="zf-theme-val">
+                    {enabled ? f.format(value) : "Default"}
+                  </span>
+                </div>
+                {enabled && (
+                  <input
+                    type="range"
+                    className={f.kind === "hue" ? "zf-hue-slider" : "zf-range"}
+                    min={f.min}
+                    max={f.max}
+                    step={f.step}
+                    value={value}
+                    aria-label={f.label}
+                    onChange={(e) => setField(f.key, Number(e.target.value))}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 

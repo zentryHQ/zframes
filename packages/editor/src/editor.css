@@ -72,6 +72,16 @@
 .zf-editor.zf-customise .zf-editor-grid {
   border-color: rgba(255, 255, 255, 0.08);
 }
+/* Light surface mode: fill the grid area with a near-white page so the cards
+   (flipped to the daylight scheme by core's --zf-*-l vars) read on light, not
+   the dark backdrop. Dark mode leaves it transparent so the host backdrop shows
+   through the gutters. */
+.zf-editor[data-surface="light"] .zf-editor-grid {
+  background: #eef0f4;
+}
+.zf-editor[data-surface="light"].zf-customise .zf-editor-grid {
+  border-color: rgba(0, 0, 0, 0.1);
+}
 /* flow-horizontal runs GridStack as a forced-wide grid (element width =
    H_COLS × cell); the editor grid clips + scrolls it sideways, bounded to the
    band height GridStack sets on the .grid-stack element. */
@@ -1069,6 +1079,81 @@ body:has(.ui-draggable-dragging) * {
   line-height: 1.5;
 }
 
+/* ── Per-frame Style overrides ──────────────────────────────────────────────
+   A collapsible section in the config dialog mirroring the Cosmetics rail, but
+   scoped to one card. Sits below the frame's own settings, separated by a hair
+   line so it reads as "and, optionally, restyle this card." */
+.zf-style-panel {
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.zf-style-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+.zf-style-head:hover {
+  color: rgba(255, 255, 255, 0.92);
+}
+.zf-style-chevron {
+  flex: none;
+  transition: transform 0.18s var(--zf-ease-out, ease);
+}
+.zf-style-panel.is-open .zf-style-chevron {
+  transform: rotate(180deg);
+}
+.zf-style-head-label {
+  margin-right: auto;
+}
+.zf-style-count {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: var(--zf-accent);
+  color: #0b0c13;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+.zf-style-clear {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+  cursor: pointer;
+}
+.zf-style-clear:hover {
+  color: var(--zf-accent);
+}
+.zf-style-body {
+  margin-top: 10px;
+}
+.zf-style-field {
+  margin-bottom: 12px;
+}
+.zf-style-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  margin: 0;
+}
+.zf-style-toggle input {
+  cursor: pointer;
+}
+
 /* ── Generated config controls ─────────────────────────────────────────────
    select / slider / color / tag list — each shares the .zf-field rhythm with
    the text inputs above so the rail reads as one form. */
@@ -1711,6 +1796,15 @@ body:has(.ui-draggable-dragging) * {
     var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 60% / 0.14
   );
   color: #fff;
+}
+
+/* Background-style picker — five options (Glow / Color / Gradient / Scene /
+   Image) don't fit one flex row at the rail width, so lay them out as a 3-col
+   grid (3 + 2) reusing the segmented-button look. */
+.zf-bg-seg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
 }
 
 /* Native colour swatch for the Gain/Loss pickers — stripped to a small rounded

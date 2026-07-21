@@ -162,6 +162,11 @@ export function DashboardEditor({
   const snapshotBgGradFromRef = useRef(spec.background.gradientFrom);
   const snapshotBgGradToRef = useRef(spec.background.gradientTo);
   const snapshotBgGradAngleRef = useRef(spec.background.gradientAngle);
+  const snapshotBgImageUrlRef = useRef(spec.background.imageUrl);
+  const snapshotBgImageFitRef = useRef(spec.background.imageFit);
+  const snapshotBgImageBlurRef = useRef(spec.background.imageBlur);
+  const snapshotBgOverlayOpacityRef = useRef(spec.background.overlayOpacity);
+  const snapshotSurfaceModeRef = useRef(spec.theme.surface);
   const counterRef = useRef(0);
 
   const [editing, setEditing] = useState(false);
@@ -185,6 +190,11 @@ export function DashboardEditor({
   // for a colourblind-safe pair; default green/red.
   const [upColor, setUpColor] = useState(spec.theme.upColor);
   const [downColor, setDownColor] = useState(spec.theme.downColor);
+  // Surface mode (spec.theme.surface): "dark" (signature) or "light" (daylight
+  // scheme — dark ink on near-white cards). Drives the four --zf-*-l vars on
+  // .zf-editor below (which core's FRAME_CSS reads to flip ink + card lightness)
+  // plus a light page fill on the grid area; default "dark" is a visual no-op.
+  const [surface, setSurface] = useState(spec.theme.surface);
   // Dashboard layout model (spec.grid.mode). Each mode is its own GridStack
   // config with an independent per-frame layout (vertical → position; horizontal
   // → layouts["flow-horizontal"]); switchMode re-inits the grid between them.
@@ -243,6 +253,15 @@ export function DashboardEditor({
   const [bgGradFrom, setBgGradFrom] = useState(spec.background.gradientFrom);
   const [bgGradTo, setBgGradTo] = useState(spec.background.gradientTo);
   const [bgGradAngle, setBgGradAngle] = useState(spec.background.gradientAngle);
+  // Background image (type "image"): a full-bleed photo/illustration with a
+  // legibility scrim. imageUrl is optional (empty until the user pastes one);
+  // fit/blur/overlayOpacity are schema-defaulted, so always defined.
+  const [bgImageUrl, setBgImageUrl] = useState(spec.background.imageUrl ?? "");
+  const [bgImageFit, setBgImageFit] = useState(spec.background.imageFit);
+  const [bgImageBlur, setBgImageBlur] = useState(spec.background.imageBlur);
+  const [bgOverlayOpacity, setBgOverlayOpacity] = useState(
+    spec.background.overlayOpacity,
+  );
 
   // One-click looks. A preset sets the full colour, typography, and card-surface
   // state it owns (everything except grid geometry) — no separate render path, so
@@ -373,6 +392,10 @@ export function DashboardEditor({
       gradientFrom: bgGradFrom,
       gradientTo: bgGradTo,
       gradientAngle: bgGradAngle,
+      imageUrl: bgImageUrl || undefined,
+      imageFit: bgImageFit,
+      imageBlur: bgImageBlur,
+      overlayOpacity: bgOverlayOpacity,
     });
   }, [
     bgType,
@@ -382,6 +405,10 @@ export function DashboardEditor({
     bgGradFrom,
     bgGradTo,
     bgGradAngle,
+    bgImageUrl,
+    bgImageFit,
+    bgImageBlur,
+    bgOverlayOpacity,
     spec.background,
     onBackgroundChange,
   ]);
@@ -996,6 +1023,10 @@ export function DashboardEditor({
         gradientFrom: bgGradFrom,
         gradientTo: bgGradTo,
         gradientAngle: bgGradAngle,
+        imageUrl: bgImageUrl || undefined,
+        imageFit: bgImageFit,
+        imageBlur: bgImageBlur,
+        overlayOpacity: bgOverlayOpacity,
       },
       theme: {
         ...spec.theme,
@@ -1005,6 +1036,7 @@ export function DashboardEditor({
         baseSat,
         upColor,
         downColor,
+        surface,
       },
       typography: {
         ...spec.typography,
@@ -1030,6 +1062,7 @@ export function DashboardEditor({
     baseSat,
     upColor,
     downColor,
+    surface,
     fontFamily,
     numericStyle,
     fontScale,
@@ -1048,6 +1081,10 @@ export function DashboardEditor({
     bgGradFrom,
     bgGradTo,
     bgGradAngle,
+    bgImageUrl,
+    bgImageFit,
+    bgImageBlur,
+    bgOverlayOpacity,
   ]);
 
   const download = useCallback((next: DashboardSpec) => {
@@ -1089,6 +1126,11 @@ export function DashboardEditor({
     snapshotBgGradFromRef.current = bgGradFrom;
     snapshotBgGradToRef.current = bgGradTo;
     snapshotBgGradAngleRef.current = bgGradAngle;
+    snapshotBgImageUrlRef.current = bgImageUrl || undefined;
+    snapshotBgImageFitRef.current = bgImageFit;
+    snapshotBgImageBlurRef.current = bgImageBlur;
+    snapshotBgOverlayOpacityRef.current = bgOverlayOpacity;
+    snapshotSurfaceModeRef.current = surface;
     setEditing(true);
   }, [
     collectSpec,
@@ -1098,6 +1140,7 @@ export function DashboardEditor({
     baseSat,
     upColor,
     downColor,
+    surface,
     gap,
     paddingX,
     mode,
@@ -1116,6 +1159,10 @@ export function DashboardEditor({
     bgGradFrom,
     bgGradTo,
     bgGradAngle,
+    bgImageUrl,
+    bgImageFit,
+    bgImageBlur,
+    bgOverlayOpacity,
   ]);
 
   const cancel = useCallback(() => {
@@ -1159,6 +1206,11 @@ export function DashboardEditor({
     setBgGradFrom(snapshotBgGradFromRef.current);
     setBgGradTo(snapshotBgGradToRef.current);
     setBgGradAngle(snapshotBgGradAngleRef.current);
+    setBgImageUrl(snapshotBgImageUrlRef.current ?? "");
+    setBgImageFit(snapshotBgImageFitRef.current);
+    setBgImageBlur(snapshotBgImageBlurRef.current);
+    setBgOverlayOpacity(snapshotBgOverlayOpacityRef.current);
+    setSurface(snapshotSurfaceModeRef.current);
     setEditingId(null);
     setEditing(false);
   }, [restore, collectSpec]);
@@ -1307,6 +1359,9 @@ export function DashboardEditor({
       <div
         className={editing ? "zf-editor zf-customise" : "zf-editor"}
         data-mode={mode}
+        // Surface mode ("dark"|"light") — drives the light page fill on the grid
+        // area (editor.css) alongside the four --zf-*-l vars below.
+        data-surface={surface}
         // Past ~12 frames the per-item jiggle promotes that many compositing
         // layers and repaints them continuously through customise mode; drop the
         // animation (a pure affordance) on big boards. The dashed outline + grab
@@ -1319,6 +1374,13 @@ export function DashboardEditor({
           ["--zf-accent-sat" as string]: `${accentSat}%`,
           ["--zf-base-hue" as string]: baseHue,
           ["--zf-base-sat" as string]: `${baseSat}%`,
+          // Surface mode — core's FRAME_CSS reads these four lightness vars
+          // (scoped to .zf-grid, .zf-editor) to flip ink + card surface between
+          // the dark and the daylight scheme. Dark values reproduce the original.
+          ["--zf-ink-l" as string]: surface === "light" ? "16%" : "100%",
+          ["--zf-surf-l1" as string]: surface === "light" ? "98%" : "12.5%",
+          ["--zf-surf-l2" as string]: surface === "light" ? "96%" : "7%",
+          ["--zf-surf-l3" as string]: surface === "light" ? "94%" : "5.3%",
           // Semantic gain/loss colours — frames' UP_COLOR/DOWN_COLOR resolve these.
           ["--zf-up" as string]: upColor,
           ["--zf-down" as string]: downColor,
@@ -1441,6 +1503,34 @@ export function DashboardEditor({
                             }}
                           />
                           <span className="zf-preset-label">{p.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="zf-theme">
+                    <h3 className="zf-rail-title" style={{ margin: 0 }}>
+                      Mode
+                    </h3>
+                    <div
+                      className="zf-seg"
+                      role="group"
+                      aria-label="Surface mode"
+                      style={{ marginTop: 10 }}
+                    >
+                      {(["dark", "light"] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          className={
+                            surface === s
+                              ? "zf-seg-btn is-active"
+                              : "zf-seg-btn"
+                          }
+                          aria-pressed={surface === s}
+                          onClick={() => setSurface(s)}
+                        >
+                          {s === "dark" ? "Dark" : "Light"}
                         </button>
                       ))}
                     </div>
@@ -1616,33 +1706,39 @@ export function DashboardEditor({
                   <section className="zf-theme">
                     <h3 className="zf-rail-title">Background</h3>
                     <div
-                      className="zf-seg"
+                      className="zf-bg-seg"
                       role="group"
                       aria-label="Background style"
                     >
-                      {(["none", "color", "gradient", "unicorn"] as const).map(
-                        (t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            className={
-                              bgType === t
-                                ? "zf-seg-btn is-active"
-                                : "zf-seg-btn"
-                            }
-                            aria-pressed={bgType === t}
-                            onClick={() => setBgType(t)}
-                          >
-                            {t === "none"
-                              ? "Glow"
-                              : t === "color"
-                                ? "Color"
-                                : t === "gradient"
-                                  ? "Gradient"
-                                  : "Scene"}
-                          </button>
-                        ),
-                      )}
+                      {(
+                        [
+                          "none",
+                          "color",
+                          "gradient",
+                          "unicorn",
+                          "image",
+                        ] as const
+                      ).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={
+                            bgType === t ? "zf-seg-btn is-active" : "zf-seg-btn"
+                          }
+                          aria-pressed={bgType === t}
+                          onClick={() => setBgType(t)}
+                        >
+                          {t === "none"
+                            ? "Glow"
+                            : t === "color"
+                              ? "Color"
+                              : t === "gradient"
+                                ? "Gradient"
+                                : t === "unicorn"
+                                  ? "Scene"
+                                  : "Image"}
+                        </button>
+                      ))}
                     </div>
                     {bgType === "color" && (
                       <div className="zf-theme-row" style={{ marginTop: 12 }}>
@@ -1777,6 +1873,109 @@ export function DashboardEditor({
                           aria-label="Background scene opacity"
                           onChange={(e) =>
                             setBgOpacity(
+                              Math.round(Number(e.target.value) * 100) / 100,
+                            )
+                          }
+                        />
+                      </>
+                    )}
+                    {bgType === "image" && (
+                      <>
+                        <div className="zf-field" style={{ marginTop: 12 }}>
+                          <label htmlFor="zf-bg-image-url">Image URL</label>
+                          <input
+                            id="zf-bg-image-url"
+                            className="zf-input"
+                            type="url"
+                            value={bgImageUrl}
+                            placeholder="https://… or /hero.png"
+                            spellCheck={false}
+                            autoComplete="off"
+                            aria-label="Background image URL"
+                            onChange={(e) => setBgImageUrl(e.target.value)}
+                          />
+                          <p className="zf-field-hint">
+                            Full-bleed behind the dashboard, with a dark scrim for
+                            legibility.
+                          </p>
+                        </div>
+                        <div className="zf-theme-row">
+                          <span className="zf-theme-val">Fit</span>
+                        </div>
+                        <div
+                          className="zf-seg"
+                          role="group"
+                          aria-label="Background image fit"
+                        >
+                          {(["cover", "contain"] as const).map((f) => (
+                            <button
+                              key={f}
+                              type="button"
+                              className={
+                                bgImageFit === f
+                                  ? "zf-seg-btn is-active"
+                                  : "zf-seg-btn"
+                              }
+                              aria-pressed={bgImageFit === f}
+                              onClick={() => setBgImageFit(f)}
+                            >
+                              {f === "cover" ? "Cover" : "Contain"}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                          <span className="zf-theme-val">Blur</span>
+                          <span className="zf-theme-knob-end">
+                            {bgImageBlur !== 0 && (
+                              <button
+                                type="button"
+                                className="zf-theme-reset"
+                                onClick={() => setBgImageBlur(0)}
+                              >
+                                Reset
+                              </button>
+                            )}
+                            <span className="zf-theme-val">{bgImageBlur}px</span>
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          className="zf-range"
+                          min={0}
+                          max={40}
+                          value={bgImageBlur}
+                          aria-label="Background image blur"
+                          onChange={(e) =>
+                            setBgImageBlur(Number(e.target.value))
+                          }
+                        />
+                        <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                          <span className="zf-theme-val">Overlay</span>
+                          <span className="zf-theme-knob-end">
+                            {bgOverlayOpacity !== 0.55 && (
+                              <button
+                                type="button"
+                                className="zf-theme-reset"
+                                onClick={() => setBgOverlayOpacity(0.55)}
+                              >
+                                Reset
+                              </button>
+                            )}
+                            <span className="zf-theme-val">
+                              {Math.round(bgOverlayOpacity * 100)}%
+                            </span>
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          className="zf-range"
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          value={bgOverlayOpacity}
+                          aria-label="Background image overlay opacity"
+                          onChange={(e) =>
+                            setBgOverlayOpacity(
                               Math.round(Number(e.target.value) * 100) / 100,
                             )
                           }
@@ -2289,6 +2488,20 @@ export function DashboardEditor({
               instancesRef={instancesRef}
               symbolUniverse={symbolUniverse}
               accentHue={accentHue}
+              // The live dashboard-level cosmetics a card inherits when a
+              // per-frame style override is unset — the Style panel seeds each
+              // enabled override with the matching value so toggling is a no-op.
+              inherited={{
+                accentHue,
+                accentSat,
+                baseHue,
+                baseSat,
+                surfaceOpacity,
+                radius,
+                borderStrength,
+                density,
+                elevation,
+              }}
               onApply={(id) => renderInstance(id)}
               onClose={() => setEditingId(null)}
             />,

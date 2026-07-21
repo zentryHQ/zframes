@@ -67,6 +67,17 @@ function setup(configOverrides: Record<string, unknown> = {}) {
       instancesRef={instancesRef}
       symbolUniverse={{ options: [], loading: false }}
       accentHue={242}
+      inherited={{
+        accentHue: 242,
+        accentSat: 90,
+        baseHue: 233,
+        baseSat: 20,
+        surfaceOpacity: 1,
+        radius: 18,
+        borderStrength: 0.22,
+        density: 1,
+        elevation: 1,
+      }}
       onApply={onApply}
       onClose={onClose}
     />,
