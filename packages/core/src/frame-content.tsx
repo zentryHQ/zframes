@@ -23,7 +23,31 @@ export function useFramePatch(): FramePatcher | null {
 }
 import type { FrameRegistry, FrameSource } from "@zframes/spec/frame";
 import { useProviders } from "./hooks";
-import type { FrameInstance } from "@zframes/spec/spec";
+import type { FrameInstance, FrameStyle } from "@zframes/spec/spec";
+
+/**
+ * Map a frame's optional per-instance `style` overrides to the `--zf-*` CSS vars
+ * FRAME_CSS reads. Set inline on the card element they override the dashboard
+ * defaults for that one card via the cascade — no separate render path. Returns
+ * an empty object when there is nothing to override (the common case).
+ */
+function frameStyleVars(style: FrameStyle | undefined): CSSProperties {
+  if (!style) return {};
+  const v: Record<string, string | number> = {};
+  if (style.accentHue !== undefined) v["--zf-accent-hue"] = style.accentHue;
+  if (style.accentSat !== undefined)
+    v["--zf-accent-sat"] = `${style.accentSat}%`;
+  if (style.baseHue !== undefined) v["--zf-base-hue"] = style.baseHue;
+  if (style.baseSat !== undefined) v["--zf-base-sat"] = `${style.baseSat}%`;
+  if (style.surfaceOpacity !== undefined)
+    v["--zf-surface-opacity"] = style.surfaceOpacity;
+  if (style.radius !== undefined) v["--zf-frame-radius"] = `${style.radius}px`;
+  if (style.borderStrength !== undefined)
+    v["--zf-border-alpha"] = style.borderStrength;
+  if (style.density !== undefined) v["--zf-density"] = style.density;
+  if (style.elevation !== undefined) v["--zf-elevation"] = style.elevation;
+  return v as CSSProperties;
+}
 
 /**
  * Frame chrome ships as a tiny stylesheet so cards get hover/transition
@@ -720,11 +744,18 @@ function FrameContentImpl({
   const providers = useProviders();
   const def = registry.get(instance.frame);
 
+  // Merge this instance's optional per-frame cosmetic overrides (accent, glass,
+  // corners, …) onto the positioning style as inline --zf-* vars — they cascade
+  // to this card only. No overrides → the positioning style passes through as-is.
+  const frameStyle = instance.style
+    ? { ...style, ...frameStyleVars(instance.style) }
+    : style;
+
   if (!def) {
     return (
       <ErrorCard
         outerClassName={cx("zf-frame", "zf-frame--error", className)}
-        style={style}
+        style={frameStyle}
         headline="Unknown frame"
         frame={instance.frame}
       >
@@ -747,7 +778,7 @@ function FrameContentImpl({
     return (
       <ErrorCard
         outerClassName={cx("zf-frame", "zf-frame--error", className)}
-        style={style}
+        style={frameStyle}
         headline="No data source"
         frame={instance.frame}
       >
@@ -773,7 +804,7 @@ function FrameContentImpl({
     return (
       <ErrorCard
         outerClassName={cx("zf-frame", "zf-frame--error", className)}
-        style={style}
+        style={frameStyle}
         headline="Invalid configuration"
         frame={instance.frame}
       >
@@ -806,7 +837,7 @@ function FrameContentImpl({
   // positioned slot but no card chrome and no auto-title.
   if (def.chrome === "bare") {
     return (
-      <div className={cx("zf-bare", className)} style={style}>
+      <div className={cx("zf-bare", className)} style={frameStyle}>
         <FrameErrorBoundary>
           <Suspense fallback={null}>
             <FrameComponent config={parsed.data} />
@@ -822,7 +853,7 @@ function FrameContentImpl({
   const autoTitle = def.chrome !== "plain";
   return (
     <ValidFrameCard
-      style={style}
+      style={frameStyle}
       className={className}
       hasIcon={!!TitleIcon}
       title={instance.title ?? (autoTitle ? def.label : undefined)}
