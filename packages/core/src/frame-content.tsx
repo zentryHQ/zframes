@@ -642,7 +642,7 @@ function ValidFrameCard({
   className: string;
   hasIcon: boolean;
   titleIcon: ReactNode;
-  title: string;
+  title?: string;
   titleContent?: ReactNode;
   sources: FrameSource[];
   children: ReactNode;
@@ -681,19 +681,25 @@ function ValidFrameCard({
     io.observe(el);
     return () => io.disconnect();
   }, []);
+  // A "plain"-chrome frame with no explicit title has nothing for the header
+  // row — no label, no icon, no source. Drop the row entirely so the body fills
+  // the card (rather than rendering an empty title bar with its bottom margin).
+  const showHeader = !!(titleContent || title || titleIcon || sources.length);
   return (
     <FrameVisibilityContext.Provider value={visibilityRef.current}>
       <div ref={cardRef} className={cx("zf-frame", className)} style={style}>
-        <div
-          className={cx(
-            "zf-frame-title",
-            hasIcon ? "zf-frame-title--icon" : "",
-          )}
-        >
-          {titleIcon}
-          <span className="zf-frame-title-text">{titleContent ?? title}</span>
-          <SourceCredit sources={sources} />
-        </div>
+        {showHeader && (
+          <div
+            className={cx(
+              "zf-frame-title",
+              hasIcon ? "zf-frame-title--icon" : "",
+            )}
+          >
+            {titleIcon}
+            <span className="zf-frame-title-text">{titleContent ?? title}</span>
+            <SourceCredit sources={sources} />
+          </div>
+        )}
         <div className="zf-frame-body">{children}</div>
       </div>
     </FrameVisibilityContext.Provider>
@@ -810,12 +816,16 @@ function FrameContentImpl({
     );
   }
 
+  // "plain" chrome suppresses the auto-title: only an explicit instance title
+  // shows a header (media/content frames — image, note, quote — whose content
+  // is its own heading). "card" falls back to the frame's label as before.
+  const autoTitle = def.chrome !== "plain";
   return (
     <ValidFrameCard
       style={style}
       className={className}
       hasIcon={!!TitleIcon}
-      title={instance.title ?? def.label}
+      title={instance.title ?? (autoTitle ? def.label : undefined)}
       sources={sources}
       titleIcon={
         TitleIcon ? (
