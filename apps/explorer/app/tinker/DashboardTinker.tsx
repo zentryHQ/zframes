@@ -10,6 +10,7 @@ import {
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
 import { allFrames } from "@zframes/frames";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import "gridstack/dist/gridstack.min.css";
 import { PublishDialog } from "@/app/lib/PublishDialog";
 import { Button } from "@/app/components/ui/button";
@@ -141,17 +142,16 @@ export default function DashboardTinker() {
   // The editor only reads `spec` at mount; onSave hands us the live spec, which
   // we keep in a ref so Publish always sends the latest edited state.
   const latest = useRef<DashboardSpec>(spec);
-  const [saved, setSaved] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
 
   const onSave = useCallback(async (next: DashboardSpec) => {
     latest.current = next;
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      setSaved(true);
-      window.setTimeout(() => setSaved(false), 2200);
+      toast.success("Saved to this browser");
     } catch {
-      /* storage unavailable — edits stay on screen */
+      // Storage unavailable (private mode / quota) — edits stay on screen.
+      toast.error("Couldn't save to this browser — your edits stay on screen.");
     }
   }, []);
 
@@ -176,16 +176,6 @@ export default function DashboardTinker() {
       {showPublish && (
         <PublishDialog getSpec={() => latest.current} onClose={() => setShowPublish(false)} />
       )}
-      {saved ? (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
-          <div
-            role="status"
-            className="animate-dialog-in rounded-full border border-up/40 bg-up/15 px-4 py-1.5 text-sm text-up shadow-lg"
-          >
-            Saved to this browser
-          </div>
-        </div>
-      ) : null}
     </FramesProvider>
   );
 }

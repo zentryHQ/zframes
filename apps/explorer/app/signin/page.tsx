@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 import { authClient } from "@/app/lib/auth-client";
 import { BrandMark } from "@/app/lib/BrandMark";
 
 export default function SignInPage() {
-  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function signInWithGoogle() {
     setBusy(true);
-    setError(null);
     // Return to the gated action that sent the user here (?next=/tinker from
     // Publish, ?next=/mine, …). Same-site paths only — never an external URL.
     const next = new URLSearchParams(window.location.search).get("next");
@@ -21,7 +20,7 @@ export default function SignInPage() {
     // land back here, so surface the error and re-enable the button.
     const res = await authClient.signIn.social({ provider: "google", callbackURL });
     if (res?.error) {
-      setError(res.error.message || "Sign-in failed");
+      toast.error(res.error.message || "Sign-in failed");
       setBusy(false);
     }
   }
@@ -39,12 +38,6 @@ export default function SignInPage() {
             save dashboards — browsing, preview, and tinker stay open.
           </p>
         </div>
-
-        {error && (
-          <p className="mb-3 rounded-lg border border-down/30 bg-down/10 px-3 py-2 text-sm text-down">
-            {error}
-          </p>
-        )}
 
         <button
           type="button"

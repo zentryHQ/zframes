@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { Agentation } from "agentation";
+import { Toaster } from "sonner";
 import { AuthNav } from "@/app/lib/AuthNav";
 import { BrandMark } from "@/app/lib/BrandMark";
 import { Footer } from "@/app/lib/Footer";
@@ -51,6 +52,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <div className="flex-1 pt-[57px]">{children}</div>
 
         <Footer />
+
+        {/* App-wide feedback. Glass-dark themed via globals.css [data-sonner-*]
+            rules so success/error read in the dashboard's own up/down palette. */}
+        <Toaster
+          theme="dark"
+          position="bottom-center"
+          richColors
+          closeButton
+          toastOptions={{ className: "zf-toast" }}
+        />
 
         {process.env.NODE_ENV === "development" && (
           <Agentation endpoint="http://localhost:4747" />

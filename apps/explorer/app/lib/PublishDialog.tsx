@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 import type { DashboardSpec } from "@zframes/core";
 import { authClient } from "@/app/lib/auth-client";
 import { Dialog } from "@/app/lib/Dialog";
@@ -24,6 +25,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
           onClick={() => {
             navigator.clipboard?.writeText(value);
             setCopied(true);
+            toast.success(`${label} copied`);
             window.setTimeout(() => setCopied(false), 1500);
           }}
         >
@@ -45,12 +47,10 @@ export function PublishDialog({
   const [title, setTitle] = useState(getSpec().title || "My dashboard");
   const [listed, setListed] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ id: string } | null>(null);
 
   async function publish() {
     setBusy(true);
-    setError(null);
     const res = await fetch("/api/dashboards", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -63,15 +63,16 @@ export function PublishDialog({
     });
     setBusy(false);
     if (res.status === 401) {
-      setError("Your session expired — sign in again to publish.");
+      toast.error("Your session expired — sign in again to publish.");
       return;
     }
     if (!res.ok) {
       const b = await res.json().catch(() => ({}));
-      setError(b.error || "Publish failed");
+      toast.error(b.error || "Publish failed");
       return;
     }
     setResult(await res.json());
+    toast.success("Dashboard published");
   }
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
@@ -140,7 +141,6 @@ export function PublishDialog({
                 />
                 List in the community gallery (otherwise unlisted — link-only)
               </label>
-              {error && <p className="text-sm text-down">{error}</p>}
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={onClose}>

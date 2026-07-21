@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 // The real entry point (per the README): install the skill into your agent.
 // A copyable command chip — small client island dropped into the server hero.
@@ -13,6 +14,7 @@ export function CopyCommand({ command }: { command: string }) {
       onClick={() => {
         navigator.clipboard?.writeText(command);
         setCopied(true);
+        toast.success("Command copied");
         window.setTimeout(() => setCopied(false), 1500);
       }}
       className="hairline zf-press group flex items-center gap-3 rounded-xl bg-black/30 px-4 py-2.5 font-mono text-sm text-white/80 transition-colors hover:bg-black/50"
