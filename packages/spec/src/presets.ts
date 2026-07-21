@@ -154,6 +154,70 @@ export const THEME_PRESETS: ThemePreset[] = [
     },
     scene: "ember",
   },
+  {
+    key: "nord",
+    label: "Nord",
+    description:
+      "Cool arctic blue-grey — a calm, muted ice-blue accent on slate, soft rounded cards. Understated and easy on the eyes.",
+    theme: { accentHue: 200, accentSat: 55, baseHue: 220, baseSat: 16 },
+    typography: { fontFamily: "sans", numericStyle: "tabular" },
+    appearance: {
+      radius: 12,
+      borderStrength: 0.2,
+      surfaceOpacity: 1,
+      density: 1,
+      elevation: 0.6,
+    },
+    scene: "tide",
+  },
+  {
+    key: "oceanic",
+    label: "Oceanic",
+    description:
+      "Deep teal on blue-black — a vivid sea-green accent, roomy rounded cards. Fresh and marine.",
+    theme: { accentHue: 185, accentSat: 70, baseHue: 200, baseSat: 22 },
+    typography: { fontFamily: "sans", numericStyle: "proportional" },
+    appearance: {
+      radius: 16,
+      borderStrength: 0.22,
+      surfaceOpacity: 1,
+      density: 1,
+      elevation: 0.8,
+    },
+    scene: "tide",
+  },
+  {
+    key: "crimson",
+    label: "Crimson",
+    description:
+      "Bold red on near-black — a hot crimson accent, tabular figures, sharp dense cards. Aggressive, high-contrast trading floor.",
+    theme: { accentHue: 356, accentSat: 78, baseHue: 350, baseSat: 15 },
+    typography: { fontFamily: "sans", numericStyle: "tabular" },
+    appearance: {
+      radius: 8,
+      borderStrength: 0.3,
+      surfaceOpacity: 1,
+      density: 0.95,
+      elevation: 1,
+    },
+    scene: "ember",
+  },
+  {
+    key: "gold-noir",
+    label: "Gold Noir",
+    description:
+      "Luxe gold on black — a warm gilt accent, serif type, roomy lifted cards. Understated wealth-desk elegance.",
+    theme: { accentHue: 45, accentSat: 85, baseHue: 40, baseSat: 10 },
+    typography: { fontFamily: "serif", numericStyle: "proportional" },
+    appearance: {
+      radius: 10,
+      borderStrength: 0.25,
+      surfaceOpacity: 1,
+      density: 1.1,
+      elevation: 1.2,
+    },
+    scene: "ember",
+  },
 ];
 
 /**

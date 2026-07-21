@@ -126,10 +126,10 @@ export const FrameInstanceSchema = z.object({
 export const BackgroundSchema = z
   .object({
     type: z
-      .enum(["none", "color", "gradient", "unicorn"])
+      .enum(["none", "color", "gradient", "unicorn", "image"])
       .default("none")
       .describe(
-        "Background style: 'none' (the signature dark indigo glow — the default), 'color' (a solid colour), 'gradient' (a custom two-colour linear gradient), or 'unicorn' (an animated Unicorn Studio scene).",
+        "Background style: 'none' (the signature dark indigo glow — the default), 'color' (a solid colour), 'gradient' (a custom two-colour linear gradient), 'unicorn' (an animated Unicorn Studio scene), or 'image' (a full-bleed photo/illustration behind the dashboard, with a legibility scrim).",
       ),
     color: z
       .string()
@@ -178,6 +178,34 @@ export const BackgroundSchema = z
       .default(0.16)
       .describe(
         "Opacity of the unicorn scene (0–1). Keep moderate (~0.15) so the animation reads as a living backdrop in the gutters without competing with the (opaque) dashboard cards.",
+      ),
+    imageUrl: z
+      .string()
+      .optional()
+      .describe(
+        "Background image URL — required when type is 'image'. An https URL, or a local path served next to the dashboard (e.g. '/hero.png'). Rendered full-bleed behind everything.",
+      ),
+    imageFit: z
+      .enum(["cover", "contain"])
+      .default("cover")
+      .describe(
+        "How the background image fills the viewport when type is 'image': 'cover' crops to fill (default), 'contain' letterboxes to show the whole image.",
+      ),
+    imageBlur: z
+      .number()
+      .min(0)
+      .max(40)
+      .default(0)
+      .describe(
+        "Gaussian blur applied to the background image in px (0–40). Blur a busy photo so the dashboard cards stay readable over it. Used when type is 'image'.",
+      ),
+    overlayOpacity: z
+      .number()
+      .min(0)
+      .max(1)
+      .default(0.55)
+      .describe(
+        "Opacity of the dark scrim laid over the background image (0–1). Raise it to darken a bright image so card text stays legible; lower it to let the image show through. Used when type is 'image'.",
       ),
   })
   .describe("Visual background rendered behind the whole dashboard.");
@@ -246,9 +274,15 @@ export const ThemeSchema = z
       .describe(
         "Semantic colour for losses / negative change / bearish (down). 6-digit hex; default #ff6b81 (red). The counterpart to upColor — tints every loss delta, mover row, down-candle, and 'short'/'put' marker.",
       ),
+    surface: z
+      .enum(["dark", "light"])
+      .default("dark")
+      .describe(
+        "Overall surface mode. 'dark' (default) is the signature dark dashboard — light text on dark cards. 'light' flips to a daylight scheme — dark text on near-white cards — for a printed/paper or bright-office look. The accent (baseHue tints the surface either way), the semantic up/down colours, and typography are unchanged; only the ink + card lightness invert.",
+      ),
   })
   .describe(
-    "Dashboard-wide colour identity — accent (rims/highlights), the dark card-surface tint (base), and the semantic up/down (gain/loss) colours.",
+    "Dashboard-wide colour identity — accent (rims/highlights), the card-surface tint (base), the light/dark surface mode, and the semantic up/down (gain/loss) colours.",
   );
 
 export type DashboardTheme = z.infer<typeof ThemeSchema>;
@@ -498,6 +532,9 @@ export const DashboardSpecSchema = z.preprocess(
       scale: 1,
       dpi: 1.5,
       opacity: 0.16,
+      imageFit: "cover",
+      imageBlur: 0,
+      overlayOpacity: 0.55,
     }),
     theme: ThemeSchema.default({
       accentHue: 242,
@@ -506,6 +543,7 @@ export const DashboardSpecSchema = z.preprocess(
       baseSat: 20,
       upColor: "#3fd08f",
       downColor: "#ff6b81",
+      surface: "dark",
     }),
     typography: TypographySchema.default({
       fontFamily: "sans",
