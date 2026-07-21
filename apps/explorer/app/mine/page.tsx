@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { SectionHeading } from "@/app/lib/SectionHeading";
 import { Button } from "@/app/components/ui/button";
 
@@ -42,17 +43,27 @@ export default function MyDashboardsPage() {
 
   async function del(id: string) {
     setArmed(null);
-    await fetch(`/api/dashboards/${id}`, { method: "DELETE" });
+    const r = await fetch(`/api/dashboards/${id}`, { method: "DELETE" });
+    if (!r.ok) {
+      toast.error("Couldn't delete that dashboard — try again.");
+      return;
+    }
+    toast.success("Dashboard deleted");
     load();
   }
 
   async function toggleVisibility(id: string, current: Row["visibility"]) {
     const visibility = current === "listed" ? "unlisted" : "listed";
-    await fetch(`/api/dashboards/${id}`, {
+    const r = await fetch(`/api/dashboards/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ visibility }),
     });
+    if (!r.ok) {
+      toast.error("Couldn't update visibility — try again.");
+      return;
+    }
+    toast.success(visibility === "listed" ? "Listed in the gallery" : "Unlisted — link-only");
     load();
   }
 

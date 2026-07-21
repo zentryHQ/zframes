@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Dialog } from "@/app/lib/Dialog";
 import { Button } from "@/app/components/ui/button";
 
@@ -40,6 +41,7 @@ export function AgentForkButton({ id }: { id: string }) {
               onClick={() => {
                 navigator.clipboard?.writeText(prompt);
                 setCopied(true);
+                toast.success("Fork prompt copied — paste it into your agent");
                 window.setTimeout(() => setCopied(false), 1500);
               }}
             >

@@ -540,3 +540,30 @@ body::before {
     grid-template-rows: 1fr;
   }
 }
+
+/* ── Sonner toasts ─────────────────────────────────────────────────────────
+ * Match the glass-dark surface the rest of the app uses (see .glass /
+ * .zf-surface above) rather than sonner's default flat card, and route the
+ * richColors success/error accents through the dashboard's own up/down pair. */
+[data-sonner-toaster] {
+  --normal-bg: hsl(var(--zf-base-hue) var(--zf-base-sat) 9% / 0.86);
+  --normal-border: hsl(var(--zf-accent-hue) var(--zf-accent-sat) 76% / 0.22);
+  --normal-text: var(--popover-foreground);
+  font-family: var(--font-sans, inherit);
+}
+[data-sonner-toast].zf-toast {
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 20px 50px -24px hsl(var(--zf-base-hue) var(--zf-base-sat) 4% / 0.8);
+}
+/* richColors success/error → the semantic gain/loss palette. */
+[data-sonner-toast][data-type="success"] {
+  --normal-bg: color-mix(in srgb, var(--color-up) 14%, hsl(var(--zf-base-hue) var(--zf-base-sat) 9%));
+  --normal-border: color-mix(in srgb, var(--color-up) 40%, transparent);
+  --normal-text: var(--color-up);
+}
+[data-sonner-toast][data-type="error"] {
+  --normal-bg: color-mix(in srgb, var(--color-down) 14%, hsl(var(--zf-base-hue) var(--zf-base-sat) 9%));
+  --normal-border: color-mix(in srgb, var(--color-down) 40%, transparent);
+  --normal-text: var(--color-down);
+}
