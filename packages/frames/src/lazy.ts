@@ -91,7 +91,13 @@ export const frameLoaders: Record<string, FrameLoader> = {
       import("./funding-rate-chart").then((m) => m.fundingRateChartFrame),
   },
   heading: { load: () => import("./heading").then((m) => m.headingFrame) },
+  "hero-number": {
+    load: () => import("./hero-number").then((m) => m.heroNumberFrame),
+  },
   image: { load: () => import("./image").then((m) => m.imageFrame) },
+  "image-gallery": {
+    load: () => import("./image-gallery").then((m) => m.imageGalleryFrame),
+  },
   "inflation-pulse": {
     load: () => import("./inflation-pulse").then((m) => m.inflationPulseFrame),
   },

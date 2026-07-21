@@ -1,4 +1,5 @@
 import { defineFrame } from "@zframes/core";
+import type { CSSProperties } from "react";
 import type { z } from "zod";
 import { dividerMeta } from "./schemas";
 
@@ -10,21 +11,29 @@ const LINE = "rgba(255,255,255,0.16)";
 function Divider({ config }: { config: Config }) {
   const vertical = config.orientation === "vertical";
   const label = config.label.trim();
+  const accented = config.accent !== undefined;
 
-  const rule = (extra?: string) => (
+  // --zf-accent-hue on the root lets var(--color-accent-line) resolve to the
+  // chosen hue for this subtree; unset keeps the subtle white hairline.
+  const rootStyle = accented
+    ? ({ "--zf-accent-hue": String(config.accent) } as CSSProperties)
+    : undefined;
+  const color = accented ? "var(--color-accent-line)" : LINE;
+
+  const rule = () => (
     <span
-      className={`shrink ${vertical ? "w-0 flex-1" : "h-0 flex-1"} ${extra ?? ""}`}
+      className={`shrink ${vertical ? "w-0 flex-1" : "h-0 flex-1"}`}
       style={
         vertical
           ? {
-              borderLeftWidth: 1,
+              borderLeftWidth: config.thickness,
               borderLeftStyle: config.style,
-              borderColor: LINE,
+              borderColor: color,
             }
           : {
-              borderTopWidth: 1,
+              borderTopWidth: config.thickness,
               borderTopStyle: config.style,
-              borderColor: LINE,
+              borderColor: color,
             }
       }
     />
@@ -34,6 +43,7 @@ function Divider({ config }: { config: Config }) {
     return (
       <div
         className={`flex h-full w-full items-center justify-center ${vertical ? "flex-col" : ""}`}
+        style={rootStyle}
       >
         {rule()}
       </div>
@@ -43,10 +53,13 @@ function Divider({ config }: { config: Config }) {
   return (
     <div
       className={`flex h-full w-full items-center justify-center gap-3 ${vertical ? "flex-col py-1" : "px-1"}`}
+      style={rootStyle}
     >
       {rule()}
       <span
-        className="caption text-soft shrink-0 whitespace-nowrap uppercase tracking-[0.14em]"
+        className={`caption shrink-0 whitespace-nowrap uppercase tracking-[0.14em] ${
+          accented ? "text-highlight" : "text-soft"
+        }`}
         style={vertical ? { writingMode: "vertical-rl" } : undefined}
       >
         {label}
