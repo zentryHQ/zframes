@@ -7,9 +7,95 @@ export const GridPositionSchema = z.object({
   h: z.number().int().min(1).describe("Height in grid rows"),
 });
 
+/**
+ * Per-frame cosmetic overrides. Every field is optional and mirrors a slice of
+ * the dashboard-wide `theme` + `appearance`; when set, it overrides that value
+ * for THIS card only, via the same `--zf-*` CSS var set inline on the card (the
+ * cascade does the rest — no separate render path). Omit the whole object, or
+ * any field, to inherit the dashboard default. Use it to make a card stand out:
+ * a hero with its own accent, a glassy card, a squared/flat panel, a warmed
+ * surface for a zone. Semantic up/down colours and typography stay dashboard-wide.
+ */
+export const FrameStyleSchema = z
+  .object({
+    accentHue: z
+      .number()
+      .int()
+      .min(0)
+      .max(360)
+      .optional()
+      .describe(
+        "Override this card's accent hue (0–360) — its rim, title dot, and highlights. Inherits theme.accentHue if unset.",
+      ),
+    accentSat: z
+      .number()
+      .min(0)
+      .max(100)
+      .optional()
+      .describe("Override this card's accent saturation (0–100)."),
+    baseHue: z
+      .number()
+      .int()
+      .min(0)
+      .max(360)
+      .optional()
+      .describe(
+        "Override this card's dark surface tint hue (0–360) — warm or cool just this one card. Inherits theme.baseHue if unset.",
+      ),
+    baseSat: z
+      .number()
+      .min(0)
+      .max(100)
+      .optional()
+      .describe("Override this card's surface tint saturation (0–100)."),
+    surfaceOpacity: z
+      .number()
+      .min(0.3)
+      .max(1)
+      .optional()
+      .describe(
+        "Override this card's surface opacity (0.3–1) — drop it toward 0.5 for a single frosted/glassy card over the background.",
+      ),
+    radius: z
+      .number()
+      .min(0)
+      .optional()
+      .describe("Override this card's corner radius in px (0 = square)."),
+    borderStrength: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe(
+        "Override this card's rim opacity (0–1); 0 = borderless flat card.",
+      ),
+    density: z
+      .number()
+      .min(0.6)
+      .max(1.4)
+      .optional()
+      .describe("Override this card's padding scale (0.6–1.4)."),
+    elevation: z
+      .number()
+      .min(0)
+      .max(2)
+      .optional()
+      .describe(
+        "Override this card's shadow depth (0–2); raise it to float a hero card, 0 to flatten one.",
+      ),
+  })
+  .describe(
+    "Per-frame cosmetic overrides — accent, surface tint, glass, corners, border, padding, shadow — for THIS card only. Every field optional; omit to inherit the dashboard `theme`/`appearance`.",
+  );
+
+export type FrameStyle = z.infer<typeof FrameStyleSchema>;
+
 export const FrameInstanceSchema = z.object({
   id: z.string().describe("Unique instance id within the dashboard"),
   frame: z.string().describe("Name of a registered frame"),
+  style: FrameStyleSchema.optional().describe(
+    "Optional per-frame cosmetic overrides (accent, glass, corners, …) for this card only. Omit to inherit the dashboard theme/appearance.",
+  ),
   title: z
     .string()
     .optional()
