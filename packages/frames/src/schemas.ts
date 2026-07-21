@@ -186,6 +186,7 @@ export const noteMeta = defineFrameMeta({
   description:
     "Free-form text note pinned to the dashboard — trading plans, reminders, watch levels. Needs no data provider.",
   capabilities: [],
+  chrome: "plain",
   schema: z.object({
     text: z
       .string()
@@ -694,6 +695,7 @@ export const imageMeta = defineFrameMeta({
   description:
     "Displays an image from a URL — logos, memes, chart screenshots, banners. Needs no data provider.",
   capabilities: [],
+  chrome: "plain",
   schema: z.object({
     url: z.string().min(1).describe("Image URL (https)."),
     alt: z.string().default("").describe("Alt text for accessibility."),
@@ -1160,6 +1162,7 @@ export const videoMeta = defineFrameMeta({
   description:
     "Embeds a video from a YouTube or Vimeo link (or any direct embed URL) as an iframe — a livestream, a market-news clip, a focus playlist. Needs no data provider.",
   capabilities: [],
+  chrome: "plain",
   schema: z.object({
     url: z
       .string()
@@ -1224,6 +1227,7 @@ export const linkGridMeta = defineFrameMeta({
   description:
     "A grid of quick-launch tiles linking to your favourite sites — TradingView, exchanges, news, docs, your own dashboards. Each tile opens in a new tab and shows the destination site's favicon by default (fetched keyless from a public favicon service), with an optional per-link icon override and a first-letter fallback. Needs no data provider.",
   capabilities: [],
+  chrome: "plain",
   schema: z.object({
     links: z
       .array(
@@ -1313,6 +1317,7 @@ export const quoteMeta = defineFrameMeta({
   description:
     'Displays a market or trading quote, centered — set one or rotate through several. A calm bit of wall-art for the dashboard: trading maxims, reminders of your own rules, mantras. Write any attribution into the text itself (e.g. "… — Buffett"). Needs no data provider.',
   capabilities: [],
+  chrome: "plain",
   schema: z.object({
     quotes: z
       .array(z.string().min(1))
