@@ -1,5 +1,5 @@
 import { defineFrame } from "@zframes/core";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { z } from "zod";
 import { imageMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -8,8 +8,16 @@ const schema = imageMeta.schema;
 
 function ImageFrame({ config }: { config: z.output<typeof schema> }) {
   const [state, setState] = useState<"loading" | "loaded" | "error">("loading");
+  const imgRef = useRef<HTMLImageElement>(null);
 
-  useEffect(() => setState("loading"), [config.url]);
+  useEffect(() => {
+    setState("loading");
+    // Cached / localhost loads complete before React attaches onLoad, so the
+    // event never fires and the frame would sit on "loading" forever. Reconcile
+    // straight from the element once it's mounted.
+    const img = imgRef.current;
+    if (img?.complete) setState(img.naturalWidth > 0 ? "loaded" : "error");
+  }, [config.url]);
 
   if (state === "error") return <FrameStatus>image unavailable</FrameStatus>;
 
@@ -21,6 +29,7 @@ function ImageFrame({ config }: { config: z.output<typeof schema> }) {
         </div>
       )}
       <img
+        ref={imgRef}
         src={config.url}
         alt={config.alt}
         className={`h-full w-full transition-opacity duration-300 ${
