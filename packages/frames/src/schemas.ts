@@ -184,14 +184,16 @@ export const noteMeta = defineFrameMeta({
   iconUrl: widgetIcon("note"),
   layout: { w: 4, h: 3, minW: 2, minH: 2 },
   description:
-    "Free-form text note pinned to the dashboard — trading plans, reminders, watch levels. Needs no data provider.",
+    "Free-form text note pinned to the dashboard — trading plans, reminders, watch levels. Renders a safe Markdown subset: **bold**, *italic*, `inline code`, [links](https://…), #/##/### headings, and - / 1. lists. Plain text still renders as written. Needs no data provider.",
   capabilities: [],
   chrome: "plain",
   schema: z.object({
     text: z
       .string()
       .min(1)
-      .describe("The note's text content. Plain text; newlines are preserved."),
+      .describe(
+        "The note's text content. Supports a Markdown subset — **bold**, *italic*, `code`, [text](https://url), #/##/### headings, and unordered (-) / ordered (1.) lists. Blank lines start new paragraphs; single newlines become line breaks. Plain text works too.",
+      ),
     align: z
       .enum(["left", "center"])
       .default("left")
@@ -708,6 +710,87 @@ export const imageMeta = defineFrameMeta({
   }),
 });
 
+export const heroNumberMeta = defineFrameMeta({
+  name: "hero-number",
+  label: "Hero Number",
+  category: "layout",
+  iconUrl: widgetIcon("hero-number"),
+  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  description:
+    "A big manual KPI card you fill in yourself — one headline number, a caption, and an optional signed change. Static text, not a live feed: use it to pin a figure that has no provider (a target, a personal goal, a fact from elsewhere), e.g. '$39.6T' national debt or '127 EH/s' hashrate. Needs no data provider.",
+  capabilities: [],
+  chrome: "plain",
+  schema: z.object({
+    value: z
+      .string()
+      .min(1)
+      .describe(
+        'The headline figure, shown large. Free text so you can include units/symbols, e.g. "$39.6T", "127 EH/s", "4.25%".',
+      ),
+    label: z
+      .string()
+      .default("")
+      .describe(
+        'Caption naming what the number is, e.g. "US National Debt". Empty hides it.',
+      ),
+    delta: z
+      .string()
+      .default("")
+      .describe(
+        'Optional change chip shown under the number, e.g. "+1.5%" or "-3 blocks". Empty hides it.',
+      ),
+    deltaDir: z
+      .enum(["up", "down", "neutral"])
+      .default("neutral")
+      .describe(
+        "Tint for the delta chip: up = gain color, down = loss color, neutral = muted. Purely cosmetic — it does not parse the delta text.",
+      ),
+    sublabel: z
+      .string()
+      .default("")
+      .describe(
+        'Optional small line under the delta for context, e.g. "as of Jul 2026". Empty hides it.',
+      ),
+  }),
+});
+
+export const imageGalleryMeta = defineFrameMeta({
+  name: "image-gallery",
+  label: "Image Gallery",
+  category: "layout",
+  iconUrl: widgetIcon("image-gallery"),
+  layout: { w: 4, h: 3, minW: 2, minH: 2 },
+  description:
+    "A rotating gallery that cross-fades through a list of images on a timer — chart screenshots, memes, banners, a mood board. Needs no data provider.",
+  capabilities: [],
+  chrome: "plain",
+  schema: z.object({
+    images: z
+      .array(
+        z.object({
+          url: z.string().min(1).describe("Image URL (https)."),
+          alt: z.string().default("").describe("Alt text for accessibility."),
+        }),
+      )
+      .min(1)
+      .describe("The images to rotate through, in order. At least one."),
+    intervalSec: z
+      .number()
+      .int()
+      .min(0)
+      .default(6)
+      .describe(
+        "Seconds between cross-fades when there is more than one image. 0 shows the first image, fixed.",
+      ),
+    fit: z
+      .enum(["cover", "contain"])
+      .default("cover")
+      .describe(
+        "How each image fills the frame: cover crops to fill, contain letterboxes.",
+      ),
+  }),
+});
+
 export const headingMeta = defineFrameMeta({
   name: "heading",
   label: "Heading",
@@ -724,6 +807,20 @@ export const headingMeta = defineFrameMeta({
       .string()
       .optional()
       .describe("Smaller supporting line under the title."),
+    accent: z
+      .number()
+      .min(0)
+      .max(360)
+      .optional()
+      .describe(
+        "Optional hue (0–360) that tints the marker dot, the rule, and the title. Omit to use the dashboard's own accent (the default look).",
+      ),
+    align: z
+      .enum(["left", "center"])
+      .default("left")
+      .describe(
+        "Left aligns the label with a trailing rule (default); center places the label between rules on both sides.",
+      ),
   }),
 });
 
@@ -1368,6 +1465,21 @@ export const dividerMeta = defineFrameMeta({
       .enum(["solid", "dashed", "dotted"])
       .default("solid")
       .describe("Line style."),
+    accent: z
+      .number()
+      .min(0)
+      .max(360)
+      .optional()
+      .describe(
+        "Optional hue (0–360) that tints the rule and its label. Omit for the default subtle hairline.",
+      ),
+    thickness: z
+      .number()
+      .int()
+      .min(1)
+      .max(8)
+      .default(1)
+      .describe("Rule thickness in pixels. 1 is the default hairline."),
   }),
 });
 
@@ -2705,7 +2817,9 @@ export const frameMetas: FrameMeta[] = [
   fundingHeatmapMeta,
   fundingRateChartMeta,
   headingMeta,
+  heroNumberMeta,
   imageMeta,
+  imageGalleryMeta,
   inflationPulseMeta,
   marketHoursMeta,
   noteMeta,
