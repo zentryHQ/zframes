@@ -85,6 +85,7 @@ const accentSaturation = (accentSat: number) =>
  */
 export function DashboardBackground({
   background,
+  surface = "dark",
   active = false,
   thinking = false,
   accentHue = ACCENT_DEFAULT_HUE,
@@ -92,6 +93,9 @@ export function DashboardBackground({
   sceneHue = DEFAULT_SCENE_HUE,
 }: {
   background: BackgroundConfig;
+  /** Dashboard surface mode — light mode paints a light default backdrop so the
+   *  gutters match the light cards (the dark body glow would clash). */
+  surface?: "dark" | "light";
   active?: boolean;
   thinking?: boolean;
   accentHue?: number;
@@ -127,7 +131,67 @@ export function DashboardBackground({
       />
     );
   }
-  if (background.type !== "unicorn" || !background.projectId) return null;
+  // Full-bleed background image: a static <img> (not a CSS url(), which a
+  // forked/shared dashboard could break out of) under a dark scrim so card text
+  // stays legible. Optional blur softens a busy photo; when blurred the image is
+  // slightly scaled so the blur's soft edge never reveals the backdrop.
+  if (background.type === "image") {
+    if (!background.imageUrl) return null;
+    const blur = background.imageBlur;
+    return (
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          overflow: "hidden",
+          pointerEvents: "none",
+        }}
+      >
+        <img
+          src={background.imageUrl}
+          alt=""
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: background.imageFit,
+            filter: blur > 0 ? `blur(${blur}px)` : undefined,
+            transform: blur > 0 ? "scale(1.08)" : undefined,
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: `rgba(0,0,0,${background.overlayOpacity})`,
+          }}
+        />
+      </div>
+    );
+  }
+  if (background.type !== "unicorn" || !background.projectId) {
+    // Light surface with no explicit backdrop: paint a soft light fill so the
+    // gutters read light like the cards (the dark body glow would clash). Dark
+    // mode keeps returning null → the body's signature indigo glow shows through.
+    if (surface === "light") {
+      return (
+        <div
+          aria-hidden
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 0,
+            pointerEvents: "none",
+            background: "linear-gradient(160deg, #f4f5f8, #e6e8f0)",
+          }}
+        />
+      );
+    }
+    return null;
+  }
 
   // Low-end: downgrade the WebGL scene to the body's static gradient glow
   // (styles.css body::before) — the same graceful default used when the engine

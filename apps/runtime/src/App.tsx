@@ -271,6 +271,7 @@ export default function App() {
     <FramesProvider providers={providers}>
       <DashboardBackground
         background={background}
+        surface={spec.theme.surface}
         active={orbOpen}
         thinking={orbThinking}
         accentHue={accentHue ?? spec.theme.accentHue}

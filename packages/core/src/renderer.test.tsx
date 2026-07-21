@@ -238,4 +238,42 @@ describe("DashboardRenderer spec → CSS custom properties", () => {
     expect(card.style.getPropertyValue("--zf-row-start")).toBe("2");
     expect(card.style.getPropertyValue("--zf-row-span")).toBe("2");
   });
+
+  it("surface mode: dark (default) sets the original ink/surface lightness (a no-op)", () => {
+    const { container } = renderDashboard([inst("marker", { label: "x" })]);
+    const grid = container.querySelector(".zf-grid") as HTMLElement;
+    const v = (n: string) => grid.style.getPropertyValue(n);
+    expect(v("--zf-ink-l")).toBe("100%");
+    expect(v("--zf-surf-l1")).toBe("12.5%");
+    expect(v("--zf-surf-l2")).toBe("7%");
+    expect(v("--zf-surf-l3")).toBe("5.3%");
+  });
+
+  it("surface mode: light flips the ink + card-surface lightness", () => {
+    const { container } = renderDashboard([inst("marker", { label: "x" })], {
+      theme: { surface: "light" },
+    });
+    const grid = container.querySelector(".zf-grid") as HTMLElement;
+    const v = (n: string) => grid.style.getPropertyValue(n);
+    expect(v("--zf-ink-l")).toBe("16%");
+    expect(v("--zf-surf-l1")).toBe("98%");
+    expect(v("--zf-surf-l2")).toBe("96%");
+    expect(v("--zf-surf-l3")).toBe("94%");
+  });
+
+  it("per-frame style overrides emit inline --zf-* vars on that card only", () => {
+    const { container } = renderDashboard([
+      {
+        ...inst("marker", { label: "x" }),
+        style: { accentHue: 320, accentSat: 95, surfaceOpacity: 0.5, radius: 24 },
+      },
+    ]);
+    const card = container.querySelector(".zf-frame") as HTMLElement;
+    expect(card.style.getPropertyValue("--zf-accent-hue")).toBe("320");
+    expect(card.style.getPropertyValue("--zf-accent-sat")).toBe("95%");
+    expect(card.style.getPropertyValue("--zf-surface-opacity")).toBe("0.5");
+    expect(card.style.getPropertyValue("--zf-frame-radius")).toBe("24px");
+    // Untouched knobs stay unset on the card (inherit the dashboard default).
+    expect(card.style.getPropertyValue("--zf-elevation")).toBe("");
+  });
 });

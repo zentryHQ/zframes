@@ -132,7 +132,7 @@ export const FRAME_CSS = `
      --zf-base-sat (spec.theme) with their lightness baked, so the default
      hsl(233 20% …) reproduces the original navy to within ~1/255, while the base
      knobs let the whole surface warm, cool, or desaturate toward black. */
-  background: var(--zf-frame-bg, linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 12.5% / calc(0.82 * var(--zf-surface-opacity, 1))) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 7% / calc(0.86 * var(--zf-surface-opacity, 1))) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 5.3% / calc(0.9 * var(--zf-surface-opacity, 1))) 100%));
+  background: var(--zf-frame-bg, linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l1, 12.5%) / calc(0.82 * var(--zf-surface-opacity, 1))) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l2, 7%) / calc(0.86 * var(--zf-surface-opacity, 1))) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l3, 5.3%) / calc(0.9 * var(--zf-surface-opacity, 1))) 100%));
   border: 1px solid var(--zf-frame-border, hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / var(--zf-border-alpha, 0.22)));
   border-radius: var(--zf-frame-radius, 18px);
   box-shadow: var(--zf-frame-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4), 0 calc(18px * var(--zf-elevation, 1)) calc(44px * var(--zf-elevation, 1)) -26px rgba(0, 0, 0, 0.9));
@@ -220,8 +220,24 @@ export const FRAME_CSS = `
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--zf-frame-title, rgba(255, 255, 255, 0.5));
+  color: var(--zf-frame-title, hsl(0 0% var(--zf-ink-l, 100%) / 0.5));
   flex: none;
+}
+/* Light/dark surface mode. --zf-ink-l (100% dark / ~16% light) and
+   --zf-surf-l1..3 (card gradient lightness) are set inline on the container by
+   the renderer/editor from spec.theme.surface. Redeclaring the interior text /
+   surface tokens HERE (at .zf-grid/.zf-editor scope, where --zf-ink-l is set)
+   is what lets them flip per-container — a :root indirection wouldn't pick up
+   the inline var. Dark defaults reproduce the original white-on-dark exactly. */
+.zf-grid,
+.zf-editor {
+  --color-normal: hsl(0 0% var(--zf-ink-l, 100%) / 0.85);
+  --color-strong: hsl(0 0% var(--zf-ink-l, 100%) / 0.95);
+  --color-soft: hsl(0 0% var(--zf-ink-l, 100%) / 0.6);
+  --color-disabled: hsl(0 0% var(--zf-ink-l, 100%) / 0.3);
+  --color-surface: hsl(0 0% var(--zf-ink-l, 100%) / 0.06);
+  --color-card: hsl(0 0% var(--zf-ink-l, 100%) / 0.02);
+  --color-card-hover: hsl(0 0% var(--zf-ink-l, 100%) / 0.1);
 }
 .zf-frame-title::before {
   content: '';

@@ -120,6 +120,13 @@ export function DashboardRenderer({
           ["--zf-surface-opacity" as string]: spec.appearance.surfaceOpacity,
           ["--zf-density" as string]: spec.appearance.density,
           ["--zf-elevation" as string]: spec.appearance.elevation,
+          // Light/dark surface mode (spec.theme.surface): flip the ink lightness
+          // and the card-surface gradient lightness. FRAME_CSS reads these to
+          // recolour text + card. Dark values reproduce the original exactly.
+          ["--zf-ink-l" as string]: spec.theme.surface === "light" ? "16%" : "100%",
+          ["--zf-surf-l1" as string]: spec.theme.surface === "light" ? "98%" : "12.5%",
+          ["--zf-surf-l2" as string]: spec.theme.surface === "light" ? "96%" : "7%",
+          ["--zf-surf-l3" as string]: spec.theme.surface === "light" ? "94%" : "5.3%",
         }}
       >
         {spec.frames.map((instance, index) => (
