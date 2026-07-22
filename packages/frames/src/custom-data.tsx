@@ -131,6 +131,53 @@ function hostOf(url: string): string {
   }
 }
 
+/**
+ * MiniLineChart draws at a fixed pixel width/height, so the chart displays
+ * measure their slot and hand it real dimensions — otherwise the line ends
+ * mid-card on wide frames (a CSS `w-full` stretches the viewport, not the
+ * drawing).
+ */
+function useMeasure<T extends HTMLElement>() {
+  // Callback ref, not a ref object: the measured div mounts long after the
+  // component does (loading state renders first), so a mount-time effect
+  // would observe nothing.
+  const [node, setNode] = useState<T | null>(null);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    if (!node) return;
+    const update = () => {
+      const rect = node.getBoundingClientRect();
+      setSize((prev) => {
+        const next = { w: Math.round(rect.width), h: Math.round(rect.height) };
+        return prev && prev.w === next.w && prev.h === next.h ? prev : next;
+      });
+    };
+    update();
+    const observer =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(update)
+        : null;
+    observer?.observe(node);
+    return () => observer?.disconnect();
+  }, [node]);
+  return { ref: setNode, size };
+}
+
+/** Accent-reactive series stroke — matches the base charts' default. */
+const LINE_COLOR = "var(--color-highlight, #8b8bff)";
+
+/** "H 35°C · L 27.9°C" range readout for a numeric series. */
+function RangeReadout({ numbers, unit }: { numbers: number[]; unit: string }) {
+  if (numbers.length < 2) return null;
+  const hi = Math.max(...numbers);
+  const lo = Math.min(...numbers);
+  return (
+    <span className="caption text-soft shrink-0 tabular-nums">
+      H {formatCell(hi, unit)} · L {formatCell(lo, unit)}
+    </span>
+  );
+}
+
 function Caption({ config }: { config: Config }) {
   const host = hostOf(config.url);
   return (
@@ -145,6 +192,7 @@ function Caption({ config }: { config: Config }) {
 
 function CustomData({ config }: { config: Config }) {
   const { extracted, error, loaded } = useCustomData(config);
+  const { ref: chartRef, size: chartSize } = useMeasure<HTMLDivElement>();
 
   if (!loaded && extracted === null)
     return <FrameStatus loading>fetching {hostOf(config.url)}…</FrameStatus>;
@@ -169,16 +217,23 @@ function CustomData({ config }: { config: Config }) {
     return (
       <div className="flex h-full min-h-0 flex-col justify-center gap-2">
         <Caption config={config} />
-        <div className="metric-xl text-strong leading-none">
-          {formatCell(last, config.unit)}
+        <div className="flex items-baseline justify-between gap-3">
+          <div className="metric-xl text-strong leading-none">
+            {formatCell(last, config.unit)}
+          </div>
+          <RangeReadout numbers={numbers} unit={config.unit} />
         </div>
         {spark.length > 1 && (
-          <MiniLineChart
-            data={spark}
-            width={280}
-            height={44}
-            className="w-full"
-          />
+          <div ref={chartRef} className="min-h-[36px] w-full">
+            {chartSize && (
+              <MiniLineChart
+                data={spark}
+                width={chartSize.w}
+                height={44}
+                color={LINE_COLOR}
+              />
+            )}
+          </div>
         )}
       </div>
     );
@@ -188,9 +243,25 @@ function CustomData({ config }: { config: Config }) {
     if (numbers.length < 2)
       return <FrameStatus>need a numeric series for a line chart</FrameStatus>;
     const data = toSeries(numbers);
+    const current = numbers[numbers.length - 1];
     return (
-      <div className="flex h-full min-h-0 flex-col justify-center gap-2">
-        <MiniLineChart data={data} width={280} height={140} className="w-full" />
+      <div className="flex h-full min-h-0 flex-col gap-2">
+        <div className="flex items-baseline justify-between gap-3">
+          <div className="metric-lg text-strong leading-none">
+            {formatCell(current, config.unit)}
+          </div>
+          <RangeReadout numbers={numbers} unit={config.unit} />
+        </div>
+        <div ref={chartRef} className="min-h-0 w-full flex-1">
+          {chartSize && (
+            <MiniLineChart
+              data={data}
+              width={chartSize.w}
+              height={Math.max(chartSize.h, 48)}
+              color={LINE_COLOR}
+            />
+          )}
+        </div>
         <Caption config={config} />
       </div>
     );
