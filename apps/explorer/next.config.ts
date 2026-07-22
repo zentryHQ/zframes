@@ -53,15 +53,24 @@ const nextConfig: NextConfig = {
   // URL sanitizer). A full script/connect-src CSP is a tracked follow-up — it
   // needs browser testing against the live WS + cross-origin provider fetches.
   async headers() {
+    const base = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "X-DNS-Prefetch-Control", value: "off" },
+    ];
     return [
+      // Everything EXCEPT /embed/* stays un-frameable (clickjacking defense).
+      // The negative lookahead keeps `/` matched while excluding the embed tree.
       {
-        source: "/:path*",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "X-DNS-Prefetch-Control", value: "off" },
-        ],
+        source: "/((?!embed/).*)",
+        headers: [...base, { key: "X-Frame-Options", value: "DENY" }],
+      },
+      // The chrome-less board embeds (iframed by the landing showcase) must be
+      // frameable BY THIS SAME ORIGIN only — SAMEORIGIN, never DENY (which blocks
+      // even same-origin) and never a wildcard (no cross-site framing).
+      {
+        source: "/embed/:path*",
+        headers: [...base, { key: "X-Frame-Options", value: "SAMEORIGIN" }],
       },
     ];
   },
