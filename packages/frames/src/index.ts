@@ -110,6 +110,12 @@ export { dexHotPoolsFrame } from "./dex-hot-pools";
 export { chainActivityFrame } from "./chain-activity";
 export { nftTreemapFrame } from "./nft-treemap";
 export { dexPoolTreemapFrame } from "./dex-pool-treemap";
+export { sectorBarsFrame } from "./sector-bars";
+export { fundingBarsFrame } from "./funding-bars";
+export { etfFlowBarsFrame } from "./etf-flow-bars";
+export { chainActivityBarsFrame } from "./chain-activity-bars";
+export { marketScatterFrame } from "./market-scatter";
+export { sentimentGaugeFrame } from "./sentiment-gauge";
 
 import type { AnyFrameDefinition } from "@zframes/core";
 import { portfolioValueFrame } from "./portfolio-value";
@@ -223,6 +229,12 @@ import { dexHotPoolsFrame } from "./dex-hot-pools";
 import { chainActivityFrame } from "./chain-activity";
 import { nftTreemapFrame } from "./nft-treemap";
 import { dexPoolTreemapFrame } from "./dex-pool-treemap";
+import { sectorBarsFrame } from "./sector-bars";
+import { fundingBarsFrame } from "./funding-bars";
+import { etfFlowBarsFrame } from "./etf-flow-bars";
+import { chainActivityBarsFrame } from "./chain-activity-bars";
+import { marketScatterFrame } from "./market-scatter";
+import { sentimentGaugeFrame } from "./sentiment-gauge";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -337,4 +349,10 @@ export const allFrames: AnyFrameDefinition[] = [
   chainActivityFrame,
   nftTreemapFrame,
   dexPoolTreemapFrame,
+  sectorBarsFrame,
+  fundingBarsFrame,
+  etfFlowBarsFrame,
+  chainActivityBarsFrame,
+  marketScatterFrame,
+  sentimentGaugeFrame,
 ];

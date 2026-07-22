@@ -25,6 +25,15 @@ export { default as PieChart } from "./pie-chart";
 
 export { MiniLineChart } from "./mini-line-chart";
 
+export { default as BarChart } from "./bar-chart";
+export type { BarDatum, BarChartProps } from "./bar-chart";
+
+export { default as ScatterChart } from "./scatter-chart";
+export type { ScatterDatum, ScatterChartProps } from "./scatter-chart";
+
+export { default as RadialGauge } from "./radial-gauge";
+export type { RadialGaugeProps } from "./radial-gauge";
+
 export { ChartTimeframe } from "./lib/timeframe";
 export { parseMarketData } from "./lib/format";
 export { CHART_COLORS_MULTI_SERIES } from "./chart-utils";
