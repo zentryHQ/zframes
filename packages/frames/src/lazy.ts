@@ -371,6 +371,33 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "market-scatter": {
     load: () => import("./market-scatter").then((m) => m.marketScatterFrame),
   },
+  "market-bubbles": {
+    load: () => import("./market-bubbles").then((m) => m.marketBubblesFrame),
+  },
+  "tvl-bubbles": {
+    load: () => import("./tvl-bubbles").then((m) => m.tvlBubblesFrame),
+  },
+  "protocol-tvl-bubbles": {
+    load: () => import("./protocol-tvl-bubbles").then((m) => m.protocolTvlBubblesFrame),
+  },
+  "dex-volume-bubbles": {
+    load: () => import("./dex-volume-bubbles").then((m) => m.dexVolumeBubblesFrame),
+  },
+  "protocol-fees-bubbles": {
+    load: () => import("./protocol-fees-bubbles").then((m) => m.protocolFeesBubblesFrame),
+  },
+  "sector-bubbles": {
+    load: () => import("./sector-bubbles").then((m) => m.sectorBubblesFrame),
+  },
+  "nft-bubbles": {
+    load: () => import("./nft-bubbles").then((m) => m.nftBubblesFrame),
+  },
+  "dex-pool-bubbles": {
+    load: () => import("./dex-pool-bubbles").then((m) => m.dexPoolBubblesFrame),
+  },
+  "movers-bubbles": {
+    load: () => import("./movers-bubbles").then((m) => m.moversBubblesFrame),
+  },
   "sentiment-gauge": {
     load: () => import("./sentiment-gauge").then((m) => m.sentimentGaugeFrame),
   },

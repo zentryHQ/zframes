@@ -31,6 +31,9 @@ export type { BarDatum, BarChartProps } from "./bar-chart";
 export { default as ScatterChart } from "./scatter-chart";
 export type { ScatterDatum, ScatterChartProps } from "./scatter-chart";
 
+export { default as BubbleChart } from "./bubble-chart";
+export type { BubbleNode, BubbleChartProps } from "./bubble-chart";
+
 export { default as RadialGauge } from "./radial-gauge";
 export type { RadialGaugeProps } from "./radial-gauge";
 

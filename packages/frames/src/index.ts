@@ -115,6 +115,15 @@ export { fundingBarsFrame } from "./funding-bars";
 export { etfFlowBarsFrame } from "./etf-flow-bars";
 export { chainActivityBarsFrame } from "./chain-activity-bars";
 export { marketScatterFrame } from "./market-scatter";
+export { marketBubblesFrame } from "./market-bubbles";
+export { tvlBubblesFrame } from "./tvl-bubbles";
+export { protocolTvlBubblesFrame } from "./protocol-tvl-bubbles";
+export { dexVolumeBubblesFrame } from "./dex-volume-bubbles";
+export { protocolFeesBubblesFrame } from "./protocol-fees-bubbles";
+export { sectorBubblesFrame } from "./sector-bubbles";
+export { nftBubblesFrame } from "./nft-bubbles";
+export { dexPoolBubblesFrame } from "./dex-pool-bubbles";
+export { moversBubblesFrame } from "./movers-bubbles";
 export { sentimentGaugeFrame } from "./sentiment-gauge";
 export { moversBarsFrame } from "./movers-bars";
 export { tvlBarsFrame } from "./tvl-bars";
@@ -240,6 +249,15 @@ import { fundingBarsFrame } from "./funding-bars";
 import { etfFlowBarsFrame } from "./etf-flow-bars";
 import { chainActivityBarsFrame } from "./chain-activity-bars";
 import { marketScatterFrame } from "./market-scatter";
+import { marketBubblesFrame } from "./market-bubbles";
+import { tvlBubblesFrame } from "./tvl-bubbles";
+import { protocolTvlBubblesFrame } from "./protocol-tvl-bubbles";
+import { dexVolumeBubblesFrame } from "./dex-volume-bubbles";
+import { protocolFeesBubblesFrame } from "./protocol-fees-bubbles";
+import { sectorBubblesFrame } from "./sector-bubbles";
+import { nftBubblesFrame } from "./nft-bubbles";
+import { dexPoolBubblesFrame } from "./dex-pool-bubbles";
+import { moversBubblesFrame } from "./movers-bubbles";
 import { sentimentGaugeFrame } from "./sentiment-gauge";
 import { moversBarsFrame } from "./movers-bars";
 import { tvlBarsFrame } from "./tvl-bars";
@@ -366,6 +384,15 @@ export const allFrames: AnyFrameDefinition[] = [
   etfFlowBarsFrame,
   chainActivityBarsFrame,
   marketScatterFrame,
+  marketBubblesFrame,
+  tvlBubblesFrame,
+  protocolTvlBubblesFrame,
+  dexVolumeBubblesFrame,
+  protocolFeesBubblesFrame,
+  sectorBubblesFrame,
+  nftBubblesFrame,
+  dexPoolBubblesFrame,
+  moversBubblesFrame,
   sentimentGaugeFrame,
   moversBarsFrame,
   tvlBarsFrame,

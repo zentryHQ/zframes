@@ -2901,6 +2901,194 @@ export const marketScatterMeta = defineFrameMeta({
   }),
 });
 
+export const marketBubblesMeta = defineFrameMeta({
+  name: "market-bubbles",
+  label: "Market Bubbles",
+  category: "crypto",
+  iconUrl: widgetIcon("market-bubbles"),
+  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  description:
+    "Top coins as a floating bubble cloud — one logo bubble per coin, area by market cap, ring tinted green/red by 24h change. A playful at-a-glance map of where the market's weight sits; bubbles are draggable. Keyless (CoinGecko top-50 by market cap).",
+  capabilities: ["coin-markets"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(5)
+      .max(50)
+      .default(25)
+      .describe("How many top coins (by market cap) to show."),
+    sizeBy: z
+      .enum(["market-cap", "change"])
+      .default("market-cap")
+      .describe(
+        "Bubble sizing — 'market-cap' weights by market cap, 'change' weights by absolute 24h % move (today's action, not size).",
+      ),
+  }),
+});
+
+const bubbleTopN = (max: number, def: number, what: string) =>
+  z
+    .number()
+    .int()
+    .min(3)
+    .max(max)
+    .default(def)
+    .describe(`How many of the largest ${what} to show.`);
+
+export const tvlBubblesMeta = defineFrameMeta({
+  name: "tvl-bubbles",
+  label: "TVL Bubbles",
+  category: "crypto",
+  iconUrl: widgetIcon("tvl-bubbles"),
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  description:
+    "Blockchain ecosystems as a floating bubble cloud, area by total value locked (TVL) — the bubble-chart sibling of the TVL treemap. Data from DeFiLlama. Draggable, playful answer to 'where does on-chain capital live'.",
+  capabilities: ["tvl"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    topN: bubbleTopN(30, 14, "chains"),
+  }),
+});
+
+export const protocolTvlBubblesMeta = defineFrameMeta({
+  name: "protocol-tvl-bubbles",
+  label: "Protocol TVL Bubbles",
+  category: "crypto",
+  iconUrl: widgetIcon("protocol-tvl-bubbles"),
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  description:
+    "DeFi protocols as a bubble cloud — area by total value locked (TVL), ring tinted green/red by 1-day change. Data from DeFiLlama. Unlike tvl-bubbles (chains), this ranks individual protocols (Lido, Aave, EigenLayer…).",
+  capabilities: ["protocol-tvl"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    topN: bubbleTopN(30, 14, "protocols by TVL"),
+  }),
+});
+
+export const dexVolumeBubblesMeta = defineFrameMeta({
+  name: "dex-volume-bubbles",
+  label: "DEX Volume Bubbles",
+  category: "crypto",
+  iconUrl: widgetIcon("dex-volume-bubbles"),
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  description:
+    "Decentralized exchanges as a bubble cloud — area by trailing-24h trading volume, ring tinted green/red by 1-day change. Data from DeFiLlama. Where on-chain trading flow is concentrated right now.",
+  capabilities: ["dex-volume"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    topN: bubbleTopN(30, 14, "DEX protocols by 24h volume"),
+  }),
+});
+
+export const protocolFeesBubblesMeta = defineFrameMeta({
+  name: "protocol-fees-bubbles",
+  label: "Protocol Fees Bubbles",
+  category: "crypto",
+  iconUrl: widgetIcon("protocol-fees-bubbles"),
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  description:
+    "Protocols as a bubble cloud — area by fees generated in the last 24h, ring tinted green/red by 1-day change. Data from DeFiLlama. Where users are actually paying for blockspace and services.",
+  capabilities: ["protocol-fees"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    topN: bubbleTopN(30, 14, "fee-earning protocols"),
+  }),
+});
+
+export const sectorBubblesMeta = defineFrameMeta({
+  name: "sector-bubbles",
+  label: "Sector Bubbles",
+  category: "crypto",
+  iconUrl: widgetIcon("sector-bubbles"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Crypto sector rotation as a bubble cloud — each category's area by market cap, ring tinted green/red by 24h change. The bubble-chart sibling of the sector treemap. Keyless (CoinGecko categories).",
+  capabilities: ["sector-performance"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(6)
+      .max(30)
+      .default(16)
+      .describe("How many sectors to show."),
+  }),
+});
+
+export const nftBubblesMeta = defineFrameMeta({
+  name: "nft-bubbles",
+  label: "NFT Bubbles",
+  category: "crypto",
+  iconUrl: widgetIcon("nft-bubbles"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Blue-chip NFT collections as a bubble cloud — area by market capitalisation, ring tinted green/red by 24h floor-price change. Keyless (CoinGecko free tier).",
+  capabilities: ["nft-market"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    topN: z
+      .number()
+      .int()
+      .min(4)
+      .max(10)
+      .default(8)
+      .describe("How many collections to show (up to 10 curated majors)."),
+  }),
+});
+
+export const dexPoolBubblesMeta = defineFrameMeta({
+  name: "dex-pool-bubbles",
+  label: "DEX Pool Bubbles",
+  category: "onchain",
+  iconUrl: widgetIcon("dex-pool-bubbles"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Trending DEX pools on a chain as a bubble cloud — area by 24h trading volume, ring tinted green/red by 24h price change. Which pairs are pulling the most on-chain volume. Keyless (GeckoTerminal free tier).",
+  capabilities: ["dex-pools"],
+  source: SOURCES.geckoterminal,
+  schema: z.object({
+    network: z
+      .enum(["eth", "solana", "base", "arbitrum", "bsc", "polygon_pos"])
+      .default("eth")
+      .describe("Which chain's trending pools to show."),
+    count: z
+      .number()
+      .int()
+      .min(5)
+      .max(15)
+      .default(12)
+      .describe("How many trending pools to include (up to 15)."),
+  }),
+});
+
+export const moversBubblesMeta = defineFrameMeta({
+  name: "movers-bubbles",
+  label: "Movers Bubbles",
+  category: "crypto",
+  iconUrl: widgetIcon("movers-bubbles"),
+  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  description:
+    "The broad market's biggest movers as a bubble cloud — logo bubbles sized by the magnitude of the move over a chosen window, green for gainers, red for losers. Today's action at a glance, regardless of coin size. Keyless (CoinPaprika, ~2000 coins).",
+  capabilities: ["coin-movers"],
+  source: SOURCES.coinpaprika,
+  schema: z.object({
+    window: z
+      .enum(["1h", "24h", "7d", "30d"])
+      .default("24h")
+      .describe("Price-change window the movers are ranked by."),
+    limit: z
+      .number()
+      .int()
+      .min(6)
+      .max(30)
+      .default(18)
+      .describe("Total bubbles — split evenly into top gainers and losers."),
+  }),
+});
+
 export const sentimentGaugeMeta = defineFrameMeta({
   name: "sentiment-gauge",
   label: "Sentiment Gauge",
@@ -3154,6 +3342,15 @@ export const frameMetas: FrameMeta[] = [
   etfFlowBarsMeta,
   chainActivityBarsMeta,
   marketScatterMeta,
+  marketBubblesMeta,
+  tvlBubblesMeta,
+  protocolTvlBubblesMeta,
+  dexVolumeBubblesMeta,
+  protocolFeesBubblesMeta,
+  sectorBubblesMeta,
+  nftBubblesMeta,
+  dexPoolBubblesMeta,
+  moversBubblesMeta,
   sentimentGaugeMeta,
   moversBarsMeta,
   tvlBarsMeta,
