@@ -116,6 +116,12 @@ export { etfFlowBarsFrame } from "./etf-flow-bars";
 export { chainActivityBarsFrame } from "./chain-activity-bars";
 export { marketScatterFrame } from "./market-scatter";
 export { sentimentGaugeFrame } from "./sentiment-gauge";
+export { moversBarsFrame } from "./movers-bars";
+export { tvlBarsFrame } from "./tvl-bars";
+export { yieldScatterFrame } from "./yield-scatter";
+export { nftScatterFrame } from "./nft-scatter";
+export { dominanceGaugeFrame } from "./dominance-gauge";
+export { putCallGaugeFrame } from "./put-call-gauge";
 
 import type { AnyFrameDefinition } from "@zframes/core";
 import { portfolioValueFrame } from "./portfolio-value";
@@ -235,6 +241,12 @@ import { etfFlowBarsFrame } from "./etf-flow-bars";
 import { chainActivityBarsFrame } from "./chain-activity-bars";
 import { marketScatterFrame } from "./market-scatter";
 import { sentimentGaugeFrame } from "./sentiment-gauge";
+import { moversBarsFrame } from "./movers-bars";
+import { tvlBarsFrame } from "./tvl-bars";
+import { yieldScatterFrame } from "./yield-scatter";
+import { nftScatterFrame } from "./nft-scatter";
+import { dominanceGaugeFrame } from "./dominance-gauge";
+import { putCallGaugeFrame } from "./put-call-gauge";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -355,4 +367,10 @@ export const allFrames: AnyFrameDefinition[] = [
   chainActivityBarsFrame,
   marketScatterFrame,
   sentimentGaugeFrame,
+  moversBarsFrame,
+  tvlBarsFrame,
+  yieldScatterFrame,
+  nftScatterFrame,
+  dominanceGaugeFrame,
+  putCallGaugeFrame,
 ];

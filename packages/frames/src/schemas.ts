@@ -2914,6 +2914,146 @@ export const sentimentGaugeMeta = defineFrameMeta({
   schema: z.object({}),
 });
 
+export const moversBarsMeta = defineFrameMeta({
+  name: "movers-bars",
+  label: "Movers Bars",
+  category: "crypto",
+  iconUrl: widgetIcon("movers-bars"),
+  layout: { w: 4, h: 5, minW: 3, minH: 4 },
+  description:
+    "Top gainers and losers across the broad crypto market as a diverging bar chart — the biggest movers over a chosen window, gains right in green, losses left in red, ranked by size. The chart-first sibling of the Coin Movers list. Keyless (CoinPaprika, ~2000 coins).",
+  capabilities: ["coin-movers"],
+  source: SOURCES.coinpaprika,
+  schema: z.object({
+    window: z
+      .enum(["1h", "24h", "7d", "30d"])
+      .default("24h")
+      .describe("Price-change window the movers are ranked by."),
+    limit: z
+      .number()
+      .int()
+      .min(6)
+      .max(20)
+      .default(12)
+      .describe("Total bars — split evenly into top gainers and top losers."),
+  }),
+});
+
+export const tvlBarsMeta = defineFrameMeta({
+  name: "tvl-bars",
+  label: "TVL by Chain Bars",
+  category: "crypto",
+  iconUrl: widgetIcon("tvl-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Total value locked (TVL) per blockchain as a horizontal bar chart, ranked largest-first — DeFi capital compared across chains at a glance. The chart-first sibling of the TVL treemap. Keyless (DeFiLlama).",
+  capabilities: ["tvl"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(4)
+      .max(20)
+      .default(10)
+      .describe("How many chains (by TVL) to chart."),
+  }),
+});
+
+export const yieldScatterMeta = defineFrameMeta({
+  name: "yield-scatter",
+  label: "Yield Scatter",
+  category: "crypto",
+  iconUrl: widgetIcon("yield-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "DeFi yield pools as a risk/reward bubble scatter — total APY on the x-axis, pool TVL on a log y-axis, bubble size by TVL. Surfaces the deep, high-yield pools (top-right) versus thin outliers in one view. The chart-first sibling of the Yield Scanner list. Keyless (DeFiLlama).",
+  capabilities: ["yields"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(10)
+      .max(60)
+      .default(40)
+      .describe("How many pools (by TVL) to plot."),
+    maxApy: z
+      .number()
+      .min(10)
+      .max(1000)
+      .default(100)
+      .describe(
+        "Hide pools whose APY exceeds this, so extreme incentive outliers don't crush the x-axis.",
+      ),
+    stablecoinOnly: z
+      .boolean()
+      .default(false)
+      .describe("Restrict to stablecoin pools only."),
+  }),
+});
+
+export const nftScatterMeta = defineFrameMeta({
+  name: "nft-scatter",
+  label: "NFT Scatter",
+  category: "crypto",
+  iconUrl: widgetIcon("nft-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Blue-chip NFT collections as a bubble scatter — 24h floor change on the x-axis, 24h trading volume on a log y-axis, bubble size by market cap. Shows which collections are moving on real volume versus thin floors. The chart-first sibling of the NFT Collections list. Keyless (CoinGecko, curated slugs).",
+  capabilities: ["nft-market"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(5)
+      .max(15)
+      .default(12)
+      .describe("How many collections (by market cap) to plot."),
+  }),
+});
+
+export const dominanceGaugeMeta = defineFrameMeta({
+  name: "dominance-gauge",
+  label: "Dominance Gauge",
+  category: "crypto",
+  iconUrl: widgetIcon("dominance-gauge"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "One asset's share of total crypto market cap as a radial gauge — the arc fills from 0% to 100% dominance with the reading in the center. A dial-style alternative to the segmented Bitcoin Dominance bar. Keyless (CoinGecko global).",
+  capabilities: ["global-market"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    coin: z
+      .enum(["btc", "eth"])
+      .default("btc")
+      .describe("Which asset's market-cap dominance to gauge."),
+  }),
+});
+
+export const putCallGaugeMeta = defineFrameMeta({
+  name: "put-call-gauge",
+  label: "Put/Call Gauge",
+  category: "derivatives",
+  iconUrl: widgetIcon("put-call-gauge"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Options put/call ratio as a radial gauge — the arc reads from 0 (all calls, bullish) through 1 (balanced) toward 2 (put-heavy, defensive), colored green below 1 and red above. A dial-style alternative to the Put/Call Ratio card. Keyless (Deribit).",
+  capabilities: ["options-summary"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    currency: z
+      .enum(["BTC", "ETH"])
+      .default("BTC")
+      .describe("Options underlying to read the ratio for."),
+    basis: z
+      .enum(["oi", "volume"])
+      .default("oi")
+      .describe("Ratio basis — open interest or 24h contract volume."),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   newsFeedMeta,
@@ -3015,13 +3155,19 @@ export const frameMetas: FrameMeta[] = [
   chainActivityBarsMeta,
   marketScatterMeta,
   sentimentGaugeMeta,
+  moversBarsMeta,
+  tvlBarsMeta,
+  yieldScatterMeta,
+  nftScatterMeta,
+  dominanceGaugeMeta,
+  putCallGaugeMeta,
 ];
 
 /**
  * Every renderable frame's metadata — the full set the runtime registers (the
  * React-free twin of `allFrames`), in contrast to `frameMetas` above, which is
  * the *curated* subset the AI catalogue + CLI/skill expose so the generating
- * agent only picks data/market frames. The runtime must render all 76 (a human
+ * agent only picks data/market frames. The runtime must render all 82 (a human
  * adds games/journal/tools/layout frames from the editor palette, and saved
  * specs reference them), so the runtime registry builds from THIS list. Keep in
  * lockstep with `allFrames` / `frameLoaders` — the parity test in

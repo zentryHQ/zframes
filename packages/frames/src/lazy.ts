@@ -374,4 +374,22 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "sentiment-gauge": {
     load: () => import("./sentiment-gauge").then((m) => m.sentimentGaugeFrame),
   },
+  "movers-bars": {
+    load: () => import("./movers-bars").then((m) => m.moversBarsFrame),
+  },
+  "tvl-bars": {
+    load: () => import("./tvl-bars").then((m) => m.tvlBarsFrame),
+  },
+  "yield-scatter": {
+    load: () => import("./yield-scatter").then((m) => m.yieldScatterFrame),
+  },
+  "nft-scatter": {
+    load: () => import("./nft-scatter").then((m) => m.nftScatterFrame),
+  },
+  "dominance-gauge": {
+    load: () => import("./dominance-gauge").then((m) => m.dominanceGaugeFrame),
+  },
+  "put-call-gauge": {
+    load: () => import("./put-call-gauge").then((m) => m.putCallGaugeFrame),
+  },
 };
