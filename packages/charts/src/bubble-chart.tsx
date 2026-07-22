@@ -186,7 +186,12 @@ const BubbleChart = ({
         .attr("stroke-width", 1.5)
         .attr("stroke-opacity", d.node.borderColor ? 0.75 : 0.15);
 
-      if (showLabels && d.r >= 14) {
+      // Only label a bubble the text actually fits inside — a long ticker on a
+      // medium bubble used to overflow past the rim (e.g. "MAYC"). Bubbles too
+      // small to hold their label stay unlabeled; the name is in the <title>.
+      const fontSize = Math.max(9, Math.min(d.r * 0.42, 15));
+      const textWidth = d.node.label.length * fontSize * 0.6;
+      if (showLabels && d.r >= 14 && textWidth <= d.r * 2 - 6) {
         group
           .append("text")
           .attr("text-anchor", "middle")
@@ -196,10 +201,7 @@ const BubbleChart = ({
           .attr("paint-order", "stroke")
           .attr("stroke", "rgba(0,0,0,0.55)")
           .attr("stroke-width", 2.5)
-          .style(
-            "font",
-            `600 ${Math.max(9, Math.min(d.r * 0.42, 15))}px ${FONT_FAMILY}`,
-          )
+          .style("font", `600 ${fontSize}px ${FONT_FAMILY}`)
           .style("pointer-events", "none")
           .text(d.node.label);
       }

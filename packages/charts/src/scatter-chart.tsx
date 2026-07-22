@@ -193,22 +193,66 @@ const ScatterChart = ({
         (d) => `${d.label} · x ${formatX(d.x)} · y ${formatY(d.y)}`,
       );
 
+    // Label the heaviest points first, but keep it legible: greedily drop any
+    // label whose box would overlap one already placed (dense clusters would
+    // otherwise pile 12 tickers on top of each other). Labels near an edge
+    // switch to start/end anchoring so a wide label at the extreme x never
+    // clips past the plot. Every point still carries a hover <title>.
+    const LABEL_CHAR_PX = 6;
+    const LABEL_H = 11;
+    type LabelBox = { x1: number; x2: number; y1: number; y2: number };
+    const placed: LabelBox[] = [];
     const labeled = [...data]
       .sort((a, b) => (b.weight ?? 1) - (a.weight ?? 1))
-      .slice(0, maxLabels);
+      .slice(0, maxLabels)
+      .map((d) => {
+        const fullW = d.label.length * LABEL_CHAR_PX + 4;
+        const px = x(d.x);
+        const cy = y(d.y) - radius(d) - 3;
+        // Anchor & box, kept inside [0, innerWidth].
+        let anchor: "start" | "middle" | "end";
+        let tx: number;
+        let x1: number;
+        if (px - fullW / 2 < 0) {
+          anchor = "start";
+          tx = 0;
+          x1 = 0;
+        } else if (px + fullW / 2 > innerWidth) {
+          anchor = "end";
+          tx = innerWidth;
+          x1 = innerWidth - fullW;
+        } else {
+          anchor = "middle";
+          tx = px;
+          x1 = px - fullW / 2;
+        }
+        return { d, anchor, tx, cy, x1, x2: x1 + fullW };
+      })
+      .filter((c) => {
+        const overlaps = placed.some(
+          (p) =>
+            c.x1 < p.x2 &&
+            c.x2 > p.x1 &&
+            c.cy - LABEL_H < p.y2 &&
+            c.cy + 2 > p.y1,
+        );
+        if (overlaps) return false;
+        placed.push({ x1: c.x1, x2: c.x2, y1: c.cy - LABEL_H, y2: c.cy + 2 });
+        return true;
+      });
     g.selectAll("text.dot-label")
       .data(labeled)
       .enter()
       .append("text")
-      .attr("x", (d) => x(d.x))
-      .attr("y", (d) => y(d.y) - radius(d) - 3)
-      .attr("text-anchor", "middle")
+      .attr("x", (c) => c.tx)
+      .attr("y", (c) => c.cy)
+      .attr("text-anchor", (c) => c.anchor)
       .attr("fill", "currentColor")
       .attr("fill-opacity", 0.75)
       .style("font", FONT)
       .style("font-weight", "600")
       .style("pointer-events", "none")
-      .text((d) => d.label);
+      .text((c) => c.d.label);
   }, [
     data,
     width,
