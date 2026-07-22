@@ -4,6 +4,7 @@ import {
   type FrameSource,
 } from "@zframes/spec/frame";
 import { z } from "zod";
+import { validateCustomUrl } from "./custom-data-shared";
 
 /**
  * Frame metadata, separated from components so React-free tooling (the
@@ -3242,8 +3243,79 @@ export const putCallGaugeMeta = defineFrameMeta({
   }),
 });
 
+export const customDataMeta = defineFrameMeta({
+  name: "custom-data",
+  label: "Custom Data",
+  category: "tools",
+  iconUrl: widgetIcon("custom-data"),
+  layout: { w: 4, h: 3, minW: 2, minH: 2 },
+  description:
+    "The escape hatch: renders ANY keyless HTTPS JSON API as a stat, line chart, bars, or label→value table — for data no built-in frame covers (weather, sports, public stats, niche feeds). Fetches browser-direct, so the API must be CORS-open, need no key, and be public https (localhost/private hosts are refused). Point `values` at the JSON with a dot/bracket path — e.g. 'hourly.temperature_2m', 'data[0].price', 'items[*].name'. A path resolving to an array charts as a series; a scalar shows as a stat. Verify the URL and path against a real response before emitting them.",
+  capabilities: [],
+  schema: z.object({
+    url: z
+      .string()
+      .min(1)
+      .refine((u) => validateCustomUrl(u) === null, {
+        message:
+          "must be a public https:// URL (no credentials, no localhost/private hosts)",
+      })
+      .default(
+        "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+      )
+      .describe(
+        "The JSON endpoint, public https only. Must be CORS-open and keyless — never embed an API key or token; the spec is shareable. Include query params in the URL.",
+      ),
+    values: z
+      .string()
+      .min(1)
+      .max(200)
+      .default("bitcoin.usd")
+      .describe(
+        "Dot/bracket path to the value(s) inside the response, e.g. 'hourly.temperature_2m' (array → series), 'data[0].price' (scalar → stat), 'items[*].volume' ([*] maps over an array). No expressions — keys, [indices], and [*] only.",
+      ),
+    labels: z
+      .string()
+      .max(200)
+      .default("")
+      .describe(
+        "Optional path to a parallel array of labels — x-axis ticks for bars, row names for the table, e.g. 'hourly.time' or 'items[*].name'. Empty = positional indices.",
+      ),
+    display: z
+      .enum(["stat", "line", "bars", "table"])
+      .default("stat")
+      .describe(
+        "How to render: stat = big headline number (last value) with sparkline history; line = the series as a line chart; bars = labelled bar chart; table = label → value rows.",
+      ),
+    label: z
+      .string()
+      .max(80)
+      .default("")
+      .describe(
+        'Caption naming the metric, e.g. "Bangkok Temp (°C)". Empty shows only the API hostname.',
+      ),
+    unit: z
+      .string()
+      .max(12)
+      .default("")
+      .describe(
+        'Unit suffix appended to numeric values, e.g. "°C", "%", "km".',
+      ),
+    refreshMinutes: z
+      .number()
+      .int()
+      .min(1)
+      .max(1440)
+      .default(15)
+      .describe(
+        "Re-fetch interval in minutes. Be polite to free APIs — 15+ unless the data genuinely moves faster.",
+      ),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
+  customDataMeta,
   newsFeedMeta,
   portfolioValueMeta,
   portfolioAllocationMeta,
