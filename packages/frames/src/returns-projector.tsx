@@ -3,7 +3,12 @@ import { defineFrame } from "@zframes/core";
 import { useMemo, useState } from "react";
 import type { z } from "zod";
 import { interactiveSurface } from "./content-shared";
-import { changeColor, formatChangePct, formatCompactUsd } from "./format";
+import {
+  changeColor,
+  formatChangePct,
+  formatCompact,
+  formatCompactUsd,
+} from "./format";
 import { returnsProjectorMeta } from "./schemas";
 
 const schema = returnsProjectorMeta.schema;
@@ -60,6 +65,15 @@ function ReturnsProjector({ config }: { config: Config }) {
 
   const gainPct = contributed > 0 ? (gain / contributed) * 100 : 0;
   const label = config.label.trim();
+  const finite = Number.isFinite(ending) && Number.isFinite(gain);
+  // Compounding over many periods can push the return into the trillions of
+  // percent ("+517000000000000%"); switch to compact notation past 5 digits
+  // so it stays readable ("+517T%").
+  const gainPctStr = !Number.isFinite(gainPct)
+    ? "—"
+    : Math.abs(gainPct) >= 100_000
+      ? `${gainPct >= 0 ? "+" : ""}${formatCompact(gainPct)}%`
+      : formatChangePct(gainPct);
 
   return (
     <div className="flex h-full w-full flex-col gap-2">
@@ -70,9 +84,11 @@ function ReturnsProjector({ config }: { config: Config }) {
       )}
       <div className="shrink-0">
         <div className="caption text-soft">projected value</div>
-        <div className="metric-lg text-strong">{formatCompactUsd(ending)}</div>
+        <div className="metric-lg text-strong">
+          {finite ? formatCompactUsd(ending) : "—"}
+        </div>
         <div className="body-sm" style={{ color: changeColor(gainPct) }}>
-          {formatChangePct(gainPct)} · {formatCompactUsd(gain)} gain
+          {gainPctStr} · {finite ? formatCompactUsd(gain) : "—"} gain
         </div>
       </div>
       <div className="min-h-0 flex-1">

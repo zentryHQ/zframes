@@ -301,21 +301,29 @@ function HeatmapChartInner<T extends HeatmapCell>({
   const columnLabels = useMemo(() => {
     if (!showLabels) return null;
     const { cellWidth, columnX } = layout;
+    // When columns are too narrow to hold a label, show every Nth one in full
+    // rather than truncating every column to an indistinct "7…". The kept
+    // labels centre over their column and are free to spill into the (now
+    // label-less) neighbours.
+    const step = Math.max(1, Math.ceil(34 / Math.max(cellWidth, 1)));
 
-    return uniqueColumns.map((column, index) => (
-      <div
-        key={`col-${column}`}
-        className="absolute flex items-end justify-center pb-1 text-xs text-white/60"
-        style={{
-          left: chartArea.x + columnX(index),
-          top: 0,
-          width: cellWidth,
-          height: columnLabelHeight,
-        }}
-      >
-        <span className="truncate">{column}</span>
-      </div>
-    ));
+    return uniqueColumns.map((column, index) => {
+      if (index % step !== 0) return null;
+      return (
+        <div
+          key={`col-${column}`}
+          className="pointer-events-none absolute flex items-end justify-center pb-1 text-xs text-white/60"
+          style={{
+            left: chartArea.x + columnX(index),
+            top: 0,
+            width: cellWidth,
+            height: columnLabelHeight,
+          }}
+        >
+          <span className="whitespace-nowrap">{column}</span>
+        </div>
+      );
+    });
   }, [showLabels, uniqueColumns, layout, chartArea, columnLabelHeight]);
 
   return (

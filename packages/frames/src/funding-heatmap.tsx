@@ -47,8 +47,10 @@ function FundingHeatmap({ config }: { config: z.output<typeof schema> }) {
       for (const [bucket, { sum, n }] of buckets) {
         const avg = sum / n;
         const date = new Date(bucket);
+        // Numeric "M/D" ("7/17") stays legible in a narrow daily column;
+        // "Jul 17" gets truncated to an indistinct "J…" when space is tight.
         const column = date.toLocaleDateString("en-US", {
-          month: "short",
+          month: "numeric",
           day: "numeric",
         });
         out.push({
