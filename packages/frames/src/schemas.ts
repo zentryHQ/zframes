@@ -2797,6 +2797,123 @@ export const dexPoolTreemapMeta = defineFrameMeta({
   }),
 });
 
+export const sectorBarsMeta = defineFrameMeta({
+  name: "sector-bars",
+  label: "Sector Bars",
+  category: "crypto",
+  iconUrl: widgetIcon("sector-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Crypto sector rotation as a diverging bar chart — market categories (L1s, DeFi, AI, memes, RWA, …) ranked by 24h market-cap change, gains right in green, losses left in red. The chart-first sibling of the Sector Performance list. Keyless (CoinGecko categories).",
+  capabilities: ["sector-performance"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(4)
+      .max(20)
+      .default(10)
+      .describe("How many sectors (by absolute 24h change) to chart."),
+  }),
+});
+
+export const fundingBarsMeta = defineFrameMeta({
+  name: "funding-bars",
+  label: "Funding by Venue",
+  category: "derivatives",
+  iconUrl: widgetIcon("funding-bars"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "One coin's predicted perpetual funding rate compared across venues (Hyperliquid vs Binance vs Bybit) as a diverging bar chart of annualized rates — positive funding (longs pay) in green, negative in red. Makes a funding-arb spread visible at a glance. Keyless (Hyperliquid predicted fundings).",
+  capabilities: ["funding-comparison"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    coin: z
+      .string()
+      .min(1)
+      .default("BTC")
+      .describe('Coin to compare across venues, e.g. "BTC", "ETH", "SOL".'),
+  }),
+});
+
+export const etfFlowBarsMeta = defineFrameMeta({
+  name: "etf-flow-bars",
+  label: "ETF Flow Bars",
+  category: "crypto",
+  iconUrl: widgetIcon("etf-flow-bars"),
+  layout: { w: 6, h: 3, minW: 3, minH: 3 },
+  description:
+    "Spot BTC or ETH ETF daily net flows as diverging bars — one bar per day, inflows up in green, outflows down in red. The classic ETF-flow chart; complements the cumulative line and per-issuer snapshot. Keyless (SoSoValue); best-effort, may be empty if the source is unavailable.",
+  capabilities: ["etf-flows"],
+  source: SOURCES.sosovalue,
+  schema: z.object({
+    asset: z
+      .enum(["btc", "eth"])
+      .default("btc")
+      .describe("Which spot-ETF complex to chart."),
+    lookback: z
+      .enum(["1M", "3M", "6M"])
+      .default("1M")
+      .describe("History window for the daily-flow bars."),
+  }),
+});
+
+export const chainActivityBarsMeta = defineFrameMeta({
+  name: "chain-activity-bars",
+  label: "Chain Activity Bars",
+  category: "onchain",
+  iconUrl: widgetIcon("chain-activity-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "24h confirmed transactions per major L1 (Bitcoin, Ethereum, Litecoin, Dogecoin, …) as a horizontal bar chart, ranked busiest-first — cross-chain usage compared at a glance. The chart-first sibling of the Chain Activity table. Keyless (Blockchair).",
+  capabilities: ["chain-activity"],
+  source: SOURCES.blockchair,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(12)
+      .default(8)
+      .describe("How many chains (by 24h transactions) to chart."),
+  }),
+});
+
+export const marketScatterMeta = defineFrameMeta({
+  name: "market-scatter",
+  label: "Market Scatter",
+  category: "crypto",
+  iconUrl: widgetIcon("market-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Top coins as a bubble scatter — 24h price change on the x-axis, market cap on a log y-axis, bubble size by market cap. Shows in one view whether large caps or small caps are moving, and who's the outlier. Keyless (CoinGecko top-50 by market cap).",
+  capabilities: ["coin-markets"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(10)
+      .max(50)
+      .default(30)
+      .describe("How many top coins (by market cap) to plot."),
+  }),
+});
+
+export const sentimentGaugeMeta = defineFrameMeta({
+  name: "sentiment-gauge",
+  label: "Sentiment Gauge",
+  category: "crypto",
+  iconUrl: widgetIcon("sentiment-gauge"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "Crypto fear & greed index as a radial gauge — the arc fills from extreme fear (0) to extreme greed (100) in the mood color, with the reading and classification in the center. A dial-style alternative to the Fear & Greed sparkline card. Keyless (alternative.me).",
+  capabilities: ["sentiment"],
+  source: SOURCES.alternativeMe,
+  schema: z.object({}),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   newsFeedMeta,
@@ -2892,6 +3009,12 @@ export const frameMetas: FrameMeta[] = [
   chainActivityMeta,
   nftTreemapMeta,
   dexPoolTreemapMeta,
+  sectorBarsMeta,
+  fundingBarsMeta,
+  etfFlowBarsMeta,
+  chainActivityBarsMeta,
+  marketScatterMeta,
+  sentimentGaugeMeta,
 ];
 
 /**

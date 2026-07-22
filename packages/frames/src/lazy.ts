@@ -355,4 +355,23 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "dex-pool-treemap": {
     load: () => import("./dex-pool-treemap").then((m) => m.dexPoolTreemapFrame),
   },
+  "sector-bars": {
+    load: () => import("./sector-bars").then((m) => m.sectorBarsFrame),
+  },
+  "funding-bars": {
+    load: () => import("./funding-bars").then((m) => m.fundingBarsFrame),
+  },
+  "etf-flow-bars": {
+    load: () => import("./etf-flow-bars").then((m) => m.etfFlowBarsFrame),
+  },
+  "chain-activity-bars": {
+    load: () =>
+      import("./chain-activity-bars").then((m) => m.chainActivityBarsFrame),
+  },
+  "market-scatter": {
+    load: () => import("./market-scatter").then((m) => m.marketScatterFrame),
+  },
+  "sentiment-gauge": {
+    load: () => import("./sentiment-gauge").then((m) => m.sentimentGaugeFrame),
+  },
 };
