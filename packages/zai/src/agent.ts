@@ -78,6 +78,14 @@ interface Runner {
   parseStatus?(line: string): string | null;
   /** The final, canonical answer from full stdout (or the out-file). */
   readResult(stdout: string, outFile: string): Promise<string>;
+  /**
+   * The env var this CLI reads for its config/credentials dir (claude →
+   * CLAUDE_CONFIG_DIR, codex → CODEX_HOME). Lets a user point zframes at a specific
+   * account via `ZFRAMES_<var>`, applied only to this runner's child so it never
+   * hijacks a bare `claude`/`codex` elsewhere. Omitted → env is passed through as-is.
+   * See `resolveAgentEnv`.
+   */
+  configEnv?: string;
 }
 
 /** Tolerantly parse one NDJSON line; blank or non-JSON lines yield null. */
@@ -195,6 +203,7 @@ const RUNNERS: Runner[] = [
     parseDelta: claudeDelta,
     parseStatus: claudeStatus,
     readResult: async (stdout) => claudeResult(stdout),
+    configEnv: "CLAUDE_CONFIG_DIR",
   },
   {
     id: "codex",
@@ -226,6 +235,7 @@ const RUNNERS: Runner[] = [
         return stdout.trim();
       }
     },
+    configEnv: "CODEX_HOME",
   },
   {
     id: "kimi",
@@ -374,6 +384,27 @@ export async function buildPrompt(
 
 type RunResult = { ok: true; answer: string } | { ok: false; error: string };
 
+/**
+ * The environment a runner's child process should receive: the parent env, plus —
+ * when the user has set the zframes-scoped override `ZFRAMES_<CONFIG_VAR>` — that
+ * value applied to the CLI's own config-dir var (`runner.configEnv`). This lets a
+ * user point zframes at a specific account (`ZFRAMES_CLAUDE_CONFIG_DIR`,
+ * `ZFRAMES_CODEX_HOME`) without exporting `CLAUDE_CONFIG_DIR` / `CODEX_HOME`
+ * globally — which would hijack every other invocation of that CLI (and break a
+ * multi-account setup). With no override set the parent env is returned unchanged,
+ * so default single-account users are unaffected. Exported as the unit seam for
+ * agent-env.test.ts.
+ */
+export function resolveAgentEnv(
+  runner: Pick<Runner, "configEnv">,
+  baseEnv: Record<string, string | undefined> = process.env,
+): Record<string, string | undefined> {
+  if (!runner.configEnv) return baseEnv;
+  const override = baseEnv[`ZFRAMES_${runner.configEnv}`];
+  if (!override) return baseEnv;
+  return { ...baseEnv, [runner.configEnv]: override };
+}
+
 let askCounter = 0;
 function runAgent(
   runner: Runner,
@@ -395,6 +426,9 @@ function runAgent(
       child = spawn(runner.bin, runner.buildArgs(prompt, outFile), {
         cwd,
         stdio: ["ignore", "pipe", "pipe"],
+        // A ZFRAMES_<CONFIG_VAR> override points this CLI at a specific account
+        // (config/creds dir) without touching the global env — see resolveAgentEnv.
+        env: resolveAgentEnv(runner),
       });
     } catch (error) {
       resolve({ ok: false, error: String(error) });
