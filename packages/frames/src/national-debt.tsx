@@ -37,17 +37,17 @@ function NationalDebt({ config }: { config: z.output<typeof schema> }) {
         <div className="caption text-soft text-right">daily</div>
       </div>
 
-      <div className="flex items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1">
         <div className="metric-xl text-strong leading-none">
           {formatCompactUsd(debt.total)}
         </div>
         {change !== null && first && (
-          <div className="text-right">
+          <div className="min-w-0 text-right">
             <div className="body-md text-normal font-bold tabular-nums">
               {change >= 0 ? "+" : ""}
               {formatCompactUsd(change)}
             </div>
-            <div className="caption text-soft">since {first.date}</div>
+            <div className="caption text-soft truncate">since {first.date}</div>
           </div>
         )}
       </div>

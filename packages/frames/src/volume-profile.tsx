@@ -17,8 +17,13 @@ interface Bin {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-white/[0.04] px-2 py-1 text-center">
-      <div className="metric-sm text-strong leading-none">{value}</div>
+    <div className="min-w-0 rounded-md bg-white/[0.04] px-2 py-1 text-center">
+      <div
+        className="metric-sm text-strong truncate leading-none tabular-nums"
+        title={value}
+      >
+        {value}
+      </div>
       <div className="caption text-soft mt-0.5">{label}</div>
     </div>
   );
@@ -97,7 +102,7 @@ function VolumeProfile({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-2 gap-1.5">
         <Stat label="Price" value={formatPrice(price)} />
         <Stat label="POC" value={formatPrice(poc)} />
         <Stat label="VAH" value={formatPrice(vah)} />

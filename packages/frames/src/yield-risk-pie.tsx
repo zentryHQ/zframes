@@ -44,9 +44,9 @@ function YieldRiskPie() {
         outerRadius={86}
         colors={slices.map((slice) => slice.color)}
       >
-        <div className="flex flex-col items-center gap-0.5">
+        <div className="flex max-w-[100px] flex-col items-center gap-0.5">
           <span className="caption text-soft">TVL by IL risk</span>
-          <span className="metric-lg text-strong leading-none">
+          <span className="metric-md text-strong leading-none tabular-nums">
             {formatCompactUsd(total)}
           </span>
         </div>
