@@ -6,7 +6,7 @@ import { dividerMeta } from "./schemas";
 const schema = dividerMeta.schema;
 type Config = z.output<typeof schema>;
 
-const LINE = "rgba(255,255,255,0.16)";
+const LINE = "hsl(0 0% var(--zf-ink-l, 100%) / 0.16)";
 
 function Divider({ config }: { config: Config }) {
   const vertical = config.orientation === "vertical";

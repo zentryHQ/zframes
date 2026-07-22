@@ -21,6 +21,18 @@ describe("renderMarkdown — inline grammar", () => {
     expect(container.querySelector("code")?.textContent).toBe("c");
   });
 
+  it("renders an unterminated ** as literal asterisks, not an empty <em>", () => {
+    for (const src of ["a ** b", "2 ** 8"]) {
+      const { container } = mount(src);
+      // The asterisks the user typed survive verbatim…
+      expect(container.textContent).toBe(src);
+      // …and no empty emphasis node is produced from the adjacent `**`.
+      expect(container.querySelector("em")).toBeNull();
+      expect(container.querySelector("strong")).toBeNull();
+      cleanup();
+    }
+  });
+
   it("turns an https link into a safe new-tab anchor", () => {
     const { container } = mount("see [docs](https://example.com/x)");
     const a = container.querySelector("a");

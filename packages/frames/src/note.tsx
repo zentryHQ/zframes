@@ -52,8 +52,8 @@ function Note({ config }: { config: z.output<typeof schema> }) {
   return (
     <div
       className={`body-sm text-normal ${scrollAreaClass} ${
-        patch ? "cursor-text" : ""
-      }`}
+        centered ? "flex items-center justify-center text-center" : ""
+      } ${patch ? "cursor-text" : ""}`}
       onClick={() => patch && setEditing(true)}
       title={patch ? "Click to edit" : undefined}
     >

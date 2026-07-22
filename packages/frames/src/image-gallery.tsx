@@ -16,6 +16,12 @@ function ImageGallery({ config }: { config: z.output<typeof schema> }) {
   );
   const refs = useRef<(HTMLImageElement | null)[]>([]);
 
+  // Zod `safeParse` re-creates the `images` array on every parent render, so
+  // keying the reset on its identity would refire each render and snap the
+  // slideshow back to image 0. Key on the stable URL list instead — it only
+  // changes when the actual images change.
+  const imagesKey = images.map((im) => im.url).join("|");
+
   // Re-seed and reconcile whenever the image list changes. Like the single
   // image frame: a cached / localhost <img> can be `.complete` before React
   // attaches onLoad, so the event never fires — read straight off the element.
@@ -28,7 +34,8 @@ function ImageGallery({ config }: { config: z.output<typeof schema> }) {
         return "loading";
       }),
     );
-  }, [images]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imagesKey]);
 
   useEffect(() => {
     if (intervalSec <= 0 || images.length <= 1) return;

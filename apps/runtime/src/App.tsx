@@ -169,6 +169,14 @@ export default function App() {
   const [liveBackground, setLiveBackground] = useState<
     DashboardSpec["background"] | null
   >(null);
+  // Live dark/light surface mode the editor reports while customising (null = not
+  // editing → saved spec). Held here because <DashboardBackground> renders
+  // outside the editor: the light-mode toggle must repaint the real backdrop live
+  // (the editor grid already flips via its own inline vars), else the preview is
+  // a light board inside a dark frame until Save.
+  const [liveSurface, setLiveSurface] = useState<
+    DashboardSpec["theme"]["surface"] | null
+  >(null);
   // Editing stays a desktop activity: only >=1024px gets the editable GridStack
   // editor. Phones and tablets get the read-only CSS-grid renderer, which
   // reflows itself (single column <=640px, two columns 641-1023px).
@@ -271,7 +279,7 @@ export default function App() {
     <FramesProvider providers={providers}>
       <DashboardBackground
         background={background}
-        surface={spec.theme.surface}
+        surface={liveSurface ?? spec.theme.surface}
         active={orbOpen}
         thinking={orbThinking}
         accentHue={accentHue ?? spec.theme.accentHue}
@@ -339,6 +347,7 @@ export default function App() {
               onDownColorChange={setLiveDown}
               onModeChange={setLiveMode}
               onBackgroundChange={setLiveBackground}
+              onSurfaceChange={setLiveSurface}
             />
           </Suspense>
         )}
