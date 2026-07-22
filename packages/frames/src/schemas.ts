@@ -3313,6 +3313,1536 @@ export const customDataMeta = defineFrameMeta({
   }),
 });
 
+// ===== +70 chart frames (A+B expansion) =====
+
+// ===== hl =====
+export const oiTreemapMeta = defineFrameMeta({
+  name: "oi-treemap",
+  label: "OI Treemap",
+  category: "derivatives",
+  iconUrl: widgetIcon("oi-treemap"),
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  description:
+    "Treemap of live Hyperliquid open interest, sized by USD notional — largest markets first, the long tail rolled into a single 'Other' tile. A single-glance map of where perp capital concentrates right now. Keyless (Hyperliquid).",
+  capabilities: ["open-interest"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(30)
+      .default(12)
+      .describe(
+        "How many of the largest open-interest markets to show as individual tiles before rolling the rest into a single 'Other' tile.",
+      ),
+  }),
+});
+
+export const ohlcvVolumeBarsMeta = defineFrameMeta({
+  name: "ohlcv-volume-bars",
+  label: "OHLCV Volume Bars",
+  category: "derivatives",
+  iconUrl: widgetIcon("ohlcv-volume-bars"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Per-candle trading volume for one Hyperliquid symbol as vertical bars over time, each bar tinted green when that candle closed up and red when it closed down. Works for any HIP-3 perp (stocks, indices, commodities) and crypto. Keyless (Hyperliquid).",
+  capabilities: ["ohlcv"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .describe(
+        'Hyperliquid symbol to chart volume for. HIP-3 cross-asset: stocks "xyz:TSLA"/"xyz:NVDA", indices "xyz:SP500", commodities "xyz:GOLD". Crypto: "BTC", "ETH".',
+      ),
+    interval: z
+      .enum(["1m", "5m", "15m", "1h", "4h", "1d"])
+      .default("1h")
+      .describe("Candle interval each volume bar represents."),
+  }),
+});
+
+export const fundingSpreadBarsMeta = defineFrameMeta({
+  name: "funding-spread-bars",
+  label: "Funding Spread Bars",
+  category: "derivatives",
+  iconUrl: widgetIcon("funding-spread-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Cross-venue predicted funding-rate spread per coin (max − min annualized rate across Hyperliquid/Binance/Bybit) as a ranked horizontal bar chart — the widest spreads are the clearest funding-arbitrage or crowded-positioning candidates. The bars-first sibling of Cross-Venue Funding. Keyless (Hyperliquid predicted fundings).",
+  capabilities: ["funding-comparison"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(20)
+      .default(10)
+      .describe("How many coins (by cross-venue funding spread) to chart."),
+  }),
+});
+
+export const fundingVenueHeatmapMeta = defineFrameMeta({
+  name: "funding-venue-heatmap",
+  label: "Funding Venue Heatmap",
+  category: "derivatives",
+  iconUrl: widgetIcon("funding-venue-heatmap"),
+  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  description:
+    "Heatmap of predicted annualized funding rates — coins as rows, venues (Hyperliquid/Binance/Bybit) as columns, green positive / red negative. Spots which venue is paying up (or charging) for a given coin at a glance. Keyless (Hyperliquid predicted fundings).",
+  capabilities: ["funding-comparison"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(8)
+      .describe(
+        "How many coins (by cross-venue funding spread) to include as heatmap rows.",
+      ),
+  }),
+});
+
+export const fundingCarryAreaMeta = defineFrameMeta({
+  name: "funding-carry-area",
+  label: "Funding Carry",
+  category: "derivatives",
+  iconUrl: widgetIcon("funding-carry-area"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Stacked area of each symbol's running cumulative funding cost or benefit over a configurable lookback — the running total a position would have paid or earned in funding, symbol by symbol. Shows whether carry has been a persistent drag or tailwind. Keyless (Hyperliquid).",
+  capabilities: ["funding-history"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    symbols: z
+      .array(z.string())
+      .min(1)
+      .max(6)
+      .describe(
+        'Hyperliquid symbols to compare cumulative funding carry for, e.g. ["BTC", "ETH"]. Up to 6.',
+      ),
+    lookback: z
+      .enum(["24h", "7D", "1M"])
+      .default("7D")
+      .describe("History window for the cumulative funding-carry chart."),
+  }),
+});
+
+export const volumeShareDonutMeta = defineFrameMeta({
+  name: "volume-share-donut",
+  label: "Volume Share Donut",
+  category: "derivatives",
+  iconUrl: widgetIcon("volume-share-donut"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Donut of 24h Hyperliquid trading volume share across the busiest symbols, top symbols as slices with the long tail rolled into 'Other'. Shows where perp trading activity concentrates right now. Keyless (Hyperliquid).",
+  capabilities: ["day-stats"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(7)
+      .describe(
+        "How many top symbols (by 24h notional volume) to show as individual slices before rolling the rest into a single 'Other' slice.",
+      ),
+  }),
+});
+
+export const volumeMoversScatterMeta = defineFrameMeta({
+  name: "volume-movers-scatter",
+  label: "Volume Movers Scatter",
+  category: "derivatives",
+  iconUrl: widgetIcon("volume-movers-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Hyperliquid perps as a bubble scatter — 24h price change on the x-axis, 24h notional volume on a log y-axis, bubble size by volume. Shows whether the busiest markets are also the biggest movers, or diverging. Keyless (Hyperliquid).",
+  capabilities: ["day-stats"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(10)
+      .max(60)
+      .default(40)
+      .describe(
+        "How many of the busiest symbols (by 24h notional volume) to plot.",
+      ),
+  }),
+});
+
+export const fundingLeaderboardBarsMeta = defineFrameMeta({
+  name: "funding-leaderboard-bars",
+  label: "Funding Leaderboard",
+  category: "derivatives",
+  iconUrl: widgetIcon("funding-leaderboard-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Predicted hourly funding rate ranked across the whole Hyperliquid universe — crypto and HIP-3 equities together — as a diverging bar chart, largest absolute rates first. Surfaces the most expensive (or most rewarded) side to hold right now. Keyless (Hyperliquid).",
+  capabilities: ["day-stats"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(20)
+      .default(10)
+      .describe("How many symbols (by absolute funding rate) to chart."),
+  }),
+});
+
+export const fundingCrowdingScatterMeta = defineFrameMeta({
+  name: "funding-crowding-scatter",
+  label: "Funding Crowding Scatter",
+  category: "derivatives",
+  iconUrl: widgetIcon("funding-crowding-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "24h price change (x) vs predicted funding rate (y) across Hyperliquid perps, bubble size by open interest — the combination of a stretched funding rate and heavy open interest flags a crowded, squeeze-prone position. Keyless (Hyperliquid).",
+  capabilities: ["day-stats", "open-interest"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(10)
+      .max(60)
+      .default(40)
+      .describe("How many symbols (by open interest) to plot."),
+  }),
+});
+
+export const liquidityBasisBarsMeta = defineFrameMeta({
+  name: "liquidity-basis-bars",
+  label: "Liquidity & Basis Bars",
+  category: "derivatives",
+  iconUrl: widgetIcon("liquidity-basis-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Ranked horizontal bars of a chosen liquidity/pricing metric across Hyperliquid perps — either the bid/ask impact-price spread (% of mark price) or the mark-vs-oracle basis (bps). Surfaces the least liquid or most stretched markets at a glance. Keyless (Hyperliquid).",
+  capabilities: ["day-stats"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    metric: z
+      .enum(["spread", "basis"])
+      .default("spread")
+      .describe(
+        'Which liquidity metric to rank by: "spread" (bid/ask impact-price spread as a % of mark price) or "basis" (mark-vs-oracle premium in basis points).',
+      ),
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(20)
+      .default(10)
+      .describe(
+        "How many symbols (by the chosen metric's magnitude) to chart.",
+      ),
+  }),
+});
+
+// ===== cg =====
+export const coinMomentumHeatmapMeta = defineFrameMeta({
+  name: "coin-momentum-heatmap",
+  label: "Coin Momentum Heatmap",
+  category: "crypto",
+  iconUrl: widgetIcon("coin-momentum-heatmap"),
+  layout: { w: 5, h: 5, minW: 4, minH: 3 },
+  description:
+    "Top coins by market-cap rank as a momentum heatmap — rows are coins, columns are 1h/24h/7d/30d change windows, colored diverging green/red by magnitude. Spot which coins are heating up (or cooling off) across every timeframe at a glance. Keyless (CoinPaprika, ~2000 coins).",
+  capabilities: ["coin-movers"],
+  source: SOURCES.coinpaprika,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(5)
+      .max(30)
+      .default(15)
+      .describe("How many top coins (by market-cap rank) to include as rows."),
+  }),
+});
+
+export const coinMomentumScatterMeta = defineFrameMeta({
+  name: "coin-momentum-scatter",
+  label: "Coin Momentum Scatter",
+  category: "crypto",
+  iconUrl: widgetIcon("coin-momentum-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Broad-market coins as a momentum scatter — 24h change on the x-axis, 7d change on the y-axis, bubble size by market cap, colored by 24h direction. Reveals whether today's move is a continuation or a reversal of the week's trend. Keyless (CoinPaprika, ~2000 coins).",
+  capabilities: ["coin-movers"],
+  source: SOURCES.coinpaprika,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(10)
+      .max(100)
+      .default(50)
+      .describe("How many top coins (by market-cap rank) to plot."),
+  }),
+});
+
+export const trendingBarsMeta = defineFrameMeta({
+  name: "trending-bars",
+  label: "Trending Bars",
+  category: "crypto",
+  iconUrl: widgetIcon("trending-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "The coins with the most search interest right now on CoinGecko as a diverging bar chart — 24h change per trending coin, gains right in green, losses left in red. The chart-first sibling of the Trending Coins list. Keyless (CoinGecko).",
+  capabilities: ["trending-coins"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(7)
+      .describe("How many trending coins to chart."),
+  }),
+});
+
+export const nftActivityBarsMeta = defineFrameMeta({
+  name: "nft-activity-bars",
+  label: "NFT Activity Bars",
+  category: "crypto",
+  iconUrl: widgetIcon("nft-activity-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Blue-chip NFT collections ranked by 24h sales count as a horizontal bar chart — which collections are actually trading, not just holding a floor price. The chart-first sibling of the NFT Collections list. Keyless (CoinGecko, curated slugs).",
+  capabilities: ["nft-market"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(5)
+      .max(15)
+      .default(10)
+      .describe("How many collections (by 24h sales) to chart."),
+  }),
+});
+
+export const dominanceBarsMeta = defineFrameMeta({
+  name: "dominance-bars",
+  label: "Dominance Bars",
+  category: "markets",
+  iconUrl: widgetIcon("dominance-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Market-cap dominance for every asset in CoinGecko's global snapshot — not just BTC and ETH — as a horizontal bar chart, ranked largest-first. Surfaces the next tier (USDT, BNB, SOL, …) the segmented Bitcoin Dominance bar collapses into 'Others'. Keyless (CoinGecko).",
+  capabilities: ["global-market"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(8)
+      .describe("How many assets (by market-cap dominance) to chart."),
+  }),
+});
+
+export const trendingBubblesMeta = defineFrameMeta({
+  name: "trending-bubbles",
+  label: "Trending Bubbles",
+  category: "crypto",
+  iconUrl: widgetIcon("trending-bubbles"),
+  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  description:
+    "The coins with the most search interest right now on CoinGecko as a floating bubble cloud — bubble area by |24h change|, ring tinted green/red by direction. A movement-first alternative to the Trending Coins list. Keyless (CoinGecko).",
+  capabilities: ["trending-coins"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(10)
+      .describe("How many trending coins to show."),
+  }),
+});
+
+// ===== defi =====
+export const yieldRiskPieMeta = defineFrameMeta({
+  name: "yield-risk-pie",
+  label: "Yield Risk Pie",
+  category: "crypto",
+  iconUrl: widgetIcon("yield-risk-pie"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "DeFi yield pools grouped by impermanent-loss risk as a donut, sliced by total value locked (TVL) — no-IL-risk, IL-risk, and unknown, summed across every pool. A quick read on how much yield-seeking capital carries IL exposure. Keyless (DeFiLlama).",
+  capabilities: ["yields"],
+  source: SOURCES.defillama,
+  schema: z.object({}),
+});
+
+export const dexPoolLiquidityScatterMeta = defineFrameMeta({
+  name: "dex-pool-liquidity-scatter",
+  label: "DEX Pool Liquidity Scatter",
+  category: "onchain",
+  iconUrl: widgetIcon("dex-pool-liquidity-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Trending DEX pools on a chain as a liquidity-vs-volume bubble scatter — pool reserves on a log x-axis, 24h trading volume on a log y-axis, bubble size by 24h trade count, tinted green/red by 24h price change. Surfaces deep, active pools versus thin or quiet ones. Keyless (GeckoTerminal free tier).",
+  capabilities: ["dex-pools"],
+  source: SOURCES.geckoterminal,
+  schema: z.object({
+    network: z
+      .enum(["eth", "solana", "base", "arbitrum", "bsc", "polygon_pos"])
+      .default("eth")
+      .describe("Which chain's trending pools to show."),
+    count: z
+      .number()
+      .int()
+      .min(5)
+      .max(15)
+      .default(12)
+      .describe("How many trending pools to plot (up to 15)."),
+  }),
+});
+
+export const protocolFeesVsTvlScatterMeta = defineFrameMeta({
+  name: "protocol-fees-vs-tvl-scatter",
+  label: "Protocol Fees vs TVL Scatter",
+  category: "crypto",
+  iconUrl: widgetIcon("protocol-fees-vs-tvl-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "DeFi protocols as a fees-vs-TVL bubble scatter — total value locked on a log x-axis, trailing-24h fees on a log y-axis, bubble size by fees. Surfaces capital-efficient protocols earning outsized fees on their TVL versus large-but-quiet ones. Only protocols DeFiLlama reports both a TVL and a fees figure for are plotted. Keyless (DeFiLlama).",
+  capabilities: ["protocol-tvl", "protocol-fees"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(5)
+      .max(40)
+      .default(20)
+      .describe("How many protocols (by 24h fees) to plot."),
+  }),
+});
+
+export const yieldCompositionScatterMeta = defineFrameMeta({
+  name: "yield-composition-scatter",
+  label: "Yield Composition Scatter",
+  category: "crypto",
+  iconUrl: widgetIcon("yield-composition-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "DeFi yield pools as a base-vs-reward APY scatter — organic (base) APY on the x-axis, incentive (reward) APY on the y-axis, bubble size by TVL. Separates pools earning real organic yield from ones propped up by token incentives. Keyless (DeFiLlama).",
+  capabilities: ["yields"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(10)
+      .max(60)
+      .default(40)
+      .describe("How many pools (by TVL) to plot."),
+    stablecoinOnly: z
+      .boolean()
+      .default(false)
+      .describe("Restrict to stablecoin pools only."),
+  }),
+});
+
+export const protocolTvlByCategoryMeta = defineFrameMeta({
+  name: "protocol-tvl-by-category",
+  label: "Protocol TVL by Category",
+  category: "crypto",
+  iconUrl: widgetIcon("protocol-tvl-by-category"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Total value locked (TVL) summed by DeFiLlama category — Dexes, Lending, Liquid Staking, and more — as a horizontal bar chart ranked largest-first. Shows which slice of DeFi actually holds the capital. Keyless (DeFiLlama).",
+  capabilities: ["protocol-tvl"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(4)
+      .max(20)
+      .default(10)
+      .describe("How many DeFi categories (by summed TVL) to chart."),
+  }),
+});
+
+export const protocolTvlShareAreaMeta = defineFrameMeta({
+  name: "protocol-tvl-share-area",
+  label: "Protocol TVL Share Area",
+  category: "crypto",
+  iconUrl: widgetIcon("protocol-tvl-share-area"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Stacked area chart of total value locked (TVL) for several DeFi protocols over a lookback window, each protocol's slice stacked to show the combined total and how the mix shifts over time. The composition-focused sibling of the Protocol TVL Chart's overlaid lines. Data from DeFiLlama (daily granularity).",
+  capabilities: ["protocol-tvl"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    protocols: z
+      .array(z.string())
+      .min(1)
+      .max(6)
+      .describe(
+        'DeFiLlama protocol slugs (lowercase, hyphenated), e.g. ["lido", "aave", "eigenlayer"]. 1 to 6.',
+      ),
+    lookback: z
+      .enum(["7D", "1M", "3M"])
+      .default("1M")
+      .describe("History window for the chart."),
+  }),
+});
+
+export const dexVolumeShareAreaMeta = defineFrameMeta({
+  name: "dex-volume-share-area",
+  label: "DEX Volume Share Area",
+  category: "crypto",
+  iconUrl: widgetIcon("dex-volume-share-area"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Stacked area chart of daily DEX trading volume for several protocols over a lookback window, stacked to show combined volume and how each DEX's share shifts over time. The composition-focused sibling of the DEX Volume Chart's overlaid lines. Data from DeFiLlama (daily granularity).",
+  capabilities: ["dex-volume"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    protocols: z
+      .array(z.string())
+      .min(1)
+      .max(6)
+      .describe(
+        'DeFiLlama DEX protocol slugs (lowercase, hyphenated), e.g. ["uniswap", "pancakeswap", "aerodrome-slipstream"]. 1 to 6.',
+      ),
+    lookback: z
+      .enum(["7D", "1M", "3M"])
+      .default("1M")
+      .describe("History window for the chart."),
+  }),
+});
+
+export const yieldMomentumBarsMeta = defineFrameMeta({
+  name: "yield-momentum-bars",
+  label: "Yield Momentum Bars",
+  category: "crypto",
+  iconUrl: widgetIcon("yield-momentum-bars"),
+  layout: { w: 4, h: 5, minW: 3, minH: 4 },
+  description:
+    "DeFi yield pools ranked by 7-day APY change as a diverging bar chart — the biggest APY gains and drops over the past week, filtered above a TVL floor to skip dust pools. Surfaces where yields are heating up or cooling off. Keyless (DeFiLlama).",
+  capabilities: ["yields"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(6)
+      .max(20)
+      .default(12)
+      .describe(
+        "How many pools to chart, split into the largest 7-day APY gains and drops.",
+      ),
+    minTvlUsd: z
+      .number()
+      .min(0)
+      .default(1_000_000)
+      .describe("Minimum pool TVL in USD — a liquidity floor to hide dust."),
+  }),
+});
+
+// ===== chain =====
+export const btcDifficultyChartMeta = defineFrameMeta({
+  name: "btc-difficulty-chart",
+  label: "BTC Difficulty Chart",
+  category: "bitcoin",
+  iconUrl: widgetIcon("btc-difficulty-chart"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Bitcoin network difficulty over time as a line chart, with the current difficulty and hashrate as headline figures — the long-run mining-cost trend, charted rather than a single retarget countdown. Keyless (mempool.space).",
+  capabilities: ["btc-hashrate"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    window: z
+      .enum(["1y", "2y", "3y"])
+      .default("1y")
+      .describe("History window for the difficulty line."),
+  }),
+});
+
+export const btcBlockSizeBarsMeta = defineFrameMeta({
+  name: "btc-block-size-bars",
+  label: "BTC Block Size Bars",
+  category: "bitcoin",
+  iconUrl: widgetIcon("btc-block-size-bars"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Recent Bitcoin block sizes as a vertical bar chart, oldest to newest — spot when blocks are running full (near the ~4MB weight limit) versus half-empty. The chart-first sibling of the BTC Blocks feed. Keyless (mempool.space).",
+  capabilities: ["btc-blocks"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    count: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(8)
+      .describe("How many recent blocks to chart (oldest → newest)."),
+  }),
+});
+
+export const chainPriceMoversMeta = defineFrameMeta({
+  name: "chain-price-movers",
+  label: "Chain Price Movers",
+  category: "onchain",
+  iconUrl: widgetIcon("chain-price-movers"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "24h native-asset price change per major L1 (Bitcoin, Ethereum, Litecoin, Dogecoin, …) as a diverging bar chart, gains right in green, losses left in red. The price-led sibling of the Chain Activity Bars transaction chart. Keyless (Blockchair).",
+  capabilities: ["chain-activity"],
+  source: SOURCES.blockchair,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(12)
+      .default(8)
+      .describe("How many chains (by absolute 24h price change) to chart."),
+  }),
+});
+
+export const chainActivityScatterMeta = defineFrameMeta({
+  name: "chain-activity-scatter",
+  label: "Chain Activity Scatter",
+  category: "onchain",
+  iconUrl: widgetIcon("chain-activity-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Major L1s as a bubble scatter — 24h native-asset price change on the x-axis, 24h confirmed transactions on a log y-axis, bubble size by current mempool backlog. Shows which chains are both moving in price and busy on-chain. Keyless (Blockchair).",
+  capabilities: ["chain-activity"],
+  source: SOURCES.blockchair,
+  schema: z.object({}),
+});
+
+export const mempoolFeeCurveMeta = defineFrameMeta({
+  name: "mempool-fee-curve",
+  label: "Mempool Fee Curve",
+  category: "bitcoin",
+  iconUrl: widgetIcon("mempool-fee-curve"),
+  layout: { w: 5, h: 3, minW: 3, minH: 2 },
+  description:
+    "Bitcoin mempool's projected next-to-mine blocks as a fee-decay bar chart — median sat/vB per block, tinted by urgency, showing how fast fees drop as you're willing to wait a block or two longer. The chart-first sibling of the BTC Mempool card. Keyless (mempool.space).",
+  capabilities: ["btc-mempool"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    projectedBlocks: z
+      .number()
+      .int()
+      .min(1)
+      .max(8)
+      .default(5)
+      .describe(
+        "How many projected (yet-to-be-mined) blocks to chart, next-to-mine first.",
+      ),
+  }),
+});
+
+export const miningPoolsShareMeta = defineFrameMeta({
+  name: "mining-pools-share",
+  label: "Mining Pools Share",
+  category: "bitcoin",
+  iconUrl: widgetIcon("mining-pools-share"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Bitcoin mining-pool dominance as a donut — top pools by block share over a window plus an 'Other' slice, with the top-3 combined share in the center as a quick hashpower-concentration read. The chart-first sibling of the Mining Pools treemap. Keyless (mempool.space).",
+  capabilities: ["mining-pools"],
+  source: SOURCES.mempool,
+  schema: z.object({
+    window: z
+      .enum(["24h", "3d", "1w", "1m"])
+      .default("1w")
+      .describe("Window over which to measure each pool's block share."),
+    topN: z
+      .number()
+      .int()
+      .min(3)
+      .max(8)
+      .default(5)
+      .describe(
+        "How many of the largest pools to show as slices; the rest fold into 'Other'.",
+      ),
+  }),
+});
+
+// ===== deribit =====
+export const optionsMaxPainMeta = defineFrameMeta({
+  name: "options-max-pain",
+  label: "Max Pain by Strike",
+  category: "derivatives",
+  iconUrl: widgetIcon("options-max-pain"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Max pain for the nearest Deribit options expiry (BTC or ETH) — the aggregate payout option writers would owe at each candidate settlement strike, as a bar chart, with the strike that minimizes it (where the most contracts expire worthless) highlighted against the current spot. Keyless (Deribit).",
+  capabilities: ["options-summary"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    currency: z
+      .enum(["BTC", "ETH"])
+      .default("BTC")
+      .describe("Which Deribit options book — BTC or ETH."),
+  }),
+});
+
+export const optionsOiSkewMeta = defineFrameMeta({
+  name: "options-oi-skew",
+  label: "OI Skew by Strike",
+  category: "derivatives",
+  iconUrl: widgetIcon("options-oi-skew"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Net call-minus-put open interest by strike for the nearest Deribit options expiry (BTC or ETH) — a single diverging bar per strike showing where positioning skews call-heavy (green, above zero) versus put-heavy (red, below zero) near spot. The netted sibling of OI by Strike. Keyless (Deribit).",
+  capabilities: ["options-summary"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    currency: z
+      .enum(["BTC", "ETH"])
+      .default("BTC")
+      .describe("Which Deribit options book — BTC or ETH."),
+    strikes: z
+      .number()
+      .int()
+      .min(6)
+      .max(30)
+      .default(14)
+      .describe(
+        "How many strikes nearest the current spot to show (centered on the underlying price).",
+      ),
+  }),
+});
+
+export const optionsVolSpreadMeta = defineFrameMeta({
+  name: "options-vol-spread",
+  label: "BTC/ETH Vol Spread",
+  category: "derivatives",
+  iconUrl: widgetIcon("options-vol-spread"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "BTC DVOL and ETH DVOL implied-volatility indices plotted together over time — the spread between crypto's two most liquid vol benchmarks, and which one is pricing bigger expected swings. Keyless (Deribit).",
+  capabilities: ["volatility-index"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    lookback: z
+      .enum(["7D", "1M", "3M"])
+      .default("1M")
+      .describe("History window for both volatility-index lines."),
+  }),
+});
+
+export const optionsFlowSkewMeta = defineFrameMeta({
+  name: "options-flow-skew",
+  label: "Positioning vs Flow Skew",
+  category: "derivatives",
+  iconUrl: widgetIcon("options-flow-skew"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "Call/put skew for BTC or ETH options across two bases at once — open interest (standing positioning) and 24h volume (today's flow) — as two diverging bars. Green = call-heavy, red = put-heavy; the two diverging signals fresh flow fighting stale positioning. Keyless (Deribit).",
+  capabilities: ["options-summary"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    currency: z
+      .enum(["BTC", "ETH"])
+      .default("BTC")
+      .describe("Which Deribit options book — BTC or ETH."),
+  }),
+});
+
+export const optionsVolSmileMeta = defineFrameMeta({
+  name: "options-vol-smile",
+  label: "Vol Smile",
+  category: "derivatives",
+  iconUrl: widgetIcon("options-vol-smile"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Implied volatility by strike for the nearest Deribit options expiry (BTC or ETH) — a call-IV line and a put-IV line across the strike range, the classic 'vol smile' shape that shows where the market prices tail risk richest. Keyless (Deribit).",
+  capabilities: ["options-summary"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    currency: z
+      .enum(["BTC", "ETH"])
+      .default("BTC")
+      .describe("Which Deribit options book — BTC or ETH."),
+  }),
+});
+
+export const optionsOiLadderHeatmapMeta = defineFrameMeta({
+  name: "options-oi-ladder-heatmap",
+  label: "OI Ladder Heatmap",
+  category: "derivatives",
+  iconUrl: widgetIcon("options-oi-ladder-heatmap"),
+  layout: { w: 8, h: 5, minW: 5, minH: 4 },
+  description:
+    "Open interest across strike and expiry for BTC or ETH options, as a heatmap — expiries as rows (nearest first), strike bands as columns, cell shade by total call+put OI. Surfaces where positioning concentrates across the whole term structure, not just the nearest expiry. Keyless (Deribit).",
+  capabilities: ["options-summary"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    currency: z
+      .enum(["BTC", "ETH"])
+      .default("BTC")
+      .describe("Which Deribit options book — BTC or ETH."),
+    expiries: z
+      .number()
+      .int()
+      .min(3)
+      .max(16)
+      .default(8)
+      .describe(
+        "How many upcoming expiries (nearest-first) to show as rows.",
+      ),
+    buckets: z
+      .number()
+      .int()
+      .min(6)
+      .max(20)
+      .default(10)
+      .describe(
+        "How many strike bands (columns) to bin open interest into, spanning the shown expiries' strike range.",
+      ),
+  }),
+});
+
+export const optionsMaxPainMultiMeta = defineFrameMeta({
+  name: "options-max-pain-multi",
+  label: "Max Pain by Expiry",
+  category: "derivatives",
+  iconUrl: widgetIcon("options-max-pain-multi"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Max pain strike for each upcoming Deribit options expiry (BTC or ETH), plotted as % deviation from spot — one bar per expiry, showing which dated books are pinned above versus below the current price. The term-structure sibling of Max Pain by Strike. Keyless (Deribit).",
+  capabilities: ["options-summary"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    currency: z
+      .enum(["BTC", "ETH"])
+      .default("BTC")
+      .describe("Which Deribit options book — BTC or ETH."),
+    expiries: z
+      .number()
+      .int()
+      .min(3)
+      .max(16)
+      .default(8)
+      .describe("How many upcoming expiries (nearest-first) to chart."),
+  }),
+});
+
+// ===== cycle =====
+// ── Cycle chart & composite frames (Coin Metrics + bitcoin-data.com + ultrasound.money) ──
+
+export const mvrvZscoreChartMeta = defineFrameMeta({
+  name: "mvrv-zscore-chart",
+  label: "MVRV Z-Score Chart",
+  category: "onchain",
+  iconUrl: widgetIcon("mvrv-zscore-chart"),
+  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  description:
+    "Bitcoin MVRV Z-Score plotted as a full daily time-series line, not just a sparkline — how many standard deviations market cap sits above realized cap across the whole available history. Historically, spikes above ~7 have marked cycle tops and dips below 0 mark deep-value bottoms. The chart-first sibling of the MVRV gauge. Keyless (Coin Metrics).",
+  capabilities: ["onchain-valuation"],
+  source: SOURCES.coinMetrics,
+  schema: z.object({
+    window: z
+      .enum(["1Y", "2Y", "4Y", "all"])
+      .default("all")
+      .describe("How much history the chart shows."),
+  }),
+});
+
+export const nuplCycleChartMeta = defineFrameMeta({
+  name: "nupl-cycle-chart",
+  label: "NUPL Cycle Chart",
+  category: "onchain",
+  iconUrl: widgetIcon("nupl-cycle-chart"),
+  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  description:
+    "Net Unrealized Profit/Loss plotted as a full daily time-series line across Bitcoin's cycle sentiment bands — Capitulation, Hope/Fear, Optimism, Belief, Euphoria/Greed. The chart-first sibling of the NUPL gauge. Keyless (Coin Metrics).",
+  capabilities: ["onchain-valuation"],
+  source: SOURCES.coinMetrics,
+  schema: z.object({
+    window: z
+      .enum(["1Y", "2Y", "4Y", "all"])
+      .default("all")
+      .describe("How much history the chart shows."),
+  }),
+});
+
+export const cycleValuationCompositeMeta = defineFrameMeta({
+  name: "cycle-valuation-composite",
+  label: "Cycle Valuation Composite",
+  category: "onchain",
+  iconUrl: widgetIcon("cycle-valuation-composite"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Three cycle-valuation signals — MVRV Z-Score, NUPL, and BTC's 14-day RSI — overlaid on one chart, each independently min-max normalized to 0–100% over the selected window so their unrelated native scales become directly comparable. All three near the top together reads late-cycle euphoria; all three near the bottom reads capitulation. Keyless (Coin Metrics).",
+  capabilities: ["onchain-valuation", "price-history-daily"],
+  source: SOURCES.coinMetrics,
+  schema: z.object({
+    window: z
+      .enum(["1Y", "2Y", "4Y", "all"])
+      .default("2Y")
+      .describe("How much history each signal is normalized and charted over."),
+  }),
+});
+
+export const onchainOscillatorOverlayMeta = defineFrameMeta({
+  name: "onchain-oscillator-overlay",
+  label: "On-Chain Oscillator Overlay",
+  category: "onchain",
+  iconUrl: widgetIcon("onchain-oscillator-overlay"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "SOPR, Puell Multiple, and Reserve Risk overlaid on one chart, each independently min-max normalized to 0–100% over the selected window — three on-chain cycle oscillators with unrelated native scales made directly comparable. Keyless (bitcoin-data.com; polled once daily, best-effort per metric).",
+  capabilities: ["onchain-cycle-extras"],
+  source: SOURCES.bitcoinData,
+  schema: z.object({
+    window: z
+      .enum(["90D", "180D", "1Y"])
+      .default("1Y")
+      .describe("How much history each signal is normalized and charted over."),
+  }),
+});
+
+export const ethIssuanceImpactMeta = defineFrameMeta({
+  name: "eth-issuance-impact",
+  label: "ETH Issuance Impact",
+  category: "onchain",
+  iconUrl: widgetIcon("eth-issuance-impact"),
+  layout: { w: 4, h: 3, minW: 2, minH: 2 },
+  description:
+    "Ethereum's actual net annual supply growth (post-Merge PoS issuance minus EIP-1559 burn) vs the counterfactual pre-Merge PoW issuance rate, as diverging bars — how much leaner ETH's inflation is under proof-of-stake. Negative (deflationary) growth in green, positive (inflationary) in red. Keyless (ultrasound.money).",
+  capabilities: ["eth-supply"],
+  source: SOURCES.ultrasound,
+  schema: z.object({}),
+});
+
+// ===== rates =====
+export const treasuryAvgRateBarsMeta = defineFrameMeta({
+  name: "treasury-avg-rate-bars",
+  label: "Treasury Avg Rate Bars",
+  category: "macro",
+  iconUrl: widgetIcon("treasury-avg-rate-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "U.S. Treasury average interest rates across the full set of security classes as a horizontal bar chart, ranked highest-first. The chart-first sibling of the Rates Board's Treasury-rates section. Keyless (U.S. Treasury).",
+  capabilities: ["treasury-rates"],
+  source: SOURCES.treasury,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(5)
+      .max(25)
+      .default(20)
+      .describe(
+        "How many security classes (by average rate, highest first) to chart.",
+      ),
+  }),
+});
+
+export const treasuryAuctionDemandScatterMeta = defineFrameMeta({
+  name: "treasury-auction-demand-scatter",
+  label: "Treasury Auction Demand",
+  category: "macro",
+  iconUrl: widgetIcon("treasury-auction-demand-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Recent completed U.S. Treasury auctions as a bubble scatter — awarded rate on the x-axis, bid-to-cover ratio (demand) on the y-axis, one dot per auction labelled by term. Reveals whether richer (lower-yield) auctions also draw stronger demand. Keyless (U.S. Treasury).",
+  capabilities: ["treasury-auctions"],
+  source: SOURCES.treasury,
+  schema: z.object({
+    count: z
+      .number()
+      .int()
+      .min(5)
+      .max(30)
+      .default(20)
+      .describe(
+        "How many recent completed auctions (with a reported rate and bid-to-cover) to plot.",
+      ),
+  }),
+});
+
+export const treasuryAuctionSizeBarsMeta = defineFrameMeta({
+  name: "treasury-auction-size-bars",
+  label: "Treasury Auction Size",
+  category: "macro",
+  iconUrl: widgetIcon("treasury-auction-size-bars"),
+  layout: { w: 6, h: 3, minW: 3, minH: 3 },
+  description:
+    "Recent completed U.S. Treasury auctions as paired bars — the offering amount beside the amount actually accepted, per auction, oldest to newest. Shows at a glance how close each auction came to being fully subscribed. Keyless (U.S. Treasury).",
+  capabilities: ["treasury-auctions"],
+  source: SOURCES.treasury,
+  schema: z.object({
+    count: z
+      .number()
+      .int()
+      .min(3)
+      .max(20)
+      .default(8)
+      .describe(
+        "How many recent completed auctions to chart (oldest to newest).",
+      ),
+  }),
+});
+
+export const nyfedReferenceRateBarsMeta = defineFrameMeta({
+  name: "nyfed-reference-rate-bars",
+  label: "NY Fed Rate Bars",
+  category: "macro",
+  iconUrl: widgetIcon("nyfed-reference-rate-bars"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "The six official New York Fed reference rates (effective fed funds, SOFR, tri-party and broad general collateral repo, overnight bank funding, and SOFR averages) as a horizontal bar chart — level or reported volume. The chart-first sibling of the Rates Board's NY Fed section. Keyless (NY Fed).",
+  capabilities: ["reference-rates"],
+  source: SOURCES.nyFed,
+  schema: z.object({
+    metric: z
+      .enum(["rate", "volume"])
+      .default("rate")
+      .describe(
+        '"rate" charts each reference rate\'s level (%); "volume" charts its reported trading volume in USD (SOFR averages report no volume and are skipped in this mode).',
+      ),
+    limit: z
+      .number()
+      .int()
+      .min(2)
+      .max(6)
+      .default(6)
+      .describe("How many of the six official reference rates to chart."),
+  }),
+});
+
+export const nyfedSofrTermAveragesBarsMeta = defineFrameMeta({
+  name: "nyfed-sofr-term-averages-bars",
+  label: "SOFR Term Averages",
+  category: "macro",
+  iconUrl: widgetIcon("nyfed-sofr-term-averages-bars"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "SOFR compounded average rates over the trailing 30, 90, and 180 days as a simple bar comparison — a quick read on where short-term secured funding costs have been trending. Keyless (NY Fed).",
+  capabilities: ["reference-rates"],
+  source: SOURCES.nyFed,
+  schema: z.object({}),
+});
+
+export const nyfedFedFundsBandGaugeMeta = defineFrameMeta({
+  name: "nyfed-fed-funds-band-gauge",
+  label: "Fed Funds Band Gauge",
+  category: "macro",
+  iconUrl: widgetIcon("nyfed-fed-funds-band-gauge"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "The effective fed funds rate as a radial gauge inside the FOMC's current target band — the arc fills from the band's lower bound to its upper bound, with the live EFFR reading in the center. Makes it visible at a glance whether the effective rate is trading near the top, bottom, or middle of the target range. Keyless (NY Fed).",
+  capabilities: ["reference-rates"],
+  source: SOURCES.nyFed,
+  schema: z.object({}),
+});
+
+export const treasuryDebtCompositionAreaMeta = defineFrameMeta({
+  name: "treasury-debt-composition-area",
+  label: "Debt Composition",
+  category: "macro",
+  iconUrl: widgetIcon("treasury-debt-composition-area"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "U.S. total public debt outstanding split into debt held by the public vs. intragovernmental holdings, as a stacked area chart over time — the two components that sum to the National Debt card's headline total. Keyless (U.S. Treasury).",
+  capabilities: ["national-debt"],
+  source: SOURCES.treasury,
+  schema: z.object({
+    trendDays: z
+      .number()
+      .int()
+      .min(30)
+      .max(365)
+      .default(180)
+      .describe(
+        "How many business days of history to load for the stacked area.",
+      ),
+  }),
+});
+
+export const ofrStressCategoryAreaMeta = defineFrameMeta({
+  name: "ofr-stress-category-area",
+  label: "FSI by Category",
+  category: "macro",
+  iconUrl: widgetIcon("ofr-stress-category-area"),
+  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  description:
+    "The OFR Financial Stress Index decomposed into its five contributing categories (credit, equity valuation, safe assets, funding, volatility) as a stacked area chart over time — each category can be positive or negative and they sum to the overall index shown on the Financial Stress card. Keyless (OFR).",
+  capabilities: ["financial-stress"],
+  source: SOURCES.ofr,
+  schema: z.object({
+    trendDays: z
+      .number()
+      .int()
+      .min(20)
+      .max(90)
+      .default(60)
+      .describe("How many recent daily readings to plot in the stacked area."),
+  }),
+});
+
+// ===== macro =====
+export const miseryIndexMeta = defineFrameMeta({
+  name: "misery-index",
+  label: "Misery Index",
+  category: "macro",
+  iconUrl: widgetIcon("misery-index"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "The classic 'Misery Index' — CPI year-over-year inflation stacked with the unemployment rate — as a two-series stacked area chart, month-aligned, plus the combined headline score. Monthly macro context for stock dashboards, not a live feed. Keyless (BLS).",
+  capabilities: ["macro-series"],
+  source: SOURCES.bls,
+  schema: z.object({
+    months: z
+      .number()
+      .int()
+      .min(13)
+      .max(36)
+      .default(18)
+      .describe("How many recent monthly observations to chart."),
+  }),
+});
+
+export const realWagesMeta = defineFrameMeta({
+  name: "real-wages",
+  label: "Real Wages",
+  category: "macro",
+  iconUrl: widgetIcon("real-wages"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "Are paychecks outrunning inflation? A two-line chart comparing year-over-year average hourly earnings growth against year-over-year CPI inflation — when earnings run above CPI, real (inflation-adjusted) pay is rising. Monthly macro context, not a live feed. Keyless (BLS).",
+  capabilities: ["macro-series"],
+  source: SOURCES.bls,
+  schema: z.object({
+    months: z
+      .number()
+      .int()
+      .min(13)
+      .max(36)
+      .default(18)
+      .describe(
+        "How many recent monthly year-over-year observations to chart.",
+      ),
+  }),
+});
+
+export const laborForceFlowMeta = defineFrameMeta({
+  name: "labor-force-flow",
+  label: "Labor Force Flow",
+  category: "macro",
+  iconUrl: widgetIcon("labor-force-flow"),
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  description:
+    "The unemployment rate and the labor-force participation rate plotted together over time — a rising unemployment rate alongside a falling participation rate points to people leaving the workforce rather than finding jobs. Monthly macro context, not a live feed. Keyless (BLS).",
+  capabilities: ["macro-series"],
+  source: SOURCES.bls,
+  schema: z.object({
+    months: z
+      .number()
+      .int()
+      .min(13)
+      .max(36)
+      .default(18)
+      .describe("How many recent monthly observations to chart."),
+  }),
+});
+
+export const payrollsBarsMeta = defineFrameMeta({
+  name: "payrolls-bars",
+  label: "Payrolls Bars",
+  category: "macro",
+  iconUrl: widgetIcon("payrolls-bars"),
+  layout: { w: 6, h: 3, minW: 3, minH: 3 },
+  description:
+    "Monthly nonfarm payrolls net change as a diverging bar chart — jobs added up in green, jobs cut down in red. The chart-first sibling of the Labor Market frame's headline figure. Monthly macro data, not a live feed. Keyless (BLS).",
+  capabilities: ["macro-series"],
+  source: SOURCES.bls,
+  schema: z.object({
+    months: z
+      .number()
+      .int()
+      .min(6)
+      .max(36)
+      .default(18)
+      .describe("How many recent months of net payroll change to chart."),
+  }),
+});
+
+export const shortVolumeBarsMeta = defineFrameMeta({
+  name: "short-volume-bars",
+  label: "Short Volume Bars",
+  category: "equities",
+  iconUrl: widgetIcon("short-volume-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Daily reported short-sale volume for a watchlist of US-listed stocks, ranked highest-first as a horizontal bar chart — the chart-first sibling of the Short Volume list. IMPORTANT: this is reported short volume (sell-side short flow, including market-maker hedging), NOT short interest, and is not a directional signal on its own. Daily data published the next business day; not a live feed. US equities only. (FINRA).",
+  capabilities: ["short-volume"],
+  source: SOURCES.finra,
+  schema: z.object({
+    symbols: z
+      .array(z.string())
+      .min(1)
+      .max(12)
+      .describe(
+        'US-listed stock tickers to rank, e.g. ["TSLA","NVDA","AAPL"]. HIP-3 symbols ("xyz:TSLA") work too — the dex prefix is stripped. Crypto has no SEC/FINRA short-volume and is ignored.',
+      ),
+  }),
+});
+
+export const capitalStructureBarsMeta = defineFrameMeta({
+  name: "capital-structure-bars",
+  label: "Capital Structure Bars",
+  category: "equities",
+  iconUrl: widgetIcon("capital-structure-bars"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "One company's balance-sheet shape as a horizontal bar chart — total assets, shareholders' equity, and liabilities (derived as assets minus equity) — from SEC EDGAR XBRL company facts. Updates only when the company files (annual/quarterly), not a live feed. Requires the zframes runtime's data proxy (ships with `zframes serve` / `vite dev`); resolve by ticker (bundled top-500 map) or raw SEC CIK. (SEC EDGAR).",
+  capabilities: ["fundamentals"],
+  source: SOURCES.secEdgar,
+  schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .describe(
+        'Company to chart — a ticker ("AAPL", "NVDA"), a HIP-3 symbol ("xyz:NVDA"), or a raw SEC CIK ("320193"). Tickers outside the bundled top-500 map need a CIK.',
+      ),
+  }),
+});
+
+export const filingsMixMeta = defineFrameMeta({
+  name: "filings-mix",
+  label: "Filings Mix",
+  category: "equities",
+  iconUrl: widgetIcon("filings-mix"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "What kind of paper is one company actually filing? A donut of recent SEC EDGAR filings bucketed into periodic & material reports (10-K, 10-Q, 8-K, registrations, proxies, activist stakes…), insider ownership forms (3/4/5/144), and everything else — the chart-first sibling of the Filings Feed. Official data from SEC's free, CORS-safe submissions endpoint; event-driven, not a price feed. Resolve by ticker (bundled top-500 map) or raw SEC CIK. (SEC EDGAR).",
+  capabilities: ["filings"],
+  source: SOURCES.secEdgar,
+  schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .describe(
+        'Company to show filing mix for — a ticker ("AAPL", "NVDA"), a HIP-3 symbol ("xyz:TSLA"), or a raw SEC CIK ("320193"). Tickers outside the bundled top-500 map need a CIK.',
+      ),
+  }),
+});
+
+// ===== mixed =====
+export const fxCrossHeatmapMeta = defineFrameMeta({
+  name: "fx-cross-heatmap",
+  label: "FX Cross Heatmap",
+  category: "macro",
+  iconUrl: widgetIcon("fx-cross-heatmap"),
+  layout: { w: 6, h: 4, minW: 4, minH: 4 },
+  description:
+    "A full currency × currency cross-rate matrix as a heatmap — each cell is the day-over-day % change of that specific cross, derived from every listed currency's rate vs a common pivot, green up / red down. Spots which cross is moving hardest across an entire currency set, not just one pair at a time. Keyless (Frankfurter/ECB).",
+  capabilities: ["fx-rates"],
+  source: SOURCES.frankfurter,
+  schema: z.object({
+    symbols: z
+      .array(z.string().length(3))
+      .min(3)
+      .max(8)
+      .default(["USD", "EUR", "GBP", "JPY", "CHF", "CAD"])
+      .describe(
+        'Currencies (ISO 4217 codes) forming both axes of the matrix, e.g. ["USD","EUR","GBP","JPY"]. At least 3, so the grid shows more than one cross.',
+      ),
+  }),
+});
+
+export const etfIssuerTreemapMeta = defineFrameMeta({
+  name: "etf-issuer-treemap",
+  label: "ETF Issuer Treemap",
+  category: "crypto",
+  iconUrl: widgetIcon("etf-issuer-treemap"),
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  description:
+    "Spot BTC or ETH ETF issuers as a treemap — tile size by assets under management, tint green/red by that issuer's net flow today. Shows who holds the most AND who's gathering or losing assets right now, in one view. Best-effort; may be empty if the source is unavailable. Keyless (SoSoValue).",
+  capabilities: ["etf-flows"],
+  source: SOURCES.sosovalue,
+  schema: z.object({
+    asset: z
+      .enum(["btc", "eth"])
+      .default("btc")
+      .describe("Which spot-ETF complex to show."),
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(10)
+      .describe("How many issuers (by AUM) to show in the treemap."),
+  }),
+});
+
+export const fxTrendChartMeta = defineFrameMeta({
+  name: "fx-trend-chart",
+  label: "FX Trend Chart",
+  category: "macro",
+  iconUrl: widgetIcon("fx-trend-chart"),
+  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  description:
+    "Several currencies' recent trend vs a base, each indexed to 0% at the start of the window so wildly different-magnitude pairs (JPY vs CHF) compare cleanly on one chart. The multi-line sibling of the FX Board. Keyless (Frankfurter/ECB).",
+  capabilities: ["fx-rates"],
+  source: SOURCES.frankfurter,
+  schema: z.object({
+    base: z
+      .string()
+      .length(3)
+      .default("USD")
+      .describe(
+        'Base currency (ISO 4217 code) each line is quoted against, e.g. "USD".',
+      ),
+    symbols: z
+      .array(z.string().length(3))
+      .min(1)
+      .max(8)
+      .default(["EUR", "GBP", "JPY", "CHF"])
+      .describe(
+        'Currencies to chart (ISO 4217 codes), e.g. ["EUR","GBP","JPY"]. A code equal to the base is skipped.',
+      ),
+  }),
+});
+
+export const fearGreedChartMeta = defineFrameMeta({
+  name: "fear-greed-chart",
+  label: "Fear & Greed Chart",
+  category: "sentiment",
+  iconUrl: widgetIcon("fear-greed-chart"),
+  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  description:
+    "Crypto Fear & Greed index over time as a line chart — the mood swing from extreme fear to extreme greed across a wide window, the line tinted by the latest reading. The chart-first sibling of the Fear & Greed card. Keyless (alternative.me).",
+  capabilities: ["sentiment"],
+  source: SOURCES.alternativeMe,
+  schema: z.object({
+    days: z
+      .number()
+      .int()
+      .min(30)
+      .max(365)
+      .default(180)
+      .describe("How many days of index history to chart."),
+  }),
+});
+
+export const predictionMarketBarsMeta = defineFrameMeta({
+  name: "prediction-market-bars",
+  label: "Prediction Market Bars",
+  category: "sentiment",
+  iconUrl: widgetIcon("prediction-market-bars"),
+  layout: { w: 5, h: 5, minW: 4, minH: 4 },
+  description:
+    "Live Polymarket odds as a horizontal bar chart — the highest-volume open prediction markets ranked by trailing-24h volume. The chart-first sibling of the Prediction Markets list. Keyless (Polymarket).",
+  capabilities: ["prediction-markets"],
+  source: SOURCES.polymarket,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(8)
+      .describe("How many markets (by volume) to chart."),
+  }),
+});
+
+export const dxyChartMeta = defineFrameMeta({
+  name: "dxy-chart",
+  label: "Dollar Index Chart",
+  category: "macro",
+  iconUrl: widgetIcon("dxy-chart"),
+  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  description:
+    "US Dollar Index (DXY) as a line chart over time — the dollar's trend vs a basket of six major currencies, tinted green/red by its own direction. The chart-first sibling of the Dollar Index card. Keyless (Frankfurter/ECB).",
+  capabilities: ["dollar-index"],
+  source: SOURCES.frankfurter,
+  schema: z.object({}),
+});
+
+export const fxMoversBarsMeta = defineFrameMeta({
+  name: "fx-movers-bars",
+  label: "FX Movers Bars",
+  category: "macro",
+  iconUrl: widgetIcon("fx-movers-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "A currency set's day-over-day % change vs a base as a diverging bar chart — strengthening currencies right in green, weakening left in red, ranked by move. The chart-first sibling of the FX Board. Keyless (Frankfurter/ECB).",
+  capabilities: ["fx-rates"],
+  source: SOURCES.frankfurter,
+  schema: z.object({
+    base: z
+      .string()
+      .length(3)
+      .default("USD")
+      .describe(
+        'Base currency (ISO 4217 code) each bar is quoted against, e.g. "USD".',
+      ),
+    symbols: z
+      .array(z.string().length(3))
+      .min(1)
+      .max(12)
+      .default(["EUR", "GBP", "JPY", "CHF", "CAD", "AUD"])
+      .describe(
+        'Currencies to chart (ISO 4217 codes), e.g. ["EUR","GBP","JPY"]. A code equal to the base is skipped.',
+      ),
+  }),
+});
+
+export const predictionMarketScatterMeta = defineFrameMeta({
+  name: "prediction-market-scatter",
+  label: "Prediction Market Scatter",
+  category: "sentiment",
+  iconUrl: widgetIcon("prediction-market-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Live Polymarket odds as a bubble scatter — each market's top-outcome probability on the x-axis, trailing-24h volume on a log y-axis, bubble size by volume. Surfaces high-conviction, high-volume markets versus thin long shots. The chart-first sibling of the Prediction Markets list. Keyless (Polymarket).",
+  capabilities: ["prediction-markets"],
+  source: SOURCES.polymarket,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(5)
+      .max(30)
+      .default(15)
+      .describe("How many markets (by volume) to plot."),
+  }),
+});
+
+export const etfIssuerBarsMeta = defineFrameMeta({
+  name: "etf-issuer-bars",
+  label: "ETF Issuer Bars",
+  category: "crypto",
+  iconUrl: widgetIcon("etf-issuer-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Spot BTC or ETH ETF issuers' daily net flow as a diverging bar chart — inflows right in green, outflows left in red, ranked by size. The chart-first sibling of the Spot ETF Flows list. Best-effort; may be empty if the source is unavailable. Keyless (SoSoValue).",
+  capabilities: ["etf-flows"],
+  source: SOURCES.sosovalue,
+  schema: z.object({
+    asset: z
+      .enum(["btc", "eth"])
+      .default("btc")
+      .describe("Which spot-ETF complex to chart."),
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(15)
+      .default(10)
+      .describe("How many issuers (by |net flow|) to chart."),
+  }),
+});
+
+// ===== port =====
+export const portfolioMoversMeta = defineFrameMeta({
+  name: "portfolio-movers",
+  label: "Portfolio Movers",
+  category: "portfolio",
+  iconUrl: widgetIcon("portfolio-movers"),
+  layout: { w: 4, h: 5, minW: 3, minH: 4 },
+  description:
+    "Your connected portfolio's holdings as a diverging bar chart of 24h price change — gainers right in green, losers left in red. Source is a connected Binance account (read-only key, in-app) or a public on-chain wallet address. Only holdings the source reports a 24h change for are shown — currently that's on-chain wallet holdings (priced via CoinGecko); a Binance-only portfolio will show its empty state until the account layer adds a price-change feed. Renders a connect prompt until a source is set.",
+  capabilities: ["portfolio"],
+  account: true,
+  schema: z.object({
+    ...portfolioConfigShape,
+    limit: z
+      .number()
+      .int()
+      .min(4)
+      .max(30)
+      .default(15)
+      .describe("How many holdings (by absolute 24h change) to chart."),
+  }),
+});
+
+export const portfolioValueBarsMeta = defineFrameMeta({
+  name: "portfolio-value-bars",
+  label: "Portfolio Value Bars",
+  category: "portfolio",
+  iconUrl: widgetIcon("portfolio-value-bars"),
+  layout: { w: 4, h: 5, minW: 3, minH: 4 },
+  description:
+    "Your connected portfolio's positions as a horizontal bar chart ranked by live USD value, largest first. The chart-first sibling of the Portfolio Holdings table. Source is a connected Binance account (read-only key, in-app) or a public on-chain wallet address. Renders a connect prompt until a source is set.",
+  capabilities: ["portfolio", "quote-stream"],
+  account: true,
+  schema: z.object({
+    ...portfolioConfigShape,
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(25)
+      .default(12)
+      .describe("How many holdings (by USD value, descending) to chart."),
+  }),
+});
+
+export const etfFlowCalendarMeta = defineFrameMeta({
+  name: "etf-flow-calendar",
+  label: "ETF Flow Calendar",
+  category: "crypto",
+  iconUrl: widgetIcon("etf-flow-calendar"),
+  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  description:
+    "Spot BTC or ETH ETF daily net flows as a GitHub-style calendar heatmap — one column per weekday, one row per week, green shades for inflow days and red for outflow days (intensity relative to the window). Surfaces weekly inflow/outflow rhythm the daily bar chart doesn't show at a glance. Keyless (SoSoValue); best-effort, may be empty if the source is unavailable.",
+  capabilities: ["etf-flows"],
+  source: SOURCES.sosovalue,
+  schema: z.object({
+    asset: z
+      .enum(["btc", "eth"])
+      .default("btc")
+      .describe("Which spot-ETF complex to chart."),
+    lookback: z
+      .enum(["1M", "3M", "6M"])
+      .default("3M")
+      .describe("History window for the calendar grid."),
+  }),
+});
+
+export const predictionMarketsBubbleMeta = defineFrameMeta({
+  name: "prediction-markets-bubble",
+  label: "Prediction Markets Bubbles",
+  category: "sentiment",
+  iconUrl: widgetIcon("prediction-markets-bubble"),
+  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  description:
+    "Live Polymarket odds as a floating bubble cloud — one bubble per open market, sized by 24h volume, tinted by how confident the leading outcome is (muted near a toss-up, vivid green near certain). The chart-first sibling of the Prediction Markets list. Keyless (Polymarket Gamma API).",
+  capabilities: ["prediction-markets"],
+  source: SOURCES.polymarket,
+  schema: z.object({
+    limit: z
+      .number()
+      .int()
+      .min(3)
+      .max(20)
+      .default(10)
+      .describe("How many markets (by volume) to show."),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   customDataMeta,
@@ -3430,6 +4960,76 @@ export const frameMetas: FrameMeta[] = [
   nftScatterMeta,
   dominanceGaugeMeta,
   putCallGaugeMeta,
+  oiTreemapMeta,
+  ohlcvVolumeBarsMeta,
+  fundingSpreadBarsMeta,
+  fundingVenueHeatmapMeta,
+  fundingCarryAreaMeta,
+  volumeShareDonutMeta,
+  volumeMoversScatterMeta,
+  fundingLeaderboardBarsMeta,
+  fundingCrowdingScatterMeta,
+  liquidityBasisBarsMeta,
+  coinMomentumHeatmapMeta,
+  coinMomentumScatterMeta,
+  trendingBarsMeta,
+  nftActivityBarsMeta,
+  dominanceBarsMeta,
+  trendingBubblesMeta,
+  yieldRiskPieMeta,
+  dexPoolLiquidityScatterMeta,
+  protocolFeesVsTvlScatterMeta,
+  yieldCompositionScatterMeta,
+  protocolTvlByCategoryMeta,
+  protocolTvlShareAreaMeta,
+  dexVolumeShareAreaMeta,
+  yieldMomentumBarsMeta,
+  btcDifficultyChartMeta,
+  btcBlockSizeBarsMeta,
+  chainPriceMoversMeta,
+  chainActivityScatterMeta,
+  mempoolFeeCurveMeta,
+  miningPoolsShareMeta,
+  optionsMaxPainMeta,
+  optionsOiSkewMeta,
+  optionsVolSpreadMeta,
+  optionsFlowSkewMeta,
+  optionsVolSmileMeta,
+  optionsOiLadderHeatmapMeta,
+  optionsMaxPainMultiMeta,
+  mvrvZscoreChartMeta,
+  nuplCycleChartMeta,
+  cycleValuationCompositeMeta,
+  onchainOscillatorOverlayMeta,
+  ethIssuanceImpactMeta,
+  treasuryAvgRateBarsMeta,
+  treasuryAuctionDemandScatterMeta,
+  treasuryAuctionSizeBarsMeta,
+  nyfedReferenceRateBarsMeta,
+  nyfedSofrTermAveragesBarsMeta,
+  nyfedFedFundsBandGaugeMeta,
+  treasuryDebtCompositionAreaMeta,
+  ofrStressCategoryAreaMeta,
+  miseryIndexMeta,
+  realWagesMeta,
+  laborForceFlowMeta,
+  payrollsBarsMeta,
+  shortVolumeBarsMeta,
+  capitalStructureBarsMeta,
+  filingsMixMeta,
+  fxCrossHeatmapMeta,
+  etfIssuerTreemapMeta,
+  fxTrendChartMeta,
+  fearGreedChartMeta,
+  predictionMarketBarsMeta,
+  dxyChartMeta,
+  fxMoversBarsMeta,
+  predictionMarketScatterMeta,
+  etfIssuerBarsMeta,
+  portfolioMoversMeta,
+  portfolioValueBarsMeta,
+  etfFlowCalendarMeta,
+  predictionMarketsBubbleMeta,
 ];
 
 /**

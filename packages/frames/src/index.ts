@@ -132,6 +132,76 @@ export { yieldScatterFrame } from "./yield-scatter";
 export { nftScatterFrame } from "./nft-scatter";
 export { dominanceGaugeFrame } from "./dominance-gauge";
 export { putCallGaugeFrame } from "./put-call-gauge";
+export { oiTreemapFrame } from "./oi-treemap";
+export { ohlcvVolumeBarsFrame } from "./ohlcv-volume-bars";
+export { fundingSpreadBarsFrame } from "./funding-spread-bars";
+export { fundingVenueHeatmapFrame } from "./funding-venue-heatmap";
+export { fundingCarryAreaFrame } from "./funding-carry-area";
+export { volumeShareDonutFrame } from "./volume-share-donut";
+export { volumeMoversScatterFrame } from "./volume-movers-scatter";
+export { fundingLeaderboardBarsFrame } from "./funding-leaderboard-bars";
+export { fundingCrowdingScatterFrame } from "./funding-crowding-scatter";
+export { liquidityBasisBarsFrame } from "./liquidity-basis-bars";
+export { coinMomentumHeatmapFrame } from "./coin-momentum-heatmap";
+export { coinMomentumScatterFrame } from "./coin-momentum-scatter";
+export { trendingBarsFrame } from "./trending-bars";
+export { nftActivityBarsFrame } from "./nft-activity-bars";
+export { dominanceBarsFrame } from "./dominance-bars";
+export { trendingBubblesFrame } from "./trending-bubbles";
+export { yieldRiskPieFrame } from "./yield-risk-pie";
+export { dexPoolLiquidityScatterFrame } from "./dex-pool-liquidity-scatter";
+export { protocolFeesVsTvlScatterFrame } from "./protocol-fees-vs-tvl-scatter";
+export { yieldCompositionScatterFrame } from "./yield-composition-scatter";
+export { protocolTvlByCategoryFrame } from "./protocol-tvl-by-category";
+export { protocolTvlShareAreaFrame } from "./protocol-tvl-share-area";
+export { dexVolumeShareAreaFrame } from "./dex-volume-share-area";
+export { yieldMomentumBarsFrame } from "./yield-momentum-bars";
+export { btcDifficultyChartFrame } from "./btc-difficulty-chart";
+export { btcBlockSizeBarsFrame } from "./btc-block-size-bars";
+export { chainPriceMoversFrame } from "./chain-price-movers";
+export { chainActivityScatterFrame } from "./chain-activity-scatter";
+export { mempoolFeeCurveFrame } from "./mempool-fee-curve";
+export { miningPoolsShareFrame } from "./mining-pools-share";
+export { optionsMaxPainFrame } from "./options-max-pain";
+export { optionsOiSkewFrame } from "./options-oi-skew";
+export { optionsVolSpreadFrame } from "./options-vol-spread";
+export { optionsFlowSkewFrame } from "./options-flow-skew";
+export { optionsVolSmileFrame } from "./options-vol-smile";
+export { optionsOiLadderHeatmapFrame } from "./options-oi-ladder-heatmap";
+export { optionsMaxPainMultiFrame } from "./options-max-pain-multi";
+export { mvrvZscoreChartFrame } from "./mvrv-zscore-chart";
+export { nuplCycleChartFrame } from "./nupl-cycle-chart";
+export { cycleValuationCompositeFrame } from "./cycle-valuation-composite";
+export { onchainOscillatorOverlayFrame } from "./onchain-oscillator-overlay";
+export { ethIssuanceImpactFrame } from "./eth-issuance-impact";
+export { treasuryAvgRateBarsFrame } from "./treasury-avg-rate-bars";
+export { treasuryAuctionDemandScatterFrame } from "./treasury-auction-demand-scatter";
+export { treasuryAuctionSizeBarsFrame } from "./treasury-auction-size-bars";
+export { nyfedReferenceRateBarsFrame } from "./nyfed-reference-rate-bars";
+export { nyfedSofrTermAveragesBarsFrame } from "./nyfed-sofr-term-averages-bars";
+export { nyfedFedFundsBandGaugeFrame } from "./nyfed-fed-funds-band-gauge";
+export { treasuryDebtCompositionAreaFrame } from "./treasury-debt-composition-area";
+export { ofrStressCategoryAreaFrame } from "./ofr-stress-category-area";
+export { miseryIndexFrame } from "./misery-index";
+export { realWagesFrame } from "./real-wages";
+export { laborForceFlowFrame } from "./labor-force-flow";
+export { payrollsBarsFrame } from "./payrolls-bars";
+export { shortVolumeBarsFrame } from "./short-volume-bars";
+export { capitalStructureBarsFrame } from "./capital-structure-bars";
+export { filingsMixFrame } from "./filings-mix";
+export { fxCrossHeatmapFrame } from "./fx-cross-heatmap";
+export { etfIssuerTreemapFrame } from "./etf-issuer-treemap";
+export { fxTrendChartFrame } from "./fx-trend-chart";
+export { fearGreedChartFrame } from "./fear-greed-chart";
+export { predictionMarketBarsFrame } from "./prediction-market-bars";
+export { dxyChartFrame } from "./dxy-chart";
+export { fxMoversBarsFrame } from "./fx-movers-bars";
+export { predictionMarketScatterFrame } from "./prediction-market-scatter";
+export { etfIssuerBarsFrame } from "./etf-issuer-bars";
+export { portfolioMoversFrame } from "./portfolio-movers";
+export { portfolioValueBarsFrame } from "./portfolio-value-bars";
+export { etfFlowCalendarFrame } from "./etf-flow-calendar";
+export { predictionMarketsBubbleFrame } from "./prediction-markets-bubble";
 
 import type { AnyFrameDefinition } from "@zframes/core";
 import { portfolioValueFrame } from "./portfolio-value";
@@ -267,6 +337,76 @@ import { yieldScatterFrame } from "./yield-scatter";
 import { nftScatterFrame } from "./nft-scatter";
 import { dominanceGaugeFrame } from "./dominance-gauge";
 import { putCallGaugeFrame } from "./put-call-gauge";
+import { oiTreemapFrame } from "./oi-treemap";
+import { ohlcvVolumeBarsFrame } from "./ohlcv-volume-bars";
+import { fundingSpreadBarsFrame } from "./funding-spread-bars";
+import { fundingVenueHeatmapFrame } from "./funding-venue-heatmap";
+import { fundingCarryAreaFrame } from "./funding-carry-area";
+import { volumeShareDonutFrame } from "./volume-share-donut";
+import { volumeMoversScatterFrame } from "./volume-movers-scatter";
+import { fundingLeaderboardBarsFrame } from "./funding-leaderboard-bars";
+import { fundingCrowdingScatterFrame } from "./funding-crowding-scatter";
+import { liquidityBasisBarsFrame } from "./liquidity-basis-bars";
+import { coinMomentumHeatmapFrame } from "./coin-momentum-heatmap";
+import { coinMomentumScatterFrame } from "./coin-momentum-scatter";
+import { trendingBarsFrame } from "./trending-bars";
+import { nftActivityBarsFrame } from "./nft-activity-bars";
+import { dominanceBarsFrame } from "./dominance-bars";
+import { trendingBubblesFrame } from "./trending-bubbles";
+import { yieldRiskPieFrame } from "./yield-risk-pie";
+import { dexPoolLiquidityScatterFrame } from "./dex-pool-liquidity-scatter";
+import { protocolFeesVsTvlScatterFrame } from "./protocol-fees-vs-tvl-scatter";
+import { yieldCompositionScatterFrame } from "./yield-composition-scatter";
+import { protocolTvlByCategoryFrame } from "./protocol-tvl-by-category";
+import { protocolTvlShareAreaFrame } from "./protocol-tvl-share-area";
+import { dexVolumeShareAreaFrame } from "./dex-volume-share-area";
+import { yieldMomentumBarsFrame } from "./yield-momentum-bars";
+import { btcDifficultyChartFrame } from "./btc-difficulty-chart";
+import { btcBlockSizeBarsFrame } from "./btc-block-size-bars";
+import { chainPriceMoversFrame } from "./chain-price-movers";
+import { chainActivityScatterFrame } from "./chain-activity-scatter";
+import { mempoolFeeCurveFrame } from "./mempool-fee-curve";
+import { miningPoolsShareFrame } from "./mining-pools-share";
+import { optionsMaxPainFrame } from "./options-max-pain";
+import { optionsOiSkewFrame } from "./options-oi-skew";
+import { optionsVolSpreadFrame } from "./options-vol-spread";
+import { optionsFlowSkewFrame } from "./options-flow-skew";
+import { optionsVolSmileFrame } from "./options-vol-smile";
+import { optionsOiLadderHeatmapFrame } from "./options-oi-ladder-heatmap";
+import { optionsMaxPainMultiFrame } from "./options-max-pain-multi";
+import { mvrvZscoreChartFrame } from "./mvrv-zscore-chart";
+import { nuplCycleChartFrame } from "./nupl-cycle-chart";
+import { cycleValuationCompositeFrame } from "./cycle-valuation-composite";
+import { onchainOscillatorOverlayFrame } from "./onchain-oscillator-overlay";
+import { ethIssuanceImpactFrame } from "./eth-issuance-impact";
+import { treasuryAvgRateBarsFrame } from "./treasury-avg-rate-bars";
+import { treasuryAuctionDemandScatterFrame } from "./treasury-auction-demand-scatter";
+import { treasuryAuctionSizeBarsFrame } from "./treasury-auction-size-bars";
+import { nyfedReferenceRateBarsFrame } from "./nyfed-reference-rate-bars";
+import { nyfedSofrTermAveragesBarsFrame } from "./nyfed-sofr-term-averages-bars";
+import { nyfedFedFundsBandGaugeFrame } from "./nyfed-fed-funds-band-gauge";
+import { treasuryDebtCompositionAreaFrame } from "./treasury-debt-composition-area";
+import { ofrStressCategoryAreaFrame } from "./ofr-stress-category-area";
+import { miseryIndexFrame } from "./misery-index";
+import { realWagesFrame } from "./real-wages";
+import { laborForceFlowFrame } from "./labor-force-flow";
+import { payrollsBarsFrame } from "./payrolls-bars";
+import { shortVolumeBarsFrame } from "./short-volume-bars";
+import { capitalStructureBarsFrame } from "./capital-structure-bars";
+import { filingsMixFrame } from "./filings-mix";
+import { fxCrossHeatmapFrame } from "./fx-cross-heatmap";
+import { etfIssuerTreemapFrame } from "./etf-issuer-treemap";
+import { fxTrendChartFrame } from "./fx-trend-chart";
+import { fearGreedChartFrame } from "./fear-greed-chart";
+import { predictionMarketBarsFrame } from "./prediction-market-bars";
+import { dxyChartFrame } from "./dxy-chart";
+import { fxMoversBarsFrame } from "./fx-movers-bars";
+import { predictionMarketScatterFrame } from "./prediction-market-scatter";
+import { etfIssuerBarsFrame } from "./etf-issuer-bars";
+import { portfolioMoversFrame } from "./portfolio-movers";
+import { portfolioValueBarsFrame } from "./portfolio-value-bars";
+import { etfFlowCalendarFrame } from "./etf-flow-calendar";
+import { predictionMarketsBubbleFrame } from "./prediction-markets-bubble";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -403,4 +543,74 @@ export const allFrames: AnyFrameDefinition[] = [
   nftScatterFrame,
   dominanceGaugeFrame,
   putCallGaugeFrame,
+  oiTreemapFrame,
+  ohlcvVolumeBarsFrame,
+  fundingSpreadBarsFrame,
+  fundingVenueHeatmapFrame,
+  fundingCarryAreaFrame,
+  volumeShareDonutFrame,
+  volumeMoversScatterFrame,
+  fundingLeaderboardBarsFrame,
+  fundingCrowdingScatterFrame,
+  liquidityBasisBarsFrame,
+  coinMomentumHeatmapFrame,
+  coinMomentumScatterFrame,
+  trendingBarsFrame,
+  nftActivityBarsFrame,
+  dominanceBarsFrame,
+  trendingBubblesFrame,
+  yieldRiskPieFrame,
+  dexPoolLiquidityScatterFrame,
+  protocolFeesVsTvlScatterFrame,
+  yieldCompositionScatterFrame,
+  protocolTvlByCategoryFrame,
+  protocolTvlShareAreaFrame,
+  dexVolumeShareAreaFrame,
+  yieldMomentumBarsFrame,
+  btcDifficultyChartFrame,
+  btcBlockSizeBarsFrame,
+  chainPriceMoversFrame,
+  chainActivityScatterFrame,
+  mempoolFeeCurveFrame,
+  miningPoolsShareFrame,
+  optionsMaxPainFrame,
+  optionsOiSkewFrame,
+  optionsVolSpreadFrame,
+  optionsFlowSkewFrame,
+  optionsVolSmileFrame,
+  optionsOiLadderHeatmapFrame,
+  optionsMaxPainMultiFrame,
+  mvrvZscoreChartFrame,
+  nuplCycleChartFrame,
+  cycleValuationCompositeFrame,
+  onchainOscillatorOverlayFrame,
+  ethIssuanceImpactFrame,
+  treasuryAvgRateBarsFrame,
+  treasuryAuctionDemandScatterFrame,
+  treasuryAuctionSizeBarsFrame,
+  nyfedReferenceRateBarsFrame,
+  nyfedSofrTermAveragesBarsFrame,
+  nyfedFedFundsBandGaugeFrame,
+  treasuryDebtCompositionAreaFrame,
+  ofrStressCategoryAreaFrame,
+  miseryIndexFrame,
+  realWagesFrame,
+  laborForceFlowFrame,
+  payrollsBarsFrame,
+  shortVolumeBarsFrame,
+  capitalStructureBarsFrame,
+  filingsMixFrame,
+  fxCrossHeatmapFrame,
+  etfIssuerTreemapFrame,
+  fxTrendChartFrame,
+  fearGreedChartFrame,
+  predictionMarketBarsFrame,
+  dxyChartFrame,
+  fxMoversBarsFrame,
+  predictionMarketScatterFrame,
+  etfIssuerBarsFrame,
+  portfolioMoversFrame,
+  portfolioValueBarsFrame,
+  etfFlowCalendarFrame,
+  predictionMarketsBubbleFrame,
 ];

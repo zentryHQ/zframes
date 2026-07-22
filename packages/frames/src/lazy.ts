@@ -425,4 +425,214 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "put-call-gauge": {
     load: () => import("./put-call-gauge").then((m) => m.putCallGaugeFrame),
   },
+  "oi-treemap": {
+    load: () => import("./oi-treemap").then((m) => m.oiTreemapFrame),
+  },
+  "ohlcv-volume-bars": {
+    load: () => import("./ohlcv-volume-bars").then((m) => m.ohlcvVolumeBarsFrame),
+  },
+  "funding-spread-bars": {
+    load: () => import("./funding-spread-bars").then((m) => m.fundingSpreadBarsFrame),
+  },
+  "funding-venue-heatmap": {
+    load: () => import("./funding-venue-heatmap").then((m) => m.fundingVenueHeatmapFrame),
+  },
+  "funding-carry-area": {
+    load: () => import("./funding-carry-area").then((m) => m.fundingCarryAreaFrame),
+  },
+  "volume-share-donut": {
+    load: () => import("./volume-share-donut").then((m) => m.volumeShareDonutFrame),
+  },
+  "volume-movers-scatter": {
+    load: () => import("./volume-movers-scatter").then((m) => m.volumeMoversScatterFrame),
+  },
+  "funding-leaderboard-bars": {
+    load: () => import("./funding-leaderboard-bars").then((m) => m.fundingLeaderboardBarsFrame),
+  },
+  "funding-crowding-scatter": {
+    load: () => import("./funding-crowding-scatter").then((m) => m.fundingCrowdingScatterFrame),
+  },
+  "liquidity-basis-bars": {
+    load: () => import("./liquidity-basis-bars").then((m) => m.liquidityBasisBarsFrame),
+  },
+  "coin-momentum-heatmap": {
+    load: () => import("./coin-momentum-heatmap").then((m) => m.coinMomentumHeatmapFrame),
+  },
+  "coin-momentum-scatter": {
+    load: () => import("./coin-momentum-scatter").then((m) => m.coinMomentumScatterFrame),
+  },
+  "trending-bars": {
+    load: () => import("./trending-bars").then((m) => m.trendingBarsFrame),
+  },
+  "nft-activity-bars": {
+    load: () => import("./nft-activity-bars").then((m) => m.nftActivityBarsFrame),
+  },
+  "dominance-bars": {
+    load: () => import("./dominance-bars").then((m) => m.dominanceBarsFrame),
+  },
+  "trending-bubbles": {
+    load: () => import("./trending-bubbles").then((m) => m.trendingBubblesFrame),
+  },
+  "yield-risk-pie": {
+    load: () => import("./yield-risk-pie").then((m) => m.yieldRiskPieFrame),
+  },
+  "dex-pool-liquidity-scatter": {
+    load: () => import("./dex-pool-liquidity-scatter").then((m) => m.dexPoolLiquidityScatterFrame),
+  },
+  "protocol-fees-vs-tvl-scatter": {
+    load: () => import("./protocol-fees-vs-tvl-scatter").then((m) => m.protocolFeesVsTvlScatterFrame),
+  },
+  "yield-composition-scatter": {
+    load: () => import("./yield-composition-scatter").then((m) => m.yieldCompositionScatterFrame),
+  },
+  "protocol-tvl-by-category": {
+    load: () => import("./protocol-tvl-by-category").then((m) => m.protocolTvlByCategoryFrame),
+  },
+  "protocol-tvl-share-area": {
+    load: () => import("./protocol-tvl-share-area").then((m) => m.protocolTvlShareAreaFrame),
+  },
+  "dex-volume-share-area": {
+    load: () => import("./dex-volume-share-area").then((m) => m.dexVolumeShareAreaFrame),
+  },
+  "yield-momentum-bars": {
+    load: () => import("./yield-momentum-bars").then((m) => m.yieldMomentumBarsFrame),
+  },
+  "btc-difficulty-chart": {
+    load: () => import("./btc-difficulty-chart").then((m) => m.btcDifficultyChartFrame),
+  },
+  "btc-block-size-bars": {
+    load: () => import("./btc-block-size-bars").then((m) => m.btcBlockSizeBarsFrame),
+  },
+  "chain-price-movers": {
+    load: () => import("./chain-price-movers").then((m) => m.chainPriceMoversFrame),
+  },
+  "chain-activity-scatter": {
+    load: () => import("./chain-activity-scatter").then((m) => m.chainActivityScatterFrame),
+  },
+  "mempool-fee-curve": {
+    load: () => import("./mempool-fee-curve").then((m) => m.mempoolFeeCurveFrame),
+  },
+  "mining-pools-share": {
+    load: () => import("./mining-pools-share").then((m) => m.miningPoolsShareFrame),
+  },
+  "options-max-pain": {
+    load: () => import("./options-max-pain").then((m) => m.optionsMaxPainFrame),
+  },
+  "options-oi-skew": {
+    load: () => import("./options-oi-skew").then((m) => m.optionsOiSkewFrame),
+  },
+  "options-vol-spread": {
+    load: () => import("./options-vol-spread").then((m) => m.optionsVolSpreadFrame),
+  },
+  "options-flow-skew": {
+    load: () => import("./options-flow-skew").then((m) => m.optionsFlowSkewFrame),
+  },
+  "options-vol-smile": {
+    load: () => import("./options-vol-smile").then((m) => m.optionsVolSmileFrame),
+  },
+  "options-oi-ladder-heatmap": {
+    load: () => import("./options-oi-ladder-heatmap").then((m) => m.optionsOiLadderHeatmapFrame),
+  },
+  "options-max-pain-multi": {
+    load: () => import("./options-max-pain-multi").then((m) => m.optionsMaxPainMultiFrame),
+  },
+  "mvrv-zscore-chart": {
+    load: () => import("./mvrv-zscore-chart").then((m) => m.mvrvZscoreChartFrame),
+  },
+  "nupl-cycle-chart": {
+    load: () => import("./nupl-cycle-chart").then((m) => m.nuplCycleChartFrame),
+  },
+  "cycle-valuation-composite": {
+    load: () => import("./cycle-valuation-composite").then((m) => m.cycleValuationCompositeFrame),
+  },
+  "onchain-oscillator-overlay": {
+    load: () => import("./onchain-oscillator-overlay").then((m) => m.onchainOscillatorOverlayFrame),
+  },
+  "eth-issuance-impact": {
+    load: () => import("./eth-issuance-impact").then((m) => m.ethIssuanceImpactFrame),
+  },
+  "treasury-avg-rate-bars": {
+    load: () => import("./treasury-avg-rate-bars").then((m) => m.treasuryAvgRateBarsFrame),
+  },
+  "treasury-auction-demand-scatter": {
+    load: () => import("./treasury-auction-demand-scatter").then((m) => m.treasuryAuctionDemandScatterFrame),
+  },
+  "treasury-auction-size-bars": {
+    load: () => import("./treasury-auction-size-bars").then((m) => m.treasuryAuctionSizeBarsFrame),
+  },
+  "nyfed-reference-rate-bars": {
+    load: () => import("./nyfed-reference-rate-bars").then((m) => m.nyfedReferenceRateBarsFrame),
+  },
+  "nyfed-sofr-term-averages-bars": {
+    load: () => import("./nyfed-sofr-term-averages-bars").then((m) => m.nyfedSofrTermAveragesBarsFrame),
+  },
+  "nyfed-fed-funds-band-gauge": {
+    load: () => import("./nyfed-fed-funds-band-gauge").then((m) => m.nyfedFedFundsBandGaugeFrame),
+  },
+  "treasury-debt-composition-area": {
+    load: () => import("./treasury-debt-composition-area").then((m) => m.treasuryDebtCompositionAreaFrame),
+  },
+  "ofr-stress-category-area": {
+    load: () => import("./ofr-stress-category-area").then((m) => m.ofrStressCategoryAreaFrame),
+  },
+  "misery-index": {
+    load: () => import("./misery-index").then((m) => m.miseryIndexFrame),
+  },
+  "real-wages": {
+    load: () => import("./real-wages").then((m) => m.realWagesFrame),
+  },
+  "labor-force-flow": {
+    load: () => import("./labor-force-flow").then((m) => m.laborForceFlowFrame),
+  },
+  "payrolls-bars": {
+    load: () => import("./payrolls-bars").then((m) => m.payrollsBarsFrame),
+  },
+  "short-volume-bars": {
+    load: () => import("./short-volume-bars").then((m) => m.shortVolumeBarsFrame),
+  },
+  "capital-structure-bars": {
+    load: () => import("./capital-structure-bars").then((m) => m.capitalStructureBarsFrame),
+  },
+  "filings-mix": {
+    load: () => import("./filings-mix").then((m) => m.filingsMixFrame),
+  },
+  "fx-cross-heatmap": {
+    load: () => import("./fx-cross-heatmap").then((m) => m.fxCrossHeatmapFrame),
+  },
+  "etf-issuer-treemap": {
+    load: () => import("./etf-issuer-treemap").then((m) => m.etfIssuerTreemapFrame),
+  },
+  "fx-trend-chart": {
+    load: () => import("./fx-trend-chart").then((m) => m.fxTrendChartFrame),
+  },
+  "fear-greed-chart": {
+    load: () => import("./fear-greed-chart").then((m) => m.fearGreedChartFrame),
+  },
+  "prediction-market-bars": {
+    load: () => import("./prediction-market-bars").then((m) => m.predictionMarketBarsFrame),
+  },
+  "dxy-chart": {
+    load: () => import("./dxy-chart").then((m) => m.dxyChartFrame),
+  },
+  "fx-movers-bars": {
+    load: () => import("./fx-movers-bars").then((m) => m.fxMoversBarsFrame),
+  },
+  "prediction-market-scatter": {
+    load: () => import("./prediction-market-scatter").then((m) => m.predictionMarketScatterFrame),
+  },
+  "etf-issuer-bars": {
+    load: () => import("./etf-issuer-bars").then((m) => m.etfIssuerBarsFrame),
+  },
+  "portfolio-movers": {
+    load: () => import("./portfolio-movers").then((m) => m.portfolioMoversFrame),
+  },
+  "portfolio-value-bars": {
+    load: () => import("./portfolio-value-bars").then((m) => m.portfolioValueBarsFrame),
+  },
+  "etf-flow-calendar": {
+    load: () => import("./etf-flow-calendar").then((m) => m.etfFlowCalendarFrame),
+  },
+  "prediction-markets-bubble": {
+    load: () => import("./prediction-markets-bubble").then((m) => m.predictionMarketsBubbleFrame),
+  },
 };

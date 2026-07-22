@@ -98,3 +98,21 @@ export function toSparkline(
     value: p.value,
   }));
 }
+
+/**
+ * Min-max normalize a series to the [0, 1] range using ITS OWN min/max — puts
+ * signals with unrelated native scales (a Z-score, a −1…1 fraction, a 0–100
+ * oscillator, a tiny Reserve Risk ratio) on one comparable axis for an overlay
+ * chart. A flat series (max === min) normalizes to a constant 0.5 rather than
+ * dividing by zero. Normalize AFTER windowing (e.g. via {@link tail}) so the
+ * 0–1 range reflects the visible window, not the full multi-year history.
+ */
+export function normalize(series: SeriesPoint[]): SeriesPoint[] {
+  if (series.length === 0) return [];
+  const values = series.map((p) => p.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min;
+  if (range === 0) return series.map((p) => ({ time: p.time, value: 0.5 }));
+  return series.map((p) => ({ time: p.time, value: (p.value - min) / range }));
+}

@@ -25,6 +25,16 @@ interface AssetCtx {
   prevDayPx: string;
   /** Open interest in base-asset units (string from the API). */
   openInterest: string;
+  /** Predicted hourly funding rate, decimal (string from the API). */
+  funding?: string;
+  /** Trailing-24h notional volume, USD (string from the API). */
+  dayNtlVlm?: string;
+  /** Mark price's premium over the oracle price, decimal fraction (string from the API). */
+  premium?: string;
+  /** Oracle price the mark price is anchored to (string from the API). */
+  oraclePx?: string;
+  /** [bid, ask] impact prices at a fixed notional depth (strings from the API). */
+  impactPxs?: [string, string];
 }
 
 interface PerpMeta {
@@ -68,6 +78,17 @@ const VENUE_LABELS: Record<string, string> = {
  */
 const dexOf = (symbol: string): string =>
   symbol.includes(":") ? symbol.split(":")[0] : "";
+
+/**
+ * Parse an optional numeric wire field; a missing or non-finite value both
+ * collapse to `undefined` so a DayStats extra is simply omitted rather than
+ * carrying a NaN.
+ */
+function optNum(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
 
 async function info<T>(body: Record<string, unknown>): Promise<T> {
   // Routed through the shared helper for a request timeout + (Node) User-Agent;
@@ -263,11 +284,32 @@ export class HyperliquidProvider implements MarketDataProvider {
           const markPx = Number(ctx.markPx);
           const prevDayPx = Number(ctx.prevDayPx);
           if (!Number.isFinite(markPx) || !Number.isFinite(prevDayPx)) return;
-          out[asset.name] = {
+          const stat: DayStats = {
             markPx,
             prevDayPx,
             changePct: prevDayPx ? ((markPx - prevDayPx) / prevDayPx) * 100 : 0,
           };
+          // Additive extras straight off the same AssetCtx — funding, 24h
+          // notional volume, mark-vs-oracle premium/oracle price, and the
+          // bid/ask impact prices. Each is independently optional so one
+          // missing/malformed field never drops the whole row.
+          const funding = optNum(ctx.funding);
+          const dayNtlVlm = optNum(ctx.dayNtlVlm);
+          const premium = optNum(ctx.premium);
+          const oraclePx = optNum(ctx.oraclePx);
+          const impactBid = ctx.impactPxs
+            ? optNum(ctx.impactPxs[0])
+            : undefined;
+          const impactAsk = ctx.impactPxs
+            ? optNum(ctx.impactPxs[1])
+            : undefined;
+          if (funding !== undefined) stat.funding = funding;
+          if (dayNtlVlm !== undefined) stat.dayNtlVlm = dayNtlVlm;
+          if (premium !== undefined) stat.premium = premium;
+          if (oraclePx !== undefined) stat.oraclePx = oraclePx;
+          if (impactBid !== undefined && impactAsk !== undefined)
+            stat.impactPxs = [impactBid, impactAsk];
+          out[asset.name] = stat;
         });
       }),
     );

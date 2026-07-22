@@ -254,7 +254,16 @@ export class TreasuryProvider implements MarketDataProvider {
       const time = Date.parse(`${entry.record_date}T00:00:00Z`);
       if (!entry.record_date || total === null || !Number.isFinite(time))
         continue;
-      trend.push({ time, date: entry.record_date, total });
+      const point: NationalDebtPoint = { time, date: entry.record_date, total };
+      // Same public/intragovernmental split as the latest-reading fields below,
+      // carried per point so a trend consumer (e.g. a stacked composition
+      // chart) doesn't need a second fetch.
+      const heldByPublic = finiteNumber(entry.debt_held_public_amt);
+      const intragovernmental = finiteNumber(entry.intragov_hold_amt);
+      if (heldByPublic !== null) point.heldByPublic = heldByPublic;
+      if (intragovernmental !== null)
+        point.intragovernmental = intragovernmental;
+      trend.push(point);
     }
     if (trend.length === 0)
       throw new Error("treasury debt to the penny: no usable rows");
