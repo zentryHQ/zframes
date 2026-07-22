@@ -31,6 +31,25 @@ export interface BarChartProps {
 
 const FONT = "11px 'DM Sans', sans-serif";
 const DEFAULT_COLOR = "var(--color-highlight, #8b8bff)";
+/** Rough per-character width of {@link FONT}, used to size/fit label text. */
+const CHAR_PX = 6.4;
+/** Gap between a horizontal-bar's label text and the bar itself. */
+const LABEL_GAP = 8;
+/** Left gutter before label text so the leading glyph never clips at x=0. */
+const LABEL_INSET = 4;
+
+/**
+ * Truncate a label with a trailing ellipsis so its rendered width never
+ * exceeds `maxPx` — keeps long category names from overflowing the label
+ * gutter and clipping their leading characters at the SVG's left edge. The
+ * full label is preserved in the row's hover `<title>`.
+ */
+const fitLabel = (label: string, maxPx: number): string => {
+  const maxChars = Math.floor(maxPx / CHAR_PX);
+  if (label.length <= maxChars) return label;
+  if (maxChars <= 1) return "…";
+  return `${label.slice(0, maxChars - 1)}…`;
+};
 
 /**
  * Categorical bar chart (vertical or horizontal), diverging-aware: pass
@@ -79,7 +98,9 @@ const BarChart = ({
 
     if (orientation === "horizontal") {
       const labelWidth = Math.min(
-        Math.max(...data.map((d) => d.label.length)) * 6.4 + 8,
+        Math.max(...data.map((d) => d.label.length)) * CHAR_PX +
+          LABEL_GAP +
+          LABEL_INSET,
         width * 0.35,
       );
       const valuePad = showValues ? 52 : 8;
@@ -141,14 +162,14 @@ const BarChart = ({
         .data(data)
         .enter()
         .append("text")
-        .attr("x", labelWidth - 8)
+        .attr("x", labelWidth - LABEL_GAP)
         .attr("y", (_, i) => i * rowHeight + rowHeight / 2)
         .attr("text-anchor", "end")
         .attr("dominant-baseline", "central")
         .attr("fill", "currentColor")
         .attr("fill-opacity", 0.65)
         .style("font", FONT)
-        .text((d) => d.label);
+        .text((d) => fitLabel(d.label, labelWidth - LABEL_GAP - LABEL_INSET));
 
       // Value labels sit on the empty side of the row: positive bars grow
       // right, so the label rides the bar tip; negative bars grow left toward
