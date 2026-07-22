@@ -56,6 +56,16 @@ export interface DayStats {
   markPx: number;
   prevDayPx: number;
   changePct: number;
+  /** Predicted hourly funding rate, decimal (e.g. 0.0000125 = 0.00125%/h). Only present when the wire payload carries it. */
+  funding?: number;
+  /** Trailing-24h notional trading volume, USD. */
+  dayNtlVlm?: number;
+  /** Mark price's premium over the oracle price, decimal fraction (e.g. 0.0003 = 3bps). */
+  premium?: number;
+  /** Oracle price the mark price is anchored to, USD. */
+  oraclePx?: number;
+  /** [bid, ask] impact prices at a fixed notional depth — used to estimate order-book spread/slippage. */
+  impactPxs?: [number, number];
 }
 
 /** One historical funding observation for a perp symbol. */
@@ -264,6 +274,10 @@ export interface NationalDebtPoint {
   date: string;
   /** Total public debt outstanding, USD. */
   total: number;
+  /** Debt held by the public, USD. Present from the same fetch as `total`. */
+  heldByPublic?: number;
+  /** Intragovernmental holdings, USD. Present from the same fetch as `total`. */
+  intragovernmental?: number;
 }
 
 /**
@@ -299,6 +313,16 @@ export interface FinancialStressPoint {
   date: string;
   /** Overall index value (0 = historical average; >0 stressed, <0 calm). */
   value: number;
+  /** Credit category contribution (signed). Present from the same fetch as `value`. */
+  credit?: number;
+  /** Equity valuation category contribution (signed). */
+  equityValuation?: number;
+  /** Safe assets category contribution (signed). */
+  safeAssets?: number;
+  /** Funding category contribution (signed). */
+  funding?: number;
+  /** Volatility category contribution (signed). */
+  volatility?: number;
 }
 
 /**
@@ -666,6 +690,10 @@ export interface OptionsStrikeOi {
   callOi: number;
   /** Put open interest at this strike (contracts). */
   putOi: number;
+  /** Call mark implied vol % when a call is listed here (e.g. 58.4 = 58.4%, matching `OptionsSummary.avgIv`'s unscaled convention). */
+  callIv?: number;
+  /** Put mark implied vol % when a put is listed here. */
+  putIv?: number;
 }
 
 /** Per-strike call/put OI for one expiry. */
@@ -700,6 +728,8 @@ export interface OptionsSummary {
   avgIv: number;
   /** Per-strike OI for the single nearest expiry, ascending by strike. */
   nearestExpiry: OptionsExpiryStrikes;
+  /** Every expiry present in the book (not just nearest), nearest-first — lets a frame build a strike-vs-expiry ladder or compare a derived metric (e.g. max pain) across the term structure. */
+  allExpiries?: OptionsExpiryStrikes[];
   /** Epoch ms the snapshot was built. */
   asOf: number;
 }

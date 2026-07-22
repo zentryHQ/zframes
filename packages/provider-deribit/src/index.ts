@@ -2,6 +2,7 @@ import type {
   Capability,
   MarketDataProvider,
   OptionsExpiryStrikes,
+  OptionsStrikeOi,
   OptionsSummary,
   VolatilityPoint,
 } from "@zframes/spec";
@@ -73,6 +74,32 @@ function parseExpiryMs(expiry: string): number {
   return Date.UTC(year, month, day, 8, 0, 0);
 }
 
+/** Accumulator cell for one strike: running OI + the latest mark IV seen on
+ *  each side (a strike typically has one call row and one put row in the
+ *  book-summary response, so this is set once per side, not averaged). */
+interface StrikeAccumulator {
+  callOi: number;
+  putOi: number;
+  callIv?: number;
+  putIv?: number;
+}
+
+/** Flatten one expiry's strike map into the ascending-by-strike array shape
+ *  both `nearestExpiry` and `allExpiries` return. */
+function toStrikes(
+  strikeMap: Map<number, StrikeAccumulator>,
+): OptionsStrikeOi[] {
+  return [...strikeMap.entries()]
+    .map(([strike, acc]) => ({
+      strike,
+      callOi: acc.callOi,
+      putOi: acc.putOi,
+      callIv: acc.callIv,
+      putIv: acc.putIv,
+    }))
+    .sort((a, b) => a.strike - b.strike);
+}
+
 /**
  * Keyless Deribit options provider (no API key, CORS-open). Surfaces BTC/ETH
  * options-market signals: put/call ratio, open-interest by strike, and the DVOL
@@ -103,11 +130,8 @@ export class DeribitProvider implements MarketDataProvider {
       let ivWeighted = 0;
       let ivWeight = 0;
       let underlyingPrice = 0;
-      // expiry -> strike -> { callOi, putOi }
-      const byExpiry = new Map<
-        string,
-        Map<number, { callOi: number; putOi: number }>
-      >();
+      // expiry -> strike -> { callOi, putOi, callIv?, putIv? }
+      const byExpiry = new Map<string, Map<number, StrikeAccumulator>>();
 
       for (const row of rows) {
         const parsed = INSTRUMENT_RE.exec(row.instrument_name);
@@ -141,8 +165,14 @@ export class DeribitProvider implements MarketDataProvider {
           cell = { callOi: 0, putOi: 0 };
           strikes.set(strike, cell);
         }
-        if (isCall) cell.callOi += oi;
-        else cell.putOi += oi;
+        const iv = Number.isFinite(row.mark_iv) ? row.mark_iv : undefined;
+        if (isCall) {
+          cell.callOi += oi;
+          if (iv !== undefined) cell.callIv = iv;
+        } else {
+          cell.putOi += oi;
+          if (iv !== undefined) cell.putIv = iv;
+        }
       }
 
       // Nearest future expiry (fall back to the earliest overall if all past).
@@ -161,19 +191,21 @@ export class DeribitProvider implements MarketDataProvider {
         strikes: [],
       };
       if (chosen) {
-        const strikeMap = byExpiry.get(chosen.expiry)!;
         nearestExpiry = {
           expiry: chosen.expiry,
           expiryMs: chosen.expiryMs,
-          strikes: [...strikeMap.entries()]
-            .map(([strike, oi]) => ({
-              strike,
-              callOi: oi.callOi,
-              putOi: oi.putOi,
-            }))
-            .sort((a, b) => a.strike - b.strike),
+          strikes: toStrikes(byExpiry.get(chosen.expiry)!),
         };
       }
+
+      // Every expiry present in the book, not just the nearest — lets frames
+      // build a strike-vs-expiry ladder (e.g. an OI heatmap) or compare a
+      // derived metric (e.g. max pain) across the term structure.
+      const allExpiries: OptionsExpiryStrikes[] = expiries.map((e) => ({
+        expiry: e.expiry,
+        expiryMs: e.expiryMs,
+        strikes: toStrikes(byExpiry.get(e.expiry)!),
+      }));
 
       return {
         currency: ccy,
@@ -186,6 +218,7 @@ export class DeribitProvider implements MarketDataProvider {
         putVolume,
         avgIv: ivWeight > 0 ? ivWeighted / ivWeight : 0,
         nearestExpiry,
+        allExpiries,
         asOf: Date.now(),
       };
     });

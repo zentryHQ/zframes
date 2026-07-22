@@ -57,7 +57,21 @@ function parseFsi(csv: string): FinancialStress {
     const value = finiteNumber(cells[1]);
     const time = Date.parse(`${date}T00:00:00Z`);
     if (!date || value === null || !Number.isFinite(time)) continue;
-    points.push({ time, date, value });
+    const point: FinancialStressPoint = { time, date, value };
+    // Same five category columns as the latest-reading `categories` below,
+    // carried per point so a trend consumer (e.g. a stacked category chart)
+    // doesn't need a second fetch.
+    const credit = finiteNumber(cells[2]);
+    const equityValuation = finiteNumber(cells[3]);
+    const safeAssets = finiteNumber(cells[4]);
+    const funding = finiteNumber(cells[5]);
+    const volatility = finiteNumber(cells[6]);
+    if (credit !== null) point.credit = credit;
+    if (equityValuation !== null) point.equityValuation = equityValuation;
+    if (safeAssets !== null) point.safeAssets = safeAssets;
+    if (funding !== null) point.funding = funding;
+    if (volatility !== null) point.volatility = volatility;
+    points.push(point);
     lastRow = cells;
   }
   if (!lastRow || points.length === 0)
