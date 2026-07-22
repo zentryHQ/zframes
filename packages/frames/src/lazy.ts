@@ -42,6 +42,9 @@ export const frameLoaders: Record<string, FrameLoader> = {
       import("./bitcoin-dominance").then((m) => m.bitcoinDominanceFrame),
   },
   clock: { load: () => import("./clock").then((m) => m.clockFrame) },
+  "custom-data": {
+    load: () => import("./custom-data").then((m) => m.customDataFrame),
+  },
   "daily-analysis": {
     load: () => import("./daily-analysis").then((m) => m.dailyAnalysisFrame),
   },
@@ -378,13 +381,16 @@ export const frameLoaders: Record<string, FrameLoader> = {
     load: () => import("./tvl-bubbles").then((m) => m.tvlBubblesFrame),
   },
   "protocol-tvl-bubbles": {
-    load: () => import("./protocol-tvl-bubbles").then((m) => m.protocolTvlBubblesFrame),
+    load: () =>
+      import("./protocol-tvl-bubbles").then((m) => m.protocolTvlBubblesFrame),
   },
   "dex-volume-bubbles": {
-    load: () => import("./dex-volume-bubbles").then((m) => m.dexVolumeBubblesFrame),
+    load: () =>
+      import("./dex-volume-bubbles").then((m) => m.dexVolumeBubblesFrame),
   },
   "protocol-fees-bubbles": {
-    load: () => import("./protocol-fees-bubbles").then((m) => m.protocolFeesBubblesFrame),
+    load: () =>
+      import("./protocol-fees-bubbles").then((m) => m.protocolFeesBubblesFrame),
   },
   "sector-bubbles": {
     load: () => import("./sector-bubbles").then((m) => m.sectorBubblesFrame),
