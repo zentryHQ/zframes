@@ -20,7 +20,7 @@ pnpm --filter @zframes/storybook dev  # Storybook — every frame in all variant
 > - `@zframes/spec` — domain kernel (React- and Node-free): `types`, `DashboardSpecSchema` (`spec`), `routes`, `frame`/registry, `presets`, `catalogue`.
 > - `@zframes/data-primitives` — the `fetch` + `cache` transport primitives (React-free).
 > - `@zframes/store` — the XDG global store (Node, zero-dep leaf).
-> - `@zframes/zai` — the agent-orb harness (`agent`, Node).
+> - `@zframes/zai` — the agent-orb harness (`agent`, Node). Spawns the user's local CLI (`claude -p`/`codex exec`) inheriting the server env; `ZFRAMES_CLAUDE_CONFIG_DIR` / `ZFRAMES_CODEX_HOME` point **only** zframes's child at a specific account (config/creds dir) — safe to export globally, never hijacks a bare `claude`/`codex` (`resolveAgentEnv`).
 > - `@zframes/account` — keyed-account HMAC relay + credentials (Node).
 > - `@zframes/serve` — spec read/write + official-data proxy (Node).
 > - `@zframes/vite` — the `dashboardWriteback()` dev plugin (Node; composes serve/zai/account/store).
