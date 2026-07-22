@@ -192,7 +192,7 @@ export const noteMeta = defineFrameMeta({
       .string()
       .min(1)
       .describe(
-        "The note's text content. Supports a Markdown subset — **bold**, *italic*, `code`, [text](https://url), #/##/### headings, and unordered (-) / ordered (1.) lists. Blank lines start new paragraphs; single newlines become line breaks. Plain text works too.",
+        "The note's text content. Renders a safe Markdown subset — **bold**, *italic*, `code`, [text](https://url), #/##/### headings, and unordered (-) / ordered (1.) lists (raw HTML is never executed). Blank lines start new paragraphs; single newlines become line breaks. Plain text works too.",
       ),
     align: z
       .enum(["left", "center"])
