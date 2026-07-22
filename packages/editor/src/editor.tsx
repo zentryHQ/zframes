@@ -36,6 +36,7 @@ import { BACKGROUND_SCENES, THEME_PRESETS, type ThemePreset } from "@zframes/spe
 import {
   FONT_FAMILY_STACKS,
   NUMERIC_VARIANTS,
+  surfaceModeVars,
   type DashboardBackground,
   type DashboardSpec,
   type DashboardTypography,
@@ -86,6 +87,7 @@ export function DashboardEditor({
   onDownColorChange,
   onModeChange,
   onBackgroundChange,
+  onSurfaceChange,
 }: {
   spec: DashboardSpec;
   registry: FrameRegistry;
@@ -121,6 +123,10 @@ export function DashboardEditor({
    *  <Background> the editor doesn't own lives above .zf-editor on <FramesProvider>.
    *  Mirrors the accent/mode callbacks; the picked spec lands via collectSpec. */
   onBackgroundChange?: (background: DashboardBackground) => void;
+  /** Notified on every dark/light surface-mode toggle (and Cancel-restore) so the
+   *  host repaints the full-bleed backdrop live — it renders outside .zf-editor,
+   *  which flips its own cards via inline vars. Mirrors onBackgroundChange. */
+  onSurfaceChange?: (surface: DashboardSpec["theme"]["surface"]) => void;
 }) {
   const providers = useProviders();
 
@@ -412,6 +418,14 @@ export function DashboardEditor({
     spec.background,
     onBackgroundChange,
   ]);
+
+  // The full-bleed backdrop (outside .zf-editor) must flip with the dark/light
+  // Mode toggle live — the editor's own cards flip via inline vars, but the host
+  // backdrop reads this. Reports on mount, toggle, and Cancel-restore (all set
+  // `surface`), mirroring the mode/background effects above.
+  useEffect(() => {
+    onSurfaceChange?.(surface);
+  }, [surface, onSurfaceChange]);
 
   // Live gap: GridStack positions items absolutely, so the inter-frame gutter is
   // its `margin` (half on each side → matches the bare renderer's CSS `gap`).
@@ -1374,13 +1388,10 @@ export function DashboardEditor({
           ["--zf-accent-sat" as string]: `${accentSat}%`,
           ["--zf-base-hue" as string]: baseHue,
           ["--zf-base-sat" as string]: `${baseSat}%`,
-          // Surface mode — core's FRAME_CSS reads these four lightness vars
-          // (scoped to .zf-grid, .zf-editor) to flip ink + card surface between
-          // the dark and the daylight scheme. Dark values reproduce the original.
-          ["--zf-ink-l" as string]: surface === "light" ? "16%" : "100%",
-          ["--zf-surf-l1" as string]: surface === "light" ? "98%" : "12.5%",
-          ["--zf-surf-l2" as string]: surface === "light" ? "96%" : "7%",
-          ["--zf-surf-l3" as string]: surface === "light" ? "94%" : "5.3%",
+          // Surface mode — shared helper (same source the renderer uses, so the
+          // customise preview never drifts from the served runtime). FRAME_CSS
+          // reads these four lightness vars to flip ink + card surface.
+          ...surfaceModeVars(surface),
           // Semantic gain/loss colours — frames' UP_COLOR/DOWN_COLOR resolve these.
           ["--zf-up" as string]: upColor,
           ["--zf-down" as string]: downColor,

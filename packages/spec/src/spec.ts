@@ -288,6 +288,27 @@ export const ThemeSchema = z
 export type DashboardTheme = z.infer<typeof ThemeSchema>;
 
 /**
+ * The `--zf-*` lightness vars that implement `theme.surface`, so the renderer and
+ * the editor set ONE source of truth instead of duplicating the literals (which
+ * would drift, making the editor customise-preview diverge from the served
+ * runtime). `--zf-ink-l` drives every text/surface token FRAME_CSS redeclares off
+ * it; `--zf-surf-l1..3` are the card-gradient lightness stops. Dark reproduces
+ * the original baked values exactly (a no-op); light flips to near-white cards +
+ * dark ink. Returned as a plain record so both `style={{...}}` sites just spread it.
+ */
+export function surfaceModeVars(
+  surface: DashboardTheme["surface"],
+): Record<string, string> {
+  const light = surface === "light";
+  return {
+    "--zf-ink-l": light ? "16%" : "100%",
+    "--zf-surf-l1": light ? "98%" : "12.5%",
+    "--zf-surf-l2": light ? "96%" : "7%",
+    "--zf-surf-l3": light ? "94%" : "5.3%",
+  };
+}
+
+/**
  * Dashboard-wide *typography*. Same declare-vs-render split as the rest: the
  * spec carries the choice; the renderer/editor map it to the `--zf-font-family`
  * and `--zf-numeric` CSS vars that FRAME_CSS — and the chart text utilities, via

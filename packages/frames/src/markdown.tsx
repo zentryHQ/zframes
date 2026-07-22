@@ -16,7 +16,7 @@ import { Fragment, type ReactNode } from "react";
  */
 
 const cx = {
-  code: "rounded bg-white/10 px-1 py-px font-mono text-[0.85em] text-strong",
+  code: "rounded px-1 py-px font-mono text-[0.85em] text-strong",
   link: "text-highlight underline underline-offset-2 hover:opacity-80",
   strong: "text-strong font-bold",
   em: "italic",
@@ -60,7 +60,13 @@ function parseInline(text: string): ReactNode[] {
       if (end > i) {
         flush();
         nodes.push(
-          <code key={key++} className={cx.code}>
+          <code
+            key={key++}
+            className={cx.code}
+            // Flip the chip tint with the surface mode (--zf-ink-l): white on
+            // dark cards, dark on light — a fixed white/10 is invisible in light.
+            style={{ background: "hsl(0 0% var(--zf-ink-l, 100%) / 0.1)" }}
+          >
             {text.slice(i + 1, end)}
           </code>,
         );
@@ -114,10 +120,13 @@ function parseInline(text: string): ReactNode[] {
       }
     }
 
-    // *italic*
+    // *italic* — require a closing `*` with non-empty content between the
+    // markers. Without this guard an unterminated `**` falls through the bold
+    // branch and its two adjacent asterisks pair here into an empty <em>,
+    // silently dropping the `*`s the user typed. Empty/unterminated → literal.
     if (ch === "*") {
       const end = text.indexOf("*", i + 1);
-      if (end > i) {
+      if (end > i + 1) {
         flush();
         nodes.push(
           <em key={key++} className={cx.em}>

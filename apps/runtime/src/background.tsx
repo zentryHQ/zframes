@@ -109,6 +109,25 @@ export function DashboardBackground({
   // spare. The static fills below (and the unicorn downgrade) still apply.
   const isLowEnd = useLowEndDevice();
 
+  // Light surface with no explicit/renderable backdrop: a soft light fill so the
+  // gutters read light like the cards (the dark body glow would clash). Every
+  // "render nothing" exit below returns this instead of null, so the clash never
+  // appears — not on low-end (skipped unicorn), nor an image with no URL yet, nor
+  // type "none". In dark mode it's null → the body's signature indigo glow shows.
+  const lightFill =
+    surface === "light" ? (
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          background: "linear-gradient(160deg, #f4f5f8, #e6e8f0)",
+        }}
+      />
+    ) : null;
+
   // Solid colour / custom gradient: a single opaque full-bleed fill painted
   // straight from the spec (the orb's recolor filters are scene-specific, so a
   // static fill doesn't take them). "none" renders nothing here — the body's
@@ -136,7 +155,7 @@ export function DashboardBackground({
   // stays legible. Optional blur softens a busy photo; when blurred the image is
   // slightly scaled so the blur's soft edge never reveals the backdrop.
   if (background.type === "image") {
-    if (!background.imageUrl) return null;
+    if (!background.imageUrl) return lightFill;
     const blur = background.imageBlur;
     return (
       <div
@@ -172,33 +191,16 @@ export function DashboardBackground({
       </div>
     );
   }
-  if (background.type !== "unicorn" || !background.projectId) {
-    // Light surface with no explicit backdrop: paint a soft light fill so the
-    // gutters read light like the cards (the dark body glow would clash). Dark
-    // mode keeps returning null → the body's signature indigo glow shows through.
-    if (surface === "light") {
-      return (
-        <div
-          aria-hidden
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 0,
-            pointerEvents: "none",
-            background: "linear-gradient(160deg, #f4f5f8, #e6e8f0)",
-          }}
-        />
-      );
-    }
-    return null;
-  }
+  // No unicorn scene (type "none", or unicorn without a projectId): nothing to
+  // paint in dark mode (body glow shows); the light fill in light mode.
+  if (background.type !== "unicorn" || !background.projectId) return lightFill;
 
   // Low-end: downgrade the WebGL scene to the body's static gradient glow
   // (styles.css body::before) — the same graceful default used when the engine
   // fails to load. Returning here means the lazy <UnicornScene> never mounts, so
   // the self-hosted engine is never even fetched. The orb's active/thinking
   // recolor is scene-only, so it's a no-op here — acceptable on weak hardware.
-  if (isLowEnd) return null;
+  if (isLowEnd) return lightFill;
 
   // Compose the accent spin + desaturation with the orb's "charge" filter: the
   // rolled/muted scene is the base, the orb's invert/rotate/saturate stacks on

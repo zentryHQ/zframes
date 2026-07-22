@@ -239,6 +239,25 @@ export const FRAME_CSS = `
   --color-card: hsl(0 0% var(--zf-ink-l, 100%) / 0.02);
   --color-card-hover: hsl(0 0% var(--zf-ink-l, 100%) / 0.1);
 }
+/* Accent-derived composite tokens (highlight text, data-ink line). theme.css
+   declares these at :root, where their var(--zf-accent-hue) resolves once against
+   the :root default and inherits pre-computed — so a per-frame / per-element
+   accent override never re-tints interior content (sparklines, highlighted
+   numerals, a heading/divider's accented rule). Redeclaring them ALSO on the
+   per-frame wrappers (.zf-frame / .zf-bare), where frameStyleVars + the
+   heading/divider accent config set --zf-accent-hue, resolves them against that
+   element's accent. Values mirror theme.css exactly, so the default is a no-op. */
+.zf-grid,
+.zf-editor,
+.zf-frame,
+.zf-bare {
+  --color-highlight: hsl(
+    var(--zf-accent-hue, 242) calc(var(--zf-accent-sat, 90%) + 10%) 89%
+  );
+  --color-accent-line: hsl(
+    var(--zf-accent-hue, 242) calc(var(--zf-accent-sat, 90%) - 5%) 72%
+  );
+}
 .zf-frame-title::before {
   content: '';
   width: 5px;

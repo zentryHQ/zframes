@@ -18,10 +18,10 @@ function Heading({ config }: { config: z.output<typeof schema> }) {
 
   const strong = accented
     ? "hsl(var(--zf-accent-hue) 80% 70% / 0.5)"
-    : "rgba(255,255,255,0.16)";
+    : "hsl(0 0% var(--zf-ink-l, 100%) / 0.16)";
   const mid = accented
     ? "hsl(var(--zf-accent-hue) 80% 70% / 0.06)"
-    : "rgba(255,255,255,0.02)";
+    : "hsl(0 0% var(--zf-ink-l, 100%) / 0.02)";
   const ruleRight = `linear-gradient(90deg, ${strong}, ${mid} 65%, transparent)`;
   const ruleLeft = `linear-gradient(90deg, transparent, ${mid} 35%, ${strong})`;
 
