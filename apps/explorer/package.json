@@ -53,6 +53,6 @@
     "playwright-core": "^1.53.0",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.8.0"
+    "typescript": "^7.0.2"
   }
 }
