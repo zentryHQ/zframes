@@ -56,7 +56,8 @@ jobs:
       # prepack (runtime build → tsup → assert-artifacts) runs inside pack, so
       # the published tarball always carries a freshly-built runtime bundle.
       - name: Pack
-        run: pnpm --filter zframes pack --pack-destination "$RUNNER_TEMP"
+        working-directory: packages/cli
+        run: pnpm pack --pack-destination "$RUNNER_TEMP"
 
       - name: Publish (OIDC, provenance)
         run: npm publish "$RUNNER_TEMP"/zframes-*.tgz
