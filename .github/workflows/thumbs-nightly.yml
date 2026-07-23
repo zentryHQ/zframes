@@ -31,7 +31,7 @@ jobs:
 
       - name: Install pnpm
         if: env.DATABASE_URL != '' && env.EXPLORER_BASE_URL != ''
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
 
       - name: Set up Node
         if: env.DATABASE_URL != '' && env.EXPLORER_BASE_URL != ''
