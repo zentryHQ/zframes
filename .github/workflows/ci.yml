@@ -5,17 +5,25 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+# A newer push to the same ref cancels the in-flight run — only the latest matters.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: typecheck · format · test · build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
+      # pnpm version comes from the root package.json `packageManager` field.
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9.6.0
 
       - name: Set up Node
         uses: actions/setup-node@v4
