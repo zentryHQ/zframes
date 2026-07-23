@@ -49,15 +49,27 @@ const CHAPTERS: Chapter[] = [
     specimens: [
       {
         frame: "price-chart",
-        className: "w-[min(34rem,72vw)] h-72 sm:h-80",
-        drift: 26,
+        className: "w-[min(28rem,80vw)] h-72",
+        drift: 22,
         tilt: -1.2,
       },
       {
         frame: "top-movers",
-        className: "w-64 h-80 hidden sm:block",
-        drift: 78,
+        className: "w-60 h-72 hidden sm:block",
+        drift: 64,
         tilt: 1.6,
+      },
+      {
+        frame: "market-hours",
+        className: "w-72 h-60 hidden sm:block",
+        drift: 96,
+        tilt: 1.2,
+      },
+      {
+        frame: "price-ticker",
+        className: "w-[min(26rem,80vw)] h-24 hidden md:block",
+        drift: 44,
+        tilt: -0.8,
       },
     ],
   },
@@ -66,19 +78,31 @@ const CHAPTERS: Chapter[] = [
     label: "Crypto & On-chain",
     headline: "The whole chain economy, mapped.",
     blurb:
-      "Market caps as living treemaps, TVL across every protocol, DEX volume, dominance — DeFiLlama and CoinGecko, no keys, cached politely.",
+      "Market caps as living treemaps, TVL across every protocol, trending coins, dominance — DeFiLlama and CoinGecko, no keys, cached politely.",
     specimens: [
       {
         frame: "market-cap-treemap",
-        className: "w-[min(32rem,72vw)] h-80",
-        drift: 30,
+        className: "w-[min(28rem,80vw)] h-72",
+        drift: 26,
         tilt: 1.2,
+      },
+      {
+        frame: "trending-coins",
+        className: "w-60 h-72 hidden sm:block",
+        drift: 70,
+        tilt: -1.4,
       },
       {
         frame: "bitcoin-dominance",
         className: "w-64 h-48 hidden sm:block",
-        drift: 90,
+        drift: 98,
         tilt: -1.8,
+      },
+      {
+        frame: "protocol-tvl-chart",
+        className: "w-80 h-56 hidden md:block",
+        drift: 48,
+        tilt: 1.6,
       },
     ],
   },
@@ -87,19 +111,31 @@ const CHAPTERS: Chapter[] = [
     label: "Bitcoin Network",
     headline: "Chain health, block by block.",
     blurb:
-      "Hashrate, mempool depth, the live fee curve, difficulty epochs, Lightning — mempool.space wired straight into cards.",
+      "Hashrate, mempool depth, the live fee curve, fresh blocks, difficulty epochs, Lightning — mempool.space wired straight into cards.",
     specimens: [
       {
         frame: "btc-hashrate",
-        className: "w-[min(30rem,72vw)] h-64",
-        drift: 24,
+        className: "w-[min(26rem,80vw)] h-64",
+        drift: 22,
         tilt: -1.4,
       },
       {
         frame: "mempool-fee-curve",
         className: "w-72 h-56 hidden sm:block",
-        drift: 82,
+        drift: 68,
         tilt: 1.4,
+      },
+      {
+        frame: "btc-fees",
+        className: "w-56 h-44 hidden sm:block",
+        drift: 100,
+        tilt: 1.8,
+      },
+      {
+        frame: "btc-blocks",
+        className: "w-80 h-48 hidden md:block",
+        drift: 46,
+        tilt: -1,
       },
     ],
   },
@@ -108,19 +144,31 @@ const CHAPTERS: Chapter[] = [
     label: "Derivatives & Options",
     headline: "Where leverage lives.",
     blurb:
-      "Funding rates across venues, open interest, put/call positioning and volatility off Deribit's public feed — the positioning picture under the price.",
+      "Funding rates across venues, open interest, strike ladders, put/call positioning and volatility off Deribit's public feed — the positioning picture under the price.",
     specimens: [
       {
         frame: "funding-rate-chart",
-        className: "w-[min(32rem,72vw)] h-72",
-        drift: 28,
+        className: "w-[min(28rem,80vw)] h-64",
+        drift: 24,
         tilt: 1.2,
       },
       {
+        frame: "options-oi-strike",
+        className: "w-80 h-56 hidden sm:block",
+        drift: 66,
+        tilt: -1.4,
+      },
+      {
         frame: "put-call-gauge",
-        className: "w-60 h-52 hidden sm:block",
-        drift: 86,
+        className: "w-56 h-48 hidden sm:block",
+        drift: 98,
         tilt: -1.6,
+      },
+      {
+        frame: "open-interest",
+        className: "w-64 h-28 hidden md:block",
+        drift: 44,
+        tilt: 1.6,
       },
     ],
   },
@@ -129,19 +177,31 @@ const CHAPTERS: Chapter[] = [
     label: "Macro & Rates",
     headline: "The official numbers, unofficial speed.",
     blurb:
-      "Treasury yield curve, reference rates, FX crosses, inflation and jobs — straight from the primary sources, rendered like a terminal, not a press release.",
+      "Treasury yield curve, reference rates, FX crosses, the dollar index — straight from the primary sources, rendered like a terminal, not a press release.",
     specimens: [
       {
         frame: "yield-curve",
-        className: "w-[min(32rem,72vw)] h-72",
-        drift: 26,
+        className: "w-[min(28rem,80vw)] h-64",
+        drift: 22,
         tilt: -1.2,
       },
       {
+        frame: "rates-board",
+        className: "w-72 h-64 hidden sm:block",
+        drift: 64,
+        tilt: 1.4,
+      },
+      {
         frame: "dxy-chart",
-        className: "w-64 h-52 hidden sm:block",
-        drift: 80,
+        className: "w-64 h-48 hidden sm:block",
+        drift: 96,
         tilt: 1.8,
+      },
+      {
+        frame: "fx-board",
+        className: "w-80 h-56 hidden md:block",
+        drift: 46,
+        tilt: -1.2,
       },
     ],
   },
@@ -150,19 +210,25 @@ const CHAPTERS: Chapter[] = [
     label: "Sentiment & News",
     headline: "What the crowd is feeling.",
     blurb:
-      "Fear & greed over time, live gauges, streaming headlines — the mood ring for the tape, refreshed all day.",
+      "Fear & greed over time, live mood gauges, streaming headlines — the mood ring for the tape, refreshed all day.",
     specimens: [
       {
         frame: "fear-greed-chart",
-        className: "w-[min(30rem,72vw)] h-64",
-        drift: 30,
+        className: "w-[min(26rem,80vw)] h-64",
+        drift: 24,
         tilt: 1.4,
       },
       {
         frame: "news-feed",
         className: "w-72 h-80 hidden sm:block",
-        drift: 84,
+        drift: 66,
         tilt: -1.4,
+      },
+      {
+        frame: "sentiment-gauge",
+        className: "w-56 h-48 hidden sm:block",
+        drift: 96,
+        tilt: 1.8,
       },
     ],
   },
@@ -206,7 +272,7 @@ function ChapterScene({ chapter, index }: { chapter: Chapter; index: number }) {
   const numeral = String(index + 1).padStart(2, "0");
 
   return (
-    <div className="relative mx-auto max-w-7xl px-6 py-16 sm:py-24">
+    <div className="relative mx-auto max-w-7xl px-6 py-12 sm:py-16">
       {/* Ghost chapter numeral — drifts counter-scroll behind everything. */}
       <Parallax
         distance={-70}
@@ -282,7 +348,7 @@ export function FramesShowcase() {
         <Reveal>
           <span className="zf-label mb-3 justify-center">The vocabulary</span>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Your agent composes from
+            Those boards were composed from
           </h2>
         </Reveal>
       </div>
