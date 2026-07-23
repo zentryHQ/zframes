@@ -4,15 +4,20 @@
 // preview, catalogue, tinker). Module scope = ONE instance for the whole app:
 // HyperliquidProvider opens a single shared WebSocket and every provider holds
 // TtlCache state, so all pages reuse one socket + one cache. "use client" keeps
-// this out of any server render. Keyless tier only — the keyed providers
-// (Binance, Wallet) are intentionally excluded from the public explorer.
+// this out of any server render. Keyless tier + the wallet provider — Binance
+// (the only truly keyed provider: needs a server relay) stays excluded.
 import { createRegistry } from "@zframes/core";
 import { allFrames } from "@zframes/frames";
 import { createKeylessProviders } from "@zframes/providers-keyless";
+import { WalletProvider } from "@zframes/provider-wallet";
 
-// Keyless set only — the shared factory never imports the keyed tier
-// (Binance/Wallet), so they can't enter the public explorer's bundle.
-export const providers = createKeylessProviders();
+// Keyless set + WalletProvider. Wallet is keyless-safe — a public on-chain
+// address read straight from the browser (public RPC + CoinGecko, no key, no
+// signing, no relay) — so it powers the `portfolio` capability on public
+// surfaces (e.g. the hero's live on-chain wallet portfolio). Binance is the one
+// provider still excluded: its signed relay has no server in the static/SSR
+// explorer.
+export const providers = [...createKeylessProviders(), new WalletProvider()];
 
 // Eager registry over all built-in frames. Lazy per-frame splitting is a later
 // bundle optimization; eager is correct and simplest.

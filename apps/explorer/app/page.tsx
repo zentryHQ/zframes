@@ -40,6 +40,8 @@ import { SectionHeading } from "@/app/lib/SectionHeading";
 const HERO_FLOATERS: {
   frame: string;
   config?: Record<string, unknown>;
+  /** Optional card-title override (e.g. the tracked wallet's name). */
+  title?: string;
   className: string;
   pos: string;
   mouse: number;
@@ -98,9 +100,17 @@ const HERO_FLOATERS: {
     delay: "-4.1s",
   },
   {
-    frame: "open-interest",
-    className: "w-72 h-40",
-    pos: "right-[5%] bottom-[15%] hidden lg:block",
+    // The value TREND for the same public wallet — total USD equity as a live
+    // liveline, ticking each heartbeat off streamed mids. Paired with the
+    // holdings breakdown so the hero shows both "how much" and "made of what".
+    frame: "portfolio-value",
+    config: {
+      source: "wallet",
+      address: "0xF977814e90dA44bFA03b6295A0616a897441acec",
+    },
+    title: "Binance · cold wallet",
+    className: "w-80 h-44",
+    pos: "right-[4%] bottom-[14%] hidden lg:block",
     mouse: 12,
     scroll: 56,
     tilt: -1.6,
@@ -114,6 +124,23 @@ const HERO_FLOATERS: {
     scroll: 64,
     tilt: 1.2,
     delay: "-3.2s",
+  },
+  {
+    // A famous public wallet, live on-chain — the product's `portfolio`
+    // capability reading a huge exchange cold wallet straight from the browser
+    // (keyless: public RPC + CoinGecko, no key, no relay). Big, real numbers.
+    frame: "portfolio-holdings",
+    config: {
+      source: "wallet",
+      address: "0xF977814e90dA44bFA03b6295A0616a897441acec",
+    },
+    title: "Binance · cold wallet",
+    className: "w-80 h-56",
+    pos: "left-[2%] top-[44%] hidden lg:block",
+    mouse: 20,
+    scroll: 58,
+    tilt: 1.8,
+    delay: "-3.6s",
   },
 ];
 
@@ -242,7 +269,11 @@ export default function GalleryHome() {
                     className={`glow-brand-soft opacity-90 ${f.className}`}
                     style={{ rotate: `${f.tilt}deg` }}
                   >
-                    <LiveFrame frame={f.frame} config={f.config} />
+                    <LiveFrame
+                      frame={f.frame}
+                      config={f.config}
+                      title={f.title}
+                    />
                   </div>
                 </div>
               </Parallax>
@@ -276,10 +307,10 @@ export default function GalleryHome() {
 
           <div className="animate-fade-up mt-9 flex flex-wrap items-center justify-center gap-3 [animation-delay:180ms]">
             <Link
-              href="/gallery"
+              href="#build"
               className="glow-brand zf-cta rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg"
             >
-              Browse the gallery
+              Build your own dashboard
             </Link>
             <Link
               href="/catalogue"
@@ -301,16 +332,6 @@ export default function GalleryHome() {
             </span>
           </div>
         </ScrollExit>
-
-        {/* Scroll cue. */}
-        <div
-          className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2"
-          aria-hidden="true"
-        >
-          <div className="flex h-12 w-7 justify-center overflow-hidden rounded-full border border-white/15 pt-2">
-            <span className="animate-scroll-cue h-2 w-[3px] rounded-full bg-indigo-300" />
-          </div>
-        </div>
       </section>
 
       {/* ── Act II · Proof — full boards, streaming ──────────────────────── */}
@@ -352,7 +373,7 @@ export default function GalleryHome() {
         <Reveal>
           <Link
             href="/gallery"
-            className="zf-press inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
+            className="glow-brand zf-cta inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg"
           >
             See every board in the gallery →
           </Link>
@@ -363,7 +384,7 @@ export default function GalleryHome() {
       <FramesShowcase />
 
       {/* ── Act IV · How — three beats to your own terminal ──────────────── */}
-      <section className="mx-auto max-w-7xl px-6 pt-24">
+      <section id="build" className="mx-auto max-w-7xl px-6 pt-24">
         <Reveal>
           <SectionHeading
             eyebrow="How it works"
@@ -401,8 +422,8 @@ export default function GalleryHome() {
         <Reveal>
           <SectionHeading
             eyebrow="Why zframes"
-            title="Not a dashboard builder"
-            description="You don't clone a repo or learn a builder UI. You install a skill, talk to your agent, and own the result."
+            title="Let your AI agent build it for you"
+            description="No repo to clone, no builder UI to learn. Install a skill, tell your agent what you want to watch, and it builds your dashboard — yours to own."
           />
         </Reveal>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -427,17 +448,6 @@ export default function GalleryHome() {
           />
           <ValueCard
             index={2}
-            title="Stocks first"
-            body="Live equity perps stream via Hyperliquid HIP-3 (xyz:TSLA, xyz:NVDA), with crypto, TVL, and sentiment alongside over the same free socket."
-            icon={
-              <>
-                <path d="M3 17l6-6 4 4 8-8" />
-                <path d="M17 7h4v4" />
-              </>
-            }
-          />
-          <ValueCard
-            index={3}
             title="Yours to own"
             body="Your dashboard is one git-trackable dashboard.json; the CLI serves it locally, editable in the browser. No hosted service, no lock-in."
             icon={
@@ -447,50 +457,26 @@ export default function GalleryHome() {
               </>
             }
           />
-          <ValueCard
-            index={4}
-            title="Self-improving"
-            body="A daily loop grades yesterday's market calls against what actually happened, tracks a hit-rate, and writes a fresh brief onto your board."
-            icon={
-              <>
-                <path d="M21 12a9 9 0 1 1-3-6.7" />
-                <path d="M21 4v5h-5" />
-              </>
-            }
-          />
-          <Reveal delay={5 * 0.06}>
-            <div className="zf-surface flex h-full flex-col justify-center p-6">
-              <p className="text-sm leading-relaxed text-white/70">
-                Preview any board above with live data, then fork it onto your
-                machine with a single prompt.
-              </p>
-              <Link
-                href="/catalogue"
-                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-300 transition-colors hover:text-indigo-200"
-              >
-                See the frame catalogue →
-              </Link>
-            </div>
-          </Reveal>
         </div>
       </section>
 
-      {/* ── Final CTA ────────────────────────────────────────────────────── */}
+      {/* ── Final CTA — build your own ───────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-6 pb-24 pt-20">
         <Reveal>
           <div className="zf-surface flex flex-col items-center gap-4 px-6 py-14 text-center">
-            <h2 className="text-balance text-2xl font-bold tracking-tight text-white">
-              Browse the gallery
+            <h2 className="text-balance text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              Build your own dashboard
             </h2>
             <p className="max-w-xl text-pretty text-sm leading-relaxed text-white/65">
-              Curated boards and dashboards published by the community — preview
-              any one live with real data, then fork it onto your machine.
+              Install the skill, tell your agent what you want to watch, and own
+              a live keyless terminal in minutes — no repo, no keys, no builder
+              UI.
             </p>
             <Link
-              href="/gallery"
-              className="glow-brand zf-cta rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg"
+              href="#build"
+              className="glow-brand zf-cta rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg"
             >
-              Open the gallery →
+              Build your own dashboard →
             </Link>
           </div>
         </Reveal>

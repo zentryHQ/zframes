@@ -82,6 +82,9 @@ importers:
       '@zframes/frames':
         specifier: workspace:*
         version: link:../../packages/frames
+      '@zframes/provider-wallet':
+        specifier: workspace:*
+        version: link:../../packages/provider-wallet
       '@zframes/providers-keyless':
         specifier: workspace:*
         version: link:../../packages/providers-keyless
