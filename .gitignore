@@ -45,3 +45,7 @@ docs/*
 __pycache__/
 *.pyc
 .claude/
+
+# scheduled-monitor generated reports (.github/scripts)
+provider-smoke-report.json
+frame-vision-report.json

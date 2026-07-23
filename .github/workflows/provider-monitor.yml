@@ -1,0 +1,65 @@
+name: Provider monitor
+
+# Tier 1 of the scheduled-monitor suite. Hits every keyless provider's LIVE API
+# and validates the response against the provider's own Zod schema (a shape
+# change or dead endpoint throws). This is the check the hermetic unit tests
+# CAN'T do — they stub fetch. Findings open/update ONE dedup'd issue
+# (label: provider-drift) and it auto-closes when the endpoints recover.
+#
+# Not a PR check — external/flaky/rate-limited work must not gate merges. The
+# Actions run stays green when the monitor ran cleanly; provider health lives in
+# the issue, not the workflow badge.
+#
+# Optional repo variable ZFRAMES_CONTACT (an email) enables the SEC probes —
+# SEC's fair-access policy 403s a UA without a contact email. Unset → SEC skipped.
+
+on:
+  schedule:
+    - cron: "17 */12 * * *" # twice daily, off the hour to dodge cron congestion
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    name: probe keyless providers
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.6.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # continue-on-error so the report step runs on failures too. A hard failure
+      # (thrown probe) exits non-zero and writes provider-smoke-report.json.
+      - name: Probe live provider APIs
+        id: smoke
+        continue-on-error: true
+        env:
+          ZFRAMES_CONTACT: ${{ vars.ZFRAMES_CONTACT }}
+        run: pnpm test:providers
+
+      - name: File / update / close issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/report-to-issue.mjs --kind provider --label provider-drift --report provider-smoke-report.json
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-smoke-report
+          path: provider-smoke-report.json
+          if-no-files-found: warn
