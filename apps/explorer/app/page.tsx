@@ -6,17 +6,95 @@ import Link from "next/link";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import { CURATED } from "@/app/lib/curated-dashboards";
 import { CopyCommand } from "@/app/lib/CopyCommand";
+import { FramesShowcase } from "@/app/lib/FramesShowcase";
 import { LiveBoardFrame } from "@/app/lib/LiveBoardFrame";
-import { Parallax, Reveal, StackPanel } from "@/app/lib/motion";
+import { LiveFrame, LiveFrameStyles } from "@/app/lib/LiveFrame";
+import {
+  MouseParallax,
+  Parallax,
+  Reveal,
+  ScrollExit,
+  StackPanel,
+} from "@/app/lib/motion";
 import { SectionHeading } from "@/app/lib/SectionHeading";
 
-// Gallery home — the public front door, rebuilt as a long-scroll narrative:
-// hero → a parallax showcase of REAL live boards (iframed /embed/*, streaming
-// data) → why-it's-different → gallery CTA. Copy follows the repo README
-// ("Describe your dashboard. An agent builds it. It gets sharper every day.").
-// `motion` drives only the scroll orchestration (parallax + whileInView reveals);
-// hover/press micro-interactions stay CSS (globals.css). Client, but the copy
-// still SSRs (client components render on the server first) so SEO holds.
+// Gallery home — the public front door as a five-act scroll narrative:
+//
+//   I    Hero        the promise, staged inside a floating cluster of REAL
+//                    live frames (LiveFrame → the runtime's own components)
+//   II   Vocabulary  the frame catalogue as six parallax chapters, every
+//                    specimen streaming live data (FramesShowcase)
+//   III  Proof       full boards composed from those frames — the sticky
+//                    card-stack of live embedded dashboards
+//   IV   How         install → describe → own, ending on the command
+//   V    Why         the value grid + final CTA
+//
+// `motion` drives only scroll/pointer orchestration (parallax, scrubs,
+// whileInView reveals); hover/press micro-interactions stay CSS (globals.css).
+// Client, but copy still SSRs (client components render on the server first).
+
+// The hero's floating specimens — cast for silhouette variety (line chart,
+// gauge, stat, clock) and instant keyless data. Desktop-mostly; each gets its
+// own parallax depth (mouse strength + scroll drift) and idle-bob phase so the
+// cluster reads as a suspended volume, not a wallpaper.
+const HERO_FLOATERS: {
+  frame: string;
+  config?: Record<string, unknown>;
+  className: string;
+  pos: string;
+  mouse: number;
+  scroll: number;
+  tilt: number;
+  delay: string;
+}[] = [
+  {
+    frame: "price-liveline",
+    className: "w-[21rem] h-48",
+    pos: "left-[1%] top-[16%] hidden lg:block",
+    mouse: 18,
+    scroll: 42,
+    tilt: -2.2,
+    delay: "0s",
+  },
+  {
+    frame: "fear-greed",
+    className: "w-56 h-52",
+    pos: "right-[3%] top-[13%] hidden md:block",
+    mouse: -14,
+    scroll: 74,
+    tilt: 2,
+    delay: "-2.2s",
+  },
+  {
+    frame: "clock",
+    config: { timezone: "America/New_York", label: "New York", showDate: true },
+    className: "w-52 h-32",
+    pos: "left-[7%] bottom-[17%] hidden lg:block",
+    mouse: -22,
+    scroll: 92,
+    tilt: 1.6,
+    delay: "-4.1s",
+  },
+  {
+    frame: "open-interest",
+    className: "w-72 h-40",
+    pos: "right-[5%] bottom-[15%] hidden lg:block",
+    mouse: 12,
+    scroll: 56,
+    tilt: -1.6,
+    delay: "-1.4s",
+  },
+  {
+    frame: "bitcoin-dominance",
+    className: "w-64 h-44",
+    pos: "left-[20%] top-[4%] hidden xl:block",
+    mouse: 26,
+    scroll: 64,
+    tilt: 1.2,
+    delay: "-3.2s",
+  },
+];
+
 export default function GalleryHome() {
   const frameCount = allFrameMetas.length;
   const stackRef = useRef<HTMLElement>(null);
@@ -108,52 +186,89 @@ export default function GalleryHome() {
   }, []);
 
   return (
-    <main>
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative mx-auto max-w-7xl overflow-x-clip px-6 pt-16 pb-8 sm:pt-24">
-        {/* Parallax backdrop glow — drifts slower than the page for depth. */}
+    <main className="overflow-x-clip">
+      <LiveFrameStyles />
+
+      {/* ── Act I · Hero ─────────────────────────────────────────────────── */}
+      <section className="relative flex min-h-[92svh] flex-col justify-center px-6 pb-16 pt-10">
+        {/* Backdrop glow — drifts slower than the page for depth. */}
         <Parallax
           distance={90}
-          className="pointer-events-none absolute inset-x-0 -top-24 -z-10 mx-auto h-[560px] max-w-4xl"
+          className="pointer-events-none absolute inset-x-0 -top-24 -z-10 mx-auto h-[620px] max-w-4xl"
         >
-          <div className="h-full w-full bg-[image:radial-gradient(52%_60%_at_50%_28%,hsla(258,92%,62%,0.30),transparent_70%)]" />
+          <div className="h-full w-full bg-[image:radial-gradient(52%_60%_at_50%_30%,hsla(258,92%,62%,0.32),transparent_70%)]" />
         </Parallax>
 
-        <div className="mx-auto max-w-3xl text-center">
-          <h1 className="animate-fade-up mt-6 text-balance text-4xl font-bold leading-[1.06] tracking-tight text-white [animation-delay:60ms] sm:text-6xl">
+        {/* The floating live-frame cluster — the product itself, orbiting the
+            promise. Display-only; behind the copy. */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0"
+          aria-hidden="true"
+        >
+          {HERO_FLOATERS.map((f) => (
+            <MouseParallax
+              key={f.frame}
+              strength={f.mouse}
+              className={`absolute ${f.pos}`}
+            >
+              <Parallax distance={f.scroll}>
+                <div
+                  className="animate-float"
+                  style={{ animationDelay: f.delay }}
+                >
+                  <div
+                    className={`glow-brand-soft opacity-90 ${f.className}`}
+                    style={{ rotate: `${f.tilt}deg` }}
+                  >
+                    <LiveFrame frame={f.frame} config={f.config} />
+                  </div>
+                </div>
+              </Parallax>
+            </MouseParallax>
+          ))}
+        </div>
+
+        {/* The promise. Scrubs out (fade + rise + slight shrink) on scroll so
+            the hand-off to Act II reads as one camera move. */}
+        <ScrollExit className="relative z-10 mx-auto max-w-3xl text-center">
+          <span className="animate-fade-up zf-label justify-center">
+            Live market terminals, agent-built
+          </span>
+          <h1 className="animate-fade-up mt-5 text-balance text-5xl font-bold leading-[1.04] tracking-tight text-white [animation-delay:60ms] sm:text-7xl">
             Describe your dashboard.
             <br className="hidden sm:block" />{" "}
-            <span className="text-indigo-200">An agent builds it.</span>
+            <span className="bg-gradient-to-r from-indigo-200 via-violet-200 to-indigo-300 bg-clip-text text-transparent">
+              An agent builds it.
+            </span>
           </h1>
 
-          <p className="animate-fade-up mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-white/75 [animation-delay:120ms] sm:text-lg">
-            zframes turns your coding agent into a market-terminal builder.
-            Install a skill, describe what you want, and it reads the frame
-            catalogue, writes a live{" "}
+          <p className="animate-fade-up mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-white/75 [animation-delay:120ms] sm:text-lg">
+            Install a skill, say what you want to watch, and your coding agent
+            writes a live{" "}
             <code className="rounded bg-white/[0.08] px-1 py-0.5 font-mono text-[0.85em] text-indigo-200">
               dashboard.json
-            </code>
-            , and serves it with real data — keyless, stocks first, and it gets
-            sharper every day.
+            </code>{" "}
+            and serves it with real data — keyless, stocks first, sharper every
+            day.
           </p>
 
-          <div className="animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-3 [animation-delay:180ms]">
+          <div className="animate-fade-up mt-9 flex flex-wrap items-center justify-center gap-3 [animation-delay:180ms]">
             <Link
               href="/gallery"
-              className="glow-brand zf-cta rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg"
+              className="glow-brand zf-cta rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg"
             >
               Browse the gallery
             </Link>
             <Link
               href="/catalogue"
-              className="zf-press rounded-xl border border-white/15 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
+              className="zf-press rounded-xl border border-white/15 bg-white/[0.03] px-6 py-3 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
             >
               Explore {frameCount} frames →
             </Link>
           </div>
 
-          {/* The real entry point (README §Quickstart): install the skill, then talk. */}
-          <div className="animate-fade-up mt-8 flex flex-col items-center gap-2.5 [animation-delay:240ms]">
+          {/* The real entry point (README §Quickstart). */}
+          <div className="animate-fade-up mt-9 flex flex-col items-center gap-2.5 [animation-delay:240ms]">
             <span className="text-xs uppercase tracking-widest text-white/55">
               Install in your agent, then just talk
             </span>
@@ -163,26 +278,35 @@ export default function GalleryHome() {
               + NVDA terminal with funding &amp; fear-greed
             </span>
           </div>
+        </ScrollExit>
+
+        {/* Scroll cue. */}
+        <div
+          className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2"
+          aria-hidden="true"
+        >
+          <div className="flex h-12 w-7 justify-center overflow-hidden rounded-full border border-white/15 pt-2">
+            <span className="animate-scroll-cue h-2 w-[3px] rounded-full bg-indigo-300" />
+          </div>
         </div>
       </section>
 
-      {/* ── Live board showcase ──────────────────────────────────────────────
-          The proof: real boards streaming real keyless data. Each fills the screen
-          and the next rises over it as you scroll (sticky stack), so the boards are
-          shown one at a time with the covered one receding — parallax depth. Each
-          panel opens the full preview. */}
-      <section className="mx-auto max-w-5xl px-6 pt-10 pb-2 text-center">
+      {/* ── Act II · The vocabulary — frames, live, by family ────────────── */}
+      <FramesShowcase />
+
+      {/* ── Act III · Proof — full boards, streaming ─────────────────────── */}
+      <section className="mx-auto max-w-5xl px-6 pb-2 pt-24 text-center">
         <Reveal>
           <span className="zf-label mb-3 justify-center">
-            Live, not screenshots
+            Composed into boards
           </span>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Real boards. Real data. Zero keys.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
-            Every board here is rendering live right now — the same keyless
-            public feeds your generated terminal runs on. Keep scrolling; open
-            any one.
+            The agent arranges those frames into whole terminals. Every board
+            here is rendering live right now, on the same keyless feeds yours
+            will run on. Keep scrolling; open any one.
           </p>
         </Reveal>
       </section>
@@ -216,8 +340,42 @@ export default function GalleryHome() {
         </Reveal>
       </section>
 
-      {/* ── Why it's different (README) ──────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-6 pt-20">
+      {/* ── Act IV · How — three beats to your own terminal ──────────────── */}
+      <section className="mx-auto max-w-7xl px-6 pt-24">
+        <Reveal>
+          <SectionHeading
+            eyebrow="How it works"
+            title="Three beats to your own terminal"
+            description="No repo to clone, no builder UI to learn. Your agent does the building; you own the artifact."
+          />
+        </Reveal>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StepCard
+            index={0}
+            step="01"
+            title="Install the skill"
+            body="One command teaches your coding agent — Claude Code, Cursor, Codex — how to build zframes terminals."
+            code="npx skills add zentryhq/zframes"
+          />
+          <StepCard
+            index={1}
+            step="02"
+            title="Describe what you watch"
+            body="“TSLA and NVDA, funding rates, fear & greed.” The agent reads the frame catalogue and writes the spec."
+            code="/zframes build me a TSLA + NVDA terminal"
+          />
+          <StepCard
+            index={2}
+            step="03"
+            title="Own the result"
+            body="One git-trackable dashboard.json, served locally with live keyless data — editable in the browser, forever yours."
+            code="npx zframes serve"
+          />
+        </div>
+      </section>
+
+      {/* ── Act V · Why — the value grid ─────────────────────────────────── */}
+      <section className="mx-auto max-w-7xl px-6 pt-24">
         <Reveal>
           <SectionHeading
             eyebrow="Why zframes"
@@ -281,7 +439,7 @@ export default function GalleryHome() {
           <Reveal delay={5 * 0.06}>
             <div className="zf-surface flex h-full flex-col justify-center p-6">
               <p className="text-sm leading-relaxed text-white/70">
-                Preview any board below with live data, then fork it onto your
+                Preview any board above with live data, then fork it onto your
                 machine with a single prompt.
               </p>
               <Link
@@ -295,7 +453,7 @@ export default function GalleryHome() {
         </div>
       </section>
 
-      {/* ── Browse CTA ───────────────────────────────────────────────────── */}
+      {/* ── Final CTA ────────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-6 pb-24 pt-20">
         <Reveal>
           <div className="zf-surface flex flex-col items-center gap-4 px-6 py-14 text-center">
@@ -319,8 +477,40 @@ export default function GalleryHome() {
   );
 }
 
-// Feature card — reveals on scroll with a per-index stagger so the grid cascades
-// in rather than popping all at once. Body copy unchanged from the prior page.
+// How-it-works step — numbered, with the actual command as the artifact.
+function StepCard({
+  step,
+  title,
+  body,
+  code,
+  index,
+}: {
+  step: string;
+  title: string;
+  body: string;
+  code: string;
+  index: number;
+}) {
+  return (
+    <Reveal delay={index * 0.1}>
+      <div className="zf-surface flex h-full flex-col p-6">
+        <span className="font-mono text-sm font-semibold text-indigo-300">
+          {step}
+        </span>
+        <h3 className="mt-3 font-semibold text-white">{title}</h3>
+        <p className="mt-1.5 flex-1 text-sm leading-relaxed text-white/60">
+          {body}
+        </p>
+        <code className="mt-4 block truncate rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-indigo-200">
+          {code}
+        </code>
+      </div>
+    </Reveal>
+  );
+}
+
+// Feature card — reveals on scroll with a per-index stagger so the grid
+// cascades in rather than popping all at once.
 function ValueCard({
   title,
   body,
