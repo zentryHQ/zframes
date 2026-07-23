@@ -1,0 +1,86 @@
+name: Frame vision review
+
+# Tier 3 of the scheduled-monitor suite. Builds Storybook, screenshots every
+# frame's render, and asks Claude vision "is this visually broken?" — automating
+# the manual per-frame visual audit. Findings open/update ONE dedup'd issue
+# (label: frame-vision) that auto-closes when nothing is flagged.
+#
+# Advisory: Storybook uses an OFFLINE MOCK provider, so findings are LEADS for a
+# human to confirm, not verdicts (the prompt discounts known harness artifacts).
+# Weekly + on-demand, NOT per-PR — it's a paid vision pass, not a merge gate.
+#
+# Requires secret CLAUDE_CODE_OAUTH_TOKEN (skips gracefully until set). Cost scales
+# with frame count × VISION_MODEL — dispatch with a small max_frames to trial it.
+
+on:
+  schedule:
+    - cron: "30 4 * * 1" # Mondays 04:30 UTC
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Vision model (claude-sonnet-5 | claude-opus-4-8 | claude-haiku-4-5 | …)"
+        default: "claude-sonnet-5"
+      max_frames:
+        description: "Cap frames reviewed (blank = all) — use a small number to trial"
+        default: ""
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  review:
+    name: screenshot + vision-review frames
+    runs-on: ubuntu-latest # ships a system Chrome — playwright uses channel "chrome"
+    timeout-minutes: 45
+    env:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      VISION_MODEL: ${{ inputs.model || 'claude-sonnet-5' }}
+      VISION_MAX_FRAMES: ${{ inputs.max_frames }}
+    steps:
+      - name: Skip — not configured
+        if: env.CLAUDE_CODE_OAUTH_TOKEN == ''
+        run: echo "CLAUDE_CODE_OAUTH_TOKEN secret not set — skipping the vision review."
+
+      - uses: actions/checkout@v4
+        if: env.CLAUDE_CODE_OAUTH_TOKEN != ''
+
+      - uses: pnpm/action-setup@v4
+        if: env.CLAUDE_CODE_OAUTH_TOKEN != ''
+        with:
+          version: 9.6.0
+
+      - uses: actions/setup-node@v4
+        if: env.CLAUDE_CODE_OAUTH_TOKEN != ''
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+        if: env.CLAUDE_CODE_OAUTH_TOKEN != ''
+
+      # predev/prebuild regenerates one story per frame off the React-free schemas,
+      # so the static build covers the FULL frame set.
+      - name: Build Storybook (all frames)
+        if: env.CLAUDE_CODE_OAUTH_TOKEN != ''
+        run: pnpm --filter @zframes/storybook build
+
+      - name: Screenshot + vision review
+        id: vision
+        if: env.CLAUDE_CODE_OAUTH_TOKEN != ''
+        continue-on-error: true
+        run: pnpm test:frames:vision
+
+      - name: File / update / close issue
+        if: always() && env.CLAUDE_CODE_OAUTH_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/report-to-issue.mjs --kind vision --label frame-vision --report frame-vision-report.json
+
+      - name: Upload report
+        if: always() && env.CLAUDE_CODE_OAUTH_TOKEN != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: frame-vision-report
+          path: frame-vision-report.json
+          if-no-files-found: warn
