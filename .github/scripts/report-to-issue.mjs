@@ -75,21 +75,36 @@ if (kind === "provider") {
     `_Run: ${report.generatedAt} · ${report.ok}/${report.total} ok, ${report.warn} warn, ${report.fail} fail._`;
 } else if (kind === "vision") {
   const broken = report.broken ?? [];
-  findingsCount = broken.length;
-  title = `🖼️ frame-vision: ${broken.length} frame(s) flagged as visually broken`;
-  const rows = broken
-    .map(
-      (b) =>
-        `| \`${b.frame}\` | ${b.severity} | ${b.category} | ${String(b.issue).replace(/\|/g, "\\|")} |`,
-    )
-    .join("\n");
-  body =
-    `A Claude vision pass over the Storybook \`Default\` render of every frame flagged **${broken.length}** as visually broken ` +
-    `(model \`${report.model}\`, ${report.reviewed}/${report.total} reviewed).\n\n` +
-    `> ⚠️ Storybook uses an offline mock provider — treat findings as leads, not verdicts. Known false-alarm classes ` +
-    `(grid measure-race, extent-domain cramming, no-data States) are filtered in the prompt but some slip through.\n\n` +
-    `| frame | severity | category | issue |\n|---|---|---|---|\n${rows || "| — | — | — | — |"}\n\n` +
-    `_Run: ${report.generatedAt}._`;
+  const reviewErrors = report.reviewErrors ?? [];
+  const reviewOk = report.reviewOk ?? report.reviewed ?? 0;
+  // A pass where NOTHING got a verdict is a broken monitor (dead OAuth token,
+  // model rejecting the request), not a clean bill of health — make it a finding
+  // so it can't masquerade as "0 broken".
+  const passFailed = (report.reviewed ?? 0) > 0 && reviewOk === 0;
+  findingsCount = broken.length + (passFailed ? 1 : 0);
+
+  if (passFailed) {
+    title = `🖼️ frame-vision: review pass FAILED — 0 frames got a verdict (auth/model?)`;
+    body =
+      `The vision pass reviewed **0/${report.reviewed}** frames successfully — every model call errored. ` +
+      `Likely a rejected \`CLAUDE_CODE_OAUTH_TOKEN\`, a model that can't do vision + structured output, or a rate-limit.\n\n` +
+      `First error: \`${reviewErrors[0]?.error ?? "unknown"}\`\n\n_Run: ${report.generatedAt} · model \`${report.model}\`._`;
+  } else {
+    title = `🖼️ frame-vision: ${broken.length} frame(s) flagged as visually broken`;
+    const rows = broken
+      .map(
+        (b) =>
+          `| \`${b.frame}\` | ${b.severity} | ${b.category} | ${String(b.issue).replace(/\|/g, "\\|")} |`,
+      )
+      .join("\n");
+    body =
+      `A Claude vision pass over the Storybook \`Default\` render of every frame flagged **${broken.length}** as visually broken ` +
+      `(model \`${report.model}\`, ${reviewOk}/${report.total} reviewed ok${reviewErrors.length ? `, ${reviewErrors.length} review errors` : ""}).\n\n` +
+      `> ⚠️ Storybook uses an offline mock provider — treat findings as leads, not verdicts. Known false-alarm classes ` +
+      `(grid measure-race, extent-domain cramming, no-data States) are filtered in the prompt but some slip through.\n\n` +
+      `| frame | severity | category | issue |\n|---|---|---|---|\n${rows || "| — | — | — | — |"}\n\n` +
+      `_Run: ${report.generatedAt}._`;
+  }
 } else {
   console.error(`unknown --kind ${kind}`);
   process.exit(2);
