@@ -9,7 +9,7 @@ public) **file a GitHub issue** instead of turning a PR red.
 | Monitor | Catches | Determinism | Workflow | Cadence | Issue label |
 |---|---|---|---|---|---|
 | **Provider** | a keyless API died / changed shape / rate-limited | flaky (external) | `provider-monitor.yml` | daily | `provider-drift` |
-| **CLI smoke** | the published `npx zframes` is broken/stale | semi | `cli-smoke.yml` | weekly | `cli-broken` |
+| **CLI smoke** | the published `npx zframes` is broken/stale | semi | `cli-smoke.yml` | daily | `cli-broken` |
 | **Frame render** | a frame renders an error card / crashes | **deterministic** | `frame-render.yml` | nightly | `frame-render` |
 | **Dep audit** | a HIGH/CRITICAL advisory in deps | deterministic | `audit.yml` | weekly | `security-audit` |
 
