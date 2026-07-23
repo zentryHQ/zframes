@@ -35,7 +35,7 @@ jobs:
 
       - name: Set up Node
         if: env.DATABASE_URL != '' && env.EXPLORER_BASE_URL != ''
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: pnpm
