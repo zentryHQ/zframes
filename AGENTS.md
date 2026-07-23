@@ -16,7 +16,7 @@ pnpm test:providers      # LIVE smoke: hit every keyless provider's real API, va
 pnpm test:frames:render  # headless-render every frame in a built Storybook, flag error cards / crashes
 ```
 
-`pnpm test` is hermetic (stubs fetch) and gates every PR. Alongside it, a **scheduled-monitor suite** runs on crons and files GitHub issues instead of gating PRs: provider liveness, published-CLI smoke, frame-render, and a `pnpm audit` (+ Dependabot). See `.github/scripts/README.md`.
+`pnpm test` is hermetic (stubs fetch) and gates every PR. Alongside it, a **scheduled-monitor suite** runs on crons and files GitHub issues instead of gating PRs: provider liveness, published-CLI smoke (linux/macos/windows), frame-render, and a `pnpm audit` (+ Dependabot). See `.github/scripts/README.md`. **Releasing the CLI:** bump `packages/cli/package.json` version, commit, then `git tag v<version> && git push origin v<version>` — `release.yml` verifies, builds, and npm-publishes via trusted publishing (OIDC + provenance; no token). CodeQL (default setup) and secret-scanning push protection run repo-side.
 
 ## Structure
 

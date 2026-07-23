@@ -9,7 +9,7 @@ public) **file a GitHub issue** instead of turning a PR red.
 | Monitor | Catches | Determinism | Workflow | Cadence | Issue label |
 |---|---|---|---|---|---|
 | **Provider** | a keyless API died / changed shape / rate-limited | flaky (external) | `provider-monitor.yml` | daily | `provider-drift` |
-| **CLI smoke** | the published `npx zframes` is broken/stale | semi | `cli-smoke.yml` | daily | `cli-broken` |
+| **CLI smoke** | the published `npx zframes` is broken/stale | semi | `cli-smoke.yml` | daily · 3 OSes | `cli-broken`(`-macos`/`-windows`) |
 | **Frame render** | a frame renders an error card / crashes | **deterministic** | `frame-render.yml` | nightly | `frame-render` |
 | **Dep audit** | a HIGH/CRITICAL advisory in deps | deterministic | `audit.yml` | weekly | `security-audit` |
 
@@ -35,7 +35,9 @@ valid is a soft `warn`. No AI, no cost, no key.
 Drives the **published** package end to end: init → lint → serve → HTTP-fetch the
 served app, the dashboard spec, and the referenced JS bundle (catches a
 missing/stale prebuilt runtime bundle — a real past failure mode). Plain node —
-tests the registry artifact, not our source.
+tests the registry artifact, not our source. Runs on a linux/macos/windows
+matrix (users npx from all three); each OS keeps its own issue label so one
+platform's breakage never closes another's.
 
 ## Frame render · `frame-render-smoke.ts` · `pnpm test:frames:render`
 
@@ -61,6 +63,15 @@ Reads a monitor's JSON report and does the open / comment / close dance via `gh`
 (auth: `GH_TOKEN`; needs `issues: write`). `provider` renders the provider table;
 `generic` takes a pre-rendered `{title, body, findingsCount}` (used by CLI smoke,
 frame render, and audit) so a new monitor needs no branch here.
+
+## Not a monitor: `release.yml`
+
+Tag-triggered npm publish of the CLI (the only published artifact). Push
+`v<version>` matching `packages/cli/package.json` → verify → typecheck/test →
+`pnpm pack` (prepack builds the runtime bundle; workspace deps rewritten) →
+`npm publish` via **trusted publishing** (OIDC + provenance, no stored token).
+Requires the one-time trusted-publisher link on npmjs.com (see the workflow
+header).
 
 ## Enabling in a fork
 

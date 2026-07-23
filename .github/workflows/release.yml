@@ -1,0 +1,62 @@
+name: Release CLI
+
+# Tag-triggered publish of the ONLY published artifact (packages/cli → `zframes`
+# on npm). Push a tag `vX.Y.Z` that matches packages/cli/package.json and this
+# verifies, builds, packs (pnpm pack rewrites workspace:* deps, matching the
+# manual publishes), then publishes with npm TRUSTED PUBLISHING (OIDC): no npm
+# token stored anywhere, and a provenance attestation is generated automatically.
+#
+# One-time setup on npmjs.com (or the publish step fails auth):
+#   zframes package → Settings → Trusted Publisher → GitHub Actions
+#   org: zentryHQ · repo: zframes · workflow: release.yml
+#
+# Release = bump packages/cli/package.json version, commit, then:
+#   git tag v<version> && git push origin v<version>
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write # npm trusted publishing (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm version comes from the root package.json `packageManager` field.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # Trusted publishing needs npm >= 11.5.1; upgrade whatever Node bundled.
+      - run: npm install -g npm@latest && npm --version
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Tag must match packages/cli version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./packages/cli/package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::tag v$TAG != packages/cli version $PKG — bump the version or retag"
+            exit 1
+          fi
+
+      - run: pnpm typecheck
+      - run: pnpm test
+
+      # prepack (runtime build → tsup → assert-artifacts) runs inside pack, so
+      # the published tarball always carries a freshly-built runtime bundle.
+      - name: Pack
+        run: pnpm --filter zframes pack --pack-destination "$RUNNER_TEMP"
+
+      - name: Publish (OIDC, provenance)
+        run: npm publish "$RUNNER_TEMP"/zframes-*.tgz
