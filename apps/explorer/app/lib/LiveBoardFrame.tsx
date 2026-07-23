@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // A full-bleed live example board — the real board rendered inside a same-origin
 // <iframe src="/embed/{id}">, framed to fill one fullscreen panel of the landing's
 // sticky scroll-stack (see StackPanel). Actual streaming data, not a screenshot.
-// Two costs are actively bounded:
+// Three costs are actively bounded:
 //   • WS cost — the iframe `src` is only set once the panel nears the viewport
 //     (IntersectionObserver), so boards below the fold open no socket yet.
+//   • GPU cost — `bgActive` (computed by the landing from the stack's scroll
+//     state) is pushed into the embed via postMessage; an inactive board tears
+//     down its animated WebGL backdrop, so only the visible card(s) hold a live
+//     scene no matter how many are stacked.
 //   • scroll/interaction — the iframe is display-only (pointer-events:none,
 //     scrolling off); a transparent full-panel <Link> owns the click → /d/{id}.
 export function LiveBoardFrame({
@@ -17,14 +21,18 @@ export function LiveBoardFrame({
   description,
   tags = [],
   frameCount,
+  bgActive = true,
 }: {
   id: string;
   title: string;
   description?: string;
   tags?: string[];
   frameCount: number;
+  /** Whether this board's animated backdrop should be live (see above). */
+  bgActive?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [mounted, setMounted] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -45,6 +53,31 @@ export function LiveBoardFrame({
     return () => io.disconnect();
   }, [mounted]);
 
+  // Scene control channel into the embed (same-origin). Push on every change,
+  // and answer the embed's `zf:bg-hello` — sent once it has hydrated and is
+  // actually listening — so the initial state can't be lost to the load race.
+  const bgActiveRef = useRef(bgActive);
+  bgActiveRef.current = bgActive;
+  const sendBgActive = useCallback((active: boolean) => {
+    iframeRef.current?.contentWindow?.postMessage(
+      { type: "zf:bg-active", active },
+      window.location.origin,
+    );
+  }, []);
+  useEffect(() => {
+    sendBgActive(bgActive);
+  }, [bgActive, sendBgActive]);
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.source !== iframeRef.current?.contentWindow) return;
+      if ((e.data as { type?: unknown } | null)?.type === "zf:bg-hello")
+        sendBgActive(bgActiveRef.current);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [sendBgActive]);
+
   return (
     <div
       ref={ref}
@@ -53,6 +86,7 @@ export function LiveBoardFrame({
       {/* The live board fills the frame. */}
       {mounted && (
         <iframe
+          ref={iframeRef}
           src={`/embed/${id}`}
           title={`${title} — live preview`}
           loading="lazy"

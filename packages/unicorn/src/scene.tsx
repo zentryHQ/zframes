@@ -93,6 +93,13 @@ interface UnicornSceneProps {
    * that fade the backdrop in (the explorer) key their opacity off this.
    */
   onLoad?: () => void;
+  /**
+   * Fires once `addScene` has resolved — the scene object exists and has begun
+   * rendering. Later than `onLoad` (which only marks the engine script ready);
+   * hosts that fade in on `onLoad` can ramp opacity over a still-empty canvas
+   * and get a visible pop — key the fade off this instead.
+   */
+  onSceneReady?: () => void;
 }
 
 /**
@@ -111,6 +118,7 @@ export default function UnicornScene({
   scale,
   dpi,
   onLoad,
+  onSceneReady,
 }: UnicornSceneProps) {
   const elementRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(
@@ -119,6 +127,8 @@ export default function UnicornScene({
   // Ref-held so a new callback identity never re-runs the load effect.
   const onLoadRef = useRef(onLoad);
   onLoadRef.current = onLoad;
+  const onSceneReadyRef = useRef(onSceneReady);
+  onSceneReadyRef.current = onSceneReady;
 
   useEffect(() => {
     let ignore = false;
@@ -159,6 +169,7 @@ export default function UnicornScene({
           return;
         }
         scene = s;
+        onSceneReadyRef.current?.();
       })
       .catch(() => {
         // addScene failed (bad projectId, WebGL unsupported) — degrade silently.
