@@ -1,12 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import {
   motion,
   useReducedMotion,
   useScroll,
+  useSpring,
   useTransform,
+  type MotionValue,
 } from "motion/react";
 
 // Shared scroll-motion primitives for the landing. This is the ONE place `motion`
@@ -80,6 +82,89 @@ export function Parallax({
       {children}
     </motion.div>
   );
+}
+
+// Pointer-follow drift — the hero's depth cue at rest. The layer eases toward
+// the cursor (or away, negative strength) with a soft spring, so stacked layers
+// given different strengths read as a parallax volume even before any scroll.
+// Off under reduced motion and on coarse pointers (no cursor to follow).
+export function MouseParallax({
+  children,
+  className,
+  strength = 12,
+}: {
+  children: ReactNode;
+  className?: string;
+  /** Max drift in px at the viewport edge; negative = counter-drift. */
+  strength?: number;
+}) {
+  const reduced = useReducedMotion();
+  const x = useSpring(0, { stiffness: 50, damping: 18, mass: 0.6 });
+  const y = useSpring(0, { stiffness: 50, damping: 18, mass: 0.6 });
+
+  useEffect(() => {
+    if (reduced) return;
+    if (window.matchMedia("(hover: none)").matches) return;
+    const onMove = (e: MouseEvent) => {
+      x.set((e.clientX / window.innerWidth - 0.5) * 2 * strength);
+      y.set((e.clientY / window.innerHeight - 0.5) * 2 * strength);
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [reduced, strength, x, y]);
+
+  if (reduced) return <div className={className}>{children}</div>;
+  return (
+    <motion.div style={{ x, y }} className={className}>
+      {children}
+    </motion.div>
+  );
+}
+
+// Scroll-scrubbed exit for the hero: content fades + eases up + shrinks a hair
+// as its section scrolls off, so the hand-off to the next scene reads as one
+// continuous camera move rather than a hard cut.
+export function ScrollExit({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  const reduced = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+  const opacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.94]);
+  const y = useTransform(scrollYProgress, [0, 1], [0, -48]);
+  if (reduced) {
+    return (
+      <div ref={ref} className={className}>
+        {children}
+      </div>
+    );
+  }
+  return (
+    <motion.div ref={ref} style={{ opacity, scale, y }} className={className}>
+      {children}
+    </motion.div>
+  );
+}
+
+// Progress of an element through the viewport, for bespoke scrubs (the giant
+// frame-count numeral, chapter ghosts). Exposed as a hook so sections can wire
+// several transforms off one measurement.
+export function useViewportProgress(ref: React.RefObject<HTMLElement | null>): {
+  progress: MotionValue<number>;
+} {
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start end", "end start"],
+  });
+  return { progress: scrollYProgress };
 }
 
 // The visible top strip (px) of each card left peeking behind the one in front —
