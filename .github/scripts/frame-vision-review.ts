@@ -332,19 +332,35 @@ async function main() {
     }))
     .sort((a, b) => (sev[a.severity] ?? 9) - (sev[b.severity] ?? 9));
 
+  // A review call that threw (bad token, model rejected the request, rate-limit)
+  // is caught above with ok:true, so it never lands in `broken`. Track it
+  // separately — otherwise a fully-failed pass (e.g. a dead OAuth token) reports
+  // "0 broken" and reads as a healthy all-clear. `reviewOk` is the count that
+  // actually got a verdict from the model.
+  const reviewErrors = verdicts
+    .filter((v) => "reviewError" in v)
+    .map((v) => ({ frame: v.frame, error: v.issue }));
+  const reviewOk = shots.length - reviewErrors.length;
+
   const report = {
     generatedAt: new Date().toISOString(),
     model: MODEL,
     story: STORY,
     total: frames.length,
     reviewed: shots.length,
+    reviewOk,
     captureErrors: shotErrors,
+    reviewErrors,
     broken,
   };
   const outPath = resolve(process.cwd(), "frame-vision-report.json");
   writeFileSync(outPath, JSON.stringify(report, null, 2));
 
-  console.log(`\n${broken.length} frame(s) flagged as broken:`);
+  console.log(
+    `\nverdicts: ${reviewOk} reviewed ok, ${reviewErrors.length} review errors (model/auth), ${broken.length} broken`,
+  );
+  if (reviewErrors.length)
+    console.log(`  ⚠ first review error: ${reviewErrors[0].error}`);
   for (const b of broken)
     console.log(`  ✗ [${b.severity}] ${b.frame} — ${b.category}: ${b.issue}`);
   console.log(`\nreport → ${outPath}`);
