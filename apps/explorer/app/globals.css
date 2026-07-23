@@ -141,7 +141,8 @@ body::before {
   inset: 0;
   z-index: -2;
   pointer-events: none;
-  background: radial-gradient(
+  background:
+    radial-gradient(
       1240px 660px at 50% -12%,
       hsla(248, 84%, 34%, 0.28),
       transparent 60%
@@ -212,8 +213,10 @@ body::before {
   );
   border: 1px solid
     hsl(var(--zf-accent-hue) var(--zf-accent-sat) 76% / var(--zf-border-alpha));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 44px -26px rgba(0, 0, 0, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 18px 44px -26px rgba(0, 0, 0, 0.9);
 }
 /* Top edge sheen — a hairline catch-light inset from the corners. */
 .zf-surface::before {
@@ -235,8 +238,10 @@ body::before {
 /* Interactive lift — the frame's hover: rises, the rim brightens, an accent halo
  * blooms under it. Compose with .zf-surface on links/buttons. */
 .zf-interactive {
-  transition: transform 0.22s var(--zf-ease-out),
-    border-color 0.22s var(--zf-ease-out), box-shadow 0.22s var(--zf-ease-out);
+  transition:
+    transform 0.22s var(--zf-ease-out),
+    border-color 0.22s var(--zf-ease-out),
+    box-shadow 0.22s var(--zf-ease-out);
 }
 .zf-interactive:hover {
   transform: translateY(-3px);
@@ -244,7 +249,8 @@ body::before {
     var(--zf-accent-hue) var(--zf-accent-sat) 76% /
       calc(var(--zf-border-alpha) + 0.22)
   );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09),
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
     0 0 0 1px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 76% / 0.14),
     0 26px 64px -28px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 60% / 0.6);
 }
@@ -302,7 +308,9 @@ body::before {
     hsl(var(--zf-accent-hue) var(--zf-accent-sat) 76% / 0.08) 45%,
     transparent
   );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -310,14 +318,16 @@ body::before {
 
 /* Interactive card: lifts and lights an accent halo on hover (accent hue 242). */
 .card-lift {
-  transition: transform 0.22s var(--zf-ease-out),
-    border-color 0.22s var(--zf-ease-out), box-shadow 0.22s var(--zf-ease-out),
+  transition:
+    transform 0.22s var(--zf-ease-out),
+    border-color 0.22s var(--zf-ease-out),
+    box-shadow 0.22s var(--zf-ease-out),
     background-color 0.22s var(--zf-ease-out);
 }
 .card-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 24px 60px -26px hsl(var(--zf-accent-hue) var(--zf-accent-sat)
-          60% / 0.6),
+  box-shadow:
+    0 24px 60px -26px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 60% / 0.6),
     0 0 0 1px hsl(var(--zf-accent-hue) var(--zf-accent-sat) 74% / 0.3);
 }
 
@@ -339,16 +349,16 @@ body::before {
 
 /* Soft outer glow for the hero showcase + primary CTA — accent-tinted. */
 .glow-brand {
-  box-shadow: 0 30px 90px -40px hsl(var(--zf-accent-hue) var(--zf-accent-sat)
-        60% / 0.72);
+  box-shadow: 0 30px 90px -40px
+    hsl(var(--zf-accent-hue) var(--zf-accent-sat) 60% / 0.72);
 }
 
 /* Quieter halo for showcase specimens — enough to lift a live frame off the
  * backdrop without the CTA's full bloom. */
 .glow-brand-soft {
   border-radius: var(--zf-radius);
-  box-shadow: 0 24px 70px -36px hsl(var(--zf-accent-hue) var(--zf-accent-sat)
-        55% / 0.55);
+  box-shadow: 0 24px 70px -36px
+    hsl(var(--zf-accent-hue) var(--zf-accent-sat) 55% / 0.55);
 }
 
 /* Press feedback — pressables scale a hair on :active so the UI reads as
@@ -384,7 +394,9 @@ body::before {
 .zf-arrow-reveal {
   opacity: 0;
   transform: translateX(4px);
-  transition: opacity 0.2s var(--zf-ease-out), transform 0.2s var(--zf-ease-out);
+  transition:
+    opacity 0.2s var(--zf-ease-out),
+    transform 0.2s var(--zf-ease-out);
 }
 .group:hover .zf-arrow-reveal {
   opacity: 1;
@@ -398,7 +410,9 @@ body::before {
  * per-property .zf-lift / .zf-press transitions (both would otherwise clobber
  * each other's `transition` when composed). */
 .zf-cta {
-  transition: transform 0.2s var(--zf-ease-out), filter 0.2s var(--zf-ease-out);
+  transition:
+    transform 0.2s var(--zf-ease-out),
+    filter 0.2s var(--zf-ease-out);
 }
 .zf-cta:hover:not(:disabled) {
   transform: translateY(-2px);
@@ -411,7 +425,8 @@ body::before {
 /* Light-filled variant (the white Google button): brightness is invisible on
  * white, so shade the surface toward grey on hover instead. */
 .zf-cta-light {
-  transition: transform 0.2s var(--zf-ease-out),
+  transition:
+    transform 0.2s var(--zf-ease-out),
     background-color 0.2s var(--zf-ease-out);
 }
 .zf-cta-light:hover:not(:disabled) {
@@ -430,7 +445,9 @@ body::before {
 .zf-kenburns {
   /* Includes opacity so it doesn't clobber ThumbImage's fade-in — an unlayered
    * `transition` shorthand wins over the Tailwind transition-opacity utility. */
-  transition: transform 1.1s var(--zf-ease-out), opacity 0.5s var(--zf-ease-out);
+  transition:
+    transform 1.1s var(--zf-ease-out),
+    opacity 0.5s var(--zf-ease-out);
   will-change: transform;
 }
 .group:hover .zf-kenburns {
@@ -616,8 +633,8 @@ body::before {
 [data-sonner-toast].zf-toast {
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
-  box-shadow: 0 20px 50px -24px hsl(var(--zf-base-hue) var(--zf-base-sat) 4% /
-        0.8);
+  box-shadow: 0 20px 50px -24px
+    hsl(var(--zf-base-hue) var(--zf-base-sat) 4% / 0.8);
 }
 /* richColors success/error → the semantic gain/loss palette. */
 [data-sonner-toast][data-type="success"] {
