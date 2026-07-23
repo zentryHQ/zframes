@@ -40,7 +40,13 @@ const STATIC_DIR = resolve(
   process.env.STORYBOOK_STATIC ?? "apps/storybook/storybook-static",
 );
 const SETTLE_MS = Number(process.env.VISION_SETTLE_MS ?? 1800);
-const API_CONCURRENCY = Number(process.env.VISION_CONCURRENCY ?? 4);
+// Serial by default: a CLAUDE_CODE_OAUTH_TOKEN (subscription) rate-limits (429)
+// on parallel batch calls, so we make one call at a time and let the SDK's
+// retry/backoff pace to the limit (MAX_RETRIES below). API-key users can raise
+// VISION_CONCURRENCY for speed — API keys have proper batch rate limits.
+const API_CONCURRENCY = Number(process.env.VISION_CONCURRENCY ?? 1);
+// Wait out 429s (the SDK honors the response's retry-after) instead of failing.
+const MAX_RETRIES = Number(process.env.VISION_MAX_RETRIES ?? 8);
 
 const SYSTEM = `You are a meticulous UI reviewer inspecting a SINGLE market-dashboard "frame" (a card) rendered in isolation in Storybook.
 
@@ -299,9 +305,10 @@ async function main() {
     ? new Anthropic({
         authToken: oauthToken,
         apiKey: null,
+        maxRetries: MAX_RETRIES,
         defaultHeaders: { "anthropic-beta": "oauth-2025-04-20" },
       })
-    : new Anthropic();
+    : new Anthropic({ maxRetries: MAX_RETRIES });
   const verdicts = await pool(
     shots,
     API_CONCURRENCY,
