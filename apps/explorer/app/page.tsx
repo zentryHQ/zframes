@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import { CURATED } from "@/app/lib/curated-dashboards";
@@ -18,6 +19,74 @@ import { SectionHeading } from "@/app/lib/SectionHeading";
 // still SSRs (client components render on the server first) so SEO holds.
 export default function GalleryHome() {
   const frameCount = allFrameMetas.length;
+  const stackRef = useRef<HTMLElement>(null);
+  // Which board in the sticky stack should run its animated backdrop: the
+  // SETTLED front card only — none mid-transition, none once the stack is
+  // fully off-screen. Every stacked iframe stays mounted (its WS/data keep
+  // streaming so scroll-back is instant), but covered cards hold zero WebGL.
+  // [-1,-1] = all suspended. Same-identity bailout in the setter means
+  // scrolling re-renders nothing until the active card actually changes.
+  const [activePair, setActivePair] = useState<readonly [number, number]>([
+    0, 0,
+  ]);
+
+  useEffect(() => {
+    const el = stackRef.current;
+    if (!el) return;
+    let raf = 0;
+    let pendingIdx = 0; // matches the initial activePair
+    let pendingTimer: ReturnType<typeof setTimeout> | undefined;
+    const total = CURATED.length;
+    const commit = (idx: number) =>
+      setActivePair((p) => (p[0] === idx ? p : [idx, idx]));
+    // Deactivation is immediate (the embed starts its fade-out + grace);
+    // ACTIVATION waits for 250ms of rest — a fast scroll sweeps through every
+    // card's settle band spatially, and booting a WebGL engine on each
+    // fly-through is exactly the jank this gate exists to prevent.
+    const propose = (idx: number) => {
+      if (idx === pendingIdx) return;
+      pendingIdx = idx;
+      clearTimeout(pendingTimer);
+      if (idx === -1) commit(-1);
+      else pendingTimer = setTimeout(() => commit(idx), 250);
+    };
+    const measure = () => {
+      raf = 0;
+      const rect = el.getBoundingClientRect();
+      // Fully scrolled past, or still more than half a viewport below → nothing
+      // visible, suspend every scene. (The lower margin still pre-warms the
+      // first card's scene just before the stack scrolls in.)
+      if (rect.bottom < 0 || rect.top > window.innerHeight * 1.5) {
+        propose(-1);
+        return;
+      }
+      // Cards are equal-height siblings, so the stack's scroll progress maps
+      // linearly to "which card is at the pin line" (57px header offset —
+      // matches StackPanel's `top`). Only a SETTLED card runs its scene:
+      // booting a WebGL engine mid-transition is exactly when the main thread
+      // is busiest (the full-bleed scale animation), which read as scroll jank
+      // + a late scene pop. Mid-transition the active set is empty — the
+      // embed's teardown hysteresis keeps the outgoing scene alive across a
+      // normal swipe, and the incoming one fades in once its card rests on the
+      // static swatch it rose with.
+      const slot = rect.height / total;
+      const f = Math.min(total - 1, Math.max(0, (57 - rect.top) / slot));
+      const r = Math.round(f);
+      propose(Math.abs(f - r) < 0.12 ? r : -1);
+    };
+    const schedule = () => {
+      if (!raf) raf = requestAnimationFrame(measure);
+    };
+    measure();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      if (raf) cancelAnimationFrame(raf);
+      clearTimeout(pendingTimer);
+    };
+  }, []);
 
   return (
     <main>
@@ -101,7 +170,7 @@ export default function GalleryHome() {
 
       {/* Stacked cards. Each board is a bordered card that pins and stays; the
           next rises over it leaving its top strip peeking — a growing stack. */}
-      <section className="relative overflow-x-clip pb-[8vh]">
+      <section ref={stackRef} className="relative overflow-x-clip pb-[8vh]">
         {CURATED.map((d, i) => (
           <StackPanel key={d.id} index={i} total={CURATED.length}>
             <LiveBoardFrame
@@ -110,6 +179,7 @@ export default function GalleryHome() {
               description={d.description}
               tags={d.tags}
               frameCount={d.spec.frames.length}
+              bgActive={i === activePair[0] || i === activePair[1]}
             />
           </StackPanel>
         ))}
