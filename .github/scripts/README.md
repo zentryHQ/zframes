@@ -9,7 +9,7 @@ turning a PR red.
 | Layer | What it catches | Determinism | Where | Trigger | On failure |
 |---|---|---|---|---|---|
 | `pnpm test` (existing CI) | our logic — type/lint/unit/build | deterministic | `ci.yml` | PR + push | blocks merge |
-| **Provider monitor** | a keyless API died / changed shape / rate-limited | flaky (external) | `provider-monitor.yml` | cron 2×/day + dispatch | opens/updates issue `provider-drift` |
+| **Provider monitor** | a keyless API died / changed shape / rate-limited | flaky (external) | `provider-monitor.yml` | cron daily + dispatch | opens/updates issue `provider-drift` |
 
 Issue dedup: **one open issue per label.** The monitor comments a fresh timeline
 entry while a problem persists and **auto-closes the issue when it recovers** —

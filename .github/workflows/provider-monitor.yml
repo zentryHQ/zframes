@@ -15,7 +15,7 @@ name: Provider monitor
 
 on:
   schedule:
-    - cron: "17 */12 * * *" # twice daily, off the hour to dodge cron congestion
+    - cron: "17 8 * * *" # once daily (08:17 UTC), off the hour to dodge cron congestion
   workflow_dispatch:
 
 permissions:
