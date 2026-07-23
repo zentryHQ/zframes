@@ -32,7 +32,7 @@
     "gridstack": "^13.1.0",
     "lucide-react": "^1.21.0",
     "motion": "^12.42.2",
-    "nanoid": "^5.1.16",
+    "nanoid": "^6.0.0",
     "next": "^15.5.0",
     "postgres": "^3.4.9",
     "radix-ui": "^1.6.2",
