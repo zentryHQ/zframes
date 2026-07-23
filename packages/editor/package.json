@@ -27,7 +27,7 @@
   "dependencies": {
     "@zframes/core": "workspace:*",
     "@zframes/spec": "workspace:*",
-    "gridstack": "^12.1.0",
+    "gridstack": "^13.1.0",
     "lucide-react": "^1.21.0",
     "zod": "^4.1.0"
   },
