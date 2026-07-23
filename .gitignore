@@ -46,6 +46,5 @@ __pycache__/
 *.pyc
 .claude/
 
-# scheduled-monitor generated reports (.github/scripts)
+# scheduled-monitor generated report (.github/scripts)
 provider-smoke-report.json
-frame-vision-report.json
