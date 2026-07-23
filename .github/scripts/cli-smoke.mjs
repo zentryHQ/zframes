@@ -9,6 +9,9 @@
  *
  * Assumes `zframes` is on PATH (workflow does `npm i -g zframes@latest` first).
  * Plain node — no repo build needed; it tests the registry artifact, not our src.
+ * Cross-platform: the workflow runs it on linux/macos/windows (npm's global bin
+ * on Windows is a `zframes.cmd` shim → needs a shell; process groups don't exist
+ * there → taskkill).
  *
  *   ZFRAMES_BIN=zframes CLI_SMOKE_PORT=37700 node .github/scripts/cli-smoke.mjs
  */
@@ -20,6 +23,7 @@ import { join } from "node:path";
 const BIN = process.env.ZFRAMES_BIN ?? "zframes";
 const PORT = Number(process.env.CLI_SMOKE_PORT ?? 37700);
 const ORIGIN = `http://127.0.0.1:${PORT}`;
+const IS_WIN = process.platform === "win32";
 
 const checks = []; // { name, ok, detail }
 const record = (name, ok, detail = "") => checks.push({ name, ok, detail });
@@ -29,6 +33,7 @@ function run(args, opts = {}) {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     timeout: 120_000,
+    shell: IS_WIN, // resolve the .cmd shim on windows (args here are static/safe)
     ...opts,
   });
 }
@@ -97,8 +102,9 @@ try {
 
   // 3. serve + HTTP smoke
   serve = spawn(BIN, ["serve", spec, "--port", String(PORT)], {
-    detached: true,
+    detached: !IS_WIN, // its own process group on posix (killed as -pid below)
     stdio: "ignore",
+    shell: IS_WIN,
   });
   const up = await waitForServer();
   record(
@@ -157,13 +163,24 @@ try {
   }
 } finally {
   if (serve?.pid) {
-    try {
-      process.kill(-serve.pid, "SIGKILL");
-    } catch {
+    if (IS_WIN) {
+      // no process groups on windows — kill the shell AND the node child
       try {
-        serve.kill("SIGKILL");
+        execFileSync("taskkill", ["/pid", String(serve.pid), "/T", "/F"], {
+          stdio: "ignore",
+        });
       } catch {
         /* already gone */
+      }
+    } else {
+      try {
+        process.kill(-serve.pid, "SIGKILL");
+      } catch {
+        try {
+          serve.kill("SIGKILL");
+        } catch {
+          /* already gone */
+        }
       }
     }
   }
@@ -181,9 +198,9 @@ const rows = checks
       `| ${c.ok ? "✅" : "❌"} | ${c.name} | ${String(c.detail).replace(/\|/g, "\\|")} |`,
   )
   .join("\n");
-const title = `📦 cli-smoke: \`npx zframes@latest\` ${findingsCount ? `failing (${findingsCount})` : "ok"}`;
+const title = `📦 cli-smoke(${process.platform}): \`npx zframes@latest\` ${findingsCount ? `failing (${findingsCount})` : "ok"}`;
 const body =
-  `End-to-end smoke of the **published** \`zframes\` CLI (\`${version}\`): init → lint → serve → HTTP-fetch the app, spec, and runtime bundle.\n\n` +
+  `End-to-end smoke of the **published** \`zframes\` CLI (\`${version}\`) on \`${process.platform}\`: init → lint → serve → HTTP-fetch the app, spec, and runtime bundle.\n\n` +
   `| | check | detail |\n|---|---|---|\n${rows}\n\n_Run: ${new Date().toISOString()}._`;
 
 writeFileSync(

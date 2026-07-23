@@ -3,7 +3,8 @@ name: Published CLI smoke
 # Drives the REAL published `zframes` package (npx/npm registry) end to end:
 # init → lint → serve → HTTP-fetch the app + spec + runtime bundle. Catches a
 # broken or stale publish — the thing users actually install — which no other
-# check guards. Opens/updates one `cli-broken` issue; auto-closes when green.
+# check guards. Runs on all three OSes users npx from; each OS opens/updates its
+# own dedup'd issue (label per matrix row) and auto-closes it when green again.
 # Daily + on-demand. (No repo build: the scripts are plain node; we install the
 # CLI from the registry, not from source.)
 
@@ -18,8 +19,21 @@ permissions:
 
 jobs:
   smoke:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: cli-broken # historical label — keeps issue continuity on linux
+          - os: macos-latest
+            label: cli-broken-macos
+          - os: windows-latest
+            label: cli-broken-windows
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash # one shell on all three OSes (windows default is pwsh)
     steps:
       - uses: actions/checkout@v4 # for .github/scripts/*.mjs
       - uses: actions/setup-node@v4
@@ -37,4 +51,4 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .github/scripts/report-to-issue.mjs --kind generic --label cli-broken --report cli-smoke-report.json
+        run: node .github/scripts/report-to-issue.mjs --kind generic --label ${{ matrix.label }} --report cli-smoke-report.json
