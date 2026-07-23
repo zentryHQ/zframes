@@ -27,10 +27,17 @@ export async function generateMetadata({
     ? `A live ${frameCount}-frame market dashboard on zframes — preview it live, or fork it onto your machine with your AI.`
     : "A live market dashboard on zframes.";
   return {
-    metadataBase: new URL(process.env.BETTER_AUTH_URL ?? "http://localhost:37264"),
+    metadataBase: new URL(
+      process.env.BETTER_AUTH_URL ?? "http://localhost:37264",
+    ),
     title,
     description,
-    openGraph: { title, description, type: "website", siteName: "zframes.explorer" },
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: "zframes.explorer",
+    },
     twitter: { card: "summary_large_image", title, description },
   };
 }
@@ -43,5 +50,7 @@ export default async function PreviewPage({
   const { id } = await params; // Next 15: params is async
   const entry = await resolveDashboard(id); // curated OR community
   if (!entry) notFound();
-  return <DashboardPreview id={entry.id} title={entry.title} spec={entry.spec} />;
+  return (
+    <DashboardPreview id={entry.id} title={entry.title} spec={entry.spec} />
+  );
 }

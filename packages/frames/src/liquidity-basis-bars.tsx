@@ -41,7 +41,8 @@ function LiquidityBasisBars({ config }: { config: z.output<typeof schema> }) {
   }, [stats, metric, config.limit]);
 
   if (isLoading) return <FrameStatus loading>loading markets…</FrameStatus>;
-  if (data.length === 0) return <FrameStatus>no liquidity data yet</FrameStatus>;
+  if (data.length === 0)
+    return <FrameStatus>no liquidity data yet</FrameStatus>;
 
   return (
     <div className="flex h-full flex-col justify-center gap-1 text-normal">

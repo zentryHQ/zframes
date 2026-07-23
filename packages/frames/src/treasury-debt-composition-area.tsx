@@ -22,10 +22,7 @@ function SeriesLegend({
   return (
     <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
       {series.map((s) => (
-        <span
-          key={s.id}
-          className="caption text-soft flex items-center gap-1"
-        >
+        <span key={s.id} className="caption text-soft flex items-center gap-1">
           <span
             className="h-1.5 w-1.5 shrink-0 rounded-full"
             style={{ background: s.color }}

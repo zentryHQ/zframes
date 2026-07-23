@@ -57,10 +57,10 @@ function EtfFlowCalendar({ config }: { config: z.output<typeof schema> }) {
         .filter((p) => p.time >= cutoff)
         .map((p) => ({
           id: String(p.time),
-          row: new Date(mondayOnOrBefore(p.time)).toLocaleDateString(
-            "en-US",
-            { month: "short", day: "numeric" },
-          ),
+          row: new Date(mondayOnOrBefore(p.time)).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
           column: new Date(p.time).toLocaleDateString("en-US", {
             weekday: "short",
           }),
@@ -70,7 +70,8 @@ function EtfFlowCalendar({ config }: { config: z.output<typeof schema> }) {
   );
 
   if (isLoading) return <FrameStatus loading>loading ETF flows…</FrameStatus>;
-  if (cells.length === 0) return <FrameStatus>ETF flows unavailable</FrameStatus>;
+  if (cells.length === 0)
+    return <FrameStatus>ETF flows unavailable</FrameStatus>;
 
   return (
     <HeatmapChart

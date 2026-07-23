@@ -26,11 +26,13 @@ export function AgentForkButton({ id }: { id: string }) {
 
       {open && (
         <Dialog onClose={() => setOpen(false)}>
-          <h2 className="text-lg font-semibold text-white">Fork with your AI agent</h2>
+          <h2 className="text-lg font-semibold text-white">
+            Fork with your AI agent
+          </h2>
           <p className="mt-1 mb-4 text-sm text-white/55">
             Works with any agent. Paste this — it installs the zframes skill,
-            pulls this dashboard onto your machine, serves it live, and helps you
-            personalize it.
+            pulls this dashboard onto your machine, serves it live, and helps
+            you personalize it.
           </p>
           <pre className="whitespace-pre-wrap rounded-lg border border-white/10 bg-black/30 p-3 text-xs text-white/80">
             {prompt}

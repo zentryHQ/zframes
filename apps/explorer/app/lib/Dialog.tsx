@@ -28,7 +28,12 @@ export function Dialog({
   maxWidth?: string;
 }) {
   return (
-    <DialogRoot open onOpenChange={(open) => { if (!open) onClose(); }}>
+    <DialogRoot
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent
         showCloseButton={false}
         aria-describedby={undefined}

@@ -57,184 +57,196 @@ export default async function Image({
   ]);
 
   const title = entry?.title ?? "zframes";
-  const frames = ((entry?.spec as { frames?: Frame[] })?.frames ?? []) as Frame[];
+  const frames = ((entry?.spec as { frames?: Frame[] })?.frames ??
+    []) as Frame[];
   const tags = (entry?.tags ?? []).slice(0, 4);
   const cells = miniMap(frames);
 
   return new ImageResponse(
-    (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          height: "100%",
-          padding: 60,
-          color: "#e7ecf6",
-          fontFamily: "DM Sans",
-          backgroundColor: "#06060b",
-          backgroundImage:
-            "radial-gradient(900px 520px at 12% -8%, rgba(89,84,255,0.28), transparent 62%), radial-gradient(820px 620px at 100% 0%, rgba(150,90,240,0.20), transparent 58%)",
-        }}
-      >
-        {/* Brand lockup */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div
-            style={{
-              display: "flex",
-              width: 48,
-              height: 48,
-              borderRadius: 12,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundImage: "linear-gradient(180deg, #15151E, #0A0A11)",
-              border: "1px solid rgba(255,255,255,0.10)",
-            }}
-          >
-            <div
-              style={{
-                fontSize: 30,
-                fontWeight: 700,
-                backgroundImage: "linear-gradient(135deg, #5C8CFF, #A974FF)",
-                backgroundClip: "text",
-                color: "transparent",
-              }}
-            >
-              Z
-            </div>
-          </div>
-          <div style={{ display: "flex", fontSize: 24, fontWeight: 700 }}>
-            <span style={{ color: "#ffffff" }}>zframes</span>
-            <span style={{ color: "#818cf8" }}>.explorer</span>
-          </div>
-        </div>
-
-        {/* Body */}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+        height: "100%",
+        padding: 60,
+        color: "#e7ecf6",
+        fontFamily: "DM Sans",
+        backgroundColor: "#06060b",
+        backgroundImage:
+          "radial-gradient(900px 520px at 12% -8%, rgba(89,84,255,0.28), transparent 62%), radial-gradient(820px 620px at 100% 0%, rgba(150,90,240,0.20), transparent 58%)",
+      }}
+    >
+      {/* Brand lockup */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <div
           style={{
             display: "flex",
-            flex: 1,
+            width: 48,
+            height: 48,
+            borderRadius: 12,
             alignItems: "center",
-            gap: 52,
-            paddingTop: 28,
+            justifyContent: "center",
+            backgroundImage: "linear-gradient(180deg, #15151E, #0A0A11)",
+            border: "1px solid rgba(255,255,255,0.10)",
           }}
         >
-          {/* Left */}
+          <div
+            style={{
+              fontSize: 30,
+              fontWeight: 700,
+              backgroundImage: "linear-gradient(135deg, #5C8CFF, #A974FF)",
+              backgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            Z
+          </div>
+        </div>
+        <div style={{ display: "flex", fontSize: 24, fontWeight: 700 }}>
+          <span style={{ color: "#ffffff" }}>zframes</span>
+          <span style={{ color: "#818cf8" }}>.explorer</span>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          alignItems: "center",
+          gap: 52,
+          paddingTop: 28,
+        }}
+      >
+        {/* Left */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            justifyContent: "center",
+            gap: 22,
+          }}
+        >
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              justifyContent: "center",
-              gap: 22,
+              fontSize: title.length > 24 ? 54 : 66,
+              fontWeight: 700,
+              lineHeight: 1.05,
+              color: "#ffffff",
+              maxWidth: 560,
+            }}
+          >
+            {title}
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              flexWrap: "wrap",
             }}
           >
             <div
               style={{
                 display: "flex",
-                fontSize: title.length > 24 ? 54 : 66,
-                fontWeight: 700,
-                lineHeight: 1.05,
-                color: "#ffffff",
-                maxWidth: 560,
+                borderRadius: 999,
+                border: "1px solid rgba(255,255,255,0.12)",
+                backgroundColor: "rgba(255,255,255,0.04)",
+                padding: "6px 14px",
+                fontSize: 18,
+                color: "rgba(231,236,246,0.75)",
               }}
             >
-              {title}
+              {frames.length} {frames.length === 1 ? "frame" : "frames"}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            {tags.map((t) => (
               <div
+                key={t}
                 style={{
                   display: "flex",
                   borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  backgroundColor: "rgba(255,255,255,0.04)",
-                  padding: "6px 14px",
-                  fontSize: 18,
-                  color: "rgba(231,236,246,0.75)",
+                  border: "1px solid rgba(255,255,255,0.10)",
+                  backgroundColor: "rgba(255,255,255,0.03)",
+                  padding: "6px 12px",
+                  fontSize: 15,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                  color: "rgba(231,236,246,0.5)",
                 }}
               >
-                {frames.length} {frames.length === 1 ? "frame" : "frames"}
-              </div>
-              {tags.map((t) => (
-                <div
-                  key={t}
-                  style={{
-                    display: "flex",
-                    borderRadius: 999,
-                    border: "1px solid rgba(255,255,255,0.10)",
-                    backgroundColor: "rgba(255,255,255,0.03)",
-                    padding: "6px 12px",
-                    fontSize: 15,
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                    color: "rgba(231,236,246,0.5)",
-                  }}
-                >
-                  {t}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right — mini-map of the real layout */}
-          <div
-            style={{
-              display: "flex",
-              position: "relative",
-              width: 520,
-              height: 300,
-              borderRadius: 18,
-              border: "1px solid rgba(255,255,255,0.08)",
-              backgroundImage: "linear-gradient(160deg, #0a0a14, #08080f)",
-              boxShadow: "0 30px 90px -40px rgba(124,92,255,0.7)",
-            }}
-          >
-            {cells.map((c, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  position: "absolute",
-                  left: c.left,
-                  top: c.top,
-                  width: c.width,
-                  height: c.height,
-                  padding: 5,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: 7,
-                    backgroundColor: c.heading ? "transparent" : `${c.color}22`,
-                    border: `1px solid ${c.heading ? "transparent" : `${c.color}66`}`,
-                    borderBottom: `2px solid ${c.heading ? `${NEUTRAL}66` : `${c.color}66`}`,
-                  }}
-                />
+                {t}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Footer — the fork story */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              display: "flex",
-              width: 8,
-              height: 8,
-              borderRadius: 999,
-              backgroundColor: "#3fd08f",
-            }}
-          />
-          <div style={{ display: "flex", fontSize: 20, color: "rgba(231,236,246,0.5)" }}>
-            npx skills add zentryhq/zframes
-          </div>
+        {/* Right — mini-map of the real layout */}
+        <div
+          style={{
+            display: "flex",
+            position: "relative",
+            width: 520,
+            height: 300,
+            borderRadius: 18,
+            border: "1px solid rgba(255,255,255,0.08)",
+            backgroundImage: "linear-gradient(160deg, #0a0a14, #08080f)",
+            boxShadow: "0 30px 90px -40px rgba(124,92,255,0.7)",
+          }}
+        >
+          {cells.map((c, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                position: "absolute",
+                left: c.left,
+                top: c.top,
+                width: c.width,
+                height: c.height,
+                padding: 5,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: 7,
+                  backgroundColor: c.heading ? "transparent" : `${c.color}22`,
+                  border: `1px solid ${c.heading ? "transparent" : `${c.color}66`}`,
+                  borderBottom: `2px solid ${c.heading ? `${NEUTRAL}66` : `${c.color}66`}`,
+                }}
+              />
+            </div>
+          ))}
         </div>
       </div>
-    ),
+
+      {/* Footer — the fork story */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            width: 8,
+            height: 8,
+            borderRadius: 999,
+            backgroundColor: "#3fd08f",
+          }}
+        />
+        <div
+          style={{
+            display: "flex",
+            fontSize: 20,
+            color: "rgba(231,236,246,0.5)",
+          }}
+        >
+          npx skills add zentryhq/zframes
+        </div>
+      </div>
+    </div>,
     {
       ...size,
       fonts: [

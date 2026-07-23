@@ -67,7 +67,12 @@ function buildStarter() {
   // so each section starts flush with no overlap and no cross-section gap.
   const banner = (id: string, config: Record<string, unknown>) => {
     const y = maxSkyline();
-    frames.push({ id, frame: "heading", position: { x: 0, y, w: COLS, h: 1 }, config });
+    frames.push({
+      id,
+      frame: "heading",
+      position: { x: 0, y, w: COLS, h: 1 },
+      config,
+    });
     settle(0, COLS, y + 1);
   };
 
@@ -174,7 +179,10 @@ export default function DashboardTinker() {
       </main>
 
       {showPublish && (
-        <PublishDialog getSpec={() => latest.current} onClose={() => setShowPublish(false)} />
+        <PublishDialog
+          getSpec={() => latest.current}
+          onClose={() => setShowPublish(false)}
+        />
       )}
     </FramesProvider>
   );

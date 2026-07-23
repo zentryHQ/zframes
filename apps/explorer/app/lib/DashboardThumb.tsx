@@ -48,9 +48,18 @@ function kindOf(frame: string): Kind {
   const t = frame.toLowerCase();
   if (/head|title|divider|note|label|text/.test(t)) return "heading";
   if (/treemap|heatmap|cap|matrix|grid|dominance/.test(t)) return "tiles";
-  if (/ticker|watch|list|table|movers|volume|book|news|feed|rank|calendar/.test(t)) return "list";
-  if (/gauge|fear|greed|sentiment|ratio|meter|clock|countdown|stress|index/.test(t)) return "gauge";
-  if (/bar|short|flow|oi|open-interest|funding|depth|hashrate|fees/.test(t)) return "bars";
+  if (
+    /ticker|watch|list|table|movers|volume|book|news|feed|rank|calendar/.test(t)
+  )
+    return "list";
+  if (
+    /gauge|fear|greed|sentiment|ratio|meter|clock|countdown|stress|index/.test(
+      t,
+    )
+  )
+    return "gauge";
+  if (/bar|short|flow|oi|open-interest|funding|depth|hashrate|fees/.test(t))
+    return "bars";
   return "chart"; // price-chart, yield-curve, line, area, spark, and the default
 }
 
@@ -64,25 +73,58 @@ function sparkPath(rnd: () => number, up: boolean): string {
     y = Math.max(6, Math.min(52, y));
     pts.push([(i / (n - 1)) * 100, y]);
   }
-  return pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
+  return pts
+    .map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`)
+    .join(" ");
 }
 
-function Glyph({ kind, seed, color }: { kind: Kind; seed: number; color: string }) {
+function Glyph({
+  kind,
+  seed,
+  color,
+}: {
+  kind: Kind;
+  seed: number;
+  color: string;
+}) {
   const rnd = rng(seed);
-  const common = { preserveAspectRatio: "none" as const, className: "h-full w-full" };
+  const common = {
+    preserveAspectRatio: "none" as const,
+    className: "h-full w-full",
+  };
 
   if (kind === "heading") {
     return (
       <svg viewBox="0 0 100 30" {...common}>
-        <rect x="6" y="8" width="42" height="7" rx="3.5" fill={ACCENTS.neutral} opacity="0.85" />
-        <rect x="6" y="19" width="66" height="4" rx="2" fill="#ffffff" opacity="0.22" />
+        <rect
+          x="6"
+          y="8"
+          width="42"
+          height="7"
+          rx="3.5"
+          fill={ACCENTS.neutral}
+          opacity="0.85"
+        />
+        <rect
+          x="6"
+          y="19"
+          width="66"
+          height="4"
+          rx="2"
+          fill="#ffffff"
+          opacity="0.22"
+        />
       </svg>
     );
   }
 
   if (kind === "chart") {
     const up = rnd() > 0.42;
-    const stroke = up ? ACCENTS.up : color === ACCENTS.up ? ACCENTS.brand : color;
+    const stroke = up
+      ? ACCENTS.up
+      : color === ACCENTS.up
+        ? ACCENTS.brand
+        : color;
     const d = sparkPath(rnd, up);
     const gid = `g${seed.toString(36)}`;
     return (
@@ -94,7 +136,14 @@ function Glyph({ kind, seed, color }: { kind: Kind; seed: number; color: string 
           </linearGradient>
         </defs>
         <path d={`${d} L100 60 L0 60 Z`} fill={`url(#${gid})`} />
-        <path d={d} fill="none" stroke={stroke} strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
+        <path
+          d={d}
+          fill="none"
+          stroke={stroke}
+          strokeWidth="2.4"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
@@ -132,8 +181,24 @@ function Glyph({ kind, seed, color }: { kind: Kind; seed: number; color: string 
           return (
             <g key={i}>
               <circle cx="8" cy={y + 3} r="3" fill={color} opacity="0.85" />
-              <rect x="16" y={y} width={30 + rnd() * 22} height="4.5" rx="2.25" fill="#fff" opacity="0.32" />
-              <rect x="82" y={y} width="12" height="4.5" rx="2.25" fill={up ? ACCENTS.up : ACCENTS.down} opacity="0.85" />
+              <rect
+                x="16"
+                y={y}
+                width={30 + rnd() * 22}
+                height="4.5"
+                rx="2.25"
+                fill="#fff"
+                opacity="0.32"
+              />
+              <rect
+                x="82"
+                y={y}
+                width="12"
+                height="4.5"
+                rx="2.25"
+                fill={up ? ACCENTS.up : ACCENTS.down}
+                opacity="0.85"
+              />
             </g>
           );
         })}
@@ -151,7 +216,13 @@ function Glyph({ kind, seed, color }: { kind: Kind; seed: number; color: string 
       [34, 40, 26, 16],
       [64, 40, 32, 16],
     ];
-    const cols = [ACCENTS.brand, ACCENTS.violet, ACCENTS.up, ACCENTS.cyan, ACCENTS.down];
+    const cols = [
+      ACCENTS.brand,
+      ACCENTS.violet,
+      ACCENTS.up,
+      ACCENTS.cyan,
+      ACCENTS.down,
+    ];
     return (
       <svg viewBox="0 0 100 60" {...common}>
         {tiles.map((t, i) => (
@@ -180,9 +251,26 @@ function Glyph({ kind, seed, color }: { kind: Kind; seed: number; color: string 
   const track = `M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`;
   const value = `M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${(cx + R * Math.cos(a1)).toFixed(1)} ${(cy - R * Math.sin(a1)).toFixed(1)}`;
   return (
-    <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid" className="h-full w-full">
-      <path d={track} fill="none" stroke="#ffffff" strokeOpacity="0.14" strokeWidth="6" strokeLinecap="round" />
-      <path d={value} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round" />
+    <svg
+      viewBox="0 0 100 60"
+      preserveAspectRatio="xMidYMid"
+      className="h-full w-full"
+    >
+      <path
+        d={track}
+        fill="none"
+        stroke="#ffffff"
+        strokeOpacity="0.14"
+        strokeWidth="6"
+        strokeLinecap="round"
+      />
+      <path
+        d={value}
+        fill="none"
+        stroke={color}
+        strokeWidth="6"
+        strokeLinecap="round"
+      />
       <circle cx={cx} cy={cy} r="3" fill={color} />
     </svg>
   );
@@ -245,14 +333,25 @@ export function DashboardThumb({
 // positions — so they still show a real-looking mini-map instead of a blank box.
 export function synthLayout(seed: string, count: number): ThumbFrame[] {
   const rnd = rng(hash(seed));
-  const kinds = ["price-chart", "price-ticker", "fear-greed", "market-cap-treemap", "short-volume", "yield-curve"];
+  const kinds = [
+    "price-chart",
+    "price-ticker",
+    "fear-greed",
+    "market-cap-treemap",
+    "short-volume",
+    "yield-curve",
+  ];
   const out: ThumbFrame[] = [];
   const n = Math.max(1, Math.min(count || 3, 8));
   // Header band on top for boards with room.
   let y = 0;
   let idx = 0;
   if (n >= 4) {
-    out.push({ id: `${seed}-h`, frame: "heading", position: { x: 0, y: 0, w: 12, h: 1 } });
+    out.push({
+      id: `${seed}-h`,
+      frame: "heading",
+      position: { x: 0, y: 0, w: 12, h: 1 },
+    });
     y = 1;
   }
   let x = 0;

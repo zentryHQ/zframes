@@ -22,7 +22,10 @@ function YieldMomentumBars({ config }: { config: z.output<typeof schema> }) {
       ranked.length <= config.limit
         ? ranked
         : [...ranked.slice(0, half), ...ranked.slice(-half)];
-    return picked.map((p) => ({ label: p.symbol, value: p.apyPct7D as number }));
+    return picked.map((p) => ({
+      label: p.symbol,
+      value: p.apyPct7D as number,
+    }));
   }, [pools, config.limit, config.minTvlUsd]);
 
   if (isLoading) return <FrameStatus loading>loading yields…</FrameStatus>;

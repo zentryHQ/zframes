@@ -38,7 +38,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <nav className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-3 text-sm">
             <Link href="/" className="group flex items-center gap-2.5">
               <BrandMark idKey="hdr" className="zf-grow h-7 w-7" />
-              <span className="text-[15px] font-semibold tracking-tight text-white">zframes</span>
+              <span className="text-[15px] font-semibold tracking-tight text-white">
+                zframes
+              </span>
             </Link>
 
             <div className="ml-2 hidden h-5 w-px bg-white/10 sm:block" />

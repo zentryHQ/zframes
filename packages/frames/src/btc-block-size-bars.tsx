@@ -13,12 +13,10 @@ function BtcBlockSizeBars({ config }: { config: z.output<typeof schema> }) {
 
   const data = useMemo(
     () =>
-      [...blocks]
-        .reverse()
-        .map((b) => ({
-          label: b.height.toLocaleString("en-US"),
-          value: b.size,
-        })),
+      [...blocks].reverse().map((b) => ({
+        label: b.height.toLocaleString("en-US"),
+        value: b.size,
+      })),
     [blocks],
   );
 

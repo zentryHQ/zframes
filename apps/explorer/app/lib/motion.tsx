@@ -2,7 +2,12 @@
 
 import type { ReactNode } from "react";
 import { useRef } from "react";
-import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "motion/react";
 
 // Shared scroll-motion primitives for the landing. This is the ONE place `motion`
 // (framer-motion's successor) is used — for scroll-driven orchestration CSS can't
@@ -120,18 +125,26 @@ export function StackPanel({
       className="mx-auto w-full max-w-6xl px-4 sm:px-6"
       // Fit the card so that even the front-most (lowest) one clears the viewport
       // bottom once the whole stack's peek offset is accounted for.
-      style={{ height: `calc(100vh - 57px - ${(total - 1) * STACK_PEEK}px - 2rem)` }}
+      style={{
+        height: `calc(100vh - 57px - ${(total - 1) * STACK_PEEK}px - 2rem)`,
+      }}
     >
       {children}
     </div>
   );
 
   return (
-    <div ref={ref} className={`sticky ${className ?? ""}`} style={{ top, zIndex: index + 1 }}>
+    <div
+      ref={ref}
+      className={`sticky ${className ?? ""}`}
+      style={{ top, zIndex: index + 1 }}
+    >
       {reduced ? (
         inner
       ) : (
-        <motion.div style={{ scale, transformOrigin: "top center" }}>{inner}</motion.div>
+        <motion.div style={{ scale, transformOrigin: "top center" }}>
+          {inner}
+        </motion.div>
       )}
     </div>
   );

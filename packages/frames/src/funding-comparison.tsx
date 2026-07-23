@@ -21,7 +21,9 @@ function FundingComparison({ config }: { config: z.output<typeof schema> }) {
           key={r.coin}
           label={r.coin}
           meta={r.venues
-            .map((v) => `${v.venue.slice(0, 3)} ${formatPct(v.annualizedPct, 1)}`)
+            .map(
+              (v) => `${v.venue.slice(0, 3)} ${formatPct(v.annualizedPct, 1)}`,
+            )
             .join(" · ")}
           value={`${formatPct(r.spreadPct, 1)} sprd`}
         />

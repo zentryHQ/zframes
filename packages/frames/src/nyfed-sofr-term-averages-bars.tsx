@@ -8,7 +8,9 @@ import { FrameStatus } from "./ui";
 
 const schema = nyfedSofrTermAveragesBarsMeta.schema;
 
-function NyfedSofrTermAveragesBars(_props: { config: z.output<typeof schema> }) {
+function NyfedSofrTermAveragesBars(_props: {
+  config: z.output<typeof schema>;
+}) {
   const { rates, isLoading } = useReferenceRates();
   const sofrai = rates.find((r) => r.code === "SOFRAI");
 
@@ -18,7 +20,9 @@ function NyfedSofrTermAveragesBars(_props: { config: z.output<typeof schema> }) 
       { label: "30D", value: sofrai.average30Day },
       { label: "90D", value: sofrai.average90Day },
       { label: "180D", value: sofrai.average180Day },
-    ].filter((d): d is { label: string; value: number } => d.value !== undefined);
+    ].filter(
+      (d): d is { label: string; value: number } => d.value !== undefined,
+    );
   }, [sofrai]);
 
   if (isLoading)

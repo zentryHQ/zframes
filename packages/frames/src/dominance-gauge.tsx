@@ -25,7 +25,11 @@ function DominanceGauge({ config }: { config: z.output<typeof schema> }) {
       <RadialGauge value={value} min={0} max={100} color={ACCENT} size={170}>
         <div
           className="metric-xl leading-none"
-          style={{ color: ACCENT, textShadow: "0 0 28px hsl(var(--zf-accent-hue, 242) 82% 70% / 0.33)" }}
+          style={{
+            color: ACCENT,
+            textShadow:
+              "0 0 28px hsl(var(--zf-accent-hue, 242) 82% 70% / 0.33)",
+          }}
         >
           {formatPct(value, 1)}
         </div>

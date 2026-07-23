@@ -18,7 +18,9 @@ function TrendingBubbles({ config }: { config: z.output<typeof schema> }) {
   const nodes: TrendingBubble[] = useMemo(
     () =>
       coins
-        .filter((c) => c.changePct24h !== null && Number.isFinite(c.changePct24h))
+        .filter(
+          (c) => c.changePct24h !== null && Number.isFinite(c.changePct24h),
+        )
         .slice(0, config.limit)
         .map((c) => ({
           id: c.id,

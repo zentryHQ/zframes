@@ -265,7 +265,12 @@ describe("DashboardRenderer spec → CSS custom properties", () => {
     const { container } = renderDashboard([
       {
         ...inst("marker", { label: "x" }),
-        style: { accentHue: 320, accentSat: 95, surfaceOpacity: 0.5, radius: 24 },
+        style: {
+          accentHue: 320,
+          accentSat: 95,
+          surfaceOpacity: 0.5,
+          radius: 24,
+        },
       },
     ]);
     const card = container.querySelector(".zf-frame") as HTMLElement;

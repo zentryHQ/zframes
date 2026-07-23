@@ -8,7 +8,11 @@ import { FrameStatus } from "./ui";
 
 const schema = yieldCompositionScatterMeta.schema;
 
-function YieldCompositionScatter({ config }: { config: z.output<typeof schema> }) {
+function YieldCompositionScatter({
+  config,
+}: {
+  config: z.output<typeof schema>;
+}) {
   const { pools, isLoading } = useYieldPools();
 
   const data: ScatterDatum[] = useMemo(

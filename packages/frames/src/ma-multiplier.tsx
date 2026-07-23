@@ -2,7 +2,13 @@ import { defineFrame, useDailyCloseHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { SeriesPoint } from "@zframes/spec";
 import type { z } from "zod";
-import { MetricGauge, ZONE_NEUTRAL, ZONE_WARN, zoneOf, type Zone } from "./cycle-shared";
+import {
+  MetricGauge,
+  ZONE_NEUTRAL,
+  ZONE_WARN,
+  zoneOf,
+  type Zone,
+} from "./cycle-shared";
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { sma, tail, windowDays } from "./indicators";
 import { maMultiplierMeta } from "./schemas";

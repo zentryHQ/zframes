@@ -108,7 +108,8 @@ const BarChart = ({
       const rowHeight = height / data.length;
       const barHeight = Math.min(Math.max(rowHeight * 0.55, 3), 18);
 
-      const hasNeg = negativeColor !== undefined && data.some((d) => d.value < 0);
+      const hasNeg =
+        negativeColor !== undefined && data.some((d) => d.value < 0);
       const maxAbs = Math.max(...data.map((d) => Math.abs(d.value)), 1e-9);
       const x = hasNeg
         ? d3.scaleLinear().domain([-maxAbs, maxAbs]).range([0, innerWidth])
@@ -150,11 +151,7 @@ const BarChart = ({
       const barX = (d: BarDatum) => Math.min(zeroX, x(d.value));
       const barW = (d: BarDatum) => Math.abs(x(d.value) - zeroX);
       if (animate)
-        bars
-          .transition()
-          .duration(400)
-          .attr("x", barX)
-          .attr("width", barW);
+        bars.transition().duration(400).attr("x", barX).attr("width", barW);
       else bars.attr("x", barX).attr("width", barW);
 
       svg

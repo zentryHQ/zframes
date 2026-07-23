@@ -10,7 +10,8 @@ function DefiRevenue() {
   if (isLoading) return <FrameStatus loading>loading DeFi fees…</FrameStatus>;
   if (!fees) return <FrameStatus>no fees data yet</FrameStatus>;
 
-  const color = fees.changePct != null ? changeColor(fees.changePct) : ZONE_NEUTRAL;
+  const color =
+    fees.changePct != null ? changeColor(fees.changePct) : ZONE_NEUTRAL;
 
   return (
     <MetricGauge
@@ -18,7 +19,11 @@ function DefiRevenue() {
       headline={formatCompactUsd(fees.total24h)}
       headlineColor={ZONE_NEUTRAL}
       zone={{ label: "protocol fees", color: ZONE_NEUTRAL }}
-      sub={fees.changePct != null ? `1d ${formatChangePct(fees.changePct)}` : undefined}
+      sub={
+        fees.changePct != null
+          ? `1d ${formatChangePct(fees.changePct)}`
+          : undefined
+      }
       sparkline={fees.history}
       sparkColor={color}
     />

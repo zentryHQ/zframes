@@ -18,7 +18,10 @@ export default function SignInPage() {
       next && next.startsWith("/") && !next.startsWith("//") ? next : "/mine";
     // Full-page redirect to Google, then back to callbackURL. On failure we
     // land back here, so surface the error and re-enable the button.
-    const res = await authClient.signIn.social({ provider: "google", callbackURL });
+    const res = await authClient.signIn.social({
+      provider: "google",
+      callbackURL,
+    });
     if (res?.error) {
       toast.error(res.error.message || "Sign-in failed");
       setBusy(false);
@@ -34,8 +37,9 @@ export default function SignInPage() {
             Welcome
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-white/60">
-            An account is only needed to <strong className="text-white/70">publish</strong> or
-            save dashboards — browsing, preview, and tinker stay open.
+            An account is only needed to{" "}
+            <strong className="text-white/70">publish</strong> or save
+            dashboards — browsing, preview, and tinker stay open.
           </p>
         </div>
 
@@ -68,7 +72,10 @@ export default function SignInPage() {
       </div>
 
       <p className="mt-4 text-center text-sm">
-        <Link href="/" className="text-white/55 transition-colors hover:text-white/70">
+        <Link
+          href="/"
+          className="text-white/55 transition-colors hover:text-white/70"
+        >
           ← Back to gallery
         </Link>
       </p>

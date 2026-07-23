@@ -10,16 +10,18 @@ const schema = macroCalendarMeta.schema;
 function MacroCalendar({ config }: { config: z.output<typeof schema> }) {
   const rows = useMemo(() => {
     const now = Date.now();
-    return config.events
-      .map((e) => ({ ...e, t: Date.parse(`${e.date}T12:00:00Z`) }))
-      // keep today + future (allow a 1-day grace so "today" doesn't drop early)
-      .filter((e) => Number.isFinite(e.t) && e.t >= now - 86_400_000)
-      .sort((a, b) => a.t - b.t)
-      .slice(0, config.limit)
-      .map((e) => ({
-        ...e,
-        days: Math.max(0, Math.ceil((e.t - now) / 86_400_000)),
-      }));
+    return (
+      config.events
+        .map((e) => ({ ...e, t: Date.parse(`${e.date}T12:00:00Z`) }))
+        // keep today + future (allow a 1-day grace so "today" doesn't drop early)
+        .filter((e) => Number.isFinite(e.t) && e.t >= now - 86_400_000)
+        .sort((a, b) => a.t - b.t)
+        .slice(0, config.limit)
+        .map((e) => ({
+          ...e,
+          days: Math.max(0, Math.ceil((e.t - now) / 86_400_000)),
+        }))
+    );
   }, [config.events, config.limit]);
 
   if (rows.length === 0) return <FrameStatus>no upcoming events</FrameStatus>;

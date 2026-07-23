@@ -1,6 +1,11 @@
 import { defineFrame, useNftMarket } from "@zframes/core";
 import type { z } from "zod";
-import { changeColor, formatChangePct, formatCompactUsd, formatPrice } from "./format";
+import {
+  changeColor,
+  formatChangePct,
+  formatCompactUsd,
+  formatPrice,
+} from "./format";
 import { MetricRow } from "./metric-row";
 import { nftCollectionsMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";

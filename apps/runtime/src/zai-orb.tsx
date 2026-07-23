@@ -990,7 +990,12 @@ export function ZaiOrb({
         onClick={() => setOpen(false)}
         aria-hidden="true"
       />
-      <div className="zai-dock" data-open={open} data-busy={busy} data-nudge={nudge}>
+      <div
+        className="zai-dock"
+        data-open={open}
+        data-busy={busy}
+        data-nudge={nudge}
+      >
         {open && messages.length > 0 && (
           <div
             className="zai-history"

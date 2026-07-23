@@ -14,9 +14,7 @@ function MarketScatter({ config }: { config: z.output<typeof schema> }) {
   const data: ScatterDatum[] = useMemo(
     () =>
       entries
-        .filter(
-          (e) => e.changePct24h !== undefined && e.marketCapUsd > 0,
-        )
+        .filter((e) => e.changePct24h !== undefined && e.marketCapUsd > 0)
         .slice(0, config.limit)
         .map((e) => ({
           id: e.symbol,

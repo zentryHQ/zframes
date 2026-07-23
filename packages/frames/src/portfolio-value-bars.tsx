@@ -43,9 +43,7 @@ function ValueBars({
           config={config}
           className="caption text-soft"
         />
-        <span className="metric-sm text-strong">
-          {formatCompactUsd(total)}
-        </span>
+        <span className="metric-sm text-strong">{formatCompactUsd(total)}</span>
       </div>
       <BarChart
         data={data}

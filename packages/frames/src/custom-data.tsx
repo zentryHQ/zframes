@@ -154,9 +154,7 @@ function useMeasure<T extends HTMLElement>() {
     };
     update();
     const observer =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(update)
-        : null;
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
     observer?.observe(node);
     return () => observer?.disconnect();
   }, [node]);
@@ -196,12 +194,15 @@ function CustomData({ config }: { config: Config }) {
 
   if (!loaded && extracted === null)
     return <FrameStatus loading>fetching {hostOf(config.url)}…</FrameStatus>;
-  if (error) return <FrameStatus>fetch failed — {clampText(error)}</FrameStatus>;
+  if (error)
+    return <FrameStatus>fetch failed — {clampText(error)}</FrameStatus>;
   if (extracted === null || "pathError" in extracted)
     return (
       <FrameStatus>
         path error —{" "}
-        {extracted && "pathError" in extracted ? extracted.pathError : "no data"}
+        {extracted && "pathError" in extracted
+          ? extracted.pathError
+          : "no data"}
       </FrameStatus>
     );
 

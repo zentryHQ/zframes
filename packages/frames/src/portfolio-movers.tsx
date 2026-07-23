@@ -29,9 +29,7 @@ function MoversChart({
   );
 
   if (data.length === 0)
-    return (
-      <FrameStatus>no 24h change reported for these holdings</FrameStatus>
-    );
+    return <FrameStatus>no 24h change reported for these holdings</FrameStatus>;
 
   return (
     <div className="flex h-full flex-col justify-center gap-1 text-normal">
