@@ -46,7 +46,7 @@
   "devDependencies": {
     "@electric-sql/pglite-socket": "^0.2.6",
     "@tailwindcss/postcss": "^4.1.0",
-    "@types/node": "^20.14.0",
+    "@types/node": "^26.1.1",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "drizzle-kit": "^0.31.10",
