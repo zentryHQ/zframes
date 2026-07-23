@@ -30,7 +30,7 @@
     "storybook": "^10.4.6",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.22.4",
-    "typescript": "^5.8.0",
+    "typescript": "^7.0.2",
     "vite": "^8.1.5"
   }
 }
