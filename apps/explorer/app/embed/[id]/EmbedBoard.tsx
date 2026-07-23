@@ -15,19 +15,33 @@ const DashboardView = dynamic(() => import("@/app/lib/DashboardView"), {
   ssr: false,
 });
 
-// Parent→embed scene control (same-origin postMessage). The landing mounts five
-// of these iframes in its sticky stack but only the settled front card should
-// animate, so the parent tells each embed whether its backdrop should be live
-// (LiveBoardFrame sends `zf:bg-active`). Standalone (top-level) embeds get no
-// parent message and just animate.
-type BgMessage = { type: "zf:bg-active"; active: boolean };
+// Parent→embed board control (same-origin postMessage). The landing mounts five
+// of these iframes in its sticky stack; the parent (LiveBoardFrame) tells each
+// embed two things it cannot know from inside the iframe:
+//   • sceneActive — whether its animated WebGL backdrop should be live (only
+//     the settled front card's is).
+//   • visible — whether the board is actually on show. A card COVERED by the
+//     stack is still "intersecting" to every IntersectionObserver inside the
+//     iframe (occlusion is invisible to IO), so its charts kept repainting and
+//     its polls kept firing behind the front card. When hidden we put the board
+//     under `content-visibility: hidden`: the subtree stops rendering AND its
+//     per-frame IOs report not-intersecting, which flips core's existing
+//     visibility gating (usePolled pause + liveline heartbeat) off for free.
+//     React state survives, so a reveal repaints instantly with warm data.
+// Standalone (top-level) embeds get no parent message and just run fully live.
+type BoardMessage = {
+  type: "zf:board";
+  sceneActive: boolean;
+  visible: boolean;
+};
 
-function isBgMessage(data: unknown): data is BgMessage {
+function isBoardMessage(data: unknown): data is BoardMessage {
   return (
     typeof data === "object" &&
     data !== null &&
-    (data as { type?: unknown }).type === "zf:bg-active" &&
-    typeof (data as { active?: unknown }).active === "boolean"
+    (data as { type?: unknown }).type === "zf:board" &&
+    typeof (data as { sceneActive?: unknown }).sceneActive === "boolean" &&
+    typeof (data as { visible?: unknown }).visible === "boolean"
   );
 }
 
@@ -36,20 +50,22 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
   // re-parses and owns the invalid-spec message, so a bad spec just skips the bg.
   const parsed = DashboardSpecSchema.safeParse(spec);
 
-  // Scene liveness: starts OFF and flips on after mount — immediately when the
-  // document is top-level, or when the framing parent says so. An iframed board
-  // therefore never boots a WebGL scene it's about to be told to suspend (the
-  // static swatch layer covers the gap), and effect-based init avoids any
-  // SSR/hydration divergence.
-  const [bgActive, setBgActive] = useState(false);
+  // Scene liveness starts OFF (an iframed board never boots a WebGL scene it's
+  // about to be told to suspend — the static swatch covers the gap); board
+  // visibility starts ON (content must render even if no parent ever messages).
+  // Both flip after mount — immediately when the document is top-level, or as
+  // the framing parent dictates. Effect-based init avoids any SSR/hydration
+  // divergence.
+  const [board, setBoard] = useState({ sceneActive: false, visible: true });
   useEffect(() => {
     if (window.self === window.top) {
-      setBgActive(true);
+      setBoard({ sceneActive: true, visible: true });
       return;
     }
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
-      if (isBgMessage(e.data)) setBgActive(e.data.active);
+      if (isBoardMessage(e.data))
+        setBoard({ sceneActive: e.data.sceneActive, visible: e.data.visible });
     };
     window.addEventListener("message", onMessage);
     // Hello AFTER the listener is attached — the parent replies with the current
@@ -65,10 +81,13 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
           background={parsed.data.background}
           accentHue={parsed.data.theme.accentHue}
           accentSat={parsed.data.theme.accentSat}
-          sceneActive={bgActive}
+          sceneActive={board.sceneActive}
         />
       )}
-      <div className="relative z-10">
+      <div
+        className="relative z-10"
+        style={{ contentVisibility: board.visible ? undefined : "hidden" }}
+      >
         <DashboardView spec={spec} />
       </div>
     </div>

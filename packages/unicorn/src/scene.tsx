@@ -89,6 +89,12 @@ interface UnicornSceneProps {
   /** Device pixel ratio (engine default 1.5). */
   dpi?: number;
   /**
+   * Frame-rate cap (default 60). A slow-drift backdrop reads identically at
+   * 30 and costs half the GPU — hosts rendering scenes as decoration behind
+   * content should pass 30.
+   */
+  fps?: number;
+  /**
    * Fires once the engine is loaded and the scene is about to mount — hosts
    * that fade the backdrop in (the explorer) key their opacity off this.
    */
@@ -117,6 +123,7 @@ export default function UnicornScene({
   height = "100%",
   scale,
   dpi,
+  fps,
   onLoad,
   onSceneReady,
 }: UnicornSceneProps) {
@@ -159,7 +166,7 @@ export default function UnicornScene({
       projectId,
       scale: scale ?? 1,
       dpi: dpi ?? 1.5,
-      fps: 60,
+      fps: fps ?? 60,
       lazyLoad: true,
       production: true,
     })
@@ -178,7 +185,7 @@ export default function UnicornScene({
       ignore = true;
       scene?.destroy?.();
     };
-  }, [loaded, projectId, scale, dpi]);
+  }, [loaded, projectId, scale, dpi, fps]);
 
   return (
     <div
