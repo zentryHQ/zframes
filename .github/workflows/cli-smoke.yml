@@ -1,0 +1,40 @@
+name: Published CLI smoke
+
+# Drives the REAL published `zframes` package (npx/npm registry) end to end:
+# init → lint → serve → HTTP-fetch the app + spec + runtime bundle. Catches a
+# broken or stale publish — the thing users actually install — which no other
+# check guards. Opens/updates one `cli-broken` issue; auto-closes when green.
+# Weekly + on-demand. (No repo build: the scripts are plain node; we install the
+# CLI from the registry, not from source.)
+
+on:
+  schedule:
+    - cron: "43 6 * * 1" # Mondays 06:43 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4 # for .github/scripts/*.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install published CLI
+        run: npm install -g zframes@latest && zframes --version
+
+      - name: Smoke the published CLI
+        continue-on-error: true
+        run: node .github/scripts/cli-smoke.mjs
+
+      - name: File / update / close issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/report-to-issue.mjs --kind generic --label cli-broken --report cli-smoke-report.json
