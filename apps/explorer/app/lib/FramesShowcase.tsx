@@ -378,7 +378,7 @@ export function FramesShowcase() {
           </p>
           <Link
             href="/catalogue"
-            className="zf-press mt-6 inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
+            className="glow-brand zf-cta mt-6 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg"
           >
             Browse all {total} frames — drag one around live →
           </Link>
