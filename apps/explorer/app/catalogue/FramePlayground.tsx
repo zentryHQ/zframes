@@ -123,7 +123,7 @@ export default function FramePlayground() {
         minRow: MIN_ROW,
       },
       gridEl.current,
-    );
+    )!;
     gridRef.current = grid;
 
     const sync = (n?: GridStackNode | null) => {

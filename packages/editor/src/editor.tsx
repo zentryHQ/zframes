@@ -817,7 +817,7 @@ export function DashboardEditor({
           disableResize: true,
         },
         gridRef.current!,
-      );
+      )!;
       grid.el.style.width = horizontal ? `${cols * cell}px` : "";
 
       // A palette card dropped onto the grid lands in the *active* mode, so its
