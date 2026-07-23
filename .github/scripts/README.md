@@ -1,59 +1,69 @@
 # Scheduled monitors (`.github/scripts`)
 
-The hermetic vitest suite (`pnpm test`) stubs `fetch` and runs offline — it verifies
-our code, and gates every PR. It **cannot** tell you that a free public API died
-overnight. That's what the scheduled monitor here does: it runs on a cron, hits the
-real world, and — because the repo is public — **files a GitHub issue** instead of
-turning a PR red.
+The hermetic vitest suite (`pnpm test`) stubs `fetch`, runs offline, and gates
+every PR. It can't tell you a free API died overnight, that the published CLI is
+broken, that a frame started crashing, or that a dependency CVE landed. The
+monitors here do — they run on a cron, hit the real world, and (the repo being
+public) **file a GitHub issue** instead of turning a PR red.
 
-| Layer | What it catches | Determinism | Where | Trigger | On failure |
+| Monitor | Catches | Determinism | Workflow | Cadence | Issue label |
 |---|---|---|---|---|---|
-| `pnpm test` (existing CI) | our logic — type/lint/unit/build | deterministic | `ci.yml` | PR + push | blocks merge |
-| **Provider monitor** | a keyless API died / changed shape / rate-limited | flaky (external) | `provider-monitor.yml` | cron daily + dispatch | opens/updates issue `provider-drift` |
+| **Provider** | a keyless API died / changed shape / rate-limited | flaky (external) | `provider-monitor.yml` | daily | `provider-drift` |
+| **CLI smoke** | the published `npx zframes` is broken/stale | semi | `cli-smoke.yml` | weekly | `cli-broken` |
+| **Frame render** | a frame renders an error card / crashes | **deterministic** | `frame-render.yml` | nightly | `frame-render` |
+| **Dep audit** | a HIGH/CRITICAL advisory in deps | deterministic | `audit.yml` | weekly | `security-audit` |
 
-Issue dedup: **one open issue per label.** The monitor comments a fresh timeline
-entry while a problem persists and **auto-closes the issue when it recovers** —
-never a new issue per run.
+All are dispatch-able on demand from the Actions tab. Issue dedup is uniform:
+**one open issue per label** — comment while a problem persists, **auto-close on
+recovery** (`report-to-issue.mjs`). Dependency upgrade PRs come from Dependabot
+(`.github/dependabot.yml`); the audit monitor is the "something serious" alarm.
 
-> A deterministic Storybook pixel-diff (per-PR visual-regression) is a natural
-> next layer if visual coverage is wanted — it needs no credentials. An AI
-> frame-vision reviewer was prototyped and removed: it needs a metered API key to
-> run cleanly (a subscription OAuth token 429s the batch Messages-API path), which
-> wasn't wanted here.
+## Provider · `provider-smoke.ts` · `pnpm test:providers`
 
-## Provider monitor · `provider-smoke.ts`
+Probes every keyless provider's LIVE API and validates the response against the
+provider's own Zod schema. Driven off `@zframes/providers-keyless` (the exact set
+the apps ship) so a new provider is covered automatically; a provider with no
+probe is flagged (`warn`) to keep the manifest in lockstep. A **throw = hard
+signal** (dead endpoint / non-2xx / schema drift) → `fail` → issue; empty-but-
+valid is a soft `warn`. No AI, no cost, no key.
 
-```bash
-pnpm test:providers                       # probe every keyless provider's live API
-SMOKE_ONLY=coingecko,fx pnpm test:providers   # subset by package-name substring
-ZFRAMES_CONTACT=you@example.com pnpm test:providers   # also probe SEC (see below)
-```
+**SEC:** `data.sec.gov` 403s a UA without a contact **email** — set repo variable
+`ZFRAMES_CONTACT` to enable the SEC probes; unset, they skip (warn), never fail.
 
-Drives off `@zframes/providers-keyless` — the exact set the published apps ship —
-so a new keyless provider is smoke-tested automatically; a provider in the set
-with no probe row is flagged (`warn`) to keep the manifest (`PROBES`) in lockstep.
-Each probe calls a capability method against the live endpoint; providers already
-`fetchJson(url, schema)`, so a **throw is the hard signal** (dead endpoint /
-non-2xx / schema drift) → `fail` → issue. An empty/odd-but-non-throwing result is
-a **soft `warn`** (free APIs legitimately return empty on a lag) — surfaced in the
-report, never issue-worthy on its own. Proxied providers (treasury/ofr/finra/sec/
-news) work here because `proxied:true` is a no-op in Node.
+## CLI smoke · `cli-smoke.mjs` · (workflow installs `zframes@latest`)
 
-**SEC:** `data.sec.gov`'s fair-access policy 403s a User-Agent without a contact
-**email**. Set repo variable `ZFRAMES_CONTACT` to an email to enable the SEC probes;
-unset, they're **skipped (warn), never failed** — so no email is hardcoded in a
-public repo and no permanent false alarm.
+Drives the **published** package end to end: init → lint → serve → HTTP-fetch the
+served app, the dashboard spec, and the referenced JS bundle (catches a
+missing/stale prebuilt runtime bundle — a real past failure mode). Plain node —
+tests the registry artifact, not our source.
+
+## Frame render · `frame-render-smoke.ts` · `pnpm test:frames:render`
+
+Builds Storybook and headless-renders every frame's `Default` story through the
+real renderer + offline mock, flagging any that show the shared error card
+(`.zf-error` = unknown-frame / missing-capability / invalid-config / crash) or
+throw. Deterministic and credential-free — the reliable "is a frame broken?"
+check. (An AI vision reviewer for *subjective* "looks bad" was prototyped and
+removed: it needs a metered API key — a subscription OAuth token 429s the batch
+Messages-API path. A pixel-diff for subtle layout regressions is a possible
+future add-on.)
+
+## Dependency audit · `audit-report.mjs`
+
+Runs `pnpm audit`; opens an issue on HIGH/CRITICAL advisories (moderate/low are
+left to Dependabot's weekly PRs).
 
 ## Shared · `report-to-issue.mjs`
 
-`node .github/scripts/report-to-issue.mjs --kind provider --label provider-drift --report provider-smoke-report.json`
+`node .github/scripts/report-to-issue.mjs --kind <provider|generic> --label <label> --report <path.json>`
 
 Reads a monitor's JSON report and does the open / comment / close dance via `gh`
-(auth: `GH_TOKEN` in Actions; needs `issues: write`). The domain script owns the
-data and the exit code; this owns only the issue mechanics.
+(auth: `GH_TOKEN`; needs `issues: write`). `provider` renders the provider table;
+`generic` takes a pre-rendered `{title, body, findingsCount}` (used by CLI smoke,
+frame render, and audit) so a new monitor needs no branch here.
 
 ## Enabling in a fork
 
-Works out of the box — no secrets required. Set repo variable `ZFRAMES_CONTACT`
-(an email) to additionally cover the SEC provider. Needs `issues: write` (declared
-in the workflow's `permissions`).
+All workflows need `issues: write` (declared in each). No secrets required.
+Set repo variable `ZFRAMES_CONTACT` (an email) to additionally cover the SEC
+provider.

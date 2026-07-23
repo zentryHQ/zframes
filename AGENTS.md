@@ -12,10 +12,11 @@ pnpm build        # vite build of the runtime
 pnpm build:cli    # build the zframes CLI + its prebuilt runtime bundle
 pnpm zframes serve <dashboard.json>   # the runtime: serve a dashboard live (--port to change)
 pnpm --filter @zframes/storybook dev  # Storybook — every frame in all variants/states at :6006
-pnpm test:providers    # LIVE smoke: hit every keyless provider's real API, validate vs its Zod schema
+pnpm test:providers      # LIVE smoke: hit every keyless provider's real API, validate vs its Zod schema
+pnpm test:frames:render  # headless-render every frame in a built Storybook, flag error cards / crashes
 ```
 
-`pnpm test` is hermetic (stubs fetch) and gates every PR. `test:providers` is a **scheduled monitor** — external/flaky, so it runs on a cron and files a GitHub issue instead of gating PRs (`.github/workflows/provider-monitor.yml`). See `.github/scripts/README.md`.
+`pnpm test` is hermetic (stubs fetch) and gates every PR. Alongside it, a **scheduled-monitor suite** runs on crons and files GitHub issues instead of gating PRs: provider liveness, published-CLI smoke, frame-render, and a `pnpm audit` (+ Dependabot). See `.github/scripts/README.md`.
 
 ## Structure
 

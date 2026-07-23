@@ -73,6 +73,12 @@ if (kind === "provider") {
         `\n</details>\n\n`
       : "") +
     `_Run: ${report.generatedAt} · ${report.ok}/${report.total} ok, ${report.warn} warn, ${report.fail} fail._`;
+} else if (kind === "generic") {
+  // Extensible path: the domain script pre-renders title/body and counts its own
+  // findings, so a new monitor needs no per-kind branch here.
+  title = report.title ?? "monitor: findings";
+  body = report.body ?? "";
+  findingsCount = report.findingsCount ?? 0;
 } else {
   console.error(`unknown --kind ${kind}`);
   process.exit(2);

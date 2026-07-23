@@ -1,0 +1,39 @@
+name: Dependency audit
+
+# Weekly `pnpm audit` → opens/updates one `security-audit` issue when a HIGH or
+# CRITICAL advisory is present, auto-closes it when clean. Dependabot (see
+# .github/dependabot.yml) handles the steady upgrade PRs; this is the alarm for
+# something serious. Not a PR gate — advisories land out of our control.
+
+on:
+  schedule:
+    - cron: "23 7 * * 1" # Mondays 07:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.6.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Audit
+        run: node .github/scripts/audit-report.mjs
+
+      - name: File / update / close issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/report-to-issue.mjs --kind generic --label security-audit --report audit-report.json

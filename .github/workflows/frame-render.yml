@@ -1,0 +1,59 @@
+name: Frame render smoke
+
+# Deterministic, no-AI check: builds Storybook and headless-renders every frame's
+# Default story through the real renderer + offline mock, flagging any that show
+# an error card (unknown-frame / missing-capability / invalid-config / crash) or
+# throw. Opens/updates one `frame-render` issue; auto-closes when clean.
+# Nightly + on-demand. (Deterministic enough to gate PRs later if wanted; kept
+# scheduled for now to keep per-PR CI fast — the Storybook build adds a few min.)
+
+on:
+  schedule:
+    - cron: "50 3 * * *" # nightly 03:50 UTC
+  workflow_dispatch:
+    inputs:
+      max_frames:
+        description: "Cap frames (blank = all) — for a quick dispatch trial"
+        default: ""
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest # ships a system Chrome — playwright uses channel "chrome"
+    timeout-minutes: 20
+    env:
+      RENDER_MAX_FRAMES: ${{ inputs.max_frames }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.6.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook (all frames)
+        run: pnpm --filter @zframes/storybook build
+
+      - name: Render smoke
+        continue-on-error: true
+        run: pnpm test:frames:render
+
+      - name: File / update / close issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/report-to-issue.mjs --kind generic --label frame-render --report frame-render-report.json
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frame-render-report
+          path: frame-render-report.json
+          if-no-files-found: warn
