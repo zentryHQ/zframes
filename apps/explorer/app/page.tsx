@@ -22,10 +22,10 @@ import { SectionHeading } from "@/app/lib/SectionHeading";
 //
 //   I    Hero        the promise, staged inside a floating cluster of REAL
 //                    live frames (LiveFrame → the runtime's own components)
-//   II   Vocabulary  the frame catalogue as six parallax chapters, every
-//                    specimen streaming live data (FramesShowcase)
-//   III  Proof       full boards composed from those frames — the sticky
-//                    card-stack of live embedded dashboards
+//   II   Proof       full boards streaming live — the sticky card-stack of
+//                    embedded dashboards, straight after the promise
+//   III  Vocabulary  the frame catalogue those boards are composed from, as
+//                    six parallax chapters of live specimens (FramesShowcase)
 //   IV   How         install → describe → own, ending on the command
 //   V    Why         the value grid + final CTA
 //
@@ -49,12 +49,34 @@ const HERO_FLOATERS: {
 }[] = [
   {
     frame: "price-liveline",
-    className: "w-[21rem] h-48",
-    pos: "left-[1%] top-[16%] hidden lg:block",
+    // The signature frame gets the biggest slot — a three-way race (two HIP-3
+    // equities vs BTC) so the normalized compare view reads at a glance.
+    config: { symbols: ["xyz:TSLA", "xyz:NVDA", "BTC"] },
+    className: "w-[26rem] h-60",
+    pos: "left-[1%] top-[13%] hidden lg:block",
     mouse: 18,
     scroll: 42,
     tilt: -2.2,
     delay: "0s",
+  },
+  {
+    frame: "btc-fees",
+    className: "w-56 h-52",
+    pos: "right-[20%] top-[3%] hidden xl:block",
+    mouse: -20,
+    scroll: 70,
+    tilt: -1.4,
+    delay: "-5s",
+  },
+  {
+    frame: "price-ticker",
+    config: { symbols: ["xyz:AAPL", "ETH"] },
+    className: "w-72 h-28",
+    pos: "right-[2%] top-[47%] hidden xl:block",
+    mouse: 16,
+    scroll: 48,
+    tilt: 1,
+    delay: "-2.8s",
   },
   {
     frame: "fear-greed",
