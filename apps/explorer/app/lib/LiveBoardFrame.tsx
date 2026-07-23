@@ -22,6 +22,7 @@ export function LiveBoardFrame({
   tags = [],
   frameCount,
   bgActive = true,
+  boardVisible = true,
 }: {
   id: string;
   title: string;
@@ -30,6 +31,12 @@ export function LiveBoardFrame({
   frameCount: number;
   /** Whether this board's animated backdrop should be live (see above). */
   bgActive?: boolean;
+  /**
+   * Whether the board's CONTENT is on show. False for cards covered by the
+   * stack (or a fully scrolled-past stack) — the embed then stops rendering
+   * and polling entirely (`content-visibility: hidden`), not just its scene.
+   */
+  boardVisible?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -53,30 +60,32 @@ export function LiveBoardFrame({
     return () => io.disconnect();
   }, [mounted]);
 
-  // Scene control channel into the embed (same-origin). Push on every change,
+  // Board control channel into the embed (same-origin). Push on every change,
   // and answer the embed's `zf:bg-hello` — sent once it has hydrated and is
   // actually listening — so the initial state can't be lost to the load race.
-  const bgActiveRef = useRef(bgActive);
-  bgActiveRef.current = bgActive;
-  const sendBgActive = useCallback((active: boolean) => {
+  const stateRef = useRef({ bgActive, boardVisible });
+  stateRef.current = { bgActive, boardVisible };
+  const sendState = useCallback((sceneActive: boolean, visible: boolean) => {
     iframeRef.current?.contentWindow?.postMessage(
-      { type: "zf:bg-active", active },
+      { type: "zf:board", sceneActive, visible },
       window.location.origin,
     );
   }, []);
   useEffect(() => {
-    sendBgActive(bgActive);
-  }, [bgActive, sendBgActive]);
+    sendState(bgActive, boardVisible);
+  }, [bgActive, boardVisible, sendState]);
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
       if (e.source !== iframeRef.current?.contentWindow) return;
-      if ((e.data as { type?: unknown } | null)?.type === "zf:bg-hello")
-        sendBgActive(bgActiveRef.current);
+      if ((e.data as { type?: unknown } | null)?.type === "zf:bg-hello") {
+        const s = stateRef.current;
+        sendState(s.bgActive, s.boardVisible);
+      }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [sendBgActive]);
+  }, [sendState]);
 
   return (
     <div

@@ -79,6 +79,23 @@ export function DashboardBackground({
   // waiting for a scene-ready that already fired.
   const sceneRendered = useRef(false);
 
+  // Warm the connection to the scene CDN before the engine's first fetch. A
+  // full prefetch of the scene JSON is impossible — the engine cache-busts its
+  // URL (`/embeds/{id}?v={now}`) so a prefetched copy never matches — but
+  // preconnect still shaves the DNS+TLS setup off the first boot. Both
+  // variants: the scene JSON is a CORS fetch, the scene's images are not.
+  useEffect(() => {
+    if (document.querySelector("[data-zf-unicorn-preconnect]")) return;
+    for (const crossOrigin of ["anonymous", null] as const) {
+      const link = document.createElement("link");
+      link.rel = "preconnect";
+      link.href = "https://assets.unicorn.studio";
+      if (crossOrigin) link.crossOrigin = crossOrigin;
+      link.setAttribute("data-zf-unicorn-preconnect", "");
+      document.head.appendChild(link);
+    }
+  }, []);
+
   // Hysteresis on deactivation only — mount immediately, unmount after a grace.
   const [sceneOn, setSceneOn] = useState(sceneActive);
   useEffect(() => {
@@ -224,6 +241,9 @@ export function DashboardBackground({
               height="100vh"
               scale={scale}
               dpi={dpi}
+              // Decorative backdrop behind opaque cards — 30fps reads the
+              // same as 60 on these slow-drift scenes at half the GPU.
+              fps={30}
               // Fade in only once the scene is actually rendering — keying off
               // engine load (onLoad) ramped opacity over an empty canvas and
               // popped when the scene arrived mid-fade.

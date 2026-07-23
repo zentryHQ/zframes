@@ -29,6 +29,13 @@ export default function GalleryHome() {
   const [activePair, setActivePair] = useState<readonly [number, number]>([
     0, 0,
   ]);
+  // Boards below this index are COVERED by the stack (only their 30px top
+  // strip peeks) — their embeds stop rendering + polling entirely, not just
+  // their scene. Occlusion is invisible to the IntersectionObservers inside
+  // each iframe (a covered card still "intersects" the viewport), so the
+  // parent, which knows the stack geometry, is the only place this can be
+  // decided. total = the whole stack scrolled past → everything off.
+  const [hideBelow, setHideBelow] = useState(0);
 
   useEffect(() => {
     const el = stackRef.current;
@@ -53,11 +60,18 @@ export default function GalleryHome() {
     const measure = () => {
       raf = 0;
       const rect = el.getBoundingClientRect();
-      // Fully scrolled past, or still more than half a viewport below → nothing
-      // visible, suspend every scene. (The lower margin still pre-warms the
-      // first card's scene just before the stack scrolls in.)
-      if (rect.bottom < 0 || rect.top > window.innerHeight * 1.5) {
+      // Fully scrolled past → suspend every scene AND hide every board; still
+      // below the viewport → scenes off but boards stay "visible" (their own
+      // in-iframe observers already pause off-screen work, and this keeps
+      // their data warming before the stack scrolls in).
+      if (rect.bottom < 0) {
         propose(-1);
+        setHideBelow((h) => (h === total ? h : total));
+        return;
+      }
+      if (rect.top > window.innerHeight * 1.5) {
+        propose(-1);
+        setHideBelow((h) => (h === 0 ? h : 0));
         return;
       }
       // Cards are equal-height siblings, so the stack's scroll progress maps
@@ -73,6 +87,11 @@ export default function GalleryHome() {
       const f = Math.min(total - 1, Math.max(0, (57 - rect.top) / slot));
       const r = Math.round(f);
       propose(Math.abs(f - r) < 0.12 ? r : -1);
+      // Covered = strictly behind the card at (or rising past) the pin line.
+      // Reveal on scroll-back is immediate (no debounce) — content must be
+      // there the frame the covering card recedes.
+      const covered = Math.floor(f);
+      setHideBelow((h) => (h === covered ? h : covered));
     };
     const schedule = () => {
       if (!raf) raf = requestAnimationFrame(measure);
@@ -180,6 +199,7 @@ export default function GalleryHome() {
               tags={d.tags}
               frameCount={d.spec.frames.length}
               bgActive={i === activePair[0] || i === activePair[1]}
+              boardVisible={i >= hideBelow}
             />
           </StackPanel>
         ))}
