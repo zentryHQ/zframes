@@ -35,7 +35,7 @@ jobs:
       run:
         shell: bash # one shell on all three OSes (windows default is pwsh)
     steps:
-      - uses: actions/checkout@v4 # for .github/scripts/*.mjs
+      - uses: actions/checkout@v7 # for .github/scripts/*.mjs
       - uses: actions/setup-node@v4
         with:
           node-version: 20
