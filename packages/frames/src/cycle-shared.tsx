@@ -56,7 +56,10 @@ export function MetricGauge({
       <div className="caption text-soft">{caption}</div>
       <div
         className="metric-xl leading-none"
-        style={{ color: headlineColor, textShadow: `0 0 24px ${headlineColor}44` }}
+        style={{
+          color: headlineColor,
+          textShadow: `0 0 24px ${headlineColor}44`,
+        }}
       >
         {headline}
       </div>

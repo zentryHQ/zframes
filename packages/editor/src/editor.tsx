@@ -32,7 +32,11 @@ import {
   FramesProvider,
   useProviders,
 } from "@zframes/core";
-import { BACKGROUND_SCENES, THEME_PRESETS, type ThemePreset } from "@zframes/spec/presets";
+import {
+  BACKGROUND_SCENES,
+  THEME_PRESETS,
+  type ThemePreset,
+} from "@zframes/spec/presets";
 import {
   FONT_FAMILY_STACKS,
   NUMERIC_VARIANTS,
@@ -1906,8 +1910,8 @@ export function DashboardEditor({
                             onChange={(e) => setBgImageUrl(e.target.value)}
                           />
                           <p className="zf-field-hint">
-                            Full-bleed behind the dashboard, with a dark scrim for
-                            legibility.
+                            Full-bleed behind the dashboard, with a dark scrim
+                            for legibility.
                           </p>
                         </div>
                         <div className="zf-theme-row">
@@ -1946,7 +1950,9 @@ export function DashboardEditor({
                                 Reset
                               </button>
                             )}
-                            <span className="zf-theme-val">{bgImageBlur}px</span>
+                            <span className="zf-theme-val">
+                              {bgImageBlur}px
+                            </span>
                           </span>
                         </div>
                         <input
@@ -2340,8 +2346,8 @@ export function DashboardEditor({
                 <section>
                   <h3 className="zf-rail-title">Add a frame</h3>
                   <p className="zf-palette-hint">
-                    Search, or open a category, then click a frame to add it — or
-                    drag it onto the grid.
+                    Search, or open a category, then click a frame to add it —
+                    or drag it onto the grid.
                   </p>
                   <div className="zf-palette-search">
                     <Search size={14} aria-hidden="true" />

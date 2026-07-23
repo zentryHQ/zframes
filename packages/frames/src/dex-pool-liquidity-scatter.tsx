@@ -8,7 +8,11 @@ import { FrameStatus } from "./ui";
 
 const schema = dexPoolLiquidityScatterMeta.schema;
 
-function DexPoolLiquidityScatter({ config }: { config: z.output<typeof schema> }) {
+function DexPoolLiquidityScatter({
+  config,
+}: {
+  config: z.output<typeof schema>;
+}) {
   const { pools, isLoading } = useDexPools(config.network);
 
   const data: ScatterDatum[] = useMemo(
@@ -44,7 +48,8 @@ function DexPoolLiquidityScatter({ config }: { config: z.output<typeof schema> }
         maxLabels={8}
       />
       <div className="caption text-soft text-center">
-        {config.network} · liquidity (x, log) vs 24h volume (y, log) · bubble = trades
+        {config.network} · liquidity (x, log) vs 24h volume (y, log) · bubble =
+        trades
       </div>
     </div>
   );

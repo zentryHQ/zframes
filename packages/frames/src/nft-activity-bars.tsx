@@ -20,7 +20,8 @@ function NftActivityBars({ config }: { config: z.output<typeof schema> }) {
     [collections, config.limit],
   );
 
-  if (isLoading) return <FrameStatus loading>loading NFT activity…</FrameStatus>;
+  if (isLoading)
+    return <FrameStatus loading>loading NFT activity…</FrameStatus>;
   if (data.length === 0) return <FrameStatus>no NFT data yet</FrameStatus>;
 
   return (

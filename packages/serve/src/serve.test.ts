@@ -2,11 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  handleProxy,
-  handleSpecRead,
-  handleSpecWrite,
-} from "./serve";
+import { handleProxy, handleSpecRead, handleSpecWrite } from "./serve";
 
 // The handlers take the structural ReqLike/ResLike (not Node's http types), so
 // tiny fakes are all the tests need. These aliases pull the param types off the

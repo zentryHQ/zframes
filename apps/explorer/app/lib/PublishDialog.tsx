@@ -13,7 +13,9 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <div>
-      <div className="mb-1 text-xs uppercase tracking-wide text-white/55">{label}</div>
+      <div className="mb-1 text-xs uppercase tracking-wide text-white/55">
+        {label}
+      </div>
       <div className="flex items-center gap-2">
         <code className="flex-1 truncate rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white/80">
           {value}
@@ -86,10 +88,12 @@ export function PublishDialog({
       <>
         {!data?.user ? (
           <>
-            <h2 className="text-lg font-semibold text-white">Sign in to publish</h2>
+            <h2 className="text-lg font-semibold text-white">
+              Sign in to publish
+            </h2>
             <p className="mt-2 text-sm text-white/55">
-              Publishing needs an account (browsing and tinker don't). Your edits
-              stay saved in this browser meanwhile.
+              Publishing needs an account (browsing and tinker don't). Your
+              edits stay saved in this browser meanwhile.
             </p>
             <div className="mt-4 flex gap-2">
               <Button asChild variant="accent" size="sm">
@@ -104,7 +108,8 @@ export function PublishDialog({
           <>
             <h2 className="text-lg font-semibold text-white">Published 🎉</h2>
             <p className="mt-1 mb-4 text-sm text-white/55">
-              Immutable snapshot — anyone with the link can view it live or fork it.
+              Immutable snapshot — anyone with the link can view it live or fork
+              it.
             </p>
             <div className="space-y-4">
               <CopyRow label="Share link" value={shareUrl} />
@@ -121,7 +126,9 @@ export function PublishDialog({
           </>
         ) : (
           <>
-            <h2 className="text-lg font-semibold text-white">Publish dashboard</h2>
+            <h2 className="text-lg font-semibold text-white">
+              Publish dashboard
+            </h2>
             <div className="mt-4 space-y-4">
               <div>
                 <label className="mb-1 block text-xs uppercase tracking-wide text-white/55">

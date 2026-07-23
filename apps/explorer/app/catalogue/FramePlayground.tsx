@@ -31,7 +31,8 @@ const GAP = 12;
 const MIN_ROW = 5;
 const MAX_H = 6;
 
-const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), hi);
+const clamp = (n: number, lo: number, hi: number) =>
+  Math.min(Math.max(n, lo), hi);
 
 /** A frame's placement envelope from its (optional) editor `layout` hints,
  *  clamped to the board. Many frames omit maxW/maxH — synthesise headroom above
@@ -41,8 +42,16 @@ function boundsOf(def: AnyFrameDefinition) {
   const defH = clamp(def.layout?.h ?? 3, 1, MAX_H);
   const minW = clamp(def.layout?.minW ?? 1, 1, defW);
   const minH = clamp(def.layout?.minH ?? 1, 1, defH);
-  const maxW = clamp(def.layout?.maxW ?? Math.min(defW + 3, COLUMNS), defW, COLUMNS);
-  const maxH = clamp(def.layout?.maxH ?? Math.min(defH + 2, MAX_H), defH, MAX_H);
+  const maxW = clamp(
+    def.layout?.maxW ?? Math.min(defW + 3, COLUMNS),
+    defW,
+    COLUMNS,
+  );
+  const maxH = clamp(
+    def.layout?.maxH ?? Math.min(defH + 2, MAX_H),
+    defH,
+    MAX_H,
+  );
   return { defW, defH, minW, minH, maxW, maxH };
 }
 
@@ -67,7 +76,9 @@ export default function FramePlayground() {
     }
     return FRAME_CATEGORIES.map((cat) => ({
       cat,
-      frames: (byCat.get(cat.key) ?? []).sort((a, b) => a.name.localeCompare(b.name)),
+      frames: (byCat.get(cat.key) ?? []).sort((a, b) =>
+        a.name.localeCompare(b.name),
+      ),
     })).filter((g) => g.frames.length > 0);
   }, []);
 
@@ -78,12 +89,19 @@ export default function FramePlayground() {
   }, []);
 
   const [name, setName] = useState(
-    () => (byName.has("price-liveline") ? "price-liveline" : allFrames[0]?.name) ?? "",
+    () =>
+      (byName.has("price-liveline") ? "price-liveline" : allFrames[0]?.name) ??
+      "",
   );
   const def = byName.get(name) ?? allFrames[0];
   const bounds = useMemo(() => boundsOf(def), [def]);
 
-  const [rect, setRect] = useState(() => ({ x: 0, y: 0, w: bounds.defW, h: bounds.defH }));
+  const [rect, setRect] = useState(() => ({
+    x: 0,
+    y: 0,
+    w: bounds.defW,
+    h: bounds.defH,
+  }));
 
   const gridEl = useRef<HTMLDivElement>(null);
   const gridRef = useRef<GridStack | null>(null);
@@ -113,8 +131,12 @@ export default function FramePlayground() {
       setRect({ x: n.x ?? 0, y: n.y ?? 0, w: n.w ?? 0, h: n.h ?? 0 });
     };
     grid.on("change", (_e, nodes) => sync((nodes as GridStackNode[])?.[0]));
-    grid.on("resize", (_e, el) => sync((el as GridItemHTMLElement)?.gridstackNode));
-    grid.on("drag", (_e, el) => sync((el as GridItemHTMLElement)?.gridstackNode));
+    grid.on("resize", (_e, el) =>
+      sync((el as GridItemHTMLElement)?.gridstackNode),
+    );
+    grid.on("drag", (_e, el) =>
+      sync((el as GridItemHTMLElement)?.gridstackNode),
+    );
 
     return () => {
       grid.destroy(false);
@@ -169,7 +191,11 @@ export default function FramePlayground() {
     rootRef.current = root;
     root.render(
       <FramesProvider providers={providers}>
-        <FrameContent instance={instance} registry={registry} className="zf-fill" />
+        <FrameContent
+          instance={instance}
+          registry={registry}
+          className="zf-fill"
+        />
       </FramesProvider>,
     );
     setRect({ x: 0, y: 0, w: b.defW, h: b.defH });
@@ -266,8 +292,8 @@ export default function FramePlayground() {
         <div ref={gridEl} className="grid-stack" />
 
         <p className="mt-4 font-mono text-[11px] text-white/45">
-          drag the frame to move &middot; drag the corner to resize &middot; snaps
-          to the grid, live
+          drag the frame to move &middot; drag the corner to resize &middot;
+          snaps to the grid, live
         </p>
       </div>
     </section>

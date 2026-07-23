@@ -31,7 +31,9 @@ import { ZaiOrb } from "./zai-orb";
 // import + editor-only icons). Lazy-load it so the dashboard paints through
 // DashboardRenderer first and the editor chunk swaps in once it's loaded.
 const DashboardEditor = lazy(() =>
-  import("@zframes/editor/editor").then((m) => ({ default: m.DashboardEditor })),
+  import("@zframes/editor/editor").then((m) => ({
+    default: m.DashboardEditor,
+  })),
 );
 
 const registry = createLazyRegistry();

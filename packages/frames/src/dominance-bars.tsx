@@ -20,7 +20,8 @@ function DominanceBars({ config }: { config: z.output<typeof schema> }) {
   }, [market, config.limit]);
 
   if (isLoading) return <FrameStatus loading>loading dominance…</FrameStatus>;
-  if (data.length === 0) return <FrameStatus>no dominance data yet</FrameStatus>;
+  if (data.length === 0)
+    return <FrameStatus>no dominance data yet</FrameStatus>;
 
   return (
     <div className="flex h-full flex-col justify-center gap-1 text-normal">

@@ -39,10 +39,14 @@ export default function GalleryHome() {
           </h1>
 
           <p className="animate-fade-up mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-white/75 [animation-delay:120ms] sm:text-lg">
-            zframes turns your coding agent into a market-terminal builder. Install a
-            skill, describe what you want, and it reads the frame catalogue, writes a
-            live <code className="rounded bg-white/[0.08] px-1 py-0.5 font-mono text-[0.85em] text-indigo-200">dashboard.json</code>, and serves it with real data —
-            keyless, stocks first, and it gets sharper every day.
+            zframes turns your coding agent into a market-terminal builder.
+            Install a skill, describe what you want, and it reads the frame
+            catalogue, writes a live{" "}
+            <code className="rounded bg-white/[0.08] px-1 py-0.5 font-mono text-[0.85em] text-indigo-200">
+              dashboard.json
+            </code>
+            , and serves it with real data — keyless, stocks first, and it gets
+            sharper every day.
           </p>
 
           <div className="animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-3 [animation-delay:180ms]">
@@ -67,8 +71,8 @@ export default function GalleryHome() {
             </span>
             <CopyCommand command="npx skills add zentryhq/zframes" />
             <span className="font-mono text-xs text-white/55">
-              <span className="text-indigo-300">/zframes</span> build me a TSLA + NVDA
-              terminal with funding &amp; fear-greed
+              <span className="text-indigo-300">/zframes</span> build me a TSLA
+              + NVDA terminal with funding &amp; fear-greed
             </span>
           </div>
         </div>
@@ -81,13 +85,16 @@ export default function GalleryHome() {
           panel opens the full preview. */}
       <section className="mx-auto max-w-5xl px-6 pt-10 pb-2 text-center">
         <Reveal>
-          <span className="zf-label mb-3 justify-center">Live, not screenshots</span>
+          <span className="zf-label mb-3 justify-center">
+            Live, not screenshots
+          </span>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Real boards. Real data. Zero keys.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
-            Every board here is rendering live right now — the same keyless public
-            feeds your generated terminal runs on. Keep scrolling; open any one.
+            Every board here is rendering live right now — the same keyless
+            public feeds your generated terminal runs on. Keep scrolling; open
+            any one.
           </p>
         </Reveal>
       </section>
@@ -133,7 +140,9 @@ export default function GalleryHome() {
             index={0}
             title="Agent-generated"
             body="You talk; an agent writes the spec and runs it. It only ever emits JSON — the framework owns all rendering, so it never writes a line of React."
-            icon={<path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />}
+            icon={
+              <path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            }
           />
           <ValueCard
             index={1}
@@ -182,8 +191,8 @@ export default function GalleryHome() {
           <Reveal delay={5 * 0.06}>
             <div className="zf-surface flex h-full flex-col justify-center p-6">
               <p className="text-sm leading-relaxed text-white/70">
-                Preview any board below with live data, then fork it onto your machine
-                with a single prompt.
+                Preview any board below with live data, then fork it onto your
+                machine with a single prompt.
               </p>
               <Link
                 href="/catalogue"
@@ -204,8 +213,8 @@ export default function GalleryHome() {
               Browse the gallery
             </h2>
             <p className="max-w-xl text-pretty text-sm leading-relaxed text-white/65">
-              Curated boards and dashboards published by the community — preview any
-              one live with real data, then fork it onto your machine.
+              Curated boards and dashboards published by the community — preview
+              any one live with real data, then fork it onto your machine.
             </p>
             <Link
               href="/gallery"

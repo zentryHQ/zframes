@@ -95,10 +95,7 @@ const ScatterChart = ({
       yScale === "log"
         ? d3
             .scaleLog()
-            .domain([
-              Math.min(...yValues) * 0.7,
-              Math.max(...yValues) * 1.4,
-            ])
+            .domain([Math.min(...yValues) * 0.7, Math.max(...yValues) * 1.4])
             .range([innerHeight, 0])
         : d3
             .scaleLinear()
@@ -189,9 +186,7 @@ const ScatterChart = ({
 
     dots
       .append("title")
-      .text(
-        (d) => `${d.label} · x ${formatX(d.x)} · y ${formatY(d.y)}`,
-      );
+      .text((d) => `${d.label} · x ${formatX(d.x)} · y ${formatY(d.y)}`);
 
     // Label the heaviest points first, but keep it legible: greedily drop any
     // label whose box would overlap one already placed (dense clusters would

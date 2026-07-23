@@ -63,7 +63,11 @@ export default function MyDashboardsPage() {
       toast.error("Couldn't update visibility — try again.");
       return;
     }
-    toast.success(visibility === "listed" ? "Listed in the gallery" : "Unlisted — link-only");
+    toast.success(
+      visibility === "listed"
+        ? "Listed in the gallery"
+        : "Unlisted — link-only",
+    );
     load();
   }
 

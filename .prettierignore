@@ -5,6 +5,6 @@ docs/
 **/*.md
 **/*.html
 packages/cli/templates/app/packages/
-apps/runtime/public/*.umd.mjs
+apps/*/public/*.umd.mjs
 .claude/
 **/.next/

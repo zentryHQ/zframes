@@ -45,7 +45,8 @@ function CoinMomentumHeatmap({ config }: { config: z.output<typeof schema> }) {
   }, [entries, config.limit]);
 
   if (isLoading) return <FrameStatus loading>loading momentum…</FrameStatus>;
-  if (cells.length === 0) return <FrameStatus>no momentum data yet</FrameStatus>;
+  if (cells.length === 0)
+    return <FrameStatus>no momentum data yet</FrameStatus>;
 
   return (
     <HeatmapChart<HeatmapCell>

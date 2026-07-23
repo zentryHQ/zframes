@@ -194,7 +194,8 @@ export default tseslint.config(
                 "@zframes/editor",
                 "@zframes/editor/*",
               ],
-              message: "editor is browser authoring UI — no Node-infra imports.",
+              message:
+                "editor is browser authoring UI — no Node-infra imports.",
             },
           ],
         },

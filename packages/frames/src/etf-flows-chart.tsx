@@ -32,7 +32,10 @@ function EtfFlowsChart({ config }: { config: z.output<typeof schema> }) {
         color: CHART_COLORS_MULTI_SERIES[0],
         data: (flows?.history ?? [])
           .filter((p) => p.time >= cutoff)
-          .map((p) => ({ date: new Date(p.time).toISOString(), value: p.value })),
+          .map((p) => ({
+            date: new Date(p.time).toISOString(),
+            value: p.value,
+          })),
       },
     ],
     [flows, config.asset, cutoff],

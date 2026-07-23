@@ -20,8 +20,7 @@ function NftScatter({ config }: { config: z.output<typeof schema> }) {
     () =>
       collections
         .filter(
-          (c) =>
-            Number.isFinite(c.floorChangePct24h) && c.volume24hUsd > 0,
+          (c) => Number.isFinite(c.floorChangePct24h) && c.volume24hUsd > 0,
         )
         .sort((a, b) => b.marketCapUsd - a.marketCapUsd)
         .slice(0, config.limit)

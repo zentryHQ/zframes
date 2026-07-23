@@ -59,7 +59,13 @@ const ORDERED_CATEGORIES = [...FRAME_CATEGORIES].sort(
 // Mount a frame's live renderer only when it scrolls near the viewport — 76
 // frames rendering + fetching at once would jank the page and hammer the free
 // APIs. Client-only (this whole view is ssr:false), so IntersectionObserver is safe.
-function LazyMount({ minHeight, children }: { minHeight: number; children: ReactNode }) {
+function LazyMount({
+  minHeight,
+  children,
+}: {
+  minHeight: number;
+  children: ReactNode;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const [show, setShow] = useState(false);
   useEffect(() => {
@@ -93,9 +99,20 @@ function FrameCard({ def }: { def: AnyFrameDefinition }) {
     const config = buildDefaultConfig(def);
     return DashboardSpecSchema.parse({
       title: def.name,
-      grid: { mode: "flow-vertical", columns: w, rowHeight: ROW, gap: GAP, rows: h },
+      grid: {
+        mode: "flow-vertical",
+        columns: w,
+        rowHeight: ROW,
+        gap: GAP,
+        rows: h,
+      },
       frames: [
-        { id: def.name, frame: def.name, position: { x: 0, y: 0, w, h }, config },
+        {
+          id: def.name,
+          frame: def.name,
+          position: { x: 0, y: 0, w, h },
+          config,
+        },
       ],
     });
   }, [def, w, h]);
@@ -195,9 +212,9 @@ export default function CatalogueView() {
             The frame <span className="text-indigo-200">catalogue</span>
           </h1>
           <p className="mt-3 text-base leading-relaxed text-white/75">
-            Every built-in frame, live and grouped by family. Each renders with a
-            schema-default config — the same set an agent picks from when generating a
-            dashboard.
+            Every built-in frame, live and grouped by family. Each renders with
+            a schema-default config — the same set an agent picks from when
+            generating a dashboard.
           </p>
           <div className="relative mt-6 max-w-md">
             <svg
@@ -243,10 +260,16 @@ export default function CatalogueView() {
               <div className="mb-5 border-b border-white/[0.07] pb-3">
                 <div className="flex items-baseline gap-3">
                   <span className="h-4 w-1 rounded-full bg-brand" />
-                  <h2 className="text-lg font-semibold text-white">{cat.label}</h2>
-                  <span className="font-mono text-xs text-white/55">{frames.length}</span>
+                  <h2 className="text-lg font-semibold text-white">
+                    {cat.label}
+                  </h2>
+                  <span className="font-mono text-xs text-white/55">
+                    {frames.length}
+                  </span>
                 </div>
-                <p className="mt-1.5 pl-4 text-sm text-white/60">{cat.description}</p>
+                <p className="mt-1.5 pl-4 text-sm text-white/60">
+                  {cat.description}
+                </p>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {frames.map((def) => (

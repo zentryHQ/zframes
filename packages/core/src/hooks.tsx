@@ -160,7 +160,11 @@ function usePolled<T>(
           // the normal cadence.
           setIsLoading(false);
           errorStreak += 1;
-          const backoff = Math.min(3_000 * 2 ** (errorStreak - 1), 60_000, refreshMs);
+          const backoff = Math.min(
+            3_000 * 2 ** (errorStreak - 1),
+            60_000,
+            refreshMs,
+          );
           scheduleNext(backoff);
         });
     }

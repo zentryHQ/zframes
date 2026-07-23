@@ -8,7 +8,11 @@ import { FrameStatus } from "./ui";
 
 const schema = protocolFeesVsTvlScatterMeta.schema;
 
-function ProtocolFeesVsTvlScatter({ config }: { config: z.output<typeof schema> }) {
+function ProtocolFeesVsTvlScatter({
+  config,
+}: {
+  config: z.output<typeof schema>;
+}) {
   const { entries: tvlEntries, isLoading: tvlLoading } = useProtocolTvl();
   const { entries: feeEntries, isLoading: feesLoading } = useProtocolFees();
 

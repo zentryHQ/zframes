@@ -4105,9 +4105,7 @@ export const optionsOiLadderHeatmapMeta = defineFrameMeta({
       .min(3)
       .max(16)
       .default(8)
-      .describe(
-        "How many upcoming expiries (nearest-first) to show as rows.",
-      ),
+      .describe("How many upcoming expiries (nearest-first) to show as rows."),
     buckets: z
       .number()
       .int()

@@ -14,7 +14,9 @@ function TrendingBars({ config }: { config: z.output<typeof schema> }) {
   const data = useMemo(
     () =>
       coins
-        .filter((c) => c.changePct24h !== null && Number.isFinite(c.changePct24h))
+        .filter(
+          (c) => c.changePct24h !== null && Number.isFinite(c.changePct24h),
+        )
         .slice(0, config.limit)
         .sort((a, b) => b.changePct24h! - a.changePct24h!)
         .map((c) => ({ label: c.symbol, value: c.changePct24h! })),

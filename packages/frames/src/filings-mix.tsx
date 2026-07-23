@@ -56,8 +56,7 @@ function FilingsMix({ config }: { config: z.output<typeof schema> }) {
 
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
 
-  if (isLoading)
-    return <FrameStatus loading>loading SEC filings…</FrameStatus>;
+  if (isLoading) return <FrameStatus loading>loading SEC filings…</FrameStatus>;
   if (slices.length === 0)
     return (
       <FrameStatus>no SEC filings for “{tickerOf(config.symbol)}”</FrameStatus>

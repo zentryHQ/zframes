@@ -60,15 +60,29 @@ function CycleSignals({ config }: { config: z.output<typeof schema> }) {
       display: string,
       threshold: string,
       fired: boolean,
-    ): Signal => ({ name, value, display, threshold, fired: value !== null && fired });
+    ): Signal => ({
+      name,
+      value,
+      display,
+      threshold,
+      fired: value !== null && fired,
+    });
 
-    const pct = (v: number | null) => (v !== null ? `${(v * 100).toFixed(0)}%` : "—");
-    const num = (v: number | null, dp = 2) => (v !== null ? v.toFixed(dp) : "—");
+    const pct = (v: number | null) =>
+      v !== null ? `${(v * 100).toFixed(0)}%` : "—";
+    const num = (v: number | null, dp = 2) =>
+      v !== null ? v.toFixed(dp) : "—";
 
     if (peak)
       return [
         mk("MVRV", mvrv, num(mvrv), "≥ 3", (mvrv ?? 0) >= 3),
-        mk("MVRV Z-Score", mvrvZScore, num(mvrvZScore), "≥ 7", (mvrvZScore ?? 0) >= 7),
+        mk(
+          "MVRV Z-Score",
+          mvrvZScore,
+          num(mvrvZScore),
+          "≥ 7",
+          (mvrvZScore ?? 0) >= 7,
+        ),
         mk("NUPL", nupl, pct(nupl), "≥ 75%", (nupl ?? 0) >= 0.75),
         mk("Mayer Multiple", mayer, num(mayer), "≥ 2.4", (mayer ?? 0) >= 2.4),
         mk("Puell Multiple", puell, num(puell), "≥ 4", (puell ?? 0) >= 4),
@@ -77,12 +91,36 @@ function CycleSignals({ config }: { config: z.output<typeof schema> }) {
       ];
     return [
       mk("MVRV", mvrv, num(mvrv), "≤ 1", (mvrv ?? Infinity) <= 1),
-      mk("MVRV Z-Score", mvrvZScore, num(mvrvZScore), "≤ 0", (mvrvZScore ?? Infinity) <= 0),
+      mk(
+        "MVRV Z-Score",
+        mvrvZScore,
+        num(mvrvZScore),
+        "≤ 0",
+        (mvrvZScore ?? Infinity) <= 0,
+      ),
       mk("NUPL", nupl, pct(nupl), "≤ 0%", (nupl ?? Infinity) <= 0),
-      mk("Mayer Multiple", mayer, num(mayer), "≤ 0.8", (mayer ?? Infinity) <= 0.8),
-      mk("Puell Multiple", puell, num(puell), "≤ 0.5", (puell ?? Infinity) <= 0.5),
+      mk(
+        "Mayer Multiple",
+        mayer,
+        num(mayer),
+        "≤ 0.8",
+        (mayer ?? Infinity) <= 0.8,
+      ),
+      mk(
+        "Puell Multiple",
+        puell,
+        num(puell),
+        "≤ 0.5",
+        (puell ?? Infinity) <= 0.5,
+      ),
       mk("RSI (14)", rsi14, num(rsi14, 0), "≤ 30", (rsi14 ?? Infinity) <= 30),
-      mk("Pi Cycle Bottom", piBottom, num(piBottom), "≥ 0.745", (piBottom ?? 0) >= 0.745),
+      mk(
+        "Pi Cycle Bottom",
+        piBottom,
+        num(piBottom),
+        "≥ 0.745",
+        (piBottom ?? 0) >= 0.745,
+      ),
     ];
   }, [valuation, extras, history, peak]);
 
@@ -101,7 +139,10 @@ function CycleSignals({ config }: { config: z.output<typeof schema> }) {
         <span className="caption text-soft">
           {peak ? "Cycle-top signals" : "Cycle-bottom signals"}
         </span>
-        <span className="metric-md" style={{ color: firing > 0 ? fireColor : ZONE_NEUTRAL }}>
+        <span
+          className="metric-md"
+          style={{ color: firing > 0 ? fireColor : ZONE_NEUTRAL }}
+        >
           {firing}
           <span className="text-soft">/{withData.length}</span>
         </span>

@@ -22,7 +22,8 @@ function EtfIssuerBars({ config }: { config: z.output<typeof schema> }) {
   );
 
   if (isLoading) return <FrameStatus loading>loading ETF flows…</FrameStatus>;
-  if (data.length === 0) return <FrameStatus>ETF flows unavailable</FrameStatus>;
+  if (data.length === 0)
+    return <FrameStatus>ETF flows unavailable</FrameStatus>;
 
   return (
     <div className="flex h-full flex-col justify-center gap-1 text-normal">

@@ -14,9 +14,7 @@ function PutCallGauge({ config }: { config: z.output<typeof schema> }) {
   if (!summary) return <FrameStatus>no options data yet</FrameStatus>;
 
   const value =
-    config.basis === "oi"
-      ? summary.putCallRatioOi
-      : summary.putCallRatioVolume;
+    config.basis === "oi" ? summary.putCallRatioOi : summary.putCallRatioVolume;
   // PCR > 1 = puts outweigh calls (defensive) → red; < 1 = call-heavy → green.
   const color = value > 1 ? DOWN_COLOR : UP_COLOR;
 
@@ -31,7 +29,8 @@ function PutCallGauge({ config }: { config: z.output<typeof schema> }) {
         </div>
       </RadialGauge>
       <div className="caption text-soft">
-        {config.currency} · by {config.basis === "oi" ? "open interest" : "volume"}
+        {config.currency} · by{" "}
+        {config.basis === "oi" ? "open interest" : "volume"}
       </div>
     </div>
   );

@@ -38,8 +38,7 @@ function OptionsMaxPain({ config }: { config: z.output<typeof schema> }) {
     const bars: BarDatum[] = strikes.map((s, i) => ({
       label: formatCompact(s.strike),
       value: pains[i],
-      color:
-        s.strike === maxPainStrike ? "var(--color-highlight)" : undefined,
+      color: s.strike === maxPainStrike ? "var(--color-highlight)" : undefined,
     }));
 
     return {

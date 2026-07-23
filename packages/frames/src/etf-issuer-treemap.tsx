@@ -54,7 +54,8 @@ function EtfIssuerTreemap({ config }: { config: z.output<typeof schema> }) {
   );
 
   if (isLoading) return <FrameStatus loading>loading ETF flows…</FrameStatus>;
-  if (data.length === 0) return <FrameStatus>ETF flows unavailable</FrameStatus>;
+  if (data.length === 0)
+    return <FrameStatus>ETF flows unavailable</FrameStatus>;
 
   return (
     <TreeChart

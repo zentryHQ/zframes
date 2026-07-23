@@ -20,7 +20,8 @@ function ChainActivityBars({ config }: { config: z.output<typeof schema> }) {
     [chains, config.limit],
   );
 
-  if (isLoading) return <FrameStatus loading>loading chain activity…</FrameStatus>;
+  if (isLoading)
+    return <FrameStatus loading>loading chain activity…</FrameStatus>;
   if (data.length === 0) return <FrameStatus>no chain data yet</FrameStatus>;
 
   return (

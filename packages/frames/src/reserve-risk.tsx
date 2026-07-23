@@ -11,7 +11,8 @@ const schema = reserveRiskMeta.schema;
 function ReserveRisk({ config }: { config: z.output<typeof schema> }) {
   const { extras, isLoading } = useOnchainExtras();
 
-  if (isLoading) return <FrameStatus loading>loading reserve risk…</FrameStatus>;
+  if (isLoading)
+    return <FrameStatus loading>loading reserve risk…</FrameStatus>;
   if (!extras || extras.reserveRisk === null)
     return <FrameStatus>Reserve Risk unavailable</FrameStatus>;
 

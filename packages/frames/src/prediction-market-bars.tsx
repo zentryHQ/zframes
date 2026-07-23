@@ -13,11 +13,7 @@ function truncateLabel(text: string, max = 28): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
 
-function PredictionMarketBars({
-  config,
-}: {
-  config: z.output<typeof schema>;
-}) {
+function PredictionMarketBars({ config }: { config: z.output<typeof schema> }) {
   // The hook already asks the provider for the top-`limit` markets by
   // volume, pre-sorted descending — no client-side re-sort needed.
   const { markets, isLoading } = usePredictionMarkets(config.limit);

@@ -17,7 +17,8 @@ function YieldRiskPie() {
   const slices = useMemo(() => {
     const byRisk = new Map<string, number>();
     for (const p of pools) {
-      const key = p.ilRisk === "no" || p.ilRisk === "yes" ? p.ilRisk : "unknown";
+      const key =
+        p.ilRisk === "no" || p.ilRisk === "yes" ? p.ilRisk : "unknown";
       byRisk.set(key, (byRisk.get(key) ?? 0) + p.tvlUsd);
     }
     return [...byRisk.entries()]

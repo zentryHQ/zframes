@@ -278,15 +278,87 @@ type StyleFieldSpec = {
 // per-card override reads the same as its global twin. `radius` has no schema
 // max, so it's capped here at the same 32px the Appearance rail uses.
 const STYLE_FIELDS: StyleFieldSpec[] = [
-  { key: "accentHue", label: "Accent hue", kind: "hue", min: 0, max: 360, step: 1, format: (v) => `${Math.round(v)}°` },
-  { key: "accentSat", label: "Accent saturation", kind: "range", min: 0, max: 100, step: 1, format: (v) => `${Math.round(v)}%` },
-  { key: "baseHue", label: "Surface tint", kind: "hue", min: 0, max: 360, step: 1, format: (v) => `${Math.round(v)}°` },
-  { key: "baseSat", label: "Tint strength", kind: "range", min: 0, max: 100, step: 1, format: (v) => `${Math.round(v)}%` },
-  { key: "surfaceOpacity", label: "Card opacity", kind: "range", min: 0.3, max: 1, step: 0.05, format: (v) => `${Math.round(v * 100)}%` },
-  { key: "radius", label: "Corner radius", kind: "range", min: 0, max: 32, step: 1, format: (v) => `${Math.round(v)}px` },
-  { key: "borderStrength", label: "Border", kind: "range", min: 0, max: 1, step: 0.01, format: (v) => `${Math.round(v * 100)}%` },
-  { key: "density", label: "Density", kind: "range", min: 0.6, max: 1.4, step: 0.05, format: (v) => `${Math.round(v * 100)}%` },
-  { key: "elevation", label: "Elevation", kind: "range", min: 0, max: 2, step: 0.1, format: (v) => `${v.toFixed(1)}×` },
+  {
+    key: "accentHue",
+    label: "Accent hue",
+    kind: "hue",
+    min: 0,
+    max: 360,
+    step: 1,
+    format: (v) => `${Math.round(v)}°`,
+  },
+  {
+    key: "accentSat",
+    label: "Accent saturation",
+    kind: "range",
+    min: 0,
+    max: 100,
+    step: 1,
+    format: (v) => `${Math.round(v)}%`,
+  },
+  {
+    key: "baseHue",
+    label: "Surface tint",
+    kind: "hue",
+    min: 0,
+    max: 360,
+    step: 1,
+    format: (v) => `${Math.round(v)}°`,
+  },
+  {
+    key: "baseSat",
+    label: "Tint strength",
+    kind: "range",
+    min: 0,
+    max: 100,
+    step: 1,
+    format: (v) => `${Math.round(v)}%`,
+  },
+  {
+    key: "surfaceOpacity",
+    label: "Card opacity",
+    kind: "range",
+    min: 0.3,
+    max: 1,
+    step: 0.05,
+    format: (v) => `${Math.round(v * 100)}%`,
+  },
+  {
+    key: "radius",
+    label: "Corner radius",
+    kind: "range",
+    min: 0,
+    max: 32,
+    step: 1,
+    format: (v) => `${Math.round(v)}px`,
+  },
+  {
+    key: "borderStrength",
+    label: "Border",
+    kind: "range",
+    min: 0,
+    max: 1,
+    step: 0.01,
+    format: (v) => `${Math.round(v * 100)}%`,
+  },
+  {
+    key: "density",
+    label: "Density",
+    kind: "range",
+    min: 0.6,
+    max: 1.4,
+    step: 0.05,
+    format: (v) => `${Math.round(v * 100)}%`,
+  },
+  {
+    key: "elevation",
+    label: "Elevation",
+    kind: "range",
+    min: 0,
+    max: 2,
+    step: 0.1,
+    format: (v) => `${v.toFixed(1)}×`,
+  },
 ];
 
 function FrameStylePanel({
@@ -321,7 +393,11 @@ function FrameStylePanel({
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <ChevronDown size={14} aria-hidden="true" className="zf-style-chevron" />
+        <ChevronDown
+          size={14}
+          aria-hidden="true"
+          className="zf-style-chevron"
+        />
         <span className="zf-style-head-label">Style</span>
         {activeCount > 0 && (
           <span className="zf-style-count">{activeCount}</span>

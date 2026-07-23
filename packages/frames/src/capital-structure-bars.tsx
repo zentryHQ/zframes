@@ -9,11 +9,7 @@ import { FrameStatus } from "./ui";
 
 const schema = capitalStructureBarsMeta.schema;
 
-function CapitalStructureBars({
-  config,
-}: {
-  config: z.output<typeof schema>;
-}) {
+function CapitalStructureBars({ config }: { config: z.output<typeof schema> }) {
   const { data, isLoading } = useCompanyFacts(config.symbol);
 
   const result = useMemo(() => {

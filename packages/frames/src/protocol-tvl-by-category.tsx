@@ -8,7 +8,11 @@ import { FrameStatus } from "./ui";
 
 const schema = protocolTvlByCategoryMeta.schema;
 
-function ProtocolTvlByCategory({ config }: { config: z.output<typeof schema> }) {
+function ProtocolTvlByCategory({
+  config,
+}: {
+  config: z.output<typeof schema>;
+}) {
   const { entries, isLoading } = useProtocolTvl();
 
   const data = useMemo(() => {
@@ -25,7 +29,8 @@ function ProtocolTvlByCategory({ config }: { config: z.output<typeof schema> }) 
 
   if (isLoading)
     return <FrameStatus loading>loading protocol TVL…</FrameStatus>;
-  if (data.length === 0) return <FrameStatus>no protocol TVL data yet</FrameStatus>;
+  if (data.length === 0)
+    return <FrameStatus>no protocol TVL data yet</FrameStatus>;
 
   return (
     <div className="flex h-full flex-col justify-center gap-1 text-normal">
@@ -35,7 +40,9 @@ function ProtocolTvlByCategory({ config }: { config: z.output<typeof schema> }) 
         height={Math.max(data.length * 26, 96)}
         formatValue={formatCompactUsd}
       />
-      <div className="caption text-soft text-center">DeFi TVL · by category</div>
+      <div className="caption text-soft text-center">
+        DeFi TVL · by category
+      </div>
     </div>
   );
 }

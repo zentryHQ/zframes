@@ -57,7 +57,8 @@ function OiTreemap({ config }: { config: z.output<typeof schema> }) {
 
   if (isLoading)
     return <FrameStatus loading>loading open interest…</FrameStatus>;
-  if (data.length === 0) return <FrameStatus>no open-interest data</FrameStatus>;
+  if (data.length === 0)
+    return <FrameStatus>no open-interest data</FrameStatus>;
 
   return (
     <TreeChart

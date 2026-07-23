@@ -1,6 +1,10 @@
 "use client";
 
-import { DashboardRenderer, DashboardSpecSchema, FramesProvider } from "@zframes/core";
+import {
+  DashboardRenderer,
+  DashboardSpecSchema,
+  FramesProvider,
+} from "@zframes/core";
 import { providers, registry } from "@/app/lib/frames";
 
 // Read-only live render of a dashboard spec. Validates through DashboardSpecSchema

@@ -49,11 +49,10 @@ function StablecoinChains({ config }: { config: z.output<typeof schema> }) {
 
   if (isLoading)
     return <FrameStatus loading>loading stablecoin chains…</FrameStatus>;
-  if (data.length === 0) return <FrameStatus>no stablecoin data yet</FrameStatus>;
+  if (data.length === 0)
+    return <FrameStatus>no stablecoin data yet</FrameStatus>;
 
-  return (
-    <TreeChart data={data} LeafComponent={Leaf} getColorValue={() => 0} />
-  );
+  return <TreeChart data={data} LeafComponent={Leaf} getColorValue={() => 0} />;
 }
 
 export const stablecoinChainsFrame = defineFrame({
