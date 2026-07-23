@@ -119,42 +119,54 @@ function usePolled<T>(
       setIsLoading(false);
       return;
     }
+    // Capture the (now non-null) loader in a const so the hoisted `tick`
+    // declaration below keeps the narrowing.
+    const loadFn = load;
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    let errorStreak = 0;
     setData(fallback);
     setIsLoading(true);
-    const run = () => {
+    // ±15% jitter on each delay so many dashboards running this same code don't
+    // poll the public APIs in lockstep.
+    const jitter = () => 0.85 + Math.random() * 0.3;
+    const scheduleNext = (delay: number) => {
+      clearTimeout(timer);
+      timer = setTimeout(tick, delay * jitter());
+    };
+    function tick() {
       // Off-screen: skip the network round-trip + state update, keeping the last
-      // good value on the card. The subscribe() below fires an immediate run()
-      // the moment the frame scrolls back into view, so it refreshes on return
-      // instead of waiting out the interval.
-      if (visibility && !visibility.visibleRef.current) return;
-      load()
+      // good value on the card. Keep the loop alive on the normal cadence; the
+      // subscribe() below fires an immediate tick the moment the frame scrolls
+      // back into view, so it refreshes on return instead of waiting out the interval.
+      if (visibility && !visibility.visibleRef.current) {
+        scheduleNext(refreshMs);
+        return;
+      }
+      loadFn()
         .then((next) => {
           if (cancelled) return;
+          errorStreak = 0;
           setData(next);
           setIsLoading(false);
+          scheduleNext(refreshMs);
         })
         .catch(() => {
-          // keep last good value; the next poll retries
-          if (!cancelled) setIsLoading(false);
+          if (cancelled) return;
+          // Keep the last good value, but don't wait out the full interval — a
+          // transient first-fetch miss on a slow-poll frame (e.g. 6h) would
+          // otherwise stick as an empty "no data" card until a manual reload.
+          // Retry with a short exponential backoff, capped so it never exceeds
+          // the normal cadence.
+          setIsLoading(false);
+          errorStreak += 1;
+          const backoff = Math.min(3_000 * 2 ** (errorStreak - 1), 60_000, refreshMs);
+          scheduleNext(backoff);
         });
-    };
-    run();
-    // ±15% jitter on each interval so many dashboards running this same code
-    // don't poll the public APIs in lockstep.
-    let timer: ReturnType<typeof setTimeout>;
-    const schedule = () => {
-      timer = setTimeout(
-        () => {
-          run();
-          schedule();
-        },
-        refreshMs * (0.85 + Math.random() * 0.3),
-      );
-    };
-    schedule();
+    }
+    tick();
     const unsubscribe = visibility?.subscribe((visible) => {
-      if (visible && !cancelled) run();
+      if (visible && !cancelled) tick();
     });
     return () => {
       cancelled = true;
