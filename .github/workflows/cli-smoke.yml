@@ -4,12 +4,12 @@ name: Published CLI smoke
 # init → lint → serve → HTTP-fetch the app + spec + runtime bundle. Catches a
 # broken or stale publish — the thing users actually install — which no other
 # check guards. Opens/updates one `cli-broken` issue; auto-closes when green.
-# Weekly + on-demand. (No repo build: the scripts are plain node; we install the
+# Daily + on-demand. (No repo build: the scripts are plain node; we install the
 # CLI from the registry, not from source.)
 
 on:
   schedule:
-    - cron: "43 6 * * 1" # Mondays 06:43 UTC
+    - cron: "43 6 * * *" # daily 06:43 UTC
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
           node-version: 20
 
       - name: Install published CLI
-        run: npm install -g zframes@latest && zframes --version
+        run: npm install -g zframes@latest && command -v zframes
 
       - name: Smoke the published CLI
         continue-on-error: true
