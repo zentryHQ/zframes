@@ -291,22 +291,19 @@ export default function GalleryHome() {
         </div>
       </section>
 
-      {/* ── Act II · The vocabulary — frames, live, by family ────────────── */}
-      <FramesShowcase />
-
-      {/* ── Act III · Proof — full boards, streaming ─────────────────────── */}
-      <section className="mx-auto max-w-5xl px-6 pb-2 pt-24 text-center">
+      {/* ── Act II · Proof — full boards, streaming ──────────────────────── */}
+      <section className="mx-auto max-w-5xl px-6 pb-2 pt-16 text-center">
         <Reveal>
           <span className="zf-label mb-3 justify-center">
-            Composed into boards
+            Live, not screenshots
           </span>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Real boards. Real data. Zero keys.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
-            The agent arranges those frames into whole terminals. Every board
-            here is rendering live right now, on the same keyless feeds yours
-            will run on. Keep scrolling; open any one.
+            Every board here is rendering live right now, on the same keyless
+            feeds your generated terminal will run on. Keep scrolling; open any
+            one.
           </p>
         </Reveal>
       </section>
@@ -339,6 +336,9 @@ export default function GalleryHome() {
           </Link>
         </Reveal>
       </section>
+
+      {/* ── Act III · The vocabulary — frames, live, by family ───────────── */}
+      <FramesShowcase />
 
       {/* ── Act IV · How — three beats to your own terminal ──────────────── */}
       <section className="mx-auto max-w-7xl px-6 pt-24">
