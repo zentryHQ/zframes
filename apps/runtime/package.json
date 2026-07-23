@@ -22,7 +22,7 @@
     "@zframes/spec": "workspace:*",
     "@zframes/unicorn": "workspace:*",
     "@zframes/vite": "workspace:*",
-    "gridstack": "^12.1.0",
+    "gridstack": "^13.1.0",
     "markdown-to-jsx": "^9.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
