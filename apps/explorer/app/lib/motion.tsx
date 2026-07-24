@@ -167,70 +167,103 @@ export function useViewportProgress(ref: React.RefObject<HTMLElement | null>): {
   return { progress: scrollYProgress };
 }
 
-// The visible top strip (px) of each card left peeking behind the one in front —
-// the "stacked cards" tell. Bigger = more of each card's header/border shows.
-const STACK_PEEK = 30;
+// ── Focus-scroll gallery ────────────────────────────────────────────────────
+// A sequence of full-panel boards where scroll PROMOTES one at a time: each board
+// grows from small into a full, un-clipped view (the whole dashboard visible),
+// DWELLS there for a stretch of scroll, then shrinks and fades as the next board
+// grows up in its place. All panels share ONE sticky viewport box (absolute,
+// inset-0), so "full" == that box at scale 1 — nothing is ever clipped. One
+// master scroll progress (useSectionProgress) maps to a continuous card position
+// `t` (focusT); each FocusPanel derives its own scale/opacity/drift/z from its
+// distance to `t`. Collapses to a plain vertical list under reduced motion (the
+// parent skips FocusPanel entirely).
 
-// One card in a stacked-card scroll. Each card is a distinct bordered panel that
-// pins near the top of the viewport and STAYS pinned (they share one containing
-// section, so they accumulate rather than scroll away). Successive cards pin
-// `STACK_PEEK` px lower and one z-index higher, so the next card rises up and
-// covers the previous, leaving its top strip (border + a sliver of chrome) showing
-// — a growing stack. No scaling/clipping, so nothing gets cut off; the front card
-// is always fully visible. Pure CSS (sticky), so it's identical under reduced
-// motion. `total` sizes the cards to fit once the full stack is offset.
-export function StackPanel({
+// Grow-in lead (in card slots) before card 0 is centred, so the first board also
+// eases up from small rather than starting full.
+const FOCUS_LEAD = 0.4;
+// Half-width (card slots) of the DWELL band — a board holds full & opaque here.
+// Wider = the focused board lingers longer before the next takes over.
+const FOCUS_HOLD = 0.36;
+// Slots over which a board fades/shrinks full → gone on each side of the dwell.
+const FOCUS_TRANS = 0.3;
+const FOCUS_MIN_SCALE = 0.82; // scale of a fully-demoted (edge) board
+const FOCUS_RISE = 80; // px of vertical drift so passing boards don't ghost
+// Opacity clears faster than scale (>1 exponent), so a demoting board is nearly
+// gone by the crossfade midpoint — the two overlapping boards don't muddy.
+const FOCUS_FADE_POW = 1.5;
+
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+
+// Continuous "which card is centred" position for scroll progress p∈[0,1].
+// t≈i means card i is at full; the integer part is the focused board.
+export function focusT(p: number, count: number): number {
+  return p * count - FOCUS_LEAD;
+}
+
+// Master scroll progress for a focus-stack section: 0 as its top pins to the top,
+// 1 as its bottom leaves. Feed the returned value to every FocusPanel below it.
+export function useSectionProgress(
+  ref: React.RefObject<HTMLElement | null>,
+): MotionValue<number> {
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end end"],
+  });
+  return scrollYProgress;
+}
+
+// One board in a focus-scroll gallery. Absolutely fills its shared sticky box and
+// scales/fades by its distance to the centred position `t`: full & opaque inside
+// the dwell band, shrinking + fading to nothing beyond it. A small opposite-sign
+// vertical drift keeps a demoting board and its promoting successor from ghosting
+// through each other during the crossfade. `active` (the settled, centred board,
+// decided by the parent) is the only one that takes pointer events, so its
+// click-through overlay works. Not rendered under reduced motion.
+export function FocusPanel({
   children,
+  progress,
   index,
-  total,
+  count,
+  active = false,
   className,
 }: {
   children: ReactNode;
+  progress: MotionValue<number>;
   index: number;
-  total: number;
+  count: number;
+  /** True for the currently-centred board (parent-decided); enables clicks. */
+  active?: boolean;
   className?: string;
 }) {
-  const reduced = useReducedMotion();
-  const ref = useRef<HTMLDivElement>(null);
-  // Progress as this card scrolls in from the bottom: 0 when its top is at the
-  // viewport bottom, ~1 by the time it reaches its pinned position at the top.
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "start start"],
-  });
-  // Enters FULL-BLEED (scaled wide, spilling past the gutters — the section clips
-  // the overspill) then shrinks into its framed card as it settles. origin TOP so
-  // the top edge stays anchored and nothing is ever clipped off the top. Settled
-  // (scale 1) a hair before the pin (≈0.9) so it rests crisp, not mid-zoom.
-  const scale = useTransform(scrollYProgress, [0, 0.9], [1.32, 1]);
-
-  const top = 57 + index * STACK_PEEK; // header is 57px
-  const inner = (
-    <div
-      className="mx-auto w-full max-w-6xl px-4 sm:px-6"
-      // Fit the card so that even the front-most (lowest) one clears the viewport
-      // bottom once the whole stack's peek offset is accounted for.
+  const amt = (p: number) =>
+    clamp(
+      (Math.abs(focusT(p, count) - index) - FOCUS_HOLD) / FOCUS_TRANS,
+      0,
+      1,
+    );
+  const scale = useTransform(progress, (p) => 1 - amt(p) * (1 - FOCUS_MIN_SCALE));
+  const opacity = useTransform(progress, (p) => (1 - amt(p)) ** FOCUS_FADE_POW);
+  const y = useTransform(
+    progress,
+    (p) => clamp(focusT(p, count) - index, -1, 1) * -FOCUS_RISE,
+  );
+  const zIndex = useTransform(progress, (p) =>
+    Math.round(500 - Math.abs(focusT(p, count) - index) * 100),
+  );
+  return (
+    <motion.div
+      className={`absolute inset-0 ${className ?? ""}`}
       style={{
-        height: `calc(100vh - 57px - ${(total - 1) * STACK_PEEK}px - 2rem)`,
+        scale,
+        opacity,
+        y,
+        zIndex,
+        transformOrigin: "center center",
+        pointerEvents: active ? "auto" : "none",
+        willChange: "transform, opacity",
       }}
     >
       {children}
-    </div>
-  );
-
-  return (
-    <div
-      ref={ref}
-      className={`sticky ${className ?? ""}`}
-      style={{ top, zIndex: index + 1 }}
-    >
-      {reduced ? (
-        inner
-      ) : (
-        <motion.div style={{ scale, transformOrigin: "top center" }}>
-          {inner}
-        </motion.div>
-      )}
-    </div>
+    </motion.div>
   );
 }

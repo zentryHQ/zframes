@@ -1,7 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useMotionValueEvent, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import { CURATED } from "@/app/lib/curated-dashboards";
@@ -10,13 +11,19 @@ import { FramesShowcase } from "@/app/lib/FramesShowcase";
 import { LiveBoardFrame } from "@/app/lib/LiveBoardFrame";
 import { LiveFrame, LiveFrameStyles } from "@/app/lib/LiveFrame";
 import {
+  FocusPanel,
+  focusT,
   MouseParallax,
   Parallax,
   Reveal,
   ScrollExit,
-  StackPanel,
+  useSectionProgress,
 } from "@/app/lib/motion";
 import { SectionHeading } from "@/app/lib/SectionHeading";
+
+// The focus-gallery's shared sticky box sits below the header (57px) with a
+// little air. Every board renders full inside this box; scale/opacity animate.
+const FOCUS_STICKY_TOP = 72;
 
 // Gallery home — the public front door as a five-act scroll narrative:
 //
@@ -146,93 +153,32 @@ const HERO_FLOATERS: {
 
 export default function GalleryHome() {
   const frameCount = allFrameMetas.length;
+  const reduced = useReducedMotion();
   const stackRef = useRef<HTMLElement>(null);
-  // Which board in the sticky stack should run its animated backdrop: the
-  // SETTLED front card only — none mid-transition, none once the stack is
-  // fully off-screen. Every stacked iframe stays mounted (its WS/data keep
-  // streaming so scroll-back is instant), but covered cards hold zero WebGL.
-  // [-1,-1] = all suspended. Same-identity bailout in the setter means
-  // scrolling re-renders nothing until the active card actually changes.
-  const [activePair, setActivePair] = useState<readonly [number, number]>([
-    0, 0,
-  ]);
-  // Boards below this index are COVERED by the stack (only their 30px top
-  // strip peeks) — their embeds stop rendering + polling entirely, not just
-  // their scene. Occlusion is invisible to the IntersectionObservers inside
-  // each iframe (a covered card still "intersects" the viewport), so the
-  // parent, which knows the stack geometry, is the only place this can be
-  // decided. total = the whole stack scrolled past → everything off.
-  const [hideBelow, setHideBelow] = useState(0);
+  const progress = useSectionProgress(stackRef);
+  // The board that is SETTLED at full (centred in the dwell band). Only it runs
+  // its animated WebGL backdrop (bgActive) and takes clicks; -1 mid-transition
+  // so no scene boots on a fast fly-through. Same-value bailout means scrolling
+  // re-renders nothing until the focused board actually changes.
+  const [activeIndex, setActiveIndex] = useState(0);
+  // The window of boards whose CONTENT is on show (near enough to `t` to be
+  // visible/crossfading). Boards outside it stop rendering + polling entirely
+  // (content-visibility: hidden). The parent owns this: an iframe's own
+  // IntersectionObserver can't see that a faded-out sibling is effectively gone.
+  const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 1]);
 
-  useEffect(() => {
-    const el = stackRef.current;
-    if (!el) return;
-    let raf = 0;
-    let pendingIdx = 0; // matches the initial activePair
-    let pendingTimer: ReturnType<typeof setTimeout> | undefined;
-    const total = CURATED.length;
-    const commit = (idx: number) =>
-      setActivePair((p) => (p[0] === idx ? p : [idx, idx]));
-    // Deactivation is immediate (the embed starts its fade-out + grace);
-    // ACTIVATION waits for 250ms of rest — a fast scroll sweeps through every
-    // card's settle band spatially, and booting a WebGL engine on each
-    // fly-through is exactly the jank this gate exists to prevent.
-    const propose = (idx: number) => {
-      if (idx === pendingIdx) return;
-      pendingIdx = idx;
-      clearTimeout(pendingTimer);
-      if (idx === -1) commit(-1);
-      else pendingTimer = setTimeout(() => commit(idx), 250);
-    };
-    const measure = () => {
-      raf = 0;
-      const rect = el.getBoundingClientRect();
-      // Fully scrolled past → suspend every scene AND hide every board; still
-      // below the viewport → scenes off but boards stay "visible" (their own
-      // in-iframe observers already pause off-screen work, and this keeps
-      // their data warming before the stack scrolls in).
-      if (rect.bottom < 0) {
-        propose(-1);
-        setHideBelow((h) => (h === total ? h : total));
-        return;
-      }
-      if (rect.top > window.innerHeight * 1.5) {
-        propose(-1);
-        setHideBelow((h) => (h === 0 ? h : 0));
-        return;
-      }
-      // Cards are equal-height siblings, so the stack's scroll progress maps
-      // linearly to "which card is at the pin line" (57px header offset —
-      // matches StackPanel's `top`). Only a SETTLED card runs its scene:
-      // booting a WebGL engine mid-transition is exactly when the main thread
-      // is busiest (the full-bleed scale animation), which read as scroll jank
-      // + a late scene pop. Mid-transition the active set is empty — the
-      // embed's teardown hysteresis keeps the outgoing scene alive across a
-      // normal swipe, and the incoming one fades in once its card rests on the
-      // static swatch it rose with.
-      const slot = rect.height / total;
-      const f = Math.min(total - 1, Math.max(0, (57 - rect.top) / slot));
-      const r = Math.round(f);
-      propose(Math.abs(f - r) < 0.12 ? r : -1);
-      // Covered = strictly behind the card at (or rising past) the pin line.
-      // Reveal on scroll-back is immediate (no debounce) — content must be
-      // there the frame the covering card recedes.
-      const covered = Math.floor(f);
-      setHideBelow((h) => (h === covered ? h : covered));
-    };
-    const schedule = () => {
-      if (!raf) raf = requestAnimationFrame(measure);
-    };
-    measure();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
-    return () => {
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
-      if (raf) cancelAnimationFrame(raf);
-      clearTimeout(pendingTimer);
-    };
-  }, []);
+  useMotionValueEvent(progress, "change", (p) => {
+    const n = CURATED.length;
+    const t = focusT(p, n);
+    const r = Math.round(t);
+    // Settled only while resting in a board's dwell band; else nothing is
+    // "active" (the crossfade owns the mid-transition look, no scene needed).
+    const settled = Math.abs(t - r) < 0.2 ? Math.min(n - 1, Math.max(0, r)) : -1;
+    setActiveIndex((a) => (a === settled ? a : settled));
+    const lo = Math.max(0, Math.floor(t - 0.7));
+    const hi = Math.min(n - 1, Math.ceil(t + 0.7));
+    setVisibleRange((v) => (v[0] === lo && v[1] === hi ? v : [lo, hi]));
+  });
 
   return (
     <main className="overflow-x-clip">
@@ -351,23 +297,63 @@ export default function GalleryHome() {
         </Reveal>
       </section>
 
-      {/* Stacked cards. Each board is a bordered card that pins and stays; the
-          next rises over it leaving its top strip peeking — a growing stack. */}
-      <section ref={stackRef} className="relative overflow-x-clip pb-[8vh]">
-        {CURATED.map((d, i) => (
-          <StackPanel key={d.id} index={i} total={CURATED.length}>
-            <LiveBoardFrame
-              id={d.id}
-              title={d.title}
-              description={d.description}
-              tags={d.tags}
-              frameCount={d.spec.frames.length}
-              bgActive={i === activePair[0] || i === activePair[1]}
-              boardVisible={i >= hideBelow}
-            />
-          </StackPanel>
-        ))}
-      </section>
+      {/* Focus gallery. Each board grows from small into a full, un-clipped view
+          (the whole dashboard visible), dwells there, then shrinks and fades as
+          the next grows up in its place — one board in focus at a time, so every
+          dashboard is seen in full. Under reduced motion: a plain vertical list. */}
+      {reduced ? (
+        <section className="mx-auto max-w-[88rem] space-y-6 px-4 pb-[8vh] sm:px-6">
+          {CURATED.map((d) => (
+            <div key={d.id} className="h-[78vh]">
+              <LiveBoardFrame
+                id={d.id}
+                title={d.title}
+                description={d.description}
+                tags={d.tags}
+                frameCount={d.spec.frames.length}
+                bgActive={false}
+                boardVisible
+              />
+            </div>
+          ))}
+        </section>
+      ) : (
+        <section
+          ref={stackRef}
+          className="relative overflow-x-clip"
+          // One scroll "slot" per board (plus lead-in/out); the sticky box below
+          // stays pinned across the whole range while the boards crossfade.
+          style={{ height: `${CURATED.length * 125 + 30}vh` }}
+        >
+          <div
+            className="sticky mx-auto w-full max-w-[88rem] px-4 sm:px-6"
+            style={{
+              top: FOCUS_STICKY_TOP,
+              height: `calc(100svh - ${FOCUS_STICKY_TOP}px - 2rem)`,
+            }}
+          >
+            {CURATED.map((d, i) => (
+              <FocusPanel
+                key={d.id}
+                progress={progress}
+                index={i}
+                count={CURATED.length}
+                active={i === activeIndex}
+              >
+                <LiveBoardFrame
+                  id={d.id}
+                  title={d.title}
+                  description={d.description}
+                  tags={d.tags}
+                  frameCount={d.spec.frames.length}
+                  bgActive={i === activeIndex}
+                  boardVisible={i >= visibleRange[0] && i <= visibleRange[1]}
+                />
+              </FocusPanel>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-5xl px-6 pb-8 pt-12 text-center">
         <Reveal>
