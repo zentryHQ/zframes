@@ -109,6 +109,7 @@ export { spotifyEmbedFrame } from "./spotify-embed";
 export { nftCollectionsFrame } from "./nft-collections";
 export { dexHotPoolsFrame } from "./dex-hot-pools";
 export { chainActivityFrame } from "./chain-activity";
+export { orderBookDepthFrame } from "./order-book-depth";
 export { nftTreemapFrame } from "./nft-treemap";
 export { dexPoolTreemapFrame } from "./dex-pool-treemap";
 export { sectorBarsFrame } from "./sector-bars";
@@ -314,6 +315,7 @@ import { spotifyEmbedFrame } from "./spotify-embed";
 import { nftCollectionsFrame } from "./nft-collections";
 import { dexHotPoolsFrame } from "./dex-hot-pools";
 import { chainActivityFrame } from "./chain-activity";
+import { orderBookDepthFrame } from "./order-book-depth";
 import { nftTreemapFrame } from "./nft-treemap";
 import { dexPoolTreemapFrame } from "./dex-pool-treemap";
 import { sectorBarsFrame } from "./sector-bars";
@@ -520,6 +522,7 @@ export const allFrames: AnyFrameDefinition[] = [
   nftCollectionsFrame,
   dexHotPoolsFrame,
   chainActivityFrame,
+  orderBookDepthFrame,
   nftTreemapFrame,
   dexPoolTreemapFrame,
   sectorBarsFrame,

@@ -1,6 +1,6 @@
-import { defineFrame, useTrendingCoins } from "@zframes/core";
+import { defineFrame, useMoney, useTrendingCoins } from "@zframes/core";
 import type { z } from "zod";
-import { changeColor, formatChangePct, formatPrice } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { MetricRow } from "./metric-row";
 import { trendingCoinsMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -8,6 +8,7 @@ import { FrameStatus, scrollAreaClass } from "./ui";
 const schema = trendingCoinsMeta.schema;
 
 function TrendingCoins({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { coins, isLoading } = useTrendingCoins();
   const rows = coins.slice(0, config.limit);
 
@@ -27,7 +28,7 @@ function TrendingCoins({ config }: { config: z.output<typeof schema> }) {
                 {formatChangePct(c.changePct24h)}
               </span>
             ) : c.price != null ? (
-              formatPrice(c.price)
+              money.price(c.price)
             ) : (
               "—"
             )

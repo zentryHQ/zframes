@@ -38,6 +38,7 @@ const DAG: Record<string, string[]> = {
   "providers-keyless": [
     "@zframes/provider-alternativeme",
     "@zframes/provider-bitcoin-data",
+    "@zframes/provider-bitkub",
     "@zframes/provider-blockchair",
     "@zframes/provider-bls",
     "@zframes/provider-coingecko",

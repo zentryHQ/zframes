@@ -60,6 +60,7 @@ import type {
   NftCollection,
   DexPool,
   ChainActivity,
+  OrderBook,
 } from "@zframes/spec/types";
 
 import { FrameVisibilityContext } from "./visibility";
@@ -85,12 +86,37 @@ export function useProviders(): MarketDataProvider[] {
   return useContext(ProvidersContext);
 }
 
-/** First registered provider advertising the capability, or null. */
+/**
+ * The provider that should serve a capability, or null.
+ *
+ * Default is first-match by registration order. Pass `venue` (a provider
+ * `name`, e.g. "bitkub") to pin a specific one — that's how a frame sourced
+ * from a second exchange reaches it at all, since first-match alone would
+ * always hand the capability to the earlier provider. An unknown or
+ * non-covering `venue` falls back to first-match rather than rendering an empty
+ * card, so a typo degrades to the default source instead of nothing.
+ */
 export function useProviderFor(
   capability: Capability,
+  venue?: string,
 ): MarketDataProvider | null {
   const providers = useProviders();
-  return providers.find((p) => p.capabilities.includes(capability)) ?? null;
+  const covering = providers.filter((p) => p.capabilities.includes(capability));
+  if (venue) {
+    const pinned = covering.find(
+      (p) => p.name.toLowerCase() === venue.toLowerCase(),
+    );
+    if (pinned) return pinned;
+  }
+  return covering[0] ?? null;
+}
+
+/** Provider names that can serve a capability — what a `venue` picker offers. */
+export function useVenuesFor(capability: Capability): string[] {
+  const providers = useProviders();
+  return providers
+    .filter((p) => p.capabilities.includes(capability))
+    .map((p) => p.name);
 }
 
 /**
@@ -245,8 +271,9 @@ export function useMids(symbols: readonly string[]): Record<string, number> {
 export function useDayStatsState(
   symbols?: readonly string[],
   refreshMs = 30_000,
+  venue?: string,
 ): { stats: Record<string, DayStats>; isLoading: boolean } {
-  const provider = useProviderFor("day-stats");
+  const provider = useProviderFor("day-stats", venue);
   // Sorted so order-variant symbol tuples (["ETH","BTC"] vs ["BTC","ETH"])
   // collapse to one effect identity here AND one provider cache key downstream.
   const key = symbols ? [...symbols].sort().join(",") : "*";
@@ -263,8 +290,9 @@ export function useDayStatsState(
 export function useDayStats(
   symbols?: readonly string[],
   refreshMs = 30_000,
+  venue?: string,
 ): Record<string, DayStats> {
-  return useDayStatsState(symbols, refreshMs).stats;
+  return useDayStatsState(symbols, refreshMs, venue).stats;
 }
 
 /**
@@ -299,8 +327,9 @@ export function useCandles(
   interval: string,
   startTimeMs: number,
   refreshMs = 60_000,
+  venue?: string,
 ): { candles: Candle[]; isLoading: boolean } {
-  const provider = useProviderFor("ohlcv");
+  const provider = useProviderFor("ohlcv", venue);
   const { data: candles, isLoading } = usePolled<Candle[]>(
     provider?.getCandles && symbol
       ? () => provider.getCandles!(symbol, interval, startTimeMs)
@@ -1206,6 +1235,26 @@ export function useDexPools(
     refreshMs,
   );
   return { pools, isLoading };
+}
+
+/**
+ * Order-book snapshot for one base asset, polled every ~20 s — the fastest
+ * cadence here, since a depth ladder is stale almost immediately.
+ */
+export function useOrderBook(
+  symbol = "KUB",
+  depth = 15,
+  refreshMs = 20_000,
+  venue?: string,
+): { book: OrderBook | null; isLoading: boolean } {
+  const provider = useProviderFor("order-book", venue);
+  const { data: book, isLoading } = usePolled<OrderBook | null>(
+    provider?.getOrderBook ? () => provider.getOrderBook!(symbol, depth) : null,
+    null,
+    [provider, symbol, depth, refreshMs],
+    refreshMs,
+  );
+  return { book, isLoading };
 }
 
 /** Cross-chain network activity per L1, polled every ~5 min. */

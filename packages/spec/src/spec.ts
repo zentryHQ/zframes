@@ -90,6 +90,51 @@ export const FrameStyleSchema = z
 
 export type FrameStyle = z.infer<typeof FrameStyleSchema>;
 
+/**
+ * Currency codes a dashboard can be denominated in. Providers report USD (the
+ * canonical unit of every capability); the display layer converts at the live
+ * ECB reference rate, so this list is exactly what that keyless FX source
+ * publishes — adding a code it doesn't quote would render as an unconverted
+ * dollar figure wearing the wrong symbol.
+ */
+export const CURRENCY_CODES = [
+  "USD",
+  "THB",
+  "EUR",
+  "GBP",
+  "JPY",
+  "CNY",
+  "KRW",
+  "SGD",
+  "AUD",
+  "CAD",
+  "CHF",
+  "INR",
+  "IDR",
+  "MYR",
+  "PHP",
+  "HKD",
+  "BRL",
+  "MXN",
+  "ZAR",
+] as const;
+
+export const CurrencySchema = z
+  .object({
+    code: z
+      .enum(CURRENCY_CODES)
+      .default("USD")
+      .describe(
+        'Currency every money figure on the dashboard is displayed in, converted from USD at the live ECB reference rate — e.g. "THB" shows a Thai-baht board. Non-money figures (percentages, counts, rates) are unaffected, and US-macro series (Treasury yields, CPI, the national debt) stay in USD because converting them would be meaningless.',
+      ),
+  })
+  .describe(
+    "Dashboard-wide display currency. Frames may override it per card via their own `currency` field.",
+  );
+
+export type Currency = z.infer<typeof CurrencySchema>;
+export type CurrencyCode = (typeof CURRENCY_CODES)[number];
+
 export const FrameInstanceSchema = z.object({
   id: z.string().describe("Unique instance id within the dashboard"),
   frame: z.string().describe("Name of a registered frame"),
@@ -101,6 +146,12 @@ export const FrameInstanceSchema = z.object({
     .optional()
     .describe(
       'Optional custom card title. Omit it to use the frame\'s own polished default label (its catalogue `label`, e.g. "OI by Strike") — that is the norm. Only set this for a genuinely instance-specific label the default can\'t know, e.g. the ticker on a price-chart ("TSLA") or which outlet a news-feed shows. Never abbreviate. Ignored by chrome-less frames like heading.',
+    ),
+  currency: z
+    .enum(CURRENCY_CODES)
+    .optional()
+    .describe(
+      'Display currency for THIS card only, overriding the dashboard-wide `currency` (e.g. keep one card in "USD" on a baht board). Omit to inherit.',
     ),
   position: GridPositionSchema,
   layouts: z
@@ -566,6 +617,7 @@ export const DashboardSpecSchema = z.preprocess(
       downColor: "#ff6b81",
       surface: "dark",
     }),
+    currency: CurrencySchema.default({ code: "USD" }),
     typography: TypographySchema.default({
       fontFamily: "sans",
       numericStyle: "proportional",

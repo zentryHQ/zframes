@@ -1,0 +1,27 @@
+{
+  "name": "@zframes/provider-bitkub",
+  "version": "0.0.0",
+  "description": "Free, no-key zframes data provider for Bitkub, Thailand's largest digital-asset exchange: THB-quoted market board, order-book depth, and THB candles (thb-markets, order-book, thb-candles capabilities).",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/provider-bitkub"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/data-primitives": "workspace:*",
+    "@zframes/spec": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

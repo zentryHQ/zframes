@@ -277,6 +277,31 @@ const PROBES: Probe[] = [
     expect: "array",
   },
 
+  // ── Thai venue (Bitkub) ───────────────────────────────────────────────
+  // Also exercises the ECB rate fetch these methods depend on to report USD:
+  // if Frankfurter breaks, every Bitkub method throws, and this catches it.
+  {
+    pkg: "provider-bitkub",
+    cls: "BitkubProvider",
+    method: "getDayStats",
+    args: [["KUB", "BTC"]],
+    expect: "object",
+  },
+  {
+    pkg: "provider-bitkub",
+    cls: "BitkubProvider",
+    method: "getOrderBook",
+    args: ["KUB", 10],
+    expect: "object",
+  },
+  {
+    pkg: "provider-bitkub",
+    cls: "BitkubProvider",
+    method: "getCandles",
+    args: ["KUB", "4h"],
+    expect: "array",
+  },
+
   // ── Derivatives / options ─────────────────────────────────────────────
   {
     pkg: "provider-deribit",

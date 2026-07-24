@@ -1,8 +1,8 @@
 import { TreeChart, type TreeNode } from "@zframes/charts";
-import { defineFrame, useCoinMarkets } from "@zframes/core";
+import { defineFrame, useCoinMarkets, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatChangePct, formatCompactUsd } from "./format";
+import { formatChangePct } from "./format";
 import { marketCapTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -23,7 +23,8 @@ function Leaf({
   height: number;
   data: CoinNode;
 }) {
-  const value = formatCompactUsd(data.marketCapUsd);
+  const money = useMoney();
+  const value = money.compact(data.marketCapUsd);
   return (
     <TreemapLeaf
       width={width}

@@ -558,6 +558,19 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-bitkub:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-blockchair:
     dependencies:
       '@zframes/data-primitives':
@@ -839,6 +852,9 @@ importers:
       '@zframes/provider-bitcoin-data':
         specifier: workspace:*
         version: link:../provider-bitcoin-data
+      '@zframes/provider-bitkub':
+        specifier: workspace:*
+        version: link:../provider-bitkub
       '@zframes/provider-blockchair':
         specifier: workspace:*
         version: link:../provider-blockchair

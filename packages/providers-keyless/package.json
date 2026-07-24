@@ -20,6 +20,7 @@
   "dependencies": {
     "@zframes/provider-alternativeme": "workspace:*",
     "@zframes/provider-bitcoin-data": "workspace:*",
+    "@zframes/provider-bitkub": "workspace:*",
     "@zframes/provider-blockchair": "workspace:*",
     "@zframes/provider-bls": "workspace:*",
     "@zframes/provider-coingecko": "workspace:*",

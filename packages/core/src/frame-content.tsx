@@ -22,6 +22,7 @@ export function useFramePatch(): FramePatcher | null {
   return useContext(FramePatchContext);
 }
 import type { FrameRegistry, FrameSource } from "@zframes/spec/frame";
+import { FrameCurrencyOverride } from "./currency";
 import { useProviders } from "./hooks";
 import type { FrameInstance, FrameStyle } from "@zframes/spec/spec";
 
@@ -926,4 +927,15 @@ function FrameContentImpl({
  * caller also keeps `style`/`instance` referentially stable — the renderer
  * memoizes its per-frame style array for exactly this reason.
  */
-export const FrameContent = memo(FrameContentImpl);
+export const FrameContent = memo(function FrameContentWithCurrency(
+  props: Parameters<typeof FrameContentImpl>[0],
+) {
+  // Wrapped here rather than inside the impl so every branch — error cards,
+  // bare frames, plain chrome, normal cards — sees the same display currency.
+  // No `instance.currency` → this is inert and the card inherits the board's.
+  return (
+    <FrameCurrencyOverride code={props.instance.currency}>
+      <FrameContentImpl {...props} />
+    </FrameCurrencyOverride>
+  );
+});

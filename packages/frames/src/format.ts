@@ -1,9 +1,16 @@
+import {
+  formatMagnitude,
+  formatMoney,
+  formatMoneyCompact,
+} from "@zframes/core";
+
+/** A USD price/level: "$20.66", "$2,160,387". Delegates to the money kernel in
+ *  `@zframes/core` so a dollar board and a converted board round identically.
+ *  For market data on a card that may be denominated in another currency, use
+ *  the `useMoney()` primitive instead — it takes USD in and renders the card's
+ *  display currency. */
 export function formatPrice(value: number): string {
-  if (value >= 1000)
-    return `$${value.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-  if (value >= 1)
-    return `$${value.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
-  return `$${value.toPrecision(4)}`;
+  return formatMoney(value, "USD");
 }
 
 export function formatChangePct(changePct: number): string {
@@ -64,20 +71,14 @@ export function changeColor(changePct: number): string {
  *  the charts-layer `parseMarketData` in frame code. For a currency value, wrap
  *  with {@link formatCompactUsd}; for an exact price use {@link formatPrice}. */
 export function formatCompact(value: number): string {
-  const abs = Math.abs(value);
-  const sign = value < 0 ? "-" : "";
-  if (abs >= 1e12) return `${sign}${(abs / 1e12).toFixed(2)}T`;
-  if (abs >= 1e9) return `${sign}${(abs / 1e9).toFixed(2)}B`;
-  if (abs >= 1e6) return `${sign}${(abs / 1e6).toFixed(2)}M`;
-  if (abs >= 1e3) return `${sign}${(abs / 1e3).toFixed(1)}K`;
-  return `${sign}${abs.toFixed(0)}`;
+  return formatMagnitude(value);
 }
 
 /** Abbreviated USD magnitude: "$1.23B", "$340.00M", "$2.10T", "-$5.00B". The one
  *  helper for aggregate dollar figures (market cap, TVL, volume, open interest,
  *  debt). The minus sign leads the `$` so negatives read naturally. */
 export function formatCompactUsd(value: number): string {
-  return value < 0 ? `-$${formatCompact(-value)}` : `$${formatCompact(value)}`;
+  return formatMoneyCompact(value, "USD");
 }
 
 /** Turn a provider slug into a readable series/legend label: "lido" → "Lido",

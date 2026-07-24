@@ -352,6 +352,9 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "chain-activity": {
     load: () => import("./chain-activity").then((m) => m.chainActivityFrame),
   },
+  "order-book-depth": {
+    load: () => import("./order-book-depth").then((m) => m.orderBookDepthFrame),
+  },
   "nft-treemap": {
     load: () => import("./nft-treemap").then((m) => m.nftTreemapFrame),
   },

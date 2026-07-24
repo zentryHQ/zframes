@@ -4,11 +4,11 @@ import {
   MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
-import { defineFrame, useCandlesMulti } from "@zframes/core";
+import { defineFrame, useCandlesMulti, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { assetLogoUrl, tickerOf } from "./asset-logo";
-import { formatChangePct, formatPrice } from "./format";
+import { formatChangePct } from "./format";
 import { priceCompareMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -35,6 +35,7 @@ const LOOKBACKS = {
 const schema = priceCompareMeta.schema;
 
 function PriceCompare({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { ms, interval, timeframe } = LOOKBACKS[config.lookback];
   // Stable start time: recompute only when the window changes, so the
   // useCandlesMulti effect doesn't re-run every render.
@@ -78,7 +79,7 @@ function PriceCompare({ config }: { config: z.output<typeof schema> }) {
       series={series}
       timeframe={timeframe}
       height={250}
-      formatValue={config.normalize ? formatChangePct : formatPrice}
+      formatValue={config.normalize ? formatChangePct : money.price}
     />
   );
 }

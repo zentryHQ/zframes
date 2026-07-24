@@ -72,6 +72,8 @@ export type {
   NftCollection,
   DexPool,
   ChainActivity,
+  OrderBook,
+  OrderBookLevel,
 } from "./types";
 export {
   defineFrame,
@@ -94,8 +96,12 @@ export {
   GridPositionSchema,
   ThemeSchema,
   TypographySchema,
+  CurrencySchema,
+  CURRENCY_CODES,
   FONT_FAMILY_STACKS,
   NUMERIC_VARIANTS,
+  type Currency,
+  type CurrencyCode,
   type DashboardAppearance,
   type DashboardBackground,
   type DashboardSpec,

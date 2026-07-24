@@ -1,4 +1,4 @@
-import { defineFrame, useDayStatsState } from "@zframes/core";
+import { defineFrame, useDayStatsState, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
@@ -15,23 +15,38 @@ const schema = topMoversMeta.schema;
 // effectively $0-volume and were only ever duplicating symbols already in xyz.
 const MOVER_UNIVERSE = ["xyz:*"] as const;
 
+// Another venue has no HIP-3 dex to wildcard, so asking for "xyz:*" there would
+// return nothing: pass no symbols and take that venue's whole universe instead.
+const ALL_SYMBOLS = undefined;
+
 function TopMovers({ config }: { config: z.output<typeof schema> }) {
-  const { stats, isLoading } = useDayStatsState(MOVER_UNIVERSE, 60_000);
+  const hyperliquid = !config.venue || config.venue === "hyperliquid";
+  const { stats, isLoading } = useDayStatsState(
+    hyperliquid ? MOVER_UNIVERSE : ALL_SYMBOLS,
+    60_000,
+    config.venue,
+  );
+  const money = useMoney();
 
   const { gainers, losers } = useMemo(() => {
     const rows = Object.entries(stats)
       .map(([symbol, stat]) => ({ symbol, ...stat }))
       // Dust assets produce absurd % moves with no liquidity behind them.
+      // On Hyperliquid the ":" test keeps this a stocks/commodities board (bare
+      // crypto is excluded by design); another venue lists bare tickers only, so
+      // there the test would reject everything.
       .filter(
         (row) =>
-          row.symbol.includes(":") && row.markPx > 0 && row.prevDayPx > 0,
+          (!hyperliquid || row.symbol.includes(":")) &&
+          row.markPx > 0 &&
+          row.prevDayPx > 0,
       )
       .sort((a, b) => b.changePct - a.changePct);
     return {
       gainers: rows.slice(0, config.count),
       losers: rows.slice(-config.count).reverse(),
     };
-  }, [stats, config.count]);
+  }, [stats, config.count, hyperliquid]);
 
   if (isLoading) return <FrameStatus loading>loading movers…</FrameStatus>;
   if (gainers.length === 0) return <FrameStatus>no mover data yet</FrameStatus>;
@@ -47,6 +62,7 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
             label={tickerOf(row.symbol)}
             price={row.markPx}
             changePct={row.changePct}
+            formatValue={money.price}
           />
         ))}
       </div>
@@ -59,6 +75,7 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
             label={tickerOf(row.symbol)}
             price={row.markPx}
             changePct={row.changePct}
+            formatValue={money.price}
           />
         ))}
       </div>
