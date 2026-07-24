@@ -1,10 +1,10 @@
 import { CHART_COLORS_MULTI_SERIES } from "@zframes/charts";
-import { defineFrame, useDayStats, useMids } from "@zframes/core";
+import { defineFrame, useDayStats, useMids, useMoney } from "@zframes/core";
 import { Liveline, type LivelinePoint, type LivelineSeries } from "liveline";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
-import { changeColor, formatChangePct, formatPrice } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { onHeartbeat, useVisibilityRef } from "./live-tick";
 import { priceLivelineMeta } from "./schemas";
 
@@ -59,6 +59,7 @@ function normalizedValue(value: number, anchor: number) {
 }
 
 function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const symbols = config.symbols;
   const symbolKey = symbols.join("|");
   const mids = useMids(symbols);
@@ -239,7 +240,7 @@ function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
                 {tickerOf(symbol)}
               </span>
               <span className="text-normal tabular-nums">
-                {price !== undefined ? formatPrice(price) : "…"}
+                {price !== undefined ? money.price(price) : "…"}
                 {changePct !== undefined ? (
                   <span
                     className="ml-1 tabular-nums"
@@ -264,7 +265,7 @@ function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
           loading={!hasSeries}
           scrub={false}
           badge={false}
-          formatValue={config.normalize ? formatChangePct : formatPrice}
+          formatValue={config.normalize ? formatChangePct : money.price}
           padding={PADDING}
           seriesToggleCompact={symbols.length > 4}
           style={{ width: "100%", height: "100%" }}

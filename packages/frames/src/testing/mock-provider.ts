@@ -32,6 +32,8 @@ import type {
   OnchainValuation,
   OpenInterestEntry,
   OptionsSummary,
+  OrderBook,
+  OrderBookLevel,
   PredictionMarket,
   StablecoinSupply,
   TrendingCoin,
@@ -264,6 +266,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "nft-market",
     "dex-pools",
     "chain-activity",
+    "order-book",
     "portfolio",
   ];
   readonly portfolioKinds: readonly PortfolioSourceKind[] = [
@@ -738,6 +741,46 @@ export class MockMarketDataProvider implements MarketDataProvider {
           };
         })
         .sort((a, b) => b.volume24hUsd - a.volume24hUsd);
+    });
+  }
+
+  // ── venue order book ────────────────────────────────────────────────────
+  getOrderBook(symbol = "KUB", depth = 15): Promise<OrderBook> {
+    const empty: OrderBook = {
+      symbol,
+      pair: `${symbol}_THB`,
+      bids: [],
+      asks: [],
+      mid: 0,
+      spreadPct: 0,
+    };
+    return this.gate<OrderBook>(empty, () => {
+      const r = rng(`book:${symbol}`);
+      // USD, like every other capability — the display layer converts.
+      const mid = round(priceFor(symbol), 2);
+      const tick = Math.max(round(mid * 0.0005, 4), 0.0001);
+      const side = (dir: 1 | -1): OrderBookLevel[] => {
+        let running = 0;
+        return Array.from({ length: depth }, (_, i) => {
+          const size = round(r() * 4000 + 20, 2);
+          running = round(running + size, 2);
+          return {
+            price: round(mid + dir * tick * (i + 1), 4),
+            size,
+            cumulativeSize: running,
+          };
+        });
+      };
+      const bids = side(-1);
+      const asks = side(1);
+      return {
+        symbol,
+        pair: `${symbol}_THB`,
+        bids,
+        asks,
+        mid,
+        spreadPct: round(((asks[0].price - bids[0].price) / mid) * 100, 3),
+      };
     });
   }
 

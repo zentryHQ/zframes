@@ -78,8 +78,9 @@ function resolveDest(
  * (semver string) and `author` lead, then the runtime fields. Everything the
  * agent should *not* have to remember or hand-author lives here: the grid
  * geometry, the signature unicorn background, the `theme` colours (accent hue +
- * saturation and the dark card-surface tint), the `typography` (family + numeric
- * style), and the card-surface `appearance` knobs. The `frames` array is
+ * saturation and the dark card-surface tint), the display `currency` (every money
+ * figure is converted from USD at the live ECB rate), the `typography` (family +
+ * numeric style), and the card-surface `appearance` knobs. The `frames` array is
  * intentionally empty: the agent fills it from the
  * user's request (read catalogue → add frames → lint → serve). Built as a
  * literal, then validated through DashboardSpecSchema so a release can never
@@ -104,6 +105,7 @@ function skeleton(title: string, author: string) {
       upColor: "#3fd08f",
       downColor: "#ff6b81",
     },
+    currency: { code: "USD" as const },
     typography: {
       fontFamily: "sans" as const,
       numericStyle: "proportional" as const,

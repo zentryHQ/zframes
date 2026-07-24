@@ -8,8 +8,9 @@ These frames are meant to read as **one system**, not a pile of one-offs. Every 
 
 | Concern | Use | Never |
 |---|---|---|
-| Compact magnitude | `formatCompact` / `formatCompactUsd` (`./format`) — `$1.23B`, `340.00M` | a rolled-own `/1e9 + "B"` |
-| Exact price | `formatPrice` | `toLocaleString` inline |
+| Compact magnitude | `formatCompact` / `formatCompactUsd` (`./format`) — `$1.23B`, `340.00M`; for market data prefer `useMoney().compact` | a rolled-own `/1e9 + "B"` |
+| Market money (price / aggregate) | **`useMoney()`** (`@zframes/core`) — `money.price(usd)`, `money.compact(usd)`; takes USD in, renders the card's display currency | `formatPrice`/`formatCompactUsd` on market data (they hard-code `$`) |
+| Exact price — US-macro / explicitly-USD only | `formatPrice` | `toLocaleString` inline |
 | Signed delta % | `formatChangePct` (`+1.23%`) | `toFixed` + manual sign |
 | Level / ratio % | `formatPct` · funding → `formatFundingPct` | — |
 | BTC / sats · hashrate · slug · "time since" | `formatBtc` · `formatHashrate` · `prettySlug` · `timeAgo` | — |
@@ -45,6 +46,8 @@ Per-frame metadata lives in **four** lists that must stay in lockstep — `regis
 
 ## Footguns
 
+- **Money on market data goes through `useMoney()`, not `formatPrice`.** A card can be denominated in any of 19 currencies (dashboard `currency.code`, or a per-card override); the plain `$` helpers are for US-macro series that must stay USD. The hook is only callable from a component — for a D3/canvas leaf, pass `money.price` down as a prop (see `order-book-depth`, `market-cap-treemap`).
+- **A frame that can source from two exchanges needs `venue` plumbed all the way through.** Add `venue: venueField()` to its schema AND pass `config.venue` into the hook — capability routing is first-match, so without it the frame silently keeps reading the default provider. Remember symbols are venue-native (`xyz:TSLA` exists only on Hyperliquid; Bitkub lists bare tickers) and `quote-stream` is Hyperliquid-only.
 - `schemas.ts` is the single source of truth for frame metadata **and must stay React-free** — the CLI, catalogue export, and the `/zframes` skill import it without charts/liveline/CSS.
 - Frame **chrome** (card, title, hover, source link) is the renderer's job (`@zframes/core` `FrameContent` + injected `.zf-*` CSS). A frame styles only its **interior**.
 - Keyless only, stocks-first — see the repo root `../../AGENTS.md` for project-wide scope and commands.

@@ -15,6 +15,7 @@ export function MoverRow({
   changePct,
   logoSize = 16,
   gap = "gap-2",
+  formatValue = formatPrice,
 }: {
   symbol: string;
   /** Resolved display label (e.g. `tickerOf(symbol)` or the raw symbol). */
@@ -24,16 +25,22 @@ export function MoverRow({
   logoSize?: number;
   /** Tailwind gap utility — price-ticker runs a touch roomier (`gap-3`). */
   gap?: string;
+  /**
+   * Price formatter. Defaults to USD ({@link formatPrice}); pass another
+   * currency's helper (e.g. `formatThb`) when the row quotes a non-USD market,
+   * so a baht price never renders behind a `$`.
+   */
+  formatValue?: (value: number) => string;
 }) {
   return (
     <div
       className={`grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center ${gap}`}
-      title={price !== undefined ? `${label} · ${formatPrice(price)}` : label}
+      title={price !== undefined ? `${label} · ${formatValue(price)}` : label}
     >
       <AssetLogo symbol={symbol} size={logoSize} />
       <span className="body-sm truncate font-bold text-strong">{label}</span>
       <span className="caption text-soft text-right tabular-nums">
-        {price !== undefined ? formatPrice(price) : "—"}
+        {price !== undefined ? formatValue(price) : "—"}
       </span>
       <span
         className={`caption text-right font-bold tabular-nums${

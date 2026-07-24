@@ -1,5 +1,6 @@
 import { useMemo, type CSSProperties } from "react";
 import type { FrameRegistry } from "@zframes/spec/frame";
+import { DashboardCurrencyProvider } from "./currency";
 import { FRAME_CSS, FrameContent } from "./frame-content";
 import {
   FONT_FAMILY_STACKS,
@@ -87,7 +88,9 @@ export function DashboardRenderer({
     [spec.frames, horizontal, spec.grid.rows, spec.grid.columns],
   );
   return (
-    <>
+    // Display currency resolves once for the whole board (one shared FX poll);
+    // each card may still override it via FrameInstance.currency.
+    <DashboardCurrencyProvider code={spec.currency.code}>
       <style>{FRAME_CSS}</style>
       <div
         className={horizontal ? "zf-grid zf-flow-horizontal" : "zf-grid"}
@@ -135,6 +138,6 @@ export function DashboardRenderer({
           />
         ))}
       </div>
-    </>
+    </DashboardCurrencyProvider>
   );
 }
