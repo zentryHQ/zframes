@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 // A full-bleed live example board — the real board rendered inside a same-origin
 // <iframe src="/embed/{id}">, framed to fill one fullscreen panel of the landing's
-// sticky scroll-stack (see StackPanel). Actual streaming data, not a screenshot.
+// focus-scroll gallery (see FocusPanel). Actual streaming data, not a screenshot.
 // Three costs are actively bounded:
 //   • WS cost — the iframe `src` is only set once the panel nears the viewport
 //     (IntersectionObserver), so boards below the fold open no socket yet.
