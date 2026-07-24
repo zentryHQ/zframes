@@ -334,6 +334,46 @@ const PROBES: Probe[] = [
     expect: "object",
   },
 
+  // ── Metals ────────────────────────────────────────────────────────────
+  {
+    pkg: "provider-metals",
+    cls: "MetalsProvider",
+    method: "getMetalSpot",
+    args: [["XAU", "XAG"]],
+    expect: "array",
+  },
+  {
+    pkg: "provider-metals",
+    cls: "MetalsProvider",
+    method: "getMetalHistory",
+    args: [["XAU"], "USD"],
+    expect: "array",
+  },
+  {
+    pkg: "provider-metals",
+    cls: "MetalsProvider",
+    method: "getMetalPositioning",
+    args: ["XAU"],
+    expect: "object",
+  },
+  {
+    pkg: "provider-metals",
+    cls: "MetalsProvider",
+    method: "getTokenizedGold",
+    args: [],
+    expect: "array",
+  },
+  {
+    // fiscaldata isn't browser-CORS-reachable, so the browser routes this
+    // through the runtime proxy; in Node `proxied` is a no-op.
+    pkg: "provider-metals",
+    cls: "MetalsProvider",
+    method: "getGoldReserve",
+    args: [],
+    expect: "object",
+    proxied: true,
+  },
+
   // ── Official US macro & financial data (proxied → direct in Node) ──────
   {
     pkg: "provider-treasury",

@@ -34,6 +34,7 @@ import { FxProvider } from "@zframes/provider-fx";
 import { GeckoTerminalProvider } from "@zframes/provider-geckoterminal";
 import { HyperliquidProvider } from "@zframes/provider-hyperliquid";
 import { MempoolProvider } from "@zframes/provider-mempool";
+import { MetalsProvider } from "@zframes/provider-metals";
 import { NewsProvider } from "@zframes/provider-news";
 import { NyFedProvider } from "@zframes/provider-nyfed";
 import { OfrProvider } from "@zframes/provider-ofr";
@@ -62,6 +63,7 @@ export function createKeylessProviders(): MarketDataProvider[] {
     new FinraProvider(),
     new OfrProvider(),
     new FxProvider(),
+    new MetalsProvider(),
     new NewsProvider(),
     new MempoolProvider(),
     new DeribitProvider(),

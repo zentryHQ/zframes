@@ -204,6 +204,32 @@ export { portfolioValueBarsFrame } from "./portfolio-value-bars";
 export { etfFlowCalendarFrame } from "./etf-flow-calendar";
 export { predictionMarketsBubbleFrame } from "./prediction-markets-bubble";
 
+export { metalsBoardFrame } from "./metals-board";
+export { metalPriceFrame } from "./metal-price";
+export { metalValueFrame } from "./metal-value";
+export { metalPriceChartFrame } from "./metal-price-chart";
+export { metalCompareChartFrame } from "./metal-compare-chart";
+export { metalFixTableFrame } from "./metal-fix-table";
+export { metalDrawdownFrame } from "./metal-drawdown";
+export { metalAthFrame } from "./metal-ath";
+export { metalMilestonesFrame } from "./metal-milestones";
+export { metalAnnualReturnsFrame } from "./metal-annual-returns";
+export { metalPerformanceFrame } from "./metal-performance";
+export { metalReturnDistributionFrame } from "./metal-return-distribution";
+export { metalSeasonalityFrame } from "./metal-seasonality";
+export { metalsCorrelationFrame } from "./metals-correlation";
+export { metalVolatilityFrame } from "./metal-volatility";
+export { goldSilverRatioFrame } from "./gold-silver-ratio";
+export { metalRatioChartFrame } from "./metal-ratio-chart";
+export { btcInGoldFrame } from "./btc-in-gold";
+export { metalCotNetFrame } from "./metal-cot-net";
+export { metalCotBreakdownFrame } from "./metal-cot-breakdown";
+export { metalCotGaugeFrame } from "./metal-cot-gauge";
+export { metalOpenInterestFrame } from "./metal-open-interest";
+export { metalPositioningVsPriceFrame } from "./metal-positioning-vs-price";
+export { usGoldReserveFrame } from "./us-gold-reserve";
+export { usGoldVaultsFrame } from "./us-gold-vaults";
+export { tokenizedGoldFrame } from "./tokenized-gold";
 import type { AnyFrameDefinition } from "@zframes/core";
 import { portfolioValueFrame } from "./portfolio-value";
 import { portfolioAllocationFrame } from "./portfolio-allocation";
@@ -409,6 +435,32 @@ import { portfolioMoversFrame } from "./portfolio-movers";
 import { portfolioValueBarsFrame } from "./portfolio-value-bars";
 import { etfFlowCalendarFrame } from "./etf-flow-calendar";
 import { predictionMarketsBubbleFrame } from "./prediction-markets-bubble";
+import { metalsBoardFrame } from "./metals-board";
+import { metalPriceFrame } from "./metal-price";
+import { metalValueFrame } from "./metal-value";
+import { metalPriceChartFrame } from "./metal-price-chart";
+import { metalCompareChartFrame } from "./metal-compare-chart";
+import { metalFixTableFrame } from "./metal-fix-table";
+import { metalDrawdownFrame } from "./metal-drawdown";
+import { metalAthFrame } from "./metal-ath";
+import { metalMilestonesFrame } from "./metal-milestones";
+import { metalAnnualReturnsFrame } from "./metal-annual-returns";
+import { metalPerformanceFrame } from "./metal-performance";
+import { metalReturnDistributionFrame } from "./metal-return-distribution";
+import { metalSeasonalityFrame } from "./metal-seasonality";
+import { metalsCorrelationFrame } from "./metals-correlation";
+import { metalVolatilityFrame } from "./metal-volatility";
+import { goldSilverRatioFrame } from "./gold-silver-ratio";
+import { metalRatioChartFrame } from "./metal-ratio-chart";
+import { btcInGoldFrame } from "./btc-in-gold";
+import { metalCotNetFrame } from "./metal-cot-net";
+import { metalCotBreakdownFrame } from "./metal-cot-breakdown";
+import { metalCotGaugeFrame } from "./metal-cot-gauge";
+import { metalOpenInterestFrame } from "./metal-open-interest";
+import { metalPositioningVsPriceFrame } from "./metal-positioning-vs-price";
+import { usGoldReserveFrame } from "./us-gold-reserve";
+import { usGoldVaultsFrame } from "./us-gold-vaults";
+import { tokenizedGoldFrame } from "./tokenized-gold";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -616,4 +668,30 @@ export const allFrames: AnyFrameDefinition[] = [
   portfolioValueBarsFrame,
   etfFlowCalendarFrame,
   predictionMarketsBubbleFrame,
+  metalsBoardFrame,
+  metalPriceFrame,
+  metalValueFrame,
+  metalPriceChartFrame,
+  metalCompareChartFrame,
+  metalFixTableFrame,
+  metalDrawdownFrame,
+  metalAthFrame,
+  metalMilestonesFrame,
+  metalAnnualReturnsFrame,
+  metalPerformanceFrame,
+  metalReturnDistributionFrame,
+  metalSeasonalityFrame,
+  metalsCorrelationFrame,
+  metalVolatilityFrame,
+  goldSilverRatioFrame,
+  metalRatioChartFrame,
+  btcInGoldFrame,
+  metalCotNetFrame,
+  metalCotBreakdownFrame,
+  metalCotGaugeFrame,
+  metalOpenInterestFrame,
+  metalPositioningVsPriceFrame,
+  usGoldReserveFrame,
+  usGoldVaultsFrame,
+  tokenizedGoldFrame,
 ];

@@ -738,4 +738,82 @@ export const frameLoaders: Record<string, FrameLoader> = {
         (m) => m.predictionMarketsBubbleFrame,
       ),
   },
+  "metals-board": {
+    load: () => import("./metals-board").then((m) => m.metalsBoardFrame),
+  },
+  "metal-price": {
+    load: () => import("./metal-price").then((m) => m.metalPriceFrame),
+  },
+  "metal-value": {
+    load: () => import("./metal-value").then((m) => m.metalValueFrame),
+  },
+  "metal-price-chart": {
+    load: () => import("./metal-price-chart").then((m) => m.metalPriceChartFrame),
+  },
+  "metal-compare-chart": {
+    load: () => import("./metal-compare-chart").then((m) => m.metalCompareChartFrame),
+  },
+  "metal-fix-table": {
+    load: () => import("./metal-fix-table").then((m) => m.metalFixTableFrame),
+  },
+  "metal-drawdown": {
+    load: () => import("./metal-drawdown").then((m) => m.metalDrawdownFrame),
+  },
+  "metal-ath": {
+    load: () => import("./metal-ath").then((m) => m.metalAthFrame),
+  },
+  "metal-milestones": {
+    load: () => import("./metal-milestones").then((m) => m.metalMilestonesFrame),
+  },
+  "metal-annual-returns": {
+    load: () => import("./metal-annual-returns").then((m) => m.metalAnnualReturnsFrame),
+  },
+  "metal-performance": {
+    load: () => import("./metal-performance").then((m) => m.metalPerformanceFrame),
+  },
+  "metal-return-distribution": {
+    load: () => import("./metal-return-distribution").then((m) => m.metalReturnDistributionFrame),
+  },
+  "metal-seasonality": {
+    load: () => import("./metal-seasonality").then((m) => m.metalSeasonalityFrame),
+  },
+  "metals-correlation": {
+    load: () => import("./metals-correlation").then((m) => m.metalsCorrelationFrame),
+  },
+  "metal-volatility": {
+    load: () => import("./metal-volatility").then((m) => m.metalVolatilityFrame),
+  },
+  "gold-silver-ratio": {
+    load: () => import("./gold-silver-ratio").then((m) => m.goldSilverRatioFrame),
+  },
+  "metal-ratio-chart": {
+    load: () => import("./metal-ratio-chart").then((m) => m.metalRatioChartFrame),
+  },
+  "btc-in-gold": {
+    load: () => import("./btc-in-gold").then((m) => m.btcInGoldFrame),
+  },
+  "metal-cot-net": {
+    load: () => import("./metal-cot-net").then((m) => m.metalCotNetFrame),
+  },
+  "metal-cot-breakdown": {
+    load: () => import("./metal-cot-breakdown").then((m) => m.metalCotBreakdownFrame),
+  },
+  "metal-cot-gauge": {
+    load: () => import("./metal-cot-gauge").then((m) => m.metalCotGaugeFrame),
+  },
+  "metal-open-interest": {
+    load: () => import("./metal-open-interest").then((m) => m.metalOpenInterestFrame),
+  },
+  "metal-positioning-vs-price": {
+    load: () => import("./metal-positioning-vs-price").then((m) => m.metalPositioningVsPriceFrame),
+  },
+  "us-gold-reserve": {
+    load: () => import("./us-gold-reserve").then((m) => m.usGoldReserveFrame),
+  },
+  "us-gold-vaults": {
+    load: () => import("./us-gold-vaults").then((m) => m.usGoldVaultsFrame),
+  },
+  "tokenized-gold": {
+    load: () => import("./tokenized-gold").then((m) => m.tokenizedGoldFrame),
+  },
 };

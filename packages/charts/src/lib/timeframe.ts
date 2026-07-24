@@ -10,6 +10,11 @@ export enum ChartTimeframe {
   "1M" = "1M",
   "3M" = "3M",
   YTD = "YTD",
+  /** Multi-year: axis ticks fall back to month+year. */
+  "1Y" = "1Y",
+  /** Multi-decade: axis ticks are bare years. */
+  "5Y" = "5Y",
+  MAX = "MAX",
 }
 
 export type DataPoint = {

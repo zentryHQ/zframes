@@ -1,7 +1,7 @@
 {
   "name": "@zframes/providers-keyless",
   "version": "0.0.0",
-  "description": "The keyless zframes market-data provider set as a single composition factory — imports the 22 free, no-key provider packages and returns them in capability-routing order. Shared by every app that mounts the runtime (apps/runtime, apps/explorer) so the keyless set lives in one place instead of a duplicated per-app list.",
+  "description": "The keyless zframes market-data provider set as a single composition factory — imports the 23 free, no-key provider packages and returns them in capability-routing order. Shared by every app that mounts the runtime (apps/runtime, apps/explorer) so the keyless set lives in one place instead of a duplicated per-app list.",
   "license": "Apache-2.0",
   "author": "Zentry",
   "repository": {
@@ -34,6 +34,7 @@
     "@zframes/provider-geckoterminal": "workspace:*",
     "@zframes/provider-hyperliquid": "workspace:*",
     "@zframes/provider-mempool": "workspace:*",
+    "@zframes/provider-metals": "workspace:*",
     "@zframes/provider-news": "workspace:*",
     "@zframes/provider-nyfed": "workspace:*",
     "@zframes/provider-ofr": "workspace:*",
