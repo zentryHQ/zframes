@@ -64,6 +64,11 @@ export {
   useChainActivity,
   useOrderBook,
   useVenuesFor,
+  useMetalSpot,
+  useMetalHistory,
+  useMetalPositioning,
+  useGoldReserve,
+  useTokenizedGold,
 } from "./hooks";
 export {
   DashboardCurrencyProvider,

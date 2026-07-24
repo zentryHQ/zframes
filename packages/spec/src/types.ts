@@ -51,6 +51,11 @@ export type Capability =
   | "dex-pools"
   | "chain-activity"
   | "order-book"
+  | "metal-spot"
+  | "metal-history"
+  | "metal-positioning"
+  | "gold-reserve"
+  | "tokenized-gold"
   | "portfolio";
 
 export interface DayStats {
@@ -198,6 +203,126 @@ export interface DollarIndex {
   changePct: number;
   /** Recent daily history, oldest→newest, for a trend line/sparkline. */
   history: SeriesPoint[];
+}
+
+/**
+ * One live spot quote for a precious/industrial metal. Priced in USD per troy
+ * ounce for the four precious metals (XAU/XAG/XPT/XPD) and USD per pound for
+ * copper (HG), matching how each contract is quoted.
+ */
+export interface MetalSpot {
+  /** Metal symbol: "XAU" | "XAG" | "XPT" | "XPD" | "HG". */
+  symbol: string;
+  /** Human name, e.g. "Gold". */
+  name: string;
+  /** Latest price, USD per troy ounce (copper: USD per pound). */
+  price: number;
+  /** Epoch milliseconds of the quote. */
+  updatedAt: number;
+  /**
+   * Percent change vs `prevFix` — the most recent daily benchmark fix. Absent
+   * when no benchmark history is available for the metal (copper has no LBMA
+   * fix) or the history fetch failed.
+   */
+  changePct?: number;
+  /** The daily benchmark the change is measured against (latest LBMA fix), USD. */
+  prevFix?: number;
+}
+
+/**
+ * A metal's daily benchmark-price history — the LBMA London fixes, the
+ * reference price the physical market settles against. Decades deep (gold and
+ * silver from 1968), so frames can slice their own window.
+ */
+export interface MetalHistory {
+  /** Metal symbol: "XAU" | "XAG" | "XPT" | "XPD". */
+  symbol: string;
+  /** Quote currency, ISO 4217 — the LBMA publishes USD, GBP and EUR. */
+  currency: string;
+  /** Daily fix points, oldest → newest. */
+  points: SeriesPoint[];
+}
+
+/** One weekly CFTC Commitments-of-Traders observation (legacy futures-only report). */
+export interface CotWeek {
+  /** Epoch milliseconds of the Tuesday the positions were reported for. */
+  time: number;
+  /** Total open interest, contracts. */
+  openInterest: number;
+  /** Non-commercial ("large speculator") long contracts. */
+  noncommercialLong: number;
+  /** Non-commercial short contracts. */
+  noncommercialShort: number;
+  /** Non-commercial spreading contracts (long and short in different months). */
+  noncommercialSpread: number;
+  /** Commercial (hedger / producer / merchant) long contracts. */
+  commercialLong: number;
+  /** Commercial short contracts. */
+  commercialShort: number;
+  /** Non-reportable ("small trader") long contracts. */
+  nonreportableLong: number;
+  /** Non-reportable short contracts. */
+  nonreportableShort: number;
+}
+
+/** Weekly CFTC positioning for one metal's US futures market. */
+export interface MetalPositioning {
+  /** Metal symbol: "XAU" | "XAG" | "XPT" | "XPD" | "HG". */
+  symbol: string;
+  /** Exchange market name as CFTC publishes it, e.g. "GOLD - COMMODITY EXCHANGE INC.". */
+  market: string;
+  /** Contract size in the metal's native unit (gold 100 oz, silver 5000 oz, copper 25000 lb) — makes notional derivable. */
+  contractSize: number;
+  /** Weekly observations, oldest → newest. */
+  weeks: CotWeek[];
+}
+
+/** One line of the U.S. Treasury's monthly gold-reserve status report. */
+export interface GoldReserveEntry {
+  /** Holding facility, e.g. "Mint Held Gold - Deep Storage". */
+  facility: string;
+  /** Physical form, "Gold Bullion" or "Gold Coins". */
+  form: string;
+  /** Vault location, e.g. "Fort Knox, KY". */
+  location: string;
+  /** Fine troy ounces held. */
+  ounces: number;
+  /** Statutory book value, USD (gold is carried at $42.2222/oz, not market). */
+  bookValueUsd: number;
+}
+
+/** The U.S. official gold reserve for one reporting month. */
+export interface GoldReserve {
+  /** Epoch milliseconds of the report date (month end). */
+  asOf: number;
+  /** Total fine troy ounces across every facility. */
+  totalOunces: number;
+  /** Total statutory book value, USD. */
+  totalBookValueUsd: number;
+  /** Per-facility/location lines, descending by ounces. */
+  entries: GoldReserveEntry[];
+}
+
+/** A gold-backed token (1 token ≈ 1 troy ounce), with its premium to spot. */
+export interface TokenizedGold {
+  /** Provider coin id, e.g. "pax-gold". */
+  id: string;
+  /** Ticker, e.g. "PAXG". */
+  symbol: string;
+  /** Display name, e.g. "PAX Gold". */
+  name: string;
+  /** Token price, USD. */
+  price: number;
+  /** 24h price change, percent. */
+  changePct: number;
+  /** Market capitalisation, USD. */
+  marketCap: number;
+  /** Trailing-24h trading volume, USD. */
+  volume24h: number;
+  /** Circulating supply — one token is one troy ounce, so this is ounces vaulted. */
+  ounces: number;
+  /** Premium (+) or discount (−) vs spot gold, percent. Absent when spot is unavailable. */
+  premiumPct?: number;
 }
 
 /** One short-rate / repo reference rate observation from an official source. */
@@ -1141,6 +1266,25 @@ export interface MarketDataProvider {
    * side. The provider maps the ticker onto its own pair id.
    */
   getOrderBook?(symbol: string, depth?: number): Promise<OrderBook>;
+  /**
+   * Live metal spot quotes. Omitting `symbols` returns the provider's full
+   * metal universe; order follows the request.
+   */
+  getMetalSpot?(symbols?: string[]): Promise<MetalSpot[]>;
+  /**
+   * Daily benchmark-price history per metal (LBMA fixes), oldest→newest.
+   * `currency` selects the LBMA's published quote currency (USD/GBP/EUR).
+   */
+  getMetalHistory?(
+    symbols: string[],
+    currency?: string,
+  ): Promise<MetalHistory[]>;
+  /** Weekly CFTC Commitments-of-Traders positioning for one metal's futures market. */
+  getMetalPositioning?(symbol: string): Promise<MetalPositioning>;
+  /** The U.S. Treasury's monthly official gold-reserve status report. */
+  getGoldReserve?(): Promise<GoldReserve>;
+  /** Gold-backed tokens (PAXG, XAUT) with their premium/discount to spot. */
+  getTokenizedGold?(): Promise<TokenizedGold[]>;
   /** Treasury average interest rates by security class. */
   getTreasuryAverageRates?(): Promise<TreasuryAverageRate[]>;
   /** US Treasury daily par yield curve (latest available date). */

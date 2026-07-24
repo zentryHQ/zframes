@@ -28,6 +28,7 @@ These frames are meant to read as **one system**, not a pile of one-offs. Every 
 | Accent-reactive control surface | `interactiveSurface` (`./content-shared`) | a fixed-grey bordered tile |
 | Canvas-game HUD / accent | `accentColor` · `GAME_HUD` · `drawScore` (`./game-ui`) | a baked-in indigo / per-game HUD |
 | Asset logo / ticker | `AssetLogo` · `assetLogoUrl` · `tickerOf` (`./asset-logo`) | — |
+| Metals series maths + units | `./metals-shared` — windowing (`sliceYears`/`downsample`/`timeframeFor`), returns (`annualReturns`/`monthlyReturns`/`simpleReturns`/`cagrPct`), `drawdownSeries`/`allTimeHigh`, `rollingVolatility`, `percentileRank`/`correlation`, `alignSeries`/`ratioSeries`/`onSharedFixDays`/`rebaseToPct`, `pricePerUnit`/`toTroyOunces`, `formatFixPrice` | a per-frame definition of "annual return" |
 
 Read the JSDoc on the primitive before using it — each says exactly when to reach for it vs. a sibling.
 

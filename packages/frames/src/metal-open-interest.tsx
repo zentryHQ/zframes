@@ -1,0 +1,190 @@
+import {
+  CHART_COLORS_MULTI_SERIES,
+  MultiSeriesLineChart,
+  type MultiSeriesData,
+} from "@zframes/charts";
+import { defineFrame, useMetalPositioning, useMetalSpot } from "@zframes/core";
+import { useMemo } from "react";
+import type { z } from "zod";
+import {
+  changeColor,
+  formatChangePct,
+  formatCompact,
+  formatCompactUsd,
+  formatPrice,
+} from "./format";
+import {
+  METAL_UNIT,
+  downsample,
+  durationSince,
+  metalName,
+  pctChange,
+  sliceYears,
+  timeframeFor,
+  toChartData,
+} from "./metals-shared";
+import { metalOpenInterestMeta } from "./schemas";
+import { FrameStatus } from "./ui";
+
+const schema = metalOpenInterestMeta.schema;
+
+type Unit = z.output<typeof schema>["unit"];
+
+/**
+ * The unit we can actually render. "ounces" and "notional" are derived from
+ * numbers that may not be there yet (the contract size, a live spot quote), so
+ * rather than draw an all-zero line we fall back to contracts — the one unit
+ * the CFTC reports directly — and say so in the caption.
+ */
+function resolveUnit(
+  requested: Unit,
+  contractSize: number,
+  spot: number | null,
+): Unit {
+  if (requested === "contracts") return "contracts";
+  if (contractSize <= 0) return "contracts";
+  if (requested === "notional" && (spot === null || spot <= 0))
+    return "contracts";
+  return requested;
+}
+
+function MetalOpenInterest({ config }: { config: z.output<typeof schema> }) {
+  const { positioning, isLoading } = useMetalPositioning(config.symbol);
+  // Only "notional" needs the quote, but a hook can't be conditional — and the
+  // spot poll is shared with every other metals frame on the board anyway.
+  const { metals } = useMetalSpot([config.symbol]);
+
+  const spot = useMemo(
+    () => metals.find((m) => m.symbol === config.symbol)?.price ?? null,
+    [metals, config.symbol],
+  );
+
+  const weeks = positioning?.weeks;
+  const contractSize = positioning?.contractSize ?? 0;
+  const unit = resolveUnit(config.unit, contractSize, spot);
+  const fellBack = unit !== config.unit;
+
+  const { chartData, latest, lastReport } = useMemo(() => {
+    const raw = (weeks ?? []).map((w) => ({
+      time: w.time,
+      value: w.openInterest,
+    }));
+    const windowed = sliceYears(raw, config.years);
+    // Notional prices the whole history at *today's* spot — it answers "what is
+    // this paper claim worth now", not "what was it worth then".
+    const multiplier =
+      unit === "contracts"
+        ? 1
+        : unit === "ounces"
+          ? contractSize
+          : contractSize * (spot ?? 0);
+    const scaled = windowed.map((p) => ({
+      time: p.time,
+      value: p.value * multiplier,
+    }));
+    return {
+      chartData: toChartData(downsample(scaled)),
+      latest: scaled.length > 0 ? scaled[scaled.length - 1].value : null,
+      lastReport: scaled.length > 0 ? scaled[scaled.length - 1].time : null,
+    };
+  }, [weeks, config.years, unit, contractSize, spot]);
+
+  // Week-over-week is unit-independent (both legs share the multiplier), so it
+  // reads off the raw contract counts and survives the downsample.
+  const wow = useMemo(() => {
+    const w = weeks ?? [];
+    if (w.length < 2) return null;
+    return pctChange(
+      w[w.length - 2].openInterest,
+      w[w.length - 1].openInterest,
+    );
+  }, [weeks]);
+
+  const series: MultiSeriesData[] = useMemo(
+    () => [
+      {
+        id: "oi",
+        name: `${metalName(config.symbol)} OI`,
+        color: CHART_COLORS_MULTI_SERIES[0],
+        data: chartData,
+      },
+    ],
+    [chartData, config.symbol],
+  );
+
+  if (isLoading && chartData.length === 0)
+    return <FrameStatus loading>loading open interest…</FrameStatus>;
+  if (chartData.length === 0 || latest === null)
+    return <FrameStatus>no COT open-interest data yet</FrameStatus>;
+
+  const nativeUnit = METAL_UNIT[config.symbol] ?? "oz";
+  const headline =
+    unit === "notional" ? formatCompactUsd(latest) : formatCompact(latest);
+  const suffix =
+    unit === "contracts" ? "contracts" : unit === "ounces" ? nativeUnit : null;
+  const sub =
+    unit === "notional" && spot !== null
+      ? `at ${formatPrice(spot)}/${nativeUnit} spot`
+      : `${formatCompact(contractSize)} ${nativeUnit} per contract`;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div className="caption text-soft truncate uppercase">
+            {metalName(config.symbol)} open interest
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="metric-lg text-strong leading-none tabular-nums">
+              {headline}
+            </span>
+            {suffix && <span className="body-sm text-soft">{suffix}</span>}
+          </div>
+          {contractSize > 0 && (
+            <div className="caption text-soft mt-0.5">{sub}</div>
+          )}
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="caption text-soft">week over week</div>
+          {wow === null ? (
+            <div className="body-md text-disabled">—</div>
+          ) : (
+            <div
+              className="body-md font-bold tabular-nums"
+              style={{ color: changeColor(wow) }}
+            >
+              {formatChangePct(wow)}
+            </div>
+          )}
+          {lastReport !== null && (
+            <div className="caption text-soft">
+              reported {durationSince(lastReport)} ago
+            </div>
+          )}
+        </div>
+      </div>
+
+      <MultiSeriesLineChart
+        series={series}
+        timeframe={timeframeFor(config.years)}
+        height={170}
+        formatValue={unit === "notional" ? formatCompactUsd : formatCompact}
+      />
+
+      {fellBack && (
+        // Name the input that's actually missing: a "notional" request can fall
+        // back for either reason, and blaming the spot quote when it's the
+        // contract size that's absent sends the reader looking in the wrong place.
+        <div className="caption text-soft text-center">
+          no {contractSize > 0 ? "spot quote" : "contract size"} yet — showing
+          contracts
+        </div>
+      )}
+    </div>
+  );
+}
+
+export const metalOpenInterestFrame = defineFrame({
+  ...metalOpenInterestMeta,
+  component: MetalOpenInterest,
+});

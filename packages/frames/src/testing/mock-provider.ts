@@ -56,6 +56,12 @@ import type {
   NftCollection,
   DexPool,
   ChainActivity,
+  MetalSpot,
+  MetalHistory,
+  MetalPositioning,
+  CotWeek,
+  GoldReserve,
+  TokenizedGold,
 } from "@zframes/core";
 
 /**
@@ -267,6 +273,11 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "dex-pools",
     "chain-activity",
     "order-book",
+    "metal-spot",
+    "metal-history",
+    "metal-positioning",
+    "gold-reserve",
+    "tokenized-gold",
     "portfolio",
   ];
   readonly portfolioKinds: readonly PortfolioSourceKind[] = [
@@ -1804,6 +1815,310 @@ export class MockMarketDataProvider implements MarketDataProvider {
         prevChannelCount: 47_800,
         prevTotalCapacity: Math.round(4_750 * 1e8),
       };
+    });
+  }
+
+  // ── metals ────────────────────────────────────────────────────────────────
+  /**
+   * A seeded daily fix series that starts where the metal really started and
+   * lands on today's real price — so the long-history frames (drawdown,
+   * milestones, seasonality, 58-year charts) have something with the right
+   * SHAPE to render, not a flat line around one number. Weekdays only, like a
+   * London fix. The walk is rescaled so its last point is exactly `end`.
+   */
+  private fixSeries(
+    seed: string,
+    startYear: number,
+    start: number,
+    end: number,
+  ): SeriesPoint[] {
+    const r = rng(`fix:${seed}`);
+    const startMs = Date.UTC(startYear, 0, 2);
+    const days = Math.floor((BASELINE_NOW - startMs) / DAY);
+    const out: SeriesPoint[] = [];
+    let price = start;
+    for (let i = 0; i <= days; i++) {
+      const time = startMs + i * DAY;
+      const weekday = new Date(time).getUTCDay();
+      if (weekday === 0 || weekday === 6) continue;
+      // Mean-reverting drift toward the target: enough wander for real peaks
+      // and drawdowns, without the walk escaping to an absurd level.
+      price *= 1 + (r() - 0.5) * 0.02;
+      price = Math.max(start * 0.5, price);
+      out.push({ time, value: price });
+    }
+    if (out.length === 0) return out;
+    // Blend in an exponential glide so the series actually travels from `start`
+    // to `end` over the window instead of random-walking nowhere, plus a smooth
+    // pullback over the last ~12% of the window. The taper is what makes the
+    // drawdown / ATH-watch frames show something: without it the newest fix is
+    // almost always the record, and every one of those cards reads "0.0% below
+    // record" in Storybook — a mock artifact that looks like a broken frame.
+    const n = out.length;
+    const growth = Math.pow(end / start, 1 / (n - 1));
+    const taperFrom = Math.floor(n * 0.97);
+    let trend = start;
+    for (let i = 0; i < n; i++) {
+      const t = i <= taperFrom ? 0 : (i - taperFrom) / (n - 1 - taperFrom);
+      // Half a cosine: 1 at the peak, easing to 0.70 at the last print. The
+      // window is short (the last ~3%) because the exponential glide is still
+      // climbing underneath it — a longer, gentler taper is simply outrun and
+      // the newest fix ends up the record again.
+      const taper = 1 - 0.3 * (0.5 - Math.cos(Math.PI * t) / 2);
+      out[i] = {
+        time: out[i].time,
+        value: (out[i].value / start) * trend * taper,
+      };
+      trend *= growth;
+    }
+    // Rescale so the last print IS the quoted spot — the board and the chart
+    // have to agree — without the discontinuity a hard overwrite would leave
+    // (which the fix table would faithfully report as a fake +20% day).
+    const scale = end / out[n - 1].value;
+    return out.map((p) => ({ time: p.time, value: round(p.value * scale, 2) }));
+  }
+
+  /** Today's quote per metal — the anchors every metals frame is calibrated on. */
+  private static readonly METAL_QUOTES: Record<
+    string,
+    { name: string; price: number; start: number; startYear: number }
+  > = {
+    XAU: { name: "Gold", price: 4055.3, start: 35.2, startYear: 1968 },
+    XAG: { name: "Silver", price: 58.31, start: 2.17, startYear: 1968 },
+    XPT: { name: "Platinum", price: 1596, start: 470.5, startYear: 1990 },
+    XPD: { name: "Palladium", price: 1264, start: 127.65, startYear: 1990 },
+    HG: { name: "Copper", price: 6.2, start: 1.1, startYear: 1990 },
+  };
+
+  /** Contract sizes for the US futures contracts (copper is per pound). */
+  private static readonly METAL_CONTRACTS: Record<
+    string,
+    { market: string; size: number; baseOi: number }
+  > = {
+    XAU: {
+      market: "GOLD - COMMODITY EXCHANGE INC.",
+      size: 100,
+      baseOi: 383_000,
+    },
+    XAG: {
+      market: "SILVER - COMMODITY EXCHANGE INC.",
+      size: 5_000,
+      baseOi: 145_000,
+    },
+    XPT: {
+      market: "PLATINUM - NEW YORK MERCANTILE EXCHANGE",
+      size: 50,
+      baseOi: 78_000,
+    },
+    XPD: {
+      market: "PALLADIUM - NEW YORK MERCANTILE EXCHANGE",
+      size: 100,
+      baseOi: 19_000,
+    },
+    HG: {
+      market: "COPPER- #1 - COMMODITY EXCHANGE INC.",
+      size: 25_000,
+      baseOi: 210_000,
+    },
+  };
+
+  getMetalSpot(symbols?: string[]): Promise<MetalSpot[]> {
+    const wanted = symbols?.length
+      ? symbols.filter((s) => MockMarketDataProvider.METAL_QUOTES[s])
+      : Object.keys(MockMarketDataProvider.METAL_QUOTES);
+    return this.gate<MetalSpot[]>([], () =>
+      wanted.map((symbol) => {
+        const q = MockMarketDataProvider.METAL_QUOTES[symbol];
+        const r = rng(`spot:${symbol}`);
+        const changePct = round((r() * 2 - 1) * 1.4);
+        return {
+          symbol,
+          name: q.name,
+          price: q.price,
+          updatedAt: BASELINE_NOW,
+          changePct,
+          prevFix: round(q.price / (1 + changePct / 100), 2),
+        };
+      }),
+    );
+  }
+
+  getMetalHistory(
+    symbols: string[],
+    currency = "USD",
+  ): Promise<MetalHistory[]> {
+    // The LBMA quotes GBP/EUR at rough long-run averages against the dollar;
+    // one scalar is enough for a mock, and it keeps the currency switch visible.
+    const fxScale = currency === "GBP" ? 0.78 : currency === "EUR" ? 0.92 : 1;
+    const wanted = symbols.filter(
+      (s) => s !== "HG" && MockMarketDataProvider.METAL_QUOTES[s],
+    );
+    return this.gate<MetalHistory[]>([], () =>
+      wanted.map((symbol) => {
+        const q = MockMarketDataProvider.METAL_QUOTES[symbol];
+        return {
+          symbol,
+          currency,
+          points: this.fixSeries(
+            `${symbol}:${currency}`,
+            q.startYear,
+            q.start * fxScale,
+            q.price * fxScale,
+          ),
+        };
+      }),
+    );
+  }
+
+  getMetalPositioning(symbol: string): Promise<MetalPositioning> {
+    const key = MockMarketDataProvider.METAL_CONTRACTS[symbol] ? symbol : "XAU";
+    const contract = MockMarketDataProvider.METAL_CONTRACTS[key];
+    const empty: MetalPositioning = {
+      symbol: key,
+      market: contract.market,
+      contractSize: contract.size,
+      weeks: [],
+    };
+    return this.gate<MetalPositioning>(empty, () => {
+      const r = rng(`cot:${key}`);
+      const weeks: CotWeek[] = [];
+      let oi = contract.baseOi;
+      let specLong = contract.baseOi * 0.55;
+      let specShort = contract.baseOi * 0.12;
+      for (let i = 519; i >= 0; i--) {
+        oi *= 1 + (r() - 0.5) * 0.05;
+        specLong *= 1 + (r() - 0.5) * 0.09;
+        specShort *= 1 + (r() - 0.5) * 0.14;
+        const spread = specLong * 0.15;
+        const commLong = oi * 0.2 * (0.8 + r() * 0.4);
+        // Producers hedge, so commercials sit structurally short in metals.
+        const commShort = specLong + specShort * 0.3;
+        weeks.push({
+          // COT reports for a Tuesday; weekly cadence is what matters here.
+          time: BASELINE_NOW - i * 7 * DAY,
+          openInterest: Math.round(oi),
+          noncommercialLong: Math.round(specLong),
+          noncommercialShort: Math.round(specShort),
+          noncommercialSpread: Math.round(spread),
+          commercialLong: Math.round(commLong),
+          commercialShort: Math.round(commShort),
+          nonreportableLong: Math.round(oi * 0.12),
+          nonreportableShort: Math.round(oi * 0.045),
+        });
+      }
+      return {
+        symbol: key,
+        market: contract.market,
+        contractSize: contract.size,
+        weeks,
+      };
+    });
+  }
+
+  getGoldReserve(): Promise<GoldReserve> {
+    const empty: GoldReserve = {
+      asOf: BASELINE_NOW,
+      totalOunces: 0,
+      totalBookValueUsd: 0,
+      entries: [],
+    };
+    return this.gate<GoldReserve>(empty, () => {
+      // The real shape of the Treasury's monthly report: four vaults plus
+      // working stock and the Fed's display cases. Gold is carried at the
+      // statutory $42.2222/oz, which is the whole point of the frame.
+      const raw: [string, string, string, number][] = [
+        [
+          "Mint Held Gold - Deep Storage",
+          "Gold Bullion",
+          "Fort Knox, KY",
+          147_341_858.382,
+        ],
+        [
+          "Mint Held Gold - Deep Storage",
+          "Gold Bullion",
+          "West Point, NY",
+          54_067_331.379,
+        ],
+        [
+          "Mint Held Gold - Deep Storage",
+          "Gold Bullion",
+          "Denver, CO",
+          43_853_707.279,
+        ],
+        [
+          "Federal Reserve Bank Held Gold",
+          "Gold Bullion",
+          "Federal Reserve Banks - NY Vault",
+          13_376_987.724,
+        ],
+        [
+          "Mint Held Gold - Working Stock",
+          "Gold Coins",
+          "All Locations- Coins, blanks, miscellaneous",
+          2_783_218.656,
+        ],
+        [
+          "Federal Reserve Bank Held Gold",
+          "Gold Coins",
+          "Federal Reserve Banks - NY Vault",
+          73_452.066,
+        ],
+        [
+          "Federal Reserve Bank Held Gold",
+          "Gold Bullion",
+          "Federal Reserve Banks - Display",
+          1_993.321,
+        ],
+      ];
+      const entries = raw.map(([facility, form, location, ounces]) => ({
+        facility,
+        form,
+        location,
+        ounces,
+        bookValueUsd: round(ounces * 42.2222, 2),
+      }));
+      return {
+        asOf: BASELINE_NOW,
+        totalOunces: entries.reduce((sum, e) => sum + e.ounces, 0),
+        totalBookValueUsd: round(
+          entries.reduce((sum, e) => sum + e.bookValueUsd, 0),
+          2,
+        ),
+        entries,
+      };
+    });
+  }
+
+  getTokenizedGold(): Promise<TokenizedGold[]> {
+    return this.gate<TokenizedGold[]>([], () => {
+      const spot = MockMarketDataProvider.METAL_QUOTES.XAU.price;
+      const r = rng("tokenized-gold");
+      return [
+        {
+          id: "tether-gold",
+          symbol: "XAUT",
+          name: "Tether Gold",
+          marketCap: 2_482_000_000,
+          volume24h: 146_600_000,
+          ounces: 612_823,
+        },
+        {
+          id: "pax-gold",
+          symbol: "PAXG",
+          name: "PAX Gold",
+          marketCap: 1_800_000_000,
+          volume24h: 90_500_000,
+          ounces: 444_865,
+        },
+      ].map((token) => {
+        const premiumPct = round((r() * 2 - 1) * 0.6);
+        return {
+          ...token,
+          price: round(spot * (1 + premiumPct / 100), 2),
+          changePct: round((r() * 2 - 1) * 1.2),
+          premiumPct,
+        };
+      });
     });
   }
 

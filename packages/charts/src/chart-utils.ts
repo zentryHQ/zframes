@@ -8,6 +8,11 @@ export const formatChartDate = (
 ): string => {
   const d = new Date(date);
   if (timeframe === ChartTimeframe["24h"]) return d3.timeFormat("%H:%M")(d);
+  // Beyond a year, "Apr 01" repeats down the axis and reads as noise: a
+  // multi-year series wants the month AND year, a multi-decade one just the year.
+  if (timeframe === ChartTimeframe["1Y"]) return d3.timeFormat("%b %Y")(d);
+  if (timeframe === ChartTimeframe["5Y"] || timeframe === ChartTimeframe.MAX)
+    return d3.timeFormat("%Y")(d);
   return d3.timeFormat("%b %d")(d);
 };
 
@@ -44,7 +49,12 @@ export const getDatapointsFromTimeframe = (
     case ChartTimeframe["3M"]:
       return (90 * 24 * 60 * 60 * 1000) / timeIntervalMs;
     case ChartTimeframe["YTD"]:
+    case ChartTimeframe["1Y"]:
       return (365 * 24 * 60 * 60 * 1000) / timeIntervalMs;
+    case ChartTimeframe["5Y"]:
+      return (5 * 365 * 24 * 60 * 60 * 1000) / timeIntervalMs;
+    case ChartTimeframe.MAX:
+      return (50 * 365 * 24 * 60 * 60 * 1000) / timeIntervalMs;
     default:
       return 30;
   }

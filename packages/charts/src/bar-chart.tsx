@@ -103,7 +103,21 @@ const BarChart = ({
           LABEL_INSET,
         width * 0.35,
       );
-      const valuePad = showValues ? 52 : 8;
+      // Reserve the gutter the WIDEST formatted value actually needs. A fixed
+      // pad clipped anything longer than ~7 glyphs ("+249.24%" lost its "%"),
+      // and the longest bar is by definition the one that runs into it.
+      const valuePad = showValues
+        ? Math.min(
+            Math.max(
+              52,
+              Math.max(...data.map((d) => formatValue(d.value).length)) *
+                CHAR_PX +
+                LABEL_GAP +
+                LABEL_INSET,
+            ),
+            width * 0.3,
+          )
+        : 8;
       const innerWidth = Math.max(width - labelWidth - valuePad, 10);
       const rowHeight = height / data.length;
       const barHeight = Math.min(Math.max(rowHeight * 0.55, 3), 18);

@@ -61,6 +61,11 @@ import type {
   DexPool,
   ChainActivity,
   OrderBook,
+  MetalSpot,
+  MetalHistory,
+  MetalPositioning,
+  GoldReserve,
+  TokenizedGold,
 } from "@zframes/spec/types";
 
 import { FrameVisibilityContext } from "./visibility";
@@ -1270,4 +1275,100 @@ export function useChainActivity(refreshMs = 5 * 60_000): {
     refreshMs,
   );
   return { chains, isLoading };
+}
+
+/**
+ * Live metal spot quotes (gold, silver, platinum, palladium, copper), polled
+ * every ~60s — the quote endpoint updates continuously but metals move far
+ * slower than crypto, and this is one HTTP call per metal.
+ */
+export function useMetalSpot(
+  symbols?: readonly string[],
+  refreshMs = 60_000,
+): { metals: MetalSpot[]; isLoading: boolean } {
+  const provider = useProviderFor("metal-spot");
+  // `key` is what the effect actually depends on; `symbols` is a fresh array
+  // each render and would re-fire the poll every time.
+  const key = symbols ? symbols.join(",") : "*";
+  const wanted = key === "*" ? undefined : key.split(",").filter(Boolean);
+  const { data: metals, isLoading } = usePolled<MetalSpot[]>(
+    provider?.getMetalSpot ? () => provider.getMetalSpot!(wanted) : null,
+    [],
+    [provider, key, refreshMs],
+    refreshMs,
+  );
+  return { metals, isLoading };
+}
+
+/**
+ * Daily London-fix history per metal, oldest→newest, polled every ~6h — the
+ * LBMA fixes twice a business day, and the provider serves one shared download
+ * per metal to every frame on the board.
+ */
+export function useMetalHistory(
+  symbols: readonly string[],
+  currency = "USD",
+  refreshMs = 6 * 60 * 60_000,
+): { histories: MetalHistory[]; isLoading: boolean } {
+  const provider = useProviderFor("metal-history");
+  const key = [...symbols].join(",");
+  const { data: histories, isLoading } = usePolled<MetalHistory[]>(
+    provider?.getMetalHistory
+      ? () => provider.getMetalHistory!(key.split(",").filter(Boolean), currency)
+      : null,
+    [],
+    [provider, key, currency, refreshMs],
+    refreshMs,
+  );
+  return { histories, isLoading };
+}
+
+/**
+ * Weekly CFTC Commitments-of-Traders positioning for one metal, polled every
+ * ~6h — the report lands once a week (Friday, for the prior Tuesday).
+ */
+export function useMetalPositioning(
+  symbol: string,
+  refreshMs = 6 * 60 * 60_000,
+): { positioning: MetalPositioning | null; isLoading: boolean } {
+  const provider = useProviderFor("metal-positioning");
+  const { data: positioning, isLoading } = usePolled<MetalPositioning | null>(
+    provider?.getMetalPositioning
+      ? () => provider.getMetalPositioning!(symbol)
+      : null,
+    null,
+    [provider, symbol, refreshMs],
+    refreshMs,
+  );
+  return { positioning, isLoading };
+}
+
+/** The U.S. Treasury's official gold reserve, polled every ~12h (monthly data). */
+export function useGoldReserve(refreshMs = 12 * 60 * 60_000): {
+  reserve: GoldReserve | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("gold-reserve");
+  const { data: reserve, isLoading } = usePolled<GoldReserve | null>(
+    provider?.getGoldReserve ? () => provider.getGoldReserve!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { reserve, isLoading };
+}
+
+/** Gold-backed tokens and their premium to spot, polled every ~15 min. */
+export function useTokenizedGold(refreshMs = 15 * 60_000): {
+  tokens: TokenizedGold[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("tokenized-gold");
+  const { data: tokens, isLoading } = usePolled<TokenizedGold[]>(
+    provider?.getTokenizedGold ? () => provider.getTokenizedGold!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { tokens, isLoading };
 }

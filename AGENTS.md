@@ -61,6 +61,8 @@ pnpm test:frames:render  # headless-render every frame in a built Storybook, fla
   - `packages/provider-deribit` — BTC/ETH put-call ratio, OI-by-strike, DVOL volatility index (Deribit public API, no key)
 - **FX (keyless):**
   - `packages/provider-fx` — foreign-exchange reference rates with a short trend (`fx-rates` capability), via Frankfurter/ECB (no key)
+- **Metals / commodities (keyless):**
+  - `packages/provider-metals` — gold, silver, platinum, palladium and copper from four keyless sources: live spot via gold-api.com (`metal-spot`), the LBMA's own daily London fix files back to **1968** (`metal-history` — the deepest price history in the fleet; ~150 KB gzipped per metal, so its `TtlCache` is 6h and deliberately **not** persisted), the CFTC's public Socrata Commitments-of-Traders dataset (`metal-positioning`, weekly), the U.S. Treasury's monthly official gold-reserve report (`gold-reserve`, the one proxied call — fiscaldata is already allowlisted), and gold-backed tokens via CoinGecko (`tokenized-gold`, premium vs spot). Spot change is measured against the latest London fix: the history warm-up is fire-and-forget, so the change appears a poll after the price rather than blocking first paint on a decades-deep download.
 - **Official US macro & financial data (keyless, same-origin proxy required — these degrade to empty on a static host):**
   - `packages/provider-treasury` — U.S. Treasury data: average interest rates, debt-to-penny, completed auctions, and the daily yield curve (fiscaldata + home.treasury.gov, both proxied)
   - `packages/provider-nyfed` — New York Fed reference rates (SOFR, EFFR, repo)
@@ -96,7 +98,7 @@ pnpm test:frames:render  # headless-render every frame in a built Storybook, fla
 
 ## Scope
 
-- Keyless by default — the published CLI and all 18 market-data providers are keyless (free public APIs, no key required). An opt-in keyed/account tier exists (`provider-binance` for a connected Binance account, `provider-wallet` for a public on-chain address) but is separate from the default keyless set and not wired into the published CLI. (20 provider packages total: 18 keyless + 2 keyed.)
+- Keyless by default — the published CLI and all 24 market-data providers are keyless (free public APIs, no key required). An opt-in keyed/account tier exists (`provider-binance` for a connected Binance account, `provider-wallet` for a public on-chain address) but is separate from the default keyless set and not wired into the published CLI. (26 provider packages total: 24 keyless + 2 keyed; the keyless set is composed in one place, `packages/providers-keyless`.)
 - Stocks-first — equity perps via Hyperliquid HIP-3 builder dexes (`dex` param, e.g. `xyz:TSLA`), with crypto alongside.
 
 Architecture decisions, the distribution model, and roadmap live in `docs/decisions/` (kept locally, not in the public repo).

@@ -52,6 +52,7 @@ const DAG: Record<string, string[]> = {
     "@zframes/provider-geckoterminal",
     "@zframes/provider-hyperliquid",
     "@zframes/provider-mempool",
+    "@zframes/provider-metals",
     "@zframes/provider-news",
     "@zframes/provider-nyfed",
     "@zframes/provider-ofr",
