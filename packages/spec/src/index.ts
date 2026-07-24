@@ -74,6 +74,13 @@ export type {
   ChainActivity,
   OrderBook,
   OrderBookLevel,
+  MetalSpot,
+  MetalHistory,
+  CotWeek,
+  MetalPositioning,
+  GoldReserveEntry,
+  GoldReserve,
+  TokenizedGold,
 } from "./types";
 export {
   defineFrame,

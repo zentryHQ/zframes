@@ -1,0 +1,27 @@
+{
+  "name": "@zframes/provider-metals",
+  "version": "0.0.0",
+  "description": "Free keyless zframes data provider for precious and industrial metals: live spot (gold-api.com), the LBMA's daily London fix history back to 1968, weekly CFTC Commitments-of-Traders positioning, the U.S. Treasury's official gold reserve, and gold-backed tokens (metal-spot, metal-history, metal-positioning, gold-reserve, tokenized-gold capabilities).",
+  "license": "Apache-2.0",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/provider-metals"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/data-primitives": "workspace:*",
+    "@zframes/spec": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

@@ -740,6 +740,19 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-metals:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-news:
     dependencies:
       '@zframes/data-primitives':
@@ -894,6 +907,9 @@ importers:
       '@zframes/provider-mempool':
         specifier: workspace:*
         version: link:../provider-mempool
+      '@zframes/provider-metals':
+        specifier: workspace:*
+        version: link:../provider-metals
       '@zframes/provider-news':
         specifier: workspace:*
         version: link:../provider-news

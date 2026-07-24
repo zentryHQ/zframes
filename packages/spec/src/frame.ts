@@ -69,6 +69,12 @@ export const FRAME_CATEGORIES = [
       "Official macro data — rates, the yield curve, inflation, jobs, debt, Treasury auctions, and financial stress.",
   },
   {
+    key: "metals",
+    label: "Metals & Commodities",
+    description:
+      "Gold, silver, platinum, palladium and copper — live spot, decades of London fix history, ratios and drawdowns, CFTC futures positioning, the U.S. official gold reserve, and tokenized gold.",
+  },
+  {
     key: "equities",
     label: "Equities & Filings",
     description:
