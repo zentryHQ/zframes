@@ -62,7 +62,23 @@ export {
   useNftMarket,
   useDexPools,
   useChainActivity,
+  useOrderBook,
+  useVenuesFor,
 } from "./hooks";
+export {
+  DashboardCurrencyProvider,
+  FrameCurrencyOverride,
+  useMoney,
+  type Money,
+} from "./currency";
+export {
+  CURRENCY_SYMBOLS,
+  currencySymbol,
+  formatAmount,
+  formatMagnitude,
+  formatMoney,
+  formatMoneyCompact,
+} from "./money";
 export { DashboardRenderer } from "./renderer";
 export {
   FRAME_CSS,

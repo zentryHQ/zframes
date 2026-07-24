@@ -1,4 +1,4 @@
-// The keyless market-data provider set — the 22 free, no-key providers, as ONE
+// The keyless market-data provider set — the 23 free, no-key providers, as ONE
 // factory both apps share. Runtime and explorer used to each keep an identical
 // copy of this list (apps/runtime/src/App.tsx, apps/explorer/app/lib/frames.ts);
 // adding a provider meant editing both and they drifted. Centralising it here
@@ -18,6 +18,7 @@
 import type { MarketDataProvider } from "@zframes/spec";
 import { AlternativeMeProvider } from "@zframes/provider-alternativeme";
 import { BitcoinDataProvider } from "@zframes/provider-bitcoin-data";
+import { BitkubProvider } from "@zframes/provider-bitkub";
 import { BlockchairProvider } from "@zframes/provider-blockchair";
 import { BlsProvider } from "@zframes/provider-bls";
 import { CoinGeckoProvider } from "@zframes/provider-coingecko";
@@ -64,5 +65,6 @@ export function createKeylessProviders(): MarketDataProvider[] {
     new NewsProvider(),
     new MempoolProvider(),
     new DeribitProvider(),
+    new BitkubProvider(),
   ];
 }

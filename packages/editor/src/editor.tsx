@@ -26,6 +26,7 @@ import {
 } from "@zframes/spec/frame";
 import { frameMatchesSearch, frameSearchTokens } from "@zframes/spec/catalogue";
 import {
+  DashboardCurrencyProvider,
   FRAME_CSS,
   FrameContent,
   FramePatchContext,
@@ -546,6 +547,13 @@ export function DashboardEditor({
     ((id: string, patch: Record<string, unknown>) => void) | null
   >(null);
 
+  // GridStack owns each item's DOM, so every frame lives in its OWN React root
+  // (below). Context from the editor's tree does NOT reach those roots — they
+  // must re-provide anything frames read, which is why the display currency is
+  // provided per item here as well as at the editor root.
+  const currencyRef = useRef(spec.currency.code);
+  currencyRef.current = spec.currency.code;
+
   const renderInstance = useCallback((id: string) => {
     const content = contentRef.current.get(id);
     const instance = instancesRef.current.get(id);
@@ -558,18 +566,27 @@ export function DashboardEditor({
     }
     root.render(
       <FramesProvider providers={providersRef.current}>
-        <FramePatchContext.Provider
-          value={(patch) => patchInstanceRef.current?.(id, patch)}
-        >
-          <FrameContent
-            instance={instance}
-            registry={registryRef.current}
-            className="zf-fill"
-          />
-        </FramePatchContext.Provider>
+        <DashboardCurrencyProvider code={currencyRef.current}>
+          <FramePatchContext.Provider
+            value={(patch) => patchInstanceRef.current?.(id, patch)}
+          >
+            <FrameContent
+              instance={instance}
+              registry={registryRef.current}
+              className="zf-fill"
+            />
+          </FramePatchContext.Provider>
+        </DashboardCurrencyProvider>
       </FramesProvider>,
     );
   }, []);
+
+  // The currency code is read from a ref, so React has no dependency that would
+  // notice a change: re-render every item root when the dashboard currency
+  // changes, or already-mounted cards would keep quoting the old one.
+  useEffect(() => {
+    for (const id of instancesRef.current.keys()) renderInstance(id);
+  }, [spec.currency.code, renderInstance]);
 
   const patchInstance = useCallback(
     (id: string, patch: Record<string, unknown>) => {
@@ -1369,7 +1386,9 @@ export function DashboardEditor({
   const isHorizontal = mode === "flow-horizontal";
 
   return (
-    <>
+    // Same display-currency wrapper the renderer applies, so a board looks
+    // identical in customise mode and when served.
+    <DashboardCurrencyProvider code={spec.currency.code}>
       <style>{FRAME_CSS}</style>
       {customiseButtonTarget && !editing
         ? createPortal(renderCustomiseButton(), customiseButtonTarget)
@@ -2525,6 +2544,6 @@ export function DashboardEditor({
             document.body,
           )
         : null}
-    </>
+    </DashboardCurrencyProvider>
   );
 }

@@ -16,6 +16,21 @@ import { validateCustomUrl } from "./custom-data-shared";
 const widgetIcon = (name: string) => `/widget-icons/${name}.png`;
 
 /**
+ * Optional data-source pin for frames whose capability more than one exchange
+ * can serve. Capability routing is first-match, so without this a second venue
+ * (e.g. Bitkub) is never reached; naming it here routes THIS card to that
+ * provider. Symbols are venue-native, so they change with the venue: Hyperliquid
+ * wants "BTC"/"xyz:TSLA", Bitkub wants "BTC"/"KUB".
+ */
+const venueField = () =>
+  z
+    .enum(["hyperliquid", "bitkub"])
+    .optional()
+    .describe(
+      'Which exchange to source this card from — "hyperliquid" (default: crypto + HIP-3 stock/commodity perps, USD) or "bitkub" (Thailand\'s largest exchange, THB-quoted, the venue where KUB trades). Omit for the default. Use venue-native symbols: Bitkub lists bare tickers like "KUB"/"BTC" and has no HIP-3 stock perps.',
+    );
+
+/**
  * Canonical data-source credits. Each frame links its provider from the card
  * chrome (see core's FrameContent); the URL lives here in exactly one place.
  */
@@ -56,6 +71,7 @@ const SOURCES = {
     url: "https://www.geckoterminal.com",
   },
   blockchair: { name: "Blockchair", url: "https://blockchair.com" },
+  bitkub: { name: "Bitkub", url: "https://www.bitkub.com" },
 } satisfies Record<string, FrameSource>;
 
 export const clockMeta = defineFrameMeta({
@@ -211,7 +227,9 @@ export const priceChartMeta = defineFrameMeta({
   description:
     "Live animated price chart (candlestick or line) for one symbol — canvas-rendered at 60fps via liveline, streaming live off the Hyperliquid WebSocket. Works for any HIP-3 perp — stocks (xyz:TSLA), indices (xyz:SP500), commodities (xyz:GOLD) — and crypto (BTC). The centerpiece frame.",
   capabilities: ["ohlcv", "quote-stream"],
-  source: SOURCES.hyperliquid,
+  // Either venue can back this card (see `venue`), so both are credited — the
+  // badge is static meta and can't know which one a given instance pinned.
+  source: [SOURCES.hyperliquid, SOURCES.bitkub],
   schema: z.object({
     symbol: z
       .string()
@@ -231,6 +249,7 @@ export const priceChartMeta = defineFrameMeta({
       .string()
       .default("#8b8df9")
       .describe("Accent color (hex). The whole palette derives from it."),
+    venue: venueField(),
   }),
 });
 
@@ -299,7 +318,8 @@ export const topMoversMeta = defineFrameMeta({
   description:
     "Today's biggest stock and commodity HIP-3 gainers and losers (no bare crypto), side by side with current price and 24h change.",
   capabilities: ["day-stats"],
-  source: SOURCES.hyperliquid,
+  // Either venue can back this card (see `venue`) — both are credited.
+  source: [SOURCES.hyperliquid, SOURCES.bitkub],
   schema: z.object({
     count: z
       .number()
@@ -308,6 +328,7 @@ export const topMoversMeta = defineFrameMeta({
       .max(10)
       .default(5)
       .describe("How many gainers and losers to list (each)."),
+    venue: venueField(),
   }),
 });
 
@@ -2752,6 +2773,35 @@ export const chainActivityMeta = defineFrameMeta({
   schema: z.object({}),
 });
 
+export const orderBookDepthMeta = defineFrameMeta({
+  name: "order-book-depth",
+  label: "Order Book",
+  category: "markets",
+  iconUrl: widgetIcon("order-book-depth"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Live two-sided order book for one Bitkub market — bid and ask ladders with cumulative resting size, plus the mid price and spread. Shows where the resting liquidity actually sits, which a price feed alone can't. Prices in Thai baht. Keyless (Bitkub public API).",
+  capabilities: ["order-book"],
+  source: SOURCES.bitkub,
+  schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .default("KUB")
+      .describe(
+        'Base asset ticker as listed on the venue, e.g. "KUB", "BTC", "ETH" — the quote asset is implied (THB on Bitkub).',
+      ),
+    venue: venueField(),
+    levels: z
+      .number()
+      .int()
+      .min(3)
+      .max(25)
+      .default(10)
+      .describe("How many price levels to show per side."),
+  }),
+});
+
 export const nftTreemapMeta = defineFrameMeta({
   name: "nft-treemap",
   label: "NFT Treemap",
@@ -4935,6 +4985,7 @@ export const frameMetas: FrameMeta[] = [
   nftCollectionsMeta,
   dexHotPoolsMeta,
   chainActivityMeta,
+  orderBookDepthMeta,
   nftTreemapMeta,
   dexPoolTreemapMeta,
   sectorBarsMeta,

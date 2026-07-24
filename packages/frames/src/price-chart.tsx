@@ -1,9 +1,8 @@
-import { defineFrame, useCandles, useMids } from "@zframes/core";
+import { defineFrame, useCandles, useMids, useMoney } from "@zframes/core";
 import { Liveline, type CandlePoint, type LivelinePoint } from "liveline";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
-import { formatPrice } from "./format";
 import { useVisibilityRef } from "./live-tick";
 import { priceChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -34,8 +33,14 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
     config.interval,
     startTimeMs,
     Math.min(intervalMs, 60_000),
+    config.venue,
   );
-  const mids = useMids([config.symbol]);
+  const money = useMoney();
+  // Only Hyperliquid streams quotes, so on another venue this asks for nothing
+  // and the chart runs on polled candles alone: the forming candle and the line
+  // tail fall back to candle closes (see liveCandle / lineData below).
+  const streams = !config.venue || config.venue === "hyperliquid";
+  const mids = useMids(streams ? [config.symbol] : []);
   const mid = mids[config.symbol];
 
   // Accumulate live ticks for the line layer / live dot.
@@ -143,7 +148,7 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
         color={config.color}
         theme="dark"
         loading={isLoading}
-        formatValue={formatPrice}
+        formatValue={money.price}
         formatTime={formatTime}
         padding={PRICE_CHART_PADDING}
         showValue={true}
@@ -166,8 +171,10 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
  * opens no extra subscription.
  */
 function PriceChartTitle({ config }: { config: z.output<typeof schema> }) {
-  const showPrice = config.mode === "candle";
+  const streams = !config.venue || config.venue === "hyperliquid";
+  const showPrice = config.mode === "candle" && streams;
   const mid = useMids(showPrice ? [config.symbol] : [])[config.symbol];
+  const money = useMoney();
   return (
     <>
       {tickerOf(config.symbol)}
@@ -179,7 +186,7 @@ function PriceChartTitle({ config }: { config: z.output<typeof schema> }) {
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {formatPrice(mid)}
+          {money.price(mid)}
         </span>
       )}
     </>

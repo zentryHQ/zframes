@@ -50,6 +50,7 @@ export type Capability =
   | "nft-market"
   | "dex-pools"
   | "chain-activity"
+  | "order-book"
   | "portfolio";
 
 export interface DayStats {
@@ -1011,6 +1012,32 @@ export interface DexPool {
   txns24h: number;
 }
 
+/** One price level in an order book, with the depth cumulated from the top. */
+export interface OrderBookLevel {
+  /** Level price, in the pair's quote currency. */
+  price: number;
+  /** Resting size at this level, in the base asset. */
+  size: number;
+  /** Size summed from the best level through this one, in the base asset. */
+  cumulativeSize: number;
+}
+
+/** A two-sided order-book snapshot, best level first on both sides. */
+export interface OrderBook {
+  /** Base asset ticker the book is for, e.g. "KUB". */
+  symbol: string;
+  /** Venue-native pair id, e.g. "KUB_THB". */
+  pair: string;
+  /** Bids, highest price first. */
+  bids: OrderBookLevel[];
+  /** Asks, lowest price first. */
+  asks: OrderBookLevel[];
+  /** Midpoint of the best bid and best ask, quote currency. 0 if either side is empty. */
+  mid: number;
+  /** Best-bid/best-ask spread as a percent of `mid`. */
+  spreadPct: number;
+}
+
 /** One blockchain's headline network activity over the last 24h. */
 export interface ChainActivity {
   /** Blockchair chain slug, e.g. "bitcoin", "ethereum". */
@@ -1109,6 +1136,11 @@ export interface MarketDataProvider {
   getDexPools?(network?: string): Promise<DexPool[]>;
   /** Cross-chain network activity (tx count, blocks, mempool, price) per chain. */
   getChainActivity?(): Promise<ChainActivity[]>;
+  /**
+   * Order-book snapshot for one base asset (e.g. "KUB"), `depth` levels per
+   * side. The provider maps the ticker onto its own pair id.
+   */
+  getOrderBook?(symbol: string, depth?: number): Promise<OrderBook>;
   /** Treasury average interest rates by security class. */
   getTreasuryAverageRates?(): Promise<TreasuryAverageRate[]>;
   /** US Treasury daily par yield curve (latest available date). */
