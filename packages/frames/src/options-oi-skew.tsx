@@ -1,5 +1,5 @@
 import { BarChart, type BarDatum } from "@zframes/charts";
-import { defineFrame, useOptionsSummary } from "@zframes/core";
+import { defineFrame, useMoney, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { DOWN_COLOR, UP_COLOR, formatCompact } from "./format";
@@ -9,6 +9,7 @@ import { FrameStatus } from "./ui";
 const schema = optionsOiSkewMeta.schema;
 
 function OptionsOiSkew({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { summary, isLoading } = useOptionsSummary(config.currency);
 
   const view = useMemo(() => {
@@ -23,11 +24,11 @@ function OptionsOiSkew({ config }: { config: z.output<typeof schema> }) {
       .slice(0, config.strikes)
       .sort((a, b) => a.strike - b.strike)
       .map((s) => ({
-        label: formatCompact(s.strike),
+        label: money.magnitude(s.strike),
         value: s.callOi - s.putOi,
       }));
     return { data, expiry: summary.nearestExpiry.expiry };
-  }, [summary, config.strikes]);
+  }, [summary, config.strikes, money]);
 
   if (isLoading) return <FrameStatus loading>loading options…</FrameStatus>;
   if (!view) return <FrameStatus>no options data yet</FrameStatus>;

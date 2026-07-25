@@ -1,5 +1,5 @@
 import { HeatmapChart, type HeatmapCell } from "@zframes/charts";
-import { defineFrame, useOptionsSummary } from "@zframes/core";
+import { defineFrame, useMoney, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { formatCompact } from "./format";
@@ -29,6 +29,7 @@ function OptionsOiLadderHeatmap({
 }: {
   config: z.output<typeof schema>;
 }) {
+  const money = useMoney();
   const { summary, isLoading } = useOptionsSummary(config.currency);
 
   const cells: OiCell[] = useMemo(() => {
@@ -51,7 +52,7 @@ function OptionsOiLadderHeatmap({
     const bucketOf = (strike: number) =>
       Math.min(buckets - 1, Math.floor(((strike - min) / span) * buckets));
     const bucketLabel = (i: number) =>
-      formatCompact(min + ((i + 0.5) / buckets) * span);
+      money.magnitude(min + ((i + 0.5) / buckets) * span);
 
     const out: OiCell[] = [];
     for (const e of nearest) {
@@ -68,7 +69,7 @@ function OptionsOiLadderHeatmap({
       }
     }
     return out;
-  }, [summary, config.expiries, config.buckets]);
+  }, [summary, config.expiries, config.buckets, money]);
 
   if (isLoading) return <FrameStatus loading>loading OI ladder…</FrameStatus>;
   if (cells.length === 0) return <FrameStatus>no options data yet</FrameStatus>;

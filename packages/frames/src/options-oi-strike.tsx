@@ -1,7 +1,7 @@
 import { defineFrame, useMoney, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { DOWN_COLOR, UP_COLOR, formatCompact } from "./format";
+import { DOWN_COLOR, UP_COLOR } from "./format";
 import { optionsOiStrikeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -118,9 +118,9 @@ function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
       </svg>
 
       <div className="caption text-soft mt-1 flex justify-between tabular-nums">
-        <span>{formatCompact(near[0].strike)}</span>
+        <span>{money.magnitude(near[0].strike)}</span>
         <span className="text-normal">spot {money.price(spot)}</span>
-        <span>{formatCompact(near[n - 1].strike)}</span>
+        <span>{money.magnitude(near[n - 1].strike)}</span>
       </div>
     </div>
   );
