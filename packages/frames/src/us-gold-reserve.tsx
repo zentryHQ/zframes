@@ -1,11 +1,11 @@
-import { defineFrame, useGoldReserve, useMetalSpot } from "@zframes/core";
-import type { z } from "zod";
 import {
-  changeColor,
-  formatCompact,
-  formatCompactUsd,
-  formatPrice,
-} from "./format";
+  defineFrame,
+  useGoldReserve,
+  useMetalSpot,
+  useMoney,
+} from "@zframes/core";
+import type { z } from "zod";
+import { changeColor, formatCompact } from "./format";
 import { MetricRow } from "./metric-row";
 import { usGoldReserveMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -28,6 +28,7 @@ function formatReportDate(time: number): string {
 }
 
 function UsGoldReserve({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { reserve, isLoading } = useGoldReserve();
   // Hooks can't be conditional — the quote is one shared, cached call that the
   // rest of the board is almost certainly making anyway, and it's simply
@@ -70,15 +71,15 @@ function UsGoldReserve({ config }: { config: z.output<typeof schema> }) {
         {bookPerOz !== null && (
           <MetricRow
             label="Book value"
-            meta={`carried at ${formatPrice(bookPerOz)}/oz`}
-            value={formatCompactUsd(bookValue)}
+            meta={`carried at ${money.price(bookPerOz)}/oz`}
+            value={money.compact(bookValue)}
           />
         )}
         {market !== null && (
           <MetricRow
             label="At market"
-            meta={`spot ${formatPrice(market.spot)}/oz`}
-            value={formatCompactUsd(market.value)}
+            meta={`spot ${money.price(market.spot)}/oz`}
+            value={money.compact(market.value)}
           />
         )}
         {gain !== null && (
@@ -88,7 +89,7 @@ function UsGoldReserve({ config }: { config: z.output<typeof schema> }) {
             value={
               <span style={{ color: changeColor(gain) }}>
                 {gain >= 0 ? "+" : ""}
-                {formatCompactUsd(gain)}
+                {money.compact(gain)}
               </span>
             }
           />
