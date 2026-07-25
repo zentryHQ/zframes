@@ -5022,7 +5022,7 @@ export const metalPriceChartMeta = defineFrameMeta({
       .enum(["USD", "GBP", "EUR"])
       .default("USD")
       .describe(
-        "Quote currency — the LBMA fixes each metal in all three. EUR only exists from 1999.",
+        "Which published fix SERIES to read — the LBMA fixes each metal in all three, and they are separate prints, not conversions of one another (EUR only exists from 1999). This is a data choice, not a display one: to change what the card renders money in, set the frame instance's own `currency` (sibling of `config`) or the dashboard's. A USD fix follows that display currency; a GBP/EUR fix is shown as published.",
       ),
     years: yearsField(5, "How many years of daily fixes to chart."),
     logScale: z
@@ -5263,7 +5263,9 @@ export const metalFixTableMeta = defineFrameMeta({
     currency: z
       .enum(["USD", "GBP", "EUR"])
       .default("USD")
-      .describe("Quote currency of the fix — the LBMA publishes all three."),
+      .describe(
+        "Which published fix SERIES to list — the LBMA publishes all three as separate prints, not conversions of one another. This is a data choice, not a display one: to change what the card renders money in, set the frame instance's own `currency` (sibling of `config`) or the dashboard's. A USD fix follows that display currency; a GBP/EUR fix is shown as published.",
+      ),
     rows: z
       .number()
       .int()
