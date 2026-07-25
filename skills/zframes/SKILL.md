@@ -77,8 +77,9 @@ the user gave a name, else it's left blank), then the 12-column `grid`
 colours (`accentHue`/`accentSat` for the accent + `baseHue`/`baseSat` for the
 dark card-surface tint + `upColor`/`downColor` for gain/loss), the `typography`
 (`fontFamily` sans/mono/serif + `numericStyle` proportional/tabular + `scale`
-global text size), and the card-surface `appearance`
-(`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`) — with an
+global text size), the card-surface `appearance`
+(`radius`/`borderStrength`/`surfaceOpacity`/`density`/`elevation`), and the
+display `currency` (`{ code: "USD" }` by default) — with an
 **empty `frames` array**. You never author that boilerplate or its geometry by
 hand; you only fill in `frames` (step 4). That single file is everything the
 user owns; sibling files it references (a `daily-analysis.json` brief, a local
@@ -211,7 +212,8 @@ liquidity. The full live universe with 24h volumes is in `docs/xyz-universe.html
 
 Edit the file `init` scaffolded (or the existing one for updates): add objects to
 the `frames` array. **Leave the envelope alone** — `version`, `grid`,
-`background`, `theme`, `typography`, and `appearance` are already set; only
+`background`, `theme`, `typography`, `appearance` and `currency` are already
+set; only
 touch them if the user explicitly asks (e.g. "more spacing" → bump `grid.gap`,
 "square corners" → `appearance.radius: 0`, "muted accent" → lower
 `theme.accentSat`, "warmer/blacker cards" → shift `theme.baseHue` / lower
@@ -219,7 +221,27 @@ touch them if the user explicitly asks (e.g. "more spacing" → bump `grid.gap`,
 numbers jumping" → `typography.numericStyle: "tabular"`, "bigger/smaller text" →
 `typography.scale`, "colourblind / custom gain-loss colours" →
 `theme.upColor`/`theme.downColor`, "glassy cards" → lower
-`appearance.surfaceOpacity`, "no animation" → `background.type: "gradient"`).
+`appearance.surfaceOpacity`, "no animation" → `background.type: "gradient"`,
+"show it in baht / euros / yen" → `currency.code: "THB"|"EUR"|"JPY"` — 19
+ECB-quoted codes; every market figure converts from USD at the live reference
+rate, and one card can opt out with its own `"currency": "USD"` beside
+`position`).
+
+**Denominating a board in another currency.** `currency.code` is the whole job —
+you do NOT convert anything yourself, and you never touch a frame's numbers.
+Percentages, ratios and quantities are unaffected, and US-macro frames (Treasury,
+CPI, national debt) deliberately stay in dollars, so a baht board still shows the
+US national debt in USD. That is correct, not a bug.
+
+**Sourcing a frame from a second exchange.** Data routing is first-match by
+capability, so a frame only reads another venue if you say so: set
+`"venue": "bitkub"` in the frame's `config` (supported on `price-chart`,
+`top-movers`, `order-book-depth`). Symbols are venue-native — Bitkub lists bare
+tickers (`KUB`, `BTC`) and has **no** HIP-3 stock perps, so never send it an
+`xyz:` symbol. Bitkub is also the only venue with an order book, which is what
+the `order-book-depth` frame renders (bid/ask ladder + spread). A Bitkub
+`price-chart` has no live tick (only Hyperliquid streams quotes) — it polls
+candles, which is expected.
 
 **Show the full frame set — every dashboard gets all the market frames.** You
 don't cherry-pick frames by interest; build the whole comprehensive set and
