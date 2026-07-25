@@ -1,7 +1,7 @@
-import { defineFrame, useMetalHistory } from "@zframes/core";
+import { defineFrame, useMetalHistory, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { changeColor, formatChangePct, formatPrice } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { MetricRow } from "./metric-row";
 import {
   allTimeHigh,
@@ -22,6 +22,7 @@ const formatDay = (time: number) =>
   });
 
 function MetalAth({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { histories, isLoading } = useMetalHistory([config.symbol]);
   const points = histories[0]?.points;
 
@@ -51,7 +52,7 @@ function MetalAth({ config }: { config: z.output<typeof schema> }) {
           {metalName(config.symbol)} record fix
         </div>
         <div className="metric-lg text-strong leading-none">
-          {formatPrice(ath.value)}
+          {money.price(ath.value)}
         </div>
         <div className="caption text-soft">{formatDay(ath.time)}</div>
       </div>
@@ -60,7 +61,7 @@ function MetalAth({ config }: { config: z.output<typeof schema> }) {
         <MetricRow
           label="Latest fix"
           meta={formatDay(latest.time)}
-          value={formatPrice(latest.value)}
+          value={money.price(latest.value)}
         />
         <MetricRow
           label="Below record"

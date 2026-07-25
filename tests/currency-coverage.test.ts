@@ -38,16 +38,26 @@ const USD_ONLY: Record<string, string> = {
   "risk-reward.tsx": "user-entered trade levels",
   "journal-log.tsx": "user-entered journal amounts",
   "journal-ui.tsx": "user-entered journal amounts",
-  // Shared primitives, not frames: MoverRow takes an injectable `formatValue`
+  // Shared primitive, not a frame: MoverRow takes an injectable `formatValue`
   // (callers pass `money.price`), and its USD default is the fallback for a
-  // caller that has no currency context. TreemapLeaf only mentions the helper
-  // in a doc comment.
+  // caller with no currency context.
   "mover-row.tsx": "primitive — USD default for an injectable formatter",
-  "treemap-leaf.tsx": "primitive — doc-comment mention only",
 };
 
 const USD_HELPERS = /\b(formatPrice|formatCompactUsd)\s*\(/;
 const USD_HELPER_REF = /\b(formatPrice|formatCompactUsd)\b/;
+
+/**
+ * Comments are stripped before the search: several frames legitimately *name*
+ * these helpers in a doc comment to explain why they don't use them, and a bare
+ * word-search would flag that as an offence (it flagged `gold-silver-ratio`,
+ * whose only mention is a comment saying its ratio is neither a price nor a
+ * rate). Crude but sufficient — no frame stores code in a string literal that
+ * would be mistaken for a call.
+ */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+}
 
 const srcDir = fileURLToPath(
   new URL("../packages/frames/src", import.meta.url),
@@ -64,7 +74,7 @@ describe("display-currency coverage", () => {
     const offenders: string[] = [];
     for (const file of frameFiles()) {
       if (file in USD_ONLY) continue;
-      const source = readFileSync(join(srcDir, file), "utf8");
+      const source = stripComments(readFileSync(join(srcDir, file), "utf8"));
       if (USD_HELPER_REF.test(source)) offenders.push(file);
     }
     expect(

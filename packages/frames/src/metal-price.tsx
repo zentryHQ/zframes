@@ -1,6 +1,6 @@
-import { defineFrame, useMetalSpot } from "@zframes/core";
+import { defineFrame, useMetalSpot, useMoney } from "@zframes/core";
 import type { z } from "zod";
-import { changeColor, formatChangePct, formatPrice } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import {
   METAL_UNIT,
   metalName,
@@ -14,6 +14,7 @@ const schema = metalPriceMeta.schema;
 
 /** One metal's live spot price as a hero numeral, in the chosen weight unit. */
 function MetalPrice({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   // The hook keys off `symbols.join(",")`, so an inline literal array is stable.
   const { metals, isLoading } = useMetalSpot([config.symbol]);
   const metal = metals.find((m) => m.symbol === config.symbol) ?? metals[0];
@@ -41,7 +42,7 @@ function MetalPrice({ config }: { config: z.output<typeof schema> }) {
 
       <div className="flex items-baseline gap-1.5">
         <span className="metric-lg text-strong leading-none tabular-nums">
-          {formatPrice(price)}
+          {money.price(price)}
         </span>
         <span className="body-sm text-soft">/{unitLabel}</span>
       </div>
@@ -59,7 +60,7 @@ function MetalPrice({ config }: { config: z.output<typeof schema> }) {
 
       {config.showFix && fix !== undefined && (
         <div className="caption text-soft tabular-nums">
-          fix {formatPrice(fix)}/{unitLabel}
+          fix {money.price(fix)}/{unitLabel}
         </div>
       )}
     </div>

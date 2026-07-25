@@ -1,7 +1,11 @@
-import { defineFrame, useMetalHistory, type SeriesPoint } from "@zframes/core";
+import {
+  type SeriesPoint,
+  defineFrame,
+  useMetalHistory,
+  useMoney,
+} from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatPrice } from "./format";
 import { MetricRow } from "./metric-row";
 import { allTimeHigh, durationSince, metalName } from "./metals-shared";
 import { metalMilestonesMeta } from "./schemas";
@@ -60,6 +64,7 @@ const formatDay = (time: number) =>
   });
 
 function MetalMilestones({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { histories, isLoading } = useMetalHistory([config.symbol]);
   const points = histories[0]?.points;
 
@@ -96,7 +101,7 @@ function MetalMilestones({ config }: { config: z.output<typeof schema> }) {
         {rows.map((row) => (
           <MetricRow
             key={row.level}
-            label={formatPrice(row.level)}
+            label={money.price(row.level)}
             meta={formatDay(row.time)}
             value={row.leg ?? "first"}
           />

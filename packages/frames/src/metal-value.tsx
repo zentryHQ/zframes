@@ -1,6 +1,5 @@
-import { defineFrame, useMetalSpot } from "@zframes/core";
+import { defineFrame, useMetalSpot, useMoney } from "@zframes/core";
 import type { z } from "zod";
-import { formatCompactUsd, formatPrice } from "./format";
 import {
   METAL_UNIT,
   metalName,
@@ -30,6 +29,7 @@ function formatWeight(weight: number): string {
 
 /** What a physical holding is worth at live spot. */
 function MetalValue({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   // The hook keys off `symbols.join(",")`, so an inline literal array is stable.
   const { metals, isLoading } = useMetalSpot([config.symbol]);
   const metal = metals.find((m) => m.symbol === config.symbol) ?? metals[0];
@@ -52,7 +52,7 @@ function MetalValue({ config }: { config: z.output<typeof schema> }) {
       <div className="caption text-soft uppercase">holding value</div>
 
       <div className="metric-lg text-strong leading-none tabular-nums">
-        {value >= COMPACT_ABOVE ? formatCompactUsd(value) : formatPrice(value)}
+        {value >= COMPACT_ABOVE ? money.compact(value) : money.price(value)}
       </div>
 
       <div className="body-sm text-normal">
@@ -60,7 +60,7 @@ function MetalValue({ config }: { config: z.output<typeof schema> }) {
       </div>
 
       <div className="caption text-soft tabular-nums">
-        at {formatPrice(metal.price)}/{quoteUnit} spot
+        at {money.price(metal.price)}/{quoteUnit} spot
       </div>
     </div>
   );
