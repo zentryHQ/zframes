@@ -1,3 +1,4 @@
+import type { Money } from "@zframes/core";
 import { ChartTimeframe, type BarDatum } from "@zframes/charts";
 import type { SeriesPoint } from "@zframes/core";
 import { DOWN_COLOR, UP_COLOR, formatPrice } from "./format";
@@ -324,9 +325,24 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 
 /**
  * A fix price in one of the LBMA's three currencies. The fix IS a price, so it
- * keeps `formatPrice`'s precision policy and only swaps the leading symbol.
+ * keeps `formatPrice`'s precision policy.
+ *
+ * Note the two different senses of "currency" meeting here. A frame's
+ * `config.currency` picks **which published fix series to read** (the LBMA fixes
+ * every metal in USD, GBP and EUR); the dashboard's `currency` picks **what to
+ * display money in**. They interact:
+ *  - A **USD** fix is the canonical unit every capability reports, so it goes
+ *    through `money` and follows the board — a baht dashboard shows baht.
+ *  - A **GBP/EUR** fix is genuinely not USD. The display layer converts *from*
+ *    USD, so handing it a sterling number would silently multiply by the wrong
+ *    rate; it is shown as published instead, with its own symbol.
  */
-export function formatFixPrice(value: number, currency: string): string {
+export function formatFixPrice(
+  value: number,
+  currency: string,
+  money: Money,
+): string {
+  if (currency === "USD") return money.price(value);
   return formatPrice(value).replace("$", CURRENCY_SYMBOLS[currency] ?? "$");
 }
 

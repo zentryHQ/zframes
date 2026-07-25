@@ -1,4 +1,4 @@
-import { defineFrame, useMetalHistory } from "@zframes/core";
+import { defineFrame, useMetalHistory, useMoney } from "@zframes/core";
 import { Fragment, useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct } from "./format";
@@ -21,6 +21,7 @@ function formatFixDate(time: number): string {
 const COLUMNS = "grid grid-cols-[minmax(0,1fr)_auto_4.25rem] items-baseline";
 
 function MetalFixTable({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { histories, isLoading } = useMetalHistory(
     [config.symbol],
     config.currency,
@@ -89,7 +90,7 @@ function MetalFixTable({ config }: { config: z.output<typeof schema> }) {
               {formatFixDate(row.time)}
             </span>
             <span className="body-sm text-strong py-1 text-right tabular-nums">
-              {formatFixPrice(row.value, config.currency)}
+              {formatFixPrice(row.value, config.currency, money)}
             </span>
             {row.changePct === null ? (
               <span className="body-sm text-disabled py-1 text-right tabular-nums">

@@ -3,7 +3,7 @@ import {
   MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
-import { defineFrame, useMetalHistory } from "@zframes/core";
+import { defineFrame, useMetalHistory, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import {
@@ -21,6 +21,7 @@ import { FrameStatus } from "./ui";
 const schema = metalPriceChartMeta.schema;
 
 function MetalPriceChart({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { histories, isLoading } = useMetalHistory(
     config.symbols,
     config.currency,
@@ -57,9 +58,9 @@ function MetalPriceChart({ config }: { config: z.output<typeof schema> }) {
   const formatValue = useMemo(() => {
     const currency = config.currency;
     return config.logScale
-      ? (value: number) => formatFixPrice(10 ** value, currency)
-      : (value: number) => formatFixPrice(value, currency);
-  }, [config.currency, config.logScale]);
+      ? (value: number) => formatFixPrice(10 ** value, currency, money)
+      : (value: number) => formatFixPrice(value, currency, money);
+  }, [config.currency, config.logScale, money]);
 
   if (isLoading && series.length === 0)
     return <FrameStatus loading>loading London fix history…</FrameStatus>;
