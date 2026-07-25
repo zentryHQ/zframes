@@ -2,7 +2,6 @@ import { BarChart, type BarDatum } from "@zframes/charts";
 import { defineFrame, useMoney, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompact } from "./format";
 import { optionsMaxPainMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -37,7 +36,7 @@ function OptionsMaxPain({ config }: { config: z.output<typeof schema> }) {
     });
 
     const bars: BarDatum[] = strikes.map((s, i) => ({
-      label: formatCompact(s.strike),
+      label: money.magnitude(s.strike),
       value: pains[i],
       color: s.strike === maxPainStrike ? "var(--color-highlight)" : undefined,
     }));
@@ -48,7 +47,7 @@ function OptionsMaxPain({ config }: { config: z.output<typeof schema> }) {
       spot: summary.underlyingPrice,
       expiry: summary.nearestExpiry.expiry,
     };
-  }, [summary]);
+  }, [summary, money]);
 
   if (isLoading) return <FrameStatus loading>loading options…</FrameStatus>;
   if (!view) return <FrameStatus>no options data yet</FrameStatus>;

@@ -1,7 +1,7 @@
 import { defineFrame, useMoney, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { DOWN_COLOR, UP_COLOR, formatCompact, formatPct } from "./format";
+import { DOWN_COLOR, UP_COLOR, formatPct } from "./format";
 import { optionsVolSmileMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -94,11 +94,11 @@ function OptionsVolSmile({ config }: { config: z.output<typeof schema> }) {
       </svg>
 
       <div className="caption text-soft mt-1 flex justify-between tabular-nums">
-        <span>{formatCompact(first)}</span>
+        <span>{money.magnitude(first)}</span>
         <span className="text-normal">
           spot {money.price(spot)} · {ivRange} IV
         </span>
-        <span>{formatCompact(last)}</span>
+        <span>{money.magnitude(last)}</span>
       </div>
     </div>
   );

@@ -8,8 +8,9 @@ These frames are meant to read as **one system**, not a pile of one-offs. Every 
 
 | Concern | Use | Never |
 |---|---|---|
-| Compact magnitude | `formatCompact` / `formatCompactUsd` (`./format`) — `$1.23B`, `340.00M`; for market data prefer `useMoney().compact` | a rolled-own `/1e9 + "B"` |
+| Compact magnitude of a NON-money quantity | `formatCompact` (`./format`) — contracts, ounces, tx counts, share volume, bytes | using it for money (see the row below) |
 | Market money (price / aggregate) | **`useMoney()`** (`@zframes/core`) — `money.price(usd)`, `money.compact(usd)`; takes USD in, renders the card's display currency | `formatPrice`/`formatCompactUsd` on market data (they hard-code `$`) |
+| Money on an axis / bar label (no symbol) | **`money.magnitude(usd)`** — converted but unitless, e.g. an options strike axis | bare `formatCompact` on a money value — it converts nothing, so a THB board prints USD strikes next to a baht spot |
 | Exact price — US-macro / explicitly-USD only | `formatPrice` | `toLocaleString` inline |
 | Signed delta % | `formatChangePct` (`+1.23%`) | `toFixed` + manual sign |
 | Level / ratio % | `formatPct` · funding → `formatFundingPct` | — |
