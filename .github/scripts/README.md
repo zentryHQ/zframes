@@ -20,8 +20,8 @@ recovery** (`report-to-issue.mjs`). Dependency upgrade PRs come from Dependabot
 
 ## Provider · `provider-smoke.ts` · `pnpm test:providers`
 
-Probes every keyless provider's LIVE API and validates the response against the
-provider's own Zod schema. Driven off `@zframes/providers-keyless` (the exact set
+Probes every keyless provider's LIVE API and asserts the response still has the
+shape the provider expects (an object or an array, per entry). Driven off `@zframes/providers-keyless` (the exact set
 the apps ship) so a new provider is covered automatically; a provider with no
 probe is flagged (`warn`) to keep the manifest in lockstep. A **throw = hard
 signal** (dead endpoint / non-2xx / schema drift) → `fail` → issue; empty-but-

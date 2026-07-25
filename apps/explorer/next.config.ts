@@ -1,4 +1,25 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+
+// The version the site advertises is the `zframes` CLI version — the package a
+// visitor actually runs via npx — read from that package.json at build time.
+// Same source the runtime header reads (apps/runtime/vite.config.ts), so the
+// site, the runtime chrome and npm can never disagree.
+const cliVersion = JSON.parse(
+  readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      "..",
+      "..",
+      "packages",
+      "cli",
+      "package.json",
+    ),
+    "utf8",
+  ),
+).version as string;
 
 // transpilePackages is the Next equivalent of the runtime's optimizeDeps.exclude:
 // every @zframes/* workspace package ships TypeScript source (`main: src/index.ts`),
@@ -6,6 +27,9 @@ import type { NextConfig } from "next";
 // imports — core/charts/frames plus every keyless provider wired into the preview,
 // and @zframes/serve/serve (imported by the proxy Route Handler).
 const nextConfig: NextConfig = {
+  // Inlined at build time (not read at request time) so it ships with the
+  // static pages the same way the runtime bakes its own header version in.
+  env: { ZFRAMES_CLI_VERSION: cliVersion },
   transpilePackages: [
     "@zframes/core",
     "@zframes/spec",
@@ -14,6 +38,8 @@ const nextConfig: NextConfig = {
     "@zframes/serve",
     "@zframes/charts",
     "@zframes/frames",
+    "@zframes/providers-keyless",
+    "@zframes/provider-wallet",
     "@zframes/provider-alternativeme",
     "@zframes/provider-bls",
     "@zframes/provider-coingecko",

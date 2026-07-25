@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { BrandMark } from "@/app/lib/BrandMark";
 
+/** Injected by next.config.ts from packages/cli/package.json at build time. */
+const CLI_VERSION = process.env.ZFRAMES_CLI_VERSION;
+
 // Site footer — brand, one-line pitch, and the primary routes. Server-safe.
 export function Footer() {
   return (
@@ -51,7 +54,24 @@ export function Footer() {
       </div>
       <div className="border-t border-white/[0.06]">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 text-xs text-white/55 sm:flex-row sm:items-center sm:justify-between">
-          <span>© {new Date().getFullYear()} zframes</span>
+          <div className="flex items-center gap-3">
+            <span>© {new Date().getFullYear()} zframes</span>
+            {/* The published CLI version, inlined at build time from
+                packages/cli/package.json (next.config.ts) — the same source the
+                runtime header reads, so the site can't advertise a version npm
+                doesn't serve. Links to npm so a visitor can check it. */}
+            {CLI_VERSION ? (
+              <a
+                href="https://www.npmjs.com/package/zframes"
+                target="_blank"
+                rel="noreferrer"
+                title={`zframes CLI v${CLI_VERSION} on npm`}
+                className="rounded-full border border-white/[0.12] px-2 py-0.5 font-mono leading-none text-white/70 transition-colors hover:border-white/25 hover:text-white"
+              >
+                CLI v{CLI_VERSION}
+              </a>
+            ) : null}
+          </div>
           <a
             href="https://github.com/zentryhq/zframes"
             target="_blank"
