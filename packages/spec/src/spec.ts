@@ -151,7 +151,7 @@ export const FrameInstanceSchema = z.object({
     .enum(CURRENCY_CODES)
     .optional()
     .describe(
-      'Display currency for THIS card only, overriding the dashboard-wide `currency` (e.g. keep one card in "USD" on a baht board). Omit to inherit.',
+      'Display currency for THIS card only, overriding the dashboard-wide `currency` (e.g. keep one card in "USD" on a baht board). Omit to inherit. Purely presentational — it converts USD figures for display. Note it is NOT the same as a `config.currency` some frames have (the metals LBMA-fix frames use that to pick which published fix series to READ); this field never changes which data is fetched.',
     ),
   position: GridPositionSchema,
   layouts: z
