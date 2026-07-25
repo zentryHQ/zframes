@@ -1,9 +1,8 @@
 import { TreeChart, type TreeNode } from "@zframes/charts";
-import { defineFrame, useOpenInterest } from "@zframes/core";
+import { defineFrame, useMoney, useOpenInterest } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
-import { formatCompactUsd } from "./format";
 import { oiTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -23,7 +22,8 @@ function Leaf({
   height: number;
   data: OiNode;
 }) {
-  const value = formatCompactUsd(data.oiUsd);
+  const money = useMoney();
+  const value = money.compact(data.oiUsd);
   return (
     <TreemapLeaf
       width={width}

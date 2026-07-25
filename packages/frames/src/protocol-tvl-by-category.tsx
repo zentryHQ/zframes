@@ -1,8 +1,7 @@
 import { BarChart } from "@zframes/charts";
-import { defineFrame, useProtocolTvl } from "@zframes/core";
+import { defineFrame, useMoney, useProtocolTvl } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { protocolTvlByCategoryMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -14,6 +13,7 @@ function ProtocolTvlByCategory({
   config: z.output<typeof schema>;
 }) {
   const { entries, isLoading } = useProtocolTvl();
+  const money = useMoney();
 
   const data = useMemo(() => {
     const byCategory = new Map<string, number>();
@@ -38,7 +38,7 @@ function ProtocolTvlByCategory({
         data={data}
         orientation="horizontal"
         height={Math.max(data.length * 26, 96)}
-        formatValue={formatCompactUsd}
+        formatValue={money.compact}
       />
       <div className="caption text-soft text-center">
         DeFi TVL · by category

@@ -1,8 +1,8 @@
 import { ScatterChart, type ScatterDatum } from "@zframes/charts";
-import { defineFrame, usePredictionMarkets } from "@zframes/core";
+import { defineFrame, useMoney, usePredictionMarkets } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd, formatPct } from "./format";
+import { formatPct } from "./format";
 import { predictionMarketScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -22,6 +22,7 @@ function PredictionMarketScatter({
 }: {
   config: z.output<typeof schema>;
 }) {
+  const money = useMoney();
   const { markets, isLoading } = usePredictionMarkets(config.limit);
 
   const data: ScatterDatum[] = useMemo(
@@ -52,7 +53,7 @@ function PredictionMarketScatter({
         yScale="log"
         height={210}
         formatX={formatProbPct}
-        formatY={formatCompactUsd}
+        formatY={money.compact}
         maxLabels={10}
       />
       <div className="caption text-soft text-center">

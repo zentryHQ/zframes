@@ -1,8 +1,7 @@
 import { HeatmapChart, type HeatmapCell } from "@zframes/charts";
-import { defineFrame, useEtfFlows } from "@zframes/core";
+import { defineFrame, useEtfFlows, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { etfFlowCalendarMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -34,11 +33,12 @@ function Cell({
   width: number;
   height: number;
 }) {
+  const money = useMoney();
   if (width < 40 || height < 18) return null;
   return (
     <div className="flex h-full w-full items-center justify-center">
       <span className="caption text-normal tabular-nums">
-        {formatCompactUsd(data.value)}
+        {money.compact(data.value)}
       </span>
     </div>
   );

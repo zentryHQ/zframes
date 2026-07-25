@@ -1,9 +1,9 @@
 import type { BubbleNode } from "@zframes/charts";
-import { defineFrame, useSectorPerformance } from "@zframes/core";
+import { defineFrame, useMoney, useSectorPerformance } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { BubbleCloud } from "./bubbles-shared";
-import { changeColor, formatChangePct, formatCompactUsd } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { sectorBubblesMeta } from "./schemas";
 
 const schema = sectorBubblesMeta.schema;
@@ -14,6 +14,9 @@ interface SectorBubble extends BubbleNode {
 
 function SectorBubbles({ config }: { config: z.output<typeof schema> }) {
   const { sectors, isLoading } = useSectorPerformance();
+  // formatTitle runs inside BubbleChart's D3 render, not as a React component,
+  // so useMoney() is called here and captured in the closure below.
+  const money = useMoney();
 
   const nodes: SectorBubble[] = useMemo(
     () =>
@@ -39,7 +42,7 @@ function SectorBubbles({ config }: { config: z.output<typeof schema> }) {
       emptyText="no sector data yet"
       caption={`area by sector mcap · ring by 24h change · top ${nodes.length}`}
       formatTitle={(n) =>
-        `${n.label} · ${formatCompactUsd(n.value)} mcap · ${formatChangePct((n as SectorBubble).changePct24h)}`
+        `${n.label} · ${money.compact(n.value)} mcap · ${formatChangePct((n as SectorBubble).changePct24h)}`
       }
     />
   );

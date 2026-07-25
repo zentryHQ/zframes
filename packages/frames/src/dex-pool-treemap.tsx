@@ -1,8 +1,8 @@
 import { TreeChart, type TreeNode } from "@zframes/charts";
-import { defineFrame, useDexPools } from "@zframes/core";
+import { defineFrame, useDexPools, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatChangePct, formatCompactUsd } from "./format";
+import { formatChangePct } from "./format";
 import { dexPoolTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -23,7 +23,8 @@ function Leaf({
   height: number;
   data: PoolNode;
 }) {
-  const vol = formatCompactUsd(data.volume24hUsd);
+  const money = useMoney();
+  const vol = money.compact(data.volume24hUsd);
   return (
     <TreemapLeaf
       width={width}

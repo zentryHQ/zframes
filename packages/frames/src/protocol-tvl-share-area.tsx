@@ -1,8 +1,8 @@
 import { CHART_COLORS_MULTI_SERIES, StackedAreaChart } from "@zframes/charts";
-import { defineFrame, useProtocolTvlHistory } from "@zframes/core";
+import { defineFrame, useMoney, useProtocolTvlHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd, prettySlug } from "./format";
+import { prettySlug } from "./format";
 import { protocolTvlShareAreaMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -25,6 +25,7 @@ function ProtocolTvlShareArea({ config }: { config: z.output<typeof schema> }) {
     [config.lookback],
   );
   const { history, isLoading } = useProtocolTvlHistory(config.protocols);
+  const money = useMoney();
 
   const series = useMemo(
     () =>
@@ -49,8 +50,8 @@ function ProtocolTvlShareArea({ config }: { config: z.output<typeof schema> }) {
       series={series}
       height={240}
       formatXAxis={formatMonthDay}
-      formatYAxis={formatCompactUsd}
-      formatValue={formatCompactUsd}
+      formatYAxis={money.compact}
+      formatValue={money.compact}
     />
   );
 }

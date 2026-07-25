@@ -1,7 +1,7 @@
-import { defineFrame, useOptionsSummary } from "@zframes/core";
+import { defineFrame, useMoney, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { DOWN_COLOR, UP_COLOR, formatCompact, formatPrice } from "./format";
+import { DOWN_COLOR, UP_COLOR, formatCompact } from "./format";
 import { optionsOiStrikeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -12,6 +12,7 @@ const PUT = DOWN_COLOR;
 
 function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
   const { summary, isLoading } = useOptionsSummary(config.currency);
+  const money = useMoney();
 
   const view = useMemo(() => {
     if (!summary) return null;
@@ -118,7 +119,7 @@ function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
 
       <div className="caption text-soft mt-1 flex justify-between tabular-nums">
         <span>{formatCompact(near[0].strike)}</span>
-        <span className="text-normal">spot {formatPrice(spot)}</span>
+        <span className="text-normal">spot {money.price(spot)}</span>
         <span>{formatCompact(near[n - 1].strike)}</span>
       </div>
     </div>

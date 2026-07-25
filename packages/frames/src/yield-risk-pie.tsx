@@ -1,7 +1,7 @@
 import { CHART_COLORS_MULTI_SERIES, PieChart } from "@zframes/charts";
-import { defineFrame, useYieldPools } from "@zframes/core";
+import { defineFrame, useMoney, useYieldPools } from "@zframes/core";
 import { useMemo } from "react";
-import { formatCompactUsd, formatPct } from "./format";
+import { formatPct } from "./format";
 import { yieldRiskPieMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -13,6 +13,7 @@ const RISK_LABEL: Record<string, string> = {
 
 function YieldRiskPie() {
   const { pools, isLoading } = useYieldPools();
+  const money = useMoney();
 
   const slices = useMemo(() => {
     const byRisk = new Map<string, number>();
@@ -48,7 +49,7 @@ function YieldRiskPie() {
         <div className="flex max-w-[100px] flex-col items-center gap-0.5">
           <span className="caption text-soft">TVL by IL risk</span>
           <span className="metric-md text-strong leading-none tabular-nums">
-            {formatCompactUsd(total)}
+            {money.compact(total)}
           </span>
         </div>
       </PieChart>
@@ -65,7 +66,7 @@ function YieldRiskPie() {
               {formatPct((slice.value / total) * 100, 1)}
             </span>
             <span className="caption text-soft tabular-nums">
-              {formatCompactUsd(slice.value)}
+              {money.compact(slice.value)}
             </span>
           </div>
         ))}

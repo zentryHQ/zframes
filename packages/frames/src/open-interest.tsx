@@ -1,8 +1,7 @@
-import { defineFrame, useOpenInterest } from "@zframes/core";
+import { defineFrame, useMoney, useOpenInterest } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
-import { formatCompactUsd } from "./format";
 import { openInterestMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
 
@@ -13,6 +12,7 @@ const MAX_ROWS = 25;
 
 function OpenInterest({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useOpenInterest(config.symbols);
+  const money = useMoney();
 
   const rows = useMemo(() => entries.slice(0, MAX_ROWS), [entries]);
   const max = useMemo(
@@ -31,7 +31,7 @@ function OpenInterest({ config }: { config: z.output<typeof schema> }) {
         <div
           key={entry.symbol}
           className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2"
-          title={`${entry.symbol} · ${formatCompactUsd(entry.openInterestUsd)} open interest`}
+          title={`${entry.symbol} · ${money.compact(entry.openInterestUsd)} open interest`}
         >
           <AssetLogo symbol={entry.symbol} size={16} />
           <div className="relative h-4 w-full overflow-hidden rounded-sm bg-white/[0.06]">
@@ -49,7 +49,7 @@ function OpenInterest({ config }: { config: z.output<typeof schema> }) {
             </span>
           </div>
           <span className="caption text-soft text-right tabular-nums">
-            {formatCompactUsd(entry.openInterestUsd)}
+            {money.compact(entry.openInterestUsd)}
           </span>
         </div>
       ))}

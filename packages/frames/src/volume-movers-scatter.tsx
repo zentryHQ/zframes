@@ -1,9 +1,9 @@
 import { ScatterChart, type ScatterDatum } from "@zframes/charts";
-import { defineFrame, useDayStatsState } from "@zframes/core";
+import { defineFrame, useDayStatsState, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
-import { changeColor, formatChangePct, formatCompactUsd } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { volumeMoversScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -11,6 +11,7 @@ const schema = volumeMoversScatterMeta.schema;
 
 function VolumeMoversScatter({ config }: { config: z.output<typeof schema> }) {
   const { stats, isLoading } = useDayStatsState();
+  const money = useMoney();
 
   const data: ScatterDatum[] = useMemo(
     () =>
@@ -40,7 +41,7 @@ function VolumeMoversScatter({ config }: { config: z.output<typeof schema> }) {
         height={210}
         zeroXLine
         formatX={formatChangePct}
-        formatY={formatCompactUsd}
+        formatY={money.compact}
         maxLabels={10}
       />
       <div className="caption text-soft text-center">

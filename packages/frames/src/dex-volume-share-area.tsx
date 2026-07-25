@@ -1,8 +1,8 @@
 import { CHART_COLORS_MULTI_SERIES, StackedAreaChart } from "@zframes/charts";
-import { defineFrame, useDexVolumeHistory } from "@zframes/core";
+import { defineFrame, useDexVolumeHistory, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd, prettySlug } from "./format";
+import { prettySlug } from "./format";
 import { dexVolumeShareAreaMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -25,6 +25,7 @@ function DexVolumeShareArea({ config }: { config: z.output<typeof schema> }) {
     [config.lookback],
   );
   const { history, isLoading } = useDexVolumeHistory(config.protocols);
+  const money = useMoney();
 
   const series = useMemo(
     () =>
@@ -48,8 +49,8 @@ function DexVolumeShareArea({ config }: { config: z.output<typeof schema> }) {
       series={series}
       height={240}
       formatXAxis={formatMonthDay}
-      formatYAxis={formatCompactUsd}
-      formatValue={formatCompactUsd}
+      formatYAxis={money.compact}
+      formatValue={money.compact}
     />
   );
 }

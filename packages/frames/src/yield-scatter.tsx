@@ -1,8 +1,8 @@
 import { ScatterChart, type ScatterDatum } from "@zframes/charts";
-import { defineFrame, useYieldPools } from "@zframes/core";
+import { defineFrame, useMoney, useYieldPools } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd, formatPct, prettySlug } from "./format";
+import { formatPct, prettySlug } from "./format";
 import { yieldScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -10,6 +10,7 @@ const schema = yieldScatterMeta.schema;
 
 function YieldScatter({ config }: { config: z.output<typeof schema> }) {
   const { pools, isLoading } = useYieldPools();
+  const money = useMoney();
 
   const data: ScatterDatum[] = useMemo(
     () =>
@@ -44,7 +45,7 @@ function YieldScatter({ config }: { config: z.output<typeof schema> }) {
         yScale="log"
         height={210}
         formatX={(v) => formatPct(v, 0)}
-        formatY={formatCompactUsd}
+        formatY={money.compact}
         maxLabels={8}
       />
       <div className="caption text-soft text-center">

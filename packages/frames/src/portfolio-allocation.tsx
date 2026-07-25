@@ -1,9 +1,9 @@
 import { CHART_COLORS_MULTI_SERIES, PieChart } from "@zframes/charts";
-import { defineFrame, type Portfolio } from "@zframes/core";
+import { defineFrame, useMoney, type Portfolio } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
-import { formatCompactUsd, formatPct } from "./format";
+import { formatPct } from "./format";
 import {
   PortfolioGate,
   PortfolioLabel,
@@ -21,6 +21,7 @@ function AllocationDonut({
   portfolio: Portfolio;
   config: z.output<typeof schema>;
 }) {
+  const money = useMoney();
   const { priced } = usePricedHoldings(portfolio.holdings);
   const slices = useMemo(
     () =>
@@ -55,9 +56,7 @@ function AllocationDonut({
             config={config}
             className="caption text-soft"
           />
-          <span className="metric-lg text-strong">
-            {formatCompactUsd(total)}
-          </span>
+          <span className="metric-lg text-strong">{money.compact(total)}</span>
         </div>
       </PieChart>
 
@@ -73,7 +72,7 @@ function AllocationDonut({
               {formatPct((slice.value / total) * 100, 1)}
             </span>
             <span className="caption text-soft tabular-nums">
-              {formatCompactUsd(slice.value)}
+              {money.compact(slice.value)}
             </span>
           </div>
         ))}

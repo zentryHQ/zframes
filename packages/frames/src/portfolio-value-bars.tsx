@@ -1,9 +1,8 @@
 import { BarChart } from "@zframes/charts";
-import { defineFrame, type Portfolio } from "@zframes/core";
+import { defineFrame, useMoney, type Portfolio } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
-import { formatCompactUsd } from "./format";
 import {
   PortfolioGate,
   PortfolioLabel,
@@ -21,6 +20,7 @@ function ValueBars({
   portfolio: Portfolio;
   config: z.output<typeof schema>;
 }) {
+  const money = useMoney();
   const { priced, total } = usePricedHoldings(portfolio.holdings);
 
   const data = useMemo(
@@ -43,13 +43,13 @@ function ValueBars({
           config={config}
           className="caption text-soft"
         />
-        <span className="metric-sm text-strong">{formatCompactUsd(total)}</span>
+        <span className="metric-sm text-strong">{money.compact(total)}</span>
       </div>
       <BarChart
         data={data}
         orientation="horizontal"
         height={Math.max(data.length * 24, 96)}
-        formatValue={formatCompactUsd}
+        formatValue={money.compact}
       />
     </div>
   );

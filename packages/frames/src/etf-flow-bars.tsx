@@ -1,8 +1,8 @@
 import { BarChart } from "@zframes/charts";
-import { defineFrame, useEtfFlows } from "@zframes/core";
+import { defineFrame, useEtfFlows, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { DOWN_COLOR, UP_COLOR, formatCompactUsd } from "./format";
+import { DOWN_COLOR, UP_COLOR } from "./format";
 import { etfFlowBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -20,6 +20,7 @@ function dayLabel(time: number): string {
 }
 
 function EtfFlowBars({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const cutoff = useMemo(
     () => Date.now() - LOOKBACK_MS[config.lookback],
     [config.lookback],
@@ -45,13 +46,13 @@ function EtfFlowBars({ config }: { config: z.output<typeof schema> }) {
         color={UP_COLOR}
         negativeColor={DOWN_COLOR}
         height={200}
-        formatValue={formatCompactUsd}
+        formatValue={money.compact}
         showValues={false}
         maxTickLabels={6}
       />
       <div className="caption text-soft text-center">
         {config.asset.toUpperCase()} spot-ETF daily net flow · latest{" "}
-        {formatCompactUsd(flows?.dailyTotalNetInflow ?? 0)}
+        {money.compact(flows?.dailyTotalNetInflow ?? 0)}
       </div>
     </div>
   );

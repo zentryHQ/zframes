@@ -1,8 +1,7 @@
 import { TreeChart, type TreeNode } from "@zframes/charts";
-import { defineFrame, useStablecoinSupply } from "@zframes/core";
+import { defineFrame, useMoney, useStablecoinSupply } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { stablecoinChainsMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -22,7 +21,8 @@ function Leaf({
   height: number;
   data: ChainNode;
 }) {
-  const value = formatCompactUsd(data.usd);
+  const money = useMoney();
+  const value = money.compact(data.usd);
   return (
     <TreemapLeaf
       width={width}

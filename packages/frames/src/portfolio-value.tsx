@@ -1,8 +1,8 @@
-import { defineFrame, type Portfolio } from "@zframes/core";
+import { defineFrame, useMoney, type Portfolio } from "@zframes/core";
 import { Liveline, type LivelinePoint, type LivelineSeries } from "liveline";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
-import { changeColor, formatChangePct, formatCompactUsd } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { onHeartbeat, useVisibilityRef } from "./live-tick";
 import {
   PortfolioGate,
@@ -40,6 +40,7 @@ function EquityLine({
   config: z.output<typeof schema>;
   windowSec: number;
 }) {
+  const money = useMoney();
   const { total } = usePricedHoldings(portfolio.holdings);
   const accent = useMemo(() => accentColor(), []);
   const { ref: rootRef, visibleRef } = useVisibilityRef<HTMLDivElement>();
@@ -118,9 +119,7 @@ function EquityLine({
             config={config}
             className="caption text-soft"
           />
-          <span className="metric-md text-strong">
-            {formatCompactUsd(total)}
-          </span>
+          <span className="metric-md text-strong">{money.compact(total)}</span>
         </div>
         <span
           className="body-sm font-semibold tabular-nums"
@@ -141,7 +140,7 @@ function EquityLine({
           loading={buffer.length <= 1}
           scrub={false}
           badge={false}
-          formatValue={formatCompactUsd}
+          formatValue={money.compact}
           padding={PADDING}
           style={{ width: "100%", height: "100%" }}
         />

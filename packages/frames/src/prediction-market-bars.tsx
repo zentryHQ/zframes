@@ -1,8 +1,7 @@
 import { BarChart } from "@zframes/charts";
-import { defineFrame, usePredictionMarkets } from "@zframes/core";
+import { defineFrame, useMoney, usePredictionMarkets } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { predictionMarketBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -14,6 +13,7 @@ function truncateLabel(text: string, max = 28): string {
 }
 
 function PredictionMarketBars({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   // The hook already asks the provider for the top-`limit` markets by
   // volume, pre-sorted descending — no client-side re-sort needed.
   const { markets, isLoading } = usePredictionMarkets(config.limit);
@@ -36,7 +36,7 @@ function PredictionMarketBars({ config }: { config: z.output<typeof schema> }) {
         data={data}
         orientation="horizontal"
         height={Math.max(data.length * 26, 96)}
-        formatValue={formatCompactUsd}
+        formatValue={money.compact}
       />
       <div className="caption text-soft text-center">
         prediction markets · 24h volume
