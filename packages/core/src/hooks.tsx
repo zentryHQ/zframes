@@ -1314,7 +1314,8 @@ export function useMetalHistory(
   const key = [...symbols].join(",");
   const { data: histories, isLoading } = usePolled<MetalHistory[]>(
     provider?.getMetalHistory
-      ? () => provider.getMetalHistory!(key.split(",").filter(Boolean), currency)
+      ? () =>
+          provider.getMetalHistory!(key.split(",").filter(Boolean), currency)
       : null,
     [],
     [provider, key, currency, refreshMs],

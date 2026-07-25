@@ -241,7 +241,10 @@ export function FocusPanel({
       0,
       1,
     );
-  const scale = useTransform(progress, (p) => 1 - amt(p) * (1 - FOCUS_MIN_SCALE));
+  const scale = useTransform(
+    progress,
+    (p) => 1 - amt(p) * (1 - FOCUS_MIN_SCALE),
+  );
   const opacity = useTransform(progress, (p) => (1 - amt(p)) ** FOCUS_FADE_POW);
   const y = useTransform(
     progress,
