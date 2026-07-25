@@ -12,7 +12,7 @@ pnpm build        # vite build of the runtime
 pnpm build:cli    # build the zframes CLI + its prebuilt runtime bundle
 pnpm zframes serve <dashboard.json>   # the runtime: serve a dashboard live (--port to change)
 pnpm --filter @zframes/storybook dev  # Storybook — every frame in all variants/states at :6006
-pnpm test:providers      # LIVE smoke: hit every keyless provider's real API, validate vs its Zod schema
+pnpm test:providers      # LIVE smoke: hit every keyless provider's real API, assert the response shape
 pnpm test:frames:render  # headless-render every frame in a built Storybook, flag error cards / crashes
 ```
 

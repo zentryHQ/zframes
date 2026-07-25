@@ -82,7 +82,9 @@ The contract the agent works against is the **catalogue** (frame names + config 
 ## Concepts
 
 - **Frame** — `defineFrame({ name, description, capabilities, schema, component })`. The Zod schema (every field `.describe()`d) doubles as the AI-facing API: `catalogueForAI(registry)` exports it as JSON Schema for generating agents. Frame *metadata* ([`packages/frames/src/schemas.ts`](packages/frames/src/schemas.ts)) is React-free, so tooling reads it without pulling in charts or CSS.
-- **Dashboard spec** — `dashboard.json`: version, title, grid, background, and frame instances with positions and configs. Diffable, git-friendly, agent-writable, human-editable.
+- **Dashboard spec** — `dashboard.json`: version, title, author, `grid` geometry, `background`, `theme` colours, `typography`, card-surface `appearance`, display `currency`, and frame instances with positions and configs. Diffable, git-friendly, agent-writable, human-editable.
+- **Display currency** — the board declares `currency` (19 ECB-quoted codes) and every market figure follows it, converted from USD at the live reference rate; a single card can override it. Providers always report USD, so conversion happens once, at display time. US-macro series (Treasury yields, CPI, the national debt) deliberately stay in dollars.
+- **Multiple venues** — capability routing is first-match, so a frame pins a second exchange explicitly with `venue` (e.g. `venue: "bitkub"` on a `price-chart`). Symbols stay venue-native.
 - **Provider** — fulfills frame *capabilities* (`quote-stream`, `day-stats`, `ohlcv`, `tvl`, `sentiment`, `global-market`, …). The host registers providers; the runtime routes each frame's data needs to the first provider that covers them. A frame whose capability no provider covers renders as an error card — never a silently-empty widget.
 - **Background** — the spec *declares* the background (`gradient` | `unicorn` | `none`); the host *renders* it. Same split as providers, keeping the heavy animated engine out of the spec and the React-free tooling path.
 
@@ -90,15 +92,16 @@ The contract the agent works against is the **catalogue** (frame names + config 
 
 ## Frame catalogue
 
-Over 70 built-in frames ([`packages/frames`](packages/frames)), grouped into 12 categories. Each frame's Zod schema is the AI-facing API, so the live, authoritative list is whatever `zframes catalogue` prints — never a hand-kept table. The families:
+Over 200 built-in frames ([`packages/frames`](packages/frames)), grouped into 14 categories. Each frame's Zod schema is the AI-facing API, so the live, authoritative list is whatever `zframes catalogue` prints — never a hand-kept table. The families:
 
 | Category | Frames include |
 |---|---|
 | **Prices & Markets** | `price-chart`, `price-liveline`, `price-ticker`, `top-movers`, `price-compare` |
 | **Crypto & On-chain** | `bitcoin-dominance`, `market-cap-treemap`, `tvl-treemap`, `dex-volume-*`, `protocol-tvl-*`, `protocol-fees-treemap`, `coin-movers` |
 | **Bitcoin Network** | `btc-fees`, `btc-mempool`, `btc-blocks`, `btc-hashrate`, `btc-difficulty`, `mining-pools`, `lightning-stats` |
-| **Derivatives & Options** | `funding-rate-chart`, `funding-heatmap`, `open-interest`, `options-put-call`, `options-iv`, `options-oi-strike` |
+| **Derivatives & Options** | `funding-rate-chart`, `funding-heatmap`, `open-interest`, `options-put-call`, `options-iv`, `options-oi-strike`, `order-book-depth` |
 | **Macro & Rates** | `rates-board`, `yield-curve`, `inflation-pulse`, `labor-market`, `national-debt`, `treasury-auctions`, `financial-stress`, `fx-board` |
+| **Metals & Commodities** | `metals-board`, `metal-price`, `metal-price-chart`, `metal-fix-table` (London fixes back to 1968), `gold-silver-ratio`, `us-gold-reserve`, `tokenized-gold` |
 | **Equities & Filings** | `fundamentals`, `filings-feed`, `short-volume` |
 | **Sentiment & News** | `fear-greed`, `news-feed` |
 | **Portfolio** | `portfolio-value`, `portfolio-allocation`, `portfolio-holdings` |
@@ -113,7 +116,7 @@ Stocks are the lead use case — equity perps via Hyperliquid HIP-3 builder dexe
 
 ## Providers
 
-Fifteen free, keyless providers ([`packages/provider-*`](packages)) fulfil frame capabilities:
+Twenty-four free, keyless providers ([`packages/provider-*`](packages)) fulfil frame capabilities:
 
 | Provider | Covers |
 |---|---|
@@ -132,6 +135,15 @@ Fifteen free, keyless providers ([`packages/provider-*`](packages)) fulfil frame
 | **SEC EDGAR** | company filings + XBRL fundamentals |
 | **News (RSS)** | `news` headlines from public outlet feeds |
 | **Frankfurter / ECB** | `fx-rates` (daily reference FX rates) |
+| **GeckoTerminal** | `dex-pools` — trending/hot DEX pools per network |
+| **Blockchair** | `chain-activity` — 24h transactions, blocks, mempool per major L1 |
+| **Coin Metrics** (community) | `onchain-valuation` — MVRV, MVRV-Z, NUPL, realized price |
+| **bitcoin-data.com** | `onchain-cycle-extras` — SOPR, Puell Multiple, Reserve Risk |
+| **ultrasound.money** | `eth-supply` — EIP-1559 burn vs PoS issuance |
+| **Polymarket** | `prediction-markets` — live odds on open markets |
+| **SoSoValue** | `etf-flows` — spot BTC/ETH ETF daily net flows |
+| **LBMA / gold-api / CFTC / fiscaldata** | metals: `metal-spot`, `metal-history` (fixes back to 1968), `metal-positioning`, `gold-reserve`, `tokenized-gold` |
+| **Bitkub** | `day-stats`, `ohlcv`, `order-book` — Thailand's largest exchange, where KUB trades (pin a frame to it with `venue: "bitkub"`) |
 
 Official US sources (Treasury, NY Fed, OFR, BLS, FINRA, SEC) are keyless but CORS-blocked in the browser, so the runtime relays them through a same-origin allowlisted proxy.
 
@@ -191,12 +203,18 @@ A dashboard is one `dashboard.json`. Point at a file, or name one and it lives i
 
 ```
 packages/
-  core                     frame primitives, spec schema, renderer, editor, provider hooks, catalogue
+  spec                     the domain kernel — spec schema, frame/registry, presets, catalogue
+  core                     presentation — renderer, frame chrome, capability hooks, money/currency
+  editor                   the in-browser authoring UI (GridStack)
   charts                   D3 base chart layer (ported from zTerminal) + theme tokens
   frames                   the built-in frames + their AI-facing schemas
-  provider-*               15 keyless data providers (Hyperliquid, CoinGecko, DeFiLlama,
-                           Deribit, mempool, Treasury, NY Fed, OFR, BLS, FINRA, SEC, …)
-                           + 2 opt-in keyed providers (binance, wallet)
+  data-primitives          the shared fetch + TTL-cache transport every provider uses
+  provider-*               24 keyless data providers (Hyperliquid, CoinGecko, DeFiLlama,
+                           Deribit, mempool, Treasury, NY Fed, OFR, BLS, FINRA, SEC, LBMA
+                           metals, Bitkub, …) + 2 opt-in keyed providers (binance, wallet)
+  providers-keyless        one factory assembling the keyless set, shared by both apps
+  serve · store · vite     Node infra — spec read/write + proxy, the XDG dashboard store,
+                           the dev plugin
   cli                      zframes init | serve | list | use | catalogue | lint | snapshot
 apps/runtime               Vite app that renders a dashboard.json (editable in-browser)
 skills/zframes             the build-my-dashboard skill
