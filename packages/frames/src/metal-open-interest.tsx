@@ -3,16 +3,15 @@ import {
   MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
-import { defineFrame, useMetalPositioning, useMetalSpot } from "@zframes/core";
+import {
+  defineFrame,
+  useMetalPositioning,
+  useMetalSpot,
+  useMoney,
+} from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import {
-  changeColor,
-  formatChangePct,
-  formatCompact,
-  formatCompactUsd,
-  formatPrice,
-} from "./format";
+import { changeColor, formatChangePct, formatCompact } from "./format";
 import {
   METAL_UNIT,
   downsample,
@@ -49,6 +48,7 @@ function resolveUnit(
 }
 
 function MetalOpenInterest({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { positioning, isLoading } = useMetalPositioning(config.symbol);
   // Only "notional" needs the quote, but a hook can't be conditional — and the
   // spot poll is shared with every other metals frame on the board anyway.
@@ -119,12 +119,12 @@ function MetalOpenInterest({ config }: { config: z.output<typeof schema> }) {
 
   const nativeUnit = METAL_UNIT[config.symbol] ?? "oz";
   const headline =
-    unit === "notional" ? formatCompactUsd(latest) : formatCompact(latest);
+    unit === "notional" ? money.compact(latest) : formatCompact(latest);
   const suffix =
     unit === "contracts" ? "contracts" : unit === "ounces" ? nativeUnit : null;
   const sub =
     unit === "notional" && spot !== null
-      ? `at ${formatPrice(spot)}/${nativeUnit} spot`
+      ? `at ${money.price(spot)}/${nativeUnit} spot`
       : `${formatCompact(contractSize)} ${nativeUnit} per contract`;
 
   return (
@@ -168,7 +168,7 @@ function MetalOpenInterest({ config }: { config: z.output<typeof schema> }) {
         series={series}
         timeframe={timeframeFor(config.years)}
         height={170}
-        formatValue={unit === "notional" ? formatCompactUsd : formatCompact}
+        formatValue={unit === "notional" ? money.compact : formatCompact}
       />
 
       {fellBack && (

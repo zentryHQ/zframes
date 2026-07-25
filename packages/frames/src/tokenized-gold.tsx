@@ -1,14 +1,8 @@
-import { defineFrame, useTokenizedGold } from "@zframes/core";
+import { defineFrame, useMoney, useTokenizedGold } from "@zframes/core";
 import type { TokenizedGold as GoldToken } from "@zframes/core";
 import type { z } from "zod";
 import { AssetLogo } from "./asset-logo";
-import {
-  changeColor,
-  formatChangePct,
-  formatCompact,
-  formatCompactUsd,
-  formatPrice,
-} from "./format";
+import { changeColor, formatChangePct, formatCompact } from "./format";
 import { tokenizedGoldMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -48,6 +42,7 @@ function TokenTile({
   token: GoldToken;
   showPremium: boolean;
 }) {
+  const money = useMoney();
   return (
     <div className="flex min-h-0 min-w-0 flex-col justify-center gap-2 overflow-hidden rounded-md border border-white/[0.06] bg-white/[0.03] px-3 py-2">
       <div className="flex min-w-0 items-center gap-2">
@@ -62,7 +57,7 @@ function TokenTile({
 
       <div>
         <div className="metric-md text-strong leading-none">
-          {formatPrice(token.price)}
+          {money.price(token.price)}
         </div>
         <div
           className="caption mt-1 font-bold"
@@ -92,7 +87,7 @@ function TokenTile({
         )}
         <Stat
           label="mkt cap"
-          value={token.marketCap > 0 ? formatCompactUsd(token.marketCap) : "—"}
+          value={token.marketCap > 0 ? money.compact(token.marketCap) : "—"}
         />
         <Stat
           label="vaulted"

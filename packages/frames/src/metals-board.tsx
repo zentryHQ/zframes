@@ -1,6 +1,6 @@
-import { defineFrame, useMetalSpot } from "@zframes/core";
+import { defineFrame, useMetalSpot, useMoney } from "@zframes/core";
 import type { z } from "zod";
-import { changeColor, formatChangePct, formatPrice } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { METAL_UNIT, metalName } from "./metals-shared";
 import { metalsBoardMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -9,6 +9,7 @@ const schema = metalsBoardMeta.schema;
 
 /** Live spot board for the metals complex, one row per metal. */
 function MetalsBoard({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   // The hook keys off `symbols.join(",")`, so re-reading config.symbols each
   // render is stable — only an actual change of the list re-fires the poll.
   const { metals, isLoading } = useMetalSpot(config.symbols);
@@ -48,7 +49,7 @@ function MetalsBoard({ config }: { config: z.output<typeof schema> }) {
 
             <div className="text-right whitespace-nowrap tabular-nums">
               <div className="body-md text-strong">
-                {formatPrice(metal.price)}
+                {money.price(metal.price)}
                 <span className="caption text-soft ml-1">
                   /{METAL_UNIT[metal.symbol] ?? "oz"}
                 </span>
