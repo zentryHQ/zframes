@@ -1,10 +1,10 @@
 import type { BubbleNode } from "@zframes/charts";
-import { defineFrame, useCoinMarkets } from "@zframes/core";
+import { defineFrame, useCoinMarkets, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { assetLogoUrl } from "./asset-logo";
 import { BubbleCloud } from "./bubbles-shared";
-import { changeColor, formatChangePct, formatCompactUsd } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { marketBubblesMeta } from "./schemas";
 
 const schema = marketBubblesMeta.schema;
@@ -16,6 +16,9 @@ interface CoinBubble extends BubbleNode {
 
 function MarketBubbles({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useCoinMarkets();
+  // formatTitle runs inside BubbleChart's D3 render, not as a React component,
+  // so useMoney() is called here and captured in the closure below.
+  const money = useMoney();
 
   const nodes: CoinBubble[] = useMemo(
     () =>
@@ -47,7 +50,7 @@ function MarketBubbles({ config }: { config: z.output<typeof schema> }) {
       caption={`area by ${config.sizeBy === "change" ? "24h move" : "market cap"} · ring by 24h change · top ${nodes.length}`}
       formatTitle={(n) => {
         const coin = n as CoinBubble;
-        return `${coin.label} · ${formatCompactUsd(coin.marketCapUsd)} mcap · ${formatChangePct(coin.changePct24h)}`;
+        return `${coin.label} · ${money.compact(coin.marketCapUsd)} mcap · ${formatChangePct(coin.changePct24h)}`;
       }}
     />
   );

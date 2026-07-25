@@ -1,8 +1,7 @@
 import { TreeChart, type TreeNode } from "@zframes/charts";
-import { defineFrame, useProtocolTvl } from "@zframes/core";
+import { defineFrame, useMoney, useProtocolTvl } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { protocolTvlTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -23,7 +22,8 @@ function Leaf({
   height: number;
   data: ProtocolNode;
 }) {
-  const value = formatCompactUsd(data.tvl);
+  const money = useMoney();
+  const value = money.compact(data.tvl);
   return (
     <TreemapLeaf
       width={width}

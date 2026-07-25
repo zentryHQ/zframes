@@ -1,8 +1,8 @@
 import { ScatterChart, type ScatterDatum } from "@zframes/charts";
-import { defineFrame, useDexPools } from "@zframes/core";
+import { defineFrame, useDexPools, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { changeColor, formatCompactUsd } from "./format";
+import { changeColor } from "./format";
 import { dexPoolLiquidityScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -14,6 +14,7 @@ function DexPoolLiquidityScatter({
   config: z.output<typeof schema>;
 }) {
   const { pools, isLoading } = useDexPools(config.network);
+  const money = useMoney();
 
   const data: ScatterDatum[] = useMemo(
     () =>
@@ -43,8 +44,8 @@ function DexPoolLiquidityScatter({
         data={data}
         yScale="log"
         height={210}
-        formatX={(v) => formatCompactUsd(10 ** v)}
-        formatY={formatCompactUsd}
+        formatX={(v) => money.compact(10 ** v)}
+        formatY={money.compact}
         maxLabels={8}
       />
       <div className="caption text-soft text-center">

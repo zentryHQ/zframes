@@ -4,11 +4,10 @@ import {
   MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
-import { defineFrame, useOnchainValuation } from "@zframes/core";
+import { defineFrame, useMoney, useOnchainValuation } from "@zframes/core";
 import { useMemo } from "react";
 import type { SeriesPoint } from "@zframes/spec";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { tail, windowDays } from "./indicators";
 import { realizedPriceMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -20,6 +19,7 @@ const toDataPoints = (s: SeriesPoint[]) =>
 
 function RealizedPrice({ config }: { config: z.output<typeof schema> }) {
   const { valuation, isLoading } = useOnchainValuation();
+  const money = useMoney();
 
   const series: MultiSeriesData[] = useMemo(() => {
     if (!valuation) return [];
@@ -50,7 +50,7 @@ function RealizedPrice({ config }: { config: z.output<typeof schema> }) {
       series={series}
       timeframe={ChartTimeframe.YTD}
       height={220}
-      formatValue={formatCompactUsd}
+      formatValue={money.compact}
     />
   );
 }

@@ -1,14 +1,15 @@
 import { BarChart } from "@zframes/charts";
-import { defineFrame, useEtfFlows } from "@zframes/core";
+import { defineFrame, useEtfFlows, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { DOWN_COLOR, UP_COLOR, formatCompactUsd } from "./format";
+import { DOWN_COLOR, UP_COLOR } from "./format";
 import { etfIssuerBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = etfIssuerBarsMeta.schema;
 
 function EtfIssuerBars({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { flows, isLoading } = useEtfFlows(config.asset);
 
   const data = useMemo(
@@ -33,7 +34,7 @@ function EtfIssuerBars({ config }: { config: z.output<typeof schema> }) {
         color={UP_COLOR}
         negativeColor={DOWN_COLOR}
         height={Math.max(data.length * 24, 96)}
-        formatValue={formatCompactUsd}
+        formatValue={money.compact}
       />
       <div className="caption text-soft text-center">
         {config.asset.toUpperCase()} spot-ETF issuers · today's net flow

@@ -1,7 +1,7 @@
-import { defineFrame, useCandles } from "@zframes/core";
+import { defineFrame, useCandles, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { UP_COLOR, formatPrice } from "./format";
+import { UP_COLOR } from "./format";
 import { tickerOf } from "./asset-logo";
 import { volumeProfileMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -39,6 +39,7 @@ function VolumeProfile({ config }: { config: z.output<typeof schema> }) {
     config.interval,
     startTimeMs,
   );
+  const money = useMoney();
 
   const profile = useMemo(() => {
     if (candles.length === 0) return null;
@@ -103,10 +104,10 @@ function VolumeProfile({ config }: { config: z.output<typeof schema> }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="grid grid-cols-2 gap-1.5">
-        <Stat label="Price" value={formatPrice(price)} />
-        <Stat label="POC" value={formatPrice(poc)} />
-        <Stat label="VAH" value={formatPrice(vah)} />
-        <Stat label="VAL" value={formatPrice(val)} />
+        <Stat label="Price" value={money.price(price)} />
+        <Stat label="POC" value={money.price(poc)} />
+        <Stat label="VAH" value={money.price(vah)} />
+        <Stat label="VAL" value={money.price(val)} />
       </div>
       <div className="flex min-h-0 flex-1 flex-col-reverse gap-px overflow-hidden">
         {bins.map((b, i) => {
@@ -121,7 +122,7 @@ function VolumeProfile({ config }: { config: z.output<typeof schema> }) {
             <div
               key={i}
               className="flex min-h-[3px] flex-1 items-center"
-              title={formatPrice(b.mid)}
+              title={money.price(b.mid)}
             >
               <div
                 className="h-full rounded-sm"

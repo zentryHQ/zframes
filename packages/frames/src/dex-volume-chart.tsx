@@ -4,10 +4,10 @@ import {
   MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
-import { defineFrame, useDexVolumeHistory } from "@zframes/core";
+import { defineFrame, useDexVolumeHistory, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd, prettySlug } from "./format";
+import { prettySlug } from "./format";
 import { dexVolumeChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -24,6 +24,7 @@ function DexVolumeChart({ config }: { config: z.output<typeof schema> }) {
   // History is fetched in full once; the lookback only slices it client-side.
   const cutoff = useMemo(() => Date.now() - ms, [ms]);
   const { history, isLoading } = useDexVolumeHistory(config.protocols);
+  const money = useMoney();
 
   const series: MultiSeriesData[] = useMemo(
     () =>
@@ -50,7 +51,7 @@ function DexVolumeChart({ config }: { config: z.output<typeof schema> }) {
       series={series}
       timeframe={timeframe}
       height={250}
-      formatValue={formatCompactUsd}
+      formatValue={money.compact}
     />
   );
 }

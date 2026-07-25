@@ -1,11 +1,12 @@
-import { defineFrame, useStablecoinSupply } from "@zframes/core";
+import { defineFrame, useMoney, useStablecoinSupply } from "@zframes/core";
 import { MetricGauge, ZONE_NEUTRAL } from "./cycle-shared";
-import { changeColor, formatChangePct, formatCompactUsd } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { stablecoinSupplyMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 function StablecoinSupply() {
   const { supply, isLoading } = useStablecoinSupply();
+  const money = useMoney();
 
   if (isLoading)
     return <FrameStatus loading>loading stablecoin supply…</FrameStatus>;
@@ -20,7 +21,7 @@ function StablecoinSupply() {
   return (
     <MetricGauge
       caption="Stablecoin Supply"
-      headline={formatCompactUsd(supply.totalUsd)}
+      headline={money.compact(supply.totalUsd)}
       headlineColor={ZONE_NEUTRAL}
       zone={{
         label: supply.changePct7d >= 0 ? "Expanding" : "Contracting",

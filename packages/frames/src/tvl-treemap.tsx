@@ -1,8 +1,7 @@
 import { TreeChart, type TreeNode } from "@zframes/charts";
-import { defineFrame, useTvlByChain } from "@zframes/core";
+import { defineFrame, useMoney, useTvlByChain } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { tvlTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -22,7 +21,8 @@ function Leaf({
   height: number;
   data: TvlNode;
 }) {
-  const value = formatCompactUsd(data.tvl);
+  const money = useMoney();
+  const value = money.compact(data.tvl);
   return (
     <TreemapLeaf
       width={width}

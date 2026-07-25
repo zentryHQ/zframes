@@ -1,8 +1,7 @@
 import { TreeChart, type TreeNode } from "@zframes/charts";
-import { defineFrame, useDexVolume } from "@zframes/core";
+import { defineFrame, useDexVolume, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { dexVolumeTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -23,7 +22,8 @@ function Leaf({
   height: number;
   data: VolNode;
 }) {
-  const value = formatCompactUsd(data.volume24h);
+  const money = useMoney();
+  const value = money.compact(data.volume24h);
   return (
     <TreemapLeaf
       width={width}

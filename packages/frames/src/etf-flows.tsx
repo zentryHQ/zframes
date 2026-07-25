@@ -1,17 +1,18 @@
-import { defineFrame, useEtfFlows } from "@zframes/core";
+import { defineFrame, useEtfFlows, useMoney, type Money } from "@zframes/core";
 import type { z } from "zod";
-import { changeColor, formatCompactUsd } from "./format";
+import { changeColor } from "./format";
 import { MetricRow } from "./metric-row";
 import { etfFlowsMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = etfFlowsMeta.schema;
 
-/** Signed compact USD: "+$120.0M", "-$84.9M". */
-const signedUsd = (v: number) =>
-  v >= 0 ? `+${formatCompactUsd(v)}` : formatCompactUsd(v);
+/** Signed compact money in the card's display currency: "+$120.0M", "-฿84.9M". */
+const signedMoney = (v: number, money: Money) =>
+  v >= 0 ? `+${money.compact(v)}` : money.compact(v);
 
 function EtfFlows({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { flows, isLoading } = useEtfFlows(config.asset);
 
   if (isLoading) return <FrameStatus loading>loading ETF flows…</FrameStatus>;
@@ -30,7 +31,7 @@ function EtfFlows({ config }: { config: z.output<typeof schema> }) {
           className="metric-lg leading-none"
           style={{ color: changeColor(flows.dailyTotalNetInflow) }}
         >
-          {signedUsd(flows.dailyTotalNetInflow)}
+          {signedMoney(flows.dailyTotalNetInflow, money)}
         </div>
       </div>
       <div className={`${scrollAreaClass} flex flex-col`}>
@@ -41,7 +42,7 @@ function EtfFlows({ config }: { config: z.output<typeof schema> }) {
             meta={is.institute}
             value={
               <span style={{ color: changeColor(is.dailyNetInflow) }}>
-                {signedUsd(is.dailyNetInflow)}
+                {signedMoney(is.dailyNetInflow, money)}
               </span>
             }
           />

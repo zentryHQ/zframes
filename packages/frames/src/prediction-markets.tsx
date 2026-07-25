@@ -1,6 +1,6 @@
-import { defineFrame, usePredictionMarkets } from "@zframes/core";
+import { defineFrame, useMoney, usePredictionMarkets } from "@zframes/core";
 import type { z } from "zod";
-import { UP_COLOR, formatCompactUsd, formatPct } from "./format";
+import { UP_COLOR, formatPct } from "./format";
 import { MetricRow } from "./metric-row";
 import { predictionMarketsMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -8,6 +8,7 @@ import { FrameStatus, scrollAreaClass } from "./ui";
 const schema = predictionMarketsMeta.schema;
 
 function PredictionMarkets({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { markets, isLoading } = usePredictionMarkets(config.limit);
 
   if (isLoading) return <FrameStatus loading>loading markets…</FrameStatus>;
@@ -21,7 +22,7 @@ function PredictionMarkets({ config }: { config: z.output<typeof schema> }) {
           <MetricRow
             key={i}
             label={m.question}
-            meta={`${top.label} · vol ${formatCompactUsd(m.volume24h)}`}
+            meta={`${top.label} · vol ${money.compact(m.volume24h)}`}
             value={
               <span style={{ color: UP_COLOR }}>
                 {formatPct(top.prob * 100, 0)}

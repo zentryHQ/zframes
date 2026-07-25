@@ -1,8 +1,7 @@
 import { TreeChart, type TreeNode } from "@zframes/charts";
-import { defineFrame, useEtfFlows } from "@zframes/core";
+import { defineFrame, useEtfFlows, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { etfIssuerTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -23,8 +22,9 @@ function Leaf({
   height: number;
   data: IssuerNode;
 }) {
-  const aum = formatCompactUsd(data.netAssets);
-  const flow = formatCompactUsd(data.dailyNetInflow);
+  const money = useMoney();
+  const aum = money.compact(data.netAssets);
+  const flow = money.compact(data.dailyNetInflow);
   return (
     <TreemapLeaf
       width={width}

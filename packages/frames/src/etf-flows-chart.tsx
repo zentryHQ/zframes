@@ -4,10 +4,9 @@ import {
   MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
-import { defineFrame, useEtfFlows } from "@zframes/core";
+import { defineFrame, useEtfFlows, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { etfFlowsChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -20,6 +19,7 @@ const LOOKBACKS = {
 const schema = etfFlowsChartMeta.schema;
 
 function EtfFlowsChart({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { ms, timeframe } = LOOKBACKS[config.lookback];
   const cutoff = useMemo(() => Date.now() - ms, [ms]);
   const { flows, isLoading } = useEtfFlows(config.asset);
@@ -50,7 +50,7 @@ function EtfFlowsChart({ config }: { config: z.output<typeof schema> }) {
       series={series}
       timeframe={timeframe}
       height={220}
-      formatValue={formatCompactUsd}
+      formatValue={money.compact}
     />
   );
 }

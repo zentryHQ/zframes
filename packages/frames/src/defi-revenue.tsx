@@ -1,11 +1,12 @@
-import { defineFrame, useFeesOverview } from "@zframes/core";
+import { defineFrame, useFeesOverview, useMoney } from "@zframes/core";
 import { MetricGauge, ZONE_NEUTRAL } from "./cycle-shared";
-import { changeColor, formatChangePct, formatCompactUsd } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { defiRevenueMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 function DefiRevenue() {
   const { fees, isLoading } = useFeesOverview();
+  const money = useMoney();
 
   if (isLoading) return <FrameStatus loading>loading DeFi fees…</FrameStatus>;
   if (!fees) return <FrameStatus>no fees data yet</FrameStatus>;
@@ -16,7 +17,7 @@ function DefiRevenue() {
   return (
     <MetricGauge
       caption="DeFi Fees · 24h"
-      headline={formatCompactUsd(fees.total24h)}
+      headline={money.compact(fees.total24h)}
       headlineColor={ZONE_NEUTRAL}
       zone={{ label: "protocol fees", color: ZONE_NEUTRAL }}
       sub={

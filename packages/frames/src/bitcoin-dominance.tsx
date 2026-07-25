@@ -1,12 +1,7 @@
-import { defineFrame, useGlobalMarket } from "@zframes/core";
+import { defineFrame, useGlobalMarket, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import {
-  changeColor,
-  formatChangePct,
-  formatCompactUsd,
-  formatPct,
-} from "./format";
+import { changeColor, formatChangePct, formatPct } from "./format";
 import { bitcoinDominanceMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -23,6 +18,7 @@ const SEGMENT_STYLE: Record<string, string> = {
 /** Segmented BTC / ETH / Others dominance bar. */
 function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
   const { market, isLoading } = useGlobalMarket();
+  const money = useMoney();
 
   const segments = useMemo(() => {
     if (!market) return [];
@@ -81,7 +77,7 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
 
       {config.showTotalMarketCap && (
         <div className="caption text-soft">
-          total mcap {formatCompactUsd(market.totalMarketCapUsd)} ·{" "}
+          total mcap {money.compact(market.totalMarketCapUsd)} ·{" "}
           <span style={{ color: changeColor(market.marketCapChangePct24h) }}>
             {formatChangePct(market.marketCapChangePct24h)} 24h
           </span>

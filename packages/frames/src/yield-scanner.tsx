@@ -1,7 +1,7 @@
-import { defineFrame, useYieldPools } from "@zframes/core";
+import { defineFrame, useMoney, useYieldPools } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { UP_COLOR, formatCompactUsd, formatPct, prettySlug } from "./format";
+import { UP_COLOR, formatPct, prettySlug } from "./format";
 import { MetricRow } from "./metric-row";
 import { yieldScannerMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -10,6 +10,7 @@ const schema = yieldScannerMeta.schema;
 
 function YieldScanner({ config }: { config: z.output<typeof schema> }) {
   const { pools, isLoading } = useYieldPools();
+  const money = useMoney();
 
   const rows = useMemo(
     () =>
@@ -33,7 +34,7 @@ function YieldScanner({ config }: { config: z.output<typeof schema> }) {
         <MetricRow
           key={p.pool}
           label={p.symbol}
-          meta={`${prettySlug(p.project)} · ${p.chain} · ${formatCompactUsd(p.tvlUsd)}${p.stablecoin ? " · stable" : ""}`}
+          meta={`${prettySlug(p.project)} · ${p.chain} · ${money.compact(p.tvlUsd)}${p.stablecoin ? " · stable" : ""}`}
           value={<span style={{ color: UP_COLOR }}>{formatPct(p.apy)}</span>}
         />
       ))}

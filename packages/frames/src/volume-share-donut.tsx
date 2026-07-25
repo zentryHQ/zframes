@@ -1,9 +1,9 @@
 import { CHART_COLORS_MULTI_SERIES, PieChart } from "@zframes/charts";
-import { defineFrame, useDayStatsState } from "@zframes/core";
+import { defineFrame, useDayStatsState, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
-import { formatCompactUsd, formatPct } from "./format";
+import { formatPct } from "./format";
 import { volumeShareDonutMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -15,6 +15,7 @@ const OTHER_COLOR = "rgba(255, 255, 255, 0.22)";
 
 function VolumeShareDonut({ config }: { config: z.output<typeof schema> }) {
   const { stats, isLoading } = useDayStatsState();
+  const money = useMoney();
 
   const slices = useMemo(() => {
     const rows = Object.entries(stats)
@@ -50,9 +51,7 @@ function VolumeShareDonut({ config }: { config: z.output<typeof schema> }) {
       >
         <div className="flex flex-col items-center gap-0.5">
           <span className="caption text-soft">24h volume</span>
-          <span className="metric-lg text-strong">
-            {formatCompactUsd(total)}
-          </span>
+          <span className="metric-lg text-strong">{money.compact(total)}</span>
         </div>
       </PieChart>
 

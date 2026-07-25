@@ -1,8 +1,7 @@
 import { BarChart } from "@zframes/charts";
-import { defineFrame, useTvlByChain } from "@zframes/core";
+import { defineFrame, useMoney, useTvlByChain } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { tvlBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -10,6 +9,7 @@ const schema = tvlBarsMeta.schema;
 
 function TvlBars({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useTvlByChain();
+  const money = useMoney();
 
   const data = useMemo(
     () =>
@@ -29,7 +29,7 @@ function TvlBars({ config }: { config: z.output<typeof schema> }) {
         data={data}
         orientation="horizontal"
         height={Math.max(data.length * 26, 96)}
-        formatValue={formatCompactUsd}
+        formatValue={money.compact}
       />
       <div className="caption text-soft text-center">
         total value locked · by chain

@@ -1,8 +1,12 @@
 import { ScatterChart, type ScatterDatum } from "@zframes/charts";
-import { defineFrame, useProtocolFees, useProtocolTvl } from "@zframes/core";
+import {
+  defineFrame,
+  useMoney,
+  useProtocolFees,
+  useProtocolTvl,
+} from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompactUsd } from "./format";
 import { protocolFeesVsTvlScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -15,6 +19,7 @@ function ProtocolFeesVsTvlScatter({
 }) {
   const { entries: tvlEntries, isLoading: tvlLoading } = useProtocolTvl();
   const { entries: feeEntries, isLoading: feesLoading } = useProtocolFees();
+  const money = useMoney();
 
   const data: ScatterDatum[] = useMemo(() => {
     const tvlByName = new Map<string, number>();
@@ -51,8 +56,8 @@ function ProtocolFeesVsTvlScatter({
         data={data}
         yScale="log"
         height={210}
-        formatX={(v) => formatCompactUsd(10 ** v)}
-        formatY={formatCompactUsd}
+        formatX={(v) => money.compact(10 ** v)}
+        formatY={money.compact}
         maxLabels={10}
       />
       <div className="caption text-soft text-center">
