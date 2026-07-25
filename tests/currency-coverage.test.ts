@@ -42,6 +42,11 @@ const USD_ONLY: Record<string, string> = {
   // (callers pass `money.price`), and its USD default is the fallback for a
   // caller with no currency context.
   "mover-row.tsx": "primitive — USD default for an injectable formatter",
+  // format.ts IS the USD helpers, and metals-shared keeps them for a GBP/EUR
+  // LBMA fix — a published non-USD number the display layer must not convert.
+  // (Its USD path goes through `money`.)
+  "format.ts": "defines the USD helpers",
+  "metals-shared.ts": "GBP/EUR LBMA fixes are shown as published",
 };
 
 const USD_HELPERS = /\b(formatPrice|formatCompactUsd)\s*\(/;
@@ -63,9 +68,17 @@ const srcDir = fileURLToPath(
   new URL("../packages/frames/src", import.meta.url),
 );
 
+/**
+ * Frame sources AND their plain-TS helpers. Scanning only .tsx once let a
+ * hard-coded USD formatter hide in metals-shared.ts, where it string-replaced
+ * the "$" of `formatPrice` — invisible to a .tsx-only sweep.
+ */
 function frameFiles(): string[] {
   return readdirSync(srcDir)
-    .filter((f: string) => f.endsWith(".tsx") && !f.includes(".test."))
+    .filter(
+      (f: string) =>
+        (f.endsWith(".tsx") || f.endsWith(".ts")) && !f.includes(".test."),
+    )
     .sort();
 }
 
