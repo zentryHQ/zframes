@@ -173,7 +173,8 @@ export default function GalleryHome() {
     const r = Math.round(t);
     // Settled only while resting in a board's dwell band; else nothing is
     // "active" (the crossfade owns the mid-transition look, no scene needed).
-    const settled = Math.abs(t - r) < 0.2 ? Math.min(n - 1, Math.max(0, r)) : -1;
+    const settled =
+      Math.abs(t - r) < 0.2 ? Math.min(n - 1, Math.max(0, r)) : -1;
     setActiveIndex((a) => (a === settled ? a : settled));
     const lo = Math.max(0, Math.floor(t - 0.7));
     const hi = Math.min(n - 1, Math.ceil(t + 0.7));
