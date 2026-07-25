@@ -1,9 +1,9 @@
 import type { BubbleNode } from "@zframes/charts";
-import { defineFrame, usePredictionMarkets } from "@zframes/core";
+import { defineFrame, useMoney, usePredictionMarkets } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { BubbleCloud } from "./bubbles-shared";
-import { formatCompactUsd, formatPct } from "./format";
+import { formatPct } from "./format";
 import { predictionMarketsBubbleMeta } from "./schemas";
 
 const schema = predictionMarketsBubbleMeta.schema;
@@ -41,6 +41,7 @@ function PredictionMarketsBubble({
 }: {
   config: z.output<typeof schema>;
 }) {
+  const money = useMoney();
   const { markets, isLoading } = usePredictionMarkets(config.limit);
 
   const nodes: MarketBubble[] = useMemo(
@@ -74,7 +75,7 @@ function PredictionMarketsBubble({
       caption={`area by 24h volume · tint by leading-outcome confidence · top ${nodes.length}`}
       formatTitle={(n) => {
         const m = n as MarketBubble;
-        return `${m.question} — ${m.topLabel} ${formatPct(m.topProb * 100, 0)} · vol ${formatCompactUsd(m.volume24h)}`;
+        return `${m.question} — ${m.topLabel} ${formatPct(m.topProb * 100, 0)} · vol ${money.compact(m.volume24h)}`;
       }}
     />
   );

@@ -1,9 +1,9 @@
 import type { BubbleNode } from "@zframes/charts";
-import { defineFrame, useDexVolume } from "@zframes/core";
+import { defineFrame, useDexVolume, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { BubbleCloud } from "./bubbles-shared";
-import { changeColor, formatChangePct, formatCompactUsd } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { dexVolumeBubblesMeta } from "./schemas";
 
 const schema = dexVolumeBubblesMeta.schema;
@@ -14,6 +14,7 @@ interface DexBubble extends BubbleNode {
 
 function DexVolumeBubbles({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useDexVolume();
+  const money = useMoney();
 
   const nodes: DexBubble[] = useMemo(
     () =>
@@ -39,7 +40,7 @@ function DexVolumeBubbles({ config }: { config: z.output<typeof schema> }) {
       emptyText="no DEX volume data"
       caption={`area by 24h volume · ring by 1d change · top ${nodes.length}`}
       formatTitle={(n) =>
-        `${n.label} · ${formatCompactUsd(n.value)} vol · ${formatChangePct((n as DexBubble).changePct)}`
+        `${n.label} · ${money.compact(n.value)} vol · ${formatChangePct((n as DexBubble).changePct)}`
       }
     />
   );

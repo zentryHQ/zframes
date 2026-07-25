@@ -1,13 +1,8 @@
-import { defineFrame, type Portfolio } from "@zframes/core";
+import { defineFrame, useMoney, type Portfolio } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
-import {
-  changeColor,
-  formatChangePct,
-  formatCompactUsd,
-  formatPct,
-} from "./format";
+import { changeColor, formatChangePct, formatPct } from "./format";
 import {
   PortfolioGate,
   PortfolioLabel,
@@ -32,6 +27,7 @@ function HoldingsTable({
   portfolio: Portfolio;
   config: z.output<typeof schema>;
 }) {
+  const money = useMoney();
   const { priced, total } = usePricedHoldings(portfolio.holdings);
   const rows = useMemo(
     () => [...priced].sort((a, b) => (b.value ?? 0) - (a.value ?? 0)),
@@ -46,7 +42,7 @@ function HoldingsTable({
           config={config}
           className="caption text-soft"
         />
-        <span className="metric-sm text-strong">{formatCompactUsd(total)}</span>
+        <span className="metric-sm text-strong">{money.compact(total)}</span>
       </div>
       <div className={scrollAreaClass}>
         <table className="w-full text-xs">
@@ -67,7 +63,7 @@ function HoldingsTable({
                     {formatAmount(h.amount)}
                   </td>
                   <td className="text-normal py-1.5 text-right font-semibold tabular-nums">
-                    {h.value !== undefined ? formatCompactUsd(h.value) : "—"}
+                    {h.value !== undefined ? money.compact(h.value) : "—"}
                   </td>
                   <td className="text-soft py-1.5 text-right tabular-nums">
                     {formatPct(pct, 1)}

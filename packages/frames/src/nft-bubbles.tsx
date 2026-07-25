@@ -1,9 +1,9 @@
 import type { BubbleNode } from "@zframes/charts";
-import { defineFrame, useNftMarket } from "@zframes/core";
+import { defineFrame, useMoney, useNftMarket } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { BubbleCloud } from "./bubbles-shared";
-import { changeColor, formatChangePct, formatPrice } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { nftBubblesMeta } from "./schemas";
 
 const schema = nftBubblesMeta.schema;
@@ -15,6 +15,9 @@ interface NftBubble extends BubbleNode {
 
 function NftBubbles({ config }: { config: z.output<typeof schema> }) {
   const { collections, isLoading } = useNftMarket();
+  // formatTitle runs inside BubbleChart's D3 render, not as a React component,
+  // so useMoney() is called here and captured in the closure below.
+  const money = useMoney();
 
   const nodes: NftBubble[] = useMemo(
     () =>
@@ -42,7 +45,7 @@ function NftBubbles({ config }: { config: z.output<typeof schema> }) {
       caption={`area by mcap · ring by 24h floor change · top ${nodes.length}`}
       formatTitle={(n) => {
         const c = n as NftBubble;
-        return `${c.label} · ${formatPrice(c.floorUsd)} floor · ${formatChangePct(c.floorChangePct24h)}`;
+        return `${c.label} · ${money.price(c.floorUsd)} floor · ${formatChangePct(c.floorChangePct24h)}`;
       }}
     />
   );

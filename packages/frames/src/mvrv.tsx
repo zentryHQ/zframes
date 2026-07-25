@@ -1,7 +1,7 @@
-import { defineFrame, useOnchainValuation } from "@zframes/core";
+import { defineFrame, useMoney, useOnchainValuation } from "@zframes/core";
 import type { z } from "zod";
 import { MetricGauge, ZONE_NEUTRAL, ZONE_WARN, zoneOf } from "./cycle-shared";
-import { DOWN_COLOR, UP_COLOR, formatPrice } from "./format";
+import { DOWN_COLOR, UP_COLOR } from "./format";
 import { tail, windowDays } from "./indicators";
 import { mvrvMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -10,6 +10,7 @@ const schema = mvrvMeta.schema;
 
 function Mvrv({ config }: { config: z.output<typeof schema> }) {
   const { valuation, isLoading } = useOnchainValuation();
+  const money = useMoney();
 
   if (isLoading) return <FrameStatus loading>loading MVRV…</FrameStatus>;
   if (!valuation) return <FrameStatus>no on-chain data yet</FrameStatus>;
@@ -30,7 +31,7 @@ function Mvrv({ config }: { config: z.output<typeof schema> }) {
       headline={valuation.mvrv.toFixed(2)}
       headlineColor={zone.color}
       zone={zone}
-      sub={`Z ${valuation.mvrvZScore.toFixed(2)} · RP ${formatPrice(valuation.realizedPrice)}`}
+      sub={`Z ${valuation.mvrvZScore.toFixed(2)} · RP ${money.price(valuation.realizedPrice)}`}
       sparkline={tail(valuation.history.mvrv, windowDays(config.window))}
       sparkColor={zone.color}
     />

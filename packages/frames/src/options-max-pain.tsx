@@ -1,8 +1,8 @@
 import { BarChart, type BarDatum } from "@zframes/charts";
-import { defineFrame, useOptionsSummary } from "@zframes/core";
+import { defineFrame, useMoney, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompact, formatCompactUsd, formatPrice } from "./format";
+import { formatCompact } from "./format";
 import { optionsMaxPainMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -10,6 +10,7 @@ const schema = optionsMaxPainMeta.schema;
 
 function OptionsMaxPain({ config }: { config: z.output<typeof schema> }) {
   const { summary, isLoading } = useOptionsSummary(config.currency);
+  const money = useMoney();
 
   const view = useMemo(() => {
     if (!summary) return null;
@@ -58,16 +59,16 @@ function OptionsMaxPain({ config }: { config: z.output<typeof schema> }) {
         <span>max pain · {view.expiry}</span>
         <span>
           <span className="text-strong font-bold">
-            {formatPrice(view.maxPainStrike)}
+            {money.price(view.maxPainStrike)}
           </span>{" "}
-          <span className="text-soft">vs spot {formatPrice(view.spot)}</span>
+          <span className="text-soft">vs spot {money.price(view.spot)}</span>
         </span>
       </div>
       <BarChart
         data={view.bars}
         color="var(--color-disabled)"
         height={200}
-        formatValue={formatCompactUsd}
+        formatValue={money.compact}
       />
     </div>
   );

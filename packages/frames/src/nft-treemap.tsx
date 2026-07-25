@@ -1,8 +1,8 @@
 import { TreeChart, type TreeNode } from "@zframes/charts";
-import { defineFrame, useNftMarket } from "@zframes/core";
+import { defineFrame, useMoney, useNftMarket } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatChangePct, formatPrice } from "./format";
+import { formatChangePct } from "./format";
 import { nftTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -23,7 +23,8 @@ function Leaf({
   height: number;
   data: NftNode;
 }) {
-  const floor = formatPrice(data.floorUsd);
+  const money = useMoney();
+  const floor = money.price(data.floorUsd);
   return (
     <TreemapLeaf
       width={width}

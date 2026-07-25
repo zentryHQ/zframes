@@ -1,8 +1,8 @@
 import { ScatterChart, type ScatterDatum } from "@zframes/charts";
-import { defineFrame, useNftMarket } from "@zframes/core";
+import { defineFrame, useMoney, useNftMarket } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { changeColor, formatChangePct, formatCompactUsd } from "./format";
+import { changeColor, formatChangePct } from "./format";
 import { nftScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -15,6 +15,7 @@ function shortName(name: string): string {
 
 function NftScatter({ config }: { config: z.output<typeof schema> }) {
   const { collections, isLoading } = useNftMarket();
+  const money = useMoney();
 
   const data: ScatterDatum[] = useMemo(
     () =>
@@ -46,7 +47,7 @@ function NftScatter({ config }: { config: z.output<typeof schema> }) {
         height={210}
         zeroXLine
         formatX={formatChangePct}
-        formatY={formatCompactUsd}
+        formatY={money.compact}
         maxLabels={10}
       />
       <div className="caption text-soft text-center">
