@@ -1,0 +1,435 @@
+{
+  "version": "1.0.0",
+  "title": "Bitkub Terminal",
+  "author": "Pichaya Puttekulangkura",
+  "grid": {
+    "columns": 12,
+    "rowHeight": 96,
+    "gap": 12
+  },
+  "background": {
+    "type": "unicorn",
+    "projectId": "YrTzGatwjK7EoFpCSfgZ",
+    "opacity": 1
+  },
+  "theme": {
+    "accentHue": 133,
+    "accentSat": 60,
+    "baseHue": 140,
+    "baseSat": 14,
+    "upColor": "#4cba64",
+    "downColor": "#ff6b81"
+  },
+  "typography": {
+    "fontFamily": "sans",
+    "numericStyle": "tabular",
+    "scale": 1
+  },
+  "appearance": {
+    "radius": 18,
+    "borderStrength": 0.22,
+    "surfaceOpacity": 1,
+    "density": 1,
+    "elevation": 1
+  },
+  "frames": [
+    {
+      "id": "zone-kub",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "KUB \u2014 Bitkub Coin",
+        "subtitle": "Live from Bitkub via the @zframes/provider-bitkub venue \u00b7 every figure in THB"
+      }
+    },
+    {
+      "id": "kub-logo",
+      "frame": "image",
+      "position": {
+        "x": 0,
+        "y": 1,
+        "w": 2,
+        "h": 3
+      },
+      "config": {
+        "url": "https://coin-images.coingecko.com/coins/images/15760/large/KUB_Coin_2025.png?1741751451",
+        "alt": "KUB Coin logo",
+        "fit": "contain"
+      }
+    },
+    {
+      "id": "kub-chart",
+      "frame": "price-chart",
+      "position": {
+        "x": 2,
+        "y": 1,
+        "w": 7,
+        "h": 3
+      },
+      "title": "KUB / THB",
+      "config": {
+        "symbol": "KUB",
+        "venue": "bitkub",
+        "interval": "4h",
+        "mode": "candle",
+        "color": "#4cba64"
+      }
+    },
+    {
+      "id": "kub-book",
+      "frame": "order-book-depth",
+      "position": {
+        "x": 9,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "symbol": "KUB",
+        "venue": "bitkub",
+        "levels": 8
+      }
+    },
+    {
+      "id": "kub-daily",
+      "frame": "price-chart",
+      "position": {
+        "x": 0,
+        "y": 4,
+        "w": 5,
+        "h": 3
+      },
+      "title": "KUB / THB \u00b7 Daily",
+      "config": {
+        "symbol": "KUB",
+        "venue": "bitkub",
+        "interval": "1d",
+        "mode": "line",
+        "color": "#4cba64"
+      }
+    },
+    {
+      "id": "bk-movers",
+      "frame": "top-movers",
+      "position": {
+        "x": 5,
+        "y": 4,
+        "w": 4,
+        "h": 3
+      },
+      "title": "Bitkub Movers",
+      "config": {
+        "count": 5,
+        "venue": "bitkub"
+      }
+    },
+    {
+      "id": "kub-usd-book",
+      "frame": "order-book-depth",
+      "position": {
+        "x": 9,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      },
+      "title": "KUB Book \u2014 USD",
+      "currency": "USD",
+      "config": {
+        "symbol": "KUB",
+        "venue": "bitkub",
+        "levels": 8
+      }
+    },
+    {
+      "id": "kub-mcap",
+      "frame": "custom-data",
+      "title": "KUB Market Cap (USD)",
+      "position": {
+        "x": 0,
+        "y": 7,
+        "w": 3,
+        "h": 2
+      },
+      "config": {
+        "url": "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitkub-coin&price_change_percentage=24h,7d,30d",
+        "values": "[0].market_cap",
+        "display": "stat",
+        "refreshMinutes": 15
+      }
+    },
+    {
+      "id": "kub-rank",
+      "frame": "custom-data",
+      "title": "KUB Market-Cap Rank",
+      "position": {
+        "x": 3,
+        "y": 7,
+        "w": 3,
+        "h": 2
+      },
+      "config": {
+        "url": "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitkub-coin&price_change_percentage=24h,7d,30d",
+        "values": "[0].market_cap_rank",
+        "display": "stat",
+        "refreshMinutes": 15
+      }
+    },
+    {
+      "id": "kub-supply",
+      "frame": "custom-data",
+      "title": "KUB Circulating Supply",
+      "position": {
+        "x": 6,
+        "y": 7,
+        "w": 3,
+        "h": 2
+      },
+      "config": {
+        "url": "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitkub-coin&price_change_percentage=24h,7d,30d",
+        "values": "[0].circulating_supply",
+        "display": "stat",
+        "refreshMinutes": 15,
+        "unit": " KUB"
+      }
+    },
+    {
+      "id": "kub-ath",
+      "frame": "custom-data",
+      "title": "KUB vs All-Time High",
+      "position": {
+        "x": 9,
+        "y": 7,
+        "w": 3,
+        "h": 2
+      },
+      "config": {
+        "url": "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitkub-coin&price_change_percentage=24h,7d,30d",
+        "values": "[0].ath_change_percentage",
+        "display": "stat",
+        "refreshMinutes": 15,
+        "unit": "%"
+      }
+    },
+    {
+      "id": "zone-ex",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Bitkub Exchange",
+        "subtitle": "The venue itself \u2014 standing, volume, and its biggest THB markets"
+      }
+    },
+    {
+      "id": "bitkub-logo",
+      "frame": "image",
+      "position": {
+        "x": 0,
+        "y": 10,
+        "w": 2,
+        "h": 3
+      },
+      "config": {
+        "url": "https://coin-images.coingecko.com/markets/images/249/large/bitkub.png?1706864345",
+        "alt": "Bitkub exchange logo",
+        "fit": "contain"
+      }
+    },
+    {
+      "id": "ex-vol",
+      "frame": "custom-data",
+      "title": "Bitkub 24h Volume",
+      "position": {
+        "x": 2,
+        "y": 10,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "url": "https://api.coingecko.com/api/v3/exchanges/bitkub",
+        "values": "trade_volume_24h_btc",
+        "display": "stat",
+        "refreshMinutes": 15,
+        "unit": " BTC"
+      }
+    },
+    {
+      "id": "ex-rank",
+      "frame": "custom-data",
+      "title": "Bitkub Trust Rank",
+      "position": {
+        "x": 5,
+        "y": 10,
+        "w": 2,
+        "h": 3
+      },
+      "config": {
+        "url": "https://api.coingecko.com/api/v3/exchanges/bitkub",
+        "values": "trust_score_rank",
+        "display": "stat",
+        "refreshMinutes": 15
+      }
+    },
+    {
+      "id": "about",
+      "frame": "note",
+      "position": {
+        "x": 7,
+        "y": 10,
+        "w": 5,
+        "h": 3
+      },
+      "config": {
+        "text": "**Bitkub** is Thailand's largest digital-asset exchange \u2014 Bangkok, founded 2018 \u2014 and the issuer of **KUB**, the gas token of Bitkub Chain.\n\nThe market cards above are ordinary zframes frames pinned to `venue: \"bitkub\"`; the board's `currency` is **THB**, so prices convert from the canonical USD at the live ECB rate."
+      }
+    },
+    {
+      "id": "ex-markets",
+      "frame": "custom-data",
+      "title": "Bitkub Markets by 24h Volume (USD)",
+      "position": {
+        "x": 0,
+        "y": 13,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "url": "https://api.coingecko.com/api/v3/exchanges/bitkub/tickers",
+        "values": "tickers[*].converted_volume.usd",
+        "display": "table",
+        "refreshMinutes": 15,
+        "labels": "tickers[*].base"
+      }
+    },
+    {
+      "id": "btc-thb",
+      "frame": "custom-data",
+      "title": "BTC / THB on Bitkub",
+      "position": {
+        "x": 4,
+        "y": 13,
+        "w": 2,
+        "h": 2
+      },
+      "config": {
+        "url": "https://api.bitkub.com/api/market/ticker",
+        "values": "THB_BTC.last",
+        "display": "stat",
+        "refreshMinutes": 1,
+        "unit": " THB"
+      }
+    },
+    {
+      "id": "eth-thb",
+      "frame": "custom-data",
+      "title": "ETH / THB on Bitkub",
+      "position": {
+        "x": 6,
+        "y": 13,
+        "w": 2,
+        "h": 2
+      },
+      "config": {
+        "url": "https://api.bitkub.com/api/market/ticker",
+        "values": "THB_ETH.last",
+        "display": "stat",
+        "refreshMinutes": 1,
+        "unit": " THB"
+      }
+    },
+    {
+      "id": "usdt-thb",
+      "frame": "custom-data",
+      "title": "USDT / THB on Bitkub",
+      "position": {
+        "x": 8,
+        "y": 13,
+        "w": 2,
+        "h": 2
+      },
+      "config": {
+        "url": "https://api.bitkub.com/api/market/ticker",
+        "values": "THB_USDT.last",
+        "display": "stat",
+        "refreshMinutes": 1,
+        "unit": " THB"
+      }
+    },
+    {
+      "id": "bangkok",
+      "frame": "clock",
+      "position": {
+        "x": 10,
+        "y": 13,
+        "w": 2,
+        "h": 2
+      },
+      "config": {
+        "timezone": "Asia/Bangkok",
+        "label": "Bangkok",
+        "showSeconds": true,
+        "showDate": true
+      }
+    },
+    {
+      "id": "links",
+      "frame": "link-grid",
+      "position": {
+        "x": 4,
+        "y": 15,
+        "w": 4,
+        "h": 2
+      },
+      "config": {
+        "columns": 2,
+        "links": [
+          {
+            "label": "Bitkub Exchange",
+            "url": "https://www.bitkub.com"
+          },
+          {
+            "label": "Bitkub Chain",
+            "url": "https://www.bitkubchain.com"
+          },
+          {
+            "label": "BKC Explorer",
+            "url": "https://www.bkcscan.com"
+          },
+          {
+            "label": "KUB on CoinGecko",
+            "url": "https://www.coingecko.com/en/coins/bitkub-coin"
+          }
+        ]
+      }
+    },
+    {
+      "id": "founded",
+      "frame": "hero-number",
+      "position": {
+        "x": 8,
+        "y": 15,
+        "w": 4,
+        "h": 2
+      },
+      "config": {
+        "value": "2018",
+        "label": "Bitkub Founded",
+        "delta": "Trust score 9 / 10",
+        "deltaDir": "up",
+        "sublabel": "Bangkok, Thailand"
+      }
+    }
+  ],
+  "currency": {
+    "code": "THB"
+  }
+}

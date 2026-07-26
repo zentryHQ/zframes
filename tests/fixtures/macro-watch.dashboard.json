@@ -1,0 +1,492 @@
+{
+  "version": "1.0.0",
+  "title": "Macro Watch",
+  "author": "zframes",
+  "grid": {
+    "columns": 12,
+    "rowHeight": 96,
+    "gap": 12
+  },
+  "background": {
+    "type": "unicorn",
+    "projectId": "E4221P7lwTy049d7ISxc",
+    "opacity": 0.14
+  },
+  "theme": {
+    "accentHue": 22,
+    "accentSat": 60,
+    "baseHue": 28,
+    "baseSat": 12,
+    "upColor": "#2f9e6f",
+    "downColor": "#c2453f"
+  },
+  "typography": {
+    "fontFamily": "serif",
+    "numericStyle": "tabular",
+    "scale": 1
+  },
+  "appearance": {
+    "radius": 10,
+    "borderStrength": 0.18,
+    "surfaceOpacity": 1,
+    "density": 1.15,
+    "elevation": 0.8
+  },
+  "frames": [
+    {
+      "id": "brand-hero",
+      "frame": "image",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "url": "/hero.png",
+        "alt": "Macro Watch",
+        "fit": "cover"
+      }
+    },
+    {
+      "id": "markets-hero",
+      "frame": "price-liveline",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "w": 6,
+        "h": 3
+      },
+      "config": {
+        "symbols": ["xyz:SP500", "xyz:XYZ100", "xyz:NVDA", "xyz:GOLD"],
+        "normalize": true
+      }
+    },
+    {
+      "id": "brand-note",
+      "frame": "note",
+      "position": {
+        "x": 9,
+        "y": 0,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "text": "MACRO WATCH\n\nFollow the money. Rates, the curve, and the dollar set the tide that lifts or sinks every boat.\n\nData over narrative — read the prints, not the pundits.",
+        "align": "left"
+      }
+    },
+    {
+      "id": "zone-rates",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 3,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Rates, Curve & the Dollar",
+        "subtitle": "Official US rates, the Treasury par curve, the dollar, and systemic stress"
+      }
+    },
+    {
+      "id": "rates-board",
+      "frame": "rates-board",
+      "position": {
+        "x": 0,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      }
+    },
+    {
+      "id": "yield-curve",
+      "frame": "yield-curve",
+      "position": {
+        "x": 3,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      }
+    },
+    {
+      "id": "dxy",
+      "frame": "dxy",
+      "position": {
+        "x": 6,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      }
+    },
+    {
+      "id": "financial-stress",
+      "frame": "financial-stress",
+      "position": {
+        "x": 9,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      }
+    },
+    {
+      "id": "zone-inflation",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 7,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "The Economy",
+        "subtitle": "Debt, inflation, and the labor market"
+      }
+    },
+    {
+      "id": "national-debt",
+      "frame": "national-debt",
+      "position": {
+        "x": 0,
+        "y": 8,
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "id": "inflation-pulse",
+      "frame": "inflation-pulse",
+      "position": {
+        "x": 4,
+        "y": 8,
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "id": "labor-market",
+      "frame": "labor-market",
+      "position": {
+        "x": 8,
+        "y": 8,
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "id": "zone-markets",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 11,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Markets",
+        "subtitle": "Indices, mega-caps, gold — live intraday"
+      }
+    },
+    {
+      "id": "chart-nvda",
+      "frame": "price-chart",
+      "position": {
+        "x": 0,
+        "y": 12,
+        "w": 3,
+        "h": 3
+      },
+      "title": "NVDA",
+      "config": {
+        "symbol": "xyz:NVDA",
+        "interval": "5m",
+        "mode": "candle",
+        "color": "#76b900"
+      }
+    },
+    {
+      "id": "chart-aapl",
+      "frame": "price-chart",
+      "position": {
+        "x": 3,
+        "y": 12,
+        "w": 3,
+        "h": 3
+      },
+      "title": "AAPL",
+      "config": {
+        "symbol": "xyz:AAPL",
+        "interval": "5m",
+        "mode": "candle",
+        "color": "#0a84ff"
+      }
+    },
+    {
+      "id": "chart-sp500",
+      "frame": "price-chart",
+      "position": {
+        "x": 6,
+        "y": 12,
+        "w": 3,
+        "h": 3
+      },
+      "title": "S&P 500",
+      "config": {
+        "symbol": "xyz:SP500",
+        "interval": "5m",
+        "mode": "line",
+        "color": "#d98c3f"
+      }
+    },
+    {
+      "id": "chart-gold",
+      "frame": "price-chart",
+      "position": {
+        "x": 9,
+        "y": 12,
+        "w": 3,
+        "h": 3
+      },
+      "title": "Gold",
+      "config": {
+        "symbol": "xyz:GOLD",
+        "interval": "5m",
+        "mode": "line",
+        "color": "#e8b923"
+      }
+    },
+    {
+      "id": "top-movers",
+      "frame": "top-movers",
+      "position": {
+        "x": 0,
+        "y": 15,
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "id": "fx-board",
+      "frame": "fx-board",
+      "position": {
+        "x": 4,
+        "y": 15,
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "id": "treasury-auctions",
+      "frame": "treasury-auctions",
+      "position": {
+        "x": 8,
+        "y": 15,
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "id": "zone-filings",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Filings, News & Calendar",
+        "subtitle": "SEC filings, market headlines, short flow, and the week ahead"
+      }
+    },
+    {
+      "id": "filings-feed",
+      "frame": "filings-feed",
+      "position": {
+        "x": 0,
+        "y": 19,
+        "w": 3,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA",
+        "forms": "important",
+        "count": 8
+      }
+    },
+    {
+      "id": "news-feed",
+      "frame": "news-feed",
+      "position": {
+        "x": 3,
+        "y": 19,
+        "w": 3,
+        "h": 4
+      },
+      "title": "CNBC · Markets",
+      "config": {
+        "source": "cnbc",
+        "count": 10
+      }
+    },
+    {
+      "id": "short-volume",
+      "frame": "short-volume",
+      "position": {
+        "x": 6,
+        "y": 19,
+        "w": 3,
+        "h": 4
+      },
+      "config": {
+        "symbols": ["NVDA", "AAPL", "TSLA", "AMD", "MSFT", "GOOGL"],
+        "sort": "shortPct"
+      }
+    },
+    {
+      "id": "macro-calendar",
+      "frame": "macro-calendar",
+      "position": {
+        "x": 9,
+        "y": 19,
+        "w": 3,
+        "h": 4
+      }
+    },
+    {
+      "id": "zone-desk",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 23,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Desk & Extras",
+        "subtitle": "Clock, exchange hours, a focus stream, and the next FOMC"
+      }
+    },
+    {
+      "id": "brand-video",
+      "frame": "video",
+      "position": {
+        "x": 0,
+        "y": 24,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "url": "https://www.youtube.com/watch?v=sPCzqvvi448",
+        "title": "Coffee Shop Jazz"
+      }
+    },
+    {
+      "id": "brand-quote",
+      "frame": "quote",
+      "position": {
+        "x": 4,
+        "y": 24,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "quotes": [
+          "Markets can remain irrational longer than you can remain solvent. — Keynes",
+          "The four most dangerous words in investing: 'this time it's different.' — Templeton",
+          "In the long run, we are all dead. — Keynes",
+          "Inflation is taxation without legislation. — Friedman"
+        ],
+        "intervalSec": 11
+      }
+    },
+    {
+      "id": "brand-links",
+      "frame": "link-grid",
+      "position": {
+        "x": 8,
+        "y": 24,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "links": [
+          {
+            "label": "FRED",
+            "url": "https://fred.stlouisfed.org",
+            "icon": "📈"
+          },
+          {
+            "label": "Treasury",
+            "url": "https://home.treasury.gov",
+            "icon": "🏛️"
+          },
+          {
+            "label": "BLS",
+            "url": "https://www.bls.gov",
+            "icon": "📊"
+          },
+          {
+            "label": "SEC EDGAR",
+            "url": "https://www.sec.gov/edgar",
+            "icon": "📑"
+          },
+          {
+            "label": "NY Fed",
+            "url": "https://www.newyorkfed.org",
+            "icon": "🏦"
+          },
+          {
+            "label": "OFR",
+            "url": "https://www.financialresearch.gov",
+            "icon": "🔬"
+          }
+        ],
+        "columns": 3
+      }
+    },
+    {
+      "id": "clock-ny",
+      "frame": "clock",
+      "position": {
+        "x": 0,
+        "y": 27,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "timezone": "America/New_York",
+        "label": "New York"
+      }
+    },
+    {
+      "id": "market-hours",
+      "frame": "market-hours",
+      "position": {
+        "x": 3,
+        "y": 27,
+        "w": 5,
+        "h": 3
+      },
+      "config": {
+        "exchanges": ["NYSE", "NASDAQ"]
+      }
+    },
+    {
+      "id": "fomc-countdown",
+      "frame": "countdown",
+      "position": {
+        "x": 8,
+        "y": 27,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "target": "2026-07-29T14:00:00-04:00",
+        "label": "Next FOMC Decision",
+        "showTarget": true
+      }
+    }
+  ]
+}

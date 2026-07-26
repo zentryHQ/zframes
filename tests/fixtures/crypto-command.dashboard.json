@@ -1,0 +1,553 @@
+{
+  "version": "1.0.0",
+  "title": "Crypto Command",
+  "author": "zframes",
+  "grid": {
+    "columns": 12,
+    "rowHeight": 96,
+    "gap": 12
+  },
+  "background": {
+    "type": "unicorn",
+    "projectId": "qpoj0wFWmgwRVXmzRMiL",
+    "opacity": 0.18
+  },
+  "theme": {
+    "accentHue": 320,
+    "accentSat": 88,
+    "baseHue": 280,
+    "baseSat": 26,
+    "upColor": "#3fd08f",
+    "downColor": "#ff5d8f"
+  },
+  "typography": {
+    "fontFamily": "sans",
+    "numericStyle": "tabular",
+    "scale": 1
+  },
+  "appearance": {
+    "radius": 20,
+    "borderStrength": 0.3,
+    "surfaceOpacity": 0.9,
+    "density": 1,
+    "elevation": 1.7
+  },
+  "frames": [
+    {
+      "id": "brand-hero",
+      "frame": "image",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "url": "/hero.png",
+        "alt": "Crypto Command",
+        "fit": "cover"
+      }
+    },
+    {
+      "id": "hero-liveline",
+      "frame": "price-liveline",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "w": 6,
+        "h": 3
+      },
+      "config": {
+        "symbols": ["BTC", "ETH", "SOL"],
+        "normalize": true,
+        "windowSec": 60
+      }
+    },
+    {
+      "id": "brand-note",
+      "frame": "note",
+      "position": {
+        "x": 9,
+        "y": 0,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "text": "⚡ CRYPTO COMMAND\n\n24/7 markets that never sleep — perps, funding, and on-chain flows in one glance.\n\nGreen when it pumps, red when it dumps. Trade the tape, not the noise.",
+        "align": "left"
+      }
+    },
+    {
+      "id": "markets-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 3,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Markets",
+        "subtitle": "Majors, movers, and market mood — live"
+      }
+    },
+    {
+      "id": "chart-btc",
+      "frame": "price-chart",
+      "title": "BTC",
+      "position": {
+        "x": 0,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "symbol": "BTC",
+        "interval": "5m",
+        "mode": "candle",
+        "color": "#f7931a"
+      }
+    },
+    {
+      "id": "chart-eth",
+      "frame": "price-chart",
+      "title": "ETH",
+      "position": {
+        "x": 3,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "symbol": "ETH",
+        "interval": "5m",
+        "mode": "candle",
+        "color": "#627eea"
+      }
+    },
+    {
+      "id": "chart-sol",
+      "frame": "price-chart",
+      "title": "SOL",
+      "position": {
+        "x": 6,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "symbol": "SOL",
+        "interval": "5m",
+        "mode": "line",
+        "color": "#14f195"
+      }
+    },
+    {
+      "id": "chart-bnb",
+      "frame": "price-chart",
+      "title": "BNB",
+      "position": {
+        "x": 9,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "symbol": "BNB",
+        "interval": "5m",
+        "mode": "line",
+        "color": "#f0b90b"
+      }
+    },
+    {
+      "id": "market-cap-treemap",
+      "frame": "market-cap-treemap",
+      "position": {
+        "x": 0,
+        "y": 7,
+        "w": 5,
+        "h": 3
+      },
+      "config": {
+        "topN": 12
+      }
+    },
+    {
+      "id": "coin-movers",
+      "frame": "coin-movers",
+      "position": {
+        "x": 5,
+        "y": 7,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "window": "24h",
+        "count": 6
+      }
+    },
+    {
+      "id": "fear-greed",
+      "frame": "fear-greed",
+      "position": {
+        "x": 9,
+        "y": 7,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "watchlist",
+      "frame": "price-ticker",
+      "position": {
+        "x": 0,
+        "y": 10,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "symbols": ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "AVAX", "LINK"]
+      }
+    },
+    {
+      "id": "trending-coins",
+      "frame": "trending-coins",
+      "position": {
+        "x": 4,
+        "y": 10,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "limit": 7
+      }
+    },
+    {
+      "id": "btc-dominance",
+      "frame": "bitcoin-dominance",
+      "position": {
+        "x": 8,
+        "y": 10,
+        "w": 4,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "derivatives-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Derivatives",
+        "subtitle": "Perp funding, open interest, and options positioning"
+      }
+    },
+    {
+      "id": "funding-rate-chart",
+      "frame": "funding-rate-chart",
+      "position": {
+        "x": 0,
+        "y": 14,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "symbols": ["BTC", "ETH", "SOL"],
+        "lookback": "7D"
+      }
+    },
+    {
+      "id": "funding-heatmap",
+      "frame": "funding-heatmap",
+      "position": {
+        "x": 4,
+        "y": 14,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "symbols": ["BTC", "ETH", "SOL", "BNB"]
+      }
+    },
+    {
+      "id": "put-call",
+      "frame": "options-put-call",
+      "position": {
+        "x": 8,
+        "y": 14,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "currency": "BTC",
+        "basis": "oi"
+      }
+    },
+    {
+      "id": "oi-by-strike",
+      "frame": "options-oi-strike",
+      "position": {
+        "x": 0,
+        "y": 17,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "currency": "BTC",
+        "strikes": 14
+      }
+    },
+    {
+      "id": "open-interest",
+      "frame": "open-interest",
+      "position": {
+        "x": 4,
+        "y": 17,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "symbols": ["BTC", "ETH", "SOL", "BNB"]
+      }
+    },
+    {
+      "id": "funding-comparison",
+      "frame": "funding-comparison",
+      "position": {
+        "x": 8,
+        "y": 17,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "limit": 8
+      }
+    },
+    {
+      "id": "onchain-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "On-chain & BTC Network",
+        "subtitle": "TVL, stablecoins, and the Bitcoin network"
+      }
+    },
+    {
+      "id": "tvl-treemap",
+      "frame": "tvl-treemap",
+      "position": {
+        "x": 0,
+        "y": 21,
+        "w": 5,
+        "h": 3
+      },
+      "config": {
+        "topN": 12
+      }
+    },
+    {
+      "id": "stablecoin-supply",
+      "frame": "stablecoin-supply",
+      "position": {
+        "x": 5,
+        "y": 21,
+        "w": 4,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "btc-hashrate",
+      "frame": "btc-hashrate",
+      "position": {
+        "x": 9,
+        "y": 21,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "window": "1y"
+      }
+    },
+    {
+      "id": "btc-fees",
+      "frame": "btc-fees",
+      "position": {
+        "x": 0,
+        "y": 24,
+        "w": 4,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "btc-mempool",
+      "frame": "btc-mempool",
+      "position": {
+        "x": 4,
+        "y": 24,
+        "w": 4,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "btc-blocks",
+      "frame": "btc-blocks",
+      "position": {
+        "x": 8,
+        "y": 24,
+        "w": 4,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "desk-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 27,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Desk & Extras",
+        "subtitle": "A focus stream, the clock, and world market hours"
+      }
+    },
+    {
+      "id": "brand-video",
+      "frame": "video",
+      "position": {
+        "x": 0,
+        "y": 28,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "url": "https://www.youtube.com/watch?v=KYzLnuEY4Yg",
+        "title": "Synthwave Drive"
+      }
+    },
+    {
+      "id": "brand-quote",
+      "frame": "quote",
+      "position": {
+        "x": 4,
+        "y": 28,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "quotes": [
+          "Not your keys, not your coins.",
+          "Be greedy when others are fearful.",
+          "Zoom out.",
+          "Have fun staying poor. 😄"
+        ],
+        "intervalSec": 11
+      }
+    },
+    {
+      "id": "brand-links",
+      "frame": "link-grid",
+      "position": {
+        "x": 8,
+        "y": 28,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "links": [
+          {
+            "label": "Hyperliquid",
+            "url": "https://app.hyperliquid.xyz",
+            "icon": "⚡"
+          },
+          {
+            "label": "CoinGecko",
+            "url": "https://www.coingecko.com",
+            "icon": "🦎"
+          },
+          {
+            "label": "DefiLlama",
+            "url": "https://defillama.com",
+            "icon": "🦙"
+          },
+          {
+            "label": "Deribit",
+            "url": "https://www.deribit.com",
+            "icon": "📊"
+          },
+          {
+            "label": "DEXScreener",
+            "url": "https://dexscreener.com",
+            "icon": "🔎"
+          },
+          {
+            "label": "Blockworks",
+            "url": "https://blockworks.co",
+            "icon": "📰"
+          }
+        ],
+        "columns": 3
+      }
+    },
+    {
+      "id": "clock-utc",
+      "frame": "clock",
+      "position": {
+        "x": 0,
+        "y": 31,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "timezone": "UTC",
+        "label": "UTC",
+        "showTimezone": false
+      }
+    },
+    {
+      "id": "market-hours",
+      "frame": "market-hours",
+      "position": {
+        "x": 4,
+        "y": 31,
+        "w": 8,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "custom-data-bangkok",
+      "frame": "custom-data",
+      "position": {
+        "x": 0,
+        "y": 34,
+        "w": 5,
+        "h": 2
+      },
+      "config": {
+        "url": "https://api.open-meteo.com/v1/forecast?latitude=13.75&longitude=100.5&hourly=temperature_2m&forecast_days=2",
+        "values": "hourly.temperature_2m",
+        "display": "line",
+        "label": "Bangkok Temp",
+        "unit": "°C",
+        "refreshMinutes": 30
+      }
+    }
+  ]
+}
