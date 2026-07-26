@@ -1,0 +1,452 @@
+{
+  "version": "1.0.0",
+  "title": "Quant Terminal",
+  "author": "zframes",
+  "grid": {
+    "columns": 12,
+    "rowHeight": 96,
+    "gap": 12
+  },
+  "background": {
+    "type": "unicorn",
+    "projectId": "PrFtFGDE5duemLmr2YKQ",
+    "opacity": 0.12
+  },
+  "theme": {
+    "accentHue": 145,
+    "accentSat": 85,
+    "baseHue": 150,
+    "baseSat": 16,
+    "upColor": "#3fd08f",
+    "downColor": "#ff6b6b"
+  },
+  "typography": {
+    "fontFamily": "mono",
+    "numericStyle": "tabular",
+    "scale": 1
+  },
+  "appearance": {
+    "radius": 4,
+    "borderStrength": 0.34,
+    "surfaceOpacity": 1,
+    "density": 0.85,
+    "elevation": 0.4
+  },
+  "frames": [
+    {
+      "id": "brand-hero",
+      "frame": "image",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "url": "/hero.png",
+        "alt": "Quant Terminal",
+        "fit": "cover"
+      }
+    },
+    {
+      "id": "tape-liveline",
+      "frame": "price-liveline",
+      "position": {
+        "x": 3,
+        "y": 0,
+        "w": 6,
+        "h": 3
+      },
+      "config": {
+        "symbols": ["xyz:NVDA", "xyz:TSLA", "xyz:AAPL", "xyz:AMD", "xyz:MSFT"],
+        "normalize": true
+      }
+    },
+    {
+      "id": "brand-note",
+      "frame": "note",
+      "position": {
+        "x": 9,
+        "y": 0,
+        "w": 3,
+        "h": 3
+      },
+      "config": {
+        "text": "QUANT TERMINAL\n\nPrice is truth. The tape doesn't lie.\n\nBig-tech flow, short interest, and the curve — signal over story, every session.",
+        "align": "left"
+      }
+    },
+    {
+      "id": "tape-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 3,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "The Tape",
+        "subtitle": "Big-tech price action, live"
+      }
+    },
+    {
+      "id": "tape-ticker",
+      "frame": "price-ticker",
+      "position": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 2
+      },
+      "config": {
+        "symbols": [
+          "xyz:NVDA",
+          "xyz:TSLA",
+          "xyz:AAPL",
+          "xyz:AMD",
+          "xyz:MSFT",
+          "xyz:GOOGL",
+          "xyz:META",
+          "xyz:AMZN",
+          "xyz:SP500",
+          "xyz:XYZ100"
+        ]
+      }
+    },
+    {
+      "id": "chart-nvda",
+      "frame": "price-chart",
+      "position": {
+        "x": 0,
+        "y": 6,
+        "w": 3,
+        "h": 3
+      },
+      "title": "NVDA",
+      "config": {
+        "symbol": "xyz:NVDA",
+        "interval": "5m",
+        "mode": "candle",
+        "color": "#76b900"
+      }
+    },
+    {
+      "id": "chart-tsla",
+      "frame": "price-chart",
+      "position": {
+        "x": 3,
+        "y": 6,
+        "w": 3,
+        "h": 3
+      },
+      "title": "TSLA",
+      "config": {
+        "symbol": "xyz:TSLA",
+        "interval": "5m",
+        "mode": "candle",
+        "color": "#e82127"
+      }
+    },
+    {
+      "id": "chart-aapl",
+      "frame": "price-chart",
+      "position": {
+        "x": 6,
+        "y": 6,
+        "w": 3,
+        "h": 3
+      },
+      "title": "AAPL",
+      "config": {
+        "symbol": "xyz:AAPL",
+        "interval": "5m",
+        "mode": "line",
+        "color": "#0a84ff"
+      }
+    },
+    {
+      "id": "chart-amd",
+      "frame": "price-chart",
+      "position": {
+        "x": 9,
+        "y": 6,
+        "w": 3,
+        "h": 3
+      },
+      "title": "AMD",
+      "config": {
+        "symbol": "xyz:AMD",
+        "interval": "5m",
+        "mode": "line",
+        "color": "#f5a623"
+      }
+    },
+    {
+      "id": "scanners-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Scanners",
+        "subtitle": "Movers, short flow, fundamentals, and momentum"
+      }
+    },
+    {
+      "id": "scan-top-movers",
+      "frame": "top-movers",
+      "position": {
+        "x": 0,
+        "y": 10,
+        "w": 3,
+        "h": 4
+      },
+      "config": {
+        "count": 6
+      }
+    },
+    {
+      "id": "scan-short-volume",
+      "frame": "short-volume",
+      "position": {
+        "x": 3,
+        "y": 10,
+        "w": 3,
+        "h": 4
+      },
+      "config": {
+        "symbols": [
+          "NVDA",
+          "TSLA",
+          "AAPL",
+          "AMD",
+          "MSFT",
+          "GOOGL",
+          "META",
+          "AMZN"
+        ],
+        "sort": "shortPct"
+      }
+    },
+    {
+      "id": "fundamentals-nvda",
+      "frame": "fundamentals",
+      "position": {
+        "x": 6,
+        "y": 10,
+        "w": 3,
+        "h": 4
+      },
+      "title": "NVDA",
+      "config": {
+        "symbol": "xyz:NVDA"
+      }
+    },
+    {
+      "id": "scan-volume-profile",
+      "frame": "volume-profile",
+      "position": {
+        "x": 9,
+        "y": 10,
+        "w": 3,
+        "h": 4
+      },
+      "config": {
+        "symbol": "xyz:NVDA"
+      }
+    },
+    {
+      "id": "price-compare-bigtech",
+      "frame": "price-compare",
+      "position": {
+        "x": 0,
+        "y": 14,
+        "w": 8,
+        "h": 3
+      },
+      "title": "Big Tech · 1M",
+      "config": {
+        "symbols": ["xyz:NVDA", "xyz:TSLA", "xyz:AAPL", "xyz:AMD", "xyz:MSFT"],
+        "lookback": "1M",
+        "normalize": true
+      }
+    },
+    {
+      "id": "desk-fear-greed",
+      "frame": "fear-greed",
+      "position": {
+        "x": 8,
+        "y": 14,
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "id": "macro-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 17,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Macro",
+        "subtitle": "Rates, the curve, and inflation"
+      }
+    },
+    {
+      "id": "macro-rates-board",
+      "frame": "rates-board",
+      "position": {
+        "x": 0,
+        "y": 18,
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "id": "macro-yield-curve",
+      "frame": "yield-curve",
+      "position": {
+        "x": 4,
+        "y": 18,
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "id": "macro-inflation-pulse",
+      "frame": "inflation-pulse",
+      "position": {
+        "x": 8,
+        "y": 18,
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "id": "desk-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 21,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Desk & Extras",
+        "subtitle": "A focus stream, the clock, and market hours"
+      }
+    },
+    {
+      "id": "brand-video",
+      "frame": "video",
+      "position": {
+        "x": 0,
+        "y": 22,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "url": "https://www.youtube.com/watch?v=CFGLoQIhmow",
+        "title": "Lofi Beats"
+      }
+    },
+    {
+      "id": "brand-quote",
+      "frame": "quote",
+      "position": {
+        "x": 4,
+        "y": 22,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "quotes": [
+          "Plan the trade, trade the plan.",
+          "The trend is your friend until the end when it bends.",
+          "Cut your losers short, let your winners run.",
+          "Amateurs think about reward. Professionals think about risk."
+        ],
+        "intervalSec": 11
+      }
+    },
+    {
+      "id": "brand-links",
+      "frame": "link-grid",
+      "position": {
+        "x": 8,
+        "y": 22,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "links": [
+          {
+            "label": "TradingView",
+            "url": "https://www.tradingview.com",
+            "icon": "📈"
+          },
+          {
+            "label": "Finviz",
+            "url": "https://finviz.com",
+            "icon": "🗺️"
+          },
+          {
+            "label": "FINRA",
+            "url": "https://www.finra.org",
+            "icon": "🩳"
+          },
+          {
+            "label": "SEC EDGAR",
+            "url": "https://www.sec.gov/edgar",
+            "icon": "📑"
+          },
+          {
+            "label": "Nasdaq",
+            "url": "https://www.nasdaq.com",
+            "icon": "💹"
+          },
+          {
+            "label": "Barchart",
+            "url": "https://www.barchart.com",
+            "icon": "📊"
+          }
+        ],
+        "columns": 3
+      }
+    },
+    {
+      "id": "desk-clock",
+      "frame": "clock",
+      "position": {
+        "x": 0,
+        "y": 25,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "timezone": "America/New_York",
+        "label": "New York"
+      }
+    },
+    {
+      "id": "desk-market-hours",
+      "frame": "market-hours",
+      "position": {
+        "x": 4,
+        "y": 25,
+        "w": 8,
+        "h": 3
+      },
+      "config": {
+        "exchanges": ["NYSE", "NASDAQ"]
+      }
+    }
+  ]
+}
