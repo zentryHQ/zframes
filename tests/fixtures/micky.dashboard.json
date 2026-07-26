@@ -1,0 +1,3432 @@
+{
+  "version": "1",
+  "title": "micky's stocks desk",
+  "grid": {
+    "mode": "flow-vertical",
+    "columns": 12,
+    "rowHeight": 96,
+    "rows": 6,
+    "gap": 12
+  },
+  "background": {
+    "type": "unicorn",
+    "color": "#0000d6",
+    "gradientFrom": "#43499d",
+    "gradientTo": "#07070c",
+    "gradientAngle": 360,
+    "projectId": "cYpXuEzDqm4r3fdp4TGx",
+    "scale": 1,
+    "dpi": 1.5,
+    "opacity": 1
+  },
+  "theme": {
+    "accentHue": 90,
+    "accentSat": 85,
+    "baseHue": 150,
+    "baseSat": 16,
+    "upColor": "#3fd08f",
+    "downColor": "#ff6b81"
+  },
+  "typography": {
+    "fontFamily": "mono",
+    "numericStyle": "tabular",
+    "scale": 1
+  },
+  "appearance": {
+    "radius": 4,
+    "borderStrength": 0.34,
+    "surfaceOpacity": 1,
+    "density": 0.85,
+    "elevation": 0.4
+  },
+  "frames": [
+    {
+      "id": "heading",
+      "frame": "heading",
+      "title": "All frames",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 0,
+          "y": 5,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "title": "zframes"
+      }
+    },
+    {
+      "id": "portfolio-value-2",
+      "frame": "portfolio-value",
+      "position": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 16,
+          "y": 0,
+          "w": 4,
+          "h": 3
+        }
+      },
+      "config": {
+        "source": "wallet",
+        "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+        "windowSec": 300
+      }
+    },
+    {
+      "id": "clock",
+      "frame": "clock",
+      "title": "Clock",
+      "position": {
+        "x": 4,
+        "y": 1,
+        "w": 2,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 12,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "timezone": "",
+        "label": "",
+        "hour12": false,
+        "showSeconds": true,
+        "showMillis": false,
+        "showDate": false
+      }
+    },
+    {
+      "id": "price-chart-2",
+      "frame": "price-chart",
+      "position": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 16,
+          "y": 3,
+          "w": 4,
+          "h": 2
+        }
+      },
+      "config": {
+        "symbol": "xyz:TSLA",
+        "interval": "1h",
+        "mode": "candle",
+        "color": "#8b8df9"
+      }
+    },
+    {
+      "id": "portfolio-allocation-2",
+      "frame": "portfolio-allocation",
+      "position": {
+        "x": 0,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 97,
+          "y": 0,
+          "w": 4,
+          "h": 3
+        }
+      },
+      "config": {
+        "source": "wallet",
+        "address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+      }
+    },
+    {
+      "id": "price-liveline-1",
+      "frame": "price-liveline",
+      "position": {
+        "x": 4,
+        "y": 5,
+        "w": 8,
+        "h": 5
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 0,
+          "y": 1,
+          "w": 12,
+          "h": 4
+        }
+      },
+      "config": {
+        "symbols": [
+          "xyz:TSLA",
+          "xyz:NVDA",
+          "xyz:AMD",
+          "xyz:MSFT",
+          "xyz:GOOGL",
+          "xyz:AVGO"
+        ],
+        "windowSec": 30,
+        "normalize": true
+      }
+    },
+    {
+      "id": "price-chart-1",
+      "frame": "price-chart",
+      "position": {
+        "x": 0,
+        "y": 8,
+        "w": 4,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 97,
+          "y": 3,
+          "w": 4,
+          "h": 3
+        }
+      },
+      "config": {
+        "symbol": "BTC",
+        "interval": "1h",
+        "mode": "line",
+        "color": "#8b8df9"
+      }
+    },
+    {
+      "id": "bitcoin-dominance",
+      "frame": "bitcoin-dominance",
+      "title": "Bitcoin Dominance",
+      "position": {
+        "x": 4,
+        "y": 10,
+        "w": 5,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 20,
+          "y": 4,
+          "w": 4,
+          "h": 2
+        }
+      },
+      "config": {
+        "showTotalMarketCap": true
+      }
+    },
+    {
+      "id": "image",
+      "frame": "image",
+      "title": "Image",
+      "position": {
+        "x": 9,
+        "y": 10,
+        "w": 3,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 48,
+          "y": 0,
+          "w": 4,
+          "h": 3
+        }
+      },
+      "config": {
+        "url": "https://",
+        "alt": "",
+        "fit": "cover"
+      }
+    },
+    {
+      "id": "fundamentals",
+      "frame": "fundamentals",
+      "title": "Fundamentals",
+      "position": {
+        "x": 0,
+        "y": 13,
+        "w": 6,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 20,
+          "y": 0,
+          "w": 4,
+          "h": 4
+        }
+      },
+      "config": {
+        "symbol": "xyz:TSLA"
+      }
+    },
+    {
+      "id": "fear-greed",
+      "frame": "fear-greed",
+      "title": "Fear Greed",
+      "position": {
+        "x": 6,
+        "y": 13,
+        "w": 4,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 24,
+          "y": 3,
+          "w": 7,
+          "h": 3
+        }
+      },
+      "config": {
+        "sparklineDays": 30
+      }
+    },
+    {
+      "id": "dice",
+      "frame": "dice",
+      "title": "dice",
+      "position": {
+        "x": 10,
+        "y": 13,
+        "w": 2,
+        "h": 2
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 345,
+          "y": 4,
+          "w": 4,
+          "h": 2
+        }
+      },
+      "config": {
+        "mode": "coin",
+        "label": "Coin flip"
+      }
+    },
+    {
+      "id": "daily-analysis",
+      "frame": "daily-analysis",
+      "title": "Daily Analysis",
+      "position": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 24,
+          "y": 0,
+          "w": 7,
+          "h": 3
+        }
+      },
+      "config": {
+        "src": "/daily-analysis.json",
+        "entries": 1,
+        "refreshSec": 300
+      }
+    },
+    {
+      "id": "filings-feed",
+      "frame": "filings-feed",
+      "title": "Filings Feed",
+      "position": {
+        "x": 0,
+        "y": 19,
+        "w": 8,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 31,
+          "y": 0,
+          "w": 5,
+          "h": 6
+        }
+      },
+      "config": {
+        "symbol": "xyz:TSLA",
+        "forms": "important",
+        "count": 8
+      }
+    },
+    {
+      "id": "inflation-pulse",
+      "frame": "inflation-pulse",
+      "title": "Inflation Pulse",
+      "position": {
+        "x": 8,
+        "y": 19,
+        "w": 4,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 48,
+          "y": 3,
+          "w": 4,
+          "h": 3
+        }
+      },
+      "config": {
+        "months": 18
+      }
+    },
+    {
+      "id": "marquee-1",
+      "frame": "marquee",
+      "position": {
+        "x": 0,
+        "y": 22,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "text": "LFG LFG LFG LFG LFG LFG LFG LFG LFG LFG LFG ",
+        "speed": "fast",
+        "accent": true
+      }
+    },
+    {
+      "id": "funding-heatmap",
+      "frame": "funding-heatmap",
+      "title": "Funding Heatmap",
+      "position": {
+        "x": 0,
+        "y": 23,
+        "w": 6,
+        "h": 5
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 36,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        }
+      },
+      "config": {
+        "symbols": ["xyz:TSLA", "xyz:NVDA"]
+      }
+    },
+    {
+      "id": "funding-rate-chart",
+      "frame": "funding-rate-chart",
+      "title": "Funding Rate Chart",
+      "position": {
+        "x": 6,
+        "y": 23,
+        "w": 6,
+        "h": 5
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 42,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        }
+      },
+      "config": {
+        "symbols": ["xyz:TSLA"],
+        "lookback": "7D"
+      }
+    },
+    {
+      "id": "market-hours",
+      "frame": "market-hours",
+      "title": "Market Hours",
+      "position": {
+        "x": 0,
+        "y": 28,
+        "w": 5,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 52,
+          "y": 0,
+          "w": 5,
+          "h": 3
+        }
+      },
+      "config": {
+        "exchanges": [],
+        "sort": "region"
+      }
+    },
+    {
+      "id": "note",
+      "frame": "note",
+      "title": "Note",
+      "position": {
+        "x": 5,
+        "y": 28,
+        "w": 4,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 52,
+          "y": 3,
+          "w": 5,
+          "h": 3
+        }
+      },
+      "config": {
+        "text": "/ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME /ZFRAME ",
+        "align": "left"
+      }
+    },
+    {
+      "id": "countdown",
+      "frame": "countdown",
+      "title": "Countdown",
+      "position": {
+        "x": 9,
+        "y": 28,
+        "w": 3,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 202,
+          "y": 2,
+          "w": 12,
+          "h": 2
+        }
+      },
+      "config": {
+        "target": "2026-07-30T14:00:00-04:00",
+        "label": "FOMC Decision",
+        "showTarget": true
+      }
+    },
+    {
+      "id": "price-chart",
+      "frame": "price-chart",
+      "position": {
+        "x": 0,
+        "y": 31,
+        "w": 8,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 57,
+          "y": 0,
+          "w": 8,
+          "h": 6
+        }
+      },
+      "config": {
+        "symbol": "xyz:TSLA",
+        "interval": "1h",
+        "mode": "candle",
+        "color": "#8b8df9"
+      }
+    },
+    {
+      "id": "yield-curve",
+      "frame": "yield-curve",
+      "title": "Yield Curve",
+      "position": {
+        "x": 8,
+        "y": 31,
+        "w": 4,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 103,
+          "y": 0,
+          "w": 4,
+          "h": 3
+        }
+      },
+      "config": {
+        "maturities": ["3M", "2Y", "5Y", "10Y", "30Y"]
+      }
+    },
+    {
+      "id": "price-compare",
+      "frame": "price-compare",
+      "position": {
+        "x": 0,
+        "y": 34,
+        "w": 12,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 65,
+          "y": 0,
+          "w": 12,
+          "h": 6
+        }
+      },
+      "config": {
+        "symbols": ["xyz:TSLA", "xyz:NVDA"],
+        "lookback": "7D",
+        "normalize": true
+      }
+    },
+    {
+      "id": "price-ticker",
+      "frame": "price-ticker",
+      "title": "Price Ticker",
+      "position": {
+        "x": 0,
+        "y": 37,
+        "w": 5,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 77,
+          "y": 0,
+          "w": 6,
+          "h": 3
+        }
+      },
+      "config": {
+        "symbols": ["xyz:TSLA"]
+      }
+    },
+    {
+      "id": "price-liveline",
+      "frame": "price-liveline",
+      "title": "Price Liveline",
+      "position": {
+        "x": 5,
+        "y": 37,
+        "w": 7,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 77,
+          "y": 3,
+          "w": 6,
+          "h": 3
+        }
+      },
+      "config": {
+        "symbols": ["xyz:TSLA", "xyz:NVDA"],
+        "windowSec": 30,
+        "normalize": true
+      }
+    },
+    {
+      "id": "rates-board",
+      "frame": "rates-board",
+      "title": "Rates Board",
+      "position": {
+        "x": 0,
+        "y": 40,
+        "w": 6,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 83,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "maxReferenceRates": 5,
+        "showTreasuryAverageRates": true,
+        "maxTreasuryRates": 4
+      }
+    },
+    {
+      "id": "short-volume",
+      "frame": "short-volume",
+      "title": "Short Volume",
+      "position": {
+        "x": 6,
+        "y": 40,
+        "w": 6,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 87,
+          "y": 0,
+          "w": 5,
+          "h": 6
+        }
+      },
+      "config": {
+        "symbols": ["xyz:TSLA"],
+        "sort": "shortPct"
+      }
+    },
+    {
+      "id": "top-movers",
+      "frame": "top-movers",
+      "title": "Top Movers",
+      "position": {
+        "x": 0,
+        "y": 44,
+        "w": 12,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 92,
+          "y": 0,
+          "w": 5,
+          "h": 6
+        }
+      },
+      "config": {
+        "count": 5
+      }
+    },
+    {
+      "id": "financial-stress",
+      "frame": "financial-stress",
+      "title": "Financial Stress",
+      "position": {
+        "x": 0,
+        "y": 47,
+        "w": 4,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 103,
+          "y": 3,
+          "w": 4,
+          "h": 3
+        }
+      },
+      "config": {
+        "trendDays": 60,
+        "showCategories": true
+      }
+    },
+    {
+      "id": "national-debt",
+      "frame": "national-debt",
+      "title": "National Debt",
+      "position": {
+        "x": 4,
+        "y": 47,
+        "w": 4,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 107,
+          "y": 0,
+          "w": 4,
+          "h": 3
+        }
+      },
+      "config": {
+        "trendDays": 180,
+        "showSplit": true
+      }
+    },
+    {
+      "id": "labor-market",
+      "frame": "labor-market",
+      "title": "Labor Market",
+      "position": {
+        "x": 8,
+        "y": 47,
+        "w": 4,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 107,
+          "y": 3,
+          "w": 4,
+          "h": 3
+        }
+      },
+      "config": {
+        "months": 18
+      }
+    },
+    {
+      "id": "treasury-auctions",
+      "frame": "treasury-auctions",
+      "title": "Treasury Auctions",
+      "position": {
+        "x": 0,
+        "y": 50,
+        "w": 8,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 111,
+          "y": 0,
+          "w": 5,
+          "h": 6
+        }
+      },
+      "config": {
+        "count": 8
+      }
+    },
+    {
+      "id": "link-grid",
+      "frame": "link-grid",
+      "title": "Quick Links",
+      "position": {
+        "x": 8,
+        "y": 51,
+        "w": 3,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 202,
+          "y": 4,
+          "w": 12,
+          "h": 2
+        }
+      },
+      "config": {
+        "columns": 2,
+        "links": [
+          {
+            "label": "TradingView",
+            "url": "https://www.tradingview.com"
+          },
+          {
+            "label": "Hyperliquid",
+            "url": "https://app.hyperliquid.xyz"
+          },
+          {
+            "label": "DeFiLlama",
+            "url": "https://defillama.com"
+          },
+          {
+            "label": "CoinGecko",
+            "url": "https://www.coingecko.com"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dex-volume-treemap",
+      "frame": "dex-volume-treemap",
+      "title": "DEX Volume Treemap",
+      "position": {
+        "x": 0,
+        "y": 54,
+        "w": 6,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 116,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        }
+      },
+      "config": {
+        "topN": 12
+      }
+    },
+    {
+      "id": "protocol-tvl-treemap",
+      "frame": "protocol-tvl-treemap",
+      "title": "Protocol TVL Treemap",
+      "position": {
+        "x": 6,
+        "y": 54,
+        "w": 6,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 122,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        }
+      },
+      "config": {
+        "topN": 12
+      }
+    },
+    {
+      "id": "dex-volume-chart",
+      "frame": "dex-volume-chart",
+      "title": "DEX Volume Chart",
+      "position": {
+        "x": 0,
+        "y": 58,
+        "w": 6,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 128,
+          "y": 0,
+          "w": 6,
+          "h": 3
+        }
+      },
+      "config": {
+        "protocols": ["uniswap", "pancakeswap"],
+        "lookback": "1M"
+      }
+    },
+    {
+      "id": "protocol-tvl-chart",
+      "frame": "protocol-tvl-chart",
+      "title": "Protocol TVL Chart",
+      "position": {
+        "x": 6,
+        "y": 58,
+        "w": 6,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 128,
+          "y": 3,
+          "w": 6,
+          "h": 3
+        }
+      },
+      "config": {
+        "protocols": ["lido", "aave", "eigenlayer"],
+        "lookback": "1M"
+      }
+    },
+    {
+      "id": "protocol-fees-treemap",
+      "frame": "protocol-fees-treemap",
+      "title": "Protocol Fees Treemap",
+      "position": {
+        "x": 0,
+        "y": 61,
+        "w": 6,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 134,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        }
+      },
+      "config": {
+        "topN": 12
+      }
+    },
+    {
+      "id": "market-cap-treemap",
+      "frame": "market-cap-treemap",
+      "title": "Market Cap Treemap",
+      "position": {
+        "x": 6,
+        "y": 61,
+        "w": 6,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 140,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        }
+      },
+      "config": {
+        "topN": 20
+      }
+    },
+    {
+      "id": "open-interest",
+      "frame": "open-interest",
+      "title": "Open Interest",
+      "position": {
+        "x": 0,
+        "y": 65,
+        "w": 4,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 146,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "symbols": ["BTC", "ETH", "xyz:TSLA", "xyz:NVDA"]
+      }
+    },
+    {
+      "id": "snake",
+      "frame": "snake",
+      "title": "Snake",
+      "position": {
+        "x": 4,
+        "y": 65,
+        "w": 4,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 150,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "flappy-bird",
+      "frame": "flappy-bird",
+      "title": "Flappy Bird",
+      "position": {
+        "x": 8,
+        "y": 65,
+        "w": 4,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 154,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "video",
+      "frame": "video",
+      "title": "Video",
+      "position": {
+        "x": 0,
+        "y": 69,
+        "w": 8,
+        "h": 5
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 158,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "title": "Video"
+      }
+    },
+    {
+      "id": "news-feed-nasdaq",
+      "frame": "news-feed",
+      "title": "Nasdaq",
+      "position": {
+        "x": 8,
+        "y": 69,
+        "w": 4,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 162,
+          "y": 2,
+          "w": 12,
+          "h": 4
+        }
+      },
+      "config": {
+        "source": "nasdaq",
+        "symbols": [],
+        "count": 8
+      }
+    },
+    {
+      "id": "heading-news",
+      "frame": "heading",
+      "title": "News feeds",
+      "position": {
+        "x": 0,
+        "y": 74,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 162,
+          "y": 0,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "title": "News feeds"
+      }
+    },
+    {
+      "id": "news-feed-decrypt",
+      "frame": "news-feed",
+      "title": "Decrypt",
+      "position": {
+        "x": 0,
+        "y": 75,
+        "w": 4,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 174,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "source": "decrypt",
+        "symbols": [],
+        "count": 8
+      }
+    },
+    {
+      "id": "news-feed-cnbc",
+      "frame": "news-feed",
+      "title": "CNBC Markets",
+      "position": {
+        "x": 4,
+        "y": 75,
+        "w": 4,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 178,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "source": "cnbc",
+        "symbols": [],
+        "count": 8
+      }
+    },
+    {
+      "id": "calculator",
+      "frame": "calculator",
+      "title": "Position Calculator",
+      "position": {
+        "x": 8,
+        "y": 75,
+        "w": 3,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 214,
+          "y": 0,
+          "w": 12,
+          "h": 3
+        }
+      },
+      "config": {
+        "account": 25000,
+        "riskPct": 1.5,
+        "entry": 250,
+        "stop": 240,
+        "currency": "$"
+      }
+    },
+    {
+      "id": "news-feed-cointelegraph",
+      "frame": "news-feed",
+      "title": "Cointelegraph",
+      "position": {
+        "x": 0,
+        "y": 79,
+        "w": 6,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 182,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "source": "cointelegraph",
+        "symbols": [],
+        "count": 8
+      }
+    },
+    {
+      "id": "news-feed-stocks",
+      "frame": "news-feed",
+      "title": "Stock Headlines",
+      "position": {
+        "x": 6,
+        "y": 79,
+        "w": 6,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 186,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "source": "stocks",
+        "symbols": ["xyz:TSLA", "xyz:NVDA"],
+        "count": 8
+      }
+    },
+    {
+      "id": "drawdy",
+      "frame": "drawdy",
+      "title": "Drawdy Canvas",
+      "position": {
+        "x": 0,
+        "y": 83,
+        "w": 12,
+        "h": 6
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 190,
+          "y": 0,
+          "w": 12,
+          "h": 6
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "heading-new",
+      "frame": "heading",
+      "title": "New frames",
+      "position": {
+        "x": 0,
+        "y": 89,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 202,
+          "y": 0,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "title": "New frames",
+        "subtitle": "countdown · link-grid · calculator · quote · divider"
+      }
+    },
+    {
+      "id": "quote",
+      "frame": "quote",
+      "title": "Quote",
+      "position": {
+        "x": 0,
+        "y": 90,
+        "w": 3,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 214,
+          "y": 3,
+          "w": 12,
+          "h": 2
+        }
+      },
+      "config": {
+        "intervalSec": 12,
+        "quotes": [
+          "Be fearful when others are greedy, and greedy when others are fearful. — Warren Buffett",
+          "The trend is your friend until the end when it bends.",
+          "Plan the trade, trade the plan."
+        ]
+      }
+    },
+    {
+      "id": "mp-fees",
+      "frame": "btc-fees",
+      "title": "BTC Fees",
+      "position": {
+        "x": 3,
+        "y": 90,
+        "w": 3,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 226,
+          "y": 1,
+          "w": 12,
+          "h": 2
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "mp-mempool",
+      "frame": "btc-mempool",
+      "title": "Mempool",
+      "position": {
+        "x": 6,
+        "y": 90,
+        "w": 5,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 226,
+          "y": 3,
+          "w": 12,
+          "h": 3
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "divider",
+      "frame": "divider",
+      "title": "Divider",
+      "position": {
+        "x": 0,
+        "y": 93,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 214,
+          "y": 5,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "label": "HI",
+        "orientation": "horizontal",
+        "style": "dotted"
+      }
+    },
+    {
+      "id": "mp-head",
+      "frame": "heading",
+      "title": "Bitcoin network (mempool.space)",
+      "position": {
+        "x": 0,
+        "y": 94,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 226,
+          "y": 0,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "title": "Bitcoin network (mempool.space)"
+      }
+    },
+    {
+      "id": "mp-ln",
+      "frame": "lightning-stats",
+      "title": "Lightning Network",
+      "position": {
+        "x": 0,
+        "y": 95,
+        "w": 4,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 238,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "mp-blocks",
+      "frame": "btc-blocks",
+      "title": "Latest Blocks",
+      "position": {
+        "x": 4,
+        "y": 95,
+        "w": 5,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 242,
+          "y": 0,
+          "w": 5,
+          "h": 6
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "pf-hold",
+      "frame": "portfolio-holdings",
+      "title": "Portfolio Holdings",
+      "position": {
+        "x": 9,
+        "y": 95,
+        "w": 3,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 330,
+          "y": 0,
+          "w": 3,
+          "h": 6
+        }
+      },
+      "config": {
+        "source": "wallet",
+        "address": "vitalik.eth"
+      }
+    },
+    {
+      "id": "mp-pools",
+      "frame": "mining-pools",
+      "title": "Mining Pools",
+      "position": {
+        "x": 0,
+        "y": 99,
+        "w": 7,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 247,
+          "y": 0,
+          "w": 7,
+          "h": 6
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "mp-diff",
+      "frame": "btc-difficulty",
+      "title": "Difficulty Adjustment",
+      "position": {
+        "x": 7,
+        "y": 99,
+        "w": 5,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 254,
+          "y": 3,
+          "w": 6,
+          "h": 3
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "dx-pcr",
+      "frame": "options-put-call",
+      "title": "Put / Call Ratio",
+      "position": {
+        "x": 7,
+        "y": 102,
+        "w": 5,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 260,
+          "y": 2,
+          "w": 12,
+          "h": 4
+        }
+      },
+      "config": {
+        "currency": "BTC"
+      }
+    },
+    {
+      "id": "mp-hash",
+      "frame": "btc-hashrate",
+      "title": "Network Hashrate",
+      "position": {
+        "x": 0,
+        "y": 103,
+        "w": 7,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 254,
+          "y": 0,
+          "w": 6,
+          "h": 3
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "dx-head",
+      "frame": "heading",
+      "title": "Options & broad movers",
+      "position": {
+        "x": 0,
+        "y": 106,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 260,
+          "y": 0,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "title": "Options & broad movers"
+      }
+    },
+    {
+      "id": "dx-iv",
+      "frame": "options-iv",
+      "title": "Implied Volatility",
+      "position": {
+        "x": 0,
+        "y": 107,
+        "w": 7,
+        "h": 3
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 272,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        }
+      },
+      "config": {
+        "currency": "BTC",
+        "lookback": "1M"
+      }
+    },
+    {
+      "id": "sw",
+      "frame": "stopwatch",
+      "title": "Stopwatch",
+      "position": {
+        "x": 7,
+        "y": 107,
+        "w": 3,
+        "h": 2
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 346,
+          "y": 4,
+          "w": 3,
+          "h": 2
+        }
+      },
+      "config": {
+        "label": "Session"
+      }
+    },
+    {
+      "id": "dx-oi",
+      "frame": "options-oi-strike",
+      "title": "OI by Strike",
+      "position": {
+        "x": 0,
+        "y": 110,
+        "w": 6,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 278,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        }
+      },
+      "config": {
+        "currency": "BTC"
+      }
+    },
+    {
+      "id": "cp-movers",
+      "frame": "coin-movers",
+      "title": "Coin Movers",
+      "position": {
+        "x": 6,
+        "y": 110,
+        "w": 6,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 284,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        }
+      },
+      "config": {
+        "window": "24h"
+      }
+    },
+    {
+      "id": "jhead",
+      "frame": "heading",
+      "title": "Decision Journal",
+      "position": {
+        "x": 0,
+        "y": 114,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 290,
+          "y": 0,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "title": "Decision Journal — prototype",
+        "subtitle": "separate frames, one journal · log → open → graded → scoreboard"
+      }
+    },
+    {
+      "id": "jlog",
+      "frame": "journal-log",
+      "title": "Journal · Log",
+      "position": {
+        "x": 0,
+        "y": 115,
+        "w": 4,
+        "h": 7
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 290,
+          "y": 1,
+          "w": 12,
+          "h": 5
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "jopen",
+      "frame": "journal-open",
+      "title": "Journal · Open",
+      "position": {
+        "x": 4,
+        "y": 115,
+        "w": 4,
+        "h": 7
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 302,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "max": 8
+      }
+    },
+    {
+      "id": "jresults",
+      "frame": "journal-results",
+      "title": "Journal · Results",
+      "position": {
+        "x": 8,
+        "y": 115,
+        "w": 4,
+        "h": 7
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 306,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "max": 8
+      }
+    },
+    {
+      "id": "jscore",
+      "frame": "journal-score",
+      "title": "Journal · Scoreboard",
+      "position": {
+        "x": 0,
+        "y": 122,
+        "w": 12,
+        "h": 2
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 310,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {}
+    },
+    {
+      "id": "pf-head",
+      "frame": "heading",
+      "title": "Portfolio",
+      "position": {
+        "x": 0,
+        "y": 124,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 314,
+          "y": 0,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "title": "Portfolio",
+        "subtitle": "connected account or public wallet · keyless on-chain demo"
+      }
+    },
+    {
+      "id": "pf-value",
+      "frame": "portfolio-value",
+      "title": "Portfolio Value",
+      "position": {
+        "x": 0,
+        "y": 125,
+        "w": 5,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 314,
+          "y": 2,
+          "w": 12,
+          "h": 4
+        }
+      },
+      "config": {
+        "source": "wallet",
+        "address": "vitalik.eth",
+        "windowSec": 300
+      }
+    },
+    {
+      "id": "pf-alloc",
+      "frame": "portfolio-allocation",
+      "title": "Portfolio Allocation",
+      "position": {
+        "x": 5,
+        "y": 125,
+        "w": 4,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 326,
+          "y": 0,
+          "w": 4,
+          "h": 6
+        }
+      },
+      "config": {
+        "source": "wallet",
+        "address": "vitalik.eth"
+      }
+    },
+    {
+      "id": "rr",
+      "frame": "risk-reward",
+      "title": "Risk / Reward",
+      "position": {
+        "x": 9,
+        "y": 125,
+        "w": 3,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 333,
+          "y": 2,
+          "w": 12,
+          "h": 4
+        }
+      },
+      "config": {
+        "entry": 250,
+        "stop": 240,
+        "target": 275,
+        "direction": "long",
+        "label": "TSLA swing"
+      }
+    },
+    {
+      "id": "tools-head",
+      "frame": "heading",
+      "title": "Planning & risk tools",
+      "position": {
+        "x": 0,
+        "y": 129,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 333,
+          "y": 0,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "title": "Planning & risk tools",
+        "subtitle": "size · project · break-even · rules"
+      }
+    },
+    {
+      "id": "rp",
+      "frame": "returns-projector",
+      "title": "Returns Projector",
+      "position": {
+        "x": 0,
+        "y": 130,
+        "w": 3,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 345,
+          "y": 0,
+          "w": 3,
+          "h": 6
+        }
+      },
+      "config": {
+        "principal": 10000,
+        "ratePct": 8,
+        "periods": 24,
+        "contribution": 500,
+        "label": "Monthly DCA"
+      }
+    },
+    {
+      "id": "be",
+      "frame": "breakeven",
+      "title": "Break-even",
+      "position": {
+        "x": 3,
+        "y": 130,
+        "w": 3,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 346,
+          "y": 0,
+          "w": 3,
+          "h": 6
+        }
+      },
+      "config": {
+        "fills": [
+          {
+            "price": 248,
+            "size": 10
+          },
+          {
+            "price": 236,
+            "size": 5
+          }
+        ],
+        "currentPrice": 251,
+        "label": "TSLA average"
+      }
+    },
+    {
+      "id": "rules",
+      "frame": "rules-card",
+      "title": "Rules",
+      "position": {
+        "x": 6,
+        "y": 130,
+        "w": 3,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 346,
+          "y": 0,
+          "w": 3,
+          "h": 6
+        }
+      },
+      "config": {
+        "title": "My rules",
+        "rules": [
+          "Cut losers fast, let winners run",
+          "No trade without a stop",
+          "One setup at a time",
+          "Size to risk, not conviction"
+        ]
+      }
+    },
+    {
+      "id": "chk",
+      "frame": "checklist",
+      "title": "Checklist",
+      "position": {
+        "x": 9,
+        "y": 130,
+        "w": 3,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 337,
+          "y": 2,
+          "w": 12,
+          "h": 4
+        }
+      },
+      "config": {
+        "title": "Pre-trade checklist",
+        "items": [
+          "Trend & bias aligned",
+          "Stop level set",
+          "Risk sized correctly",
+          "No news landmines"
+        ]
+      }
+    },
+    {
+      "id": "focus-head",
+      "frame": "heading",
+      "title": "Focus & session",
+      "position": {
+        "x": 0,
+        "y": 134,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 337,
+          "y": 0,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "title": "Focus & session",
+        "subtitle": "checklist · pomodoro · timers · calendar"
+      }
+    },
+    {
+      "id": "pom",
+      "frame": "pomodoro",
+      "title": "Pomodoro",
+      "position": {
+        "x": 0,
+        "y": 135,
+        "w": 3,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 346,
+          "y": 0,
+          "w": 3,
+          "h": 6
+        }
+      },
+      "config": {
+        "workMin": 25,
+        "breakMin": 5,
+        "cycles": 4,
+        "label": "Deep work"
+      }
+    },
+    {
+      "id": "hc",
+      "frame": "holiday-calendar",
+      "title": "Holiday Calendar",
+      "position": {
+        "x": 3,
+        "y": 135,
+        "w": 3,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 346,
+          "y": 0,
+          "w": 3,
+          "h": 6
+        }
+      },
+      "config": {
+        "exchange": "NYSE",
+        "count": 5
+      }
+    },
+    {
+      "id": "spotify",
+      "frame": "spotify-embed",
+      "title": "Spotify",
+      "position": {
+        "x": 6,
+        "y": 135,
+        "w": 3,
+        "h": 4
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 346,
+          "y": 0,
+          "w": 3,
+          "h": 4
+        }
+      },
+      "config": {
+        "url": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M",
+        "compact": false
+      }
+    },
+    {
+      "id": "sp",
+      "frame": "session-progress",
+      "title": "Session Progress",
+      "position": {
+        "x": 9,
+        "y": 135,
+        "w": 3,
+        "h": 2
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 345,
+          "y": 0,
+          "w": 4,
+          "h": 2
+        }
+      },
+      "config": {
+        "exchange": "NYSE",
+        "showCountdown": true
+      }
+    },
+    {
+      "id": "dm",
+      "frame": "day-meter",
+      "title": "Day Meter",
+      "position": {
+        "x": 0,
+        "y": 139,
+        "w": 4,
+        "h": 2
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 345,
+          "y": 2,
+          "w": 4,
+          "h": 2
+        }
+      },
+      "config": {
+        "exchange": "NYSE",
+        "weekdaysOnly": true
+      }
+    },
+    {
+      "id": "breathe",
+      "frame": "breathing",
+      "title": "breathe",
+      "position": {
+        "x": 0,
+        "y": 141,
+        "w": 12,
+        "h": 2
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 347,
+          "y": 0,
+          "w": 2,
+          "h": 6
+        }
+      },
+      "config": {
+        "inhale": 4,
+        "hold": 4,
+        "exhale": 4,
+        "holdAfter": 4
+      }
+    },
+    {
+      "id": "banner-head",
+      "frame": "heading",
+      "title": "Banner",
+      "position": {
+        "x": 0,
+        "y": 143,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 337,
+          "y": 0,
+          "w": 12,
+          "h": 1
+        }
+      },
+      "config": {
+        "title": "Banner",
+        "subtitle": "full-width scrolling marquee"
+      }
+    },
+    {
+      "id": "mq",
+      "frame": "marquee",
+      "title": "Marquee",
+      "position": {
+        "x": 0,
+        "y": 144,
+        "w": 12,
+        "h": 1
+      },
+      "layouts": {
+        "flow-horizontal": {
+          "x": 337,
+          "y": 3,
+          "w": 12,
+          "h": 3
+        }
+      },
+      "config": {
+        "text": "ZFRAMES · ALL FRAMES LOADED · LFG",
+        "speed": "normal",
+        "accent": true
+      }
+    },
+    {
+      "id": "onchain-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 145,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "On-chain & Cycle"
+      }
+    },
+    {
+      "id": "onchain-mvrv",
+      "frame": "mvrv",
+      "position": {
+        "x": 0,
+        "y": 146,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "onchain-nupl",
+      "frame": "nupl",
+      "position": {
+        "x": 3,
+        "y": 146,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "onchain-sopr",
+      "frame": "sopr",
+      "position": {
+        "x": 6,
+        "y": 146,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "onchain-puell",
+      "frame": "puell-multiple",
+      "position": {
+        "x": 9,
+        "y": 146,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "onchain-mayer",
+      "frame": "mayer-multiple",
+      "position": {
+        "x": 0,
+        "y": 149,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "onchain-pi",
+      "frame": "pi-cycle",
+      "position": {
+        "x": 3,
+        "y": 149,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "onchain-ma",
+      "frame": "ma-multiplier",
+      "position": {
+        "x": 6,
+        "y": 149,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "onchain-rsi",
+      "frame": "rsi-momentum",
+      "position": {
+        "x": 9,
+        "y": 149,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "onchain-dxy",
+      "frame": "dxy",
+      "position": {
+        "x": 0,
+        "y": 152,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "onchain-vp",
+      "frame": "volume-profile",
+      "position": {
+        "x": 3,
+        "y": 152,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "onchain-signals",
+      "frame": "cycle-signals",
+      "position": {
+        "x": 7,
+        "y": 152,
+        "w": 4,
+        "h": 5
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 158,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Liquidity · Yields · Flows · Sentiment"
+      }
+    },
+    {
+      "id": "expand-stables",
+      "frame": "stablecoin-supply",
+      "position": {
+        "x": 0,
+        "y": 159,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-eth",
+      "frame": "eth-supply",
+      "position": {
+        "x": 3,
+        "y": 159,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-ethstake",
+      "frame": "eth-staking",
+      "position": {
+        "x": 6,
+        "y": 159,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-defirev",
+      "frame": "defi-revenue",
+      "position": {
+        "x": 9,
+        "y": 159,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-yield",
+      "frame": "yield-scanner",
+      "position": {
+        "x": 0,
+        "y": 162,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-funding",
+      "frame": "funding-comparison",
+      "position": {
+        "x": 4,
+        "y": 162,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-predict",
+      "frame": "prediction-markets",
+      "position": {
+        "x": 8,
+        "y": 162,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-etf",
+      "frame": "etf-flows",
+      "position": {
+        "x": 0,
+        "y": 166,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-sector",
+      "frame": "sector-performance",
+      "position": {
+        "x": 4,
+        "y": 166,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-trending",
+      "frame": "trending-coins",
+      "position": {
+        "x": 8,
+        "y": 166,
+        "w": 3,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "expand-macro",
+      "frame": "macro-calendar",
+      "position": {
+        "x": 0,
+        "y": 170,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "expand2-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 174,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "Second Views · Treemaps & Charts"
+      }
+    },
+    {
+      "id": "expand2-stablechains",
+      "frame": "stablecoin-chains",
+      "position": {
+        "x": 0,
+        "y": 175,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "expand2-sectortree",
+      "frame": "sector-treemap",
+      "position": {
+        "x": 4,
+        "y": 175,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "expand2-reserverisk",
+      "frame": "reserve-risk",
+      "position": {
+        "x": 8,
+        "y": 175,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "expand2-etfchart",
+      "frame": "etf-flows-chart",
+      "position": {
+        "x": 0,
+        "y": 179,
+        "w": 6,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "expand2-realized",
+      "frame": "realized-price",
+      "position": {
+        "x": 6,
+        "y": 179,
+        "w": 6,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "nftdex-heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 182,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "NFT · DEX Pools · Chain Activity",
+        "subtitle": "keyless — CoinGecko NFT · GeckoTerminal · Blockchair"
+      }
+    },
+    {
+      "id": "nftdex-nft-collections",
+      "frame": "nft-collections",
+      "position": {
+        "x": 0,
+        "y": 183,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "topN": 8
+      }
+    },
+    {
+      "id": "nftdex-nft-treemap",
+      "frame": "nft-treemap",
+      "position": {
+        "x": 4,
+        "y": 183,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "topN": 8
+      }
+    },
+    {
+      "id": "nftdex-chain-activity",
+      "frame": "chain-activity",
+      "position": {
+        "x": 8,
+        "y": 183,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "nftdex-dex-hot-pools",
+      "frame": "dex-hot-pools",
+      "position": {
+        "x": 0,
+        "y": 187,
+        "w": 6,
+        "h": 4
+      },
+      "config": {
+        "network": "eth",
+        "count": 10
+      }
+    },
+    {
+      "id": "nftdex-dex-pool-treemap",
+      "frame": "dex-pool-treemap",
+      "position": {
+        "x": 6,
+        "y": 187,
+        "w": 6,
+        "h": 4
+      },
+      "config": {
+        "network": "eth",
+        "count": 12
+      }
+    },
+    {
+      "id": "heading-d3",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 191,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "New D3 Chart Frames"
+      }
+    },
+    {
+      "id": "sector-bars",
+      "frame": "sector-bars",
+      "position": {
+        "x": 0,
+        "y": 192,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "funding-bars",
+      "frame": "funding-bars",
+      "position": {
+        "x": 4,
+        "y": 192,
+        "w": 4,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "chain-activity-bars",
+      "frame": "chain-activity-bars",
+      "position": {
+        "x": 8,
+        "y": 192,
+        "w": 4,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "etf-flow-bars",
+      "frame": "etf-flow-bars",
+      "position": {
+        "x": 0,
+        "y": 196,
+        "w": 6,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "market-scatter",
+      "frame": "market-scatter",
+      "position": {
+        "x": 6,
+        "y": 196,
+        "w": 6,
+        "h": 4
+      },
+      "config": {}
+    },
+    {
+      "id": "sentiment-gauge",
+      "frame": "sentiment-gauge",
+      "position": {
+        "x": 0,
+        "y": 200,
+        "w": 3,
+        "h": 3
+      },
+      "config": {}
+    },
+    {
+      "id": "ab-heading",
+      "frame": "heading",
+      "title": "★ A+B Expansion — 70 new chart frames",
+      "position": {
+        "x": 0,
+        "y": 204,
+        "w": 12,
+        "h": 1
+      }
+    },
+    {
+      "id": "ab-oi-treemap",
+      "frame": "oi-treemap",
+      "position": {
+        "x": 0,
+        "y": 205,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-ohlcv-volume-bars",
+      "frame": "ohlcv-volume-bars",
+      "position": {
+        "x": 4,
+        "y": 205,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "symbol": "BTC"
+      }
+    },
+    {
+      "id": "ab-funding-spread-bars",
+      "frame": "funding-spread-bars",
+      "position": {
+        "x": 8,
+        "y": 205,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-funding-venue-heatmap",
+      "frame": "funding-venue-heatmap",
+      "position": {
+        "x": 0,
+        "y": 209,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-funding-carry-area",
+      "frame": "funding-carry-area",
+      "position": {
+        "x": 4,
+        "y": 209,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "symbols": ["BTC", "ETH", "SOL"],
+        "lookback": "1M"
+      }
+    },
+    {
+      "id": "ab-volume-share-donut",
+      "frame": "volume-share-donut",
+      "position": {
+        "x": 8,
+        "y": 209,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-volume-movers-scatter",
+      "frame": "volume-movers-scatter",
+      "position": {
+        "x": 0,
+        "y": 213,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-funding-leaderboard-bars",
+      "frame": "funding-leaderboard-bars",
+      "position": {
+        "x": 4,
+        "y": 213,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-funding-crowding-scatter",
+      "frame": "funding-crowding-scatter",
+      "position": {
+        "x": 8,
+        "y": 213,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-liquidity-basis-bars",
+      "frame": "liquidity-basis-bars",
+      "position": {
+        "x": 0,
+        "y": 217,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-coin-momentum-heatmap",
+      "frame": "coin-momentum-heatmap",
+      "position": {
+        "x": 4,
+        "y": 217,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-coin-momentum-scatter",
+      "frame": "coin-momentum-scatter",
+      "position": {
+        "x": 8,
+        "y": 217,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-trending-bars",
+      "frame": "trending-bars",
+      "position": {
+        "x": 0,
+        "y": 221,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-nft-activity-bars",
+      "frame": "nft-activity-bars",
+      "position": {
+        "x": 4,
+        "y": 221,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-dominance-bars",
+      "frame": "dominance-bars",
+      "position": {
+        "x": 8,
+        "y": 221,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-trending-bubbles",
+      "frame": "trending-bubbles",
+      "position": {
+        "x": 0,
+        "y": 225,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-yield-risk-pie",
+      "frame": "yield-risk-pie",
+      "position": {
+        "x": 4,
+        "y": 225,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-dex-pool-liquidity-scatter",
+      "frame": "dex-pool-liquidity-scatter",
+      "position": {
+        "x": 8,
+        "y": 225,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-protocol-fees-vs-tvl-scatter",
+      "frame": "protocol-fees-vs-tvl-scatter",
+      "position": {
+        "x": 0,
+        "y": 229,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-yield-composition-scatter",
+      "frame": "yield-composition-scatter",
+      "position": {
+        "x": 4,
+        "y": 229,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-protocol-tvl-by-category",
+      "frame": "protocol-tvl-by-category",
+      "position": {
+        "x": 8,
+        "y": 229,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-protocol-tvl-share-area",
+      "frame": "protocol-tvl-share-area",
+      "position": {
+        "x": 0,
+        "y": 233,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "protocols": ["lido", "aave-v3", "uniswap"],
+        "lookback": "1M"
+      }
+    },
+    {
+      "id": "ab-dex-volume-share-area",
+      "frame": "dex-volume-share-area",
+      "position": {
+        "x": 4,
+        "y": 233,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "protocols": ["uniswap", "pancakeswap", "curve-dex"],
+        "lookback": "1M"
+      }
+    },
+    {
+      "id": "ab-yield-momentum-bars",
+      "frame": "yield-momentum-bars",
+      "position": {
+        "x": 8,
+        "y": 233,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-btc-difficulty-chart",
+      "frame": "btc-difficulty-chart",
+      "position": {
+        "x": 0,
+        "y": 237,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-btc-block-size-bars",
+      "frame": "btc-block-size-bars",
+      "position": {
+        "x": 4,
+        "y": 237,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-chain-price-movers",
+      "frame": "chain-price-movers",
+      "position": {
+        "x": 8,
+        "y": 237,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-chain-activity-scatter",
+      "frame": "chain-activity-scatter",
+      "position": {
+        "x": 0,
+        "y": 241,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-mempool-fee-curve",
+      "frame": "mempool-fee-curve",
+      "position": {
+        "x": 4,
+        "y": 241,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-mining-pools-share",
+      "frame": "mining-pools-share",
+      "position": {
+        "x": 8,
+        "y": 241,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-options-max-pain",
+      "frame": "options-max-pain",
+      "position": {
+        "x": 0,
+        "y": 245,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-options-oi-skew",
+      "frame": "options-oi-skew",
+      "position": {
+        "x": 4,
+        "y": 245,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-options-vol-spread",
+      "frame": "options-vol-spread",
+      "position": {
+        "x": 8,
+        "y": 245,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-options-flow-skew",
+      "frame": "options-flow-skew",
+      "position": {
+        "x": 0,
+        "y": 249,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-options-vol-smile",
+      "frame": "options-vol-smile",
+      "position": {
+        "x": 4,
+        "y": 249,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-options-oi-ladder-heatmap",
+      "frame": "options-oi-ladder-heatmap",
+      "position": {
+        "x": 8,
+        "y": 249,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-options-max-pain-multi",
+      "frame": "options-max-pain-multi",
+      "position": {
+        "x": 0,
+        "y": 253,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-mvrv-zscore-chart",
+      "frame": "mvrv-zscore-chart",
+      "position": {
+        "x": 4,
+        "y": 253,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-nupl-cycle-chart",
+      "frame": "nupl-cycle-chart",
+      "position": {
+        "x": 8,
+        "y": 253,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-cycle-valuation-composite",
+      "frame": "cycle-valuation-composite",
+      "position": {
+        "x": 0,
+        "y": 257,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-onchain-oscillator-overlay",
+      "frame": "onchain-oscillator-overlay",
+      "position": {
+        "x": 4,
+        "y": 257,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-eth-issuance-impact",
+      "frame": "eth-issuance-impact",
+      "position": {
+        "x": 8,
+        "y": 257,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-treasury-avg-rate-bars",
+      "frame": "treasury-avg-rate-bars",
+      "position": {
+        "x": 0,
+        "y": 261,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-treasury-auction-demand-scatter",
+      "frame": "treasury-auction-demand-scatter",
+      "position": {
+        "x": 4,
+        "y": 261,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-treasury-auction-size-bars",
+      "frame": "treasury-auction-size-bars",
+      "position": {
+        "x": 8,
+        "y": 261,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-nyfed-reference-rate-bars",
+      "frame": "nyfed-reference-rate-bars",
+      "position": {
+        "x": 0,
+        "y": 265,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-nyfed-sofr-term-averages-bars",
+      "frame": "nyfed-sofr-term-averages-bars",
+      "position": {
+        "x": 4,
+        "y": 265,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-nyfed-fed-funds-band-gauge",
+      "frame": "nyfed-fed-funds-band-gauge",
+      "position": {
+        "x": 8,
+        "y": 265,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-treasury-debt-composition-area",
+      "frame": "treasury-debt-composition-area",
+      "position": {
+        "x": 0,
+        "y": 269,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-ofr-stress-category-area",
+      "frame": "ofr-stress-category-area",
+      "position": {
+        "x": 4,
+        "y": 269,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-misery-index",
+      "frame": "misery-index",
+      "position": {
+        "x": 8,
+        "y": 269,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-real-wages",
+      "frame": "real-wages",
+      "position": {
+        "x": 0,
+        "y": 273,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-labor-force-flow",
+      "frame": "labor-force-flow",
+      "position": {
+        "x": 4,
+        "y": 273,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-payrolls-bars",
+      "frame": "payrolls-bars",
+      "position": {
+        "x": 8,
+        "y": 273,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-short-volume-bars",
+      "frame": "short-volume-bars",
+      "position": {
+        "x": 0,
+        "y": 277,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "symbols": ["AAPL", "TSLA", "NVDA", "MSFT", "AMD", "META"]
+      }
+    },
+    {
+      "id": "ab-capital-structure-bars",
+      "frame": "capital-structure-bars",
+      "position": {
+        "x": 4,
+        "y": 277,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "symbol": "AAPL"
+      }
+    },
+    {
+      "id": "ab-filings-mix",
+      "frame": "filings-mix",
+      "position": {
+        "x": 8,
+        "y": 277,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "symbol": "AAPL"
+      }
+    },
+    {
+      "id": "ab-fx-cross-heatmap",
+      "frame": "fx-cross-heatmap",
+      "position": {
+        "x": 0,
+        "y": 281,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-etf-issuer-treemap",
+      "frame": "etf-issuer-treemap",
+      "position": {
+        "x": 4,
+        "y": 281,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-fx-trend-chart",
+      "frame": "fx-trend-chart",
+      "position": {
+        "x": 8,
+        "y": 281,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-fear-greed-chart",
+      "frame": "fear-greed-chart",
+      "position": {
+        "x": 0,
+        "y": 285,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-prediction-market-bars",
+      "frame": "prediction-market-bars",
+      "position": {
+        "x": 4,
+        "y": 285,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-dxy-chart",
+      "frame": "dxy-chart",
+      "position": {
+        "x": 8,
+        "y": 285,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-fx-movers-bars",
+      "frame": "fx-movers-bars",
+      "position": {
+        "x": 0,
+        "y": 289,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-prediction-market-scatter",
+      "frame": "prediction-market-scatter",
+      "position": {
+        "x": 4,
+        "y": 289,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-etf-issuer-bars",
+      "frame": "etf-issuer-bars",
+      "position": {
+        "x": 8,
+        "y": 289,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-portfolio-movers",
+      "frame": "portfolio-movers",
+      "position": {
+        "x": 0,
+        "y": 293,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-portfolio-value-bars",
+      "frame": "portfolio-value-bars",
+      "position": {
+        "x": 4,
+        "y": 293,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-etf-flow-calendar",
+      "frame": "etf-flow-calendar",
+      "position": {
+        "x": 8,
+        "y": 293,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "id": "ab-prediction-markets-bubble",
+      "frame": "prediction-markets-bubble",
+      "position": {
+        "x": 0,
+        "y": 297,
+        "w": 4,
+        "h": 4
+      }
+    }
+  ]
+}

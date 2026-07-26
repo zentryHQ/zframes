@@ -91,21 +91,32 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-export function serve(args: string[]): Promise<number> {
-  const parsed = parseArgs(args);
-  if ("error" in parsed) {
-    console.error(`✗ ${parsed.error}`);
-    console.error(
-      "usage: zframes serve [name|dashboard.json] [--port <n>] [--contact <email>]",
-    );
-    return Promise.resolve(1);
-  }
+/** Everything the request handler needs; `serve()` derives it from argv. */
+export interface RequestHandlerOptions {
+  /** Root of the prebuilt runtime bundle (holds index.html + hashed assets). */
+  bundleDir: string;
+  /** The dashboard this server starts on (the switcher may re-point it). */
+  target: ResolvedTarget;
+  /** `--contact` — becomes the official-data proxy's polite User-Agent. */
+  contact?: string;
+  /** Defaults to "only when serving from the store", as `serve()` does. */
+  canSwitch?: boolean;
+}
 
-  const target = resolveServeTarget(parsed.file, process.cwd());
-  if ("error" in target) {
-    console.error(`✗ ${target.error}`);
-    return Promise.resolve(1);
-  }
+/**
+ * The whole request surface of `zframes serve`, as a plain `(req, res)` function
+ * over the shared `@zframes/serve` / `@zframes/zai` / `@zframes/account`
+ * handlers — the same shape `@zframes/vite`'s dev plugin composes, so it can be
+ * driven by a test without binding the CLI's real port. `serve()` below hands it
+ * straight to `createServer`; the routing lives here and nowhere else.
+ *
+ * The returned handler owns the mutable current-dashboard pointer, so one call
+ * per server (two handlers would switch independently).
+ */
+export function createRequestHandler(
+  opts: RequestHandlerOptions,
+): (req: IncomingMessage, res: ServerResponse) => void {
+  const { bundleDir, target, contact } = opts;
 
   // The dashboard the server currently hosts. Mutable: the in-app switcher
   // (POST /__zframes/switch) re-points it among store dashboards, and the
@@ -115,15 +126,7 @@ export function serve(args: string[]): Promise<number> {
   // is its OWN folder (`dashboards/<name>/`), so the sibling root is the dir the
   // dashboard file sits in — and it MUST move when the switcher re-points
   // `current` (see handleSwitch), or we'd serve the previous dashboard's assets.
-  const canSwitch = target.kind === "store";
-
-  // The prebuilt runtime ships next to dist/ (see scripts/build-runtime.mjs).
-  const bundleDir = fileURLToPath(new URL("../runtime", import.meta.url));
-  if (!existsSync(join(bundleDir, "index.html"))) {
-    console.error(`✗ runtime bundle missing at ${bundleDir}`);
-    console.error("  run `pnpm build:cli` to build it.");
-    return Promise.resolve(1);
-  }
+  const canSwitch = opts.canSwitch ?? target.kind === "store";
 
   // Static serving via sirv (MIME, ETag, range, traversal safety). `dev: true`
   // re-stats per request so a saved sibling file or a rebuilt bundle is never
@@ -206,120 +209,156 @@ export function serve(args: string[]): Promise<number> {
     });
   }
 
-  return new Promise<number>((done) => {
-    const server = createServer((req, res) => {
-      const rawPath = (req.url ?? "/").split("?")[0];
-      let path: string;
-      try {
-        path = decodeURIComponent(rawPath);
-      } catch {
-        res.statusCode = 400;
-        res.end();
-        return;
-      }
+  return (req, res) => {
+    const rawPath = (req.url ?? "/").split("?")[0];
+    let path: string;
+    try {
+      path = decodeURIComponent(rawPath);
+    } catch {
+      res.statusCode = 400;
+      res.end();
+      return;
+    }
 
-      // 1. Reserved routes — the spec read/write contract (shared with dev). All
-      //    spec routes act on `current.file`, so a mid-session switch is picked
-      //    up by the very next request.
-      if (path === DASHBOARD_READ_ROUTE) {
-        if (req.method === "GET" || req.method === "HEAD") {
-          void handleSpecRead(current.file, res);
-        } else {
-          res.statusCode = 405;
-          res.end();
-        }
-        return;
-      }
-      if (path === DASHBOARD_WRITE_ROUTE) {
-        handleSpecWrite(req, res, current.file);
-        return;
-      }
-      // Global-store switcher: list available dashboards + which is current, and
-      // switch among them. Both only meaningful when serving from the store, and
-      // both loopback-guarded (the list leaks dashboard names — keep it local).
-      if (path === DASHBOARD_LIST_ROUTE) {
-        if (!isLocalRequest(req)) {
-          sendJson(res, 403, { ok: false, error: "loopback only" });
-          return;
-        }
-        if (req.method === "GET" || req.method === "HEAD") {
-          sendJson(res, 200, {
-            current: current.kind === "store" ? current.name : null,
-            canSwitch,
-            dashboards: canSwitch
-              ? listDashboards().map((e) => ({
-                  name: e.name,
-                  title: e.title,
-                  isDefault: e.isDefault,
-                }))
-              : [],
-          });
-        } else {
-          res.statusCode = 405;
-          res.end();
-        }
-        return;
-      }
-      if (path === DASHBOARD_SWITCH_ROUTE) {
-        handleSwitch(req, res);
-        return;
-      }
-      // The zAI orb's keyless agent bridge (opt-in, shells to a local CLI).
-      if (path === AGENTS_LIST_ROUTE) {
-        if (req.method === "GET") {
-          void handleAgents(res);
-        } else {
-          res.statusCode = 405;
-          res.end();
-        }
-        return;
-      }
-      if (path === ASK_ROUTE) {
-        handleAsk(req, res, current.file, FRAME_CATALOGUE);
-        return;
-      }
-      // Keyed-account tier: signed portfolio read relay + the in-app connect
-      // form's credential API. Loopback-only; the secret stays in a local file.
-      if (path === ACCOUNT_PORTFOLIO_ROUTE) {
-        void handleAccountPortfolio(req, res);
-        return;
-      }
-      if (path === ACCOUNT_CREDENTIALS_ROUTE) {
-        void handleAccountCredentials(req, res);
-        return;
-      }
-      // Same-origin relay for official-data hosts that browsers can't fetch
-      // directly (no CORS / UA wall). Host-allowlisted inside handleProxy.
-      if (path === DASHBOARD_PROXY_ROUTE) {
-        void handleProxy(req, res, {
-          userAgent: parsed.contact ? `zframes (${parsed.contact})` : undefined,
-        });
-        return;
-      }
-      if (path.startsWith("/__zframes/")) {
-        res.statusCode = 404;
-        res.end();
-        return;
-      }
-
-      if (req.method !== "GET" && req.method !== "HEAD") {
+    // 1. Reserved routes — the spec read/write contract (shared with dev). All
+    //    spec routes act on `current.file`, so a mid-session switch is picked
+    //    up by the very next request.
+    if (path === DASHBOARD_READ_ROUTE) {
+      if (req.method === "GET" || req.method === "HEAD") {
+        void handleSpecRead(current.file, res);
+      } else {
         res.statusCode = 405;
         res.end();
+      }
+      return;
+    }
+    if (path === DASHBOARD_WRITE_ROUTE) {
+      handleSpecWrite(req, res, current.file);
+      return;
+    }
+    // Global-store switcher: list available dashboards + which is current, and
+    // switch among them. Both only meaningful when serving from the store, and
+    // both loopback-guarded (the list leaks dashboard names — keep it local).
+    if (path === DASHBOARD_LIST_ROUTE) {
+      if (!isLocalRequest(req)) {
+        sendJson(res, 403, { ok: false, error: "loopback only" });
         return;
       }
+      if (req.method === "GET" || req.method === "HEAD") {
+        sendJson(res, 200, {
+          current: current.kind === "store" ? current.name : null,
+          canSwitch,
+          dashboards: canSwitch
+            ? listDashboards().map((e) => ({
+                name: e.name,
+                title: e.title,
+                isDefault: e.isDefault,
+              }))
+            : [],
+        });
+      } else {
+        res.statusCode = 405;
+        res.end();
+      }
+      return;
+    }
+    if (path === DASHBOARD_SWITCH_ROUTE) {
+      handleSwitch(req, res);
+      return;
+    }
+    // The zAI orb's keyless agent bridge (opt-in, shells to a local CLI).
+    if (path === AGENTS_LIST_ROUTE) {
+      if (req.method === "GET") {
+        void handleAgents(res);
+      } else {
+        res.statusCode = 405;
+        res.end();
+      }
+      return;
+    }
+    if (path === ASK_ROUTE) {
+      handleAsk(req, res, current.file, FRAME_CATALOGUE);
+      return;
+    }
+    // Keyed-account tier: signed portfolio read relay + the in-app connect
+    // form's credential API. Loopback-only; the secret stays in a local file.
+    if (path === ACCOUNT_PORTFOLIO_ROUTE) {
+      void handleAccountPortfolio(req, res);
+      return;
+    }
+    if (path === ACCOUNT_CREDENTIALS_ROUTE) {
+      void handleAccountCredentials(req, res);
+      return;
+    }
+    // Same-origin relay for official-data hosts that browsers can't fetch
+    // directly (no CORS / UA wall). Host-allowlisted inside handleProxy.
+    if (path === DASHBOARD_PROXY_ROUTE) {
+      void handleProxy(req, res, {
+        userAgent: contact ? `zframes (${contact})` : undefined,
+      });
+      return;
+    }
+    if (path.startsWith("/__zframes/")) {
+      res.statusCode = 404;
+      res.end();
+      return;
+    }
 
-      // 2. Bundle assets ("/" → index.html, hashed /assets/*) → 3. sibling
-      //    files next to the dashboard (e.g. /daily-analysis.json, local
-      //    images) → 4. SPA fallback to the bundle's index.html.
-      serveBundle(req, res, () =>
-        serveSiblings(req, res, () =>
-          serveSpa(req, res, () => {
-            res.statusCode = 404;
-            res.end();
-          }),
-        ),
-      );
-    });
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      res.statusCode = 405;
+      res.end();
+      return;
+    }
+
+    // 2. Bundle assets ("/" → index.html, hashed /assets/*) → 3. sibling
+    //    files next to the dashboard (e.g. /daily-analysis.json, local
+    //    images) → 4. SPA fallback to the bundle's index.html.
+    serveBundle(req, res, () =>
+      serveSiblings(req, res, () =>
+        serveSpa(req, res, () => {
+          res.statusCode = 404;
+          res.end();
+        }),
+      ),
+    );
+  };
+}
+
+export function serve(args: string[]): Promise<number> {
+  const parsed = parseArgs(args);
+  if ("error" in parsed) {
+    console.error(`✗ ${parsed.error}`);
+    console.error(
+      "usage: zframes serve [name|dashboard.json] [--port <n>] [--contact <email>]",
+    );
+    return Promise.resolve(1);
+  }
+
+  const target = resolveServeTarget(parsed.file, process.cwd());
+  if ("error" in target) {
+    console.error(`✗ ${target.error}`);
+    return Promise.resolve(1);
+  }
+
+  const canSwitch = target.kind === "store";
+
+  // The prebuilt runtime ships next to dist/ (see scripts/build-runtime.mjs).
+  const bundleDir = fileURLToPath(new URL("../runtime", import.meta.url));
+  if (!existsSync(join(bundleDir, "index.html"))) {
+    console.error(`✗ runtime bundle missing at ${bundleDir}`);
+    console.error("  run `pnpm build:cli` to build it.");
+    return Promise.resolve(1);
+  }
+
+  return new Promise<number>((done) => {
+    const server = createServer(
+      createRequestHandler({
+        bundleDir,
+        target,
+        contact: parsed.contact,
+        canSwitch,
+      }),
+    );
 
     server.on("error", (err: NodeJS.ErrnoException) => {
       if (err.code === "EADDRINUSE") {
