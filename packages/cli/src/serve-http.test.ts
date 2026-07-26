@@ -189,6 +189,21 @@ function storeDashboard(name: string, title: string): string {
   return file;
 }
 
+/**
+ * One schema-valid frame instance. `id` and `position` are both REQUIRED by
+ * DashboardSpecSchema — a body missing either is refused by the write route's
+ * schema gate, so every PUT body in this file that is meant to SUCCEED has to
+ * carry them (the editor always emits both).
+ */
+function validFrame(id = "clock-1") {
+  return {
+    id,
+    frame: "clock",
+    config: {},
+    position: { x: 0, y: 0, w: 3, h: 2 },
+  };
+}
+
 /** The path target a plain `zframes serve ./dashboard.json` resolves to. */
 function pathTarget(
   spec: unknown = { version: "0.1.0", title: "P", frames: [] },
@@ -288,7 +303,7 @@ describe("serve — the writeback PUT (the only path that can destroy work)", ()
     const edited = {
       version: "0.1.0",
       title: "ทองคำ 🪙 board",
-      frames: [{ frame: "clock", config: {} }],
+      frames: [validFrame()],
     };
     const put = await httpFetch(`${base}${WRITE_ROUTE}`, {
       method: "PUT",
@@ -325,7 +340,67 @@ describe("serve — the writeback PUT (the only path that can destroy work)", ()
     expect(readFileSync(file, "utf8")).toBe(before);
   });
 
-  it("overwrites the dashboard with schema-invalid JSON", async () => {
+  // Was a KNOWN BUG pin: the route used to validate only that the body was
+  // JSON, so any of these replaced a working dashboard and answered 200. There
+  // is no backup and no undo, so this is the one write path that can lose real
+  // work — it now refuses with 400 and leaves the file untouched.
+  it.each([
+    ["not an object at all", '"not a dashboard at all"'],
+    ["an object with no frames", JSON.stringify({ title: "no frames here" })],
+    [
+      "frames not being an array",
+      JSON.stringify({ title: "t", frames: "clock" }),
+    ],
+    [
+      "a frame missing its name",
+      JSON.stringify({ title: "t", frames: [{ config: {} }] }),
+    ],
+    [
+      "a position with a non-numeric coordinate",
+      JSON.stringify({
+        title: "t",
+        frames: [{ frame: "clock", config: {}, position: { x: "left" } }],
+      }),
+    ],
+  ])(
+    "refuses schema-invalid JSON (%s) without touching the file",
+    async (_label, body) => {
+      const { target, file } = pathTarget({
+        version: "0.1.0",
+        title: "Keep me",
+        frames: [{ frame: "clock", config: {} }],
+      });
+      const before = readFileSync(file, "utf8");
+      const base = await start({ target });
+
+      const res = await httpFetch(`${base}${WRITE_ROUTE}`, {
+        method: "PUT",
+        headers: JSON_HEADERS,
+        body,
+      });
+
+      expect(res.status).toBe(400);
+      const payload = (await res.json()) as {
+        ok: boolean;
+        error: string;
+        issues: string[];
+      };
+      expect(payload.ok).toBe(false);
+      // The message has to name the cause, since it surfaces in the editor's
+      // save-failed alert — "invalid JSON" would send the user hunting a syntax
+      // error that isn't there.
+      expect(payload.error).toContain("not a valid dashboard spec");
+      // Actionable field paths, in `zframes lint`'s wording.
+      expect(payload.issues.length).toBeGreaterThan(0);
+      expect(payload.issues.every((i) => /^[\w.[\]()-]+: .+/.test(i))).toBe(
+        true,
+      );
+      // The whole point: the user's board is still there, byte for byte.
+      expect(readFileSync(file, "utf8")).toBe(before);
+    },
+  );
+
+  it("still accepts a valid spec after the schema gate (the gate is not a wall)", async () => {
     const { target, file } = pathTarget({
       version: "0.1.0",
       title: "Keep me",
@@ -333,19 +408,27 @@ describe("serve — the writeback PUT (the only path that can destroy work)", ()
     });
     const base = await start({ target });
 
-    // KNOWN BUG: the write route validates only that the body is JSON, so a
-    // body that is not a DashboardSpec at all (here: not even an object with
-    // `frames`) replaces a working dashboard and answers 200 — should be
-    // rejected with 400 by DashboardSpecSchema.safeParse before the write, so a
-    // buggy editor/agent PUT cannot destroy the user's board. Pinned so the
-    // suite stays green; fixing the source must flip this assertion.
+    // A minimal-but-valid spec: proves the gate admits real saves, so a
+    // regression that rejected everything could not hide behind the tests above.
+    const next = {
+      version: "0.2.0",
+      title: "Edited board",
+      frames: [validFrame("clock-edited")],
+    };
     const res = await httpFetch(`${base}${WRITE_ROUTE}`, {
       method: "PUT",
       headers: JSON_HEADERS,
-      body: '"not a dashboard at all"',
+      body: JSON.stringify(next),
     });
+
     expect(res.status).toBe(200);
-    expect(readFileSync(file, "utf8")).toBe('"not a dashboard at all"\n');
+    expect((await res.json()).ok).toBe(true);
+    // Written as the client sent it — the schema gate must not materialise
+    // defaults into the user's hand-readable file.
+    expect(JSON.parse(readFileSync(file, "utf8"))).toEqual(next);
+    expect(readFileSync(file, "utf8")).toBe(
+      `${JSON.stringify(next, null, 2)}\n`,
+    );
   });
 
   it("requires a JSON content-type and a PUT/POST, without touching disk", async () => {

@@ -206,12 +206,13 @@ describe("handleSpecWrite body assembly across data chunks", () => {
     const spec = {
       version: "1.0.0",
       title: "big board",
+      // `id` and `position` are both required by DashboardSpecSchema, which the
+      // write route now enforces before touching the file — so a body meant to
+      // SUCCEED has to be a genuinely valid spec, not merely valid JSON.
       frames: Array.from({ length: 400 }, (_, i) => ({
+        id: `note-${i}`,
         frame: "note",
-        x: i % 4,
-        y: Math.floor(i / 4),
-        w: 3,
-        h: 2,
+        position: { x: i % 4, y: Math.floor(i / 4), w: 3, h: 2 },
         config: {
           text: `frame ${i} ${"lorem ipsum dolor sit amet ".repeat(6)}`,
         },

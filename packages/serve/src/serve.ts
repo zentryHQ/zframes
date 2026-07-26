@@ -1,5 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 
+// By package subpath, not a relative `./spec` — this file is reached by Vite's
+// Node config-loader, which can't resolve a relative extensionless path.
+import { DashboardSpecSchema } from "@zframes/spec/spec";
+
 /**
  * The dashboard read/write contract, shared verbatim by the dev Vite plugin
  * (`@zframes/vite`) and the CLI's `serve` http server. Both hand these helpers the
@@ -101,9 +105,23 @@ export async function handleSpecRead(
 /**
  * PUT/POST the spec: CSRF-guarded (requires a JSON content-type, which forces
  * a CORS preflight a malicious page can't satisfy), size-capped, then
- * parse + re-stringify so the file always lands valid and consistently
- * formatted (2-space, trailing newline). Writes only `absFile` — the request
- * body never names a path, so there is no write-side traversal vector.
+ * parse + validate + re-stringify so the file always lands as a valid spec,
+ * consistently formatted (2-space, trailing newline). Writes only `absFile` —
+ * the request body never names a path, so there is no write-side traversal
+ * vector.
+ *
+ * The schema check is what makes this route non-destructive. This is the ONLY
+ * path by which a human edit reaches `dashboard.json`, there is no backup and
+ * no undo, and a body can be perfectly good JSON while being nothing like a
+ * spec (a truncated-but-valid payload, an editor bug, an agent writing the
+ * wrong shape). Validating first means such a write is refused with the user's
+ * board still on disk, rather than replacing it and answering 200.
+ *
+ * Deliberately writes the request's own JSON, NOT `safeParse`'s output: the
+ * parsed value has every schema default materialised and legacy fields
+ * migrated, so writing it back would rewrite the user's hand-readable file with
+ * a large surprising diff on every save. Validation gates the write; it does
+ * not reformat the spec.
  */
 export function handleSpecWrite(
   req: ReqLike,
@@ -136,6 +154,24 @@ export function handleSpecWrite(
     if (aborted) return;
     try {
       const json = JSON.parse(body);
+      const parsed = DashboardSpecSchema.safeParse(json);
+      if (!parsed.success) {
+        // Field paths in `lint`'s wording, so the same spelling of a problem
+        // reads the same whether it surfaced from `zframes lint` or a Save.
+        res.statusCode = 400;
+        res.setHeader("content-type", "application/json");
+        res.end(
+          JSON.stringify({
+            ok: false,
+            error: "not a valid dashboard spec — nothing was written",
+            issues: parsed.error.issues.map(
+              (issue) =>
+                `${issue.path.join(".") || "(root)"}: ${issue.message}`,
+            ),
+          }),
+        );
+        return;
+      }
       await writeFile(absFile, `${JSON.stringify(json, null, 2)}\n`, "utf8");
       res.statusCode = 200;
       res.setHeader("content-type", "application/json");
