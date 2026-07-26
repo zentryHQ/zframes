@@ -2696,7 +2696,9 @@
     {
       "id": "ab-heading",
       "frame": "heading",
-      "title": "★ A+B Expansion — 70 new chart frames",
+      "config": {
+        "title": "★ A+B Expansion — 70 new chart frames"
+      },
       "position": {
         "x": 0,
         "y": 204,

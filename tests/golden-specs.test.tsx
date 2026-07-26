@@ -121,10 +121,13 @@ const FIXTURES: Fixture[] = [
   {
     name: "micky",
     raw: mickySpec,
-    // `ab-heading` stores its heading text as the frame-level `title` and has
-    // no `config` at all, but the `heading` frame requires `config.title` —
-    // so this card is an error card on the live board right now.
-    knownInvalidConfigIds: ["ab-heading"],
+    // Was ["ab-heading"], which stored its heading text as the frame-level
+    // `title` with no `config` at all while the `heading` frame requires
+    // `config.title` — an error card mid-board. Fixed in the live spec (the
+    // text moved into `config.title`; the frame-level `title` was dropped
+    // because `heading` is `chrome: "bare"`, which ignores it). Empty now, and
+    // it must stay that way: a new entry means a card broke.
+    knownInvalidConfigIds: [],
     lintSpuriousUnknownFrames: [
       "breakeven",
       "breathing",
