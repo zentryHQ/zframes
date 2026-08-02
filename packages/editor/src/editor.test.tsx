@@ -111,6 +111,7 @@ interface FrameInput {
   id: string;
   position: GridPosition;
   layouts?: Record<string, GridPosition>;
+  events?: { date: string; label: string }[];
 }
 
 function parseSpec(
@@ -499,5 +500,66 @@ describe("Save in flow-horizontal mode", () => {
     expect(frames.map((f) => f.layouts?.["flow-horizontal"]?.y)).toEqual([
       1, 2, 0,
     ]);
+  });
+});
+
+/**
+ * Event markers ride the INSTANCE, not `config`, and Save is the only path by
+ * which they reach `dashboard.json`. collectSpec rebuilds each frame object
+ * from `instancesRef` + the live GridStack node, so a field it forgets to carry
+ * is silently dropped on every save — the user's markers would survive the
+ * session and vanish the moment they pressed Save.
+ */
+describe("Save carries a card's event markers", () => {
+  const MARKERS = [
+    { date: "2026-03-18", label: "FOMC +25bp" },
+    { date: "2026-06-01", label: "Q2 earnings" },
+  ];
+
+  it("round-trips the markers of the card that has them", async () => {
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 4, h: 2 }, events: MARKERS },
+        { id: "b", position: { x: 4, y: 0, w: 4, h: 2 } },
+      ]),
+      [],
+    );
+    await clickSave(view);
+    const saved = savedSpec(view.onSave);
+    const a = saved.frames.find((f) => f.id === "a")!;
+    expect(a.events).toEqual(MARKERS);
+  });
+
+  it("does not invent an empty `events` on a card that never had any", async () => {
+    // An empty array on every card would churn the diff of a human-readable
+    // file the user owns, on every single save.
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 4, h: 2 }, events: MARKERS },
+        { id: "b", position: { x: 4, y: 0, w: 4, h: 2 } },
+      ]),
+      [],
+    );
+    await clickSave(view);
+    const b = savedSpec(view.onSave).frames.find((f) => f.id === "b")!;
+    expect(b.events).toBeUndefined();
+    expect("events" in b).toBe(false);
+  });
+
+  it("keeps markers on a card whose geometry the grid rewrites under it", async () => {
+    // collectSpec merges the LIVE gridstackNode onto the stored instance, and
+    // that merge is where a per-instance field gets dropped. x:10 w:4 on a
+    // 12-column grid is out of bounds, so GridStack clamps it to x:8 — the
+    // saved card therefore went through the merge, not a straight echo.
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 10, y: 0, w: 4, h: 2 }, events: MARKERS },
+      ]),
+      [],
+    );
+    await clickSave(view);
+    const a = savedSpec(view.onSave).frames.find((f) => f.id === "a")!;
+    expect(a.position).toEqual({ x: 8, y: 0, w: 4, h: 2 });
+    expect(a.events).toEqual(MARKERS);
   });
 });
