@@ -27,7 +27,6 @@ import {
 import { frameMatchesSearch, frameSearchTokens } from "@zframes/spec/catalogue";
 import {
   DashboardCurrencyProvider,
-  DashboardEventsProvider,
   FRAME_CSS,
   FrameContent,
   FramePatchContext,
@@ -46,21 +45,9 @@ import {
   type DashboardBackground,
   type DashboardSpec,
   type DashboardTypography,
-  type EventMarker,
   type FrameInstance,
   type GridPosition,
 } from "@zframes/spec/spec";
-
-/** Swatch shown for a marker that hasn't picked its own colour. */
-const DEFAULT_EVENT_COLOR = "#8b8df9";
-
-/**
- * Swap the calendar day of an event date while keeping any time-of-day the
- * spec carried — the rail's date picker only edits the day, and an intraday
- * marker shouldn't silently jump to midnight because someone fixed a typo.
- */
-const withCalendarDay = (previous: string, day: string): string =>
-  previous.length > 10 ? `${day}${previous.slice(10)}` : day;
 
 /**
  * Unmount a per-frame React root *after* the current render/commit finishes.
@@ -191,7 +178,6 @@ export function DashboardEditor({
   const snapshotBgImageBlurRef = useRef(spec.background.imageBlur);
   const snapshotBgOverlayOpacityRef = useRef(spec.background.overlayOpacity);
   const snapshotSurfaceModeRef = useRef(spec.theme.surface);
-  const snapshotEventsRef = useRef(spec.events);
   const counterRef = useRef(0);
 
   const [editing, setEditing] = useState(false);
@@ -220,10 +206,6 @@ export function DashboardEditor({
   // .zf-editor below (which core's FRAME_CSS reads to flip ink + card lightness)
   // plus a light page fill on the grid area; default "dark" is a visual no-op.
   const [surface, setSurface] = useState(spec.theme.surface);
-  // Board-wide event markers (spec.events) — dated annotations every history
-  // chart draws on its time axis. Edited in the Events rail; the live grid
-  // re-renders as they change (see eventsRef below).
-  const [events, setEvents] = useState<EventMarker[]>(spec.events);
   // Dashboard layout model (spec.grid.mode). Each mode is its own GridStack
   // config with an independent per-frame layout (vertical → position; horizontal
   // → layouts["flow-horizontal"]); switchMode re-inits the grid between them.
@@ -362,9 +344,7 @@ export function DashboardEditor({
   // appearance), the add-a-frame palette, or the board's event markers. The
   // rail used to stack both; the tabs split them so theme knobs and frame
   // management each get the full panel.
-  const [railTab, setRailTab] = useState<"cosmetics" | "frames" | "events">(
-    "frames",
-  );
+  const [railTab, setRailTab] = useState<"cosmetics" | "frames">("frames");
   // Which frame's settings dialog is open (null = none). The per-item gear
   // button (added imperatively in decorateItem) flips it; the portaled
   // FrameConfigDialog reads it. The ref mirrors it for the imperative deleteItem
@@ -574,12 +554,6 @@ export function DashboardEditor({
   // provided per item here as well as at the editor root.
   const currencyRef = useRef(spec.currency.code);
   currencyRef.current = spec.currency.code;
-  // Same for the board's event markers — the charts inside those roots read
-  // them through context, so an unprovided list means no flags in the editor.
-  // Tracks the edited state, not the incoming spec, so a marker added in the
-  // rail shows up on the live cards before Save.
-  const eventsRef = useRef(events);
-  eventsRef.current = events;
 
   const renderInstance = useCallback((id: string) => {
     const content = contentRef.current.get(id);
@@ -594,29 +568,26 @@ export function DashboardEditor({
     root.render(
       <FramesProvider providers={providersRef.current}>
         <DashboardCurrencyProvider code={currencyRef.current}>
-          <DashboardEventsProvider events={eventsRef.current}>
-            <FramePatchContext.Provider
-              value={(patch) => patchInstanceRef.current?.(id, patch)}
-            >
-              <FrameContent
-                instance={instance}
-                registry={registryRef.current}
-                className="zf-fill"
-              />
-            </FramePatchContext.Provider>
-          </DashboardEventsProvider>
+          <FramePatchContext.Provider
+            value={(patch) => patchInstanceRef.current?.(id, patch)}
+          >
+            <FrameContent
+              instance={instance}
+              registry={registryRef.current}
+              className="zf-fill"
+            />
+          </FramePatchContext.Provider>
         </DashboardCurrencyProvider>
       </FramesProvider>,
     );
   }, []);
 
-  // The currency code and event list are read from refs, so React has no
-  // dependency that would notice a change: re-render every item root when
-  // either moves, or already-mounted cards would keep quoting the old currency
-  // / drawing the old markers.
+  // The currency code is read from a ref, so React has no dependency that would
+  // notice a change: re-render every item root when the dashboard currency
+  // changes, or already-mounted cards would keep quoting the old one.
   useEffect(() => {
     for (const id of instancesRef.current.keys()) renderInstance(id);
-  }, [spec.currency.code, events, renderInstance]);
+  }, [spec.currency.code, renderInstance]);
 
   const patchInstance = useCallback(
     (id: string, patch: Record<string, unknown>) => {
@@ -1117,12 +1088,10 @@ export function DashboardEditor({
         density,
         elevation,
       },
-      events,
       frames,
     };
   }, [
     spec,
-    events,
     accentHue,
     accentSat,
     baseHue,
@@ -1198,7 +1167,6 @@ export function DashboardEditor({
     snapshotBgImageBlurRef.current = bgImageBlur;
     snapshotBgOverlayOpacityRef.current = bgOverlayOpacity;
     snapshotSurfaceModeRef.current = surface;
-    snapshotEventsRef.current = events;
     setEditing(true);
   }, [
     collectSpec,
@@ -1232,30 +1200,6 @@ export function DashboardEditor({
     bgImageBlur,
     bgOverlayOpacity,
   ]);
-
-  // ── Board event markers ──────────────────────────────────────────────────
-  // Edits patch in place rather than rebuilding the marker, so fields the rail
-  // doesn't expose (`group`, `url`, written by the agent or by hand) survive a
-  // human tweaking a date or a label here.
-  const patchEvent = useCallback(
-    (index: number, patch: Partial<EventMarker>) => {
-      setEvents((prev) =>
-        prev.map((event, i) => (i === index ? { ...event, ...patch } : event)),
-      );
-    },
-    [],
-  );
-  const removeEvent = useCallback((index: number) => {
-    setEvents((prev) => prev.filter((_, i) => i !== index));
-  }, []);
-  const addEvent = useCallback(() => {
-    // Today, unlabelled: the date picker is the fiddly part, and a marker with
-    // an empty label still renders (the tooltip just reads blank) rather than
-    // failing the spec's `min(1)` on save — so seed a placeholder label.
-    const today = new Date();
-    const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    setEvents((prev) => [...prev, { date: iso, label: "New event" }]);
-  }, []);
 
   const cancel = useCallback(() => {
     // restore() unmounts + recreates EVERY frame's React root (re-subscribing
@@ -1303,7 +1247,6 @@ export function DashboardEditor({
     setBgImageBlur(snapshotBgImageBlurRef.current);
     setBgOverlayOpacity(snapshotBgOverlayOpacityRef.current);
     setSurface(snapshotSurfaceModeRef.current);
-    setEvents(snapshotEventsRef.current);
     setEditingId(null);
     setEditing(false);
   }, [restore, collectSpec]);
@@ -1565,19 +1508,6 @@ export function DashboardEditor({
                   onClick={() => setRailTab("cosmetics")}
                 >
                   Cosmetics
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={railTab === "events"}
-                  className={
-                    railTab === "events"
-                      ? "zf-rail-tab is-active"
-                      : "zf-rail-tab"
-                  }
-                  onClick={() => setRailTab("events")}
-                >
-                  Events
                 </button>
               </div>
 
@@ -2430,93 +2360,6 @@ export function DashboardEditor({
                     />
                   </section>
                 </>
-              )}
-
-              {railTab === "events" && (
-                <section className="zf-theme">
-                  <h3 className="zf-rail-title" style={{ margin: 0 }}>
-                    Events
-                  </h3>
-                  <p className="zf-palette-hint">
-                    Dated markers drawn on every history chart&rsquo;s time
-                    axis, so a move can be read against what caused it. Hover a
-                    flag on a chart to read it.
-                  </p>
-
-                  <div className="zf-events">
-                    {events.length === 0 && (
-                      <p className="zf-events-empty">
-                        No events yet — add the dates that moved this board.
-                      </p>
-                    )}
-                    {events.map((event, index) => (
-                      <div className="zf-event" key={`event-${index}`}>
-                        <div className="zf-event-head">
-                          <input
-                            type="date"
-                            className="zf-input zf-event-date"
-                            value={event.date.slice(0, 10)}
-                            aria-label={`Event ${index + 1} date`}
-                            onChange={(e) =>
-                              patchEvent(index, {
-                                date: withCalendarDay(
-                                  event.date,
-                                  e.target.value,
-                                ),
-                              })
-                            }
-                          />
-                          <input
-                            type="color"
-                            className="zf-color"
-                            value={event.color ?? DEFAULT_EVENT_COLOR}
-                            aria-label={`Event ${index + 1} colour`}
-                            onChange={(e) =>
-                              patchEvent(index, { color: e.target.value })
-                            }
-                          />
-                          <button
-                            type="button"
-                            className="zf-event-del"
-                            aria-label={`Remove event ${index + 1}`}
-                            onClick={() => removeEvent(index)}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        <input
-                          className="zf-input"
-                          value={event.label}
-                          placeholder="What happened"
-                          aria-label={`Event ${index + 1} label`}
-                          onChange={(e) =>
-                            patchEvent(index, { label: e.target.value })
-                          }
-                        />
-                        <input
-                          className="zf-input"
-                          value={event.note ?? ""}
-                          placeholder="Note (optional)"
-                          aria-label={`Event ${index + 1} note`}
-                          onChange={(e) =>
-                            patchEvent(index, {
-                              note: e.target.value || undefined,
-                            })
-                          }
-                        />
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    className="zf-btn"
-                    style={{ width: "100%", marginTop: 10 }}
-                    onClick={addEvent}
-                  >
-                    + Add event
-                  </button>
-                </section>
               )}
 
               {railTab === "frames" && (

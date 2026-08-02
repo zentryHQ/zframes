@@ -4,17 +4,18 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Guards the event-annotation contract.
+ * Guards the event-annotation contract, which has two halves.
  *
- * A dashboard declares `events` once and EVERY history chart draws them — that
- * is the whole point of putting them at board level rather than in each frame's
- * config. It only holds while frames render through `TimeSeriesChart`
- * (`./series-chart`), which injects the board's markers; a frame reaching for
- * the raw `MultiSeriesLineChart` silently opts its card out, and nobody notices
- * because the chart still looks fine — it just never shows a flag.
+ * 1. A card's `events` reach its chart only through `TimeSeriesChart`
+ *    (`./series-chart`); a frame reaching for the raw `MultiSeriesLineChart`
+ *    silently drops them, and nobody notices because the chart still looks
+ *    fine — it just never shows a flag.
+ * 2. `annotatable: true` on a frame's meta is what tells the editor to offer
+ *    the Events panel and the AI catalogue that the frame accepts markers. If
+ *    it drifts from the frames that actually draw them, the editor either hides
+ *    the panel on a chart that works or offers it on one that ignores it.
  *
- * So: no frame imports the raw chart. Adding an exemption is a decision, not a
- * formality — say why.
+ * Adding an exemption is a decision, not a formality — say why.
  */
 
 /** Frames allowed to use the raw chart, with the reason each is exempt. */
@@ -77,20 +78,40 @@ describe("chart-event coverage", () => {
     );
   });
 
-  it("the wrapper is actually wired to the board's events", () => {
+  it("the wrapper is actually wired to the card's events", () => {
     const source = readFileSync(join(srcDir, "series-chart.tsx"), "utf8");
     // A wrapper that forgot the hook would pass the guard above while drawing
     // nothing — pin both halves of the injection.
     expect(source).toMatch(/useEvents\(\)/);
-    expect(source).toMatch(/events=\{events \?\? boardEvents\}/);
+    expect(source).toMatch(/events=\{events \?\? cardEvents\}/);
   });
 
-  it("the frames using it are the time-axis history charts, not a stale few", () => {
-    // The sweep repointed 25 charts. If a refactor quietly drops most of them
-    // back to something else, the layer stops being board-wide in practice.
-    const users = frameFiles().filter((file) =>
-      /<TimeSeriesChart\b/.test(readFileSync(join(srcDir, file), "utf8")),
+  it("`annotatable` marks exactly the frames that render through the wrapper", async () => {
+    const { allFrameMetas } = await import("../packages/frames/src/schemas");
+    const declared = new Set(
+      allFrameMetas.filter((m) => m.annotatable).map((m) => m.name),
     );
-    expect(users.length).toBeGreaterThanOrEqual(20);
+    const drawing = new Set(
+      frameFiles()
+        .filter((file) =>
+          /<TimeSeriesChart\b/.test(readFileSync(join(srcDir, file), "utf8")),
+        )
+        .map((file) => file.replace(/\.tsx$/, "")),
+    );
+    const missing = [...drawing].filter((n) => !declared.has(n)).sort();
+    const stale = [...declared].filter((n) => !drawing.has(n)).sort();
+    expect(
+      missing,
+      `these frames draw event markers but their meta lacks \`annotatable: true\`, ` +
+        `so the editor hides the Events panel on them:\n  ${missing.join("\n  ")}`,
+    ).toEqual([]);
+    expect(
+      stale,
+      `these metas claim \`annotatable\` but the frame never renders TimeSeriesChart, ` +
+        `so markers set on them silently do nothing:\n  ${stale.join("\n  ")}`,
+    ).toEqual([]);
+    // Sanity floor: the sweep covered 26 charts. If a refactor drops most of
+    // them, the layer has quietly stopped applying to the history charts.
+    expect(drawing.size).toBeGreaterThanOrEqual(20);
   });
 });

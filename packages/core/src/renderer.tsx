@@ -1,7 +1,6 @@
 import { useMemo, type CSSProperties } from "react";
 import type { FrameRegistry } from "@zframes/spec/frame";
 import { DashboardCurrencyProvider } from "./currency";
-import { DashboardEventsProvider } from "./events";
 import { FRAME_CSS, FrameContent } from "./frame-content";
 import {
   FONT_FAMILY_STACKS,
@@ -92,57 +91,53 @@ export function DashboardRenderer({
     // Display currency resolves once for the whole board (one shared FX poll);
     // each card may still override it via FrameInstance.currency.
     <DashboardCurrencyProvider code={spec.currency.code}>
-      {/* Board-wide event markers, parsed once and drawn by every time-axis
-          chart; a card narrows/mutes/extends them via its own fields. */}
-      <DashboardEventsProvider events={spec.events}>
-        <style>{FRAME_CSS}</style>
-        <div
-          className={horizontal ? "zf-grid zf-flow-horizontal" : "zf-grid"}
-          style={{
-            ["--zf-cols" as string]: spec.grid.columns,
-            ["--zf-row-h" as string]: `${spec.grid.rowHeight}px`,
-            ["--zf-h-rows" as string]: spec.grid.rows,
-            ["--zf-gap" as string]: `${spec.grid.gap}px`,
-            ["--zf-pad-x" as string]: `${spec.grid.paddingX}px`,
-            // Colour identity (spec.theme): accent hue+sat drive every accent in
-            // FRAME_CSS (card rims, title dots, source links); base hue+sat tint
-            // the dark card surface itself.
-            ["--zf-accent-hue" as string]: spec.theme.accentHue,
-            ["--zf-accent-sat" as string]: `${spec.theme.accentSat}%`,
-            ["--zf-base-hue" as string]: spec.theme.baseHue,
-            ["--zf-base-sat" as string]: `${spec.theme.baseSat}%`,
-            // Semantic gain/loss colours (spec.theme): UP_COLOR/DOWN_COLOR in the
-            // frames resolve these (with the green/red fallback).
-            ["--zf-up" as string]: spec.theme.upColor,
-            ["--zf-down" as string]: spec.theme.downColor,
-            // Typography (spec.typography): family routes through --font-dmsans,
-            // numeric style sets digit spacing.
-            ["--zf-font-family" as string]:
-              FONT_FAMILY_STACKS[spec.typography.fontFamily],
-            ["--zf-numeric" as string]:
-              NUMERIC_VARIANTS[spec.typography.numericStyle],
-            // Card surface treatment (spec.appearance): corners, rim opacity,
-            // surface translucency, padding density, shadow depth.
-            ["--zf-frame-radius" as string]: `${spec.appearance.radius}px`,
-            ["--zf-border-alpha" as string]: spec.appearance.borderStrength,
-            ["--zf-surface-opacity" as string]: spec.appearance.surfaceOpacity,
-            ["--zf-density" as string]: spec.appearance.density,
-            ["--zf-elevation" as string]: spec.appearance.elevation,
-            // Light/dark surface mode (spec.theme.surface): flip the ink + card
-            // lightness. Shared helper so renderer + editor never drift.
-            ...surfaceModeVars(spec.theme.surface),
-          }}
-        >
-          {spec.frames.map((instance, index) => (
-            <FrameContent
-              key={instance.id}
-              instance={instance}
-              registry={registry}
-              style={styles[index]}
-            />
-          ))}
-        </div>
-      </DashboardEventsProvider>
+      <style>{FRAME_CSS}</style>
+      <div
+        className={horizontal ? "zf-grid zf-flow-horizontal" : "zf-grid"}
+        style={{
+          ["--zf-cols" as string]: spec.grid.columns,
+          ["--zf-row-h" as string]: `${spec.grid.rowHeight}px`,
+          ["--zf-h-rows" as string]: spec.grid.rows,
+          ["--zf-gap" as string]: `${spec.grid.gap}px`,
+          ["--zf-pad-x" as string]: `${spec.grid.paddingX}px`,
+          // Colour identity (spec.theme): accent hue+sat drive every accent in
+          // FRAME_CSS (card rims, title dots, source links); base hue+sat tint
+          // the dark card surface itself.
+          ["--zf-accent-hue" as string]: spec.theme.accentHue,
+          ["--zf-accent-sat" as string]: `${spec.theme.accentSat}%`,
+          ["--zf-base-hue" as string]: spec.theme.baseHue,
+          ["--zf-base-sat" as string]: `${spec.theme.baseSat}%`,
+          // Semantic gain/loss colours (spec.theme): UP_COLOR/DOWN_COLOR in the
+          // frames resolve these (with the green/red fallback).
+          ["--zf-up" as string]: spec.theme.upColor,
+          ["--zf-down" as string]: spec.theme.downColor,
+          // Typography (spec.typography): family routes through --font-dmsans,
+          // numeric style sets digit spacing.
+          ["--zf-font-family" as string]:
+            FONT_FAMILY_STACKS[spec.typography.fontFamily],
+          ["--zf-numeric" as string]:
+            NUMERIC_VARIANTS[spec.typography.numericStyle],
+          // Card surface treatment (spec.appearance): corners, rim opacity,
+          // surface translucency, padding density, shadow depth.
+          ["--zf-frame-radius" as string]: `${spec.appearance.radius}px`,
+          ["--zf-border-alpha" as string]: spec.appearance.borderStrength,
+          ["--zf-surface-opacity" as string]: spec.appearance.surfaceOpacity,
+          ["--zf-density" as string]: spec.appearance.density,
+          ["--zf-elevation" as string]: spec.appearance.elevation,
+          // Light/dark surface mode (spec.theme.surface): flip the ink + card
+          // lightness. Shared helper so renderer + editor never drift.
+          ...surfaceModeVars(spec.theme.surface),
+        }}
+      >
+        {spec.frames.map((instance, index) => (
+          <FrameContent
+            key={instance.id}
+            instance={instance}
+            registry={registry}
+            style={styles[index]}
+          />
+        ))}
+      </div>
     </DashboardCurrencyProvider>
   );
 }

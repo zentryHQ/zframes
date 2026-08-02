@@ -7,6 +7,7 @@ export type StoryGlobals = {
   themePreset: string;
   frameSize: "sm" | "default" | "wide" | "tall";
   density: "compact" | "normal" | "comfortable";
+  events: "on" | "off";
 };
 
 const preview: Preview = {
@@ -74,11 +75,24 @@ const preview: Preview = {
         ],
       },
     },
+    events: {
+      description: "Dashboard event markers",
+      toolbar: {
+        title: "Events",
+        icon: "flag",
+        dynamicTitle: true,
+        items: [
+          { value: "on", title: "Events on" },
+          { value: "off", title: "Events off" },
+        ],
+      },
+    },
   },
   initialGlobals: {
     themePreset: "zframes",
     frameSize: "default",
     density: "normal",
+    events: "on",
   },
 };
 

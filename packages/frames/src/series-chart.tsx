@@ -6,19 +6,21 @@ import { useEvents } from "@zframes/core";
 
 /**
  * The time-series line chart every frame should use — `MultiSeriesLineChart`
- * plus the dashboard's event markers (`spec.events`, narrowed per card).
+ * plus the card's own event markers (`FrameInstance.events`).
  *
- * Frames import THIS, never the raw chart: the whole point of board-level
- * events is that one authored list appears on every history chart at once, and
- * that only holds if adopting the layer is the default rather than something a
- * new frame has to remember. `tests/chart-events-coverage.test.ts` enforces it.
+ * Frames import THIS, never the raw chart: a frame that reaches past it still
+ * renders a perfectly good chart, it just never draws a marker, which looks
+ * exactly like a card whose owner annotated nothing. Making adoption the
+ * default is the only way that stays true as frames are added;
+ * `tests/chart-events-coverage.test.ts` enforces it, and pairs it with the
+ * `annotatable` flag on each such frame's meta.
  *
- * Pass `events` explicitly to override the board's list for one chart.
+ * Pass `events` explicitly to override what the card declared.
  */
 export function TimeSeriesChart({
   events,
   ...props
 }: MultiSeriesLineChartProps) {
-  const boardEvents = useEvents();
-  return <MultiSeriesLineChart {...props} events={events ?? boardEvents} />;
+  const cardEvents = useEvents();
+  return <MultiSeriesLineChart {...props} events={events ?? cardEvents} />;
 }
