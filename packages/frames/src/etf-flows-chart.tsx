@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useEtfFlows, useMoney } from "@zframes/core";
@@ -9,6 +8,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { etfFlowsChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const LOOKBACKS = {
   "1M": { ms: 30 * 86_400_000, timeframe: ChartTimeframe["1M"] },
@@ -46,7 +46,7 @@ function EtfFlowsChart({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>ETF flows unavailable</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={timeframe}
       height={220}

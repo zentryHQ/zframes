@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useOnchainValuation } from "@zframes/core";
@@ -11,6 +10,7 @@ import { formatPct } from "./format";
 import { tail, windowDays } from "./indicators";
 import { nuplCycleChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = nuplCycleChartMeta.schema;
 
@@ -39,7 +39,7 @@ function NuplCycleChart({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no on-chain data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe.YTD}
       height={220}

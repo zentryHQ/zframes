@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useMacroSeries } from "@zframes/core";
@@ -11,6 +10,7 @@ import type { z } from "zod";
 import { formatChangePct, formatPct } from "./format";
 import { realWagesMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = realWagesMeta.schema;
 const CPI_SERIES_ID = "CUUR0000SA0";
@@ -85,7 +85,7 @@ function RealWages({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <MultiSeriesLineChart
+      <TimeSeriesChart
         series={series}
         timeframe={ChartTimeframe.YTD}
         height={250}

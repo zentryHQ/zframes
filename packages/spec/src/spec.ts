@@ -135,6 +135,65 @@ export const CurrencySchema = z
 export type Currency = z.infer<typeof CurrencySchema>;
 export type CurrencyCode = (typeof CURRENCY_CODES)[number];
 
+/** `YYYY-MM-DD`, optionally with a time — the only date shapes a marker accepts. */
+const ISO_DATE =
+  /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}(:\d{2})?(Z|[+-]\d{2}:?\d{2})?)?$/;
+
+/**
+ * One annotation on the time axis: something that happened, at a moment, worth
+ * seeing against the line. The point of the layer is causation-at-a-glance —
+ * "the rate cut is where TVL turned" — so a marker is authored by a human (or
+ * the agent on their behalf), never fetched: no feed knows which events THIS
+ * board cares about.
+ */
+export const EventMarkerSchema = z.object({
+  date: z
+    .string()
+    .regex(ISO_DATE, "Must be an ISO date, YYYY-MM-DD (optionally with a time)")
+    .refine((value) => !Number.isNaN(Date.parse(value)), "Not a real date")
+    .describe(
+      'When it happened — ISO "YYYY-MM-DD", or "YYYY-MM-DDTHH:MM" (UTC) for an intraday event. Markers outside a chart\'s visible window are simply not drawn.',
+    ),
+  label: z
+    .string()
+    .min(1)
+    .max(80)
+    .describe(
+      'Short marker label, shown on the flag and in bold in the tooltip — e.g. "FOMC +25bp", "ETF approved", "Q3 earnings".',
+    ),
+  note: z
+    .string()
+    .max(400)
+    .optional()
+    .describe(
+      "Optional longer explanation, shown in the tooltip under the label. Use it for the detail that makes the price reaction make sense.",
+    ),
+  color: z
+    .string()
+    .optional()
+    .describe(
+      "Optional marker colour (any CSS colour). Omit to use the dashboard accent — set it to colour-code by kind, e.g. amber for macro, red for hacks.",
+    ),
+  group: z
+    .string()
+    .optional()
+    .describe(
+      'Optional tag for scoping, e.g. "macro", "btc", "tsla". A card can then show only the groups it cares about via its `eventGroups`, keeping TSLA earnings off a BTC chart.',
+    ),
+  url: z
+    .string()
+    // http(s) only, deliberately: the tooltip renders this as a real anchor, so
+    // a `javascript:` or `data:` URL would be a script-injection hole in a spec
+    // file the agent writes.
+    .regex(/^https?:\/\/\S+$/i, "Must be an http(s) URL")
+    .optional()
+    .describe(
+      "Optional source link (the article/filing/tweet). Rendered as a link in the tooltip.",
+    ),
+});
+
+export type EventMarker = z.infer<typeof EventMarkerSchema>;
+
 export const FrameInstanceSchema = z.object({
   id: z.string().describe("Unique instance id within the dashboard"),
   frame: z.string().describe("Name of a registered frame"),
@@ -152,6 +211,24 @@ export const FrameInstanceSchema = z.object({
     .optional()
     .describe(
       'Display currency for THIS card only, overriding the dashboard-wide `currency` (e.g. keep one card in "USD" on a baht board). Omit to inherit. Purely presentational — it converts USD figures for display. Note it is NOT the same as a `config.currency` some frames have (the metals LBMA-fix frames use that to pick which published fix series to READ); this field never changes which data is fetched.',
+    ),
+  events: z
+    .array(EventMarkerSchema)
+    .optional()
+    .describe(
+      "Event markers for THIS card only, drawn on top of the dashboard-wide `events` (they merge, they don't replace). Use it for annotations that belong to one chart — an earnings date on the TSLA card — instead of polluting the whole board.",
+    ),
+  showEvents: z
+    .boolean()
+    .optional()
+    .describe(
+      "Set false to draw NO event markers on this card, even when the dashboard has `events`. Omit (the default) to show them. Only time-axis charts draw markers at all; every other frame ignores this.",
+    ),
+  eventGroups: z
+    .array(z.string())
+    .optional()
+    .describe(
+      'Show only the dashboard events whose `group` is in this list, e.g. ["macro"] on a rates chart. Omit to show all of them. Card-level `events` above are always shown regardless.',
     ),
   position: GridPositionSchema,
   layouts: z
@@ -630,6 +707,12 @@ export const DashboardSpecSchema = z.preprocess(
       density: 1,
       elevation: 1,
     }),
+    events: z
+      .array(EventMarkerSchema)
+      .default([])
+      .describe(
+        "Dashboard-wide event markers — dated annotations drawn on the time axis of every history chart on the board, so the same rate cut / hack / earnings date lines up across price, TVL and funding at once. Authored by hand (or by the agent on request), never fetched. A card can narrow them with `eventGroups`, add its own with `events`, or opt out with `showEvents: false`.",
+      ),
     frames: z.array(FrameInstanceSchema),
   }),
 );

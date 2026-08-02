@@ -1,6 +1,5 @@
 import {
   CHART_COLORS_MULTI_SERIES,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import {
@@ -21,6 +20,7 @@ import {
 } from "./metals-shared";
 import { btcInGoldMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = btcInGoldMeta.schema;
 
@@ -115,7 +115,7 @@ function BtcInGold({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <MultiSeriesLineChart
+      <TimeSeriesChart
         series={view.series}
         timeframe={timeframeFor(config.years)}
         height={190}

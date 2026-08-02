@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useCandlesMulti, useMoney } from "@zframes/core";
@@ -11,6 +10,7 @@ import { assetLogoUrl, tickerOf } from "./asset-logo";
 import { formatChangePct } from "./format";
 import { priceCompareMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 // Candle interval picked per lookback so each window is ~50–100 points: dense
 // enough to read, light enough to keep the fetch cheap.
@@ -75,7 +75,7 @@ function PriceCompare({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no price data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={timeframe}
       height={250}

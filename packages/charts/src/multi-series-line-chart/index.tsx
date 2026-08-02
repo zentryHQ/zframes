@@ -22,6 +22,7 @@ import { useSeriesColors } from "./hooks/use-series-colors";
 import { SeriesGroupButton } from "./components/series-group-button";
 import { ChartLegend } from "./components/chart-legend";
 import { ChartTooltip } from "./components/chart-tooltip";
+import { EventLayer } from "./components/event-layer";
 
 import {
   calculateYDomain,
@@ -49,6 +50,7 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
   unitPrefix,
   unitSuffix,
   onLabelClick,
+  events,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -324,6 +326,21 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
                     overflow: "visible",
                   }}
                 />
+                {events &&
+                  events.length > 0 &&
+                  scales &&
+                  dimensions.innerWidth !== null &&
+                  dimensions.dynamicLeftMargin !== null && (
+                    <EventLayer
+                      events={events}
+                      xScale={scales.xScale}
+                      offsetX={dimensions.dynamicLeftMargin}
+                      offsetY={CHART_MARGIN.top}
+                      innerWidth={dimensions.innerWidth}
+                      innerHeight={dimensions.innerHeight}
+                      containerWidth={dimensions.width}
+                    />
+                  )}
                 <div className="z-10">
                   <ChartTooltip
                     containerWidth={dimensions.width}

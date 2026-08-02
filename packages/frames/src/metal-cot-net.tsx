@@ -1,6 +1,5 @@
 import {
   CHART_COLORS_MULTI_SERIES,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useMetalPositioning } from "@zframes/core";
@@ -18,6 +17,7 @@ import {
 } from "./metals-shared";
 import { metalCotNetMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = metalCotNetMeta.schema;
 
@@ -152,7 +152,7 @@ function MetalCotNet({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <MultiSeriesLineChart
+      <TimeSeriesChart
         series={series}
         timeframe={timeframeFor(config.years)}
         height={180}

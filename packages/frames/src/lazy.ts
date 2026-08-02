@@ -121,6 +121,11 @@ export const frameLoaders: Record<string, FrameLoader> = {
     load: () => import("./price-compare").then((m) => m.priceCompareFrame),
     titleContent: true,
   },
+  "price-events": {
+    load: () => import("./price-events").then((m) => m.priceEventsFrame),
+    titleIcon: true,
+    titleContent: true,
+  },
   "price-liveline": {
     load: () => import("./price-liveline").then((m) => m.priceLivelineFrame),
   },

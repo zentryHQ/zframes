@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useMacroSeries } from "@zframes/core";
@@ -11,6 +10,7 @@ import type { z } from "zod";
 import { formatPct } from "./format";
 import { laborForceFlowMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = laborForceFlowMeta.schema;
 const UNEMPLOYMENT_SERIES_ID = "LNS14000000";
@@ -57,7 +57,7 @@ function LaborForceFlow({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-1">
-      <MultiSeriesLineChart
+      <TimeSeriesChart
         series={series}
         timeframe={ChartTimeframe.YTD}
         height={250}
