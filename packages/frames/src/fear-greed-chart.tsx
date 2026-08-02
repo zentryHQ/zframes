@@ -1,13 +1,10 @@
-import {
-  ChartTimeframe,
-  MultiSeriesLineChart,
-  type MultiSeriesData,
-} from "@zframes/charts";
+import { ChartTimeframe, type MultiSeriesData } from "@zframes/charts";
 import { defineFrame, useFearGreed } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { fearGreedChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = fearGreedChartMeta.schema;
 
@@ -56,7 +53,7 @@ function FearGreedChart({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no sentiment data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={timeframeFor(config.days)}
       height={220}

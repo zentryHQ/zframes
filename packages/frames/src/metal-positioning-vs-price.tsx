@@ -1,6 +1,5 @@
 import {
   CHART_COLORS_MULTI_SERIES,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import {
@@ -25,6 +24,7 @@ import {
 } from "./metals-shared";
 import { metalPositioningVsPriceMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = metalPositioningVsPriceMeta.schema;
 
@@ -129,7 +129,7 @@ function MetalPositioningVsPrice({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <MultiSeriesLineChart
+      <TimeSeriesChart
         series={series}
         timeframe={timeframeFor(config.years)}
         height={230}

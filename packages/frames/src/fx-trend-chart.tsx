@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useFxRates } from "@zframes/core";
@@ -10,6 +9,7 @@ import type { z } from "zod";
 import { formatChangePct } from "./format";
 import { fxTrendChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = fxTrendChartMeta.schema;
 
@@ -43,7 +43,7 @@ function FxTrendChart({ config }: { config: z.output<typeof schema> }) {
   if (series.length === 0) return <FrameStatus>no FX data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe["1M"]}
       height={220}

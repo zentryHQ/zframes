@@ -1,6 +1,5 @@
 import {
   CHART_COLORS_MULTI_SERIES,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useMetalHistory } from "@zframes/core";
@@ -18,6 +17,7 @@ import {
 } from "./metals-shared";
 import { metalRatioChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = metalRatioChartMeta.schema;
 
@@ -108,7 +108,7 @@ function MetalRatioChart({ config }: { config: z.output<typeof schema> }) {
         </span>
       </div>
 
-      <MultiSeriesLineChart
+      <TimeSeriesChart
         series={view.series}
         timeframe={timeframeFor(config.years)}
         height={200}

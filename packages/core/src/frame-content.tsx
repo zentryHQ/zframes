@@ -23,6 +23,7 @@ export function useFramePatch(): FramePatcher | null {
 }
 import type { FrameRegistry, FrameSource } from "@zframes/spec/frame";
 import { FrameCurrencyOverride } from "./currency";
+import { FrameEventsScope } from "./events";
 import { useProviders } from "./hooks";
 import type { FrameInstance, FrameStyle } from "@zframes/spec/spec";
 
@@ -935,7 +936,11 @@ export const FrameContent = memo(function FrameContentWithCurrency(
   // No `instance.currency` → this is inert and the card inherits the board's.
   return (
     <FrameCurrencyOverride code={props.instance.currency}>
-      <FrameContentImpl {...props} />
+      {/* Same story for the board's event markers: inert unless this card
+          mutes, filters, or adds to them. */}
+      <FrameEventsScope instance={props.instance}>
+        <FrameContentImpl {...props} />
+      </FrameEventsScope>
     </FrameCurrencyOverride>
   );
 });

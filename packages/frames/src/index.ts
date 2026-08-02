@@ -30,6 +30,7 @@ export { newsFeedFrame } from "./news-feed";
 export { noteFrame } from "./note";
 export { priceChartFrame } from "./price-chart";
 export { priceCompareFrame } from "./price-compare";
+export { priceEventsFrame } from "./price-events";
 export { priceLivelineFrame } from "./price-liveline";
 export { priceTickerFrame } from "./price-ticker";
 export { ratesBoardFrame } from "./rates-board";
@@ -262,6 +263,7 @@ import { newsFeedFrame } from "./news-feed";
 import { noteFrame } from "./note";
 import { priceChartFrame } from "./price-chart";
 import { priceCompareFrame } from "./price-compare";
+import { priceEventsFrame } from "./price-events";
 import { priceLivelineFrame } from "./price-liveline";
 import { priceTickerFrame } from "./price-ticker";
 import { ratesBoardFrame } from "./rates-board";
@@ -495,6 +497,7 @@ export const allFrames: AnyFrameDefinition[] = [
   noteFrame,
   priceChartFrame,
   priceCompareFrame,
+  priceEventsFrame,
   priceLivelineFrame,
   priceTickerFrame,
   ratesBoardFrame,

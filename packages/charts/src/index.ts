@@ -15,6 +15,7 @@ export type {
 
 export { MultiSeriesLineChart } from "./multi-series-line-chart";
 export type {
+  ChartEvent,
   MultiSeriesData,
   MultiSeriesLineChartProps,
 } from "./multi-series-line-chart/types";

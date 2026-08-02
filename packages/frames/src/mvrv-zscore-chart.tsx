@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useOnchainValuation } from "@zframes/core";
@@ -10,6 +9,7 @@ import type { z } from "zod";
 import { tail, toSparkline, windowDays } from "./indicators";
 import { mvrvZscoreChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = mvrvZscoreChartMeta.schema;
 
@@ -35,7 +35,7 @@ function MvrvZscoreChart({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no on-chain data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe.YTD}
       height={220}

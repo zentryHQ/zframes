@@ -77,6 +77,12 @@ export {
   type Money,
 } from "./currency";
 export {
+  DashboardEventsProvider,
+  FrameEventsScope,
+  useEvents,
+  type ResolvedEvent,
+} from "./events";
+export {
   CURRENCY_SYMBOLS,
   currencySymbol,
   formatAmount,

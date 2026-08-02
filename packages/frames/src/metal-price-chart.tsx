@@ -1,6 +1,5 @@
 import {
   CHART_COLORS_MULTI_SERIES,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useMetalHistory, useMoney } from "@zframes/core";
@@ -17,6 +16,7 @@ import {
 } from "./metals-shared";
 import { metalPriceChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = metalPriceChartMeta.schema;
 
@@ -74,7 +74,7 @@ function MetalPriceChart({ config }: { config: z.output<typeof schema> }) {
     );
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={timeframeFor(config.years)}
       height={250}

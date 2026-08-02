@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import {
@@ -16,6 +15,7 @@ import { formatPct } from "./format";
 import { normalize, rsi, tail, toSparkline, windowDays } from "./indicators";
 import { cycleValuationCompositeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = cycleValuationCompositeMeta.schema;
 
@@ -72,7 +72,7 @@ function CycleValuationComposite({
     return <FrameStatus>no on-chain data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe.YTD}
       height={260}

@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useFundingHistory } from "@zframes/core";
@@ -11,6 +10,7 @@ import { tickerOf } from "./asset-logo";
 import { formatFundingPct } from "./format";
 import { fundingRateChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const LOOKBACKS = {
   "24h": { ms: 24 * 60 * 60 * 1000, timeframe: ChartTimeframe["24h"] },
@@ -48,7 +48,7 @@ function FundingRateChart({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no funding data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={timeframe}
       height={250}
