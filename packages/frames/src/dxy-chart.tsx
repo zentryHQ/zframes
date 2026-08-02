@@ -1,13 +1,10 @@
-import {
-  ChartTimeframe,
-  MultiSeriesLineChart,
-  type MultiSeriesData,
-} from "@zframes/charts";
+import { ChartTimeframe, type MultiSeriesData } from "@zframes/charts";
 import { defineFrame, useDollarIndex } from "@zframes/core";
 import { useMemo } from "react";
 import { DOWN_COLOR_HEX, UP_COLOR_HEX } from "./format";
 import { dxyChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 /** Stable reference (not an inline arrow) so the chart's D3 effect doesn't
  *  re-run its draw every render. */
@@ -38,7 +35,7 @@ function DxyChart() {
     return <FrameStatus>no FX data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe["1M"]}
       height={220}

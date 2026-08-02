@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useOnchainExtras } from "@zframes/core";
@@ -12,6 +11,7 @@ import { formatPct } from "./format";
 import { normalize, tail, toSparkline, windowDays } from "./indicators";
 import { onchainOscillatorOverlayMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = onchainOscillatorOverlayMeta.schema;
 
@@ -54,7 +54,7 @@ function OnchainOscillatorOverlay({
     return <FrameStatus>no on-chain data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe.YTD}
       height={260}

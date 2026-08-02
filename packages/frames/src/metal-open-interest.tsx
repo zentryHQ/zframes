@@ -1,6 +1,5 @@
 import {
   CHART_COLORS_MULTI_SERIES,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import {
@@ -24,6 +23,7 @@ import {
 } from "./metals-shared";
 import { metalOpenInterestMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = metalOpenInterestMeta.schema;
 
@@ -164,7 +164,7 @@ function MetalOpenInterest({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <MultiSeriesLineChart
+      <TimeSeriesChart
         series={series}
         timeframe={timeframeFor(config.years)}
         height={170}

@@ -114,6 +114,7 @@ const CONVERTS: Record<string, string> = {
   "price-compare":
     "both symbols' prices on the value axis and legend (rendered with " +
     "`normalize: false` — see CONFIG_OVERRIDE)",
+  "price-events": "price history on the value axis, under the event markers",
   "price-liveline": "the live price readout",
   "protocol-fees-bubbles": "protocol 24h fees",
   "protocol-fees-treemap": "protocol 24h fees per tile",

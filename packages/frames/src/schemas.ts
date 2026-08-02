@@ -993,6 +993,33 @@ export const priceCompareMeta = defineFrameMeta({
   }),
 });
 
+export const priceEventsMeta = defineFrameMeta({
+  name: "price-events",
+  label: "Price & Events",
+  category: "markets",
+  iconUrl: widgetIcon("price-compare"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Price history for one symbol with the dashboard's event markers drawn on the time axis — the card for reading cause and effect: where the rate cut, the hack, the earnings beat actually landed on the chart. Markers come from the dashboard-wide `events` list (and any this card adds via its own `events`); hovering a flag shows the date, label, note and source link. Longer windows than the live Price Chart, since the point is past events.",
+  capabilities: ["ohlcv"],
+  source: [SOURCES.hyperliquid, SOURCES.bitkub],
+  schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .describe(
+        'Symbol to chart. HIP-3 cross-asset on Hyperliquid: stocks "xyz:TSLA", indices "xyz:SP500", commodities "xyz:GOLD". Crypto: "BTC", "ETH".',
+      ),
+    lookback: z
+      .enum(["7D", "1M", "3M", "1Y"])
+      .default("3M")
+      .describe(
+        "How far back to plot. Events outside this window aren't drawn, so widen it to reach older annotations.",
+      ),
+    venue: venueField(),
+  }),
+});
+
 // Shared config for the source-agnostic portfolio frames. The source is chosen
 // per instance; the keyed Binance source needs a one-time in-app connect (its
 // read-only key is stored locally, never in this spec), the wallet source just
@@ -5614,6 +5641,7 @@ export const frameMetas: FrameMeta[] = [
   noteMeta,
   priceChartMeta,
   priceCompareMeta,
+  priceEventsMeta,
   priceLivelineMeta,
   priceTickerMeta,
   ratesBoardMeta,

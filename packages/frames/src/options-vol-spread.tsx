@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useVolatilityIndex } from "@zframes/core";
@@ -9,6 +8,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { optionsVolSpreadMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = optionsVolSpreadMeta.schema;
 
@@ -59,7 +59,7 @@ function OptionsVolSpread({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no volatility data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={timeframe}
       height={250}

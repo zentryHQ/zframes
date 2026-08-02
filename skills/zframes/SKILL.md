@@ -233,6 +233,29 @@ Percentages, ratios and quantities are unaffected, and US-macro frames (Treasury
 CPI, national debt) deliberately stay in dollars, so a baht board still shows the
 US national debt in USD. That is correct, not a bug.
 
+**Annotating the board with past events.** When the user wants to see what moved
+a chart — "mark the Fed meetings", "show me where the hack was" — write the
+dashboard-wide `events` array, a sibling of `frames`:
+
+```json
+"events": [
+  { "date": "2026-06-12", "label": "FOMC +25bp",
+    "note": "Powell signalled one more hike.", "group": "macro",
+    "color": "#f5a524", "url": "https://www.federalreserve.gov/" }
+]
+```
+
+Every history chart on the board draws them on its time axis (dashed rule + a
+flag you hover for the detail), so you author each event **once**, never per
+card. `date` is ISO `YYYY-MM-DD` (add `THH:MM` for intraday); only `date` and
+`label` are required. A card can narrow to certain tags with `"eventGroups":
+["macro"]`, add its own with an `"events"` array, or opt out with
+`"showEvents": false` — all beside `position`, not inside `config`. Pair them
+with the **`price-events`** frame (single-symbol price history, 7D–1Y) when the
+user asks to see events against price; a marker outside a chart's window simply
+isn't drawn, so widen `lookback` to reach older ones. Never invent events or
+dates you aren't sure of — ask the user, or leave the array empty.
+
 **Sourcing a frame from a second exchange.** Data routing is first-match by
 capability, so a frame only reads another venue if you say so: set
 `"venue": "bitkub"` in the frame's `config` (supported on `price-chart`,

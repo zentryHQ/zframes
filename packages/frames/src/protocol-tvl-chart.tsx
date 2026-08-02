@@ -1,7 +1,6 @@
 import {
   CHART_COLORS_MULTI_SERIES,
   ChartTimeframe,
-  MultiSeriesLineChart,
   type MultiSeriesData,
 } from "@zframes/charts";
 import { defineFrame, useMoney, useProtocolTvlHistory } from "@zframes/core";
@@ -10,6 +9,7 @@ import type { z } from "zod";
 import { prettySlug } from "./format";
 import { protocolTvlChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const LOOKBACKS = {
   "7D": { ms: 7 * 24 * 60 * 60 * 1000, timeframe: ChartTimeframe["7D"] },
@@ -48,7 +48,7 @@ function ProtocolTvlChart({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no protocol TVL data yet</FrameStatus>;
 
   return (
-    <MultiSeriesLineChart
+    <TimeSeriesChart
       series={series}
       timeframe={timeframe}
       height={250}

@@ -1,4 +1,4 @@
-import { MultiSeriesLineChart, type MultiSeriesData } from "@zframes/charts";
+import { type MultiSeriesData } from "@zframes/charts";
 import { defineFrame, useMetalHistory, type SeriesPoint } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
@@ -13,6 +13,7 @@ import {
 } from "./metals-shared";
 import { metalDrawdownMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { TimeSeriesChart } from "./series-chart";
 
 const schema = metalDrawdownMeta.schema;
 
@@ -86,7 +87,7 @@ function MetalDrawdown({ config }: { config: z.output<typeof schema> }) {
         )}
       </div>
 
-      <MultiSeriesLineChart
+      <TimeSeriesChart
         series={series}
         timeframe={timeframeFor(config.years)}
         height={180}
