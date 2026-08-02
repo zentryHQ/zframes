@@ -6,7 +6,11 @@ import {
   useState,
   type RefObject,
 } from "react";
-import type { FrameInstance, FrameStyle } from "@zframes/spec/spec";
+import type {
+  EventMarker,
+  FrameInstance,
+  FrameStyle,
+} from "@zframes/spec/spec";
 import type { FrameRegistry } from "@zframes/spec/frame";
 import {
   assetLogoUrl,
@@ -126,6 +130,28 @@ export function FrameConfigDialog({
     [instanceId, instancesRef, onApply],
   );
 
+  // This card's event markers (spec: instance.events) — a third draft + commit
+  // path beside config/title. Only time-axis charts draw them, so the panel
+  // below is only offered to frames that can.
+  const [events, setEvents] = useState<EventMarker[]>(() => [
+    ...(instance.events ?? []),
+  ]);
+  const commitEvents = useCallback(
+    (next: EventMarker[]) => {
+      setEvents(next);
+      const current = instancesRef.current.get(instanceId);
+      if (!current) return;
+      instancesRef.current.set(instanceId, {
+        ...current,
+        // An empty list drops the key entirely, so a card that never had
+        // markers round-trips byte-identical.
+        events: next.length > 0 ? next : undefined,
+      });
+      onApply(instanceId);
+    },
+    [instanceId, instancesRef, onApply],
+  );
+
   // Per-frame cosmetic overrides (spec: instance.style) — a parallel draft +
   // commit path to config/title. Each field is optional: an absent field
   // inherits the dashboard theme/appearance. Writing prunes undefined keys, and
@@ -236,6 +262,9 @@ export function FrameConfigDialog({
             <p className="zf-rail-empty">This frame has no settings.</p>
           )}
           {error && <div className="zf-config-error">{error}</div>}
+          {def?.annotatable && (
+            <FrameEventsPanel events={events} onChange={commitEvents} />
+          )}
           <FrameStylePanel
             style={style}
             inherited={inherited}
@@ -360,6 +389,138 @@ const STYLE_FIELDS: StyleFieldSpec[] = [
     format: (v) => `${v.toFixed(1)}×`,
   },
 ];
+
+/** Swatch shown for a marker that hasn't picked its own colour. */
+const DEFAULT_EVENT_COLOR = "#8b8df9";
+
+/**
+ * Swap the calendar day of an event date while keeping any time-of-day the
+ * spec carried — the picker below only edits the day, and an intraday marker
+ * shouldn't silently jump to midnight because someone fixed a typo.
+ */
+const withCalendarDay = (previous: string, day: string): string =>
+  previous.length > 10 ? `${day}${previous.slice(10)}` : day;
+
+const todayIso = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+/**
+ * This card's event markers — dated annotations drawn on its time axis, so a
+ * move can be read against what caused it. Offered only for frames whose meta
+ * says `annotatable` (a marker on any other frame would parse fine and then
+ * render nothing). Collapsed by default, like the Style panel beside it.
+ *
+ * Edits patch a marker in place rather than rebuilding it, so a field this
+ * form doesn't expose (`url`, written by the agent or by hand) survives a
+ * human fixing a date or a label.
+ */
+function FrameEventsPanel({
+  events,
+  onChange,
+}: {
+  events: EventMarker[];
+  onChange: (next: EventMarker[]) => void;
+}) {
+  const [open, setOpen] = useState(events.length > 0);
+
+  const patch = (index: number, fields: Partial<EventMarker>) =>
+    onChange(events.map((e, i) => (i === index ? { ...e, ...fields } : e)));
+
+  return (
+    <section className={open ? "zf-style-panel is-open" : "zf-style-panel"}>
+      <button
+        type="button"
+        className="zf-style-head"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <ChevronDown
+          size={14}
+          aria-hidden="true"
+          className="zf-style-chevron"
+        />
+        <span className="zf-style-head-label">Events</span>
+        {events.length > 0 && (
+          <span className="zf-style-count">{events.length}</span>
+        )}
+      </button>
+      {open && (
+        <div className="zf-style-body">
+          <p className="zf-field-hint" style={{ margin: "0 0 8px" }}>
+            Dated markers on this chart&rsquo;s time axis — hover a flag to read
+            it. Markers outside the chart&rsquo;s window aren&rsquo;t drawn.
+          </p>
+          <div className="zf-events">
+            {events.map((event, index) => (
+              <div className="zf-event" key={`event-${index}`}>
+                <div className="zf-event-head">
+                  <input
+                    type="date"
+                    className="zf-input zf-event-date"
+                    value={event.date.slice(0, 10)}
+                    aria-label={`Event ${index + 1} date`}
+                    onChange={(e) =>
+                      patch(index, {
+                        date: withCalendarDay(event.date, e.target.value),
+                      })
+                    }
+                  />
+                  <input
+                    type="color"
+                    className="zf-color"
+                    value={event.color ?? DEFAULT_EVENT_COLOR}
+                    aria-label={`Event ${index + 1} colour`}
+                    onChange={(e) => patch(index, { color: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    className="zf-event-del"
+                    aria-label={`Remove event ${index + 1}`}
+                    onClick={() =>
+                      onChange(events.filter((_, i) => i !== index))
+                    }
+                  >
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                </div>
+                <input
+                  className="zf-input"
+                  value={event.label}
+                  placeholder="What happened"
+                  aria-label={`Event ${index + 1} label`}
+                  onChange={(e) => patch(index, { label: e.target.value })}
+                />
+                <input
+                  className="zf-input"
+                  value={event.note ?? ""}
+                  placeholder="Note (optional)"
+                  aria-label={`Event ${index + 1} note`}
+                  onChange={(e) =>
+                    patch(index, { note: e.target.value || undefined })
+                  }
+                />
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="zf-btn"
+            style={{ width: "100%", marginTop: 10 }}
+            onClick={() =>
+              // Seeded with a label because the spec requires a non-empty one:
+              // an unlabelled marker would fail validation on save.
+              onChange([...events, { date: todayIso(), label: "New event" }])
+            }
+          >
+            <Plus size={13} aria-hidden="true" /> Add event
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
 
 function FrameStylePanel({
   style,

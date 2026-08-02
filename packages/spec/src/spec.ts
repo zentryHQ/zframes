@@ -144,7 +144,11 @@ const ISO_DATE =
  * seeing against the line. The point of the layer is causation-at-a-glance —
  * "the rate cut is where TVL turned" — so a marker is authored by a human (or
  * the agent on their behalf), never fetched: no feed knows which events THIS
- * board cares about.
+ * chart cares about.
+ *
+ * Markers belong to a CARD (`FrameInstance.events`), not to the dashboard: an
+ * event that explains a TSLA move rarely explains a TVL move, and a board-wide
+ * list would put every flag on every chart.
  */
 export const EventMarkerSchema = z.object({
   date: z
@@ -173,12 +177,6 @@ export const EventMarkerSchema = z.object({
     .optional()
     .describe(
       "Optional marker colour (any CSS colour). Omit to use the dashboard accent — set it to colour-code by kind, e.g. amber for macro, red for hacks.",
-    ),
-  group: z
-    .string()
-    .optional()
-    .describe(
-      'Optional tag for scoping, e.g. "macro", "btc", "tsla". A card can then show only the groups it cares about via its `eventGroups`, keeping TSLA earnings off a BTC chart.',
     ),
   url: z
     .string()
@@ -216,19 +214,7 @@ export const FrameInstanceSchema = z.object({
     .array(EventMarkerSchema)
     .optional()
     .describe(
-      "Event markers for THIS card only, drawn on top of the dashboard-wide `events` (they merge, they don't replace). Use it for annotations that belong to one chart — an earnings date on the TSLA card — instead of polluting the whole board.",
-    ),
-  showEvents: z
-    .boolean()
-    .optional()
-    .describe(
-      "Set false to draw NO event markers on this card, even when the dashboard has `events`. Omit (the default) to show them. Only time-axis charts draw markers at all; every other frame ignores this.",
-    ),
-  eventGroups: z
-    .array(z.string())
-    .optional()
-    .describe(
-      'Show only the dashboard events whose `group` is in this list, e.g. ["macro"] on a rates chart. Omit to show all of them. Card-level `events` above are always shown regardless.',
+      "Event markers for THIS card — dated annotations drawn on its time axis, so a move can be read against what caused it (a rate cut on a rates chart, an earnings date on the TSLA chart). Each is `{date, label, note?, color?, url?}`. Only time-axis history charts draw them; every other frame ignores the field. Markers outside the chart's window aren't drawn, so widen the frame's lookback to reach older ones.",
     ),
   position: GridPositionSchema,
   layouts: z
@@ -707,12 +693,6 @@ export const DashboardSpecSchema = z.preprocess(
       density: 1,
       elevation: 1,
     }),
-    events: z
-      .array(EventMarkerSchema)
-      .default([])
-      .describe(
-        "Dashboard-wide event markers — dated annotations drawn on the time axis of every history chart on the board, so the same rate cut / hack / earnings date lines up across price, TVL and funding at once. Authored by hand (or by the agent on request), never fetched. A card can narrow them with `eventGroups`, add its own with `events`, or opt out with `showEvents: false`.",
-      ),
     frames: z.array(FrameInstanceSchema),
   }),
 );

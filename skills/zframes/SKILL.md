@@ -233,28 +233,34 @@ Percentages, ratios and quantities are unaffected, and US-macro frames (Treasury
 CPI, national debt) deliberately stay in dollars, so a baht board still shows the
 US national debt in USD. That is correct, not a bug.
 
-**Annotating the board with past events.** When the user wants to see what moved
-a chart — "mark the Fed meetings", "show me where the hack was" — write the
-dashboard-wide `events` array, a sibling of `frames`:
+**Annotating a chart with past events.** When the user wants to see what moved a
+chart — "mark the Fed meetings on the BTC chart", "show me where the hack was" —
+add an `events` array to **that card**, beside `position` (NOT inside `config`):
 
 ```json
-"events": [
-  { "date": "2026-06-12", "label": "FOMC +25bp",
-    "note": "Powell signalled one more hike.", "group": "macro",
-    "color": "#f5a524", "url": "https://www.federalreserve.gov/" }
-]
+{
+  "id": "btc-history", "frame": "price-events",
+  "position": { "x": 0, "y": 0, "w": 6, "h": 4 },
+  "events": [
+    { "date": "2026-06-12", "label": "FOMC +25bp",
+      "note": "Powell signalled one more hike.",
+      "color": "#f5a524", "url": "https://www.federalreserve.gov/" }
+  ],
+  "config": { "symbol": "BTC", "lookback": "3M" }
+}
 ```
 
-Every history chart on the board draws them on its time axis (dashed rule + a
-flag you hover for the detail), so you author each event **once**, never per
-card. `date` is ISO `YYYY-MM-DD` (add `THH:MM` for intraday); only `date` and
-`label` are required. A card can narrow to certain tags with `"eventGroups":
-["macro"]`, add its own with an `"events"` array, or opt out with
-`"showEvents": false` — all beside `position`, not inside `config`. Pair them
-with the **`price-events`** frame (single-symbol price history, 7D–1Y) when the
-user asks to see events against price; a marker outside a chart's window simply
-isn't drawn, so widen `lookback` to reach older ones. Never invent events or
-dates you aren't sure of — ask the user, or leave the array empty.
+The card's chart draws them on its time axis (dashed rule + a flag you hover for
+the detail). There is **no dashboard-wide events list** — markers belong to the
+chart they explain, so a date that matters on two charts is written on both.
+`date` is ISO `YYYY-MM-DD` (add `THH:MM` for intraday); only `date` and `label`
+are required. Only frames the catalogue marks **`annotatable`** draw them (the
+history charts — `price-events`, `price-compare`, `protocol-tvl-chart`,
+`funding-rate-chart`, the metals/on-chain/macro charts …); on any other frame the
+field parses fine and shows nothing. The **`price-events`** frame (single-symbol
+price history, 7D–1Y) is the one built for this. A marker outside a chart's
+window isn't drawn, so widen `lookback` to reach older ones. Never invent events
+or dates you aren't sure of — ask the user, or leave them out.
 
 **Sourcing a frame from a second exchange.** Data routing is first-match by
 capability, so a frame only reads another venue if you say so: set
