@@ -124,8 +124,7 @@ describe("init — the written skeleton", () => {
       density: 1,
       elevation: 1,
     });
-    // The two the agent fills, and only these.
-    expect(spec.events).toEqual([]);
+    // The agent fills this, and only this.
     expect(spec.frames).toEqual([]);
 
     expect(logged()).toContain(`✓ wrote a bare dashboard to ${dest}`);

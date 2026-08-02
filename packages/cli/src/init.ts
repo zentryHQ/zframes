@@ -80,8 +80,8 @@ function resolveDest(
  * geometry, the signature unicorn background, the `theme` colours (accent hue +
  * saturation and the dark card-surface tint), the display `currency` (every money
  * figure is converted from USD at the live ECB rate), the `typography` (family +
- * numeric style), and the card-surface `appearance` knobs. The `events` and
- * `frames` arrays are intentionally empty: the agent fills them from the
+ * numeric style), and the card-surface `appearance` knobs. The `frames` array is
+ * intentionally empty: the agent fills it from the
  * user's request (read catalogue → add frames → lint → serve). Built as a
  * literal, then validated through DashboardSpecSchema so a release can never
  * ship a skeleton the runtime would reject.
@@ -118,10 +118,6 @@ function skeleton(title: string, author: string) {
       density: 1,
       elevation: 1,
     },
-    // Empty like `frames`, and for the same reason: the key is here so the
-    // agent (and a human opening the file) can see the shape exists without
-    // reading the catalogue.
-    events: [] as unknown[],
     frames: [] as unknown[],
   };
 }

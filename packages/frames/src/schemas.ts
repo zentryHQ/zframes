@@ -180,6 +180,7 @@ export const fearGreedMeta = defineFrameMeta({
 
 export const fundingRateChartMeta = defineFrameMeta({
   name: "funding-rate-chart",
+  annotatable: true,
   label: "Funding Rate Chart",
   category: "derivatives",
   iconUrl: widgetIcon("funding-rate-chart"),
@@ -964,6 +965,7 @@ export const journalScoreMeta = defineFrameMeta({
 
 export const priceCompareMeta = defineFrameMeta({
   name: "price-compare",
+  annotatable: true,
   label: "Price Compare",
   category: "markets",
   iconUrl: widgetIcon("price-compare"),
@@ -995,6 +997,7 @@ export const priceCompareMeta = defineFrameMeta({
 
 export const priceEventsMeta = defineFrameMeta({
   name: "price-events",
+  annotatable: true,
   label: "Price & Events",
   category: "markets",
   iconUrl: widgetIcon("price-compare"),
@@ -1150,6 +1153,7 @@ export const dexVolumeTreemapMeta = defineFrameMeta({
 
 export const dexVolumeChartMeta = defineFrameMeta({
   name: "dex-volume-chart",
+  annotatable: true,
   label: "DEX Volume Chart",
   category: "crypto",
   iconUrl: widgetIcon("dex-volume-chart"),
@@ -1196,6 +1200,7 @@ export const protocolTvlTreemapMeta = defineFrameMeta({
 
 export const protocolTvlChartMeta = defineFrameMeta({
   name: "protocol-tvl-chart",
+  annotatable: true,
   label: "Protocol TVL Chart",
   category: "crypto",
   iconUrl: widgetIcon("protocol-tvl-chart"),
@@ -2694,6 +2699,7 @@ export const sectorTreemapMeta = defineFrameMeta({
 
 export const etfFlowsChartMeta = defineFrameMeta({
   name: "etf-flows-chart",
+  annotatable: true,
   label: "ETF Flows Chart",
   category: "crypto",
   iconUrl: widgetIcon("etf-flows-chart"),
@@ -2716,6 +2722,7 @@ export const etfFlowsChartMeta = defineFrameMeta({
 
 export const realizedPriceMeta = defineFrameMeta({
   name: "realized-price",
+  annotatable: true,
   label: "Realized Price",
   category: "onchain",
   iconUrl: widgetIcon("realized-price"),
@@ -4118,6 +4125,7 @@ export const optionsOiSkewMeta = defineFrameMeta({
 
 export const optionsVolSpreadMeta = defineFrameMeta({
   name: "options-vol-spread",
+  annotatable: true,
   label: "BTC/ETH Vol Spread",
   category: "derivatives",
   iconUrl: widgetIcon("options-vol-spread"),
@@ -4234,6 +4242,7 @@ export const optionsMaxPainMultiMeta = defineFrameMeta({
 
 export const mvrvZscoreChartMeta = defineFrameMeta({
   name: "mvrv-zscore-chart",
+  annotatable: true,
   label: "MVRV Z-Score Chart",
   category: "onchain",
   iconUrl: widgetIcon("mvrv-zscore-chart"),
@@ -4252,6 +4261,7 @@ export const mvrvZscoreChartMeta = defineFrameMeta({
 
 export const nuplCycleChartMeta = defineFrameMeta({
   name: "nupl-cycle-chart",
+  annotatable: true,
   label: "NUPL Cycle Chart",
   category: "onchain",
   iconUrl: widgetIcon("nupl-cycle-chart"),
@@ -4270,6 +4280,7 @@ export const nuplCycleChartMeta = defineFrameMeta({
 
 export const cycleValuationCompositeMeta = defineFrameMeta({
   name: "cycle-valuation-composite",
+  annotatable: true,
   label: "Cycle Valuation Composite",
   category: "onchain",
   iconUrl: widgetIcon("cycle-valuation-composite"),
@@ -4288,6 +4299,7 @@ export const cycleValuationCompositeMeta = defineFrameMeta({
 
 export const onchainOscillatorOverlayMeta = defineFrameMeta({
   name: "onchain-oscillator-overlay",
+  annotatable: true,
   label: "On-Chain Oscillator Overlay",
   category: "onchain",
   iconUrl: widgetIcon("onchain-oscillator-overlay"),
@@ -4508,6 +4520,7 @@ export const miseryIndexMeta = defineFrameMeta({
 
 export const realWagesMeta = defineFrameMeta({
   name: "real-wages",
+  annotatable: true,
   label: "Real Wages",
   category: "macro",
   iconUrl: widgetIcon("real-wages"),
@@ -4531,6 +4544,7 @@ export const realWagesMeta = defineFrameMeta({
 
 export const laborForceFlowMeta = defineFrameMeta({
   name: "labor-force-flow",
+  annotatable: true,
   label: "Labor Force Flow",
   category: "macro",
   iconUrl: widgetIcon("labor-force-flow"),
@@ -4682,6 +4696,7 @@ export const etfIssuerTreemapMeta = defineFrameMeta({
 
 export const fxTrendChartMeta = defineFrameMeta({
   name: "fx-trend-chart",
+  annotatable: true,
   label: "FX Trend Chart",
   category: "macro",
   iconUrl: widgetIcon("fx-trend-chart"),
@@ -4711,6 +4726,7 @@ export const fxTrendChartMeta = defineFrameMeta({
 
 export const fearGreedChartMeta = defineFrameMeta({
   name: "fear-greed-chart",
+  annotatable: true,
   label: "Fear & Greed Chart",
   category: "sentiment",
   iconUrl: widgetIcon("fear-greed-chart"),
@@ -4753,6 +4769,7 @@ export const predictionMarketBarsMeta = defineFrameMeta({
 
 export const dxyChartMeta = defineFrameMeta({
   name: "dxy-chart",
+  annotatable: true,
   label: "Dollar Index Chart",
   category: "macro",
   iconUrl: widgetIcon("dxy-chart"),
@@ -5030,6 +5047,7 @@ export const metalValueMeta = defineFrameMeta({
 
 export const metalPriceChartMeta = defineFrameMeta({
   name: "metal-price-chart",
+  annotatable: true,
   label: "Metal Price Chart",
   category: "metals",
   iconUrl: widgetIcon("metal-price-chart"),
@@ -5063,6 +5081,7 @@ export const metalPriceChartMeta = defineFrameMeta({
 
 export const metalDrawdownMeta = defineFrameMeta({
   name: "metal-drawdown",
+  annotatable: true,
   label: "Metal Drawdown",
   category: "metals",
   iconUrl: widgetIcon("metal-drawdown"),
@@ -5134,6 +5153,7 @@ export const metalSeasonalityMeta = defineFrameMeta({
 
 export const metalVolatilityMeta = defineFrameMeta({
   name: "metal-volatility",
+  annotatable: true,
   label: "Metal Volatility",
   category: "metals",
   iconUrl: widgetIcon("metal-volatility"),
@@ -5186,6 +5206,7 @@ export const goldSilverRatioMeta = defineFrameMeta({
 
 export const metalRatioChartMeta = defineFrameMeta({
   name: "metal-ratio-chart",
+  annotatable: true,
   label: "Metal Ratio Chart",
   category: "metals",
   iconUrl: widgetIcon("metal-ratio-chart"),
@@ -5211,6 +5232,7 @@ export const metalRatioChartMeta = defineFrameMeta({
 
 export const metalCompareChartMeta = defineFrameMeta({
   name: "metal-compare-chart",
+  annotatable: true,
   label: "Metal Compare",
   category: "metals",
   iconUrl: widgetIcon("metal-compare-chart"),
@@ -5372,6 +5394,7 @@ export const metalsCorrelationMeta = defineFrameMeta({
 
 export const btcInGoldMeta = defineFrameMeta({
   name: "btc-in-gold",
+  annotatable: true,
   label: "BTC in Gold",
   category: "metals",
   iconUrl: widgetIcon("btc-in-gold"),
@@ -5396,6 +5419,7 @@ export const btcInGoldMeta = defineFrameMeta({
 
 export const metalCotNetMeta = defineFrameMeta({
   name: "metal-cot-net",
+  annotatable: true,
   label: "COT Net Positioning",
   category: "metals",
   iconUrl: widgetIcon("metal-cot-net"),
@@ -5470,6 +5494,7 @@ export const metalCotGaugeMeta = defineFrameMeta({
 
 export const metalOpenInterestMeta = defineFrameMeta({
   name: "metal-open-interest",
+  annotatable: true,
   label: "Futures Open Interest",
   category: "metals",
   iconUrl: widgetIcon("metal-open-interest"),
@@ -5501,6 +5526,7 @@ export const metalOpenInterestMeta = defineFrameMeta({
 
 export const metalPositioningVsPriceMeta = defineFrameMeta({
   name: "metal-positioning-vs-price",
+  annotatable: true,
   label: "Positioning vs Price",
   category: "metals",
   iconUrl: widgetIcon("metal-positioning-vs-price"),

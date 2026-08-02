@@ -183,6 +183,15 @@ export interface FrameMeta<S extends z.ZodType = z.ZodType> {
    */
   layout?: FrameLayout;
   /**
+   * True when this frame plots a time axis and therefore draws the instance's
+   * `events` markers on it. Purely declarative: it tells the editor whether to
+   * offer the card's Events panel, and the AI catalogue which frames accept
+   * `events` at all — a marker set on any other frame would be silently
+   * inert. `tests/chart-events-coverage.test.ts` fails the build if this drifts
+   * from the frames that actually render through `TimeSeriesChart`.
+   */
+  annotatable?: boolean;
+  /**
    * Where this frame's data comes from. The chrome renders it as a clickable
    * credit in the title row (one or more provider links). Omit for frames with
    * no external data feed.

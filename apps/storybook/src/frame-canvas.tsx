@@ -23,6 +23,32 @@ const DENSITY: Record<StoryGlobals["density"], number> = {
 
 const DEFAULT_LAYOUT: FrameLayout = { w: 4, h: 3 };
 
+/**
+ * Demo event markers for the "Events" toolbar toggle, attached to the story's
+ * frame instance (markers belong to a card). Dated relative to now because the
+ * mock provider's series are too (BASELINE_NOW), so they always land inside
+ * whatever window a chart plots. Between them they exercise every branch of the
+ * layer: a plain marker, a coloured one with a note and a source link, and two
+ * a day apart that must collapse into one clustered flag.
+ */
+const DAY = 86_400_000;
+const isoDaysAgo = (days: number): string => {
+  const d = new Date(Date.now() - days * DAY);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const DEMO_EVENTS = [
+  {
+    date: isoDaysAgo(46),
+    label: "Rate decision",
+    note: "Demo marker — the dashboard's own `events` list feeds these.",
+    color: "#f5a524",
+    url: "https://example.com/",
+  },
+  { date: isoDaysAgo(24), label: "CPI print" },
+  { date: isoDaysAgo(9), label: "Earnings" },
+  { date: isoDaysAgo(8), label: "Guidance cut" },
+];
+
 function sizeFor(
   frame: AnyFrameDefinition,
   size: StoryGlobals["frameSize"],
@@ -60,7 +86,7 @@ export function FrameCanvas({
   mode?: MockMode;
   globals: StoryGlobals;
 }) {
-  const { themePreset, frameSize, density } = globals;
+  const { themePreset, frameSize, density, events } = globals;
   const provider = useMemo(() => new MockMarketDataProvider(mode), [mode]);
   const { w, h } = sizeFor(frame, frameSize);
   const configKey = JSON.stringify(config);
@@ -78,7 +104,17 @@ export function FrameCanvas({
         rows: h,
       },
       frames: [
-        { id: "sb", frame: frame.name, position: { x: 0, y: 0, w, h }, config },
+        {
+          id: "sb",
+          frame: frame.name,
+          position: { x: 0, y: 0, w, h },
+          config,
+          // Markers live on the card, so they ride the frame instance. Only an
+          // `annotatable` frame draws them; on anything else this is inert.
+          ...(events === "off" || !frame.annotatable
+            ? {}
+            : { events: DEMO_EVENTS }),
+        },
       ],
     });
     return {
@@ -95,7 +131,7 @@ export function FrameCanvas({
     };
     // configKey stands in for the config object identity
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [frame.name, configKey, themePreset, w, h, density]);
+  }, [frame.name, configKey, themePreset, w, h, density, events]);
 
   const widthPx = w * ROW + (w - 1) * GAP;
 

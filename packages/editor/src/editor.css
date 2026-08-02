@@ -785,10 +785,10 @@ body:has(.ui-draggable-dragging) * {
   color: rgba(255, 255, 255, 0.4);
   margin: -4px 0 8px;
 }
-/* ── Events rail ───────────────────────────────────────────────────────────
-   The board's dated markers. One card per event: day + colour + delete on the
-   head row, then the label and note stacked full-width, because 320px of rail
-   can't hold them side by side and still be typeable. */
+/* ── Card events panel ─────────────────────────────────────────────────────
+   A card's dated markers, in its config dialog. One row per event: day +
+   colour + delete on the head line, then label and note stacked full-width,
+   because the dialog column can't hold them side by side and stay typeable. */
 .zf-events {
   display: flex;
   flex-direction: column;
