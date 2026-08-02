@@ -74,6 +74,7 @@ type JsonShape = {
 
 /** Exactly the keys a catalogue entry may expose to the generating agent. */
 const ENTRY_KEYS = [
+  "annotatable",
   "capabilities",
   "category",
   "configSchema",
@@ -102,6 +103,19 @@ describe("catalogueForAI", () => {
     expect(entry.description).toBe("Next-block fee estimates.");
     expect(entry.iconUrl).toBe("https://example.test/btc.svg");
     expect(entry.capabilities).toEqual(["btc-fees", "btc-mempool"]);
+  });
+
+  it("tells the agent which frames accept event markers", () => {
+    // `events` on a frame that has no time axis parses fine and then draws
+    // nothing, so the agent needs this to place markers where they show. Always
+    // present (false, not absent) — the entry shape must not vary by frame.
+    const [plain] = catalogueForAI([fakeMeta({ name: "clock" })]);
+    expect(plain.annotatable).toBe(false);
+    const [chart] = catalogueForAI([
+      fakeMeta({ name: "price-events", annotatable: true }),
+    ]);
+    expect(chart.annotatable).toBe(true);
+    expect(Object.keys(chart).sort()).toEqual(ENTRY_KEYS);
   });
 
   it("keeps the key set fixed when the meta omits the optional iconUrl", () => {

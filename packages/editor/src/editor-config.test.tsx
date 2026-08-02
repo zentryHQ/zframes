@@ -37,7 +37,19 @@ const syntheticFrame = defineFrame({
   component: () => null,
 });
 
-const registry = createRegistry([syntheticFrame]);
+/** Same schema, but flagged as a time-axis chart — the Events panel's gate. */
+const annotatableFrame = defineFrame({
+  name: "synthetic-chart",
+  label: "Synthetic Chart",
+  category: "markets",
+  description: "a time-axis chart that draws event markers",
+  capabilities: [],
+  annotatable: true,
+  schema,
+  component: () => null,
+});
+
+const registry = createRegistry([syntheticFrame, annotatableFrame]);
 
 const baseConfig = {
   enabled: true,
@@ -50,12 +62,16 @@ const baseConfig = {
   tags: [] as string[],
 };
 
-function setup(configOverrides: Record<string, unknown> = {}) {
+function setup(
+  configOverrides: Record<string, unknown> = {},
+  instanceOverrides: Partial<FrameInstance> = {},
+) {
   const instance: FrameInstance = {
     id: "f1",
     frame: "synthetic",
     position: { x: 0, y: 0, w: 2, h: 2 },
     config: { ...baseConfig, ...configOverrides },
+    ...instanceOverrides,
   };
   const instancesRef = { current: new Map([[instance.id, instance]]) };
   const onApply = vi.fn();
@@ -84,7 +100,15 @@ function setup(configOverrides: Record<string, unknown> = {}) {
   );
   const committed = () =>
     instancesRef.current.get("f1")!.config as Record<string, unknown>;
-  return { ...view, instancesRef, onApply, onClose, committed };
+  const committedInstance = () => instancesRef.current.get("f1")!;
+  return {
+    ...view,
+    instancesRef,
+    onApply,
+    onClose,
+    committed,
+    committedInstance,
+  };
 }
 
 afterEach(() => cleanup());
@@ -222,5 +246,102 @@ describe("FrameConfigDialog validation gating", () => {
     expect(container.querySelector(".zf-config-error")).toBeNull();
     expect(committed().label).toBe("Valid");
     expect(onApply).toHaveBeenLastCalledWith("f1");
+  });
+});
+
+/**
+ * The card's Events panel. Markers live on the INSTANCE (`events`), not in
+ * `config`, so they take their own commit path — and the panel is offered only
+ * for frames whose meta says `annotatable`, because a marker anywhere else
+ * parses fine and then draws nothing.
+ */
+describe("FrameConfigDialog events panel", () => {
+  const panelHeads = () =>
+    [...document.querySelectorAll(".zf-style-head-label")].map(
+      (el) => el.textContent,
+    );
+  /** Idempotent: the panel already starts open when the card has markers. */
+  const openEvents = () => {
+    const head = [...document.querySelectorAll(".zf-style-head")].find((h) =>
+      h.textContent?.includes("Events"),
+    );
+    if (head!.getAttribute("aria-expanded") !== "true") fireEvent.click(head!);
+  };
+  const addEvent = () => {
+    const add = [...document.querySelectorAll("button")].find((b) =>
+      /Add event/.test(b.textContent ?? ""),
+    );
+    fireEvent.click(add!);
+  };
+  const chart = { frame: "synthetic-chart" } as const;
+
+  it("is offered on an annotatable frame and hidden on every other", () => {
+    const withPanel = setup({}, chart);
+    expect(panelHeads()).toContain("Events");
+    withPanel.unmount();
+    setup();
+    expect(panelHeads()).not.toContain("Events");
+  });
+
+  it("adds a marker to the instance — dated today, with a label that validates", () => {
+    const { committedInstance, onApply } = setup({}, chart);
+    openEvents();
+    addEvent();
+    const events = committedInstance().events!;
+    expect(events).toHaveLength(1);
+    // A blank label would fail the spec's min(1) at save time.
+    expect(events[0].label.length).toBeGreaterThan(0);
+    expect(events[0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(onApply).toHaveBeenCalledWith("f1");
+  });
+
+  it("edits a marker in place, leaving fields the form doesn't expose alone", () => {
+    // `url` is agent- or hand-authored; fixing a typo in the label must not
+    // silently drop the source link.
+    const { committedInstance } = setup(
+      {},
+      {
+        ...chart,
+        events: [
+          { date: "2026-03-18", label: "FOMC", url: "https://example.com/a" },
+        ],
+      },
+    );
+    openEvents();
+    const label = document.querySelector(
+      'input[aria-label="Event 1 label"]',
+    ) as HTMLInputElement;
+    fireEvent.change(label, { target: { value: "FOMC +25bp" } });
+    expect(committedInstance().events).toEqual([
+      { date: "2026-03-18", label: "FOMC +25bp", url: "https://example.com/a" },
+    ]);
+  });
+
+  it("keeps the time of day when only the calendar day is edited", () => {
+    const { committedInstance } = setup(
+      {},
+      { ...chart, events: [{ date: "2026-03-18T14:30", label: "CPI" }] },
+    );
+    openEvents();
+    const date = document.querySelector(
+      'input[aria-label="Event 1 date"]',
+    ) as HTMLInputElement;
+    fireEvent.change(date, { target: { value: "2026-03-19" } });
+    expect(committedInstance().events?.[0].date).toBe("2026-03-19T14:30");
+  });
+
+  it("drops the `events` key entirely when the last marker is removed", () => {
+    // A card that ends up with no markers must round-trip byte-identical to one
+    // that never had any — not carry an empty array through every save.
+    const { committedInstance } = setup(
+      {},
+      { ...chart, events: [{ date: "2026-03-18", label: "FOMC" }] },
+    );
+    openEvents();
+    const remove = document.querySelector(
+      'button[aria-label="Remove event 1"]',
+    ) as HTMLButtonElement;
+    fireEvent.click(remove);
+    expect(committedInstance().events).toBeUndefined();
   });
 });

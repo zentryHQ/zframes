@@ -25,8 +25,9 @@ export function catalogueForAI(input: FrameRegistry | Iterable<FrameMeta>) {
     capabilities: meta.capabilities,
     // Only a time-axis chart draws event markers. Surfaced so the agent puts a
     // frame instance's `events` on a frame that can actually show them —
-    // anywhere else the field parses fine and then renders nothing.
-    ...(meta.annotatable ? { annotatable: true } : {}),
+    // anywhere else the field parses fine and then renders nothing. Always
+    // emitted (never conditionally spread) so the entry shape stays fixed.
+    annotatable: meta.annotatable === true,
     // io: "input" — the agent writes the *input* shape, where .default()
     // fields are optional. The output shape would wrongly mark them required.
     configSchema: z.toJSONSchema(meta.schema, { io: "input" }),
