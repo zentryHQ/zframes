@@ -20,7 +20,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { providers, registry } from "@/app/lib/frames";
+import { PUBLIC_DEMO_ADDRESS, providers, registry } from "@/app/lib/frames";
 import { Input } from "@/app/components/ui/input";
 import FramePlayground from "./FramePlayground";
 
@@ -29,15 +29,18 @@ const GAP = 12;
 
 // Stocks-first DISPLAY order for the public catalogue: lead with the
 // equity-relevant families (live prices, single-company fundamentals & filings,
-// macro context), then the crypto families, then everything else. This reorders
-// the catalogue's sections only — the global FRAME_CATEGORIES order (which drives
-// the editor palette and the AI catalogue) is deliberately left untouched.
-const CATALOGUE_CATEGORY_ORDER: FrameCategory[] = [
+// macro context and the commodity complex), then the crypto families, then
+// everything else. This reorders the catalogue's sections only — the global
+// FRAME_CATEGORIES order (which drives the editor palette and the AI catalogue)
+// is deliberately left untouched.
+const CATALOGUE_CATEGORY_ORDER = [
   "markets", // Prices & Markets — equity perps lead
   "equities", // Equities & Filings
   "macro", // Macro & Rates — market context
+  "metals", // Metals & Commodities — the same macro context, in hard assets
   "crypto", // Crypto & On-chain
   "bitcoin", // Bitcoin Network
+  "onchain", // On-chain & Cycle — reads the chain the two above price
   "derivatives", // Derivatives & Options
   "sentiment", // Sentiment & News
   "portfolio",
@@ -45,20 +48,37 @@ const CATALOGUE_CATEGORY_ORDER: FrameCategory[] = [
   "tools",
   "layout",
   "games",
-];
-// Rank by the list above; any category not listed (e.g. a family added to core
-// later) sorts to the end rather than silently jumping to the front.
+] as const satisfies readonly FrameCategory[];
+
+// A family added to FRAME_CATEGORIES but never ranked above still *renders* —
+// it just silently sorts below Games, which is how `metals` (26 frames) and
+// `onchain` (23) ended up beneath three idle games for a month. Make the
+// omission a typecheck failure instead: if any FrameCategory is unranked, the
+// annotation below resolves to `never` and `pnpm typecheck` fails naming it.
+// `as const satisfies` above is load-bearing — a plain `FrameCategory[]`
+// annotation widens the element type and collapses this Exclude to `never`.
+type UnrankedCategory = Exclude<
+  FrameCategory,
+  (typeof CATALOGUE_CATEGORY_ORDER)[number]
+>;
+const _everyCategoryRanked: [UnrankedCategory] extends [never] ? true : never =
+  true;
+void _everyCategoryRanked;
+
+// Rank by the list above. The -1 fallback is unreachable given the guard, but
+// kept so an unranked family degrades to "last" rather than "first".
 const categoryRank = (key: FrameCategory) => {
-  const i = CATALOGUE_CATEGORY_ORDER.indexOf(key);
+  const i = (CATALOGUE_CATEGORY_ORDER as readonly FrameCategory[]).indexOf(key);
   return i === -1 ? Number.MAX_SAFE_INTEGER : i;
 };
 const ORDERED_CATEGORIES = [...FRAME_CATEGORIES].sort(
   (a, b) => categoryRank(a.key) - categoryRank(b.key),
 );
 
-// Mount a frame's live renderer only when it scrolls near the viewport — 76
-// frames rendering + fetching at once would jank the page and hammer the free
-// APIs. Client-only (this whole view is ssr:false), so IntersectionObserver is safe.
+// Mount a frame's live renderer only when it scrolls near the viewport — the
+// whole catalogue rendering + fetching at once would jank the page and hammer
+// the free APIs. Client-only (this whole view is ssr:false), so
+// IntersectionObserver is safe.
 function LazyMount({
   minHeight,
   children,
@@ -97,6 +117,16 @@ function FrameCard({ def }: { def: AnyFrameDefinition }) {
 
   const spec = useMemo(() => {
     const config = buildDefaultConfig(def);
+    // The `account: true` frames default to `source: "binance"`, which the
+    // explorer cannot serve (no signed relay) — so a schema-default card is a
+    // connect form whose button 404s. Point them at the same public wallet the
+    // landing demos, so the family shows live holdings like every other family
+    // shows live data. Guarded on the value, not the flag, so it no-ops if the
+    // schema default ever changes.
+    if (def.account && config.source === "binance") {
+      config.source = "wallet";
+      config.address = PUBLIC_DEMO_ADDRESS;
+    }
     return DashboardSpecSchema.parse({
       title: def.name,
       grid: {
@@ -189,7 +219,7 @@ export default function CatalogueView() {
   const searching = tokens.length > 0;
   // Filter once (label / description / name / category label) and drop empty
   // families. Filtering BEFORE render also means LazyMount only mounts matches,
-  // so a search shrinks the heavy live-frame grid instead of mounting all 76.
+  // so a search shrinks the heavy live-frame grid instead of mounting the lot.
   const sections = useMemo(() => {
     return ORDERED_CATEGORIES.map((cat) => {
       const all = byCategory.get(cat.key) ?? [];
