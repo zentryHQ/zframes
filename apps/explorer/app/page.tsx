@@ -7,6 +7,7 @@ import Link from "next/link";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import { CURATED } from "@/app/lib/curated-dashboards";
 import { CopyCommand } from "@/app/lib/CopyCommand";
+import { KEYLESS_PROVIDER_COUNT } from "@/app/lib/frames";
 import { FramesShowcase } from "@/app/lib/FramesShowcase";
 import { LiveBoardFrame } from "@/app/lib/LiveBoardFrame";
 import { LiveFrame, LiveFrameStyles } from "@/app/lib/LiveFrame";
@@ -425,7 +426,7 @@ export default function GalleryHome() {
           <ValueCard
             index={1}
             title="Keyless"
-            body="Hyperliquid, DeFiLlama, alternative.me & CoinGecko — free public APIs. No signup, no API keys, no .env to preview or run."
+            body={`${KEYLESS_PROVIDER_COUNT} free public sources — Hyperliquid, CoinGecko and DeFiLlama alongside the Fed's FRED, the Treasury, the SEC, Zillow and the FHFA. No signup, no API keys, no .env to preview or run.`}
             icon={
               <>
                 <circle cx="8" cy="15" r="4" />

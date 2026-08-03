@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { motion, useReducedMotion, useTransform } from "motion/react";
+import { FRAME_CATEGORIES } from "@zframes/core";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import { LiveFrame } from "@/app/lib/LiveFrame";
 import { Parallax, Reveal, useViewportProgress } from "@/app/lib/motion";
@@ -14,6 +15,10 @@ import { Parallax, Reveal, useViewportProgress } from "@/app/lib/motion";
 // rates around the family's copy, with a ghosted chapter numeral moving
 // counter-scroll behind. Every specimen is streaming real data — the section
 // doesn't describe the catalogue, it IS the catalogue.
+//
+// It closes on a SPOTLIGHT band (see below) — the newest batch of frames named
+// outright, because a raw catalogue total tells a visitor nothing about which
+// frames are worth looking at first.
 
 type Specimen = {
   frame: string;
@@ -36,9 +41,17 @@ type Chapter = {
   specimens: Specimen[];
 };
 
-// Casting notes: keyless, non-proxied sources wherever possible (Hyperliquid,
-// CoinGecko, DeFiLlama, mempool.space, Deribit, alternative.me, Frankfurter) so
-// every specimen streams for every visitor; sized/tilted for collage rhythm.
+// Casting notes: keyless sources, browser-direct wherever possible (Hyperliquid,
+// CoinGecko, DeFiLlama, mempool.space, Deribit, alternative.me, Frankfurter,
+// Zillow) so every specimen streams for every visitor; sized/tilted for collage
+// rhythm. The proxied official sources (FRED, Treasury, FHFA) are fine here too
+// — the explorer ships the relay at /api/zframes-proxy, edge-cached per host.
+//
+// One cost worth knowing before adding a specimen: Zillow publishes ZHVI as a
+// single uncompressed ~4.4 MB CSV with no per-region endpoint, so the FIRST
+// ZHVI card on the page pays that download and every later one is free (the
+// provider caches the parsed table under a constant key). Cast Zillow freely,
+// but know the first one is not cheap.
 const CHAPTERS: Chapter[] = [
   {
     key: "markets",
@@ -177,7 +190,7 @@ const CHAPTERS: Chapter[] = [
     label: "Macro & Rates",
     headline: "The official numbers, unofficial speed.",
     blurb:
-      "Treasury yield curve, reference rates, FX crosses, the dollar index — straight from the primary sources, rendered like a terminal, not a press release.",
+      "The Treasury yield curve, corporate credit spreads, FX crosses — and what a home actually costs, in dollars. The Fed's own series, Zillow's and the FHFA's, straight from the primary sources and rendered like a terminal, not a press release.",
     specimens: [
       {
         frame: "yield-curve",
@@ -186,20 +199,20 @@ const CHAPTERS: Chapter[] = [
         tilt: -1.2,
       },
       {
-        frame: "rates-board",
-        className: "w-72 h-64 hidden sm:block",
+        frame: "credit-spread-chart",
+        className: "w-80 h-56 hidden sm:block",
         drift: 64,
         tilt: 1.4,
       },
       {
-        frame: "dxy-chart",
-        className: "w-64 h-48 hidden sm:block",
+        frame: "metro-home-values",
+        className: "w-72 h-64 hidden sm:block",
         drift: 96,
         tilt: 1.8,
       },
       {
         frame: "fx-board",
-        className: "w-80 h-56 hidden md:block",
+        className: "w-64 h-52 hidden md:block",
         drift: 46,
         tilt: -1.2,
       },
@@ -238,6 +251,181 @@ const CHAPTERS: Chapter[] = [
 // frames land.
 function familyCount(key: string) {
   return allFrameMetas.filter((m) => m.category === key).length;
+}
+
+// Spelled-out counts keep the prose reading like prose while the NUMBERS stay
+// derived — "Fourteen families" can no longer drift the way a typed one did.
+const NUMBER_WORDS = [
+  "zero",
+  "one",
+  "two",
+  "three",
+  "four",
+  "five",
+  "six",
+  "seven",
+  "eight",
+  "nine",
+  "ten",
+  "eleven",
+  "twelve",
+  "thirteen",
+  "fourteen",
+  "fifteen",
+  "sixteen",
+  "seventeen",
+  "eighteen",
+  "nineteen",
+  "twenty",
+];
+const numberWord = (n: number) => NUMBER_WORDS[n] ?? String(n);
+const sentenceCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// ── The spotlight ───────────────────────────────────────────────────────────
+// The one hand-cast list in this file; every count around it is derived. It
+// exists because a catalogue total is a fact, not an argument — when a batch of
+// providers lands, someone has to say WHICH of the new frames is worth a look.
+//
+// Re-cast it when the next batch ships. A stale "just landed" is worse than
+// none. Current batch: FRED, Zillow Research and the FHFA.
+type Highlight = {
+  frame: string;
+  /** Extra config merged over schema defaults. */
+  config?: Record<string, unknown>;
+  /** Why this frame earns its slot — printed under the card. */
+  note: string;
+  /** Column span in the band's 12-column grid, at lg and up. */
+  span: string;
+  /**
+   * Card height. Unlike the collage above — where a specimen is scenery and a
+   * cropped axis reads as depth — these cards are the argument, so they get
+   * their meta's natural `layout.h`: 26rem ≈ h:4 (4×96px rows + 3×12px gaps),
+   * 22rem ≈ h:3.5. Anything shorter clips the x-axis labels off a chart and
+   * drops the sub-header off a stat card.
+   */
+  height: string;
+};
+
+/**
+ * The display names of the sources this batch introduced, spelled exactly as
+ * their frame metas credit them (`SOURCES` in @zframes/frames/schemas). The
+ * headline's frame count is filtered off this rather than typed, so it tracks
+ * every later frame built over the same providers.
+ */
+const SPOTLIGHT_SOURCES = ["FRED", "Zillow Research", "FHFA"];
+
+// `source` is one credit OR several (rates-board genuinely reads NY Fed AND
+// Treasury), so normalise before matching — a cross-provider frame must count
+// once, not zero times.
+const spotlightFrameCount = allFrameMetas.filter((meta) => {
+  const credits = meta.source
+    ? Array.isArray(meta.source)
+      ? meta.source
+      : [meta.source]
+    : [];
+  return credits.some((c) => SPOTLIGHT_SOURCES.includes(c.name));
+}).length;
+
+// The lead. Mortgage Payment is the only frame in the catalogue that needs TWO
+// providers to say anything at all, which is the whole argument for a frame
+// framework over one more chart widget.
+const SPOTLIGHT_LEAD: Highlight = {
+  frame: "mortgage-payment",
+  config: { region: "Austin, TX" },
+  note: "Zillow's typical home value priced at FRED's live 30-year rate. Two providers, one card: the index only says prices rose, the rate only says borrowing got dearer, and neither one answers whether a buyer can actually pay.",
+  span: "lg:col-span-5",
+  height: "h-[26rem]",
+};
+
+const SPOTLIGHT: Highlight[] = [
+  {
+    frame: "index-drawdown",
+    note: "How far an index sits below its own record, over time. Every trough is a bear market; on the Nasdaq's full history the dot-com bottom reads −78%.",
+    span: "lg:col-span-7",
+    height: "h-[26rem]",
+  },
+  {
+    frame: "vix-gauge",
+    note: "The VIX as a regime — calm, elevated, panic — rather than a number you have to remember the scale for.",
+    span: "lg:col-span-4",
+    height: "h-[22rem]",
+  },
+  {
+    frame: "regional-home-price-bars",
+    note: "The FHFA's own repeat-sales index, state by state: which housing markets are still rising, and which have turned.",
+    span: "lg:col-span-4",
+    height: "h-[22rem]",
+  },
+  {
+    frame: "home-value-scatter",
+    note: "Every metro plotted by price against pace, so expensive-and-cooling separates from cheap-and-heating.",
+    span: "lg:col-span-4",
+    height: "h-[22rem]",
+  },
+];
+
+function HighlightCard({
+  item,
+  index,
+  lead = false,
+}: {
+  item: Highlight;
+  index: number;
+  lead?: boolean;
+}) {
+  return (
+    <Reveal
+      delay={index * 0.06}
+      y={22}
+      className={`col-span-1 ${item.span} flex flex-col`}
+    >
+      <div
+        className={`${item.height} ${lead ? "glow-brand" : "glow-brand-soft"}`}
+      >
+        <LiveFrame frame={item.frame} config={item.config} className="h-full" />
+      </div>
+      <p className="mt-3 max-w-prose text-sm leading-relaxed text-white/60">
+        {lead && (
+          <span className="mr-1.5 font-semibold text-indigo-200">
+            The pick of the batch —
+          </span>
+        )}
+        {item.note}
+      </p>
+    </Reveal>
+  );
+}
+
+function SpotlightBand() {
+  return (
+    <section
+      aria-label="Newest frames"
+      className="mx-auto max-w-7xl px-6 py-10 sm:py-14"
+    >
+      <div className="zf-surface p-6 sm:p-10">
+        <Reveal>
+          <span className="zf-label mb-4">Just landed</span>
+          <h3 className="text-balance text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            Housing, credit, and the long index tape.
+          </h3>
+          <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
+            Three more keyless sources — the St.&nbsp;Louis Fed&rsquo;s FRED,
+            Zillow Research and the FHFA — and {numberWord(spotlightFrameCount)}{" "}
+            frames built over them. House prices in dollars rather than index
+            points, credit spreads, mortgage rates back to 1971. Still no key,
+            still no signup: the official numbers were always public.
+          </p>
+        </Reveal>
+
+        <div className="mt-8 grid grid-cols-1 gap-x-5 gap-y-8 lg:grid-cols-12">
+          <HighlightCard item={SPOTLIGHT_LEAD} index={0} lead />
+          {SPOTLIGHT.map((item, i) => (
+            <HighlightCard key={item.frame} item={item} index={i + 1} />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 // Giant scroll-scrubbed numeral: the frame count slides laterally and fades up
@@ -357,24 +545,31 @@ export function FramesShowcase() {
         <Reveal>
           <p className="text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
             Every frame below is the real component, rendering live data right
-            now — not a screenshot, not a mock. Twelve families; here are six.
+            now — not a screenshot, not a mock.{" "}
+            {sentenceCase(numberWord(FRAME_CATEGORIES.length))} families; here
+            are {numberWord(CHAPTERS.length)}.
           </p>
         </Reveal>
       </div>
 
-      {/* The six family chapters. */}
+      {/* The family chapters. */}
       <div className="mt-4 sm:mt-8">
         {CHAPTERS.map((c, i) => (
           <ChapterScene key={c.key} chapter={c} index={i} />
         ))}
       </div>
 
+      {/* The newest batch, called out by name — the one editorial beat in a
+          section that is otherwise a straight read of the registry. */}
+      <SpotlightBand />
+
       {/* Act outro — the long tail + catalogue CTA. */}
       <div className="mx-auto max-w-3xl px-6 pb-8 pt-8 text-center sm:pt-12">
         <Reveal>
           <p className="text-pretty text-base leading-relaxed text-white/70 sm:text-lg">
-            …plus portfolios, decision journals, countdowns, calculators,
-            headings, video — even idle games for when the market sleeps.
+            …plus metals and the London fix, on-chain cycle ratios, portfolios,
+            decision journals, countdowns, calculators, headings, video — even
+            idle games for when the market sleeps.
           </p>
           <Link
             href="/catalogue"
