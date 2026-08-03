@@ -5,6 +5,7 @@ import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import { formatFundingPct } from "./format";
 import { fundingCarryAreaMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const LOOKBACKS = {
@@ -15,12 +16,15 @@ const LOOKBACKS = {
 
 const schema = fundingCarryAreaMeta.schema;
 
+const LOOKBACK_OPTIONS = ["24h", "7D", "1M"] as const;
+
 function formatCarryAxisDate(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function FundingCarryArea({ config }: { config: z.output<typeof schema> }) {
-  const ms = LOOKBACKS[config.lookback];
+  const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
+  const ms = LOOKBACKS[lookback];
   const startTimeMs = useMemo(() => Date.now() - ms, [ms]);
   const { history, isLoading } = useFundingHistory(config.symbols, startTimeMs);
 
@@ -55,13 +59,27 @@ function FundingCarryArea({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no funding data yet</FrameStatus>;
 
   return (
-    <StackedAreaChart
-      series={series}
-      height={250}
-      formatXAxis={formatCarryAxisDate}
-      formatYAxis={formatFundingPct}
-      formatValue={formatFundingPct}
-    />
+    <div className="relative h-full min-h-0">
+      <StackedAreaChart
+        series={series}
+        height={250}
+        formatXAxis={formatCarryAxisDate}
+        formatYAxis={formatFundingPct}
+        formatValue={formatFundingPct}
+      />
+      {/* No header row to place the control in — overlaid top-right rather
+          than stacked above, which would steal height from the chart. */}
+      <div className="pointer-events-none absolute top-0 right-0 z-10">
+        <div className="pointer-events-auto">
+          <TimeframeToggle
+            options={LOOKBACK_OPTIONS}
+            value={lookback}
+            onChange={setLookback}
+            label="funding carry lookback"
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 

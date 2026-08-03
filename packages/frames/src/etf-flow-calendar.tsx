@@ -3,6 +3,7 @@ import { defineFrame, useEtfFlows, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { etfFlowCalendarMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const LOOKBACK_MS = {
@@ -12,6 +13,8 @@ const LOOKBACK_MS = {
 } as const;
 
 const schema = etfFlowCalendarMeta.schema;
+
+const LOOKBACK_OPTIONS = ["1M", "3M", "6M"] as const;
 
 /** Most recent Monday on/before `ms`, at local midnight — anchors the grid so
  *  the earliest row is a full week and weekday columns land in a stable
@@ -45,10 +48,11 @@ function Cell({
 }
 
 function EtfFlowCalendar({ config }: { config: z.output<typeof schema> }) {
+  const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
   const { flows, isLoading } = useEtfFlows(config.asset);
   const cutoff = useMemo(
-    () => mondayOnOrBefore(Date.now() - LOOKBACK_MS[config.lookback]),
-    [config.lookback],
+    () => mondayOnOrBefore(Date.now() - LOOKBACK_MS[lookback]),
+    [lookback],
   );
 
   const cells: HeatmapCell[] = useMemo(
@@ -74,14 +78,28 @@ function EtfFlowCalendar({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>ETF flows unavailable</FrameStatus>;
 
   return (
-    <HeatmapChart
-      data={cells}
-      CellComponent={Cell}
-      gap={3}
-      showLabels
-      rowLabelWidth={56}
-      columnLabelHeight={20}
-    />
+    <div className="relative h-full min-h-0">
+      <HeatmapChart
+        data={cells}
+        CellComponent={Cell}
+        gap={3}
+        showLabels
+        rowLabelWidth={56}
+        columnLabelHeight={20}
+      />
+      {/* No header row to place the control in — overlaid top-right rather
+          than stacked above, which would steal height from the grid. */}
+      <div className="pointer-events-none absolute top-0 right-0 z-10">
+        <div className="pointer-events-auto">
+          <TimeframeToggle
+            options={LOOKBACK_OPTIONS}
+            value={lookback}
+            onChange={setLookback}
+            label="ETF flow calendar lookback"
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 

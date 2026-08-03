@@ -16,20 +16,24 @@ import { normalize, rsi, tail, toSparkline, windowDays } from "./indicators";
 import { cycleValuationCompositeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 import { TimeSeriesChart } from "./series-chart";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = cycleValuationCompositeMeta.schema;
+
+const WINDOW_OPTIONS = ["1Y", "2Y", "4Y", "all"] as const;
 
 function CycleValuationComposite({
   config,
 }: {
   config: z.output<typeof schema>;
 }) {
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
   const { valuation, isLoading: vLoading } = useOnchainValuation();
   const { history, isLoading: hLoading } = useDailyCloseHistory("btc");
 
   const series: MultiSeriesData[] = useMemo(() => {
     if (!valuation) return [];
-    const n = windowDays(config.window);
+    const n = windowDays(chartWindow);
     const prep = (s: SeriesPoint[]) => toSparkline(normalize(tail(s, n)));
 
     // RSI(14) over the FULL daily close history, seeded before windowing so
@@ -64,7 +68,7 @@ function CycleValuationComposite({
         data: prep(rsiSeries),
       },
     ];
-  }, [valuation, history, config.window]);
+  }, [valuation, history, chartWindow]);
 
   if ((vLoading || hLoading) && series.length === 0)
     return <FrameStatus loading>loading cycle composite…</FrameStatus>;
@@ -77,6 +81,14 @@ function CycleValuationComposite({
       timeframe={ChartTimeframe.YTD}
       height={260}
       formatValue={(v) => formatPct(v * 100, 0)}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="cycle valuation composite window"
+        />
+      }
     />
   );
 }

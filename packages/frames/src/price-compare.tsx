@@ -11,6 +11,7 @@ import { formatChangePct } from "./format";
 import { priceCompareMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 import { TimeSeriesChart } from "./series-chart";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 // Candle interval picked per lookback so each window is ~50–100 points: dense
 // enough to read, light enough to keep the fetch cheap.
@@ -34,9 +35,12 @@ const LOOKBACKS = {
 
 const schema = priceCompareMeta.schema;
 
+const LOOKBACK_OPTIONS = ["24h", "7D", "1M"] as const;
+
 function PriceCompare({ config }: { config: z.output<typeof schema> }) {
   const money = useMoney();
-  const { ms, interval, timeframe } = LOOKBACKS[config.lookback];
+  const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
+  const { ms, interval, timeframe } = LOOKBACKS[lookback];
   // Stable start time: recompute only when the window changes, so the
   // useCandlesMulti effect doesn't re-run every render.
   const startTimeMs = useMemo(() => Date.now() - ms, [ms]);
@@ -80,6 +84,14 @@ function PriceCompare({ config }: { config: z.output<typeof schema> }) {
       timeframe={timeframe}
       height={250}
       formatValue={config.normalize ? formatChangePct : money.price}
+      control={
+        <TimeframeToggle
+          options={LOOKBACK_OPTIONS}
+          value={lookback}
+          onChange={setLookback}
+          label="price comparison window"
+        />
+      }
     />
   );
 }

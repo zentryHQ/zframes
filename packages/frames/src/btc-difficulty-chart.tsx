@@ -4,12 +4,20 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatCompact, formatHashrate } from "./format";
 import { btcDifficultyChartMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const schema = btcDifficultyChartMeta.schema;
 
+const WINDOWS = ["1y", "2y", "3y"] as const;
+
 function BtcDifficultyChart({ config }: { config: z.output<typeof schema> }) {
-  const { data, isLoading } = useNetworkHashrate(config.window);
+  // Not named `window` — that would shadow the global inside a browser component.
+  const [historyWindow, setHistoryWindow] = useFrameChoice(
+    "window",
+    config.window,
+  );
+  const { data, isLoading } = useNetworkHashrate(historyWindow);
 
   const sparkline = useMemo(
     () =>
@@ -47,7 +55,17 @@ function BtcDifficultyChart({ config }: { config: z.output<typeof schema> }) {
         color="hsl(var(--zf-accent-hue, 242) 85% 72%)"
       />
 
-      <div className="caption text-soft">past {config.window}</div>
+      {/* The static "past 1y" caption is now the control itself — same row, same
+          height, but adjustable on the card. */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="caption text-soft">past {historyWindow}</span>
+        <TimeframeToggle
+          options={WINDOWS}
+          value={historyWindow}
+          onChange={setHistoryWindow}
+          label="difficulty history window"
+        />
+      </div>
     </div>
   );
 }

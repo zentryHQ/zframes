@@ -4,10 +4,13 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatPct } from "./format";
 import { miningPoolsMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = miningPoolsMeta.schema;
+
+const WINDOW_OPTIONS = ["24h", "3d", "1w", "1m"] as const;
 
 interface PoolNode extends TreeNode {
   sharePct: number;
@@ -35,7 +38,8 @@ function Leaf({
 }
 
 function MiningPoolsFrame({ config }: { config: z.output<typeof schema> }) {
-  const { pools, isLoading } = useMiningPools(config.window);
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
+  const { pools, isLoading } = useMiningPools(chartWindow);
 
   const data: PoolNode[] = useMemo(() => {
     const all = pools?.pools ?? [];
@@ -59,11 +63,22 @@ function MiningPoolsFrame({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no mining data yet</FrameStatus>;
 
   return (
-    <TreeChart
-      data={data}
-      LeafComponent={Leaf}
-      getColorValue={(node) => node.sharePct}
-    />
+    // No existing header row to slot the toggle into — treemap fills the
+    // whole card, so it overlays top-right rather than costing a row.
+    <div className="relative h-full">
+      <TimeframeToggle
+        options={WINDOW_OPTIONS}
+        value={chartWindow}
+        onChange={setChartWindow}
+        label="mining pool window"
+        className="absolute top-0 right-0 z-10"
+      />
+      <TreeChart
+        data={data}
+        LeafComponent={Leaf}
+        getColorValue={(node) => node.sharePct}
+      />
+    </div>
   );
 }
 
