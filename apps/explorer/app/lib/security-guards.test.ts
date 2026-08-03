@@ -101,7 +101,10 @@ describe("findUnsafeUrls", () => {
         grid: { columns: 12, rowHeight: 96, gap: 12 },
         background: { type: "unicorn", opacity: 0.15 },
         frames: [
-          { frame: "price-chart", config: { symbol: "xyz:TSLA", venue: null } },
+          {
+            frame: "price-chart",
+            config: { symbol: "xyz:TSLA", source: null },
+          },
           {
             frame: "image",
             config: { src: "https://cdn.example.com/hero.png", alt: "hero" },

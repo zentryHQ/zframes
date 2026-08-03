@@ -15,16 +15,16 @@ const schema = topMoversMeta.schema;
 // effectively $0-volume and were only ever duplicating symbols already in xyz.
 const MOVER_UNIVERSE = ["xyz:*"] as const;
 
-// Another venue has no HIP-3 dex to wildcard, so asking for "xyz:*" there would
-// return nothing: pass no symbols and take that venue's whole universe instead.
+// Another source has no HIP-3 dex to wildcard, so asking for "xyz:*" there would
+// return nothing: pass no symbols and take that source's whole universe instead.
 const ALL_SYMBOLS = undefined;
 
 function TopMovers({ config }: { config: z.output<typeof schema> }) {
-  const hyperliquid = !config.venue || config.venue === "hyperliquid";
+  const hyperliquid = !config.source || config.source === "hyperliquid";
   const { stats, isLoading } = useDayStatsState(
     hyperliquid ? MOVER_UNIVERSE : ALL_SYMBOLS,
     60_000,
-    config.venue,
+    config.source,
   );
   const money = useMoney();
 
@@ -33,7 +33,7 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
       .map(([symbol, stat]) => ({ symbol, ...stat }))
       // Dust assets produce absurd % moves with no liquidity behind them.
       // On Hyperliquid the ":" test keeps this a stocks/commodities board (bare
-      // crypto is excluded by design); another venue lists bare tickers only, so
+      // crypto is excluded by design); another source lists bare tickers only, so
       // there the test would reject everything.
       .filter(
         (row) =>
