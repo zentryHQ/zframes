@@ -136,7 +136,15 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus loading>loading chart…</FrameStatus>;
 
   return (
-    <div ref={rootRef} className="h-full min-h-0">
+    // Liveline emits an in-flow <span> before its chart <div>. As a plain block
+    // container that span's line box pushed the 100%-height chart down ~12px, so
+    // the date axis it draws at the bottom fell outside .zf-frame-body's
+    // overflow:hidden and read as clipped. A flex column makes the chart take
+    // the *remaining* height instead of overflowing by the span's height.
+    <div
+      ref={rootRef}
+      className="flex h-full min-h-0 flex-col [&>div]:min-h-0 [&>div]:flex-1"
+    >
       <Liveline
         mode={config.mode}
         data={lineData}
