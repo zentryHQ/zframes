@@ -47,7 +47,9 @@ const DAG: Record<string, string[]> = {
     "@zframes/provider-defillama",
     "@zframes/provider-deribit",
     "@zframes/provider-etf-flows",
+    "@zframes/provider-fhfa",
     "@zframes/provider-finra",
+    "@zframes/provider-fred",
     "@zframes/provider-fx",
     "@zframes/provider-geckoterminal",
     "@zframes/provider-hyperliquid",
@@ -60,6 +62,7 @@ const DAG: Record<string, string[]> = {
     "@zframes/provider-sec",
     "@zframes/provider-treasury",
     "@zframes/provider-ultrasound",
+    "@zframes/provider-zillow",
     "@zframes/spec",
   ],
 };

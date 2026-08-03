@@ -98,6 +98,15 @@ const SOURCES = withSourceIds({
     name: "CFTC",
     url: "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
   },
+  fred: { name: "FRED", url: "https://fred.stlouisfed.org" },
+  zillow: {
+    name: "Zillow Research",
+    url: "https://www.zillow.com/research/data/",
+  },
+  fhfa: {
+    name: "FHFA",
+    url: "https://www.fhfa.gov/data/hpi",
+  },
 });
 
 export const clockMeta = defineFrameMeta({
@@ -5629,6 +5638,334 @@ export const tokenizedGoldMeta = defineFrameMeta({
   }),
 });
 
+// ── FRED / Zillow / FHFA: index levels, credit spreads, house prices ────────
+
+/**
+ * The market indices FRED republishes as a keyless CSV. Kept here (not imported
+ * from the provider) because `schemas.ts` must stay React- and provider-free —
+ * the frame layer never sees a provider package. `tests/capability-coverage.test.ts`
+ * is what keeps the two sides honest.
+ */
+const INDEX_SERIES = ["SP500", "VIXCLS", "NASDAQCOM"] as const;
+
+/** How far back each index actually goes, for the schema's own description. */
+const INDEX_SERIES_NOTE =
+  "SP500 = S&P 500, VIXCLS = VIX (volatility), NASDAQCOM = Nasdaq Composite. Note FRED redistributes SP500 under licence with only a ~10-year rolling window, while NASDAQCOM runs back to 1971 — a longer `years` than the series carries simply shows everything there is.";
+
+/** The 50 states plus DC, as FHFA keys its state-level HPI file. */
+const US_STATES = [
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "DC",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
+] as const;
+
+/** Zillow's own metro names — they must match its published `RegionName` exactly. */
+const ZHVI_REGIONS = [
+  "United States",
+  "New York, NY",
+  "Los Angeles, CA",
+  "Chicago, IL",
+  "Dallas, TX",
+  "Houston, TX",
+  "Washington, DC",
+  "Philadelphia, PA",
+  "Miami, FL",
+  "Atlanta, GA",
+  "Boston, MA",
+  "Phoenix, AZ",
+  "San Francisco, CA",
+  "Riverside, CA",
+  "Detroit, MI",
+  "Seattle, WA",
+  "Minneapolis, MN",
+  "San Diego, CA",
+  "Tampa, FL",
+  "Denver, CO",
+  "Austin, TX",
+  "Nashville, TN",
+  "Portland, OR",
+  "Las Vegas, NV",
+] as const;
+
+export const indexLevelChartMeta = defineFrameMeta({
+  name: "index-level-chart",
+  annotatable: true,
+  label: "Index Level Chart",
+  category: "markets",
+  iconUrl: widgetIcon("index-level-chart"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Daily level history for a major US market index — the S&P 500, the VIX, or the Nasdaq Composite — as a line chart with its latest print and move. Read from FRED's keyless public CSV, so it needs no market-data key; use it for the long-run index picture rather than a live intraday tick.",
+  capabilities: ["index-level"],
+  source: SOURCES.fred,
+  schema: z.object({
+    series: z
+      .enum(INDEX_SERIES)
+      .default("SP500")
+      .describe(`Which index to chart. ${INDEX_SERIES_NOTE}`),
+    years: z
+      .number()
+      .int()
+      .min(1)
+      .max(60)
+      .default(5)
+      .describe(
+        "How many years of history to chart. Longer than the series carries just shows all of it.",
+      ),
+    logScale: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Use a logarithmic axis — the honest way to read a multi-decade index, where 1,000→2,000 and 10,000→20,000 are the same doubling.",
+      ),
+  }),
+});
+
+export const creditSpreadChartMeta = defineFrameMeta({
+  name: "credit-spread-chart",
+  annotatable: true,
+  label: "Credit Spread Chart",
+  category: "macro",
+  iconUrl: widgetIcon("credit-spread-chart"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "US corporate credit spreads — the ICE BofA high-yield and investment-grade option-adjusted spreads over Treasuries, charted together in percentage points. The market's own price of default risk and one of the cleanest risk-on/risk-off reads there is: spreads widen before equities notice. Keyless (FRED).",
+  capabilities: ["credit-spread"],
+  source: SOURCES.fred,
+  schema: z.object({
+    grades: z
+      .array(z.enum(["high-yield", "investment-grade"]))
+      .min(1)
+      .max(2)
+      .default(["high-yield", "investment-grade"])
+      .describe(
+        "Which grades to plot. Both together shows the quality gap; high-yield alone is the sharper stress signal.",
+      ),
+    years: z
+      .number()
+      .int()
+      .min(1)
+      .max(30)
+      .default(3)
+      .describe(
+        "How many years of spread history to chart. FRED carries roughly the last three years of these licensed series.",
+      ),
+  }),
+});
+
+export const homePriceIndexMeta = defineFrameMeta({
+  name: "home-price-index",
+  annotatable: true,
+  label: "Home Price Index",
+  category: "macro",
+  iconUrl: widgetIcon("home-price-index"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "The Case-Shiller US National Home Price Index — the benchmark measure of American house prices, monthly back to 1987, indexed to January 2000 = 100. Shows the latest print, the year-over-year change, and the full history including the 2006 peak and the 2012 trough. Keyless (FRED).",
+  capabilities: ["housing-price"],
+  source: SOURCES.fred,
+  schema: z.object({
+    years: z
+      .number()
+      .int()
+      .min(1)
+      .max(40)
+      .default(25)
+      .describe(
+        "How many years of index history to chart. 25 covers both the housing bubble and its aftermath.",
+      ),
+    showYoY: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Show the year-over-year percent change alongside the index level — the number that says whether prices are still rising.",
+      ),
+  }),
+});
+
+export const mortgageRateChartMeta = defineFrameMeta({
+  name: "mortgage-rate-chart",
+  annotatable: true,
+  label: "Mortgage Rate Chart",
+  category: "macro",
+  iconUrl: widgetIcon("mortgage-rate-chart"),
+  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  description:
+    "The US 30-year fixed mortgage rate — the Freddie Mac weekly benchmark, back to 1971 — charted with its latest print and week-over-week move in basis points. The rate that actually sets housing affordability, and a cleaner read on long-end policy transmission than the 10-year yield. Keyless (FRED).",
+  capabilities: ["mortgage-rate"],
+  source: SOURCES.fred,
+  schema: z.object({
+    years: z
+      .number()
+      .int()
+      .min(1)
+      .max(55)
+      .default(10)
+      .describe(
+        "How many years of weekly rates to chart. 55 reaches the 1981 peak above 18%.",
+      ),
+  }),
+});
+
+export const regionalHomePricesMeta = defineFrameMeta({
+  name: "regional-home-prices",
+  annotatable: true,
+  label: "Regional Home Prices",
+  category: "macro",
+  iconUrl: widgetIcon("regional-home-prices"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "The FHFA House Price Index per state or metro, quarterly back to 1975 — several regions charted together so divergence is visible, which a single national index averages away. The regulator's own repeat-sales index; keyless (FHFA).",
+  capabilities: ["regional-housing-price"],
+  source: SOURCES.fhfa,
+  schema: z.object({
+    level: z
+      .enum(["state", "metro"])
+      .default("state")
+      .describe(
+        "Which published granularity to read. state = the 50 states + DC (a small, fast file); metro = ~410 metro areas (a much larger download, so prefer state unless a specific metro is the point).",
+      ),
+    regions: z
+      .array(z.string().min(2))
+      .min(1)
+      .max(6)
+      .default(["CA", "TX", "FL", "NY"])
+      .describe(
+        `Regions to chart, matched to the level. At state level use two-letter codes: ${US_STATES.join(", ")}. At metro level use FHFA's own metro name, which is a full CBSA title — a leading fragment is enough and is matched case-insensitively, so "Austin" resolves to "Austin-Round Rock-San Marcos, TX". A region that matches nothing is skipped rather than failing the card.`,
+      ),
+    years: z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .default(20)
+      .describe("How many years of quarterly index history to chart."),
+    rebase: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Rebase every region to 0% at the start of the window so the lines are directly comparable as cumulative appreciation. Off plots the published index levels, which are NOT comparable across regions — FHFA rebases each series to 100 at its own start date.",
+      ),
+  }),
+});
+
+export const metroHomeValuesMeta = defineFrameMeta({
+  name: "metro-home-values",
+  label: "Metro Home Values",
+  category: "macro",
+  iconUrl: widgetIcon("metro-home-values"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "What a typical home actually costs, metro by metro — the Zillow Home Value Index in dollars (not index points), each row with its latest value and year-over-year change, ranked. The one house-price source on the board denominated in money, so it answers 'what would a house cost me there' rather than 'how much have prices risen'. Keyless (Zillow), monthly.",
+  capabilities: ["home-value-index"],
+  source: SOURCES.zillow,
+  schema: z.object({
+    regions: z
+      .array(z.enum(ZHVI_REGIONS))
+      .min(1)
+      .max(24)
+      .default([
+        "United States",
+        "New York, NY",
+        "Los Angeles, CA",
+        "San Francisco, CA",
+        "Austin, TX",
+        "Miami, FL",
+        "Chicago, IL",
+        "Phoenix, AZ",
+      ])
+      .describe(
+        'Metros to list, using Zillow\'s own region names. "United States" is the national row.',
+      ),
+    sortBy: z
+      .enum(["value", "change", "size"])
+      .default("value")
+      .describe(
+        "value = most expensive first; change = fastest year-over-year appreciation first; size = Zillow's population size rank, which keeps the national row on top.",
+      ),
+  }),
+});
+
+export const homeValueChartMeta = defineFrameMeta({
+  name: "home-value-chart",
+  annotatable: true,
+  label: "Home Value Chart",
+  category: "macro",
+  iconUrl: widgetIcon("home-value-chart"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Typical home value over time for one or more metros — the Zillow Home Value Index charted in dollars, monthly back to 2000. The chart-first sibling of Metro Home Values: use it to see the 2006 peak, the 2012 bottom and the post-2020 run in actual money rather than index points. Keyless (Zillow).",
+  capabilities: ["home-value-index"],
+  source: SOURCES.zillow,
+  schema: z.object({
+    regions: z
+      .array(z.enum(ZHVI_REGIONS))
+      .min(1)
+      .max(4)
+      .default(["United States", "Austin, TX"])
+      .describe(
+        'Metros to chart, using Zillow\'s own region names. "United States" is the national row.',
+      ),
+    years: z
+      .number()
+      .int()
+      .min(1)
+      .max(26)
+      .default(15)
+      .describe(
+        "How many years of monthly values to chart. The series starts in 2000, so 26 is everything.",
+      ),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   metalsBoardMeta,
@@ -5657,6 +5994,13 @@ export const frameMetas: FrameMeta[] = [
   usGoldReserveMeta,
   usGoldVaultsMeta,
   tokenizedGoldMeta,
+  indexLevelChartMeta,
+  creditSpreadChartMeta,
+  homePriceIndexMeta,
+  mortgageRateChartMeta,
+  regionalHomePricesMeta,
+  metroHomeValuesMeta,
+  homeValueChartMeta,
   customDataMeta,
   newsFeedMeta,
   portfolioValueMeta,

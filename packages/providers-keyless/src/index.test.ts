@@ -68,6 +68,9 @@ const EXPECTED_ORDER = [
   "sec",
   "finra",
   "ofr",
+  "fred",
+  "zillow",
+  "fhfa",
   "fx",
   "metals",
   "news",
@@ -107,7 +110,7 @@ describe("createKeylessProviders", () => {
   it("constructs the whole keyless fleet in capability-routing order", () => {
     const providers = createKeylessProviders();
     expect(providers.map((p) => p.name)).toEqual(EXPECTED_ORDER);
-    expect(providers).toHaveLength(24);
+    expect(providers).toHaveLength(27);
   });
 
   it("keeps hyperliquid first and bitkub last (the two load-bearing ends)", () => {

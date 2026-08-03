@@ -62,6 +62,11 @@ import type {
   CotWeek,
   GoldReserve,
   TokenizedGold,
+  OfficialSeries,
+  HomeValueEntry,
+  HomeValueIndex,
+  RegionalHousingSeries,
+  RegionalHousingPrice,
 } from "@zframes/core";
 
 /**
@@ -278,6 +283,12 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "metal-positioning",
     "gold-reserve",
     "tokenized-gold",
+    "index-level",
+    "credit-spread",
+    "housing-price",
+    "mortgage-rate",
+    "home-value-index",
+    "regional-housing-price",
     "portfolio",
   ];
   readonly portfolioKinds: readonly PortfolioSourceKind[] = [
@@ -2119,6 +2130,287 @@ export class MockMarketDataProvider implements MarketDataProvider {
           premiumPct,
         };
       });
+    });
+  }
+
+  // ── official published series (FRED / Zillow / FHFA) ──────────────────────
+  /**
+   * A seeded series on a fixed publication cadence, travelling from `start` to
+   * `end` over `count` prints ending at the latest one. Daily prints skip
+   * weekends so a windowed chart's x-axis reads like a real trading calendar.
+   */
+  private officialPoints(
+    seed: string,
+    frequency: OfficialSeries["frequency"],
+    count: number,
+    start: number,
+    end: number,
+  ): SeriesPoint[] {
+    const r = rng(`official:${seed}`);
+    const step =
+      frequency === "daily"
+        ? DAY
+        : frequency === "weekly"
+          ? 7 * DAY
+          : frequency === "monthly"
+            ? 30 * DAY
+            : 91 * DAY;
+    const growth = count > 1 ? Math.pow(end / start, 1 / (count - 1)) : 1;
+    const out: SeriesPoint[] = [];
+    for (let i = 0; i < count; i++) {
+      const time = BASELINE_NOW - (count - 1 - i) * step;
+      const trend = start * Math.pow(growth, i);
+      // ±2% wobble around the glide so the line has texture but still lands on
+      // `end` — the same shape the metals fix mock uses.
+      out.push({ time, value: round(trend * (1 + (r() - 0.5) * 0.04), 3) });
+      if (frequency !== "daily") continue;
+      const weekday = new Date(time).getUTCDay();
+      if (weekday === 0 || weekday === 6) out.pop();
+    }
+    if (out.length > 0)
+      out[out.length - 1] = { time: BASELINE_NOW, value: end };
+    return out;
+  }
+
+  /** Assemble one mock {@link OfficialSeries}, change included. */
+  private officialSeries(
+    seriesId: string,
+    label: string,
+    unit: OfficialSeries["unit"],
+    frequency: OfficialSeries["frequency"],
+    count: number,
+    start: number,
+    end: number,
+  ): OfficialSeries {
+    const points = this.officialPoints(seriesId, frequency, count, start, end);
+    const latest = points[points.length - 1];
+    const previous = points[points.length - 2]?.value ?? latest.value;
+    return {
+      seriesId,
+      label,
+      unit,
+      frequency,
+      latest: latest.value,
+      date: new Date(latest.time).toISOString().slice(0, 10),
+      // Percentage POINTS for a rate/spread, percent for a level — matching the
+      // real providers, so a frame's formatting is exercised the same way.
+      change:
+        unit === "percent"
+          ? round(latest.value - previous, 3)
+          : round(((latest.value - previous) / previous) * 100, 2),
+      points,
+      source: "FRED",
+    };
+  }
+
+  /**
+   * The `empty` mode's stand-in for a series: real metadata, no observations.
+   * Built literally rather than through {@link officialSeries} because `gate`'s
+   * first argument is evaluated eagerly on EVERY call — asking the generator for
+   * a zero-point series would read `points[-1].value` and throw in every mode.
+   */
+  private emptySeries(
+    seriesId: string,
+    label: string,
+    unit: OfficialSeries["unit"],
+    frequency: OfficialSeries["frequency"],
+  ): OfficialSeries {
+    return {
+      seriesId,
+      label,
+      unit,
+      frequency,
+      latest: 0,
+      date: "",
+      change: 0,
+      points: [],
+      source: "FRED",
+    };
+  }
+
+  /** Series metadata for the market indices the `index-level` capability serves. */
+  private static readonly INDEX_SERIES: Record<
+    string,
+    { label: string; start: number; end: number }
+  > = {
+    SP500: { label: "S&P 500", start: 2170, end: 7489.72 },
+    VIXCLS: { label: "VIX", start: 17.2, end: 17.09 },
+    NASDAQCOM: { label: "Nasdaq Composite", start: 5200, end: 25373.85 },
+  };
+
+  getIndexSeries(seriesId: string): Promise<OfficialSeries> {
+    const def =
+      MockMarketDataProvider.INDEX_SERIES[seriesId] ??
+      MockMarketDataProvider.INDEX_SERIES.SP500;
+    return this.gate<OfficialSeries>(
+      this.emptySeries(seriesId, def.label, "index", "daily"),
+      () =>
+        this.officialSeries(
+          seriesId,
+          def.label,
+          "index",
+          "daily",
+          2600,
+          def.start,
+          def.end,
+        ),
+    );
+  }
+
+  getCreditSpreads(): Promise<OfficialSeries[]> {
+    return this.gate<OfficialSeries[]>([], () => [
+      this.officialSeries(
+        "BAMLH0A0HYM2",
+        "US High Yield OAS",
+        "percent",
+        "daily",
+        780,
+        3.82,
+        2.84,
+      ),
+      this.officialSeries(
+        "BAMLC0A0CM",
+        "US Investment Grade OAS",
+        "percent",
+        "daily",
+        780,
+        1.19,
+        0.8,
+      ),
+    ]);
+  }
+
+  getHousingPriceIndex(): Promise<OfficialSeries> {
+    return this.gate<OfficialSeries>(
+      this.emptySeries(
+        "CSUSHPINSA",
+        "Case-Shiller US National",
+        "index",
+        "monthly",
+      ),
+      () =>
+        this.officialSeries(
+          "CSUSHPINSA",
+          "Case-Shiller US National",
+          "index",
+          "monthly",
+          470,
+          63.73,
+          335.1,
+        ),
+    );
+  }
+
+  getMortgageRates(): Promise<OfficialSeries> {
+    return this.gate<OfficialSeries>(
+      this.emptySeries(
+        "MORTGAGE30US",
+        "30Y Fixed Mortgage",
+        "percent",
+        "weekly",
+      ),
+      () =>
+        this.officialSeries(
+          "MORTGAGE30US",
+          "30Y Fixed Mortgage",
+          "percent",
+          "weekly",
+          1200,
+          7.33,
+          6.66,
+        ),
+    );
+  }
+
+  /** Typical home value per region, seeded off the region name. */
+  private static readonly ZHVI_REGIONS = [
+    "United States",
+    "New York, NY",
+    "Los Angeles, CA",
+    "Chicago, IL",
+    "Dallas, TX",
+    "Houston, TX",
+    "Washington, DC",
+    "Miami, FL",
+    "Atlanta, GA",
+    "Phoenix, AZ",
+    "Boston, MA",
+    "San Francisco, CA",
+    "Seattle, WA",
+    "Denver, CO",
+    "Austin, TX",
+  ];
+
+  getHomeValueIndex(regions?: string[]): Promise<HomeValueIndex> {
+    const wanted = regions?.length
+      ? regions
+      : MockMarketDataProvider.ZHVI_REGIONS;
+    const empty: HomeValueIndex = { entries: [], asOf: "", source: "Zillow" };
+    return this.gate<HomeValueIndex>(empty, () => {
+      const entries: HomeValueEntry[] = wanted.map((region, i) => {
+        const r = rng(`zhvi:${region}`);
+        const value = round(230_000 + r() * 900_000, 2);
+        const points = this.officialPoints(
+          `zhvi:${region}`,
+          "monthly",
+          318,
+          value * 0.36,
+          value,
+        );
+        return {
+          region,
+          kind: region === "United States" ? "country" : "msa",
+          ...(region === "United States"
+            ? {}
+            : { state: region.slice(-2).toUpperCase() }),
+          sizeRank: region === "United States" ? 0 : i,
+          value,
+          changePctMoM: round((r() * 2 - 0.7) * 1.2),
+          changePctYoY: round((r() * 2 - 0.5) * 6),
+          points,
+        };
+      });
+      return {
+        entries,
+        asOf: new Date(BASELINE_NOW).toISOString().slice(0, 10),
+        source: "Zillow",
+      };
+    });
+  }
+
+  getRegionalHousingPrice(
+    regions: string[],
+    level = "state",
+  ): Promise<RegionalHousingPrice> {
+    const resolved: RegionalHousingPrice["level"] =
+      level === "metro" ? "metro" : "state";
+    const empty: RegionalHousingPrice = {
+      series: [],
+      level: resolved,
+      source: "FHFA",
+    };
+    return this.gate<RegionalHousingPrice>(empty, () => {
+      const series: RegionalHousingSeries[] = regions.map((region) => {
+        const r = rng(`hpi:${region}`);
+        const latest = round(280 + r() * 380, 2);
+        const points = this.officialPoints(
+          `hpi:${region}`,
+          "quarterly",
+          205,
+          60,
+          latest,
+        );
+        const newest = points[points.length - 1];
+        const date = new Date(newest.time);
+        return {
+          region,
+          latest: newest.value,
+          period: `${date.getUTCFullYear()} Q${Math.floor(date.getUTCMonth() / 3) + 1}`,
+          changePctYoY: round((r() * 2 - 0.4) * 5),
+          points,
+        };
+      });
+      return { series, level: resolved, source: "FHFA" };
     });
   }
 

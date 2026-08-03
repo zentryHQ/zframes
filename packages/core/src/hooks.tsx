@@ -66,6 +66,9 @@ import type {
   MetalPositioning,
   GoldReserve,
   TokenizedGold,
+  OfficialSeries,
+  HomeValueIndex,
+  RegionalHousingPrice,
 } from "@zframes/spec/types";
 
 import { FrameVisibilityContext } from "./visibility";
@@ -1372,4 +1375,117 @@ export function useTokenizedGold(refreshMs = 15 * 60_000): {
     refreshMs,
   );
   return { tokens, isLoading };
+}
+
+/**
+ * Level history for one market index (S&P 500, VIX, Nasdaq Composite), polled
+ * every ~6h — the underlying series print once a day at best.
+ */
+export function useIndexSeries(
+  seriesId: string,
+  refreshMs = 6 * 60 * 60_000,
+): { series: OfficialSeries | null; isLoading: boolean } {
+  const provider = useProviderFor("index-level");
+  const { data: series, isLoading } = usePolled<OfficialSeries | null>(
+    provider?.getIndexSeries && seriesId
+      ? () => provider.getIndexSeries!(seriesId)
+      : null,
+    null,
+    [provider, seriesId, refreshMs],
+    refreshMs,
+  );
+  return { series, isLoading };
+}
+
+/** Corporate credit spreads (high-yield + investment-grade OAS), polled every ~6h. */
+export function useCreditSpreads(refreshMs = 6 * 60 * 60_000): {
+  spreads: OfficialSeries[];
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("credit-spread");
+  const { data: spreads, isLoading } = usePolled<OfficialSeries[]>(
+    provider?.getCreditSpreads ? () => provider.getCreditSpreads!() : null,
+    [],
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { spreads, isLoading };
+}
+
+/** National house-price index (Case-Shiller), polled every ~12h (monthly data). */
+export function useHousingPriceIndex(refreshMs = 12 * 60 * 60_000): {
+  series: OfficialSeries | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("housing-price");
+  const { data: series, isLoading } = usePolled<OfficialSeries | null>(
+    provider?.getHousingPriceIndex
+      ? () => provider.getHousingPriceIndex!()
+      : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { series, isLoading };
+}
+
+/** Benchmark 30-year fixed mortgage rate, polled every ~12h (weekly data). */
+export function useMortgageRates(refreshMs = 12 * 60 * 60_000): {
+  series: OfficialSeries | null;
+  isLoading: boolean;
+} {
+  const provider = useProviderFor("mortgage-rate");
+  const { data: series, isLoading } = usePolled<OfficialSeries | null>(
+    provider?.getMortgageRates ? () => provider.getMortgageRates!() : null,
+    null,
+    [provider, refreshMs],
+    refreshMs,
+  );
+  return { series, isLoading };
+}
+
+/**
+ * Typical home value (Zillow ZHVI) per region, polled every ~12h — the file
+ * publishes monthly. `regions` must be a stable reference (a module constant or
+ * a `useMemo`), since it keys the polling effect.
+ */
+export function useHomeValueIndex(
+  regions?: string[],
+  refreshMs = 12 * 60 * 60_000,
+): { index: HomeValueIndex | null; isLoading: boolean } {
+  const provider = useProviderFor("home-value-index");
+  // The array identity would change every render for an inline literal, so key
+  // the effect on its contents instead — same trick the symbol-list hooks use.
+  const key = regions?.join(",") ?? "";
+  const { data: index, isLoading } = usePolled<HomeValueIndex | null>(
+    provider?.getHomeValueIndex
+      ? () => provider.getHomeValueIndex!(regions)
+      : null,
+    null,
+    [provider, key, refreshMs],
+    refreshMs,
+  );
+  return { index, isLoading };
+}
+
+/**
+ * FHFA house-price index per state or metro, polled daily — the series is
+ * quarterly, so anything faster is wasted work.
+ */
+export function useRegionalHousingPrice(
+  regions: string[],
+  level = "state",
+  refreshMs = 24 * 60 * 60_000,
+): { housing: RegionalHousingPrice | null; isLoading: boolean } {
+  const provider = useProviderFor("regional-housing-price");
+  const key = regions.join(",");
+  const { data: housing, isLoading } = usePolled<RegionalHousingPrice | null>(
+    provider?.getRegionalHousingPrice && regions.length > 0
+      ? () => provider.getRegionalHousingPrice!(regions, level)
+      : null,
+    null,
+    [provider, key, level, refreshMs],
+    refreshMs,
+  );
+  return { housing, isLoading };
 }

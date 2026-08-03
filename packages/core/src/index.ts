@@ -69,6 +69,12 @@ export {
   useMetalPositioning,
   useGoldReserve,
   useTokenizedGold,
+  useIndexSeries,
+  useCreditSpreads,
+  useHousingPriceIndex,
+  useMortgageRates,
+  useHomeValueIndex,
+  useRegionalHousingPrice,
 } from "./hooks";
 export {
   DashboardCurrencyProvider,

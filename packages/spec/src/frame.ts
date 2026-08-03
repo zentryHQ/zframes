@@ -66,7 +66,7 @@ export const FRAME_CATEGORIES = [
     key: "macro",
     label: "Macro & Rates",
     description:
-      "Official macro data — rates, the yield curve, inflation, jobs, debt, Treasury auctions, and financial stress.",
+      "Official macro data — rates, the yield curve, inflation, jobs, debt, Treasury auctions, financial stress, corporate credit spreads, and house prices (national, state/metro, and typical home values).",
   },
   {
     key: "metals",
