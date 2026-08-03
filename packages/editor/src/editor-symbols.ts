@@ -178,6 +178,46 @@ export function isStringArray(shape: JsonShape | undefined): boolean {
   return Boolean(items) && isType(shape, "array") && isType(items, "string");
 }
 
+/**
+ * An array of objects whose properties are all scalars — the shape behind
+ * `image-gallery.images`, `link-grid.links`, `macro-calendar.events` and
+ * `breakeven.fills`.
+ *
+ * These four were the only config fields in the whole registry that the
+ * generated form had no control for, and the fallback (a plain text input) could
+ * never produce a valid value — so those frames were unconfigurable in the UI and
+ * could only be authored by hand-editing dashboard.json. `objectArrayFields`
+ * turns the item schema into the per-column controls the row editor renders.
+ */
+export function isObjectArray(shape: JsonShape | undefined): boolean {
+  return (
+    isType(shape, "array") &&
+    isType(shape?.items, "object") &&
+    Object.keys(shape?.items?.properties ?? {}).length > 0
+  );
+}
+
+/** The item schema's properties, as the row editor's columns. */
+export function objectArrayFields(
+  shape: JsonShape | undefined,
+): ConfigFieldSchema[] {
+  const props = shape?.items?.properties ?? {};
+  return Object.entries(props).map(([key, s]) => ({
+    key,
+    label: humanizeKey(key),
+    shape: s,
+  }));
+}
+
+/** Which of the item schema's properties the row editor must fill for a new row
+ *  to validate, so "Add" never seeds a row that immediately errors. */
+export function objectArrayRequired(shape: JsonShape | undefined): string[] {
+  const required = shape?.items?.required;
+  return Array.isArray(required)
+    ? required.filter((k) => typeof k === "string")
+    : [];
+}
+
 export function detectSymbolControl(
   def: AnyFrameDefinition,
 ): SymbolControl | null {
@@ -302,6 +342,10 @@ function defaultString(key: string, index: number): string {
   if (key === "url") return "https://";
   if (key === "text") return "New note";
   if (key === "title") return "Heading";
+  // A date field wants ISO YYYY-MM-DD (macro-calendar.events). The generic
+  // humanized fallback would seed the literal string "Date", which satisfies the
+  // JSON-Schema type but renders as an Invalid Date on the card.
+  if (key === "date") return new Date().toISOString().slice(0, 10);
   return humanizeKey(key) || "value";
 }
 

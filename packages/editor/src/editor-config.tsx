@@ -1,8 +1,9 @@
-import { Check, ChevronDown, Plus, Search, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Plus, Search, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type RefObject,
 } from "react";
@@ -15,13 +16,16 @@ import type { FrameRegistry } from "@zframes/spec/frame";
 import {
   assetLogoUrl,
   configFields,
+  defaultForShape,
   detectSymbolControl,
   formatBriefChange,
   formatBriefPrice,
   humanizeKey,
   isObject,
+  isObjectArray,
   isStringArray,
   isType,
+  objectArrayFields,
   normaliseSymbolInput,
   optionFor,
   symbolKind,
@@ -92,6 +96,18 @@ export function FrameConfigDialog({
   const [title, setTitle] = useState<string>(instance.title ?? "");
   const instanceId = instance.id;
 
+  /**
+   * Which field each validation issue belongs to, keyed by the issue path's FIRST
+   * segment — the top-level config key the generated control corresponds to.
+   *
+   * The dialog used to show only a single blob of `path: message` lines at the
+   * bottom, so on a frame with a dozen controls you had to map a Zod path back to
+   * a control yourself. Nesting is flattened to the owning field on purpose:
+   * `fills.0.price` is reported on the Fills row editor, which is the control the
+   * user has to go fix.
+   */
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const commit = useCallback(
     (next: Record<string, unknown>) => {
       setConfig(next);
@@ -103,10 +119,22 @@ export function FrameConfigDialog({
               .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
               .join("\n"),
           );
+          const byField: Record<string, string> = {};
+          for (const issue of result.error.issues) {
+            const owner = issue.path[0];
+            if (typeof owner !== "string") continue;
+            // Deeper paths keep their tail, so "row 1's price" is still findable
+            // inside a long list.
+            const where =
+              issue.path.length > 1 ? `${issue.path.slice(1).join(".")}: ` : "";
+            if (!byField[owner]) byField[owner] = `${where}${issue.message}`;
+          }
+          setFieldErrors(byField);
           return;
         }
       }
       setError(null);
+      setFieldErrors({});
       const current = instancesRef.current.get(instanceId);
       if (!current) return;
       instancesRef.current.set(instanceId, { ...current, config: next });
@@ -191,6 +219,7 @@ export function FrameConfigDialog({
     const current = instancesRef.current.get(instanceId);
     setConfig({ ...(current?.config ?? {}) });
     setError(null);
+    setFieldErrors({});
   }, [instanceId, instancesRef]);
 
   // Esc closes the dialog — unless the draft is invalid, in which case closing
@@ -205,6 +234,73 @@ export function FrameConfigDialog({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose, error, revertConfig]);
+
+  /**
+   * Focus management for a real modal: move focus in on open, keep Tab inside it,
+   * and hand focus back to whatever opened it on close.
+   *
+   * The dialog already declared `aria-modal="true"`, which promises exactly this
+   * — but Tab walked straight out into the dashboard behind the backdrop, so a
+   * keyboard user could be typing into a card they couldn't see.
+   */
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    const focusables = () => {
+      const root = dialogRef.current;
+      if (!root) return [] as HTMLElement[];
+      // No visibility filter: every collapsible panel in this dialog is
+      // conditionally RENDERED rather than CSS-hidden, so anything matching here
+      // is genuinely reachable. An offsetParent check would be wrong twice over —
+      // it is null for every element under jsdom, and null in real browsers for
+      // any position:fixed element, which this dialog's backdrop is.
+      return [
+        ...root.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ];
+    };
+
+    // Land on the first control in the BODY, not the header's ✕ — which is what
+    // plain DOM order gives you, and would mean an immediate Enter closes the
+    // dialog you just opened. The point of opening it is to edit something.
+    const body = dialogRef.current?.querySelector(".zf-dialog-body");
+    const firstInBody = body?.querySelector<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    (firstInBody ?? focusables()[0])?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) return;
+      const firstEl = items[0];
+      const lastEl = items[items.length - 1];
+      const active = document.activeElement;
+      // Wrap at both ends, and pull focus back in if it has escaped entirely
+      // (a click on the backdrop leaves activeElement on <body>).
+      if (
+        e.shiftKey &&
+        (active === firstEl || !dialogRef.current?.contains(active))
+      ) {
+        e.preventDefault();
+        lastEl.focus();
+      } else if (
+        !e.shiftKey &&
+        (active === lastEl || !dialogRef.current?.contains(active))
+      ) {
+        e.preventDefault();
+        firstEl.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      // Returning focus is what makes the gear button a round trip rather than a
+      // one-way door that dumps you at the top of the page.
+      if (opener && document.body.contains(opener)) opener.focus();
+    };
+  }, []);
 
   const setField = (key: string, value: unknown) =>
     commit({ ...config, [key]: value });
@@ -223,6 +319,7 @@ export function FrameConfigDialog({
       }}
     >
       <div
+        ref={dialogRef}
         className="zf-dialog"
         role="dialog"
         aria-modal="true"
@@ -278,6 +375,7 @@ export function FrameConfigDialog({
               key={field.key}
               field={field}
               value={config[field.key]}
+              error={fieldErrors[field.key]}
               onChange={(value) => setField(field.key, value)}
             />
           ))}
@@ -684,33 +782,72 @@ function FrameStylePanel({
   );
 }
 
+/**
+ * The schema's own `.describe()` text, rendered as visible help.
+ *
+ * Every frame schema field is required to carry a description (the catalogue the
+ * generating agent reads is built from them), but the form only ever exposed them
+ * as a `title=` tooltip — invisible on touch, invisible to keyboard users, and
+ * invisible to anyone who doesn't happen to hover. All 352 config fields in the
+ * registry have one, so this is the single highest-coverage change in the form.
+ */
+function FieldHint({ id, text }: { id: string; text?: string }) {
+  if (!text) return null;
+  return (
+    <p className="zf-field-hint" id={id}>
+      {text}
+    </p>
+  );
+}
+
 /** Dispatches a single config field to the right control by its JSON-Schema
  *  shape: checkbox (boolean), dropdown (enum), slider/number (number), tag list
- *  (string[]), color picker (hex string), or text/textarea (string). */
+ *  (string[]), row editor (object[]), color picker (hex string), or
+ *  text/textarea (string). */
 function ConfigField({
   field,
   value,
+  error,
   onChange,
 }: {
   field: ConfigFieldSchema;
   value: unknown;
+  /** This field's validation message, if it's the one holding the draft back. */
+  error?: string;
   onChange: (value: unknown) => void;
 }) {
   const { key, label, shape } = field;
   const id = `zf-cfg-${key}`;
   const tip = shape.description;
+  const hintId = `${id}-hint`;
+  // Wraps whichever control the dispatch below picks, so the message lands next
+  // to the input that caused it rather than in a blob at the dialog's foot.
+  const wrap = (control: React.ReactNode) => (
+    <div className="zf-field-wrap" data-invalid={error ? "true" : undefined}>
+      {control}
+      {error && (
+        <p className="zf-field-error" id={`${id}-error`}>
+          {error}
+        </p>
+      )}
+    </div>
+  );
 
   if (isType(shape, "boolean")) {
     const checked = typeof value === "boolean" ? value : Boolean(shape.default);
-    return (
-      <label className="zf-checkbox" title={tip}>
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-        />
-        {label}
-      </label>
+    return wrap(
+      <div className="zf-field">
+        <label className="zf-checkbox">
+          <input
+            type="checkbox"
+            checked={checked}
+            aria-describedby={tip ? hintId : undefined}
+            onChange={(e) => onChange(e.target.checked)}
+          />
+          {label}
+        </label>
+        <FieldHint id={hintId} text={tip} />
+      </div>,
     );
   }
 
@@ -725,15 +862,14 @@ function ConfigField({
       typeof value === "string" && enumValues.includes(value)
         ? value
         : fallback;
-    return (
+    return wrap(
       <div className="zf-field">
-        <label htmlFor={id} title={tip}>
-          {label}
-        </label>
+        <label htmlFor={id}>{label}</label>
         <select
           id={id}
           className="zf-select"
           value={current}
+          aria-describedby={tip ? hintId : undefined}
           onChange={(e) => onChange(e.target.value)}
         >
           {enumValues.map((option) => (
@@ -742,29 +878,79 @@ function ConfigField({
             </option>
           ))}
         </select>
-      </div>
+        <FieldHint id={hintId} text={tip} />
+      </div>,
     );
   }
 
   if (isType(shape, "integer") || isType(shape, "number")) {
-    return (
-      <NumberField id={id} field={field} value={value} onChange={onChange} />
+    return wrap(
+      <NumberField id={id} field={field} value={value} onChange={onChange} />,
     );
   }
 
   if (isStringArray(shape)) {
-    return (
+    return wrap(
       <StringListField
         id={id}
         field={field}
         value={value}
         onChange={onChange}
-      />
+      />,
     );
   }
 
+  if (isObjectArray(shape)) {
+    return wrap(
+      <ObjectListField
+        id={id}
+        field={field}
+        value={value}
+        onChange={onChange}
+      />,
+    );
+  }
+
+  if (isType(shape, "string")) {
+    return wrap(
+      <StringField id={id} field={field} value={value} onChange={onChange} />,
+    );
+  }
+
+  // Anything left is a shape the form has no honest control for — today that's
+  // only `checklist.checked` (a boolean[] the frame writes itself as you tick
+  // items). Show it read-only rather than offering a text input that could never
+  // produce a valid value: the old fallback let you type into a field whose edit
+  // was then silently discarded.
+  return <ReadOnlyField id={id} field={field} value={value} />;
+}
+
+/** A field the generated form can't author: shown, labelled and explained, but
+ *  not editable — so it's neither lost nor a dead end. */
+function ReadOnlyField({
+  id,
+  field,
+  value,
+}: {
+  id: string;
+  field: ConfigFieldSchema;
+  value: unknown;
+}) {
+  const { label, shape } = field;
+  const hintId = `${id}-hint`;
+  const shown =
+    value === undefined || value === null ? "—" : JSON.stringify(value);
   return (
-    <StringField id={id} field={field} value={value} onChange={onChange} />
+    <div className="zf-field">
+      <div className="zf-field-row">
+        <label htmlFor={id}>{label}</label>
+        <span className="zf-field-managed">managed by the frame</span>
+      </div>
+      <output id={id} className="zf-readonly" aria-describedby={hintId}>
+        {shown.length > 120 ? `${shown.slice(0, 120)}…` : shown}
+      </output>
+      <FieldHint id={hintId} text={shape.description} />
+    </div>
   );
 }
 
@@ -781,6 +967,7 @@ function NumberField({
 }) {
   const { label, shape } = field;
   const tip = shape.description;
+  const hintId = `${id}-hint`;
   const min = typeof shape.minimum === "number" ? shape.minimum : undefined;
   const max = typeof shape.maximum === "number" ? shape.maximum : undefined;
   const isInt = isType(shape, "integer");
@@ -797,9 +984,7 @@ function NumberField({
     return (
       <div className="zf-field">
         <div className="zf-field-row">
-          <label htmlFor={id} title={tip}>
-            {label}
-          </label>
+          <label htmlFor={id}>{label}</label>
           <span className="zf-field-num">{current}</span>
         </div>
         <input
@@ -810,6 +995,7 @@ function NumberField({
           max={max}
           step={step}
           value={current}
+          aria-describedby={tip ? hintId : undefined}
           onChange={(e) =>
             onChange(
               isInt
@@ -818,15 +1004,14 @@ function NumberField({
             )
           }
         />
+        <FieldHint id={hintId} text={tip} />
       </div>
     );
   }
 
   return (
     <div className="zf-field">
-      <label htmlFor={id} title={tip}>
-        {label}
-      </label>
+      <label htmlFor={id}>{label}</label>
       <input
         id={id}
         type="number"
@@ -835,10 +1020,12 @@ function NumberField({
         max={max}
         step={step}
         value={value === undefined || value === null ? "" : String(value)}
+        aria-describedby={tip ? hintId : undefined}
         onChange={(e) =>
           onChange(e.target.value === "" ? "" : Number(e.target.value))
         }
       />
+      <FieldHint id={hintId} text={tip} />
     </div>
   );
 }
@@ -856,6 +1043,7 @@ function StringField({
 }) {
   const { key, label, shape } = field;
   const tip = shape.description;
+  const hintId = `${id}-hint`;
   const str = typeof value === "string" ? value : "";
   const placeholder = typeof shape.default === "string" ? shape.default : "";
   const colorDefault =
@@ -869,9 +1057,7 @@ function StringField({
       : (colorDefault ?? "#8b8df9");
     return (
       <div className="zf-field">
-        <label htmlFor={id} title={tip}>
-          {label}
-        </label>
+        <label htmlFor={id}>{label}</label>
         <div className="zf-color-row">
           <input
             type="color"
@@ -886,9 +1072,11 @@ function StringField({
             value={str}
             placeholder={placeholder}
             spellCheck={false}
+            aria-describedby={tip ? hintId : undefined}
             onChange={(e) => onChange(e.target.value)}
           />
         </div>
+        <FieldHint id={hintId} text={tip} />
       </div>
     );
   }
@@ -896,33 +1084,33 @@ function StringField({
   if (key === "text") {
     return (
       <div className="zf-field">
-        <label htmlFor={id} title={tip}>
-          {label}
-        </label>
+        <label htmlFor={id}>{label}</label>
         <textarea
           id={id}
           className="zf-textarea zf-textarea--prose"
           value={str}
           placeholder={placeholder}
+          aria-describedby={tip ? hintId : undefined}
           onChange={(e) => onChange(e.target.value)}
         />
+        <FieldHint id={hintId} text={tip} />
       </div>
     );
   }
 
   return (
     <div className="zf-field">
-      <label htmlFor={id} title={tip}>
-        {label}
-      </label>
+      <label htmlFor={id}>{label}</label>
       <input
         id={id}
         className="zf-input"
         value={str}
         placeholder={placeholder}
         spellCheck={false}
+        aria-describedby={tip ? hintId : undefined}
         onChange={(e) => onChange(e.target.value)}
       />
+      <FieldHint id={hintId} text={tip} />
     </div>
   );
 }
@@ -949,7 +1137,14 @@ function StringListField({
   const maxReached = maxItems !== undefined && items.length >= maxItems;
 
   const add = (raw: string) => {
-    const token = raw.trim().toUpperCase();
+    // Preserved exactly as typed. This used to force-uppercase every token,
+    // which is right for a ticker but wrong for 8 of the 11 string-array fields
+    // in the registry: DeFiLlama protocol slugs must be lowercase-hyphenated
+    // ("uniswap"), btc-fees tiers are camelCase enum members ("halfHour"), and
+    // quote/rules-card/checklist items are prose sentences. Uppercasing silently
+    // broke the data fetch or the copy. The genuinely ticker-shaped fields are
+    // owned by the symbol picker, not this control.
+    const token = raw.trim();
     setDraft("");
     if (!token || items.includes(token) || maxReached) return;
     onChange([...items, token]);
@@ -957,9 +1152,7 @@ function StringListField({
 
   return (
     <div className="zf-field">
-      <label htmlFor={id} title={tip}>
-        {label}
-      </label>
+      <label htmlFor={id}>{label}</label>
       {items.length > 0 && (
         <div className="zf-taglist">
           {items.map((item) => (
@@ -983,8 +1176,9 @@ function StringListField({
         value={draft}
         disabled={maxReached}
         spellCheck={false}
+        aria-describedby={tip ? `${id}-hint` : undefined}
         placeholder={
-          maxReached ? "Maximum reached" : "Type a code, Enter to add"
+          maxReached ? "Maximum reached" : "Type a value, Enter to add"
         }
         onChange={(e) => setDraft(e.target.value)}
         onBlur={() => add(draft)}
@@ -1000,6 +1194,247 @@ function StringListField({
             onChange(items.slice(0, -1));
           }
         }}
+      />
+      <FieldHint id={`${id}-hint`} text={tip} />
+    </div>
+  );
+}
+
+/**
+ * A row editor for an array of flat objects — `image-gallery.images`,
+ * `link-grid.links`, `macro-calendar.events`, `breakeven.fills`.
+ *
+ * These four were the only fields in the registry the generated form couldn't
+ * author: they fell through to a plain text input, so typing anything produced a
+ * string where an array of objects was required, the draft never validated, and
+ * the frame could only be configured by hand-editing dashboard.json. Columns come
+ * straight from the item schema, so a new object-array field is covered with no
+ * change here.
+ *
+ * `minItems` is honoured on delete (image-gallery and link-grid both require at
+ * least one row), so the editor can't walk the config into an invalid state that
+ * then blocks Done.
+ */
+function ObjectListField({
+  id,
+  field,
+  value,
+  onChange,
+}: {
+  id: string;
+  field: ConfigFieldSchema;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
+  const { label, shape } = field;
+  const tip = shape.description;
+  const hintId = `${id}-hint`;
+  const columns = useMemo(() => objectArrayFields(shape), [shape]);
+  const rows = Array.isArray(value) ? value.filter(isObject) : [];
+  const minItems = typeof shape.minItems === "number" ? shape.minItems : 0;
+  const maxItems =
+    typeof shape.maxItems === "number" ? shape.maxItems : undefined;
+  const atMin = rows.length <= minItems;
+  const atMax = maxItems !== undefined && rows.length >= maxItems;
+  // Singular-ish noun for the add button, so it reads "Add link" not "Add links".
+  const itemNoun = label.replace(/s$/i, "").toLowerCase() || "item";
+
+  const write = (next: Record<string, unknown>[]) => onChange(next);
+  const patchRow = (index: number, key: string, next: unknown) =>
+    write(rows.map((r, i) => (i === index ? { ...r, [key]: next } : r)));
+  const move = (index: number, delta: number) => {
+    const to = index + delta;
+    if (to < 0 || to >= rows.length) return;
+    const next = [...rows];
+    [next[index], next[to]] = [next[to], next[index]];
+    write(next);
+  };
+
+  return (
+    <div className="zf-field">
+      <div className="zf-field-row">
+        <label htmlFor={id}>{label}</label>
+        <span className="zf-field-num">
+          {rows.length}
+          {maxItems !== undefined ? `/${maxItems}` : ""}
+        </span>
+      </div>
+      <FieldHint id={hintId} text={tip} />
+      <div
+        className="zf-rows"
+        id={id}
+        role="group"
+        aria-label={label}
+        aria-describedby={tip ? hintId : undefined}
+      >
+        {rows.map((row, index) => (
+          // Index-keyed deliberately: rows have no stable identity of their own
+          // and reordering swaps positions, which is exactly what the index
+          // expresses here.
+          <div className="zf-row" key={index}>
+            <div className="zf-row-head">
+              <span className="zf-row-index">{index + 1}</span>
+              <div className="zf-row-actions">
+                <button
+                  type="button"
+                  className="zf-row-btn"
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0}
+                  aria-label={`Move ${itemNoun} ${index + 1} up`}
+                  title="Move up"
+                >
+                  <ChevronUp size={13} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="zf-row-btn"
+                  onClick={() => move(index, 1)}
+                  disabled={index === rows.length - 1}
+                  aria-label={`Move ${itemNoun} ${index + 1} down`}
+                  title="Move down"
+                >
+                  <ChevronDown size={13} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="zf-row-btn zf-row-btn--del"
+                  onClick={() => write(rows.filter((_, i) => i !== index))}
+                  disabled={atMin}
+                  aria-label={`Remove ${itemNoun} ${index + 1}`}
+                  title={
+                    atMin
+                      ? `At least ${minItems} required`
+                      : `Remove ${itemNoun}`
+                  }
+                >
+                  <X size={13} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+            <div className="zf-row-cells">
+              {columns.map((col) => (
+                <ObjectRowCell
+                  key={col.key}
+                  rowId={`${id}-${index}-${col.key}`}
+                  column={col}
+                  value={row[col.key]}
+                  onChange={(next) => patchRow(index, col.key, next)}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="zf-row-add"
+        disabled={atMax}
+        onClick={() => {
+          // Seeded from the item schema's own required fields, so a fresh row
+          // validates on arrival instead of immediately erroring the draft.
+          const seeded = defaultForShape(
+            shape.items ?? {},
+            itemNoun,
+            rows.length,
+          );
+          write([...rows, isObject(seeded) ? seeded : {}]);
+        }}
+      >
+        <Plus size={13} aria-hidden="true" />
+        Add {itemNoun}
+      </button>
+    </div>
+  );
+}
+
+/** One cell in an object-array row — a scalar control chosen from the item
+ *  schema's property shape. Kept narrow on purpose: these live three levels deep
+ *  in a 440px dialog, so a cell is a label + one compact control. */
+function ObjectRowCell({
+  rowId,
+  column,
+  value,
+  onChange,
+}: {
+  rowId: string;
+  column: ConfigFieldSchema;
+  value: unknown;
+  onChange: (value: unknown) => void;
+}) {
+  const { key, label, shape } = column;
+  const enumValues =
+    Array.isArray(shape.enum) && shape.enum.every((v) => typeof v === "string")
+      ? (shape.enum as string[])
+      : null;
+
+  if (isType(shape, "boolean")) {
+    return (
+      <label className="zf-checkbox zf-row-cell">
+        <input
+          type="checkbox"
+          checked={Boolean(value)}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        {label}
+      </label>
+    );
+  }
+
+  if (enumValues && enumValues.length > 0) {
+    return (
+      <div className="zf-row-cell">
+        <label htmlFor={rowId}>{label}</label>
+        <select
+          id={rowId}
+          className="zf-select"
+          value={typeof value === "string" ? value : enumValues[0]}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          {enumValues.map((option) => (
+            <option key={option} value={option}>
+              {humanizeKey(option)}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  if (isType(shape, "number") || isType(shape, "integer")) {
+    return (
+      <div className="zf-row-cell">
+        <label htmlFor={rowId}>{label}</label>
+        <input
+          id={rowId}
+          type="number"
+          className="zf-input"
+          step={isType(shape, "integer") ? 1 : "any"}
+          value={typeof value === "number" ? String(value) : ""}
+          onChange={(e) =>
+            onChange(e.target.value === "" ? "" : Number(e.target.value))
+          }
+        />
+      </div>
+    );
+  }
+
+  // A `date` property means ISO YYYY-MM-DD (macro-calendar.events), which the
+  // native picker both enforces and localises — the same choice the card's
+  // Events panel makes for its own date field.
+  const inputType = key === "date" ? "date" : "text";
+  // A URL or a prose column is unreadable in a ~118px cell; give it the full row.
+  const wide = key === "url" || key === "text" || key === "note";
+  return (
+    <div className="zf-row-cell" data-wide={wide ? "true" : undefined}>
+      <label htmlFor={rowId}>{label}</label>
+      <input
+        id={rowId}
+        type={inputType}
+        className="zf-input"
+        spellCheck={false}
+        placeholder={typeof shape.default === "string" ? shape.default : ""}
+        value={typeof value === "string" ? value : ""}
+        onChange={(e) => onChange(e.target.value)}
       />
     </div>
   );
@@ -1113,9 +1548,35 @@ function TickerConfigEditor({
                 ) : (
                   <span className="zf-symbol-empty">No ticker</span>
                 )}
-                {typeof holding.amount === "number" && (
-                  <span className="zf-holding-amount">x {holding.amount}</span>
-                )}
+                {/* Editable. This was a read-only "x {amount}" label with the
+                    value hardcoded to 1 on add, which made a portfolio frame
+                    impossible to configure through the UI at all — the whole
+                    point of a holdings list is how much of each you hold. */}
+                <label className="zf-holding-amount">
+                  <span className="zf-holding-amount-x">×</span>
+                  <input
+                    type="number"
+                    className="zf-holding-input"
+                    min={0}
+                    step="any"
+                    value={
+                      typeof holding.amount === "number"
+                        ? String(holding.amount)
+                        : ""
+                    }
+                    aria-label={`Amount of ${symbol || "holding"}`}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      onChangeHoldings(
+                        holdings.map((h, i) =>
+                          i === index
+                            ? { ...h, amount: raw === "" ? "" : Number(raw) }
+                            : h,
+                        ),
+                      );
+                    }}
+                  />
+                </label>
               </div>
               <button
                 type="button"
