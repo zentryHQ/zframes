@@ -1122,6 +1122,32 @@ describe("cosmetics rail: search", () => {
   });
 });
 
+/**
+ * Pick a board currency through the rail's searchable picker: open it, filter,
+ * click the row. 146 codes means there is no <select> to `change` — the whole
+ * point of the control is the search.
+ */
+async function pickBoardCurrency(
+  view: Pick<RenderResult, "getByRole">,
+  query: string,
+  row: RegExp,
+) {
+  await act(async () => {
+    fireEvent.click(view.getByRole("button", { name: "Display currency" }));
+  });
+  await act(async () => {
+    fireEvent.change(
+      view.getByRole("combobox", { name: /^Display currency/ }),
+      {
+        target: { value: query },
+      },
+    );
+  });
+  await act(async () => {
+    fireEvent.click(view.getByRole("option", { name: row }));
+  });
+}
+
 describe("display currency is editable", () => {
   it("reprices every live card and lands in the saved spec", async () => {
     // Currency converts every money figure on the board, which made it the
@@ -1144,11 +1170,7 @@ describe("display currency is editable", () => {
     await openCosmetics(view);
     await searchSettings(view, "currency");
 
-    await act(async () => {
-      fireEvent.change(view.getByLabelText("Display currency"), {
-        target: { value: "THB" },
-      });
-    });
+    await pickBoardCurrency(view, "baht", /THB/);
 
     // The already-mounted item root follows — the code is read from a ref, so
     // only the explicit re-render effect can push it in.
@@ -1174,11 +1196,7 @@ describe("display currency is editable", () => {
     await enterCustomise(view);
     await openCosmetics(view);
     await searchSettings(view, "currency");
-    await act(async () => {
-      fireEvent.change(view.getByLabelText("Display currency"), {
-        target: { value: "THB" },
-      });
-    });
+    await pickBoardCurrency(view, "baht", /THB/);
     await waitFor(() =>
       expect(probeOf(view.container, "a").dataset.code).toBe("THB"),
     );
@@ -1410,5 +1428,167 @@ describe("Reset links track the schema, not hand-copied literals", () => {
       (view.getByLabelText("Corner radius") as HTMLInputElement).value,
     ).toBe("18");
     expect(view.queryAllByRole("button", { name: "Reset" })).toEqual([]);
+  });
+});
+
+// The two currency CONTROLS, driven end to end. Both live behind the per-item
+// root problem above: a rail edit has to reach every item root, a card edit has
+// to reach exactly one, and neither is ordinary React state propagation — the
+// board code is read from a ref, and each frame is its own createRoot.
+describe("currency controls", () => {
+  /** Open the Cosmetics rail's Currency section by searching for it. */
+  async function openCurrencySection(view: ReturnType<typeof mount>) {
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Customise" }));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("tab", { name: "Cosmetics" }));
+    });
+    // Through the rail's own search, which is how a user finds it — and pins
+    // that "baht" is one of the words that lands on this section.
+    await act(async () => {
+      fireEvent.change(
+        view.getByRole("searchbox", { name: "Search settings" }),
+        {
+          target: { value: "baht" },
+        },
+      );
+    });
+    return view.getByRole("button", { name: "Display currency" });
+  }
+
+  it("is reachable from the rail search by code, symbol and name", async () => {
+    const { provider } = fxProvider({ THB: 36.5 });
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [provider],
+    );
+    await openCurrencySection(view);
+    const search = view.getByRole("searchbox", { name: "Search settings" });
+    for (const term of ["currency", "fx", "baht", "dollar", "exchange"]) {
+      await act(async () => {
+        fireEvent.change(search, { target: { value: term } });
+      });
+      expect(
+        view.queryByRole("button", { name: "Display currency" }),
+        `"${term}" should find the Currency section`,
+      ).toBeTruthy();
+    }
+  });
+
+  it("overrides ONE card, leaving the rest on the board currency", async () => {
+    const { provider } = fxProvider({ THB: 36.5, JPY: 155 });
+    const frames: FrameInput[] = [
+      { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+      { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+    ];
+    const view = mount(parseSpec(frames, {}, "THB"), [provider]);
+    const { container } = view;
+    await waitFor(() =>
+      expect(probeOf(container, "a").dataset.code).toBe("THB"),
+    );
+
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Customise" }));
+    });
+    // The gear is injected imperatively, so it has to be found in the DOM.
+    const gear = container.querySelector<HTMLElement>(
+      '.grid-stack-item[gs-id="a"] .zf-cfg-btn',
+    )!;
+    await act(async () => {
+      fireEvent.click(gear);
+    });
+    await act(async () => {
+      fireEvent.click(
+        view.getByRole("button", { name: "Display currency for this card" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.change(
+        view.getByRole("combobox", { name: /^Display currency for this card/ }),
+        { target: { value: "yen" } },
+      );
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("option", { name: /^JPY/ }));
+    });
+
+    // Card "a" re-rendered with its own rate; card "b" is untouched.
+    await waitFor(() => {
+      expect(probeOf(container, "a").dataset.code).toBe("JPY");
+    });
+    expect(probeOf(container, "a").dataset.rate).toBe("155");
+    expect(probeOf(container, "b").dataset.code).toBe("THB");
+
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Done" }));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    const saved = savedSpec(view.onSave);
+    // Spec shape: a bare code beside `config`, on that frame only.
+    expect(saved.frames.find((f) => f.id === "a")!.currency).toBe("JPY");
+    expect(saved.frames.find((f) => f.id === "b")!.currency).toBeUndefined();
+    expect(saved.currency).toEqual({ code: "THB" });
+  });
+
+  it("drops the key again when the card goes back to inheriting", async () => {
+    const { provider } = fxProvider({ THB: 36.5 });
+    const spec = DashboardSpecSchema.parse({
+      title: "editor-test",
+      currency: { code: "THB" },
+      grid: { columns: 12, rowHeight: 90, gap: 12 },
+      frames: [
+        {
+          id: "a",
+          frame: "probe",
+          config: {},
+          currency: "USD",
+          position: { x: 0, y: 0, w: 3, h: 2 },
+        },
+      ],
+    });
+    const view = mount(spec, [provider]);
+    const { container } = view;
+    // The pinned card starts on its own code, not the board's.
+    expect(probeOf(container, "a").dataset.code).toBe("USD");
+
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Customise" }));
+    });
+    await act(async () => {
+      fireEvent.click(
+        container.querySelector<HTMLElement>(
+          '.grid-stack-item[gs-id="a"] .zf-cfg-btn',
+        )!,
+      );
+    });
+    await act(async () => {
+      fireEvent.click(
+        view.getByRole("button", { name: "Display currency for this card" }),
+      );
+    });
+    await act(async () => {
+      // The inherit row is first, so Enter takes it.
+      fireEvent.keyDown(
+        view.getByRole("combobox", { name: /^Display currency for this card/ }),
+        { key: "Enter" },
+      );
+    });
+
+    // It now follows the board rather than carrying an equal-valued key.
+    await waitFor(() => {
+      expect(probeOf(container, "a").dataset.code).toBe("THB");
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Done" }));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    const frame = savedSpec(view.onSave).frames[0];
+    expect(frame.currency).toBeUndefined();
+    expect(JSON.stringify(frame)).not.toContain("currency");
   });
 });

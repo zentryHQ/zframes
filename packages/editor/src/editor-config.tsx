@@ -8,10 +8,12 @@ import {
   type RefObject,
 } from "react";
 import type {
+  CurrencyCode,
   EventMarker,
   FrameInstance,
   FrameStyle,
 } from "@zframes/spec/spec";
+import { CurrencyPicker } from "./currency-picker";
 import type { FrameRegistry } from "@zframes/spec/frame";
 import {
   assetLogoUrl,
@@ -58,6 +60,7 @@ export function FrameConfigDialog({
   instancesRef,
   symbolUniverse,
   accentHue,
+  boardCurrency,
   inherited,
   onApply,
   onClose,
@@ -67,6 +70,9 @@ export function FrameConfigDialog({
   instancesRef: RefObject<Map<string, FrameInstance>>;
   symbolUniverse: SymbolUniverse;
   accentHue: number;
+  /** The dashboard-wide display currency this card inherits unless it pins its
+   *  own — shown on the "Inherit board" row so the default names its effect. */
+  boardCurrency: CurrencyCode;
   /** The live dashboard-level cosmetic values this card inherits when a per-frame
    *  `style` override is unset. Enabling an override seeds it with the matching
    *  inherited value, so switching a field from Default → override is a visual
@@ -174,6 +180,28 @@ export function FrameConfigDialog({
         // An empty list drops the key entirely, so a card that never had
         // markers round-trips byte-identical.
         events: next.length > 0 ? next : undefined,
+      });
+      onApply(instanceId);
+    },
+    [instanceId, instancesRef, onApply],
+  );
+
+  // This card's display-currency override (spec: instance.currency — a bare
+  // code beside config, not inside it). Three-state, and the third state is the
+  // point: null means the key is ABSENT, which is what keeps the card following
+  // the board. Writing the board's current code instead would look identical
+  // today and stop tracking the moment the board changes.
+  const [currency, setCurrency] = useState<CurrencyCode | null>(
+    instance.currency ?? null,
+  );
+  const commitCurrency = useCallback(
+    (next: CurrencyCode | null) => {
+      setCurrency(next);
+      const current = instancesRef.current.get(instanceId);
+      if (!current) return;
+      instancesRef.current.set(instanceId, {
+        ...current,
+        currency: next ?? undefined,
       });
       onApply(instanceId);
     },
@@ -398,6 +426,18 @@ export function FrameConfigDialog({
           {def?.annotatable && (
             <FrameEventsPanel events={events} onChange={commitEvents} />
           )}
+          <FrameCurrencyField
+            value={currency}
+            board={boardCurrency}
+            /* The metals frames carry a `config.currency` that picks which
+               published LBMA fix series to READ (USD/GBP/EUR are separate
+               prints) — a data choice, rendered above among the config fields.
+               When a frame has one, say so here, because two controls both
+               labelled about currency on one card is exactly the confusion
+               worth pre-empting. */
+            hasConfigCurrency={fields.some((f) => f.key === "currency")}
+            onChange={commitCurrency}
+          />
           <FrameStylePanel
             style={style}
             inherited={inherited}
@@ -432,6 +472,65 @@ export function FrameConfigDialog({
           </button>
         </footer>
       </div>
+    </div>
+  );
+}
+
+/**
+ * This card's display currency — the per-card half of the board-wide setting in
+ * the Cosmetics rail.
+ *
+ * Default is an explicit "Inherit board (<CODE>)" row rather than a blank or a
+ * pre-selected board code: choosing it writes NO `currency` key, so the card
+ * keeps following the board. Pinning a code makes this one card quote it
+ * regardless of what the board later becomes.
+ *
+ * Deliberately offered on every frame. A handful of frames genuinely ignore it
+ * — US-macro series, SEC figures as filed, numbers the user typed in — but
+ * nothing in frame meta says which, so the honest move is to name that in the
+ * hint rather than guess and grey out the wrong cards. (`usdOnly` on frame meta
+ * would let this disable itself; see the note in the package's report.)
+ */
+function FrameCurrencyField({
+  value,
+  board,
+  hasConfigCurrency,
+  onChange,
+}: {
+  value: CurrencyCode | null;
+  board: CurrencyCode;
+  hasConfigCurrency: boolean;
+  onChange: (next: CurrencyCode | null) => void;
+}) {
+  return (
+    <div className="zf-field">
+      <label
+        htmlFor="zf-instance-currency"
+        title="Currency this card's money figures are displayed in."
+      >
+        Display currency
+      </label>
+      <CurrencyPicker
+        triggerId="zf-instance-currency"
+        value={value}
+        inheritOf={board}
+        label="Display currency for this card"
+        onChange={onChange}
+      />
+      <p className="zf-field-hint">
+        Converts this card&rsquo;s money figures only, from USD at the live ECB
+        rate. Frames whose figures aren&rsquo;t convertible market money —
+        US-macro series, SEC filing figures as reported, and numbers you type in
+        yourself — stay in USD whatever this says.
+        {hasConfigCurrency && (
+          <>
+            {" "}
+            This is display only: the <strong>Currency</strong> setting above
+            picks which published price series this frame reads, and changing it
+            changes the data.
+          </>
+        )}
+      </p>
     </div>
   );
 }
