@@ -1475,6 +1475,197 @@ body:has(.ui-draggable-dragging) * {
   min-height: 76px;
 }
 
+/* ── Per-field validation ──────────────────────────────────────────────────
+   The message sits under the control that caused it. The whole set used to be
+   one blob at the dialog's foot, so on a frame with a dozen controls you had to
+   map a Zod path back to a control yourself. */
+.zf-field-wrap {
+  display: block;
+}
+.zf-field-error {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: -6px 0 10px;
+  color: #ff8b9d;
+}
+/* Ring the offending control so the message and its cause read as one unit. */
+.zf-field-wrap[data-invalid="true"] .zf-input,
+.zf-field-wrap[data-invalid="true"] .zf-textarea,
+.zf-field-wrap[data-invalid="true"] .zf-select,
+.zf-field-wrap[data-invalid="true"] .zf-rows {
+  border-color: rgba(255, 139, 157, 0.55);
+}
+
+/* ── Object-array row editor ───────────────────────────────────────────────
+   For array-of-object config fields (image-gallery.images, link-grid.links,
+   macro-calendar.events, breakeven.fills). Each row is a small card so the
+   boundary between items is unmistakable three levels deep in a 440px dialog. */
+.zf-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.zf-rows:not(:empty) {
+  margin: 2px 0 8px;
+}
+.zf-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 9px 9px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.032);
+}
+.zf-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.zf-row-index {
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 15px;
+  height: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+}
+.zf-row-actions {
+  display: inline-flex;
+  gap: 2px;
+}
+.zf-row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 21px;
+  height: 21px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.42);
+  transition:
+    background 0.15s var(--zf-ease-out),
+    color 0.15s var(--zf-ease-out);
+}
+.zf-row-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+.zf-row-btn--del:hover:not(:disabled) {
+  background: rgba(255, 92, 116, 0.16);
+  color: #ff8b9d;
+}
+.zf-row-btn:disabled {
+  opacity: 0.28;
+  cursor: not-allowed;
+}
+.zf-row-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.45);
+}
+/* Cells flow into as many columns as fit rather than stacking. A row is a short
+   record (label + url + icon; price + date), and one stacked field per line made
+   four links cost ~800px of scrolling inside a 440px dialog. */
+.zf-row-cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 6px 7px;
+  /* `dense` matters here: a full-width cell (url) otherwise leaves the slot
+     beside its predecessor empty, so label/icon each got a line to themselves and
+     the row was no shorter than plain stacking. */
+  grid-auto-flow: dense;
+}
+.zf-row-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+/* A long free-text column reads badly at 118px — let url/text span the row. */
+.zf-row-cell[data-wide="true"] {
+  grid-column: 1 / -1;
+}
+.zf-row-cell.zf-checkbox {
+  flex-direction: row;
+  align-items: center;
+}
+.zf-row-cell label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.45);
+}
+/* Denser than a top-level field: these sit two levels in. */
+.zf-row-cell .zf-input,
+.zf-row-cell .zf-select {
+  padding: 5px 7px;
+  font-size: 11.5px;
+}
+.zf-row-add {
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  align-self: flex-start;
+  padding: 6px 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  transition:
+    border-color 0.15s var(--zf-ease-out),
+    color 0.15s var(--zf-ease-out),
+    background 0.15s var(--zf-ease-out);
+}
+.zf-row-add:hover:not(:disabled) {
+  border-color: hsl(var(--zf-accent-hue, 242) 90% 74% / 0.6);
+  background: hsl(var(--zf-accent-hue, 242) 90% 72% / 0.1);
+  color: rgba(255, 255, 255, 0.92);
+}
+.zf-row-add:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.zf-row-add:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.35);
+}
+
+/* A field the form can't author (today only checklist.checked, which the frame
+   writes as you tick items). Visible and explained, but not editable. */
+.zf-field-managed {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.42);
+}
+.zf-readonly {
+  font-family: var(--zf-font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  padding: 7px 9px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.2);
+  color: rgba(255, 255, 255, 0.5);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
 .zf-taglist {
   display: flex;
   flex-wrap: wrap;
@@ -1823,9 +2014,42 @@ body:has(.ui-draggable-dragging) * {
 }
 .zf-holding-amount {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   font-variant-numeric: tabular-nums;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.44);
+}
+.zf-holding-amount-x {
+  user-select: none;
+}
+/* Sized to the number, not the row: a holdings list is a dense column and the
+   quantity is a 1–6 character value sitting beside a ticker. */
+.zf-holding-input {
+  font: inherit;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  width: 6.5ch;
+  padding: 3px 5px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.24);
+  color: rgba(255, 255, 255, 0.9);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+/* The spinners eat most of a 6ch field; the number input still accepts
+   arrow-key increments, which is the part that matters. */
+.zf-holding-input::-webkit-outer-spin-button,
+.zf-holding-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.zf-holding-input:focus-visible {
+  outline: none;
+  border-color: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.7);
+  box-shadow: 0 0 0 2px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.3);
 }
 
 /* ── Theme: accent-hue picker ──────────────────────────────────────────

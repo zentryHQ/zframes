@@ -548,6 +548,11 @@ describe.each(FIXTURES)(
       expect([...fetchTargets].sort()).toEqual(
         [...outboundFetchTargets].sort(),
       );
-    });
+      // Mounting a real 200+ frame board through the real renderer is by far the
+      // heaviest test in the suite (~20s of the run on its own), and the default
+      // 5s budget left it timing out intermittently under full-suite parallel
+      // load — a flake that says nothing about the renderer. Budget it explicitly
+      // rather than leaving it to lose a race with whatever else is running.
+    }, 30_000);
   },
 );
