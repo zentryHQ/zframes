@@ -54,7 +54,7 @@ function DexVolumeChart({ config }: { config: z.output<typeof schema> }) {
     <TimeSeriesChart
       series={series}
       timeframe={timeframe}
-      height={250}
+      fill
       formatValue={money.compact}
       control={
         <TimeframeToggle
