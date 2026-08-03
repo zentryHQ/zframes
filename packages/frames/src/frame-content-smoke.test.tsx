@@ -291,6 +291,13 @@ const NO_MONEY: Record<string, string> = {
   // percentages, so no square on this grid is ever a currency amount.
   "return-calendar": "daily return %, intraday range %, or base-asset volume",
   "return-distribution": "return distribution %, σ % and observation counts",
+  "breadth-histogram": "cross-sectional % change, advancing share and counts",
+  "funding-calendar": "daily summed funding rate %",
+  "funding-distribution": "funding-rate % distribution and annualised carry %",
+  "sentiment-calendar": "the Fear & Greed index, a 0-100 score",
+  // APY percentages and pool counts only — the USD TVL floor is deliberately
+  // not printed on the card, so no unconverted dollar figure reaches it.
+  "yield-distribution": "pool APY % distribution",
   "news-feed": "headlines",
   "nft-activity-bars": "24h sales counts",
   note: "user-authored markdown",
@@ -852,7 +859,13 @@ describe("the currency classification covers the whole registry", () => {
     // level/drawdown/annual-return/VIX-regime and housing-momentum frames, all
     // percentages or unit-less levels; their three money siblings
     // (mortgage-payment, home-value-bars, home-value-scatter) went to CONVERTS.
-    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(151);
+    // Raised again (151 → 156) for the calendar-heatmap and histogram frames:
+    // return/funding calendars and the return, funding, breadth and yield
+    // histograms render percentages, a 0-100 sentiment score, and observation
+    // counts. The one member of that batch that *does* show dollars — the
+    // migrated `etf-flow-calendar`, whose day tooltip is `money.compact` — is in
+    // CONVERTS, which is the check that this ratchet is still meaningful.
+    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(156);
     expect(Object.keys(CONVERTS).length).toBeGreaterThanOrEqual(70);
   });
 

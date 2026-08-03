@@ -230,6 +230,60 @@ export const fundingRateChartMeta = defineFrameMeta({
   }),
 });
 
+export const fundingCalendarMeta = defineFrameMeta({
+  name: "funding-calendar",
+  label: "Funding Calendar",
+  category: "derivatives",
+  iconUrl: widgetIcon("funding-calendar"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Each day's total perp funding as a calendar heatmap — one square per day, green where longs paid shorts and red where shorts paid longs, so a carry position's income reads as a pattern instead of a squiggle. Surfaces what the funding line chart hides: whether the carry is a steady drip or a few violent days, and how long the flips last. Intensity is ranked within the window, so one funding spike can't wash out every ordinary day. Keyless (Hyperliquid), summed from the hourly prints.",
+  capabilities: ["funding-history"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    symbol: z
+      .string()
+      .default("BTC")
+      .describe(
+        "Symbol to chart funding for, e.g. 'BTC', 'ETH', or a HIP-3 equity 'xyz:TSLA'.",
+      ),
+    lookback: z
+      .enum(["1M", "3M", "6M"])
+      .default("3M")
+      .describe("How much history the grid covers."),
+    weekStart: z
+      .enum(["sunday", "monday"])
+      .default("monday")
+      .describe("Which weekday is the top row."),
+  }),
+});
+
+export const fundingDistributionMeta = defineFrameMeta({
+  name: "funding-distribution",
+  label: "Funding Histogram",
+  category: "derivatives",
+  iconUrl: widgetIcon("funding-distribution"),
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  description:
+    "Histogram of every hourly funding print over the window — how often longs pay versus get paid, and how extreme it gets. The question a funding line chart can't answer: a carry trade is priced off the whole distribution, not the current rate. Reports the share of hours funding was positive and the annualised carry implied by the mean, plus markers at the mean and the latest print. Keyless (Hyperliquid).",
+  capabilities: ["funding-history"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    symbol: z
+      .string()
+      .default("BTC")
+      .describe(
+        "Symbol to analyse funding for, e.g. 'BTC', 'ETH', or a HIP-3 equity 'xyz:TSLA'.",
+      ),
+    lookback: z
+      .enum(["7D", "1M", "3M"])
+      .default("1M")
+      .describe(
+        "How much funding history to bucket. Hourly prints, so even '7D' is ~168 observations.",
+      ),
+  }),
+});
+
 export const noteMeta = defineFrameMeta({
   name: "note",
   label: "Note",
@@ -2349,6 +2403,41 @@ export const maMultiplierMeta = defineFrameMeta({
   }),
 });
 
+export const breadthHistogramMeta = defineFrameMeta({
+  name: "breadth-histogram",
+  label: "Market Breadth",
+  category: "markets",
+  iconUrl: widgetIcon("breadth-histogram"),
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  description:
+    "Histogram of how far every coin moved over the window — the whole market's dispersion in one shape, not just the top gainers and losers. Answers whether a green day was broad-based or a handful of megacaps carrying a flat field: a narrow spike straddling zero is a quiet tape, a wide left-skewed spread is a real risk-off day. Marks the median and Bitcoin's own move, so you can see at a glance whether BTC led or lagged the field, and reports the advancing share (the classic advance/decline read). Keyless (Coinpaprika), across the top coins by market cap.",
+  capabilities: ["coin-movers"],
+  source: SOURCES.coinpaprika,
+  schema: z.object({
+    window: z
+      .enum(["1h", "24h", "7d", "30d"])
+      .default("24h")
+      .describe(
+        "Which price-change window the distribution is built from: 1h (intraday), 24h (daily), 7d, 30d.",
+      ),
+    minRank: z
+      .number()
+      .int()
+      .min(20)
+      .max(300)
+      .default(200)
+      .describe(
+        "Only include coins ranked at or above this market-cap rank — a liquidity floor, since illiquid micro-caps post absurd % moves on no volume and would fatten both tails with noise.",
+      ),
+    showNormalCurve: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Overlay the fitted normal distribution. Off by default: a day's cross-section of coin returns is usually far more peaked than normal, and the curve can crowd a narrow histogram.",
+      ),
+  }),
+});
+
 export const rsiMomentumMeta = defineFrameMeta({
   name: "rsi-momentum",
   label: "RSI Momentum",
@@ -2569,6 +2658,41 @@ export const yieldScannerMeta = defineFrameMeta({
       .min(0)
       .default(1_000_000)
       .describe("Minimum pool TVL in USD — a liquidity floor to hide dust."),
+  }),
+});
+
+export const yieldDistributionMeta = defineFrameMeta({
+  name: "yield-distribution",
+  label: "Yield Histogram",
+  category: "crypto",
+  iconUrl: widgetIcon("yield-distribution"),
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  description:
+    "Histogram of APY across every DeFi pool that clears the TVL floor — what yield is actually on offer, rather than the ten headline pools. The yield scanner's top-8 list is by construction the extreme right tail; this shows the distribution it was drawn from, so a '40% APY' can be read as remarkable or ordinary. Marks the median, and the far tail is folded into the end bar so a handful of 5000% incentive pools can't flatten the rest. Keyless (DeFiLlama yields).",
+  capabilities: ["yields"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    stablecoinOnly: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Only include stablecoin pools — a much tighter distribution, since there is no impermanent-loss premium in it.",
+      ),
+    minTvlUsd: z
+      .number()
+      .min(0)
+      .default(1_000_000)
+      .describe(
+        "Minimum pool TVL in USD. A liquidity floor: tiny pools carry the most extreme quoted APYs and would dominate the tail.",
+      ),
+    maxApy: z
+      .number()
+      .min(10)
+      .max(100_000)
+      .default(200)
+      .describe(
+        "Drop pools quoting more than this APY before binning. Unlike the tail fold, this removes them from the sample entirely — a 900,000% incentive quote is a data artefact, not a yield.",
+      ),
   }),
 });
 
@@ -4850,6 +4974,35 @@ export const fearGreedChartMeta = defineFrameMeta({
   }),
 });
 
+export const sentimentCalendarMeta = defineFrameMeta({
+  name: "sentiment-calendar",
+  label: "Sentiment Calendar",
+  category: "sentiment",
+  iconUrl: widgetIcon("sentiment-calendar"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "The Fear & Greed index as a calendar heatmap — one square per day, red below the neutral 50 and green above, so a year of market mood reads as blocks of regime rather than a wandering line. Shows what the line chart makes hard: how long fear actually persisted, and whether greed arrived gradually or overnight. Intensity is ranked within the window, so the calmest and most extreme days in view are always distinguishable. Keyless (alternative.me).",
+  capabilities: ["sentiment"],
+  source: SOURCES.alternativeMe,
+  schema: z.object({
+    days: z
+      .number()
+      .int()
+      .min(60)
+      .max(730)
+      .default(270)
+      .describe(
+        "How many days of index history the grid covers. Beyond ~400 the squares get small in a narrow card.",
+      ),
+    weekStart: z
+      .enum(["sunday", "monday"])
+      .default("sunday")
+      .describe(
+        "Which weekday is the top row. The index prints every day including weekends, so neither leaves a gap.",
+      ),
+  }),
+});
+
 export const predictionMarketBarsMeta = defineFrameMeta({
   name: "prediction-market-bars",
   label: "Prediction Market Bars",
@@ -5012,7 +5165,7 @@ export const etfFlowCalendarMeta = defineFrameMeta({
   iconUrl: widgetIcon("etf-flow-calendar"),
   layout: { w: 6, h: 5, minW: 4, minH: 3 },
   description:
-    "Spot BTC or ETH ETF daily net flows as a GitHub-style calendar heatmap — one column per weekday, one row per week, green shades for inflow days and red for outflow days (intensity relative to the window). Surfaces weekly inflow/outflow rhythm the daily bar chart doesn't show at a glance. Keyless (SoSoValue); best-effort, may be empty if the source is unavailable.",
+    "Spot BTC or ETH ETF daily net flows as a GitHub-style calendar heatmap — one square per day, weeks running left to right, green for inflow days and red for outflow days (intensity ranked within the window, so one record day can't wash out the rest). Surfaces the weekly inflow/outflow rhythm the daily bar chart doesn't show at a glance, and the market holidays where there is simply no print. Keyless (SoSoValue); best-effort, may be empty if the source is unavailable.",
   capabilities: ["etf-flows"],
   source: SOURCES.sosovalue,
   schema: z.object({
@@ -5021,7 +5174,7 @@ export const etfFlowCalendarMeta = defineFrameMeta({
       .default("btc")
       .describe("Which spot-ETF complex to chart."),
     lookback: z
-      .enum(["1M", "3M", "6M"])
+      .enum(["1M", "3M", "6M", "1Y"])
       .default("3M")
       .describe("History window for the calendar grid."),
   }),
@@ -6478,6 +6631,11 @@ export const frameMetas: FrameMeta[] = [
   volumeProfileMeta,
   returnCalendarMeta,
   returnDistributionMeta,
+  breadthHistogramMeta,
+  fundingCalendarMeta,
+  fundingDistributionMeta,
+  sentimentCalendarMeta,
+  yieldDistributionMeta,
   dxyMeta,
   cycleSignalsMeta,
   stablecoinSupplyMeta,
