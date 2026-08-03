@@ -34,6 +34,7 @@ export function MetricGauge({
   sub,
   sparkline,
   sparkColor,
+  control,
 }: {
   /** Small label above the numeral, e.g. "MVRV Ratio". */
   caption: string;
@@ -49,6 +50,13 @@ export function MetricGauge({
   sparkline: SeriesPoint[];
   /** Sparkline stroke color. */
   sparkColor: string;
+  /**
+   * Optional on-card control (the timeframe toggle — see ./timeframe-toggle).
+   * Rendered right-aligned in the zone-badge row, so it costs the card no extra
+   * height. Opt-in: gauges without a timeframe field pass nothing and render
+   * exactly as before.
+   */
+  control?: ReactNode;
 }) {
   const data = toSparkline(sparkline);
   return (
@@ -73,6 +81,7 @@ export function MetricGauge({
         {sub !== undefined && sub !== null && (
           <span className="caption text-soft truncate">{sub}</span>
         )}
+        {control && <div className="ml-auto">{control}</div>}
       </div>
       {data.length > 1 && (
         <MiniLineChart
