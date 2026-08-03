@@ -461,7 +461,7 @@ body:has(.ui-draggable-dragging) * {
     box-shadow 0.18s var(--zf-ease-out),
     transform 0.18s var(--zf-ease-out);
 }
-.zf-btn:hover {
+.zf-btn:hover:not(:disabled) {
   background: linear-gradient(
     180deg,
     rgba(50, 52, 71, 0.82),
@@ -474,7 +474,7 @@ body:has(.ui-draggable-dragging) * {
     0 2px 6px rgba(0, 0, 0, 0.34),
     0 16px 30px -16px rgba(0, 0, 0, 0.82);
 }
-.zf-btn:active {
+.zf-btn:active:not(:disabled) {
   /* Press feedback: drop the hover lift and scale in slightly so the control
      visibly "gives" under the pointer — the press is the moment the user is
      watching most closely. The press lands instantly (transition-duration:0s),
@@ -491,6 +491,141 @@ body:has(.ui-draggable-dragging) * {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.35);
+}
+/* Unavailable, not hidden — a greyed Undo tells you the history floor is here,
+   where removing the button would just look like a missing feature. Kept
+   focusable-looking but inert; `disabled` already blocks activation. */
+.zf-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+  transform: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+/* ── Toolbar state: unsaved changes / save failure ─────────────────────────
+   Both sit at the toolbar's left, before the actions they describe. */
+.zf-editor-state {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding-left: 2px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.zf-dirty-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: hsl(var(--zf-accent-hue, 242) 90% 72%);
+  box-shadow: 0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 72% / 0.22);
+}
+.zf-editor-error {
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 40ch;
+  margin: 0 4px 0 0;
+  color: #ffb4b4;
+}
+
+/* ── Undo toast ────────────────────────────────────────────────────────────
+   Fixed to the bottom-centre, above the pinned ticker tape. Deliberately NOT a
+   modal: a delete shouldn't interrupt a flow to be confirmed, it should be
+   trivially reversible after the fact. */
+.zf-toast {
+  position: fixed;
+  bottom: 62px;
+  left: 50%;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(
+    180deg,
+    rgba(40, 42, 58, 0.94),
+    rgba(20, 21, 33, 0.96)
+  );
+  color: rgba(255, 255, 255, 0.94);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 18px 40px -18px rgba(0, 0, 0, 0.9);
+  animation: zf-toast-in 0.22s var(--zf-ease-out) both;
+}
+@keyframes zf-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zf-toast {
+    animation: none;
+    transform: translate(-50%, 0);
+  }
+}
+.zf-toast-text {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.zf-toast-action {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid hsl(var(--zf-accent-hue, 242) 90% 72% / 0.55);
+  background: hsl(var(--zf-accent-hue, 242) 90% 72% / 0.18);
+  color: hsl(var(--zf-accent-hue, 242) 95% 84%);
+  transition:
+    background 0.16s var(--zf-ease-out),
+    border-color 0.16s var(--zf-ease-out);
+}
+.zf-toast-action:hover {
+  background: hsl(var(--zf-accent-hue, 242) 90% 72% / 0.3);
+  border-color: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.8);
+}
+.zf-toast-action:active {
+  transition-duration: 0s;
+  transform: scale(0.96);
+}
+.zf-toast-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  transition:
+    background 0.16s var(--zf-ease-out),
+    color 0.16s var(--zf-ease-out);
+}
+.zf-toast-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+.zf-toast-action:focus-visible,
+.zf-toast-close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.4);
 }
 
 /* Primary (Save) — the accent fill, the loudest control in the set. */
@@ -1116,12 +1251,38 @@ body:has(.ui-draggable-dragging) * {
   margin-bottom: 10px;
   cursor: pointer;
 }
+/* An invalid draft is NOT applied to the card and will NOT be saved, so this
+   states that outright rather than dumping raw validator output and leaving the
+   consequence to be inferred. */
 .zf-config-error {
-  font-size: 11px;
-  color: #ff8b9d;
+  margin: -2px 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 139, 157, 0.34);
+  background: rgba(255, 92, 116, 0.09);
   line-height: 1.45;
-  margin: -4px 0 10px;
+}
+.zf-config-error-head {
+  font-size: 12px;
+  font-weight: 700;
+  margin: 0;
+  color: #ffa8b6;
+}
+.zf-config-error-note {
+  font-size: 11px;
+  margin: 3px 0 0;
+  color: rgba(255, 255, 255, 0.62);
+}
+.zf-config-error-detail {
+  font-family: var(--zf-font-mono, ui-monospace, monospace);
+  font-size: 10.5px;
+  margin: 7px 0 0;
+  padding: 6px 8px;
+  border-radius: 6px;
+  overflow-x: auto;
   white-space: pre-wrap;
+  background: rgba(0, 0, 0, 0.28);
+  color: #ff8b9d;
 }
 .zf-rail-empty {
   font-size: 12px;
