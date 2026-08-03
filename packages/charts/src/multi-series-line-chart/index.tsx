@@ -43,6 +43,7 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
   series,
   width,
   height = 400,
+  fill = false,
   timeframe,
   className,
   isLoading = false,
@@ -56,6 +57,9 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const legendRef = useRef<HTMLDivElement>(null);
+  // The legend row's own height, so `fill` can hand the plot only what's left.
+  const [plotOffsetTop, setPlotOffsetTop] = useState(0);
+  const plotObserverRef = useRef<ResizeObserver | null>(null);
   const hasAnimatedRef = useRef(false);
 
   const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
@@ -83,9 +87,49 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
 
   const yDomain = useMemo(() => calculateYDomain(sortedSeries), [sortedSeries]);
 
+  /**
+   * Reserve whatever chrome sits ABOVE the plot, so `fill` gives the plot only
+   * the remaining height.
+   *
+   * Measured as the plot wrapper's own offset inside the chart container rather
+   * than by measuring a specific row: the stack above the plot is not just the
+   * legend (there is also a z-20 control band), and hard-coding one of them left
+   * the plot exactly the other one's height too tall. The offset captures all of
+   * it, whatever it happens to be.
+   *
+   * A callback ref, NOT an effect — the plot renders inside the non-loading
+   * branch, so an effect keyed on render values ran while the ref was still null
+   * and never re-ran once the plot mounted.
+   */
+  const attachPlot = useCallback((el: HTMLDivElement | null) => {
+    plotObserverRef.current?.disconnect();
+    plotObserverRef.current = null;
+    if (!el) {
+      setPlotOffsetTop(0);
+      return;
+    }
+    const measure = () => {
+      const offset = el.offsetTop;
+      setPlotOffsetTop((prev) =>
+        Math.abs(prev - offset) < 0.5 ? prev : offset,
+      );
+    };
+    measure();
+    if (typeof ResizeObserver !== "undefined") {
+      // Observe the container too: chrome above the plot changing size moves the
+      // plot without resizing it.
+      plotObserverRef.current = new ResizeObserver(measure);
+      plotObserverRef.current.observe(el);
+      if (containerRef.current)
+        plotObserverRef.current.observe(containerRef.current);
+    }
+  }, []);
+
   const dimensions = useChartDimensions({
     width,
     height,
+    fill,
+    reservedHeight: plotOffsetTop,
     yDomain,
     formatValue,
     containerRef,
@@ -279,7 +323,11 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
     <div
       ref={containerRef}
       className={cn("relative w-full", className)}
-      style={{ width, minHeight: height }}
+      style={
+        fill
+          ? { width, height: "100%", minHeight: 0 }
+          : { width, minHeight: height }
+      }
     >
       {isLoading ? (
         <LoadingOrb className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
@@ -313,11 +361,11 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
                 />
               </div>
 
-              <div className="relative select-none">
+              <div className="relative select-none" ref={attachPlot}>
                 <svg
                   ref={svgRef}
                   width={dimensions.width}
-                  height={height}
+                  height={dimensions.height}
                   className="relative z-0"
                   style={{
                     maxWidth: "100%",

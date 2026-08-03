@@ -82,7 +82,7 @@ function PriceCompare({ config }: { config: z.output<typeof schema> }) {
     <TimeSeriesChart
       series={series}
       timeframe={timeframe}
-      height={250}
+      fill
       formatValue={config.normalize ? formatChangePct : money.price}
       control={
         <TimeframeToggle
