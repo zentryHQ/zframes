@@ -3,6 +3,7 @@ import {
   type MultiSeriesLineChartProps,
 } from "@zframes/charts";
 import { useEvents } from "@zframes/core";
+import type { ReactNode } from "react";
 
 /**
  * The time-series line chart every frame should use — `MultiSeriesLineChart`
@@ -16,11 +17,32 @@ import { useEvents } from "@zframes/core";
  * `annotatable` flag on each such frame's meta.
  *
  * Pass `events` explicitly to override what the card declared.
+ *
+ * `control` is the on-card timeframe toggle (see ./timeframe-toggle). These
+ * frames return the chart AS their root — there is no header row to put a
+ * control in — so it is overlaid top-right rather than stacked above, which
+ * would steal height from every chart on the board. Strictly opt-in: with no
+ * `control` the output is exactly what it always was, so the frames that don't
+ * have a timeframe field are untouched.
  */
 export function TimeSeriesChart({
+  control,
   events,
   ...props
-}: MultiSeriesLineChartProps) {
+}: MultiSeriesLineChartProps & { control?: ReactNode }) {
   const cardEvents = useEvents();
-  return <MultiSeriesLineChart {...props} events={events ?? cardEvents} />;
+  const chart = (
+    <MultiSeriesLineChart {...props} events={events ?? cardEvents} />
+  );
+  if (!control) return chart;
+  return (
+    <div className="relative h-full min-h-0">
+      {chart}
+      {/* pointer-events-auto on the control only, so the chart keeps its own
+          hover/tooltip everywhere the buttons aren't. */}
+      <div className="pointer-events-none absolute top-0 right-0 z-10">
+        <div className="pointer-events-auto">{control}</div>
+      </div>
+    </div>
+  );
 }

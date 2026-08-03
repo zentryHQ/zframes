@@ -10,6 +10,7 @@ import { prettySlug } from "./format";
 import { dexVolumeChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 import { TimeSeriesChart } from "./series-chart";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const LOOKBACKS = {
   "7D": { ms: 7 * 24 * 60 * 60 * 1000, timeframe: ChartTimeframe["7D"] },
@@ -19,8 +20,11 @@ const LOOKBACKS = {
 
 const schema = dexVolumeChartMeta.schema;
 
+const LOOKBACK_OPTIONS = ["7D", "1M", "3M"] as const;
+
 function DexVolumeChart({ config }: { config: z.output<typeof schema> }) {
-  const { ms, timeframe } = LOOKBACKS[config.lookback];
+  const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
+  const { ms, timeframe } = LOOKBACKS[lookback];
   // History is fetched in full once; the lookback only slices it client-side.
   const cutoff = useMemo(() => Date.now() - ms, [ms]);
   const { history, isLoading } = useDexVolumeHistory(config.protocols);
@@ -52,6 +56,14 @@ function DexVolumeChart({ config }: { config: z.output<typeof schema> }) {
       timeframe={timeframe}
       height={250}
       formatValue={money.compact}
+      control={
+        <TimeframeToggle
+          options={LOOKBACK_OPTIONS}
+          value={lookback}
+          onChange={setLookback}
+          label="DEX volume history window"
+        />
+      }
     />
   );
 }
