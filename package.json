@@ -1,6 +1,6 @@
 {
   "name": "zframes-monorepo",
-  "description": "AI-personalizable market dashboard framework — an agent reads the frame catalogue, emits a dashboard.json spec, and the runtime validates and renders it as a live dashboard.",
+  "description": "AI-personalizable market dashboard framework \u2014 an agent reads the frame catalogue, emits a dashboard.json spec, and the runtime validates and renders it as a live dashboard.",
   "license": "Apache-2.0",
   "author": "Zentry",
   "repository": {
@@ -32,6 +32,7 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@zframes/provider-sec": "workspace:^",
+    "@zframes/provider-wallet": "workspace:^",
     "@zframes/providers-keyless": "workspace:^",
     "eslint": "^10.5.0",
     "eslint-config-prettier": "^10.1.8",
