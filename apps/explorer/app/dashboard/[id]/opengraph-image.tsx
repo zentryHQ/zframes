@@ -5,7 +5,7 @@ import { loadDashboardThumb } from "@/app/lib/dashboard-thumb";
 import { resolveDashboard } from "@/app/lib/resolve-dashboard";
 import { boardArea, coverFit, imageSize } from "@/app/lib/thumb-image";
 
-// Dynamic 1200×630 social-share card for /d/<id>. next/og's ImageResponse is
+// Dynamic 1200×630 social-share card for /dashboard/<id>. next/og's ImageResponse is
 // built in (no @vercel/og dep). Node runtime so it can resolve community
 // dashboards through the Node-only postgres driver (same pattern as the sibling
 // dashboard.json route). Rendered by satori — flexbox subset only, every

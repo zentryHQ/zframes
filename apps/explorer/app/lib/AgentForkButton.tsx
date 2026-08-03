@@ -16,7 +16,7 @@ export function AgentForkButton({ id }: { id: string }) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const prompt = `Fork this zframes dashboard and help me personalize it:
   npx skills add zentryhq/zframes
-  ${origin}/d/${id}/dashboard.json`;
+  ${origin}/dashboard/${id}/dashboard.json`;
 
   return (
     <>

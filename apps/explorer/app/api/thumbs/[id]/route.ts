@@ -3,7 +3,7 @@ import { loadDashboardThumb } from "@/app/lib/dashboard-thumb";
 // GET /api/thumbs/[id] — the nightly-captured screenshot of a dashboard.
 // 404 when no capture exists yet (the card's SVG mini-map stays as the
 // fallback) AND when the dashboard was taken down — both rules live in
-// loadDashboardThumb, shared with the /d/[id] og:image.
+// loadDashboardThumb, shared with the /dashboard/[id] og:image.
 export const dynamic = "force-dynamic";
 
 export async function GET(

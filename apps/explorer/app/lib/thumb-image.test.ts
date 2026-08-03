@@ -6,7 +6,7 @@ import {
   imageSize,
 } from "./thumb-image";
 
-// Guards the two pure halves of the /d/[id] og:image compositor. Both fail
+// Guards the two pure halves of the /dashboard/[id] og:image compositor. Both fail
 // SILENTLY if they drift — an unparseable header or a bad fit just falls the
 // share card back to the synthetic mini-map (or letterboxes the capture), which
 // looks like "no capture yet" rather than a bug. Nothing else would catch it

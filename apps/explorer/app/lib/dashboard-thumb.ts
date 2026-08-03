@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/app/lib/db";
 import { dashboards, dashboardThumbs } from "@/app/lib/db/schema";
 
-// Server-only access to the nightly `/d/[id]` screenshots (scripts/capture-thumbs.ts).
+// Server-only access to the nightly `/dashboard/[id]` screenshots (scripts/capture-thumbs.ts).
 // One loader for BOTH consumers — the gallery card image route and the social
 // og:image — so a takedown hides the capture everywhere at once, and a shared
 // link can never unfurl a screenshot the gallery already stopped serving.
