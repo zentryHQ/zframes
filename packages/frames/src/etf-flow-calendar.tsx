@@ -78,26 +78,29 @@ function EtfFlowCalendar({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>ETF flows unavailable</FrameStatus>;
 
   return (
-    <div className="relative h-full min-h-0">
-      <HeatmapChart
-        data={cells}
-        CellComponent={Cell}
-        gap={3}
-        showLabels
-        rowLabelWidth={56}
-        columnLabelHeight={20}
-      />
-      {/* No header row to place the control in — overlaid top-right rather
-          than stacked above, which would steal height from the grid. */}
-      <div className="pointer-events-none absolute top-0 right-0 z-10">
-        <div className="pointer-events-auto">
-          <TimeframeToggle
-            options={LOOKBACK_OPTIONS}
-            value={lookback}
-            onChange={setLookback}
-            label="ETF flow calendar lookback"
-          />
-        </div>
+    // A slim row above the chart, NOT the top-right overlay the other
+    // header-less frames use: this heatmap draws its weekday column labels
+    // (Mon–Fri, HTML spans) exactly there, and the overlay sat on top of "Thu"
+    // and "Fri". Occluding a chart's own axis labels is worse than spending
+    // ~18px, so this one frame reserves the space instead.
+    <div className="flex h-full min-h-0 flex-col gap-1">
+      <div className="flex flex-none justify-end">
+        <TimeframeToggle
+          options={LOOKBACK_OPTIONS}
+          value={lookback}
+          onChange={setLookback}
+          label="ETF flow calendar lookback"
+        />
+      </div>
+      <div className="min-h-0 flex-1">
+        <HeatmapChart
+          data={cells}
+          CellComponent={Cell}
+          gap={3}
+          showLabels
+          rowLabelWidth={56}
+          columnLabelHeight={20}
+        />
       </div>
     </div>
   );

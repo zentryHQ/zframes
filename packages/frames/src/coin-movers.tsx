@@ -58,9 +58,10 @@ function CoinMovers({ config }: { config: z.output<typeof schema> }) {
         ))}
       </div>
       <div className="flex flex-col gap-1.5">
-        <div className="caption text-soft uppercase tracking-wide">
-          losers · {moversWindow}
-        </div>
+        {/* Just "losers" — the toggle beside "gainers" already shows which
+            window both columns are on, so repeating it here (and only here)
+            read lopsided. */}
+        <div className="caption text-soft uppercase tracking-wide">losers</div>
         {losers.map((row) => (
           <MoverRow
             key={row.symbol}
