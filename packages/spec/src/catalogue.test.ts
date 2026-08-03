@@ -82,6 +82,7 @@ const ENTRY_KEYS = [
   "iconUrl",
   "label",
   "name",
+  "usdOnly",
 ];
 
 describe("catalogueForAI", () => {
@@ -116,6 +117,19 @@ describe("catalogueForAI", () => {
     ]);
     expect(chart.annotatable).toBe(true);
     expect(Object.keys(chart).sort()).toEqual(ENTRY_KEYS);
+  });
+
+  it("tells the agent which frames ignore the display currency", () => {
+    // A `currency` set on a usdOnly frame parses fine and then changes nothing
+    // (US-macro series, SEC figures as filed, user-typed numbers), so the agent
+    // needs this to not bother. Always present, like `annotatable`.
+    const [plain] = catalogueForAI([fakeMeta({ name: "price-chart" })]);
+    expect(plain.usdOnly).toBe(false);
+    const [macro] = catalogueForAI([
+      fakeMeta({ name: "national-debt", usdOnly: true }),
+    ]);
+    expect(macro.usdOnly).toBe(true);
+    expect(Object.keys(macro).sort()).toEqual(ENTRY_KEYS);
   });
 
   it("keeps the key set fixed when the meta omits the optional iconUrl", () => {

@@ -118,6 +118,8 @@ const CONVERTS: Record<string, string> = {
   "prediction-markets": "market 24h volume",
   "prediction-markets-bubble": "market 24h volume",
   "price-chart": "last price and price axis",
+  "price-ticker": "each row's live price, via the shared MoverRow",
+  "coin-movers": "each gainer/loser price, via the shared MoverRow",
   "price-compare":
     "both symbols' prices on the value axis and legend (rendered with " +
     "`normalize: false` — see CONFIG_OVERRIDE)",
@@ -352,17 +354,6 @@ const NO_MONEY: Record<string, string> = {
  * the suite stays green; fixing the frame must flip the assertion.
  */
 const LEAKING: Record<string, string> = {
-  // KNOWN BUG: price-ticker renders MoverRow with no `formatValue`, so the row
-  // falls back to MoverRow's hard-coded USD `formatPrice` and quotes dollars on
-  // a baht board — should pass `formatValue={money.price}` the way top-movers
-  // does. Pinned so the suite stays green; fixing the source must flip this
-  // assertion.
-  "price-ticker": "MoverRow default formatValue — hard-coded USD formatPrice",
-  // KNOWN BUG: coin-movers renders MoverRow with no `formatValue` (same shared
-  // default as price-ticker), so every gainer/loser price is an unconverted USD
-  // figure — should pass `formatValue={money.price}`. Pinned so the suite stays
-  // green; fixing the source must flip this assertion.
-  "coin-movers": "MoverRow default formatValue — hard-coded USD formatPrice",
   // KNOWN BUG: journal-log's ticker picker shows the LIVE mid of the symbol
   // you're about to log (`useMids`, falling back to `useDayStats.markPx`)
   // through the hard-coded `formatPrice`, so it reads `$410.14` on a baht
@@ -1026,40 +1017,33 @@ describe("hard-coded USD leaks past the currency layer", () => {
   it.each(Object.keys(LEAKING))("%s prints dollars on a THB board", (name) => {
     const onThb = thb(name);
     assertRendered(name, onThb, "THB");
-    // KNOWN BUG: each of these frames renders provider money through a
-    // hard-coded USD formatter — the MoverRow default (`price-ticker`,
-    // `coin-movers`) or a direct `formatPrice` call (`journal-log`,
-    // `journal-open`) — so the card quotes dollars on a baht board. All of it
-    // should go through `useMoney()` (`money.price`); see the per-frame reason
-    // in LEAKING. Pinned so the suite stays green; fixing a source must flip
-    // these assertions.
+    // KNOWN BUG: each of these frames renders provider money through a direct
+    // hard-coded `formatPrice` call (`journal-log`, `journal-open`), so the card
+    // quotes dollars on a baht board. It should go through `useMoney()`
+    // (`money.price`); see the per-frame reason in LEAKING. Pinned so the suite
+    // stays green; fixing a source must flip these assertions.
     expect(onThb.text).toMatch(/\$[\d-]/);
     expect(onThb.text).not.toContain(BAHT);
     // The leak is total: the THB board is indistinguishable from the USD one.
     expect(onThb.text).toBe(usd(name).text);
   });
 
-  it("prints the unconverted USD price, where top-movers prints baht", async () => {
-    // Both frames render the same mock symbol through the same MoverRow; the one
-    // difference is that top-movers passes `money.price`.
-    const stats = await provider.getDayStats();
-    const [symbol, first] = Object.entries(stats)[0];
-    expect(first.markPx).toBeGreaterThan(0);
-    expect(symbol.length).toBeGreaterThan(0);
-
-    const movers = thb("coin-movers").text;
-    // KNOWN BUG: coin-movers' rows are raw USD prices — a mover at $18.93 must
-    // read ฿691.-something on a 36.5 board. Pinned so the suite stays green;
-    // fixing the source must flip this assertion.
-    expect(movers).not.toContain(BAHT);
-    const usdPrices = movers.match(/\$[\d,.]+/g) ?? [];
-    expect(usdPrices.length).toBeGreaterThan(3);
-
-    // The layer itself is fine: the sibling that passes money.price converts.
-    const good = thb("top-movers").text;
-    expect(good).toMatch(new RegExp(`${BAHT}[\\d-]`));
-    expect(good).not.toContain("$");
-    expect(good).toContain(formatMoney(first.markPx * RATE, "THB"));
+  it("converts every MoverRow consumer, not just the one that opted in", () => {
+    // The regression: MoverRow's price formatter was an optional prop defaulting
+    // to the USD `formatPrice`, and only `top-movers` passed one — so on a baht
+    // board its rows converted while `coin-movers` and `price-ticker` quoted
+    // dollars, with the `$` living in the primitive's default where no source
+    // grep could find it. The row resolves the currency itself now.
+    for (const name of ["coin-movers", "price-ticker", "top-movers"]) {
+      const onThb = thb(name).text;
+      expect(onThb, `${name} printed no baht figure`).toMatch(
+        new RegExp(`${BAHT}[\\d-]`),
+      );
+      expect(
+        onThb,
+        `${name} still printed dollars on a THB board`,
+      ).not.toContain("$");
+    }
   });
 
   it("the journal's dollar figures are provider quotes, not typed amounts", () => {

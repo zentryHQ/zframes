@@ -28,6 +28,11 @@ export function catalogueForAI(input: FrameRegistry | Iterable<FrameMeta>) {
     // anywhere else the field parses fine and then renders nothing. Always
     // emitted (never conditionally spread) so the entry shape stays fixed.
     annotatable: meta.annotatable === true,
+    // This frame's figures are not convertible market money (US-macro series,
+    // SEC figures as filed, numbers the user typed), so it stays in USD and a
+    // per-card `currency` on it would be inert. Always emitted, like
+    // `annotatable`, so the entry shape stays fixed.
+    usdOnly: meta.usdOnly === true,
     // io: "input" — the agent writes the *input* shape, where .default()
     // fields are optional. The output shape would wrongly mark them required.
     configSchema: z.toJSONSchema(meta.schema, { io: "input" }),

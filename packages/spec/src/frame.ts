@@ -203,6 +203,21 @@ export interface FrameMeta<S extends z.ZodType = z.ZodType> {
    */
   annotatable?: boolean;
   /**
+   * True when this frame's money figures are NOT convertible market money, so it
+   * stays in USD whatever display currency the board (or the card) asks for.
+   * Three families qualify: US-macro series (a baht-converted national debt is a
+   * figure nobody quotes), SEC filing figures shown as reported, and numbers the
+   * user typed in themselves (which must read back exactly as entered).
+   *
+   * Declarative, and read by both ends: the editor disables the card's
+   * "Display currency" control and says why, and the AI catalogue surfaces it so
+   * a generating agent doesn't set `currency` on a frame that would ignore it.
+   * `tests/currency-coverage.test.ts` fails the build if it drifts from the
+   * frames that actually render the hard-coded USD helpers — this flag is the
+   * single source of truth for that carve-out.
+   */
+  usdOnly?: boolean;
+  /**
    * Where this frame's data comes from. The chrome renders it as a clickable
    * credit in the title row (one or more provider links). Omit for frames with
    * no external data feed.

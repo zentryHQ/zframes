@@ -125,6 +125,10 @@ const CONVERTS = [
   "bitcoin-dominance",
   "us-gold-reserve",
   "volume-profile",
+  // Both render the shared `MoverRow`, which resolves the card's currency
+  // itself — see the MoverRow group at the bottom of this file.
+  "price-ticker",
+  "coin-movers",
 ];
 
 /**
@@ -151,9 +155,6 @@ const USD_ONLY_CARVE_OUTS = [
   "returns-projector",
 ];
 
-/** Frames that leak hard-coded USD onto a converted board. See the KNOWN BUG. */
-const USD_LEAK = ["price-ticker", "coin-movers"];
-
 /**
  * Money frames whose figures live somewhere jsdom can't read them (a canvas
  * liveline, a zero-width D3 treemap/bubble pack) or behind a connect gate, so
@@ -174,7 +175,6 @@ const SUBSET = [
   ...CONVERTS,
   ...CONVERTS_WITH_LITERAL_USD,
   ...USD_ONLY_CARVE_OUTS,
-  ...USD_LEAK,
   ...MOUNT_ONLY,
 ];
 
@@ -447,23 +447,14 @@ describe("the unresolved-rate carve-out, at frame level", () => {
   });
 });
 
-describe("MoverRow's USD default leaks past the currency layer", () => {
-  it.each(USD_LEAK)("%s prints dollars on a THB board", async (name) => {
-    const text = await cardTextOf(name, "THB");
-    // KNOWN BUG: the frame renders `MoverRow` without a `formatValue`, so the
-    // row falls back to MoverRow's hard-coded USD `formatPrice` and the card
-    // quotes dollars on a baht board — should be routed through `useMoney()`
-    // (`formatValue={money.price}`) the way `top-movers` does.
-    // `tests/currency-coverage.test.ts` cannot see it: the `$` lives in the
-    // shared primitive's default, not in this frame's source. Pinned so the
-    // suite stays green; fixing the source must flip these assertions.
-    expect(text).toMatch(/\$[\d-]/);
-    expect(text).not.toContain(BAHT);
-  });
-
-  it("prints the unconverted USD price where top-movers prints baht", async () => {
-    // Both frames render the same mock symbol through the same MoverRow; the
-    // only difference is that top-movers passes `money.price`.
+describe("the shared MoverRow row converts for every consumer", () => {
+  // The regression this group exists for: MoverRow took an optional
+  // `formatValue` defaulting to the USD `formatPrice`, and `price-ticker` /
+  // `coin-movers` never passed one — so those two cards quoted dollars on a baht
+  // board while `top-movers`, which did pass it, converted. No source grep could
+  // see it: the `$` lived in the primitive's default, not in the frames. The row
+  // now calls `useMoney()` itself, so there is nothing left to omit.
+  it("prints the converted price for a consumer that passes nothing", async () => {
     const rate = await seededRate("THB");
     const def = frameByName.get("price-ticker")!;
     const { symbols } = buildDefaultConfig(def) as { symbols: string[] };
@@ -478,14 +469,10 @@ describe("MoverRow's USD default leaks past the currency layer", () => {
     expect(mid).toBeGreaterThan(0);
 
     const ticker = await cardTextOf("price-ticker", "THB");
-    // KNOWN BUG: the printed figure is the raw USD mid — should be
-    // `money.price(mid)` (the baht amount `top-movers` shows for the same
-    // symbol). Pinned so the suite stays green; fixing the source must flip
-    // these two assertions.
-    expect(ticker).toContain(formatMoney(mid, "USD"));
-    expect(ticker).not.toContain(formatMoney(mid * rate, "THB"));
+    expect(ticker).toContain(formatMoney(mid * rate, "THB"));
+    expect(ticker).not.toContain(formatMoney(mid, "USD"));
 
-    // The layer itself is fine: the sibling that passes money.price converts.
+    // And the sibling that renders the same row still agrees.
     const movers = await cardTextOf("top-movers", "THB");
     expect(movers).toMatch(new RegExp(`${BAHT}[\\d-]`));
     expect(movers).not.toContain("$");
