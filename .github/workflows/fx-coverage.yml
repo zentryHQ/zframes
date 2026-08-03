@@ -1,0 +1,63 @@
+name: FX coverage monitor
+
+# Guards the board display-currency enum against upstream drift.
+# `CURRENCY_CODES` (packages/spec/src/spec.ts) is DERIVED from live coverage: a
+# code is selectable only when >=2 of provider-fx's four keyless upstreams quote
+# it, so every board currency inherits the chain's fallback resilience. Upstream
+# coverage drifts (a source drops a currency, tightens its keyless tier, or goes
+# away) and nothing else notices — the daily provider monitor probes getFxRates,
+# which walks the chain and passes while ANY link answers, so a dead FALLBACK is
+# invisible to it by construction.
+#
+# Findings open/update ONE dedup'd issue (label: fx-coverage) that auto-closes
+# when coverage recovers. Not a PR check — external/flaky work must not gate
+# merges; the Actions run stays green when the monitor itself ran cleanly.
+#
+# No secrets, no keys, no repo build: plain node against four public endpoints.
+
+on:
+  schedule:
+    # Weekly, Tuesdays 06:41 UTC. Coverage drifts on the order of months (BGN
+    # left the set when Bulgaria joined the euro; exchangerate.host went
+    # key-gated), so a daily run would be almost entirely noise-free repetition
+    # of four requests. Weekly bounds the worst-case detection latency of a
+    # silently-dead fallback link to 7 days, while provider-monitor.yml still
+    # catches a TOTAL chain failure within a day. Tuesday keeps it off audit.yml's
+    # Monday slot; :41 dodges on-the-hour cron congestion.
+    - cron: "41 6 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  coverage:
+    name: compare CURRENCY_CODES against live FX coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+
+      # Plain node — no pnpm install: the script parses spec.ts as text and uses
+      # global fetch, so it needs neither the workspace packages nor a build.
+      - name: Probe live FX source coverage
+        run: node .github/scripts/fx-coverage.mjs
+
+      - name: File / update / close issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/report-to-issue.mjs --kind generic --label fx-coverage --report fx-coverage-report.json
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fx-coverage-report
+          path: fx-coverage-report.json
+          if-no-files-found: warn

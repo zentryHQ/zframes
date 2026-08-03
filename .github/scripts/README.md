@@ -11,6 +11,7 @@ public) **file a GitHub issue** instead of turning a PR red.
 | **Provider** | a keyless API died / changed shape / rate-limited | flaky (external) | `provider-monitor.yml` | daily | `provider-drift` |
 | **CLI smoke** | the published `npx zframes` is broken/stale | semi | `cli-smoke.yml` | daily · 3 OSes | `cli-broken`(`-macos`/`-windows`) |
 | **Frame render** | a frame renders an error card / crashes | **deterministic** | `frame-render.yml` | nightly | `frame-render` |
+| **FX coverage** | a board currency lost its FX fallback / a source died | semi (external) | `fx-coverage.yml` | weekly | `fx-coverage` |
 | **Dep audit** | a HIGH/CRITICAL advisory in deps | deterministic | `audit.yml` | weekly | `security-audit` |
 
 All are dispatch-able on demand from the Actions tab. Issue dedup is uniform:
@@ -49,6 +50,43 @@ check. (An AI vision reviewer for *subjective* "looks bad" was prototyped and
 removed: it needs a metered API key — a subscription OAuth token 429s the batch
 Messages-API path. A pixel-diff for subtle layout regressions is a possible
 future add-on.)
+
+## FX coverage · `fx-coverage.mjs`
+
+`CURRENCY_CODES` (`packages/spec/src/spec.ts`) is **derived data**: a code is a
+selectable board display currency only when **≥2** of `provider-fx`'s four
+keyless upstreams (Frankfurter/ECB → FXRatesAPI → currency-api → ECB Data Portal
+direct) quote it, so every board currency inherits the chain's fallback
+resilience. Upstream coverage drifts — a source drops a currency, tightens its
+keyless tier, or vanishes (`exchangerate.host` went key-gated,
+`exchangerate-api.com/v4` was deprecated) — and **the provider monitor cannot
+see it**: it probes `getFxRates`, which walks the chain and passes while *any*
+link answers, so a dead **fallback** is invisible to it by construction.
+
+This monitor fetches each source's live coverage, recomputes the ≥2-source set,
+and diffs it against the committed enum. Three findings, by severity:
+
+1. 🔴 **a source unreachable / changed shape** — the chain silently lost a link
+   (non-JSON body, 401/403, `success:false`)
+2. 🔴 **enum code with 0 sources** — the board renders an unconverted USD figure
+   wearing the wrong symbol
+3. 🟠 **enum code down to 1 source** — correct today, no resilience left
+
+Codes that *newly* qualify are reported as an informational `<details>` block
+only, never a finding (the two broad sources also list crypto and defunct/
+redenominated codes — `NON_CURRENCY` filters the assets, human judgment does the
+rest).
+
+Not crying wolf on a blip, in three layers: each source is tried **3×** with
+growing pauses; if **any** source failed the coverage diff is **skipped**
+entirely (recomputing from the survivors would report half the enum as having
+lost its fallback); and the shared dedup means a blip that beats both costs one
+self-closing issue, not one per run. The enum is **parsed out of `spec.ts`** (not
+duplicated here, and no assumption about its length) — plain node, so the
+workflow needs no `pnpm install` and no build.
+
+`FX_COVERAGE_BREAK=frankfurter node .github/scripts/fx-coverage.mjs` points one
+source at a dead host to exercise the outage path.
 
 ## Dependency audit · `audit-report.mjs`
 
