@@ -226,93 +226,91 @@ export default async function Image({
   // ── Real capture: the board itself is the card ──────────────────────────────
   if (capture) {
     return new ImageResponse(
-      (
-        <div
+      <div
+        style={{
+          display: "flex",
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          color: "#e7ecf6",
+          fontFamily: "DM Sans",
+          backgroundColor: "#06060b",
+        }}
+      >
+        <img
+          src={capture.src}
+          width={capture.width}
+          height={capture.height}
           style={{
-            display: "flex",
-            position: "relative",
-            width: "100%",
-            height: "100%",
-            color: "#e7ecf6",
-            fontFamily: "DM Sans",
-            backgroundColor: "#06060b",
+            position: "absolute",
+            top: capture.top,
+            left: capture.left,
           }}
-        >
-          <img
-            src={capture.src}
-            width={capture.width}
-            height={capture.height}
-            style={{
-              position: "absolute",
-              top: capture.top,
-              left: capture.left,
-            }}
-            alt=""
-          />
-          {/* Two scrim bands rather than one full-height gradient: the text sits
+          alt=""
+        />
+        {/* Two scrim bands rather than one full-height gradient: the text sits
             over near-solid backdrop at the top and bottom edges while the middle
             stays an untouched window onto the real board. A single soft gradient
             left the lockup fighting whatever card happened to be under it. */}
-          <div
-            style={{
-              display: "flex",
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: 190,
-              // Solid past the lockup's baseline (y≈110) before it fades: boards
-              // lead with their own heading frame, and a translucent band left it
-              // ghosting through the brand mark.
-              backgroundImage:
-                "linear-gradient(180deg, rgba(6,6,11,1) 0%, rgba(6,6,11,0.99) 58%, rgba(6,6,11,0.45) 80%, rgba(6,6,11,0) 100%)",
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              position: "absolute",
-              top: 230,
-              left: 0,
-              width: "100%",
-              height: 400,
-              backgroundImage:
-                "linear-gradient(180deg, rgba(6,6,11,0) 0%, rgba(6,6,11,0.80) 40%, rgba(6,6,11,0.97) 68%, rgba(6,6,11,1) 100%)",
-            }}
-          />
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              padding: 56,
-              justifyContent: "space-between",
-            }}
-          >
-            <BrandLockup />
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div
-                style={{
-                  display: "flex",
-                  fontSize: title.length > 28 ? 46 : 56,
-                  fontWeight: 700,
-                  lineHeight: 1.05,
-                  color: "#ffffff",
-                  maxWidth: 900,
-                }}
-              >
-                {title}
-              </div>
-              <Pills frameCount={frames.length} tags={tags} />
-              <Cta />
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: 190,
+            // Solid past the lockup's baseline (y≈110) before it fades: boards
+            // lead with their own heading frame, and a translucent band left it
+            // ghosting through the brand mark.
+            backgroundImage:
+              "linear-gradient(180deg, rgba(6,6,11,1) 0%, rgba(6,6,11,0.99) 58%, rgba(6,6,11,0.45) 80%, rgba(6,6,11,0) 100%)",
+          }}
+        />
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            top: 230,
+            left: 0,
+            width: "100%",
+            height: 400,
+            backgroundImage:
+              "linear-gradient(180deg, rgba(6,6,11,0) 0%, rgba(6,6,11,0.80) 40%, rgba(6,6,11,0.97) 68%, rgba(6,6,11,1) 100%)",
+          }}
+        />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            padding: 56,
+            justifyContent: "space-between",
+          }}
+        >
+          <BrandLockup />
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                fontSize: title.length > 28 ? 46 : 56,
+                fontWeight: 700,
+                lineHeight: 1.05,
+                color: "#ffffff",
+                maxWidth: 900,
+              }}
+            >
+              {title}
             </div>
+            <Pills frameCount={frames.length} tags={tags} />
+            <Cta />
           </div>
         </div>
-      ),
+      </div>,
       { ...size, fonts, headers },
     );
   }
@@ -320,108 +318,106 @@ export default async function Image({
   // ── No capture yet: synthetic mini-map from the spec's layout geometry ──────
   const cells = miniMap(frames);
   return new ImageResponse(
-    (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+        height: "100%",
+        padding: 60,
+        color: "#e7ecf6",
+        fontFamily: "DM Sans",
+        backgroundColor: "#06060b",
+        backgroundImage:
+          "radial-gradient(900px 520px at 12% -8%, rgba(89,84,255,0.28), transparent 62%), radial-gradient(820px 620px at 100% 0%, rgba(150,90,240,0.20), transparent 58%)",
+      }}
+    >
+      <BrandLockup />
+
+      {/* Body */}
       <div
         style={{
           display: "flex",
-          flexDirection: "column",
-          width: "100%",
-          height: "100%",
-          padding: 60,
-          color: "#e7ecf6",
-          fontFamily: "DM Sans",
-          backgroundColor: "#06060b",
-          backgroundImage:
-            "radial-gradient(900px 520px at 12% -8%, rgba(89,84,255,0.28), transparent 62%), radial-gradient(820px 620px at 100% 0%, rgba(150,90,240,0.20), transparent 58%)",
+          flex: 1,
+          alignItems: "center",
+          gap: 52,
+          paddingTop: 28,
         }}
       >
-        <BrandLockup />
-
-        {/* Body */}
+        {/* Left */}
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             flex: 1,
-            alignItems: "center",
-            gap: 52,
-            paddingTop: 28,
+            justifyContent: "center",
+            gap: 22,
           }}
         >
-          {/* Left */}
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              justifyContent: "center",
-              gap: 22,
+              fontSize: title.length > 24 ? 54 : 66,
+              fontWeight: 700,
+              lineHeight: 1.05,
+              color: "#ffffff",
+              maxWidth: 560,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                fontSize: title.length > 24 ? 54 : 66,
-                fontWeight: 700,
-                lineHeight: 1.05,
-                color: "#ffffff",
-                maxWidth: 560,
-              }}
-            >
-              {title}
-            </div>
-            <Pills frameCount={frames.length} tags={tags} />
+            {title}
           </div>
-
-          {/* Right — mini-map of the real layout */}
-          <div
-            style={{
-              display: "flex",
-              position: "relative",
-              width: 520,
-              height: 300,
-              borderRadius: 18,
-              border: "1px solid rgba(255,255,255,0.08)",
-              backgroundImage: "linear-gradient(160deg, #0a0a14, #08080f)",
-              boxShadow: "0 30px 90px -40px rgba(124,92,255,0.7)",
-            }}
-          >
-            {cells.map((c, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  position: "absolute",
-                  left: c.left,
-                  top: c.top,
-                  width: c.width,
-                  height: c.height,
-                  padding: 5,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: 7,
-                    backgroundColor: c.heading ? "transparent" : `${c.color}22`,
-                    border: `1px solid ${
-                      c.heading ? "transparent" : `${c.color}66`
-                    }`,
-                    borderBottom: `2px solid ${
-                      c.heading ? `${NEUTRAL}66` : `${c.color}66`
-                    }`,
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+          <Pills frameCount={frames.length} tags={tags} />
         </div>
 
-        {/* Footer — the fork story */}
-        <Cta />
+        {/* Right — mini-map of the real layout */}
+        <div
+          style={{
+            display: "flex",
+            position: "relative",
+            width: 520,
+            height: 300,
+            borderRadius: 18,
+            border: "1px solid rgba(255,255,255,0.08)",
+            backgroundImage: "linear-gradient(160deg, #0a0a14, #08080f)",
+            boxShadow: "0 30px 90px -40px rgba(124,92,255,0.7)",
+          }}
+        >
+          {cells.map((c, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                position: "absolute",
+                left: c.left,
+                top: c.top,
+                width: c.width,
+                height: c.height,
+                padding: 5,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: 7,
+                  backgroundColor: c.heading ? "transparent" : `${c.color}22`,
+                  border: `1px solid ${
+                    c.heading ? "transparent" : `${c.color}66`
+                  }`,
+                  borderBottom: `2px solid ${
+                    c.heading ? `${NEUTRAL}66` : `${c.color}66`
+                  }`,
+                }}
+              />
+            </div>
+          ))}
+        </div>
       </div>
-    ),
+
+      {/* Footer — the fork story */}
+      <Cta />
+    </div>,
     { ...size, fonts, headers },
   );
 }
