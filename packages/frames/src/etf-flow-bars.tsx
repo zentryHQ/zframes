@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { etfFlowBarsMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const LOOKBACK_MS = {
@@ -14,6 +15,8 @@ const LOOKBACK_MS = {
 
 const schema = etfFlowBarsMeta.schema;
 
+const LOOKBACK_OPTIONS = ["1M", "3M", "6M"] as const;
+
 function dayLabel(time: number): string {
   const d = new Date(time);
   return `${d.getMonth() + 1}/${d.getDate()}`;
@@ -21,10 +24,8 @@ function dayLabel(time: number): string {
 
 function EtfFlowBars({ config }: { config: z.output<typeof schema> }) {
   const money = useMoney();
-  const cutoff = useMemo(
-    () => Date.now() - LOOKBACK_MS[config.lookback],
-    [config.lookback],
-  );
+  const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
+  const cutoff = useMemo(() => Date.now() - LOOKBACK_MS[lookback], [lookback]);
   const { flows, isLoading } = useEtfFlows(config.asset);
 
   const data = useMemo(
@@ -50,9 +51,17 @@ function EtfFlowBars({ config }: { config: z.output<typeof schema> }) {
         showValues={false}
         maxTickLabels={6}
       />
-      <div className="caption text-soft text-center">
-        {config.asset.toUpperCase()} spot-ETF daily net flow · latest{" "}
-        {money.compact(flows?.dailyTotalNetInflow ?? 0)}
+      <div className="flex items-center justify-between gap-2">
+        <span className="caption text-soft">
+          {config.asset.toUpperCase()} spot-ETF daily net flow · latest{" "}
+          {money.compact(flows?.dailyTotalNetInflow ?? 0)}
+        </span>
+        <TimeframeToggle
+          options={LOOKBACK_OPTIONS}
+          value={lookback}
+          onChange={setLookback}
+          label="ETF flow lookback"
+        />
       </div>
     </div>
   );

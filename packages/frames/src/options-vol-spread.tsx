@@ -9,6 +9,7 @@ import type { z } from "zod";
 import { optionsVolSpreadMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 import { TimeSeriesChart } from "./series-chart";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = optionsVolSpreadMeta.schema;
 
@@ -21,8 +22,11 @@ const LOOKBACKS: Record<
   "3M": { ms: 90 * 86_400_000, res: 86_400, timeframe: ChartTimeframe["3M"] },
 };
 
+const LOOKBACK_OPTIONS = ["7D", "1M", "3M"] as const;
+
 function OptionsVolSpread({ config }: { config: z.output<typeof schema> }) {
-  const { ms, res, timeframe } = LOOKBACKS[config.lookback];
+  const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
+  const { ms, res, timeframe } = LOOKBACKS[lookback];
   // Snap the window start to its resolution so it's stable across remounts —
   // same reasoning as Implied Volatility: the provider's cache key includes
   // startMs, and a drifting Date.now()-based start would churn a fresh entry
@@ -64,6 +68,14 @@ function OptionsVolSpread({ config }: { config: z.output<typeof schema> }) {
       timeframe={timeframe}
       height={250}
       formatValue={(v) => v.toFixed(1)}
+      control={
+        <TimeframeToggle
+          options={LOOKBACK_OPTIONS}
+          value={lookback}
+          onChange={setLookback}
+          label="volatility history window"
+        />
+      }
     />
   );
 }

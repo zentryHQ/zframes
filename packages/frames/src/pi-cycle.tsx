@@ -6,11 +6,15 @@ import { MetricGauge, ZONE_NEUTRAL, ZONE_WARN, zoneOf } from "./cycle-shared";
 import { DOWN_COLOR } from "./format";
 import { sma, tail, windowDays } from "./indicators";
 import { piCycleMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const schema = piCycleMeta.schema;
 
+const WINDOW_OPTIONS = ["1Y", "2Y", "4Y", "all"] as const;
+
 function PiCycle({ config }: { config: z.output<typeof schema> }) {
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
   const { history, isLoading } = useDailyCloseHistory("btc");
 
   // Ratio of the 111-day MA to 2× the 350-day MA. Crossing 1 = the classic Pi
@@ -50,8 +54,16 @@ function PiCycle({ config }: { config: z.output<typeof schema> }) {
       headlineColor={zone.color}
       zone={zone}
       sub="crosses 1 at cycle tops"
-      sparkline={tail(series, windowDays(config.window))}
+      sparkline={tail(series, windowDays(chartWindow))}
       sparkColor={zone.color}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="Pi Cycle history window"
+        />
+      }
     />
   );
 }

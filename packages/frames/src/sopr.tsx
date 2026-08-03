@@ -4,11 +4,15 @@ import { MetricGauge, ZONE_NEUTRAL, ZONE_WARN, zoneOf } from "./cycle-shared";
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { tail, windowDays } from "./indicators";
 import { soprMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const schema = soprMeta.schema;
 
+const WINDOW_OPTIONS = ["90D", "180D", "1Y"] as const;
+
 function Sopr({ config }: { config: z.output<typeof schema> }) {
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
   const { extras, isLoading } = useOnchainExtras();
 
   if (isLoading) return <FrameStatus loading>loading SOPR…</FrameStatus>;
@@ -37,8 +41,16 @@ function Sopr({ config }: { config: z.output<typeof schema> }) {
           ? `Reserve Risk ${extras.reserveRisk.toPrecision(2)}`
           : undefined
       }
-      sparkline={tail(extras.history.sopr, windowDays(config.window))}
+      sparkline={tail(extras.history.sopr, windowDays(chartWindow))}
       sparkColor={zone.color}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="SOPR history window"
+        />
+      }
     />
   );
 }

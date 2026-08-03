@@ -10,15 +10,19 @@ import { tail, toSparkline, windowDays } from "./indicators";
 import { mvrvZscoreChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 import { TimeSeriesChart } from "./series-chart";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = mvrvZscoreChartMeta.schema;
 
+const WINDOW_OPTIONS = ["1Y", "2Y", "4Y", "all"] as const;
+
 function MvrvZscoreChart({ config }: { config: z.output<typeof schema> }) {
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
   const { valuation, isLoading } = useOnchainValuation();
 
   const series: MultiSeriesData[] = useMemo(() => {
     if (!valuation) return [];
-    const n = windowDays(config.window);
+    const n = windowDays(chartWindow);
     return [
       {
         id: "mvrv-zscore",
@@ -27,7 +31,7 @@ function MvrvZscoreChart({ config }: { config: z.output<typeof schema> }) {
         data: toSparkline(tail(valuation.history.mvrvZScore, n)),
       },
     ];
-  }, [valuation, config.window]);
+  }, [valuation, chartWindow]);
 
   if (isLoading)
     return <FrameStatus loading>loading MVRV Z-Score…</FrameStatus>;
@@ -40,6 +44,14 @@ function MvrvZscoreChart({ config }: { config: z.output<typeof schema> }) {
       timeframe={ChartTimeframe.YTD}
       height={220}
       formatValue={(v) => v.toFixed(2)}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="MVRV Z-Score history window"
+        />
+      }
     />
   );
 }

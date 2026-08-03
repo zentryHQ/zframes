@@ -12,19 +12,23 @@ import { normalize, tail, toSparkline, windowDays } from "./indicators";
 import { onchainOscillatorOverlayMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 import { TimeSeriesChart } from "./series-chart";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = onchainOscillatorOverlayMeta.schema;
+
+const WINDOW_OPTIONS = ["90D", "180D", "1Y"] as const;
 
 function OnchainOscillatorOverlay({
   config,
 }: {
   config: z.output<typeof schema>;
 }) {
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
   const { extras, isLoading } = useOnchainExtras();
 
   const series: MultiSeriesData[] = useMemo(() => {
     if (!extras) return [];
-    const n = windowDays(config.window);
+    const n = windowDays(chartWindow);
     const prep = (s: SeriesPoint[]) => toSparkline(normalize(tail(s, n)));
     return [
       {
@@ -46,7 +50,7 @@ function OnchainOscillatorOverlay({
         data: prep(extras.history.reserveRisk),
       },
     ];
-  }, [extras, config.window]);
+  }, [extras, chartWindow]);
 
   if (isLoading && series.length === 0)
     return <FrameStatus loading>loading on-chain oscillators…</FrameStatus>;
@@ -59,6 +63,14 @@ function OnchainOscillatorOverlay({
       timeframe={ChartTimeframe.YTD}
       height={260}
       formatValue={(v) => formatPct(v * 100, 0)}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="on-chain oscillator overlay window"
+        />
+      }
     />
   );
 }

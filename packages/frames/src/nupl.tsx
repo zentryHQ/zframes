@@ -4,11 +4,15 @@ import { MetricGauge, ZONE_NEUTRAL, ZONE_WARN, zoneOf } from "./cycle-shared";
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { tail, windowDays } from "./indicators";
 import { nuplMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const schema = nuplMeta.schema;
 
+const WINDOW_OPTIONS = ["1Y", "2Y", "4Y", "all"] as const;
+
 function Nupl({ config }: { config: z.output<typeof schema> }) {
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
   const { valuation, isLoading } = useOnchainValuation();
 
   if (isLoading) return <FrameStatus loading>loading NUPL…</FrameStatus>;
@@ -33,8 +37,16 @@ function Nupl({ config }: { config: z.output<typeof schema> }) {
       headline={`${(valuation.nupl * 100).toFixed(1)}%`}
       headlineColor={zone.color}
       zone={zone}
-      sparkline={tail(valuation.history.nupl, windowDays(config.window))}
+      sparkline={tail(valuation.history.nupl, windowDays(chartWindow))}
       sparkColor={zone.color}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="NUPL history window"
+        />
+      }
     />
   );
 }

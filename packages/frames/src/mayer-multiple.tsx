@@ -6,11 +6,15 @@ import { MetricGauge, ZONE_NEUTRAL, ZONE_WARN, zoneOf } from "./cycle-shared";
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { sma, tail, windowDays } from "./indicators";
 import { mayerMultipleMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const schema = mayerMultipleMeta.schema;
 
+const WINDOW_OPTIONS = ["1Y", "2Y", "4Y", "all"] as const;
+
 function MayerMultiple({ config }: { config: z.output<typeof schema> }) {
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
   const { history, isLoading } = useDailyCloseHistory("btc");
 
   const series = useMemo<SeriesPoint[]>(() => {
@@ -47,8 +51,16 @@ function MayerMultiple({ config }: { config: z.output<typeof schema> }) {
       headline={latest.toFixed(2)}
       headlineColor={zone.color}
       zone={zone}
-      sparkline={tail(series, windowDays(config.window))}
+      sparkline={tail(series, windowDays(chartWindow))}
       sparkColor={zone.color}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="Mayer Multiple history window"
+        />
+      }
     />
   );
 }

@@ -11,8 +11,11 @@ import { tail, windowDays } from "./indicators";
 import { realizedPriceMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 import { TimeSeriesChart } from "./series-chart";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = realizedPriceMeta.schema;
+
+const WINDOW_OPTIONS = ["1Y", "2Y", "4Y", "all"] as const;
 
 const toDataPoints = (s: SeriesPoint[]) =>
   s.map((p) => ({ date: new Date(p.time).toISOString(), value: p.value }));
@@ -20,10 +23,11 @@ const toDataPoints = (s: SeriesPoint[]) =>
 function RealizedPrice({ config }: { config: z.output<typeof schema> }) {
   const { valuation, isLoading } = useOnchainValuation();
   const money = useMoney();
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
 
   const series: MultiSeriesData[] = useMemo(() => {
     if (!valuation) return [];
-    const n = windowDays(config.window);
+    const n = windowDays(chartWindow);
     return [
       {
         id: "price",
@@ -38,7 +42,7 @@ function RealizedPrice({ config }: { config: z.output<typeof schema> }) {
         data: toDataPoints(tail(valuation.history.realizedPrice, n)),
       },
     ];
-  }, [valuation, config.window]);
+  }, [valuation, chartWindow]);
 
   if (isLoading)
     return <FrameStatus loading>loading realized price…</FrameStatus>;
@@ -51,6 +55,14 @@ function RealizedPrice({ config }: { config: z.output<typeof schema> }) {
       timeframe={ChartTimeframe.YTD}
       height={220}
       formatValue={money.compact}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="realized price history window"
+        />
+      }
     />
   );
 }
