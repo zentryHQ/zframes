@@ -16,18 +16,18 @@ import { validateCustomUrl } from "./custom-data-shared";
 const widgetIcon = (name: string) => `/widget-icons/${name}.png`;
 
 /**
- * Optional data-source pin for frames whose capability more than one exchange
- * can serve. Capability routing is first-match, so without this a second venue
- * (e.g. Bitkub) is never reached; naming it here routes THIS card to that
- * provider. Symbols are venue-native, so they change with the venue: Hyperliquid
- * wants "BTC"/"xyz:TSLA", Bitkub wants "BTC"/"KUB".
+ * Optional provider pin for frames whose capability more than one exchange
+ * can serve. Capability routing is first-match, so without this a second
+ * source (e.g. Bitkub) is never reached; naming it here routes THIS card to
+ * that provider. Symbols are source-native, so they change with the source:
+ * Hyperliquid wants "BTC"/"xyz:TSLA", Bitkub wants "BTC"/"KUB".
  */
-const venueField = () =>
+const sourceField = () =>
   z
     .enum(["hyperliquid", "bitkub"])
     .optional()
     .describe(
-      'Which exchange to source this card from — "hyperliquid" (default: crypto + HIP-3 stock/commodity perps, USD) or "bitkub" (Thailand\'s largest exchange, THB-quoted, the venue where KUB trades). Omit for the default. Use venue-native symbols: Bitkub lists bare tickers like "KUB"/"BTC" and has no HIP-3 stock perps.',
+      'Which exchange to source this card from — "hyperliquid" (default: crypto + HIP-3 stock/commodity perps, USD) or "bitkub" (Thailand\'s largest exchange, THB-quoted, the source where KUB trades). Omit for the default. Use source-native symbols: Bitkub lists bare tickers like "KUB"/"BTC" and has no HIP-3 stock perps.',
     );
 
 /**
@@ -237,7 +237,7 @@ export const priceChartMeta = defineFrameMeta({
   description:
     "Live animated price chart (candlestick or line) for one symbol — canvas-rendered at 60fps via liveline, streaming live off the Hyperliquid WebSocket. Works for any HIP-3 perp — stocks (xyz:TSLA), indices (xyz:SP500), commodities (xyz:GOLD) — and crypto (BTC). The centerpiece frame.",
   capabilities: ["ohlcv", "quote-stream"],
-  // Either venue can back this card (see `venue`), so both are credited — the
+  // Either source can back this card (see `source`), so both are credited — the
   // badge is static meta and can't know which one a given instance pinned.
   source: [SOURCES.hyperliquid, SOURCES.bitkub],
   schema: z.object({
@@ -259,7 +259,7 @@ export const priceChartMeta = defineFrameMeta({
       .string()
       .default("#8b8df9")
       .describe("Accent color (hex). The whole palette derives from it."),
-    venue: venueField(),
+    source: sourceField(),
   }),
 });
 
@@ -328,7 +328,7 @@ export const topMoversMeta = defineFrameMeta({
   description:
     "Today's biggest stock and commodity HIP-3 gainers and losers (no bare crypto), side by side with current price and 24h change.",
   capabilities: ["day-stats"],
-  // Either venue can back this card (see `venue`) — both are credited.
+  // Either source can back this card (see `source`) — both are credited.
   source: [SOURCES.hyperliquid, SOURCES.bitkub],
   schema: z.object({
     count: z
@@ -338,7 +338,7 @@ export const topMoversMeta = defineFrameMeta({
       .max(10)
       .default(5)
       .describe("How many gainers and losers to list (each)."),
-    venue: venueField(),
+    source: sourceField(),
   }),
 });
 
@@ -1019,7 +1019,7 @@ export const priceEventsMeta = defineFrameMeta({
       .describe(
         "How far back to plot. Events outside this window aren't drawn, so widen it to reach older annotations.",
       ),
-    venue: venueField(),
+    source: sourceField(),
   }),
 });
 
@@ -2834,7 +2834,7 @@ export const orderBookDepthMeta = defineFrameMeta({
       .describe(
         'Base asset ticker as listed on the venue, e.g. "KUB", "BTC", "ETH" — the quote asset is implied (THB on Bitkub).',
       ),
-    venue: venueField(),
+    source: sourceField(),
     levels: z
       .number()
       .int()

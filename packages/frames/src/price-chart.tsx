@@ -33,13 +33,13 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
     config.interval,
     startTimeMs,
     Math.min(intervalMs, 60_000),
-    config.venue,
+    config.source,
   );
   const money = useMoney();
-  // Only Hyperliquid streams quotes, so on another venue this asks for nothing
+  // Only Hyperliquid streams quotes, so on another source this asks for nothing
   // and the chart runs on polled candles alone: the forming candle and the line
   // tail fall back to candle closes (see liveCandle / lineData below).
-  const streams = !config.venue || config.venue === "hyperliquid";
+  const streams = !config.source || config.source === "hyperliquid";
   const mids = useMids(streams ? [config.symbol] : []);
   const mid = mids[config.symbol];
 
@@ -171,7 +171,7 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
  * opens no extra subscription.
  */
 function PriceChartTitle({ config }: { config: z.output<typeof schema> }) {
-  const streams = !config.venue || config.venue === "hyperliquid";
+  const streams = !config.source || config.source === "hyperliquid";
   const showPrice = config.mode === "candle" && streams;
   const mid = useMids(showPrice ? [config.symbol] : [])[config.symbol];
   const money = useMoney();

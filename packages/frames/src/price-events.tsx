@@ -52,7 +52,7 @@ function PriceEvents({ config }: { config: z.output<typeof schema> }) {
     interval,
     startTimeMs,
     REFRESH_MS,
-    config.venue,
+    config.source,
   );
 
   const series: MultiSeriesData[] = useMemo(

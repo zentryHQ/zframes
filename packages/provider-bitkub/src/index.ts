@@ -151,9 +151,9 @@ function toLevels(
  * digital-asset exchange, and the venue where KUB (Bitkub Chain's gas token)
  * actually trades.
  *
- * It fulfils the SAME capabilities the existing venues do, so the existing
+ * It fulfils the SAME capabilities the existing sources do, so the existing
  * frames render Bitkub data unchanged; a frame reaches it by pinning
- * `venue: "bitkub"` (capability routing is otherwise first-match, which would
+ * `source: "bitkub"` (capability routing is otherwise first-match, which would
  * always hand these to Hyperliquid). Bitkub quotes in Thai baht, but every
  * capability in this codebase is denominated in USD, so prices are converted at
  * the live ECB reference rate on the way out — a `currency: "THB"` dashboard

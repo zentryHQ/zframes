@@ -48,10 +48,10 @@ function OrderBookDepth({ config }: { config: z.output<typeof schema> }) {
     config.symbol,
     config.levels,
     undefined,
-    config.venue,
+    config.source,
   );
   // Prices arrive in USD like every capability; this renders them in the card's
-  // display currency, so a THB board shows the venue's own baht ladder.
+  // display currency, so a THB board shows the source's own baht ladder.
   const money = useMoney();
 
   if (isLoading) return <FrameStatus loading>loading order book…</FrameStatus>;
