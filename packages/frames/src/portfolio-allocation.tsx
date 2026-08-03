@@ -56,7 +56,7 @@ function AllocationDonut({
             config={config}
             className="caption text-soft"
           />
-          <span className="metric-lg text-strong">{money.compact(total)}</span>
+          <span className="metric-md text-strong">{money.compact(total)}</span>
         </div>
       </PieChart>
 
