@@ -1,14 +1,28 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
+import { loadDashboardThumb } from "@/app/lib/dashboard-thumb";
 import { resolveDashboard } from "@/app/lib/resolve-dashboard";
+import { coverFit, imageSize } from "@/app/lib/thumb-image";
 
 // Dynamic 1200×630 social-share card for /d/<id>. next/og's ImageResponse is
 // built in (no @vercel/og dep). Node runtime so it can resolve community
 // dashboards through the Node-only postgres driver (same pattern as the sibling
 // dashboard.json route). Rendered by satori — flexbox subset only, every
 // multi-child element needs display:flex, inline styles only.
+//
+// The card shows THE SAME capture the gallery shows: the nightly screenshot of
+// the live board (dashboard_thumbs, via /api/thumbs/<id>'s loader), composited
+// full-bleed under a scrim carrying the title/tags/CTA. When no capture exists
+// yet — a board published since the last cron, or a local dev DB — it falls back
+// to the synthetic mini-map drawn from the spec's layout geometry.
 export const runtime = "nodejs";
+// The capture is refreshed nightly and a takedown must drop out of unfurls
+// immediately, so this renders per request rather than being baked at build
+// time by the page's generateStaticParams (which would freeze the curated ids'
+// cards to whatever existed at build). Crawler traffic is negligible, and the
+// response still carries an hour of CDN cache below.
+export const dynamic = "force-dynamic";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = "A live market dashboard on zframes";
@@ -40,13 +54,141 @@ function miniMap(frames: Frame[]) {
   });
 }
 
+// The nightly capture as a satori-drawable layer: a data URI plus the explicit
+// cover-fit geometry (satori has no reliable object-fit/object-position).
+async function captureLayer(id: string) {
+  try {
+    const thumb = await loadDashboardThumb(id);
+    if (!thumb) return null;
+    const dim = imageSize(thumb.image);
+    if (!dim || !dim.width || !dim.height) return null;
+
+    return {
+      src: `data:${thumb.contentType};base64,${thumb.image.toString("base64")}`,
+      ...coverFit(dim, size),
+    };
+  } catch {
+    // A capture is decoration, never a reason to 500 the unfurl — an
+    // unreachable DB or an unparseable blob falls through to the mini-map.
+    return null;
+  }
+}
+
+function BrandLockup() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <div
+        style={{
+          display: "flex",
+          width: 48,
+          height: 48,
+          borderRadius: 12,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundImage: "linear-gradient(180deg, #15151E, #0A0A11)",
+          border: "1px solid rgba(255,255,255,0.10)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 30,
+            fontWeight: 700,
+            backgroundImage: "linear-gradient(135deg, #5C8CFF, #A974FF)",
+            backgroundClip: "text",
+            color: "transparent",
+          }}
+        >
+          Z
+        </div>
+      </div>
+      <div style={{ display: "flex", fontSize: 24, fontWeight: 700 }}>
+        <span style={{ color: "#ffffff" }}>zframes</span>
+        <span style={{ color: "#818cf8" }}>.explorer</span>
+      </div>
+    </div>
+  );
+}
+
+function Pills({ frameCount, tags }: { frameCount: number; tags: string[] }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexWrap: "wrap",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          borderRadius: 999,
+          border: "1px solid rgba(255,255,255,0.12)",
+          backgroundColor: "rgba(255,255,255,0.04)",
+          padding: "6px 14px",
+          fontSize: 18,
+          color: "rgba(231,236,246,0.75)",
+        }}
+      >
+        {frameCount} {frameCount === 1 ? "frame" : "frames"}
+      </div>
+      {tags.map((t) => (
+        <div
+          key={t}
+          style={{
+            display: "flex",
+            borderRadius: 999,
+            border: "1px solid rgba(255,255,255,0.10)",
+            backgroundColor: "rgba(255,255,255,0.03)",
+            padding: "6px 12px",
+            fontSize: 15,
+            letterSpacing: 1,
+            textTransform: "uppercase",
+            color: "rgba(231,236,246,0.5)",
+          }}
+        >
+          {t}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Cta() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div
+        style={{
+          display: "flex",
+          width: 8,
+          height: 8,
+          borderRadius: 999,
+          backgroundColor: "#3fd08f",
+        }}
+      />
+      <div
+        style={{
+          display: "flex",
+          fontSize: 20,
+          color: "rgba(231,236,246,0.5)",
+        }}
+      >
+        npx skills add zentryhq/zframes
+      </div>
+    </div>
+  );
+}
+
 export default async function Image({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const entry = await resolveDashboard(id);
+  const [entry, capture] = await Promise.all([
+    resolveDashboard(id),
+    captureLayer(id),
+  ]);
   // Node runtime: read the (static, non-variable) fonts off disk. fetch(new URL(
   // ..., import.meta.url)) doesn't work here — Next emits the asset to a relative
   // /_next/static/media URL fetch can't parse. Prod is covered by
@@ -60,199 +202,226 @@ export default async function Image({
   const frames = ((entry?.spec as { frames?: Frame[] })?.frames ??
     []) as Frame[];
   const tags = (entry?.tags ?? []).slice(0, 4);
-  const cells = miniMap(frames);
 
-  return new ImageResponse(
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        width: "100%",
-        height: "100%",
-        padding: 60,
-        color: "#e7ecf6",
-        fontFamily: "DM Sans",
-        backgroundColor: "#06060b",
-        backgroundImage:
-          "radial-gradient(900px 520px at 12% -8%, rgba(89,84,255,0.28), transparent 62%), radial-gradient(820px 620px at 100% 0%, rgba(150,90,240,0.20), transparent 58%)",
-      }}
-    >
-      {/* Brand lockup */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+  const fonts = [
+    {
+      name: "DM Sans",
+      data: regular,
+      weight: 400 as const,
+      style: "normal" as const,
+    },
+    {
+      name: "DM Sans",
+      data: bold,
+      weight: 700 as const,
+      style: "normal" as const,
+    },
+  ];
+  // Crawlers refetch on their own cadence; an hour of shared cache keeps the
+  // per-request render cheap without outliving the nightly capture.
+  const headers = {
+    "cache-control": "public, max-age=3600, stale-while-revalidate=86400",
+  };
+
+  // ── Real capture: the board itself is the card ──────────────────────────────
+  if (capture) {
+    return new ImageResponse(
+      (
         <div
           style={{
             display: "flex",
-            width: 48,
-            height: 48,
-            borderRadius: 12,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundImage: "linear-gradient(180deg, #15151E, #0A0A11)",
-            border: "1px solid rgba(255,255,255,0.10)",
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            color: "#e7ecf6",
+            fontFamily: "DM Sans",
+            backgroundColor: "#06060b",
           }}
         >
+          <img
+            src={capture.src}
+            width={capture.width}
+            height={capture.height}
+            style={{
+              position: "absolute",
+              top: capture.top,
+              left: capture.left,
+            }}
+            alt=""
+          />
+          {/* Two scrim bands rather than one full-height gradient: the text sits
+            over near-solid backdrop at the top and bottom edges while the middle
+            stays an untouched window onto the real board. A single soft gradient
+            left the lockup fighting whatever card happened to be under it. */}
           <div
             style={{
-              fontSize: 30,
-              fontWeight: 700,
-              backgroundImage: "linear-gradient(135deg, #5C8CFF, #A974FF)",
-              backgroundClip: "text",
-              color: "transparent",
+              display: "flex",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: 190,
+              // Solid past the lockup's baseline (y≈110) before it fades: boards
+              // lead with their own heading frame, and a translucent band left it
+              // ghosting through the brand mark.
+              backgroundImage:
+                "linear-gradient(180deg, rgba(6,6,11,1) 0%, rgba(6,6,11,0.99) 58%, rgba(6,6,11,0.45) 80%, rgba(6,6,11,0) 100%)",
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              position: "absolute",
+              top: 230,
+              left: 0,
+              width: "100%",
+              height: 400,
+              backgroundImage:
+                "linear-gradient(180deg, rgba(6,6,11,0) 0%, rgba(6,6,11,0.80) 40%, rgba(6,6,11,0.97) 68%, rgba(6,6,11,1) 100%)",
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              padding: 56,
+              justifyContent: "space-between",
             }}
           >
-            Z
+            <BrandLockup />
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: title.length > 28 ? 46 : 56,
+                  fontWeight: 700,
+                  lineHeight: 1.05,
+                  color: "#ffffff",
+                  maxWidth: 900,
+                }}
+              >
+                {title}
+              </div>
+              <Pills frameCount={frames.length} tags={tags} />
+              <Cta />
+            </div>
           </div>
         </div>
-        <div style={{ display: "flex", fontSize: 24, fontWeight: 700 }}>
-          <span style={{ color: "#ffffff" }}>zframes</span>
-          <span style={{ color: "#818cf8" }}>.explorer</span>
-        </div>
-      </div>
+      ),
+      { ...size, fonts, headers },
+    );
+  }
 
-      {/* Body */}
+  // ── No capture yet: synthetic mini-map from the spec's layout geometry ──────
+  const cells = miniMap(frames);
+  return new ImageResponse(
+    (
       <div
         style={{
           display: "flex",
-          flex: 1,
-          alignItems: "center",
-          gap: 52,
-          paddingTop: 28,
+          flexDirection: "column",
+          width: "100%",
+          height: "100%",
+          padding: 60,
+          color: "#e7ecf6",
+          fontFamily: "DM Sans",
+          backgroundColor: "#06060b",
+          backgroundImage:
+            "radial-gradient(900px 520px at 12% -8%, rgba(89,84,255,0.28), transparent 62%), radial-gradient(820px 620px at 100% 0%, rgba(150,90,240,0.20), transparent 58%)",
         }}
       >
-        {/* Left */}
+        <BrandLockup />
+
+        {/* Body */}
         <div
           style={{
             display: "flex",
-            flexDirection: "column",
             flex: 1,
-            justifyContent: "center",
-            gap: 22,
+            alignItems: "center",
+            gap: 52,
+            paddingTop: 28,
           }}
         >
+          {/* Left */}
           <div
             style={{
               display: "flex",
-              fontSize: title.length > 24 ? 54 : 66,
-              fontWeight: 700,
-              lineHeight: 1.05,
-              color: "#ffffff",
-              maxWidth: 560,
-            }}
-          >
-            {title}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              flexWrap: "wrap",
+              flexDirection: "column",
+              flex: 1,
+              justifyContent: "center",
+              gap: 22,
             }}
           >
             <div
               style={{
                 display: "flex",
-                borderRadius: 999,
-                border: "1px solid rgba(255,255,255,0.12)",
-                backgroundColor: "rgba(255,255,255,0.04)",
-                padding: "6px 14px",
-                fontSize: 18,
-                color: "rgba(231,236,246,0.75)",
+                fontSize: title.length > 24 ? 54 : 66,
+                fontWeight: 700,
+                lineHeight: 1.05,
+                color: "#ffffff",
+                maxWidth: 560,
               }}
             >
-              {frames.length} {frames.length === 1 ? "frame" : "frames"}
+              {title}
             </div>
-            {tags.map((t) => (
+            <Pills frameCount={frames.length} tags={tags} />
+          </div>
+
+          {/* Right — mini-map of the real layout */}
+          <div
+            style={{
+              display: "flex",
+              position: "relative",
+              width: 520,
+              height: 300,
+              borderRadius: 18,
+              border: "1px solid rgba(255,255,255,0.08)",
+              backgroundImage: "linear-gradient(160deg, #0a0a14, #08080f)",
+              boxShadow: "0 30px 90px -40px rgba(124,92,255,0.7)",
+            }}
+          >
+            {cells.map((c, i) => (
               <div
-                key={t}
+                key={i}
                 style={{
                   display: "flex",
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.10)",
-                  backgroundColor: "rgba(255,255,255,0.03)",
-                  padding: "6px 12px",
-                  fontSize: 15,
-                  letterSpacing: 1,
-                  textTransform: "uppercase",
-                  color: "rgba(231,236,246,0.5)",
+                  position: "absolute",
+                  left: c.left,
+                  top: c.top,
+                  width: c.width,
+                  height: c.height,
+                  padding: 5,
                 }}
               >
-                {t}
+                <div
+                  style={{
+                    display: "flex",
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: 7,
+                    backgroundColor: c.heading ? "transparent" : `${c.color}22`,
+                    border: `1px solid ${
+                      c.heading ? "transparent" : `${c.color}66`
+                    }`,
+                    borderBottom: `2px solid ${
+                      c.heading ? `${NEUTRAL}66` : `${c.color}66`
+                    }`,
+                  }}
+                />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right — mini-map of the real layout */}
-        <div
-          style={{
-            display: "flex",
-            position: "relative",
-            width: 520,
-            height: 300,
-            borderRadius: 18,
-            border: "1px solid rgba(255,255,255,0.08)",
-            backgroundImage: "linear-gradient(160deg, #0a0a14, #08080f)",
-            boxShadow: "0 30px 90px -40px rgba(124,92,255,0.7)",
-          }}
-        >
-          {cells.map((c, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                position: "absolute",
-                left: c.left,
-                top: c.top,
-                width: c.width,
-                height: c.height,
-                padding: 5,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: 7,
-                  backgroundColor: c.heading ? "transparent" : `${c.color}22`,
-                  border: `1px solid ${c.heading ? "transparent" : `${c.color}66`}`,
-                  borderBottom: `2px solid ${c.heading ? `${NEUTRAL}66` : `${c.color}66`}`,
-                }}
-              />
-            </div>
-          ))}
-        </div>
+        {/* Footer — the fork story */}
+        <Cta />
       </div>
-
-      {/* Footer — the fork story */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div
-          style={{
-            display: "flex",
-            width: 8,
-            height: 8,
-            borderRadius: 999,
-            backgroundColor: "#3fd08f",
-          }}
-        />
-        <div
-          style={{
-            display: "flex",
-            fontSize: 20,
-            color: "rgba(231,236,246,0.5)",
-          }}
-        >
-          npx skills add zentryhq/zframes
-        </div>
-      </div>
-    </div>,
-    {
-      ...size,
-      fonts: [
-        { name: "DM Sans", data: regular, weight: 400, style: "normal" },
-        { name: "DM Sans", data: bold, weight: 700, style: "normal" },
-      ],
-    },
+    ),
+    { ...size, fonts, headers },
   );
 }
