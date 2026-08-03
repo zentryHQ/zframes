@@ -1741,12 +1741,13 @@ export function DashboardEditor({
   const renderCustomiseButton = () => (
     <button
       type="button"
-      className="zf-btn zf-btn--icon"
+      className="zf-btn zf-btn--customise"
       onClick={startCustomise}
       aria-label="Customise"
       title="Customise"
     >
       <SlidersHorizontal size={18} aria-hidden="true" />
+      <span>Customize</span>
     </button>
   );
 
