@@ -262,6 +262,13 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "volume-profile": {
     load: () => import("./volume-profile").then((m) => m.volumeProfileFrame),
   },
+  "return-calendar": {
+    load: () => import("./return-calendar").then((m) => m.returnCalendarFrame),
+  },
+  "return-distribution": {
+    load: () =>
+      import("./return-distribution").then((m) => m.returnDistributionFrame),
+  },
   dxy: {
     load: () => import("./dxy").then((m) => m.dxyFrame),
   },
