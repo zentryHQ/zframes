@@ -765,11 +765,17 @@ export function DashboardEditor({
         grid.el.appendChild(el);
         grid.makeWidget(el);
         renderInstance(f.id);
+        // These are brand-new item elements, so the per-item gear + delete have
+        // to be re-attached. The `editing` effect that normally decorates won't
+        // re-run (its deps didn't change), so a restore mid-customise would
+        // otherwise leave every card unconfigurable and undeletable until the
+        // mode was toggled — which is exactly what an undo does.
+        if (editingRef.current) decorateItem(el);
       }
       grid.batchUpdate(false);
       setCount(frames.length);
     },
-    [buildItemEl, renderInstance],
+    [buildItemEl, renderInstance, decorateItem],
   );
 
   // Click-to-add: append a new frame to the grid in the first free slot.
@@ -1683,7 +1689,12 @@ export function DashboardEditor({
             recoverable in one click, for the case where ⌘Z isn't reached for. */}
         {editing && removed && (
           <div className="zf-toast" role="status">
-            <span className="zf-toast-text">{removed.label} removed</span>
+            {/* Verb first, name quoted. "{label} removed" reads as a quantifier
+                when the card is titled something like "All frames" — the board
+                this was first tried on produced "All frames removed". */}
+            <span className="zf-toast-text">
+              Removed &ldquo;{removed.label}&rdquo;
+            </span>
             <button
               type="button"
               className="zf-toast-action"
