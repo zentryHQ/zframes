@@ -47,6 +47,19 @@ const PROXY_ALLOW_HOSTS = new Set<string>([
   "home.treasury.gov",
   "api.bls.gov",
   "cdn.finra.org",
+  // Central-bank FX history, all keyless but CORS-blocked, and each the only
+  // source for pairs/depth nothing CORS-open publishes. They answer CSV rather
+  // than JSON, which the relay passes through untouched.
+  //   fred.stlouisfed.org — Fed H.10 dailies via the keyless `fredgraph.csv`
+  //     path (no API key on that route); DEXTHUS is the only US-official daily
+  //     USD/THB series, and the Bank of Thailand has no keyless API at all.
+  //   www.bankofengland.co.uk — IADB CSV, daily GBP spot back to 1975-01-02
+  //     (the deepest daily FX history found), several series per request.
+  //   www.rba.gov.au — one daily CSV with the widest APAC basket from a central
+  //     bank (23 AUD pairs incl. THB/VND/IDR/PGK/TWD).
+  "fred.stlouisfed.org",
+  "www.bankofengland.co.uk",
+  "www.rba.gov.au",
   // News-outlet RSS feeds (CORS-blocked, so the news-feed frame reads them
   // through here). Headlines + links only; no keys.
   "www.coindesk.com",
