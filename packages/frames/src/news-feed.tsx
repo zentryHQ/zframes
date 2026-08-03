@@ -77,10 +77,10 @@ function NewsFeed({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="caption text-soft truncate">{label}</span>
-        <span className="caption text-soft shrink-0">headlines</span>
-      </div>
+      {/* The outlet alone. A static "headlines" caption used to sit opposite it,
+          but the card is already titled and the rows below plainly ARE headlines
+          — it only ever restated the obvious. */}
+      <span className="caption text-soft truncate">{label}</span>
       <div className={scrollAreaClass}>
         {items.length > 0 ? (
           items.map((item, i) => (
