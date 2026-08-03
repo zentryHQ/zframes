@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render } from "@testing-library/react";
 import { z } from "zod";
 import { FrameConfigDialog } from "./editor-config";
 import { createRegistry, defineFrame } from "@zframes/spec/frame";
-import type { FrameInstance } from "@zframes/spec/spec";
+import type { CurrencyCode, FrameInstance } from "@zframes/spec/spec";
 
 // The config dialog turns a frame's Zod schema into a form: each field shape maps
 // to a specific control, and every edit is validated live against that schema —
@@ -68,6 +68,7 @@ const baseConfig = {
 function setup(
   configOverrides: Record<string, unknown> = {},
   instanceOverrides: Partial<FrameInstance> = {},
+  boardCurrency: CurrencyCode = "USD",
 ) {
   const instance: FrameInstance = {
     id: "f1",
@@ -86,6 +87,7 @@ function setup(
       instancesRef={instancesRef}
       symbolUniverse={{ options: [], loading: false }}
       accentHue={242}
+      boardCurrency={boardCurrency}
       inherited={{
         accentHue: 242,
         accentSat: 90,
@@ -538,6 +540,7 @@ function setupRows(configOverrides: Record<string, unknown> = {}) {
       instancesRef={instancesRef}
       symbolUniverse={{ options: [], loading: false }}
       accentHue={242}
+      boardCurrency="USD"
       inherited={{
         accentHue: 242,
         accentSat: 90,
@@ -861,6 +864,7 @@ function setupHoldings(holdings: { symbol: string; amount: number }[]) {
       instancesRef={instancesRef}
       symbolUniverse={{ options: [], loading: false }}
       accentHue={242}
+      boardCurrency="USD"
       inherited={{
         accentHue: 242,
         accentSat: 90,
@@ -920,5 +924,138 @@ describe("holdings editor", () => {
       target: { value: "0.00042" },
     });
     expect(committed()[0].amount).toBe(0.00042);
+  });
+});
+
+// The card's display-currency override (instance.currency). Its whole reason to
+// exist as a THREE-state control is the difference between "inherit" and "pinned
+// to the code the board happens to be on right now": the first keeps following
+// the board, the second stops. That distinction is invisible in the UI and
+// permanent in the file, so it is asserted on the written instance, not the DOM.
+describe("FrameConfigDialog display currency", () => {
+  /** Open the card's display-currency picker and return its filter box. */
+  function openCurrency(view: ReturnType<typeof setup>): HTMLInputElement {
+    fireEvent.click(
+      view.getByRole("button", { name: "Display currency for this card" }),
+    );
+    // Scoped by name: a frame's own enum field is a <select>, which is also a
+    // combobox.
+    return view.getByRole("combobox", {
+      name: /^Display currency for this card/,
+    }) as HTMLInputElement;
+  }
+
+  it("defaults to inheriting the board, and names what that resolves to", () => {
+    const view = setup({}, {}, "THB");
+    expect(
+      view.getByRole("button", { name: "Display currency for this card" })
+        .textContent,
+    ).toContain("Inherit board (THB)");
+    // Inherit means the key is ABSENT — untouched, the instance carries none.
+    expect("currency" in view.committedInstance()).toBe(false);
+  });
+
+  it("writes a pinned code as a bare sibling of config", () => {
+    const view = setup({}, {}, "THB");
+    const input = openCurrency(view);
+    fireEvent.change(input, { target: { value: "dollar" } });
+    fireEvent.click(view.getByRole("option", { name: /^USD/ }));
+
+    const instance = view.committedInstance();
+    // The spec's shape: `currency` is a bare code beside `config`, NOT nested
+    // inside it and NOT the board's `{ code }` object.
+    expect(instance.currency).toBe("USD");
+    expect(instance.config).not.toHaveProperty("currency");
+    expect(view.onApply).toHaveBeenCalledWith("f1");
+  });
+
+  it("removes the key when the card goes back to inheriting", () => {
+    const view = setup({}, { currency: "USD" }, "THB");
+    expect(view.committedInstance().currency).toBe("USD");
+
+    const input = openCurrency(view);
+    fireEvent.keyDown(input, { key: "Enter" }); // the inherit row is first
+    // Deleted, not set to the board's code: an equal value would look identical
+    // today and stop tracking the board the moment the board changes.
+    expect(view.committedInstance().currency).toBeUndefined();
+    expect(view.onApply).toHaveBeenLastCalledWith("f1");
+  });
+
+  it("reflects a code the instance already pinned", () => {
+    const view = setup({}, { currency: "JPY" }, "THB");
+    expect(
+      view.getByRole("button", { name: "Display currency for this card" })
+        .textContent,
+    ).toContain("JPY");
+  });
+
+  it("is honest that some frames ignore it", () => {
+    // No frame meta says which frames are USD-only, so the control is offered
+    // everywhere and the hint carries the caveat rather than guessing.
+    const view = setup();
+    expect(view.getByText(/US-macro series/)).toBeTruthy();
+  });
+
+  it("distinguishes itself from a frame's own config.currency", () => {
+    // The metals frames' `config.currency` picks which published LBMA fix series
+    // to READ. Two currency controls on one card is exactly the confusion worth
+    // pre-empting, so the display one says which is which — but only when the
+    // frame actually has the data-level field.
+    const withoutField = setup();
+    expect(withoutField.queryByText(/picks which published price series/)).toBe(
+      null,
+    );
+    cleanup(); // two dialogs in one body would make every query ambiguous
+
+    const metalsFrame = defineFrame({
+      name: "metals",
+      label: "Metals",
+      category: "markets",
+      description: "an LBMA fix frame with a data-level currency choice",
+      capabilities: [],
+      schema: z.object({
+        currency: z
+          .enum(["USD", "GBP", "EUR"])
+          .default("USD")
+          .describe("Which published LBMA fix series to read."),
+      }),
+      component: () => null,
+    });
+    const instance: FrameInstance = {
+      id: "m1",
+      frame: "metals",
+      position: { x: 0, y: 0, w: 2, h: 2 },
+      config: { currency: "GBP" },
+    };
+    const view = render(
+      <FrameConfigDialog
+        instance={instance}
+        registry={createRegistry([metalsFrame])}
+        instancesRef={{ current: new Map([[instance.id, instance]]) }}
+        symbolUniverse={{ options: [], loading: false }}
+        accentHue={242}
+        boardCurrency="THB"
+        inherited={{
+          accentHue: 242,
+          accentSat: 90,
+          baseHue: 233,
+          baseSat: 20,
+          surfaceOpacity: 1,
+          radius: 18,
+          borderStrength: 0.22,
+          density: 1,
+          elevation: 1,
+        }}
+        onApply={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(view.getByText(/picks which published price series/)).toBeTruthy();
+    // Two distinct controls: the data one is the frame's own <select>, the
+    // display one is the searchable picker.
+    expect(view.getByRole("combobox", { name: "Currency" })).toBeTruthy();
+    expect(
+      view.getByRole("button", { name: "Display currency for this card" }),
+    ).toBeTruthy();
   });
 });

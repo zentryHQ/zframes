@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import "./editor.css";
+import { CurrencyPicker } from "./currency-picker";
 import { FrameConfigDialog } from "./editor-config";
 import {
   GEAR_SVG,
@@ -50,7 +51,6 @@ import {
   type ThemePreset,
 } from "@zframes/spec/presets";
 import {
-  CURRENCY_CODES,
   DashboardSpecSchema,
   FONT_FAMILY_STACKS,
   NUMERIC_VARIANTS,
@@ -127,7 +127,12 @@ const COSMETIC_SECTIONS = [
     words:
       "typography font family sans mono serif numbers tabular text size scale",
   },
-  { key: "currency", label: "Currency", words: "currency money price fx code" },
+  {
+    key: "currency",
+    label: "Currency",
+    words:
+      "currency money price fx code exchange rate convert denominate dollar usd euro eur pound gbp yen jpy baht thb franc rupee peso",
+  },
 ] as const;
 
 type CosmeticSectionKey = (typeof COSMETIC_SECTIONS)[number]["key"];
@@ -3085,23 +3090,37 @@ export function DashboardEditor({
                         debt) stay in USD — a converted national debt is a
                         figure nobody quotes.
                       </p>
-                      <select
-                        className="zf-select"
-                        style={{ marginTop: 8 }}
+                      <div
+                        className="zf-theme-row"
+                        style={{ margin: "10px 0 6px" }}
+                      >
+                        <span className="zf-theme-val">Board currency</span>
+                        {currencyCode !== SPEC_DEFAULTS.currency.code && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() =>
+                              setCurrencyCode(SPEC_DEFAULTS.currency.code)
+                            }
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                      {/* 146 codes: a native select over that can only be used
+                          by someone who already knows the ISO code, so this
+                          searches code + symbol + name instead. */}
+                      <CurrencyPicker
                         value={currencyCode}
-                        aria-label="Display currency"
-                        onChange={(e) =>
+                        label="Display currency"
+                        onChange={(code) =>
                           setCurrencyCode(
-                            e.target.value as DashboardSpec["currency"]["code"],
+                            (code ??
+                              SPEC_DEFAULTS.currency
+                                .code) as DashboardSpec["currency"]["code"],
                           )
                         }
-                      >
-                        {CURRENCY_CODES.map((code) => (
-                          <option key={code} value={code}>
-                            {code}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </RailSection>
                   )}
                 </div>
@@ -3274,6 +3293,9 @@ export function DashboardEditor({
               instancesRef={instancesRef}
               symbolUniverse={symbolUniverse}
               accentHue={accentHue}
+              // The live board currency, so the card's picker can name what
+              // "inherit" currently resolves to.
+              boardCurrency={currencyCode}
               // The live dashboard-level cosmetics a card inherits when a
               // per-frame style override is unset — the Style panel seeds each
               // enabled override with the matching value so toggling is a no-op.
