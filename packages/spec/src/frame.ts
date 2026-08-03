@@ -132,6 +132,17 @@ export interface FrameSource {
   name: string;
   /** Canonical URL opened in a new tab when the credit is clicked. */
   url: string;
+  /**
+   * Stable key matching the value a frame's `source` config field takes
+   * ("hyperliquid", "bitkub"). It is what lets the chrome credit only the
+   * provider actually serving the card, instead of every provider that could:
+   * a frame whose schema has a `source` field is a pick-one, so the renderer
+   * shows the pinned id (or the first-declared entry, since capability routing
+   * is first-match). Frames that genuinely read several providers at once
+   * (rates-board combines NY Fed + Treasury) have no such field and keep every
+   * credit. Optional so a single-source credit needn't carry one.
+   */
+  id?: string;
 }
 
 /**
