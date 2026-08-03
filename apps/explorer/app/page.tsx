@@ -7,7 +7,7 @@ import Link from "next/link";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import { CURATED } from "@/app/lib/curated-dashboards";
 import { CopyCommand } from "@/app/lib/CopyCommand";
-import { KEYLESS_PROVIDER_COUNT } from "@/app/lib/frames";
+import { KEYLESS_PROVIDER_COUNT, PUBLIC_DEMO_ADDRESS } from "@/app/lib/frames";
 import { FramesShowcase } from "@/app/lib/FramesShowcase";
 import { LiveBoardFrame } from "@/app/lib/LiveBoardFrame";
 import { LiveFrame, LiveFrameStyles } from "@/app/lib/LiveFrame";
@@ -112,10 +112,7 @@ const HERO_FLOATERS: {
     // liveline, ticking each heartbeat off streamed mids. Paired with the
     // holdings breakdown so the hero shows both "how much" and "made of what".
     frame: "portfolio-value",
-    config: {
-      source: "wallet",
-      address: "0xF977814e90dA44bFA03b6295A0616a897441acec",
-    },
+    config: { source: "wallet", address: PUBLIC_DEMO_ADDRESS },
     title: "Binance · cold wallet",
     className: "w-80 h-44",
     pos: "right-[4%] bottom-[14%] hidden lg:block",
@@ -138,10 +135,7 @@ const HERO_FLOATERS: {
     // capability reading a huge exchange cold wallet straight from the browser
     // (keyless: public RPC + CoinGecko, no key, no relay). Big, real numbers.
     frame: "portfolio-holdings",
-    config: {
-      source: "wallet",
-      address: "0xF977814e90dA44bFA03b6295A0616a897441acec",
-    },
+    config: { source: "wallet", address: PUBLIC_DEMO_ADDRESS },
     title: "Binance · cold wallet",
     className: "w-80 h-56",
     pos: "left-[2%] top-[44%] hidden lg:block",

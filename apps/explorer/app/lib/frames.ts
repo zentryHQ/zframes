@@ -32,6 +32,19 @@ export const KEYLESS_PROVIDER_COUNT = keyless.length;
 // explorer.
 export const providers = [...keyless, new WalletProvider()];
 
+/**
+ * The public on-chain address every `account: true` frame is demoed against on
+ * this site — Binance's own cold wallet, so the numbers are real and large.
+ * Keyless: public RPC + CoinGecko, no signing, no relay.
+ *
+ * Shared because the schema default for those frames is `source: "binance"`,
+ * and Binance is the one provider the explorer cannot mount (its signed relay
+ * needs a server). Left at the default they render a connect form that 404s the
+ * credentials route — a dead control on a public page. Every public surface
+ * therefore overrides to `source: "wallet"` with this address.
+ */
+export const PUBLIC_DEMO_ADDRESS = "0xF977814e90dA44bFA03b6295A0616a897441acec";
+
 // Eager registry over all built-in frames. Lazy per-frame splitting is a later
 // bundle optimization; eager is correct and simplest.
 export const registry = createRegistry(allFrames);
