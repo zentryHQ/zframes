@@ -271,6 +271,81 @@ describe("handleProxy (SSRF allowlist)", () => {
     expect(res.statusCode).toBe(502);
   });
 
+  // The central-bank FX hosts answer CSV, not JSON. They are covered
+  // host-by-host (rather than by reading the set) so widening the allowlist is
+  // always a visible test change, and each is paired with a lookalike that must
+  // still be refused — `hostname` is matched exactly, so no subdomain,
+  // suffix-glued or userinfo-prefixed variant may sneak in behind a real entry.
+  const CSV_FX_HOSTS = [
+    // FRED's keyless fredgraph.csv path (Fed H.10 dailies, incl. USD/THB).
+    {
+      host: "fred.stlouisfed.org",
+      url: "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DEXTHUS&cosd=2026-07-01",
+      csv: "observation_date,DEXTHUS\n2026-07-01,33.3100\n",
+      contentType: "application/csv",
+    },
+    // Bank of England IADB CSV (daily GBP spot back to 1975).
+    {
+      host: "www.bankofengland.co.uk",
+      url: "https://www.bankofengland.co.uk/boeapps/database/_iadb-FromShowColumns.asp?csv.x=yes&SeriesCodes=XUDLUSS&CSVF=TN&UsingCodes=Y",
+      csv: "DATE,XUDLUSS\n02 Jan 1975,2.3359\n",
+      contentType: "application/csv",
+    },
+    // RBA F11.1 (23 AUD pairs); it serves the CSV as octet-stream.
+    {
+      host: "www.rba.gov.au",
+      url: "https://www.rba.gov.au/statistics/tables/csv/f11.1-data.csv",
+      csv: "F11.1  EXCHANGE RATES\nTitle,A$1=USD\n",
+      contentType: "application/octet-stream",
+    },
+  ] as const;
+
+  for (const { host, url, csv, contentType } of CSV_FX_HOSTS) {
+    it(`relays CSV from ${host} verbatim with its upstream content-type`, async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        status: 200,
+        headers: { get: () => contentType },
+        text: async () => csv,
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      const res = makeRes();
+      await handleProxy(makeProxyReq(proxyUrl(url)), res);
+      await res.done;
+      expect(res.statusCode).toBe(200);
+      // CSV must survive untouched — the relay never parses the body as JSON.
+      expect(res.body).toBe(csv);
+      expect(res.headers["content-type"]).toBe(contentType);
+      expect(fetchMock.mock.calls[0][0]).toBe(url);
+    });
+  }
+
+  // Lookalikes of the three hosts above: an attacker-controlled subdomain, a
+  // suffix-glued domain, and a domain that merely embeds the real one.
+  const CSV_FX_NEAR_MISSES = [
+    "https://evil.fred.stlouisfed.org/graph/fredgraph.csv?id=DEXTHUS",
+    "https://fred.stlouisfed.org.evil.com/graph/fredgraph.csv?id=DEXTHUS",
+    "https://stlouisfed.org/graph/fredgraph.csv?id=DEXTHUS",
+    "https://bankofengland.co.uk/boeapps/database/_iadb-FromShowColumns.asp",
+    "https://www.bankofengland.co.uk.evil.com/boeapps/database/x.asp",
+    "https://rba.gov.au/statistics/tables/csv/f11.1-data.csv",
+    "https://www.rba.gov.au.evil.com/statistics/tables/csv/f11.1-data.csv",
+    // userinfo trick: the allowlisted name sits before the `@`, so the real
+    // host is `evil.com` and must be refused.
+    "https://fred.stlouisfed.org@evil.com/graph/fredgraph.csv",
+  ];
+
+  for (const url of CSV_FX_NEAR_MISSES) {
+    it(`returns 403 for the lookalike host ${new URL(url).hostname}`, async () => {
+      const fetchMock = vi.fn();
+      vi.stubGlobal("fetch", fetchMock);
+      const res = makeRes();
+      await handleProxy(makeProxyReq(proxyUrl(url)), res);
+      await res.done;
+      expect(res.statusCode).toBe(403);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  }
+
   it("returns 502 when the upstream fetch throws", async () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error("network"));
     vi.stubGlobal("fetch", fetchMock);
