@@ -632,7 +632,7 @@ describe("recoverable delete", () => {
     expect(itemIds(view.container)).toEqual(["b"]);
     // Named, so it's clear WHICH card went — the label comes from the registry
     // when the instance has no explicit title.
-    expect(view.getByRole("status").textContent).toContain("Probe removed");
+    expect(view.getByRole("status").textContent).toContain("Removed “Probe”");
     // The toast's action is named distinctly from the toolbar's Undo, which is
     // on screen at the same time.
     expect(
@@ -668,7 +668,9 @@ describe("recoverable delete", () => {
     });
     expect(itemIds(view.container)).toEqual([]);
     // The toast names the instance's own title, not the frame's generic label.
-    expect(view.getByRole("status").textContent).toContain("My tuned card");
+    expect(view.getByRole("status").textContent).toContain(
+      "Removed “My tuned card”",
+    );
 
     await act(async () => {
       fireEvent.click(
@@ -785,6 +787,47 @@ describe("undo / redo", () => {
 
     await act(async () => {
       fireEvent.keyDown(document, { key: "z", metaKey: true, shiftKey: true });
+    });
+    expect(itemIds(view.container)).toEqual(["b"]);
+  });
+
+  it("keeps every card configurable after an undo rebuilds the grid", async () => {
+    // Undoing a frame-level change runs restore(), which throws away the grid
+    // items and builds new elements. The `editing` effect that attaches the
+    // per-item gear + × does NOT re-run (its deps are unchanged), so without
+    // re-decorating inside restore the whole board came back undeletable and
+    // unconfigurable — mid-customise, with no visible cause.
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Dismiss" }));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Undo" }));
+    });
+
+    // Both cards are back AND still carry their affordances, so the board is
+    // still editable — including the one the undo re-created.
+    for (const id of ["a", "b"]) {
+      expect(deleteBtn(view.container, id)).toBeTruthy();
+      expect(
+        view.container.querySelector(
+          `.grid-stack-item[gs-id="${id}"] .zf-cfg-btn`,
+        ),
+      ).toBeTruthy();
+    }
+    // And the restored card can actually be deleted again.
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
     });
     expect(itemIds(view.container)).toEqual(["b"]);
   });
