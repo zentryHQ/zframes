@@ -865,4 +865,42 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "home-value-chart": {
     load: () => import("./home-value-chart").then((m) => m.homeValueChartFrame),
   },
+  "index-level": {
+    load: () => import("./index-level").then((m) => m.indexLevelFrame),
+  },
+  "index-drawdown": {
+    load: () => import("./index-drawdown").then((m) => m.indexDrawdownFrame),
+  },
+  "index-annual-returns": {
+    load: () =>
+      import("./index-annual-returns").then((m) => m.indexAnnualReturnsFrame),
+  },
+  "vix-gauge": {
+    load: () => import("./vix-gauge").then((m) => m.vixGaugeFrame),
+  },
+  "credit-quality-gap": {
+    load: () =>
+      import("./credit-quality-gap").then((m) => m.creditQualityGapFrame),
+  },
+  "mortgage-payment": {
+    load: () =>
+      import("./mortgage-payment").then((m) => m.mortgagePaymentFrame),
+  },
+  "home-value-bars": {
+    load: () => import("./home-value-bars").then((m) => m.homeValueBarsFrame),
+  },
+  "home-value-momentum": {
+    load: () =>
+      import("./home-value-momentum").then((m) => m.homeValueMomentumFrame),
+  },
+  "home-value-scatter": {
+    load: () =>
+      import("./home-value-scatter").then((m) => m.homeValueScatterFrame),
+  },
+  "regional-home-price-bars": {
+    load: () =>
+      import("./regional-home-price-bars").then(
+        (m) => m.regionalHomePriceBarsFrame,
+      ),
+  },
 };

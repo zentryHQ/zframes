@@ -99,6 +99,10 @@ const CONVERTS: Record<string, string> = {
   "options-max-pain": "max-pain strike and spot",
   "home-value-chart":
     "typical home values on the value axis via money.magnitude",
+  "home-value-bars": "typical home value per bar via money.magnitude",
+  "home-value-scatter": "typical home value on the y axis via money.magnitude",
+  "mortgage-payment":
+    "the monthly payment, loan amount and home value via money.price",
   "metro-home-values": "typical home value per metro via money.price",
   "options-oi-ladder-heatmap": "strike buckets via money.magnitude",
   "options-oi-skew": "strike axis via money.magnitude (converted, symbol-less)",
@@ -217,6 +221,14 @@ const NO_MONEY: Record<string, string> = {
   "filings-mix": "filing-type share %",
   "financial-stress": "the OFR FSI index level",
   "credit-spread-chart": "option-adjusted spreads in percentage points",
+  "credit-quality-gap":
+    "the high-yield minus investment-grade spread, in percentage points",
+  "home-value-momentum": "year-over-year home-value change, a percentage",
+  "index-annual-returns": "calendar-year percent returns",
+  "index-drawdown": "percent below the window high",
+  "index-level": "an equity/volatility index level, not a price",
+  "regional-home-price-bars": "FHFA index year-over-year percentages",
+  "vix-gauge": "the VIX index level and its regime band",
   "home-price-index": "the Case-Shiller index level (base year = 100)",
   "index-level-chart": "an equity/volatility index level, not a price",
   "mortgage-rate-chart": "the 30-year mortgage rate, a percentage",
@@ -402,7 +414,12 @@ const DATA_QUOTES_USD = [
  * deliberately symbol-less (an axis tick). Assert the numbers move, not that a
  * baht sign appears.
  */
-const MAGNITUDE_ONLY = ["options-oi-skew", "home-value-chart"];
+const MAGNITUDE_ONLY = [
+  "options-oi-skew",
+  "home-value-chart",
+  "home-value-bars",
+  "home-value-scatter",
+];
 
 // ── harness ────────────────────────────────────────────────────────────────
 
@@ -826,8 +843,11 @@ describe("the currency classification covers the whole registry", () => {
     // here while OpenCard printed three prices. Raised 140 → 145 with the
     // FRED/FHFA house-price and credit-spread frames, which render index levels
     // and percentages — the Zillow pair beside them, being actual dollars, went
-    // to CONVERTS rather than here.
-    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(145);
+    // to CONVERTS rather than here. Raised again (145 → 151) for the index
+    // level/drawdown/annual-return/VIX-regime and housing-momentum frames, all
+    // percentages or unit-less levels; their three money siblings
+    // (mortgage-payment, home-value-bars, home-value-scatter) went to CONVERTS.
+    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(151);
     expect(Object.keys(CONVERTS).length).toBeGreaterThanOrEqual(70);
   });
 
