@@ -56,6 +56,12 @@ export type Capability =
   | "metal-positioning"
   | "gold-reserve"
   | "tokenized-gold"
+  | "index-level"
+  | "credit-spread"
+  | "housing-price"
+  | "mortgage-rate"
+  | "home-value-index"
+  | "regional-housing-price"
   | "portfolio";
 
 export interface DayStats {
@@ -484,6 +490,101 @@ export interface MacroSeries {
   label: string;
   source: string;
   points: MacroPoint[];
+}
+
+/**
+ * A published official series with its latest reading — the shape every
+ * single-series official feed resolves to (a market index level, a credit
+ * spread, a house-price index, a mortgage rate).
+ *
+ * Deliberately one type across four capabilities: they differ in what they
+ * measure, not in shape, and a frame only needs `unit` to know whether to render
+ * "335.10" or "6.66%". Distinct from {@link MacroSeries}, whose points carry a
+ * human period label ("May 2026") because BLS publishes by period rather than
+ * by observation date.
+ */
+export interface OfficialSeries {
+  /** Publisher's series id, e.g. "SP500", "BAMLH0A0HYM2", "CSUSHPINSA". */
+  seriesId: string;
+  /** Display label, e.g. "S&P 500", "US High Yield OAS". */
+  label: string;
+  /**
+   * What the values are, so a frame formats them without a per-series lookup:
+   * `index` = a unitless level, `percent` = already in percent (6.66 = 6.66%),
+   * `usd` = a dollar amount.
+   */
+  unit: "index" | "percent" | "usd";
+  /** How often the publisher updates it. */
+  frequency: "daily" | "weekly" | "monthly" | "quarterly";
+  /** Most recent observed value. */
+  latest: number;
+  /** ISO date of the latest observation, e.g. "2026-07-31". */
+  date: string;
+  /**
+   * Move from the previous observation. For `index`/`usd` this is a PERCENT
+   * change; for `percent` (a rate or spread) it is a change in percentage
+   * POINTS, because a spread going 2.84 → 2.87 is "+3bps", not "+1.1%".
+   */
+  change: number;
+  /** Observations oldest → newest; missing prints (holidays) are dropped. */
+  points: SeriesPoint[];
+  /** Publisher credit, e.g. "FRED". */
+  source: string;
+}
+
+/** One region's Zillow Home Value Index (ZHVI) reading and monthly history. */
+export interface HomeValueEntry {
+  /** Region label as Zillow publishes it: "United States", "Austin, TX". */
+  region: string;
+  /** Region granularity — "country" for the national row, "msa" for a metro. */
+  kind: "country" | "msa";
+  /** Two-letter state of the metro's principal city; absent nationally. */
+  state?: string;
+  /** Zillow's population size rank (0 = the national row, 1 = New York). */
+  sizeRank: number;
+  /** Latest typical home value, USD. */
+  value: number;
+  /** % change vs the previous month. */
+  changePctMoM: number;
+  /** % change vs twelve months earlier, when that far back is published. */
+  changePctYoY?: number;
+  /** Monthly values oldest → newest, USD. */
+  points: SeriesPoint[];
+}
+
+/** Zillow ZHVI for a set of regions, all read from one published monthly file. */
+export interface HomeValueIndex {
+  /** One entry per requested region, in request order. */
+  entries: HomeValueEntry[];
+  /** ISO date of the newest monthly column in the file, e.g. "2026-06-30". */
+  asOf: string;
+  source: string;
+}
+
+/** One region's FHFA House Price Index series. */
+export interface RegionalHousingSeries {
+  /** Region key as published — a state code ("TX") or a metro name ("Austin, TX"). */
+  region: string;
+  /** Latest index value (FHFA rebases each series to 100 at its own start). */
+  latest: number;
+  /** Human-readable latest period, e.g. "2026 Q1". */
+  period: string;
+  /** % change vs four quarters earlier, when that much history exists. */
+  changePctYoY?: number;
+  /** Quarterly points oldest → newest, timed at each quarter's first day. */
+  points: SeriesPoint[];
+}
+
+/**
+ * FHFA House Price Index at sub-national granularity — the state/metro
+ * counterpart to the single national {@link OfficialSeries} house-price index.
+ */
+export interface RegionalHousingPrice {
+  /** One series per requested region, in request order. */
+  series: RegionalHousingSeries[];
+  /** Which published granularity was read. */
+  level: "state" | "metro";
+  source: string;
 }
 
 /** One filing from SEC EDGAR. */
@@ -1295,6 +1396,37 @@ export interface MarketDataProvider {
   getNationalDebt?(days?: number): Promise<NationalDebt>;
   /** OFR Financial Stress Index — latest reading, category split, and trend. */
   getFinancialStress?(): Promise<FinancialStress>;
+  /**
+   * Level history for one market index (e.g. the S&P 500, VIX, Nasdaq
+   * Composite). `seriesId` is the publisher's own id, so the caller picks the
+   * index; a provider that doesn't publish it should throw rather than
+   * substitute another.
+   */
+  getIndexSeries?(seriesId: string): Promise<OfficialSeries>;
+  /**
+   * Corporate-bond option-adjusted spreads, one series per credit grade
+   * (high-yield first, then investment-grade) — returned together because the
+   * pair is only meaningful side by side.
+   */
+  getCreditSpreads?(): Promise<OfficialSeries[]>;
+  /** National house-price index (e.g. Case-Shiller), monthly. */
+  getHousingPriceIndex?(): Promise<OfficialSeries>;
+  /** Benchmark 30-year fixed mortgage rate, weekly. */
+  getMortgageRates?(): Promise<OfficialSeries>;
+  /**
+   * Typical home value per region (Zillow ZHVI). Omitting `regions` returns the
+   * provider's curated set; region labels are publisher-native ("Austin, TX").
+   */
+  getHomeValueIndex?(regions?: string[]): Promise<HomeValueIndex>;
+  /**
+   * House-price index per state or metro. `level` selects the published
+   * granularity ("state" | "metro"); region keys are level-native — a two-letter
+   * code at state level, a metro name at metro level.
+   */
+  getRegionalHousingPrice?(
+    regions: string[],
+    level?: string,
+  ): Promise<RegionalHousingPrice>;
   /** Official macroeconomic time series. */
   getMacroSeries?(
     seriesId: string,

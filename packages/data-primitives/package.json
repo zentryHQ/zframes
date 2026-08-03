@@ -1,7 +1,7 @@
 {
   "name": "@zframes/data-primitives",
   "version": "0.0.0",
-  "description": "zframes provider transport primitives: the shared fetchJson/fetchText transport (UA, proxy rewrite, abort, optional Zod validation) and the TtlCache (TTL + in-flight dedup + stale-on-error + opt-in persist). React-free.",
+  "description": "zframes provider transport primitives: the shared fetchJson/fetchText transport (UA, proxy rewrite, abort, optional Zod validation), the TtlCache (TTL + in-flight dedup + stale-on-error + opt-in persist), and quote-aware CSV row parsing for the CSV-published official sources. React-free.",
   "license": "Apache-2.0",
   "author": "Zentry",
   "repository": {
@@ -16,7 +16,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./fetch": "./src/fetch.ts",
-    "./cache": "./src/cache.ts"
+    "./cache": "./src/cache.ts",
+    "./csv": "./src/csv.ts"
   },
   "sideEffects": false,
   "scripts": {

@@ -28,6 +28,20 @@ export function formatRate(value: number): string {
   });
 }
 
+/** A unit-less INDEX level at a readable fixed precision: "7,489.72", "17.09",
+ *  "335.10". Use for published index numbers that are neither money nor a
+ *  percentage — an equity index level, a house-price index, any "base year =
+ *  100" series. Grouped thousands (an index in the tens of thousands is
+ *  unreadable without them) and always two decimals, so a column of levels lines
+ *  up. Never wrap it in a currency symbol: an index level has no currency, which
+ *  is exactly why it doesn't go through {@link formatPrice} or `useMoney()`. */
+export function formatLevel(value: number): string {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 /** Unsigned percentage at a fixed precision: "3.42%". Use for *levels* — rates,
  *  yields, ratios, shares — where there's no positive/negative semantics. For a
  *  signed delta use {@link formatChangePct}; for funding use {@link formatFundingPct}. */

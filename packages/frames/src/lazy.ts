@@ -839,4 +839,30 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "tokenized-gold": {
     load: () => import("./tokenized-gold").then((m) => m.tokenizedGoldFrame),
   },
+  "index-level-chart": {
+    load: () =>
+      import("./index-level-chart").then((m) => m.indexLevelChartFrame),
+  },
+  "credit-spread-chart": {
+    load: () =>
+      import("./credit-spread-chart").then((m) => m.creditSpreadChartFrame),
+  },
+  "home-price-index": {
+    load: () => import("./home-price-index").then((m) => m.homePriceIndexFrame),
+  },
+  "mortgage-rate-chart": {
+    load: () =>
+      import("./mortgage-rate-chart").then((m) => m.mortgageRateChartFrame),
+  },
+  "regional-home-prices": {
+    load: () =>
+      import("./regional-home-prices").then((m) => m.regionalHomePricesFrame),
+  },
+  "metro-home-values": {
+    load: () =>
+      import("./metro-home-values").then((m) => m.metroHomeValuesFrame),
+  },
+  "home-value-chart": {
+    load: () => import("./home-value-chart").then((m) => m.homeValueChartFrame),
+  },
 };

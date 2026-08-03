@@ -116,7 +116,7 @@ Stocks are the lead use case — equity perps via Hyperliquid HIP-3 builder dexe
 
 ## Providers
 
-Twenty-four free, keyless providers ([`packages/provider-*`](packages)) fulfil frame capabilities:
+Twenty-seven free, keyless providers ([`packages/provider-*`](packages)) fulfil frame capabilities:
 
 | Provider | Covers |
 |---|---|
@@ -144,8 +144,11 @@ Twenty-four free, keyless providers ([`packages/provider-*`](packages)) fulfil f
 | **SoSoValue** | `etf-flows` — spot BTC/ETH ETF daily net flows |
 | **LBMA / gold-api / CFTC / fiscaldata** | metals: `metal-spot`, `metal-history` (fixes back to 1968), `metal-positioning`, `gold-reserve`, `tokenized-gold` |
 | **Bitkub** | `day-stats`, `ohlcv`, `order-book` — Thailand's largest exchange, where KUB trades (pin a frame to it with `venue: "bitkub"`) |
+| **FRED** (St. Louis Fed) | `index-level` (S&P 500, VIX, Nasdaq), `credit-spread` (ICE BofA HY + IG OAS), `housing-price` (Case-Shiller), `mortgage-rate` (30y fixed) — via the keyless `fredgraph.csv` endpoint, not the key-gated API |
+| **Zillow Research** | `home-value-index` — the typical home value per US metro, in dollars, monthly back to 2000 |
+| **FHFA** | `regional-housing-price` — the House Price Index per state and metro, quarterly back to 1975 |
 
-Official US sources (Treasury, NY Fed, OFR, BLS, FINRA, SEC) are keyless but CORS-blocked in the browser, so the runtime relays them through a same-origin allowlisted proxy.
+Official US sources (Treasury, NY Fed, OFR, BLS, FINRA, SEC, FRED, FHFA) are keyless but CORS-blocked in the browser, so the runtime relays them through a same-origin allowlisted proxy. Zillow is the exception among the research sources — it sends `Access-Control-Allow-Origin: *`, so it is fetched direct and keeps working on a static host.
 
 An **opt-in keyed tier** (a connected **Binance** account and a public on-chain **wallet** address, both `portfolio`) also exists, but it's separate from the keyless set and **not wired into the published CLI**.
 
@@ -208,10 +211,12 @@ packages/
   editor                   the in-browser authoring UI (GridStack)
   charts                   D3 base chart layer (ported from zTerminal) + theme tokens
   frames                   the built-in frames + their AI-facing schemas
-  data-primitives          the shared fetch + TTL-cache transport every provider uses
-  provider-*               24 keyless data providers (Hyperliquid, CoinGecko, DeFiLlama,
+  data-primitives          the shared fetch + TTL-cache + CSV-parsing transport every
+                           provider uses
+  provider-*               27 keyless data providers (Hyperliquid, CoinGecko, DeFiLlama,
                            Deribit, mempool, Treasury, NY Fed, OFR, BLS, FINRA, SEC, LBMA
-                           metals, Bitkub, …) + 2 opt-in keyed providers (binance, wallet)
+                           metals, FRED, Zillow, FHFA, Bitkub, …) + 2 opt-in keyed
+                           providers (binance, wallet)
   providers-keyless        one factory assembling the keyless set, shared by both apps
   serve · store · vite     Node infra — spec read/write + proxy, the XDG dashboard store,
                            the dev plugin

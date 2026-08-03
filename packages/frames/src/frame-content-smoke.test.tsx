@@ -97,6 +97,9 @@ const CONVERTS: Record<string, string> = {
   "oi-treemap": "open-interest notional per tile",
   "open-interest": "open-interest notional",
   "options-max-pain": "max-pain strike and spot",
+  "home-value-chart":
+    "typical home values on the value axis via money.magnitude",
+  "metro-home-values": "typical home value per metro via money.price",
   "options-oi-ladder-heatmap": "strike buckets via money.magnitude",
   "options-oi-skew": "strike axis via money.magnitude (converted, symbol-less)",
   "options-oi-strike": "strike axis plus the spot caption",
@@ -213,6 +216,11 @@ const NO_MONEY: Record<string, string> = {
   "filings-feed": "SEC filing titles and dates",
   "filings-mix": "filing-type share %",
   "financial-stress": "the OFR FSI index level",
+  "credit-spread-chart": "option-adjusted spreads in percentage points",
+  "home-price-index": "the Case-Shiller index level (base year = 100)",
+  "index-level-chart": "an equity/volatility index level, not a price",
+  "mortgage-rate-chart": "the 30-year mortgage rate, a percentage",
+  "regional-home-prices": "FHFA index levels / cumulative % change",
   "flappy-bird": "a canvas game",
   "funding-bars": "annualized funding %",
   "funding-carry-area": "funding carry %",
@@ -394,7 +402,7 @@ const DATA_QUOTES_USD = [
  * deliberately symbol-less (an axis tick). Assert the numbers move, not that a
  * baht sign appears.
  */
-const MAGNITUDE_ONLY = ["options-oi-skew"];
+const MAGNITUDE_ONLY = ["options-oi-skew", "home-value-chart"];
 
 // ── harness ────────────────────────────────────────────────────────────────
 
@@ -815,8 +823,11 @@ describe("the currency classification covers the whole registry", () => {
     // Ratchet: ~60% of frames legitimately show none (games, timers, notes, and
     // the large percent/count/index families). A jump means money frames are
     // being parked here instead of classified — which is how `journal-open` sat
-    // here while OpenCard printed three prices.
-    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(140);
+    // here while OpenCard printed three prices. Raised 140 → 145 with the
+    // FRED/FHFA house-price and credit-spread frames, which render index levels
+    // and percentages — the Zillow pair beside them, being actual dollars, went
+    // to CONVERTS rather than here.
+    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(145);
     expect(Object.keys(CONVERTS).length).toBeGreaterThanOrEqual(70);
   });
 

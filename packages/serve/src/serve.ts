@@ -47,12 +47,15 @@ const PROXY_ALLOW_HOSTS = new Set<string>([
   "home.treasury.gov",
   "api.bls.gov",
   "cdn.finra.org",
-  // Central-bank FX history, all keyless but CORS-blocked, and each the only
-  // source for pairs/depth nothing CORS-open publishes. They answer CSV rather
-  // than JSON, which the relay passes through untouched.
-  //   fred.stlouisfed.org — Fed H.10 dailies via the keyless `fredgraph.csv`
-  //     path (no API key on that route); DEXTHUS is the only US-official daily
-  //     USD/THB series, and the Bank of Thailand has no keyless API at all.
+  // Central-bank FX history + FRED's own chart-download CSV, all keyless but
+  // CORS-blocked, and each the only source for pairs/depth nothing CORS-open
+  // publishes. They answer CSV rather than JSON, which the relay passes through
+  // untouched.
+  //   fred.stlouisfed.org — the keyless `fredgraph.csv` path (no API key on that
+  //     route), serving TWO provider families: Fed H.10 FX dailies for
+  //     provider-fx (DEXTHUS is the only US-official daily USD/THB series, and
+  //     the Bank of Thailand has no keyless API at all), and the index /
+  //     credit-spread / house-price / mortgage-rate series for provider-fred.
   //   www.bankofengland.co.uk — IADB CSV, daily GBP spot back to 1975-01-02
   //     (the deepest daily FX history found), several series per request.
   //   www.rba.gov.au — one daily CSV with the widest APAC basket from a central
@@ -60,6 +63,10 @@ const PROXY_ALLOW_HOSTS = new Set<string>([
   "fred.stlouisfed.org",
   "www.bankofengland.co.uk",
   "www.rba.gov.au",
+  // FHFA House Price Index datasets — keyless, no CORS header. Note the
+  // combined `hpi_master.csv` is ~17 MB, over PROXY_MAX_BYTES; provider-fhfa
+  // reads the far smaller per-level files instead.
+  "www.fhfa.gov",
   // News-outlet RSS feeds (CORS-blocked, so the news-feed frame reads them
   // through here). Headlines + links only; no keys.
   "www.coindesk.com",
