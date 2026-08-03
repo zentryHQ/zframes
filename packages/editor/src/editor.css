@@ -2553,3 +2553,112 @@ body:has(.ui-draggable-dragging) * {
     animation: none;
   }
 }
+
+/* ── Currency picker ───────────────────────────────────────────────────────
+   Searchable combobox over the 146 display currencies, used by the Cosmetics
+   rail and the per-card config dialog. Shares the symbol combobox's search box
+   and popover feel; its rows are code / name / symbol rather than logo+price. */
+.zf-ccy {
+  position: relative;
+}
+.zf-ccy-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 9px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.zf-ccy-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.zf-ccy-trigger:focus-visible {
+  outline: none;
+  border-color: var(--zf-accent);
+  box-shadow: 0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.12);
+}
+.zf-ccy-trigger-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zf-ccy-trigger svg {
+  flex: none;
+  color: rgba(255, 255, 255, 0.55);
+}
+.zf-ccy-pop {
+  position: absolute;
+  z-index: 130;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(11, 12, 19, 0.96);
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.46),
+    0 0 0 1px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
+}
+.zf-ccy-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 252px;
+  overflow-y: auto;
+}
+.zf-ccy-option {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto 14px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.zf-ccy-option[data-active="true"] {
+  background: rgba(255, 255, 255, 0.075);
+}
+.zf-ccy-option.is-selected {
+  background: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.1);
+}
+.zf-ccy-code {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.9);
+}
+.zf-ccy-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.zf-ccy-symbol {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.72);
+}
