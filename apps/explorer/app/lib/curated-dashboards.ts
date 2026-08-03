@@ -134,6 +134,24 @@ const LOOK_NEBULA: Cosmetics = {
   },
 };
 
+// Signature indigo on cool slate — soft-cornered, borderless, roomy and flat.
+// This is what a board looks like straight out of `zframes init`, which is why
+// the newest board wears it. It sits closest in HUE to Nebula (242 vs 268), so
+// the separation is carried by the SURFACE instead: opaque and flat where
+// Nebula is glassy and lifted, and the roundest, airiest, least-bordered cards
+// of the six.
+const LOOK_AURORA: Cosmetics = {
+  theme: { accentHue: 242, accentSat: 72, baseHue: 224, baseSat: 18 },
+  typography: { fontFamily: "sans", numericStyle: "tabular" },
+  appearance: {
+    radius: 22,
+    borderStrength: 0.14,
+    surfaceOpacity: 1,
+    density: 1.2,
+    elevation: 0.5,
+  },
+};
+
 export type CuratedDashboard = {
   id: string;
   title: string;
@@ -310,6 +328,95 @@ export const CURATED: CuratedDashboard[] = [
       ],
       LOOK_SYNTHWAVE,
       sceneBg("dusk"), // magenta-pink glow ≈ the synthwave accent (320)
+    ),
+  },
+  {
+    // The board for the newest keyless sources — FRED, Zillow and the FHFA.
+    // Deliberately NOT folded into "Macro & Rates": that board is the rates
+    // story, and this one answers a different question — what a house costs and
+    // what the market charges to lend against it. Its centrepiece is Mortgage
+    // Payment, the only frame in the catalogue that needs TWO providers to say
+    // anything (Zillow's home value × FRED's live 30-year rate); the index
+    // sources alone can only tell you prices rose, never whether a buyer can pay.
+    //
+    // Cost note: the ZHVI table is one uncompressed ~4.4 MB CSV, and the board's
+    // three Zillow cards share a single download (the provider caches the parsed
+    // TABLE under a constant key). It is paid only when a visitor scrolls this
+    // board into the focus band — the embed iframe mounts lazily.
+    id: "housing-credit",
+    title: "Housing & Credit",
+    description:
+      "What a home costs, what it costs to borrow, and what the credit market charges for risk — Zillow, the FHFA and the Fed's own series, all keyless.",
+    tags: ["housing", "credit", "macro"],
+    spec: spec(
+      "Housing & Credit",
+      [
+        {
+          id: "hd",
+          frame: "heading",
+          position: { x: 0, y: 0, w: 12, h: 1 },
+          config: {
+            title: "Housing & Credit",
+            subtitle: "Zillow, FHFA and FRED — no keys, no signup",
+          },
+        },
+        // The level, in actual money rather than index points.
+        {
+          id: "zhvi-chart",
+          frame: "home-value-chart",
+          position: { x: 0, y: 1, w: 6, h: 4 },
+          config: {
+            regions: ["United States", "Austin, TX", "Miami, FL"],
+            years: 25,
+          },
+        },
+        // The rate that decides whether that level is affordable.
+        {
+          id: "mortgage-rate",
+          frame: "mortgage-rate-chart",
+          position: { x: 6, y: 1, w: 6, h: 4 },
+          config: { years: 25 },
+        },
+        // ★ The cross-provider card: value × rate → the monthly payment.
+        {
+          id: "payment",
+          frame: "mortgage-payment",
+          position: { x: 0, y: 5, w: 4, h: 4 },
+          config: { region: "Austin, TX", downPaymentPct: 20, termYears: 30 },
+        },
+        {
+          id: "case-shiller",
+          frame: "home-price-index",
+          position: { x: 4, y: 5, w: 4, h: 4 },
+          config: { years: 25 },
+        },
+        {
+          id: "credit",
+          frame: "credit-spread-chart",
+          position: { x: 8, y: 5, w: 4, h: 4 },
+          config: {},
+        },
+        // State level (~190 KB), not metro (~4 MB) — the divergence a single
+        // national index averages away, at a download an embed can afford.
+        {
+          id: "fhfa-states",
+          frame: "regional-home-prices",
+          position: { x: 0, y: 9, w: 6, h: 4 },
+          config: {
+            level: "state",
+            regions: ["CA", "TX", "FL", "NY", "WA"],
+            years: 20,
+          },
+        },
+        {
+          id: "zhvi-metros",
+          frame: "metro-home-values",
+          position: { x: 6, y: 9, w: 6, h: 4 },
+          config: {},
+        },
+      ],
+      LOOK_AURORA,
+      sceneBg("aurora"), // the signature indigo ≈ the board's accent (242)
     ),
   },
   {
