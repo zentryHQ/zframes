@@ -2578,8 +2578,15 @@ body:has(.ui-draggable-dragging) * {
   text-align: left;
   cursor: pointer;
 }
-.zf-ccy-trigger:hover {
+.zf-ccy-trigger:hover:not(:disabled) {
   border-color: rgba(255, 255, 255, 0.2);
+}
+/* Shown but inert, on a frame whose figures never convert (`usdOnly` frame
+   meta). Greyed rather than removed: a control that disappears on some cards
+   reads as a missing feature, so the row stays and the hint says why. */
+.zf-ccy-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 .zf-ccy-trigger:focus-visible {
   outline: none;
