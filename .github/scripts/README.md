@@ -31,6 +31,20 @@ valid is a soft `warn`. No AI, no cost, no key.
 **SEC:** `data.sec.gov` 403s a UA without a contact **email** — set repo variable
 `ZFRAMES_CONTACT` to enable the SEC probes; unset, they skip (warn), never fail.
 
+**Three optional per-probe knobs**, each earned by a live failure mode rather than
+added speculatively:
+
+- `pick` — grade a named property instead of the whole result. Envelope returns
+  (`{series: […], level, source}`) always have keys, so an all-miss region lookup
+  would grade `ok`; picking `series`/`entries` makes an empty payload warn.
+- `timeoutMs` — per-probe timeout. The bulk-CSV housing sources (Zillow ~4.4 MB,
+  FHFA metro ~4 MB) exceed the 25s default, and the providers already pass their
+  own 30s abort, so the harness must not cut in first.
+- `slowSource` — a **timeout** on this probe warns instead of failing. FHFA's
+  metro file serves in ~6s in isolation but stalls past 30s under repeat load
+  (confirmed live); that transient must not file an issue. Any non-timeout error
+  on the same probe — dead URL, non-2xx, parse drift — still fails hard.
+
 ## CLI smoke · `cli-smoke.mjs` · (workflow installs `zframes@latest`)
 
 Drives the **published** package end to end: init → lint → serve → HTTP-fetch the
