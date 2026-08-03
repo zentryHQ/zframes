@@ -1,4 +1,4 @@
-import { defineFrame, useDayStatsState, useMoney } from "@zframes/core";
+import { defineFrame, useDayStatsState } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
@@ -26,7 +26,6 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
     60_000,
     config.source,
   );
-  const money = useMoney();
 
   const { gainers, losers } = useMemo(() => {
     const rows = Object.entries(stats)
@@ -62,7 +61,6 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
             label={tickerOf(row.symbol)}
             price={row.markPx}
             changePct={row.changePct}
-            formatValue={money.price}
           />
         ))}
       </div>
@@ -75,7 +73,6 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
             label={tickerOf(row.symbol)}
             price={row.markPx}
             changePct={row.changePct}
-            formatValue={money.price}
           />
         ))}
       </div>

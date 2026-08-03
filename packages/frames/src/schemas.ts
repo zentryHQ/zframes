@@ -465,6 +465,8 @@ export const bitcoinDominanceMeta = defineFrameMeta({
 
 export const ratesBoardMeta = defineFrameMeta({
   name: "rates-board",
+  // Stays in USD whatever the board asks for: US-macro: an official U.S. rate board.
+  usdOnly: true,
   label: "Rates Board",
   category: "macro",
   iconUrl: widgetIcon("rates-board"),
@@ -580,6 +582,8 @@ export const financialStressMeta = defineFrameMeta({
 
 export const nationalDebtMeta = defineFrameMeta({
   name: "national-debt",
+  // Stays in USD whatever the board asks for: US-macro: nobody quotes the U.S. national debt in another currency.
+  usdOnly: true,
   label: "National Debt",
   category: "macro",
   iconUrl: widgetIcon("national-debt"),
@@ -722,6 +726,8 @@ export const yieldCurveMeta = defineFrameMeta({
 
 export const fundamentalsMeta = defineFrameMeta({
   name: "fundamentals",
+  // Stays in USD whatever the board asks for: SEC filing figures, shown as reported.
+  usdOnly: true,
   label: "Fundamentals",
   category: "equities",
   iconUrl: widgetIcon("fundamentals"),
@@ -1655,6 +1661,8 @@ export const diceMeta = defineFrameMeta({
 
 export const riskRewardMeta = defineFrameMeta({
   name: "risk-reward",
+  // Stays in USD whatever the board asks for: user-typed trade levels.
+  usdOnly: true,
   label: "Risk / Reward",
   category: "tools",
   iconUrl: widgetIcon("risk-reward"),
@@ -1810,6 +1818,8 @@ export const dayMeterMeta = defineFrameMeta({
 
 export const returnsProjectorMeta = defineFrameMeta({
   name: "returns-projector",
+  // Stays in USD whatever the board asks for: user-typed projection inputs.
+  usdOnly: true,
   label: "Returns Projector",
   category: "tools",
   iconUrl: widgetIcon("returns-projector"),
@@ -1840,6 +1850,8 @@ export const returnsProjectorMeta = defineFrameMeta({
 
 export const breakevenMeta = defineFrameMeta({
   name: "breakeven",
+  // Stays in USD whatever the board asks for: user-typed fills — a number must read back as entered.
+  usdOnly: true,
   label: "Break-even",
   category: "tools",
   iconUrl: widgetIcon("breakeven"),
@@ -4606,6 +4618,8 @@ export const treasuryAuctionDemandScatterMeta = defineFrameMeta({
 
 export const treasuryAuctionSizeBarsMeta = defineFrameMeta({
   name: "treasury-auction-size-bars",
+  // Stays in USD whatever the board asks for: US-macro: Treasury auction sizes as offered.
+  usdOnly: true,
   label: "Treasury Auction Size",
   category: "macro",
   iconUrl: widgetIcon("treasury-auction-size-bars"),
@@ -4629,6 +4643,8 @@ export const treasuryAuctionSizeBarsMeta = defineFrameMeta({
 
 export const nyfedReferenceRateBarsMeta = defineFrameMeta({
   name: "nyfed-reference-rate-bars",
+  // Stays in USD whatever the board asks for: US-macro: official NY Fed rates, published in USD.
+  usdOnly: true,
   label: "NY Fed Rate Bars",
   category: "macro",
   iconUrl: widgetIcon("nyfed-reference-rate-bars"),
@@ -4682,6 +4698,8 @@ export const nyfedFedFundsBandGaugeMeta = defineFrameMeta({
 
 export const treasuryDebtCompositionAreaMeta = defineFrameMeta({
   name: "treasury-debt-composition-area",
+  // Stays in USD whatever the board asks for: US-macro: the Treasury debt split as published.
+  usdOnly: true,
   label: "Debt Composition",
   category: "macro",
   iconUrl: widgetIcon("treasury-debt-composition-area"),
@@ -4836,6 +4854,8 @@ export const shortVolumeBarsMeta = defineFrameMeta({
 
 export const capitalStructureBarsMeta = defineFrameMeta({
   name: "capital-structure-bars",
+  // Stays in USD whatever the board asks for: SEC filing figures, shown as reported.
+  usdOnly: true,
   label: "Capital Structure Bars",
   category: "equities",
   iconUrl: widgetIcon("capital-structure-bars"),
