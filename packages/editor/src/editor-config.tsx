@@ -14,7 +14,7 @@ import type {
   FrameStyle,
 } from "@zframes/spec/spec";
 import { CurrencyPicker } from "./currency-picker";
-import type { FrameRegistry } from "@zframes/spec/frame";
+import type { FrameCategory, FrameRegistry } from "@zframes/spec/frame";
 import {
   assetLogoUrl,
   configFields,
@@ -436,6 +436,11 @@ export function FrameConfigDialog({
                labelled about currency on one card is exactly the confusion
                worth pre-empting. */
             hasConfigCurrency={fields.some((f) => f.key === "currency")}
+            /* Frames that ignore the display currency say so on their meta, so
+               the control can be honestly inert instead of promising a
+               conversion that never happens. */
+            usdOnly={def?.usdOnly === true}
+            frameCategory={def?.category}
             onChange={commitCurrency}
           />
           <FrameStylePanel
@@ -485,28 +490,38 @@ export function FrameConfigDialog({
  * keeps following the board. Pinning a code makes this one card quote it
  * regardless of what the board later becomes.
  *
- * Deliberately offered on every frame. A handful of frames genuinely ignore it
- * — US-macro series, SEC figures as filed, numbers the user typed in — but
- * nothing in frame meta says which, so the honest move is to name that in the
- * hint rather than guess and grey out the wrong cards. (`usdOnly` on frame meta
- * would let this disable itself; see the note in the package's report.)
+ * On a frame whose meta declares `usdOnly` the control is shown but DISABLED,
+ * with the reason in the hint. Disabled, not hidden: a control that vanishes on
+ * some cards is indistinguishable from a feature that doesn't exist, and the
+ * reason (an official series, a filed figure, a number you typed) is the useful
+ * half of the answer.
  */
 function FrameCurrencyField({
   value,
   board,
   hasConfigCurrency,
+  usdOnly,
+  frameCategory,
   onChange,
 }: {
   value: CurrencyCode | null;
   board: CurrencyCode;
   hasConfigCurrency: boolean;
+  /** This frame's figures aren't convertible market money (frame meta). */
+  usdOnly: boolean;
+  /** Used only to word the `usdOnly` reason for the right family. */
+  frameCategory?: FrameCategory;
   onChange: (next: CurrencyCode | null) => void;
 }) {
   return (
     <div className="zf-field">
       <label
         htmlFor="zf-instance-currency"
-        title="Currency this card's money figures are displayed in."
+        title={
+          usdOnly
+            ? "This frame's figures always read in USD."
+            : "Currency this card's money figures are displayed in."
+        }
       >
         Display currency
       </label>
@@ -515,24 +530,46 @@ function FrameCurrencyField({
         value={value}
         inheritOf={board}
         label="Display currency for this card"
+        disabled={usdOnly}
         onChange={onChange}
       />
-      <p className="zf-field-hint">
-        Converts this card&rsquo;s money figures only, from USD at the live ECB
-        rate. Frames whose figures aren&rsquo;t convertible market money —
-        US-macro series, SEC filing figures as reported, and numbers you type in
-        yourself — stay in USD whatever this says.
-        {hasConfigCurrency && (
-          <>
-            {" "}
-            This is display only: the <strong>Currency</strong> setting above
-            picks which published price series this frame reads, and changing it
-            changes the data.
-          </>
-        )}
-      </p>
+      {usdOnly ? (
+        <p className="zf-field-hint">
+          <strong>Always USD on this frame.</strong>{" "}
+          {usdOnlyReason(frameCategory)}
+        </p>
+      ) : (
+        <p className="zf-field-hint">
+          Converts this card&rsquo;s money figures only, from USD at the live
+          ECB rate. Frames whose figures aren&rsquo;t convertible market money —
+          US-macro series, SEC filing figures as reported, and numbers you type
+          in yourself — stay in USD whatever this says.
+          {hasConfigCurrency && (
+            <>
+              {" "}
+              This is display only: the <strong>Currency</strong> setting above
+              picks which published price series this frame reads, and changing
+              it changes the data.
+            </>
+          )}
+        </p>
+      )}
     </div>
   );
+}
+
+/**
+ * Why a `usdOnly` frame stays in dollars, worded for its family. The flag is a
+ * boolean — the three families it covers are distinguishable from the frame's
+ * category, and a generic "some frames don't convert" would leave the reader
+ * guessing which kind of card they are looking at.
+ */
+function usdOnlyReason(category?: FrameCategory): string {
+  if (category === "journal" || category === "tools")
+    return "The amounts on this card are ones you type in yourself, so they read back exactly as entered.";
+  if (category === "equities")
+    return "These are SEC filing figures, shown exactly as the company reported them.";
+  return "This is an official U.S. series, published in dollars — a converted national debt or Treasury rate is a figure nobody quotes.";
 }
 
 /**

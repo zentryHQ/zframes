@@ -145,6 +145,31 @@ describe("CurrencyPicker", () => {
     expect(openPicker().value).toBe("");
   });
 
+  it("stays visible but inert when disabled", () => {
+    // For a card whose frame ignores the display currency (`usdOnly` frame
+    // meta). Disabled, never hidden: a control that vanishes on some cards is
+    // indistinguishable from a feature that was never built.
+    const onChange = vi.fn();
+    render(
+      <CurrencyPicker
+        value={null}
+        inheritOf="THB"
+        label="Currency"
+        disabled
+        onChange={onChange}
+      />,
+    );
+    const trigger = screen.getByRole("button", {
+      name: "Currency",
+    }) as HTMLButtonElement;
+    expect(trigger.disabled).toBe(true);
+    // Still readable — it reports what the card is doing today.
+    expect(trigger.textContent).toContain("Inherit board (THB)");
+    fireEvent.click(trigger);
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("says so when nothing matches", () => {
     render(<CurrencyPicker value="USD" label="Currency" onChange={vi.fn()} />);
     const input = openPicker();

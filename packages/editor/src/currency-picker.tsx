@@ -183,6 +183,7 @@ export function CurrencyPicker({
   inheritOf,
   label,
   triggerId,
+  disabled = false,
 }: {
   /** The chosen code, or null when inheriting (only with `inheritOf`). */
   value: CurrencyCode | null;
@@ -192,6 +193,13 @@ export function CurrencyPicker({
   /** Accessible name for the trigger and the filter box. */
   label: string;
   triggerId?: string;
+  /**
+   * Shown but inert — for a card whose frame ignores the display currency
+   * (`usdOnly` frame meta). Disabled rather than hidden on purpose: a missing
+   * control is indistinguishable from a missing feature, so the caller keeps the
+   * row and explains it.
+   */
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -295,14 +303,15 @@ export function CurrencyPicker({
         className="zf-ccy-trigger"
         aria-label={label}
         aria-haspopup="listbox"
-        aria-expanded={open}
+        aria-expanded={open && !disabled}
+        disabled={disabled}
         onClick={() => setOpen((v) => !v)}
       >
         <span className="zf-ccy-trigger-text">{triggerLabel}</span>
         <ChevronDown size={13} aria-hidden="true" />
       </button>
 
-      {open && (
+      {open && !disabled && (
         <div className="zf-ccy-pop">
           <div className="zf-symbol-search">
             <Search size={13} aria-hidden="true" />

@@ -52,7 +52,39 @@ const annotatableFrame = defineFrame({
   component: () => null,
 });
 
-const registry = createRegistry([syntheticFrame, annotatableFrame]);
+/**
+ * Same schema, but declared USD-only — a frame whose figures aren't convertible
+ * market money. One per family the reason is worded for: an official US series
+ * and a card of numbers the user typed.
+ */
+const usdOnlyMacroFrame = defineFrame({
+  name: "synthetic-macro",
+  label: "Synthetic Macro",
+  category: "macro",
+  description: "an official US series, published in dollars",
+  capabilities: [],
+  usdOnly: true,
+  schema,
+  component: () => null,
+});
+
+const usdOnlyJournalFrame = defineFrame({
+  name: "synthetic-journal",
+  label: "Synthetic Journal",
+  category: "journal",
+  description: "amounts the user typed in",
+  capabilities: [],
+  usdOnly: true,
+  schema,
+  component: () => null,
+});
+
+const registry = createRegistry([
+  syntheticFrame,
+  annotatableFrame,
+  usdOnlyMacroFrame,
+  usdOnlyJournalFrame,
+]);
 
 const baseConfig = {
   enabled: true,
@@ -990,10 +1022,46 @@ describe("FrameConfigDialog display currency", () => {
   });
 
   it("is honest that some frames ignore it", () => {
-    // No frame meta says which frames are USD-only, so the control is offered
-    // everywhere and the hint carries the caveat rather than guessing.
+    // On a frame that DOES convert, the hint still names the families that
+    // don't — the caveat is part of understanding what the control does.
     const view = setup();
     expect(view.getByText(/US-macro series/)).toBeTruthy();
+    expect(
+      (
+        view.getByRole("button", {
+          name: "Display currency for this card",
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+  });
+
+  it("disables itself, with the reason, on a usdOnly frame", () => {
+    // The gap this closes: the control was offered on every frame, including the
+    // dozen whose figures never convert, so the UI promised something it could
+    // not deliver. `usdOnly` on the frame's meta is what makes that expressible
+    // at runtime instead of only inside a test's exemption list.
+    const view = setup({}, { frame: "synthetic-macro" }, "THB");
+    const trigger = view.getByRole("button", {
+      name: "Display currency for this card",
+    }) as HTMLButtonElement;
+    expect(trigger.disabled).toBe(true);
+    expect(view.getByText(/Always USD on this frame/)).toBeTruthy();
+    expect(view.getByText(/official U\.S\. series/)).toBeTruthy();
+    // Shown, not hidden: an absent control is indistinguishable from a missing
+    // feature, so the row stays and explains itself.
+    expect(view.queryByText(/live ECB rate/)).toBe(null);
+    // And it is inert, not merely grey: clicking opens no listbox.
+    fireEvent.click(trigger);
+    expect(view.queryByRole("listbox")).toBe(null);
+    expect(view.onApply).not.toHaveBeenCalled();
+  });
+
+  it("words the reason for the frame's own family", () => {
+    // A boolean flag with a generic message would leave the reader guessing
+    // which kind of card they are looking at; the category supplies that.
+    const view = setup({}, { frame: "synthetic-journal" }, "THB");
+    expect(view.getByText(/ones you type in yourself/)).toBeTruthy();
+    expect(view.queryByText(/official U\.S\. series/)).toBe(null);
   });
 
   it("distinguishes itself from a frame's own config.currency", () => {
