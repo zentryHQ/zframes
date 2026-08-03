@@ -619,6 +619,46 @@ function ErrorCard({
   );
 }
 
+/**
+ * The credits to actually show for a card — only the provider serving it, not
+ * every provider that could.
+ *
+ * A frame whose schema declares a `source` field is a **pick-one**: exactly one
+ * exchange answers it, chosen by that field or, when it is unset, by first-match
+ * capability routing — which resolves to the first-declared credit. Crediting
+ * the whole list there claims data from a venue the card never queried.
+ *
+ * A frame with several credits and NO `source` field genuinely reads them all
+ * (rates-board combines NY Fed + Treasury), so it keeps every credit. The shape
+ * of the schema is the signal, so a new multi-source frame lands on the right
+ * side of this by construction rather than by remembering to opt in.
+ */
+function activeSources(
+  def: { source?: FrameSource | FrameSource[]; schema: unknown },
+  config: unknown,
+): FrameSource[] {
+  const declared = def.source
+    ? Array.isArray(def.source)
+      ? def.source
+      : [def.source]
+    : [];
+  if (declared.length < 2) return declared;
+
+  // Read the ZodObject shape structurally — core deliberately doesn't import
+  // zod, and a schema that isn't a plain object (wrapped in .transform() etc.)
+  // simply keeps every credit, which is the pre-existing behaviour.
+  const shape = (def.schema as { shape?: Record<string, unknown> } | undefined)
+    ?.shape;
+  if (!shape || !("source" in shape)) return declared;
+
+  const pinned = (config as { source?: unknown } | undefined)?.source;
+  const match =
+    typeof pinned === "string"
+      ? declared.find((source) => source.id === pinned)
+      : undefined;
+  return [match ?? declared[0]];
+}
+
 function SourceCredit({ sources }: { sources: FrameSource[] }) {
   if (sources.length === 0) return null;
   return (
@@ -864,11 +904,7 @@ function FrameContentImpl({
   const FrameComponent = def.component;
   const TitleIcon = def.titleIcon;
   const TitleContent = def.titleContent;
-  const sources = def.source
-    ? Array.isArray(def.source)
-      ? def.source
-      : [def.source]
-    : [];
+  const sources = activeSources(def, parsed.data);
 
   // Bare frames (e.g. headings) structure a dashboard into zones — they get a
   // positioned slot but no card chrome and no auto-title.
