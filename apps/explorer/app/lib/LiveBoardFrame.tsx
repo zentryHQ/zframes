@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 //     down its animated WebGL backdrop, so only the visible card(s) hold a live
 //     scene no matter how many are stacked.
 //   • scroll/interaction — the iframe is display-only (pointer-events:none,
-//     scrolling off); a transparent full-panel <Link> owns the click → /d/{id}.
+//     scrolling off); a transparent full-panel <Link> owns the click → /dashboard/{id}.
 export function LiveBoardFrame({
   id,
   title,
@@ -118,7 +118,7 @@ export function LiveBoardFrame({
       {/* Whole-panel nav overlay → the full preview. Above the display-only
             iframe, below the caption chrome. Inside .group so it drives hover. */}
       <Link
-        href={`/d/${id}`}
+        href={`/dashboard/${id}`}
         aria-label={`Open ${title} live preview`}
         className="absolute inset-0 z-10"
       />

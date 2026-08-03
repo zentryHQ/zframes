@@ -1,4 +1,4 @@
-// Pure image geometry for the /d/[id] og:image compositor — no DB, no Next, so
+// Pure image geometry for the /dashboard/[id] og:image compositor — no DB, no Next, so
 // the guard test can import it directly (the DB loader next door pulls in the
 // postgres driver, which needs DATABASE_URL at import time).
 

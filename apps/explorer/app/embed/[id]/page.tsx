@@ -5,14 +5,14 @@ import { resolveDashboard } from "@/app/lib/resolve-dashboard";
 import { EmbedBoard } from "./EmbedBoard";
 
 // Chrome-less live-board route, iframed by the landing parallax showcase. Same
-// render path + resolver as /d/[id], minus the site shell (AppShell hides chrome
+// render path + resolver as /dashboard/[id], minus the site shell (AppShell hides chrome
 // on /embed/*). Curated ids prerender; community (DB) ids render on demand.
 export function generateStaticParams() {
   return CURATED.map((d) => ({ id: d.id }));
 }
 
 // Not a standalone destination — kept out of the index; the canonical preview is
-// /d/[id]. (Framing is allowed same-origin only via the next.config header rule.)
+// /dashboard/[id]. (Framing is allowed same-origin only via the next.config header rule.)
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };

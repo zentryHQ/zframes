@@ -2,7 +2,7 @@ import { resolveDashboard } from "@/app/lib/resolve-dashboard";
 
 export const runtime = "nodejs";
 
-// GET /d/<id>/dashboard.json — the raw DashboardSpec. This is the ONE fetchable
+// GET /dashboard/<id>/dashboard.json — the raw DashboardSpec. This is the ONE fetchable
 // primitive every fork path pulls from: the AI agent (`npx skills add
 // zentryhq/zframes` → fetch this), and the in-browser preview/tinker. Public for
 // any non-removed dashboard (unlisted = anyone-with-link). Immutable-per-publish,

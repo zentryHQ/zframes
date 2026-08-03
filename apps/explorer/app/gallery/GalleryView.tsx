@@ -117,7 +117,7 @@ export function GalleryView() {
             {curated.map((d) => (
               <DashboardCard
                 key={d.id}
-                href={`/d/${d.id}`}
+                href={`/dashboard/${d.id}`}
                 title={d.title}
                 description={d.description}
                 tags={d.tags}
@@ -180,7 +180,7 @@ export function GalleryView() {
             {community.map((d) => (
               <DashboardCard
                 key={d.id}
-                href={`/d/${d.id}`}
+                href={`/dashboard/${d.id}`}
                 title={d.title}
                 tags={d.tags}
                 frameCount={d.frameCount}

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { DashboardBackground } from "@/app/lib/DashboardBackground";
 
 // The live board, client-only (shared WS + browser APIs) → dynamic ssr:false,
-// same as the /d/[id] preview. This component IS the whole /embed/[id] document
+// same as the /dashboard/[id] preview. This component IS the whole /embed/[id] document
 // body — no chrome around it (AppShell renders bare on /embed/*). We render the
 // board's OWN background here (the site's Aurora canvas is chrome, absent on
 // /embed/*), so an iframed live board carries the living unicorn backdrop the
