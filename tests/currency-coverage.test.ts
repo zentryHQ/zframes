@@ -13,35 +13,25 @@ import { describe, expect, it } from "vitest";
  * a 59-file sweep, so without a guard the next new frame quietly reintroduces a
  * dollar sign that no currency setting can move.
  *
- * The escape hatch is the list below, and it is deliberately explicit: a frame
- * may keep the `$` helpers only if its figures are *not* convertible market
- * money. Adding a name here is a decision, not a formality — say why.
+ * The escape hatch is `usdOnly: true` on a frame's meta — the ONE declaration of
+ * the carve-out, and deliberately not a list in this file. It used to be exactly
+ * that: a `USD_ONLY` map only a test could read, which meant the shipped code
+ * had no idea which frames ignore the display currency, and the editor offered
+ * every card a "Display currency" control that a dozen frames silently ignore.
+ * The flag is now shipped metadata (the editor disables the control and says
+ * why, the AI catalogue surfaces it), and this file *derives* its exemptions
+ * from it — so the two can't drift, in either direction.
+ *
+ * Setting the flag is a decision, not a formality: only figures that are not
+ * convertible market money qualify (US-macro series, SEC figures as filed,
+ * numbers the user typed). Each flag in `schemas.ts` carries its reason.
  */
 
-/** Frames allowed to render hard-coded USD, with the reason each is exempt. */
-const USD_ONLY: Record<string, string> = {
-  // US-macro series: nobody quotes the US national debt or a Treasury yield in
-  // baht, so converting them would produce a figure with no referent.
-  "national-debt.tsx": "US-macro — Treasury debt is quoted in USD",
-  "nyfed-reference-rate-bars.tsx": "US-macro — NY Fed official rates",
-  "rates-board.tsx": "US-macro — official US rate board",
-  "treasury-auction-size-bars.tsx": "US-macro — Treasury auction sizes",
-  "treasury-debt-composition-area.tsx": "US-macro — Treasury debt split",
-  // SEC filings report in USD as filed; restating a 10-K figure in another
-  // currency would misrepresent the filing.
-  "fundamentals.tsx": "SEC filing figures, as reported",
-  "capital-structure-bars.tsx": "SEC filing figures, as reported",
-  // The user types these numbers themselves. A value must read back exactly as
-  // entered, so it is not converted.
-  "breakeven.tsx": "user-entered position maths",
-  "returns-projector.tsx": "user-entered projection inputs",
-  "risk-reward.tsx": "user-entered trade levels",
-  "journal-log.tsx": "user-entered journal amounts",
-  "journal-ui.tsx": "user-entered journal amounts",
-  // Shared primitive, not a frame: MoverRow takes an injectable `formatValue`
-  // (callers pass `money.price`), and its USD default is the fallback for a
-  // caller with no currency context.
-  "mover-row.tsx": "primitive — USD default for an injectable formatter",
+/**
+ * Non-frame files allowed to hold the USD helpers, with the reason each is
+ * exempt. Frames are exempted by their meta's `usdOnly`, never here.
+ */
+const NON_FRAME_USD_OK: Record<string, string> = {
   // format.ts IS the USD helpers, and metals-shared keeps them for a GBP/EUR
   // LBMA fix — a published non-USD number the display layer must not convert.
   // (Its USD path goes through `money`.)
@@ -49,7 +39,26 @@ const USD_ONLY: Record<string, string> = {
   "metals-shared.ts": "GBP/EUR LBMA fixes are shown as published",
 };
 
-const USD_HELPERS = /\b(formatPrice|formatCompactUsd)\s*\(/;
+/**
+ * Frames that DO leak hard-coded USD onto a converted board — a known bug, not a
+ * carve-out, so they deliberately do NOT carry `usdOnly` (which would grey out
+ * the editor's currency control on a card that should convert).
+ *
+ * `packages/frames/src/frame-content-smoke.test.tsx` pins each one's dollars in
+ * its `LEAKING` map, with the analysis: the figures on the journal cards are
+ * provider quotes (the live mid of the symbol being logged, `entry`/`now`/
+ * `target` on an open call), not amounts the user typed — the entry that used to
+ * sit in this file's exemption list calling them "user-entered" was wrong about
+ * what the card renders. Fixing them means routing those through `useMoney()`
+ * and deleting the entry here, not flagging the frame.
+ */
+const PENDING_FIX: Record<string, string> = {
+  "journal-log.tsx":
+    "known leak: the picker's live mid behind formatPrice (see LEAKING in frame-content-smoke)",
+  "journal-ui.tsx":
+    "known leak: OpenCard's entry/now/target for the journal frames (see LEAKING)",
+};
+
 const USD_HELPER_REF = /\b(formatPrice|formatCompactUsd)\b/;
 
 /**
@@ -82,38 +91,128 @@ function frameFiles(): string[] {
     .sort();
 }
 
+function sourceOf(file: string): string {
+  return readFileSync(join(srcDir, file), "utf8");
+}
+
+/** Does this file render money through the hard-coded USD helpers? */
+function rendersHardCodedUsd(file: string): boolean {
+  return USD_HELPER_REF.test(stripComments(sourceOf(file)));
+}
+
+/** The frames whose meta declares them USD-only, as `<name>.tsx` file names. */
+async function usdOnlyFiles(): Promise<Set<string>> {
+  const { allFrameMetas } = await import("../packages/frames/src/schemas");
+  return new Set(
+    allFrameMetas.filter((m) => m.usdOnly).map((m) => `${m.name}.tsx`),
+  );
+}
+
 describe("display-currency coverage", () => {
-  it("no frame outside the USD_ONLY list renders hard-coded USD", () => {
+  it("a frame that renders hard-coded USD declares `usdOnly` on its meta", async () => {
+    const exempt = await usdOnlyFiles();
     const offenders: string[] = [];
     for (const file of frameFiles()) {
-      if (file in USD_ONLY) continue;
-      const source = stripComments(readFileSync(join(srcDir, file), "utf8"));
-      if (USD_HELPER_REF.test(source)) offenders.push(file);
+      if (file in NON_FRAME_USD_OK || file in PENDING_FIX || exempt.has(file))
+        continue;
+      if (rendersHardCodedUsd(file)) offenders.push(file);
     }
     expect(
       offenders,
-      `These frames still hard-code USD. Route market money through useMoney() ` +
-        `(money.price / money.compact), or add the file to USD_ONLY with a reason:\n` +
+      `These frames hard-code USD without declaring it. Route market money ` +
+        `through useMoney() (money.price / money.compact), or — if the figures ` +
+        `genuinely aren't convertible market money — set \`usdOnly: true\` on ` +
+        `the frame's meta in schemas.ts with a reason:\n` +
         offenders.map((f) => `  - ${f}`).join("\n"),
     ).toEqual([]);
   });
 
-  it("every USD_ONLY entry is a real file that still uses a USD helper", () => {
-    // Keeps the exemption list honest: a frame that was migrated, renamed, or
+  it("every `usdOnly` frame really does render hard-coded USD", async () => {
+    // The other direction: a flag on a frame that converts would disable the
+    // editor's currency control on a card the control would have worked on.
+    const files = new Set(frameFiles());
+    const stale: string[] = [];
+    for (const file of await usdOnlyFiles()) {
+      if (!files.has(file)) {
+        stale.push(`${file} (no such frame source)`);
+        continue;
+      }
+      if (!rendersHardCodedUsd(file)) stale.push(`${file} (converts already)`);
+    }
+    expect(
+      stale,
+      `these metas claim \`usdOnly\` but the frame renders no hard-coded USD, ` +
+        `so the editor greys out a control that would have worked:\n${stale.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("covers the three documented carve-out families", async () => {
+    // A floor on the flag itself: if a refactor drops most of these, the
+    // carve-out has silently stopped being declared anywhere.
+    const exempt = await usdOnlyFiles();
+    for (const name of [
+      "national-debt.tsx", // US-macro
+      "fundamentals.tsx", // SEC as filed
+      "breakeven.tsx", // user-typed
+    ])
+      expect(exempt.has(name), `${name} should be usdOnly`).toBe(true);
+    expect(exempt.size).toBeGreaterThanOrEqual(10);
+    // The known leaks are NOT carve-outs: flagging one would grey out a control
+    // that should work. Kept apart on purpose.
+    for (const file of Object.keys(PENDING_FIX))
+      expect(exempt.has(file), `${file} is a known leak, not usdOnly`).toBe(
+        false,
+      );
+  });
+
+  it("every NON_FRAME_USD_OK entry is a real file that still uses a USD helper", () => {
+    // Keeps the exemption list honest: a helper that was migrated, renamed, or
     // deleted must not linger here implying a carve-out that no longer exists.
     const present = new Set(frameFiles());
     const stale: string[] = [];
-    for (const [file, reason] of Object.entries(USD_ONLY)) {
+    for (const [file, reason] of Object.entries(NON_FRAME_USD_OK)) {
       expect(reason.length, `${file} needs a reason`).toBeGreaterThan(0);
       if (!present.has(file)) {
-        stale.push(`${file} (no such frame)`);
+        stale.push(`${file} (no such file)`);
         continue;
       }
-      const source = readFileSync(join(srcDir, file), "utf8");
-      if (!USD_HELPER_REF.test(source))
+      if (!USD_HELPER_REF.test(sourceOf(file)))
         stale.push(`${file} (no longer uses one)`);
     }
-    expect(stale, `stale USD_ONLY entries:\n${stale.join("\n")}`).toEqual([]);
+    expect(
+      stale,
+      `stale NON_FRAME_USD_OK entries:\n${stale.join("\n")}`,
+    ).toEqual([]);
+  });
+
+  it("every PENDING_FIX entry is a real file that still leaks", () => {
+    // The list is a to-do, not a permanent exemption: when one is migrated to
+    // useMoney() this fails until the entry is deleted.
+    const present = new Set(frameFiles());
+    const stale: string[] = [];
+    for (const [file, reason] of Object.entries(PENDING_FIX)) {
+      expect(reason.length, `${file} needs a reason`).toBeGreaterThan(0);
+      if (!present.has(file)) stale.push(`${file} (no such file)`);
+      else if (!rendersHardCodedUsd(file))
+        stale.push(`${file} (fixed — delete)`);
+    }
+    expect(stale, `stale PENDING_FIX entries:\n${stale.join("\n")}`).toEqual(
+      [],
+    );
+  });
+
+  it("no shared primitive renders money through an omittable USD default", () => {
+    // The bug this rule exists for: `MoverRow` took an optional `formatValue`
+    // defaulting to `formatPrice`, and two of its three consumers never passed
+    // one — so two cards quoted dollars on a baht board and NO grep could see
+    // it, because the `$` was in the primitive's default rather than in the
+    // frame. A primitive that renders money must resolve the currency itself
+    // (`useMoney()`), leaving nothing to omit. Pinned on the primitive that
+    // taught us, so a "harmless" reintroduction of the prop fails here.
+    const source = sourceOf("mover-row.tsx");
+    expect(source).toMatch(/useMoney\(\)/);
+    expect(stripComments(source)).not.toMatch(USD_HELPER_REF);
+    expect(stripComments(source)).not.toMatch(/formatValue\?:/);
   });
 
   it("the USD helpers themselves still exist and stay USD", async () => {
@@ -123,6 +222,6 @@ describe("display-currency coverage", () => {
       await import("../packages/frames/src/format");
     expect(formatPrice(20.66)).toBe("$20.66");
     expect(formatCompactUsd(21_914_574)).toBe("$21.91M");
-    expect(USD_HELPERS.test("formatPrice(1)")).toBe(true);
+    expect(USD_HELPER_REF.test("formatPrice(1)")).toBe(true);
   });
 });
