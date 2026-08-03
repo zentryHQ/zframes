@@ -51,3 +51,4 @@ provider-smoke-report.json
 cli-smoke-report.json
 audit-report.json
 frame-render-report.json
+fx-coverage-report.json
