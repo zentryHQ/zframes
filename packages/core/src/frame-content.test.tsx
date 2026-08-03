@@ -209,6 +209,28 @@ const bareMoneyFrame = defineFrame({
   component: () => <MoneyProbe tag="bare-money" />,
 });
 
+/**
+ * A pick-one frame: two exchange credits AND a `source` config field, the shape
+ * that means exactly one of them answers the card. Contrast `plain-sourced`
+ * above, which credits two providers with no such field because it genuinely
+ * reads both.
+ */
+const pickOneFrame = defineFrame({
+  name: "pick-one",
+  label: "Pick One",
+  category: "markets",
+  description: "credits two exchanges but reads only the configured one",
+  capabilities: [],
+  source: [
+    { id: "hyperliquid", name: "Hyperliquid", url: "https://hyperliquid.xyz" },
+    { id: "bitkub", name: "Bitkub", url: "https://bitkub.com" },
+  ],
+  schema: z.object({
+    source: z.enum(["hyperliquid", "bitkub"]).optional().describe("exchange"),
+  }),
+  component: () => <div data-testid="pick-one-body">rows</div>,
+});
+
 const registry = createRegistry([
   crashFrame,
   bareCrashFrame,
@@ -216,6 +238,7 @@ const registry = createRegistry([
   bareFrame,
   plainFrame,
   plainSourcedFrame,
+  pickOneFrame,
   tickerFrame,
   iconFrame,
   cardMoneyFrame,
@@ -438,6 +461,50 @@ describe('chrome: "plain" and the showHeader predicate', () => {
     expect(links[0].getAttribute("target")).toBe("_blank");
     expect(links[0].getAttribute("rel")).toBe("noreferrer noopener");
     expect(container.querySelectorAll(".zf-frame-source-sep")).toHaveLength(1);
+  });
+
+  // A card is served by ONE provider; crediting every provider that *could*
+  // serve it claims data from a venue it never queried. Which of the two shapes
+  // a frame is comes from its schema, so these pin both sides — a board where no
+  // card happens to pin a source cannot tell "the pin is honoured" apart from
+  // "it always shows the first entry".
+  describe("multi-source credits collapse to the serving provider", () => {
+    const credits = (container: HTMLElement) =>
+      [...container.querySelectorAll(".zf-frame-source a")].map(
+        (a) => a.textContent,
+      );
+
+    it("credits the pinned source, not the whole list", () => {
+      const { container } = renderBoard([
+        inst("pick-one", { config: { source: "bitkub" } }),
+      ]);
+
+      expect(credits(container)).toEqual(["Bitkub"]);
+      expect(el(container, ".zf-frame-source a").getAttribute("href")).toBe(
+        "https://bitkub.com",
+      );
+      // One credit ⇒ no separator to sit between entries.
+      expect(container.querySelectorAll(".zf-frame-source-sep")).toHaveLength(
+        0,
+      );
+    });
+
+    it("falls back to the first-declared source when none is pinned", () => {
+      // Capability routing is first-match, so an unset `source` resolves to
+      // whichever provider was declared first.
+      const { container } = renderBoard([inst("pick-one")]);
+
+      expect(credits(container)).toEqual(["Hyperliquid"]);
+    });
+
+    it("keeps every credit for a frame that reads all its sources", () => {
+      // `plain-sourced` declares two credits and NO `source` field — the shape
+      // of a frame that genuinely combines both (rates-board: NY Fed +
+      // Treasury). It must not be collapsed.
+      const { container } = renderBoard([inst("plain-sourced")]);
+
+      expect(credits(container)).toEqual(["DeFiLlama", "CoinGecko"]);
+    });
   });
 
   it('"card" chrome (the default) auto-titles from the frame label', () => {

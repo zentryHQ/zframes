@@ -31,10 +31,27 @@ const sourceField = () =>
     );
 
 /**
+ * Stamp each credit with its record key as `id`. Done structurally rather than
+ * per entry so a new source cannot forget one — the chrome uses the id to credit
+ * only the provider a pick-one card is actually reading, and a missing id would
+ * silently fall back to the first-declared entry.
+ */
+function withSourceIds<T extends Record<string, Omit<FrameSource, "id">>>(
+  map: T,
+): { [K in keyof T]: T[K] & { id: K & string } } {
+  return Object.fromEntries(
+    Object.entries(map).map(([id, source]) => [id, { ...source, id }]),
+  ) as { [K in keyof T]: T[K] & { id: K & string } };
+}
+
+/**
  * Canonical data-source credits. Each frame links its provider from the card
  * chrome (see core's FrameContent); the URL lives here in exactly one place.
+ * The record key doubles as the credit's `id`, and for the exchanges it matches
+ * `sourceField()`'s enum values — that pairing is what lets a card crediting
+ * several exchanges narrow to the one it is reading.
  */
-const SOURCES = {
+const SOURCES = withSourceIds({
   hyperliquid: { name: "Hyperliquid", url: "https://hyperliquid.xyz" },
   defillama: { name: "DeFiLlama", url: "https://defillama.com" },
   coingecko: { name: "CoinGecko", url: "https://www.coingecko.com" },
@@ -81,7 +98,7 @@ const SOURCES = {
     name: "CFTC",
     url: "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
   },
-} satisfies Record<string, FrameSource>;
+});
 
 export const clockMeta = defineFrameMeta({
   name: "clock",
