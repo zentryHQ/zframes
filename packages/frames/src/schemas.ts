@@ -5966,6 +5966,321 @@ export const homeValueChartMeta = defineFrameMeta({
   }),
 });
 
+export const indexLevelMeta = defineFrameMeta({
+  name: "index-level",
+  label: "Index Level",
+  category: "markets",
+  iconUrl: widgetIcon("index-level"),
+  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  description:
+    "One market index as a headline number — the S&P 500, VIX or Nasdaq Composite's latest level, its move, and a sparkline of recent history. The compact card sibling of the Index Level Chart, for a board that wants the number rather than the shape. Keyless (FRED).",
+  capabilities: ["index-level"],
+  source: SOURCES.fred,
+  schema: z.object({
+    series: z
+      .enum(INDEX_SERIES)
+      .default("SP500")
+      .describe(`Which index to show. ${INDEX_SERIES_NOTE}`),
+    trendDays: z
+      .number()
+      .int()
+      .min(7)
+      .max(730)
+      .default(90)
+      .describe("How many recent observations the sparkline covers."),
+  }),
+});
+
+export const indexDrawdownMeta = defineFrameMeta({
+  name: "index-drawdown",
+  annotatable: true,
+  label: "Index Drawdown",
+  category: "markets",
+  iconUrl: widgetIcon("index-drawdown"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "How far a market index sits below its own record, charted over time — the underwater curve. Every trough is a bear market and the flat stretches at zero are the runs at new highs; on the Nasdaq's full history the dot-com drawdown bottoms near −78%. Reads honestly on any window because the peak is tracked as the series runs. Keyless (FRED).",
+  capabilities: ["index-level"],
+  source: SOURCES.fred,
+  schema: z.object({
+    series: z
+      .enum(INDEX_SERIES)
+      .default("NASDAQCOM")
+      .describe(
+        `Which index to chart underwater. ${INDEX_SERIES_NOTE} A licensed short window can't show a drawdown it never contained, so NASDAQCOM is the default here.`,
+      ),
+    years: z
+      .number()
+      .int()
+      .min(1)
+      .max(60)
+      .default(30)
+      .describe(
+        "How many years to chart. The record is measured WITHIN the window, so a short window reads as 'below the window's high', not the all-time high.",
+      ),
+  }),
+});
+
+export const indexAnnualReturnsMeta = defineFrameMeta({
+  name: "index-annual-returns",
+  label: "Index Annual Returns",
+  category: "markets",
+  iconUrl: widgetIcon("index-annual-returns"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Calendar-year percent returns for a market index as diverging bars — green up years, red down ones, one bar per year. Shows how lumpy equity returns actually are, and how rare the down years look next to the up ones. Keyless (FRED).",
+  capabilities: ["index-level"],
+  source: SOURCES.fred,
+  schema: z.object({
+    series: z
+      .enum(INDEX_SERIES)
+      .default("SP500")
+      .describe(`Which index's annual returns to chart. ${INDEX_SERIES_NOTE}`),
+    years: z
+      .number()
+      .int()
+      .min(3)
+      .max(60)
+      .default(20)
+      .describe("How many recent calendar years to show."),
+  }),
+});
+
+export const vixGaugeMeta = defineFrameMeta({
+  name: "vix-gauge",
+  label: "VIX Gauge",
+  category: "markets",
+  iconUrl: widgetIcon("vix-gauge"),
+  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  description:
+    "The VIX as a volatility-regime dial — the index level on an arc with its regime named: calm (under 15), normal (15–20), elevated (20–30), stressed (30–40) or panic (above 40). The options market's price of the next 30 days of S&P movement, read as a state rather than a number. Keyless (FRED).",
+  capabilities: ["index-level"],
+  source: SOURCES.fred,
+  schema: z.object({
+    max: z
+      .number()
+      .int()
+      .min(30)
+      .max(90)
+      .default(50)
+      .describe(
+        "Top of the dial. 50 keeps the everyday 12–25 range readable; raise it only to leave headroom for a crisis print (the VIX has closed above 80).",
+      ),
+  }),
+});
+
+export const creditQualityGapMeta = defineFrameMeta({
+  name: "credit-quality-gap",
+  annotatable: true,
+  label: "Credit Quality Gap",
+  category: "macro",
+  iconUrl: widgetIcon("credit-quality-gap"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "The high-yield minus investment-grade spread — what the market charges for junk over quality, in percentage points. A single line that isolates credit RISK APPETITE from the level of rates: both spreads move together when Treasuries move, so the gap between them is the cleaner read, and it widens before equities notice. Shows where today sits in the charted window's range. Keyless (FRED).",
+  capabilities: ["credit-spread"],
+  source: SOURCES.fred,
+  schema: z.object({
+    years: z
+      .number()
+      .int()
+      .min(1)
+      .max(30)
+      .default(3)
+      .describe(
+        "How many years of the gap to chart. FRED carries roughly the last three years of these licensed series.",
+      ),
+  }),
+});
+
+export const mortgagePaymentMeta = defineFrameMeta({
+  name: "mortgage-payment",
+  label: "Mortgage Payment",
+  category: "macro",
+  iconUrl: widgetIcon("mortgage-payment"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "What buying a typical home in one metro actually costs per month — the Zillow home value and the live 30-year fixed rate combined into a principal-and-interest payment, with the loan size and rate shown. This is the affordability question neither source answers alone: the index says prices rose, the rate says borrowing got dearer, and only the payment says whether a buyer can pay. Keyless (Zillow + FRED).",
+  capabilities: ["home-value-index", "mortgage-rate"],
+  source: SOURCES.zillow,
+  schema: z.object({
+    region: z
+      .enum(ZHVI_REGIONS)
+      .default("United States")
+      .describe(
+        "Which metro's typical home value to price, using Zillow's own region names. \"United States\" is the national row.",
+      ),
+    downPaymentPct: z
+      .number()
+      .min(0)
+      .max(90)
+      .default(20)
+      .describe(
+        "Down payment as a percent of the home value; the rest is financed. 20% is the conventional benchmark.",
+      ),
+    termYears: z
+      .number()
+      .int()
+      .min(5)
+      .max(40)
+      .default(30)
+      .describe(
+        "Loan term in years. The rate charted is the 30-year benchmark, so a shorter term here prices that rate over a shorter schedule rather than switching to a 15-year quote.",
+      ),
+  }),
+});
+
+export const homeValueBarsMeta = defineFrameMeta({
+  name: "home-value-bars",
+  label: "Home Value Bars",
+  category: "macro",
+  iconUrl: widgetIcon("home-value-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Typical home value per metro as ranked horizontal bars — the price gap between coastal and inland America at a glance, in dollars rather than index points. The bar-chart sibling of Metro Home Values. Keyless (Zillow), monthly.",
+  capabilities: ["home-value-index"],
+  source: SOURCES.zillow,
+  schema: z.object({
+    regions: z
+      .array(z.enum(ZHVI_REGIONS))
+      .min(1)
+      .max(24)
+      .default([
+        "San Francisco, CA",
+        "Los Angeles, CA",
+        "New York, NY",
+        "Seattle, WA",
+        "Boston, MA",
+        "Denver, CO",
+        "Austin, TX",
+        "Miami, FL",
+        "Phoenix, AZ",
+        "Chicago, IL",
+        "United States",
+      ])
+      .describe(
+        'Metros to rank, using Zillow\'s own region names. "United States" is the national row and makes a useful baseline bar.',
+      ),
+  }),
+});
+
+export const homeValueMomentumMeta = defineFrameMeta({
+  name: "home-value-momentum",
+  label: "Home Value Momentum",
+  category: "macro",
+  iconUrl: widgetIcon("home-value-momentum"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Year-over-year change in typical home value per metro as diverging bars — which housing markets are still appreciating and which have turned, ranked by move. The level tells you what a house costs; this tells you which direction the market is going. Keyless (Zillow), monthly.",
+  capabilities: ["home-value-index"],
+  source: SOURCES.zillow,
+  schema: z.object({
+    regions: z
+      .array(z.enum(ZHVI_REGIONS))
+      .min(2)
+      .max(24)
+      .default([
+        "United States",
+        "New York, NY",
+        "Chicago, IL",
+        "Boston, MA",
+        "Miami, FL",
+        "Austin, TX",
+        "Phoenix, AZ",
+        "San Francisco, CA",
+        "Seattle, WA",
+        "Denver, CO",
+        "Tampa, FL",
+        "Las Vegas, NV",
+      ])
+      .describe(
+        "Metros to compare, using Zillow's own region names. A metro with under a year of published history is skipped, since it has no year-over-year change.",
+      ),
+  }),
+});
+
+export const homeValueScatterMeta = defineFrameMeta({
+  name: "home-value-scatter",
+  label: "Home Value Scatter",
+  category: "macro",
+  iconUrl: widgetIcon("home-value-scatter"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "Every metro plotted by what a home costs (y, log) against how fast that price is changing (x) — the four quadrants separate expensive-and-cooling from cheap-and-heating, which neither a ranked list nor a single chart shows. Keyless (Zillow), monthly.",
+  capabilities: ["home-value-index"],
+  source: SOURCES.zillow,
+  schema: z.object({
+    regions: z
+      .array(z.enum(ZHVI_REGIONS))
+      .min(3)
+      .max(24)
+      .default([
+        "New York, NY",
+        "Los Angeles, CA",
+        "Chicago, IL",
+        "Dallas, TX",
+        "Houston, TX",
+        "Washington, DC",
+        "Philadelphia, PA",
+        "Miami, FL",
+        "Atlanta, GA",
+        "Boston, MA",
+        "Phoenix, AZ",
+        "San Francisco, CA",
+        "Detroit, MI",
+        "Seattle, WA",
+        "Denver, CO",
+        "Austin, TX",
+        "Tampa, FL",
+        "Nashville, TN",
+      ])
+      .describe(
+        "Metros to plot, using Zillow's own region names. More metros make the quadrant pattern clearer; only the largest bubbles are labelled.",
+      ),
+  }),
+});
+
+export const regionalHomePriceBarsMeta = defineFrameMeta({
+  name: "regional-home-price-bars",
+  label: "Regional Home Price Bars",
+  category: "macro",
+  iconUrl: widgetIcon("regional-home-price-bars"),
+  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  description:
+    "Year-over-year change in the FHFA House Price Index per state or metro, as diverging bars ranked by move — the regulator's repeat-sales index showing which regional housing markets are rising and which are falling. The bar-chart sibling of Regional Home Prices; quarterly, keyless (FHFA).",
+  capabilities: ["regional-housing-price"],
+  source: SOURCES.fhfa,
+  schema: z.object({
+    level: z
+      .enum(["state", "metro"])
+      .default("state")
+      .describe(
+        "Which published granularity to read. state = the 50 states + DC (a small, fast file); metro = ~410 metro areas (a much larger download).",
+      ),
+    regions: z
+      .array(z.string().min(2))
+      .min(2)
+      .max(16)
+      .default([
+        "CA",
+        "TX",
+        "FL",
+        "NY",
+        "WA",
+        "AZ",
+        "CO",
+        "IL",
+        "MA",
+        "GA",
+        "NC",
+        "OH",
+      ])
+      .describe(
+        `Regions to compare, matched to the level. At state level use two-letter codes: ${US_STATES.join(", ")}. At metro level use a leading fragment of FHFA's CBSA title (case-insensitive), e.g. "Austin". A region that matches nothing is skipped rather than failing the card.`,
+      ),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
   metalsBoardMeta,
@@ -6001,6 +6316,16 @@ export const frameMetas: FrameMeta[] = [
   regionalHomePricesMeta,
   metroHomeValuesMeta,
   homeValueChartMeta,
+  indexLevelMeta,
+  indexDrawdownMeta,
+  indexAnnualReturnsMeta,
+  vixGaugeMeta,
+  creditQualityGapMeta,
+  mortgagePaymentMeta,
+  homeValueBarsMeta,
+  homeValueMomentumMeta,
+  homeValueScatterMeta,
+  regionalHomePriceBarsMeta,
   customDataMeta,
   newsFeedMeta,
   portfolioValueMeta,

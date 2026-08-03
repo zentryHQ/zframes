@@ -238,6 +238,16 @@ export { mortgageRateChartFrame } from "./mortgage-rate-chart";
 export { regionalHomePricesFrame } from "./regional-home-prices";
 export { metroHomeValuesFrame } from "./metro-home-values";
 export { homeValueChartFrame } from "./home-value-chart";
+export { indexLevelFrame } from "./index-level";
+export { indexDrawdownFrame } from "./index-drawdown";
+export { indexAnnualReturnsFrame } from "./index-annual-returns";
+export { vixGaugeFrame } from "./vix-gauge";
+export { creditQualityGapFrame } from "./credit-quality-gap";
+export { mortgagePaymentFrame } from "./mortgage-payment";
+export { homeValueBarsFrame } from "./home-value-bars";
+export { homeValueMomentumFrame } from "./home-value-momentum";
+export { homeValueScatterFrame } from "./home-value-scatter";
+export { regionalHomePriceBarsFrame } from "./regional-home-price-bars";
 import type { AnyFrameDefinition } from "@zframes/core";
 import { portfolioValueFrame } from "./portfolio-value";
 import { portfolioAllocationFrame } from "./portfolio-allocation";
@@ -477,6 +487,16 @@ import { mortgageRateChartFrame } from "./mortgage-rate-chart";
 import { regionalHomePricesFrame } from "./regional-home-prices";
 import { metroHomeValuesFrame } from "./metro-home-values";
 import { homeValueChartFrame } from "./home-value-chart";
+import { indexLevelFrame } from "./index-level";
+import { indexDrawdownFrame } from "./index-drawdown";
+import { indexAnnualReturnsFrame } from "./index-annual-returns";
+import { vixGaugeFrame } from "./vix-gauge";
+import { creditQualityGapFrame } from "./credit-quality-gap";
+import { mortgagePaymentFrame } from "./mortgage-payment";
+import { homeValueBarsFrame } from "./home-value-bars";
+import { homeValueMomentumFrame } from "./home-value-momentum";
+import { homeValueScatterFrame } from "./home-value-scatter";
+import { regionalHomePriceBarsFrame } from "./regional-home-price-bars";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -718,4 +738,14 @@ export const allFrames: AnyFrameDefinition[] = [
   regionalHomePricesFrame,
   metroHomeValuesFrame,
   homeValueChartFrame,
+  indexLevelFrame,
+  indexDrawdownFrame,
+  indexAnnualReturnsFrame,
+  vixGaugeFrame,
+  creditQualityGapFrame,
+  mortgagePaymentFrame,
+  homeValueBarsFrame,
+  homeValueMomentumFrame,
+  homeValueScatterFrame,
+  regionalHomePriceBarsFrame,
 ];
