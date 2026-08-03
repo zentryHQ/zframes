@@ -62,20 +62,6 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/__zframes/proxy", destination: "/api/zframes-proxy" }];
   },
-  // Boards lived at `/d/<id>` until the route was renamed to `/dashboard/<id>`.
-  // Those short links are already pasted into Slack/X and printed by older
-  // published CLI/skill versions, so the old prefix redirects permanently rather
-  // than 404ing — `:path*` covers the bare board AND its `/dashboard.json` and
-  // `/opengraph-image` children in one rule.
-  async redirects() {
-    return [
-      {
-        source: "/d/:path*",
-        destination: "/dashboard/:path*",
-        permanent: true,
-      },
-    ];
-  },
   // Non-breaking security headers (defense-in-depth alongside the publish-time
   // URL sanitizer). A full script/connect-src CSP is a tracked follow-up — it
   // needs browser testing against the live WS + cross-origin provider fetches.
