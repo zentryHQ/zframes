@@ -73,6 +73,23 @@ const PROXY_ALLOW_HOSTS = new Set<string>([
 // SEC's companyfacts blob is a few MB; allow headroom but bound it.
 const PROXY_MAX_BYTES = 16_000_000;
 const PROXY_TIMEOUT_MS = 20_000;
+/**
+ * Redirects are followed by hand (`redirect: "manual"`) so EVERY hop's hostname
+ * is re-checked against `PROXY_ALLOW_HOSTS` — `redirect: "follow"` would let an
+ * allowlisted host with an open redirect land the request on an arbitrary host
+ * and relay its body verbatim (SSRF). Real chains are short: the empirically
+ * observed ones are single-hop, same-host canonicalisations (Bank of England's
+ * IADB 302 to `_iadb-FromShowColumns.asp`, CoinDesk's RSS 308 to the
+ * trailing-slash-less path), so 5 is generous headroom. Exceeding the cap is an
+ * error, never a silently truncated relay.
+ */
+const PROXY_MAX_REDIRECTS = 5;
+/**
+ * The redirect statuses that carry a `Location`. 303 (and, in practice, 301 and
+ * 302) mean "GET the next hop" — the proxy is GET-only anyway, so every hop is
+ * a GET and no method rewriting is needed for 307/308 either.
+ */
+const PROXY_REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 // A real desktop Chrome UA: SEC and the other official hosts accept it, so the
 // keyless default works out of the box. `--contact` swaps in a polite UA.
 const PROXY_DEFAULT_UA =
@@ -210,6 +227,14 @@ function proxyError(res: ResLike, status: number, error: string): void {
  * https-only, host-allowlisted (no open-proxy / SSRF), size- and time-bounded.
  * `userAgent` lets the host send a polite contact UA (SEC fair-access); the
  * default is a browser UA the official sources accept.
+ *
+ * Redirects are followed, because real official sources use them (Bank of
+ * England canonicalises its IADB CSV path, CoinDesk's RSS drops a trailing
+ * slash) — but every single hop is re-validated: https-only (an https→http
+ * downgrade is refused) and hostname-on-allowlist. A hop that leaves the
+ * allowlist answers 403 and NOTHING that host said is read or relayed; a 3xx
+ * with no usable `Location`, or a chain longer than `PROXY_MAX_REDIRECTS`, is a
+ * 502 rather than a partial answer.
  */
 export async function handleProxy(
   req: ReqLike,
@@ -238,14 +263,64 @@ export async function handleProxy(
     return;
   }
   try {
-    const upstream = await fetch(target.toString(), {
-      headers: {
-        "User-Agent": opts.userAgent ?? PROXY_DEFAULT_UA,
-        Accept: "application/json,text/plain,*/*",
-      },
-      redirect: "follow",
-      signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
+    // One timeout for the whole chain, so following hops can't extend the
+    // bound; each hop shares the same signal.
+    const signal = AbortSignal.timeout(PROXY_TIMEOUT_MS);
+    const headers = {
+      "User-Agent": opts.userAgent ?? PROXY_DEFAULT_UA,
+      Accept: "application/json,text/plain,*/*",
+    };
+    let current = target;
+    let upstream = await fetch(current.toString(), {
+      headers,
+      redirect: "manual",
+      signal,
     });
+    for (let hop = 0; PROXY_REDIRECT_STATUSES.has(upstream.status); hop += 1) {
+      if (hop >= PROXY_MAX_REDIRECTS) {
+        proxyError(res, 502, `too many redirects (>${PROXY_MAX_REDIRECTS})`);
+        return;
+      }
+      const location = upstream.headers.get("location");
+      let next: URL | undefined;
+      if (location) {
+        // A `Location` may be relative — resolve it against the hop it came from.
+        try {
+          next = new URL(location, current);
+        } catch {
+          next = undefined;
+        }
+      }
+      if (!next) {
+        proxyError(
+          res,
+          502,
+          `upstream ${upstream.status} with no usable Location header`,
+        );
+        return;
+      }
+      // Same two invariants as the entry check, re-applied per hop: an
+      // https→http downgrade and an off-allowlist host are both refusals, and
+      // neither reads a byte of the redirect target's body.
+      if (next.protocol !== "https:") {
+        proxyError(
+          res,
+          403,
+          `redirect left https: ${next.protocol.replace(":", "")}`,
+        );
+        return;
+      }
+      if (!PROXY_ALLOW_HOSTS.has(next.hostname)) {
+        proxyError(res, 403, `redirect host not allowed: ${next.hostname}`);
+        return;
+      }
+      current = next;
+      upstream = await fetch(current.toString(), {
+        headers,
+        redirect: "manual",
+        signal,
+      });
+    }
     const text = await upstream.text();
     if (text.length > PROXY_MAX_BYTES) {
       proxyError(res, 502, "upstream response too large");

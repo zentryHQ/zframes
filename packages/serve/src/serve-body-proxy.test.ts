@@ -27,12 +27,10 @@ import { handleProxy, handleSpecWrite } from "./serve";
  *    which only works if the upstream status reaches the browser verbatim
  *    instead of collapsing to 200. Also pinned: the `application/octet-stream`
  *    content-type fallback, that the target URL's query survives untouched, and
- *    that the relay runs with `redirect: "follow"`. Two more proxy behaviours
- *    are pinned as DEFECTS behind KNOWN BUG markers, so hardening the source
- *    flips them by design: the allowlist is consulted only on the pre-fetch URL
- *    (an allowlisted host with an open redirect has its final, off-allowlist
- *    target relayed verbatim — SSRF), and a `HEAD` is relayed upstream as a
- *    full-body GET.
+ *    that the relay follows redirects itself (`redirect: "manual"`) so every hop
+ *    is re-validated against the allowlist. One proxy behaviour is still pinned
+ *    as a DEFECT behind KNOWN BUG markers, so hardening the source flips it by
+ *    design: a `HEAD` is relayed upstream as a full-body GET.
  *
  * `serve.ts` keeps no module-level mutable state (only constants), so these
  * tests share one static import rather than the `vi.resetModules()` +
@@ -161,8 +159,12 @@ interface UpstreamOpts {
   status?: number;
   contentType?: string | null;
   body?: string;
-  /** Called if the handler reads `upstream.url` / `upstream.redirected`. */
-  onFinalUrlRead?: () => void;
+  /** `Location` header, for the redirect hops. */
+  location?: string | null;
+  /** Called if the handler reads this hop's `Location`. */
+  onLocationRead?: () => void;
+  /** Called if the handler reads this hop's BODY (`.text()`). */
+  onBodyRead?: () => void;
 }
 
 /** A minimal Response-like the stubbed global fetch resolves to. */
@@ -172,23 +174,42 @@ function upstreamResponse(opts: UpstreamOpts = {}) {
     status,
     ok: status >= 200 && status < 300,
     headers: {
-      get: (name: string) =>
-        name.toLowerCase() === "content-type" ? contentType : null,
+      get: (name: string) => {
+        const key = name.toLowerCase();
+        if (key === "content-type") return contentType;
+        if (key === "location") {
+          opts.onLocationRead?.();
+          return opts.location ?? null;
+        }
+        return null;
+      },
     },
-    get url() {
-      opts.onFinalUrlRead?.();
-      return "https://evil.example.com/exfil";
+    text: async () => {
+      opts.onBodyRead?.();
+      return body;
     },
-    get redirected() {
-      opts.onFinalUrlRead?.();
-      return true;
-    },
-    text: async () => body,
   };
 }
 
 function stubFetch(opts: UpstreamOpts = {}) {
   const fetchMock = vi.fn().mockResolvedValue(upstreamResponse(opts));
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+/**
+ * Stub `fetch` with one scripted response per hop, in order — the shape a
+ * `redirect: "manual"` chain sees. An extra call past the script is a test bug
+ * and throws rather than silently reusing the last hop.
+ */
+function stubFetchChain(hops: UpstreamOpts[]) {
+  let i = 0;
+  const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => {
+    const hop = hops[i];
+    i += 1;
+    if (!hop) throw new Error(`unexpected fetch call #${i}`);
+    return upstreamResponse(hop);
+  });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
@@ -405,51 +426,219 @@ describe("handleProxy request shape", () => {
     expect(fetchMock.mock.calls[0][0]).toBe(target);
   });
 
-  it("fetches with redirect:follow under an abort timeout", async () => {
+  it("fetches with redirect:manual under an abort timeout", async () => {
     const fetchMock = stubFetch();
     const res = makeRes();
     await handleProxy(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
     await res.done;
     const init = fetchMock.mock.calls[0][1];
-    expect(init.redirect).toBe("follow");
+    // `manual`, not `follow`: the handler walks the chain itself so it can
+    // re-validate each hop's host (see the redirect suite below).
+    expect(init.redirect).toBe("manual");
     expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(init.signal.aborted).toBe(false);
     expect(init.headers.Accept).toBe("application/json,text/plain,*/*");
   });
+});
 
-  it("relays an off-allowlist redirect target without re-checking the host", async () => {
-    // The stubbed upstream reports it LANDED on an off-allowlist host
-    // (`upstream.url` → https://evil.example.com/exfil, `redirected` → true),
-    // i.e. the open-redirect case on an allowlisted host.
-    let finalUrlRead = false;
-    const fetchMock = stubFetch({
-      body: `{"leaked":true}`,
-      onFinalUrlRead: () => {
-        finalUrlRead = true;
-      },
+/**
+ * The proxy is the repo's only outbound boundary, so the allowlist has to hold
+ * across redirects, not just on the URL a dashboard names. `handleProxy` fetches
+ * with `redirect: "manual"` and follows hops itself, re-running the https-only +
+ * host-on-allowlist checks on every one; real official chains (BoE's IADB
+ * canonicalisation, CoinDesk's trailing-slash RSS 308) are same-host and must
+ * keep working, while any hop that leaves the allowlist is a 403 whose body is
+ * never even read.
+ */
+describe("handleProxy redirect handling", () => {
+  const ALLOWED = "https://www.bankofengland.co.uk/boeapps/iadb/x.asp";
+
+  it("follows an allowlisted multi-hop chain and relays the final body", async () => {
+    const fetchMock = stubFetchChain([
+      { status: 302, location: "https://www.bankofengland.co.uk/hop-2" },
+      { status: 308, location: "https://data.sec.gov/hop-3" },
+      { status: 200, contentType: "text/csv", body: "DATE,XUDLUSS\n" },
+    ]);
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await res.done;
+    expect(fetchMock.mock.calls.map((c) => c[0])).toEqual([
+      ALLOWED,
+      "https://www.bankofengland.co.uk/hop-2",
+      "https://data.sec.gov/hop-3",
+    ]);
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toBe("text/csv");
+    expect(res.body).toBe("DATE,XUDLUSS\n");
+    // Every hop keeps the GET-only, manual-redirect invariants.
+    for (const call of fetchMock.mock.calls) {
+      expect(call[1].redirect).toBe("manual");
+      expect(call[1].method).toBeUndefined();
+    }
+  });
+
+  it("resolves a relative Location against the hop it came from", async () => {
+    // Exactly the Bank of England case: a path-relative canonicalisation.
+    const fetchMock = stubFetchChain([
+      { status: 302, location: "/boeapps/database/_iadb-FromShowColumns.asp" },
+      { status: 200, contentType: "application/csv", body: "DATE,X\n" },
+    ]);
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await res.done;
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      "https://www.bankofengland.co.uk/boeapps/database/_iadb-FromShowColumns.asp",
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toBe("DATE,X\n");
+  });
+
+  it("resolves a protocol-relative Location, and still allowlists its host", async () => {
+    const fetchMock = stubFetchChain([
+      { status: 301, location: "//data.sec.gov/moved" },
+      { status: 200, body: `{"ok":1}` },
+    ]);
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await res.done;
+    expect(fetchMock.mock.calls[1][0]).toBe("https://data.sec.gov/moved");
+    expect(res.statusCode).toBe(200);
+  });
+
+  for (const status of [301, 302, 303, 307, 308]) {
+    it(`treats ${status} as a redirect rather than relaying it`, async () => {
+      const fetchMock = stubFetchChain([
+        { status, location: "https://data.sec.gov/final" },
+        { status: 200, body: `{"n":${status}}` },
+      ]);
+      const res = makeRes();
+      await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+      await res.done;
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toBe(`{"n":${status}}`);
     });
+  }
+
+  it("refuses an off-allowlist redirect target and leaks no upstream body", async () => {
+    // The open-redirect case: an allowlisted host bounces the request to a host
+    // that is NOT on the allowlist. The hardened handler inspects the redirect
+    // target (it reads `Location`), refuses before fetching it, and never reads
+    // or relays the attacker host's body.
+    let locationRead = false;
+    let bodyRead = false;
+    const fetchMock = stubFetchChain([
+      {
+        status: 302,
+        location: "https://evil.example.com/exfil",
+        onLocationRead: () => {
+          locationRead = true;
+        },
+        onBodyRead: () => {
+          bodyRead = true;
+        },
+      },
+      // Scripted but must never be requested — reaching it means the guard
+      // failed and `stubFetchChain` would have served the leaked body.
+      { status: 200, body: `{"leaked":true}` },
+    ]);
     const res = makeRes();
     await handleProxy(
       makeProxyReq(proxyUrl("https://www.sec.gov/redirect?to=evil")),
       res,
     );
     await res.done;
+    // Only the allowlisted first hop is fetched; the off-allowlist target isn't.
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(locationRead).toBe(true);
+    expect(bodyRead).toBe(false);
+    expect(res.statusCode).toBe(403);
+    expect(res.body).toContain("evil.example.com");
+    expect(res.body).not.toContain("leaked");
+  });
 
-    // KNOWN BUG: PROXY_ALLOW_HOSTS is consulted only on the pre-fetch URL
-    // (serve.ts:187) and the fetch runs `redirect: "follow"` (serve.ts:197), so
-    // the handler never inspects where the request actually landed —
-    // `upstream.url` / `upstream.redirected` are never read. An allowlisted host
-    // with an open redirect therefore has its FINAL, off-allowlist target
-    // fetched and relayed verbatim: an SSRF hole on the repo's only proxy
-    // boundary, reachable by any dashboard.json that names such a URL. Should
-    // re-check `new URL(upstream.url).hostname` against PROXY_ALLOW_HOSTS (or
-    // fetch with `redirect: "manual"` and refuse to follow) and answer 403 with
-    // no upstream body. Pinned so the suite stays green; fixing the source must
-    // flip all three assertions below — a hardened handler READS the final URL
-    // and 403s instead of relaying `{"leaked":true}` with a 200.
-    expect(finalUrlRead).toBe(false);
-    expect(res.statusCode).toBe(200);
-    expect(res.body).toBe(`{"leaked":true}`);
+  it("refuses an https→http downgrade redirect", async () => {
+    // Even to an allowlisted hostname: the proxy's https-only invariant holds
+    // per hop, not just on the entry URL.
+    const fetchMock = stubFetchChain([
+      { status: 301, location: "http://data.sec.gov/plaintext" },
+      { status: 200, body: `{"leaked":true}` },
+    ]);
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await res.done;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(res.statusCode).toBe(403);
+    expect(res.body).toContain("https");
+    expect(res.body).not.toContain("leaked");
+  });
+
+  it("refuses a lookalike redirect host (exact hostname match per hop)", async () => {
+    const fetchMock = stubFetchChain([
+      { status: 302, location: "https://data.sec.gov.evil.com/x" },
+      { status: 200, body: `{"leaked":true}` },
+    ]);
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await res.done;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(res.statusCode).toBe(403);
+    expect(res.body).toContain("data.sec.gov.evil.com");
+  });
+
+  it("errors on a 3xx with no Location instead of relaying it", async () => {
+    const fetchMock = stubFetchChain([
+      { status: 302, location: null, body: "should not be relayed" },
+    ]);
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await res.done;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(res.statusCode).toBe(502);
+    expect(res.body).toContain("Location");
+    expect(res.body).not.toContain("should not be relayed");
+  });
+
+  it("errors on an unparseable Location instead of relaying it", async () => {
+    const fetchMock = stubFetchChain([
+      { status: 302, location: "http://[not-a-url", body: "nope" },
+    ]);
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await res.done;
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(res.statusCode).toBe(502);
+    expect(res.body).toContain("Location");
+  });
+
+  it("errors once the hop cap is exceeded, never truncating silently", async () => {
+    // A redirect loop on an allowlisted host: 6 hops all say "go again", so the
+    // 5-redirect cap trips after 6 fetches (entry + 5 followed).
+    const fetchMock = stubFetchChain(
+      Array.from({ length: 8 }, () => ({
+        status: 302,
+        location: "https://data.sec.gov/loop",
+      })),
+    );
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await res.done;
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+    expect(res.statusCode).toBe(502);
+    expect(res.body).toContain("too many redirects");
+  });
+
+  it("shares one abort signal across the whole chain", async () => {
+    const fetchMock = stubFetchChain([
+      { status: 302, location: "https://data.sec.gov/hop" },
+      { status: 200 },
+    ]);
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await res.done;
+    // One timeout for the chain — following hops can't extend the bound.
+    expect(fetchMock.mock.calls[1][1].signal).toBe(
+      fetchMock.mock.calls[0][1].signal,
+    );
   });
 });
