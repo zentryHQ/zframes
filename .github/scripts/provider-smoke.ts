@@ -14,8 +14,8 @@
  * shaped-but-non-throwing result is a SOFT signal (warn) — free APIs legitimately
  * return empty on a lag/holiday, and we don't want to spam issues over that.
  *
- * Proxied providers (treasury/ofr/finra/sec/news) work here unchanged: in Node
- * `proxied: true` is a no-op (no CORS), so the request goes direct.
+ * Proxied providers (treasury/ofr/finra/sec/news/fred/fhfa) work here unchanged:
+ * in Node `proxied: true` is a no-op (no CORS), so the request goes direct.
  *
  * Runs standalone via tsx — NOT under vitest — so it stays out of `pnpm test`
  * (which must stay hermetic and green on every PR). It's driven by the
@@ -49,6 +49,28 @@ interface Probe {
   expect: Shape;
   /** provider methods that route through the same-origin proxy in the browser */
   proxied?: boolean;
+  /**
+   * Per-probe timeout override. The bulk-CSV housing sources (Zillow ~4.4 MB,
+   * FHFA metro ~4 MB) legitimately need longer than the default, and the
+   * providers themselves already pass a 30s `timeoutMs` — a shorter harness
+   * timeout would report a permanent false failure.
+   */
+  timeoutMs?: number;
+  /**
+   * Grade this property instead of the whole result. For envelope-shaped returns
+   * (`{series: […], level, source}`) the envelope always has keys, so a total
+   * region-resolution miss would grade "ok" — pick the payload so an empty one
+   * warns.
+   */
+  pick?: string;
+  /**
+   * Downgrade a *timeout* on this probe from fail to warn. For the multi-MB
+   * published CSVs (FHFA's ~4 MB metro file confirmed live: ~6s in isolation,
+   * stalling past the provider's own 30s abort under repeat load) a slow serve is
+   * exactly the transient the monitor must not file an issue over. Non-timeout
+   * errors — dead URL, non-2xx, parse/schema drift — still fail hard.
+   */
+  slowSource?: boolean;
 }
 
 const now = Date.now();
@@ -453,6 +475,85 @@ const PROBES: Probe[] = [
     args: ["AAPL"],
     expect: "object",
   },
+  // FRED is keyless only through `fredgraph.csv` (the endpoint FRED's own charts
+  // download), so a move to key-gated access shows up here as a throw. The
+  // multi-id call is probed via getCreditSpreads, which fetches BOTH OAS series
+  // in one request — the mechanism that keeps their date grids aligned.
+  {
+    pkg: "provider-fred",
+    cls: "FredProvider",
+    method: "getIndexSeries",
+    args: ["SP500"],
+    expect: "object",
+    proxied: true,
+  },
+  {
+    pkg: "provider-fred",
+    cls: "FredProvider",
+    method: "getCreditSpreads",
+    args: [],
+    expect: "array",
+    proxied: true,
+  },
+  {
+    pkg: "provider-fred",
+    cls: "FredProvider",
+    method: "getHousingPriceIndex",
+    args: [],
+    expect: "object",
+    proxied: true,
+  },
+  {
+    pkg: "provider-fred",
+    cls: "FredProvider",
+    method: "getMortgageRates",
+    args: [],
+    expect: "object",
+    proxied: true,
+  },
+
+  // ── Housing ───────────────────────────────────────────────────────────
+  // Both read wide published CSVs, so these probes also cover the parsing that
+  // silently shifts columns when a publisher edits the file (FHFA's files have
+  // NO header row and their column order differs per level; Zillow quotes
+  // commas inside metro names). A layout change fails the Zod/parse step.
+  {
+    pkg: "provider-zillow",
+    cls: "ZillowProvider",
+    method: "getHomeValueIndex",
+    args: [["United States", "Austin, TX"]],
+    expect: "array",
+    pick: "entries",
+    timeoutMs: 60_000,
+    slowSource: true,
+  },
+  {
+    pkg: "provider-fhfa",
+    cls: "FhfaProvider",
+    method: "getRegionalHousingPrice",
+    // State keys are the two-letter codes as published ("TX"), NOT state names —
+    // a name resolves to nothing and the probe would report an empty series.
+    args: [["TX", "CA"], "state"],
+    expect: "array",
+    pick: "series",
+    proxied: true,
+    timeoutMs: 60_000,
+    slowSource: true,
+  },
+  {
+    // The metro file is the one that must NOT regress to hpi_master.csv (~17 MB,
+    // over PROXY_MAX_BYTES → a 502 the browser sees but curl doesn't).
+    pkg: "provider-fhfa",
+    cls: "FhfaProvider",
+    method: "getRegionalHousingPrice",
+    args: [["Austin"], "metro"],
+    expect: "array",
+    pick: "series",
+    proxied: true,
+    timeoutMs: 60_000,
+    slowSource: true,
+  },
+
   {
     pkg: "provider-news",
     cls: "NewsProvider",
@@ -578,10 +679,14 @@ async function runProvider(
         throw new Error(`no method ${probe.method} on ${probe.cls}`);
       const value = await withTimeout(
         Promise.resolve(fn.apply(instance, probe.args)),
-        TIMEOUT_MS,
+        probe.timeoutMs ?? TIMEOUT_MS,
         `${pkg}.${probe.method}`,
       );
-      const { status, detail } = grade(probe.expect, value);
+      const graded =
+        probe.pick && value && typeof value === "object"
+          ? (value as Record<string, unknown>)[probe.pick]
+          : value;
+      const { status, detail } = grade(probe.expect, graded);
       out.push({
         provider: pkg,
         method: probe.method,
@@ -590,11 +695,17 @@ async function runProvider(
         ms: Date.now() - started,
       });
     } catch (e) {
+      const message = (e instanceof Error ? e.message : String(e)).slice(
+        0,
+        300,
+      );
+      const timedOut = /timeout|aborted|abort/i.test(message);
       out.push({
         provider: pkg,
         method: probe.method,
-        status: "fail",
-        detail: (e instanceof Error ? e.message : String(e)).slice(0, 300),
+        status: probe.slowSource && timedOut ? "warn" : "fail",
+        detail:
+          probe.slowSource && timedOut ? `${message} (slow source)` : message,
         ms: Date.now() - started,
       });
     }
