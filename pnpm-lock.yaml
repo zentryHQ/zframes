@@ -25,6 +25,9 @@ importers:
       '@zframes/provider-sec':
         specifier: workspace:^
         version: link:packages/provider-sec
+      '@zframes/provider-wallet':
+        specifier: workspace:^
+        version: link:packages/provider-wallet
       '@zframes/providers-keyless':
         specifier: workspace:^
         version: link:packages/providers-keyless
