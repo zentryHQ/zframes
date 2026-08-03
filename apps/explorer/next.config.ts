@@ -1,62 +1,47 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const packagesDir = join(here, "..", "..", "packages");
+
+const readPackageJson = (dir: string) =>
+  JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as {
+    name?: string;
+    version?: string;
+  };
 
 // The version the site advertises is the `zframes` CLI version — the package a
 // visitor actually runs via npx — read from that package.json at build time.
 // Same source the runtime header reads (apps/runtime/vite.config.ts), so the
 // site, the runtime chrome and npm can never disagree.
-const cliVersion = JSON.parse(
-  readFileSync(
-    join(
-      dirname(fileURLToPath(import.meta.url)),
-      "..",
-      "..",
-      "packages",
-      "cli",
-      "package.json",
-    ),
-    "utf8",
-  ),
-).version as string;
+const cliVersion = readPackageJson(join(packagesDir, "cli")).version as string;
 
-// transpilePackages is the Next equivalent of the runtime's optimizeDeps.exclude:
-// every @zframes/* workspace package ships TypeScript source (`main: src/index.ts`),
-// so Next must transpile them itself. This must list ALL @zframes packages the app
-// imports — core/charts/frames plus every keyless provider wired into the preview,
-// and @zframes/serve/serve (imported by the proxy Route Handler).
+/**
+ * transpilePackages is the Next equivalent of the runtime's optimizeDeps.exclude:
+ * every @zframes/* workspace package ships TypeScript source (`main: src/index.ts`),
+ * so Next must transpile them itself — core/charts/frames, every keyless provider
+ * reachable from the preview, and @zframes/serve (the proxy Route Handler).
+ *
+ * ENUMERATED from packages/, never typed by hand. The hand-written list this
+ * replaced had silently fallen twelve packages behind — a new provider only shows
+ * up as an untranspiled-TypeScript failure at `next build`, which is not in CI, so
+ * nothing caught the drift. Listing a package the app never imports costs nothing
+ * (Next only transpiles what actually resolves), which is what makes "all of them"
+ * both correct and maintenance-free.
+ */
+const zframesPackages = readdirSync(packagesDir, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => readPackageJson(join(packagesDir, entry.name)).name)
+  .filter((name): name is string => !!name?.startsWith("@zframes/"))
+  .sort();
+
 const nextConfig: NextConfig = {
   // Inlined at build time (not read at request time) so it ships with the
   // static pages the same way the runtime bakes its own header version in.
   env: { ZFRAMES_CLI_VERSION: cliVersion },
-  transpilePackages: [
-    "@zframes/core",
-    "@zframes/spec",
-    "@zframes/data-primitives",
-    "@zframes/editor",
-    "@zframes/serve",
-    "@zframes/charts",
-    "@zframes/frames",
-    "@zframes/providers-keyless",
-    "@zframes/provider-wallet",
-    "@zframes/provider-alternativeme",
-    "@zframes/provider-bls",
-    "@zframes/provider-coingecko",
-    "@zframes/provider-coinpaprika",
-    "@zframes/provider-defillama",
-    "@zframes/provider-deribit",
-    "@zframes/provider-finra",
-    "@zframes/provider-fx",
-    "@zframes/provider-hyperliquid",
-    "@zframes/provider-mempool",
-    "@zframes/provider-news",
-    "@zframes/provider-nyfed",
-    "@zframes/provider-ofr",
-    "@zframes/provider-sec",
-    "@zframes/provider-treasury",
-    "@zframes/unicorn",
-  ],
+  transpilePackages: zframesPackages,
   // Keep the DB drivers out of the bundle — PGlite ships WASM and postgres is a
   // native-ish driver; they must load from node_modules in the Node runtime.
   serverExternalPackages: ["postgres"],
