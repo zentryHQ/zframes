@@ -32,7 +32,65 @@
   align-items: flex-start;
 }
 
+/* ── Empty board ───────────────────────────────────────────────────────────
+   A frameless board used to render as a blank page: no explanation, no next
+   step, and (outside customise mode) no visible way in. */
+.zf-board-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 24px;
+  text-align: center;
+  pointer-events: none;
+}
+/* The grid itself is empty, so nothing under here can be occluded — but the
+   panel link has to stay clickable. */
+.zf-board-empty-title,
+.zf-board-empty-note {
+  pointer-events: auto;
+  margin: 0;
+}
+.zf-board-empty-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+}
+.zf-board-empty-note {
+  font-size: 12.5px;
+  line-height: 1.5;
+  max-width: 34ch;
+  color: rgba(255, 255, 255, 0.45);
+}
+.zf-board-empty-link {
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: hsl(var(--zf-accent-hue, 242) 90% 78%);
+}
+.zf-board-empty-link:focus-visible {
+  outline: 2px solid hsl(var(--zf-accent-hue, 242) 90% 76% / 0.7);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+.zf-editor[data-surface="light"] .zf-board-empty-title {
+  color: rgba(15, 17, 26, 0.72);
+}
+.zf-editor[data-surface="light"] .zf-board-empty-note {
+  color: rgba(15, 17, 26, 0.5);
+}
+
 .zf-editor-grid {
+  /* Anchors the empty-board overlay. */
+  position: relative;
   flex: 1;
   min-width: 0;
   min-height: 360px;
@@ -660,28 +718,6 @@ body:has(.ui-draggable-dragging) * {
     0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.45);
 }
 
-/* Danger (Clear) — destructive, so it stays subordinate: the frosted neutral
-   base with a warm-pink cast that only commits to red on hover. */
-.zf-btn--danger {
-  border-color: rgba(242, 21, 83, 0.32);
-  color: #ff9aab;
-}
-.zf-btn--danger:hover {
-  border-color: rgba(242, 21, 83, 0.55);
-  color: #ffb3bf;
-  background: linear-gradient(
-    180deg,
-    rgba(120, 28, 52, 0.62),
-    rgba(74, 18, 36, 0.72)
-  );
-}
-.zf-btn--danger:focus-visible {
-  border-color: rgba(242, 21, 83, 0.7);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 0 0 3px rgba(242, 21, 83, 0.35);
-}
-
 /* Ghost (Cancel) — the quietest dismiss: same frosted base, dialed down so it
    recedes behind Save without going invisible on light backgrounds. */
 .zf-btn--ghost {
@@ -785,24 +821,40 @@ body:has(.ui-draggable-dragging) * {
   opacity: 1;
   transition-delay: 0.12s;
 }
-/* Save / Cancel — a fixed header on the panel, so the actions travel with the
-   (sticky) rail instead of floating in a separate toolbar above it. */
-.zf-rail-actions {
-  display: flex;
-  flex: none;
-  gap: 8px;
+
+/* ── Responsive rail ───────────────────────────────────────────────────────
+   The rail was a hardcoded 320px with no media queries at all, so on a narrow
+   viewport it ate most of the width and left the board a sliver — with no way to
+   get it back without leaving customise mode. Narrow it, then go full-width and
+   stack it under the board once side-by-side stops making sense. */
+@media (max-width: 1100px) {
+  .zf-editor.zf-customise .zf-rail {
+    width: 268px;
+  }
+  .zf-rail-inner {
+    width: 268px;
+  }
 }
-.zf-rail-actions .zf-btn {
-  flex: 1;
-}
-/* The only scrolling region of the panel — tabs + every cosmetic section. */
-.zf-rail-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+@media (max-width: 820px) {
+  /* Below this the two columns can't both be usable — stack instead, board
+     first, so customising doesn't hide what you're customising. */
+  .zf-editor-main {
+    flex-direction: column;
+  }
+  .zf-editor.zf-customise .zf-rail {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 14px;
+    position: static;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  .zf-rail-inner {
+    width: 100%;
+  }
+  .zf-editor.zf-customise[data-mode="flow-horizontal"] .zf-rail {
+    margin-right: 0;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .zf-rail,
@@ -929,11 +981,6 @@ body:has(.ui-draggable-dragging) * {
   flex-direction: column;
   gap: 10px;
   margin-top: 10px;
-}
-.zf-events-empty {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.35);
-  margin: 0;
 }
 .zf-event {
   display: flex;
@@ -2056,10 +2103,68 @@ body:has(.ui-draggable-dragging) * {
    A rainbow track whose thumb + value swatch render at the *current* accent,
    so the control previews the very color it sets. Drives --zf-accent-hue,
    which every accent in the dashboard + editor derives from. */
+/* Collapsed by default (except Presets), so the rail is a scannable list of nine
+   headers rather than ~35 controls in one 320px scroll column. Deliberately the
+   SAME disclosure the frame palette's categories use — the rail's two tabs should
+   behave identically, not each invent their own. */
 .zf-theme {
-  margin-bottom: 18px;
-  padding-bottom: 16px;
+  margin-bottom: 2px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.zf-theme.is-open {
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+}
+.zf-theme-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  padding: 10px 4px;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.62);
+  transition:
+    background 0.15s var(--zf-ease-out),
+    color 0.15s var(--zf-ease-out);
+}
+.zf-theme-header:hover {
+  background: rgba(255, 255, 255, 0.045);
+  color: #fff;
+}
+.zf-theme-header:focus-visible {
+  outline: 2px solid hsl(var(--zf-accent-hue, 242) 90% 76% / 0.7);
+  outline-offset: -2px;
+}
+.zf-theme.is-open .zf-theme-header {
+  color: rgba(255, 255, 255, 0.85);
+}
+.zf-theme-chevron {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: rgba(255, 255, 255, 0.4);
+  transition:
+    transform 0.18s var(--zf-ease-out),
+    color 0.15s var(--zf-ease-out);
+}
+.zf-theme.is-open .zf-theme-chevron {
+  transform: rotate(90deg);
+  color: hsl(var(--zf-accent-hue, 242) 70% 80% / 0.9);
+}
+.zf-theme-header-label {
+  flex: 1;
+}
+.zf-theme-body {
+  padding: 2px 4px 0;
 }
 .zf-theme-row {
   display: flex;
