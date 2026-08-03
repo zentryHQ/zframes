@@ -60,7 +60,7 @@ function Heading({ config }: { config: z.output<typeof schema> }) {
   );
 
   return (
-    <div className="flex h-full w-full items-end gap-3 pb-2" style={rootStyle}>
+    <div className="flex h-full w-full items-center gap-3" style={rootStyle}>
       {centered && rule(ruleLeft)}
       {label}
       {rule(ruleRight)}
