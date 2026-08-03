@@ -26,20 +26,147 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 /**
- * Route each stubbed request by URL: the provider fetches Bitkub AND the ECB
- * rate (in parallel) for every call, so a single-response mock would feed the
- * FX body to the market request.
+ * Every host the FX fallback chain can reach. A URL matching none of these is a
+ * Bitkub market call — that's how the helpers below tell the two apart, so
+ * adding a source to the chain without adding it here shows up as a test
+ * failure rather than as an FX body silently fed to a market parser.
+ */
+const FX_HOSTS = [
+  "frankfurter",
+  "fxratesapi",
+  "currency-api",
+  "data-api.ecb.europa.eu",
+];
+
+function isFxUrl(url: unknown): boolean {
+  return FX_HOSTS.some((host) => String(url).includes(host));
+}
+
+/**
+ * Route each stubbed request by URL: the provider fetches Bitkub AND the USD/THB
+ * rate (in parallel) for every call, so a single-response mock would feed the FX
+ * body to the market request. Frankfurter (the chain's primary) answers here, so
+ * the fallbacks stay untouched unless a test deliberately breaks it.
  */
 function stubFetch(bitkubBody: unknown, status = 200) {
   const fetchMock = vi.fn((url: string) =>
     Promise.resolve(
-      String(url).includes("frankfurter")
+      isFxUrl(url)
         ? jsonResponse({ rates: { THB: FX } })
         : jsonResponse(bitkubBody, status),
     ),
   );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
+}
+
+/**
+ * Real captured bodies (2026-08-03), trimmed only of irrelevant keys, so the
+ * parsers are tested against the shapes the wire actually produces — including
+ * currency-api's lower-case keys and SDMX's index-keyed observation tuples.
+ */
+const FX_BODIES = {
+  frankfurter: { amount: 1.0, base: "USD", date: "2026-07-31", rates: {} },
+  fxratesapi: {
+    success: true,
+    timestamp: 1_785_740_400,
+    date: "2026-08-03T07:00:00.000Z",
+    base: "USD",
+    rates: { THB: 33.3330042997 },
+  },
+  currencyApi: {
+    date: "2026-08-03",
+    usd: { aed: 3.6725, eur: 0.8709, thb: 33.3446932 },
+  },
+  /** THB per EUR; observation "1" is the newest of the two requested. */
+  ecbThb: {
+    dataSets: [
+      {
+        series: {
+          "0:0:0:0:0": {
+            observations: {
+              "0": [38.496, 0, 0, null, null],
+              "1": [38.435, 0, 0, null, null],
+            },
+          },
+        },
+      },
+    ],
+  },
+  /** USD per EUR — the other half of the cross. 38.435 / 1.1485 = 33.464… */
+  ecbUsd: {
+    dataSets: [
+      {
+        series: {
+          "0:0:0:0:0": {
+            observations: {
+              "0": [1.1476, 0, 0, null, null],
+              "1": [1.1485, 0, 0, null, null],
+            },
+          },
+        },
+      },
+    ],
+  },
+} as const;
+
+const ECB_CROSS = 38.435 / 1.1485;
+
+/**
+ * Stub the FX chain host-by-host. `overrides` maps a host fragment to either a
+ * body (served 200) or `{ body, status }`; an unlisted host resolves to its real
+ * captured body. Bitkub market calls always answer `bitkubBody`.
+ */
+function stubFx(
+  overrides: Record<string, unknown>,
+  bitkubBody: unknown = { THB_KUB: tickerRow(20.16, 1) },
+) {
+  const defaults: Record<string, unknown> = {
+    frankfurter: FX_BODIES.frankfurter,
+    fxratesapi: FX_BODIES.fxratesapi,
+    "currency-api": FX_BODIES.currencyApi,
+    "D.THB.EUR": FX_BODIES.ecbThb,
+    "D.USD.EUR": FX_BODIES.ecbUsd,
+  };
+  const table = { ...defaults, ...overrides };
+  const fetchMock = vi.fn((url: string) => {
+    const text = String(url);
+    const hit = Object.keys(table).find((fragment) => text.includes(fragment));
+    if (!hit) return Promise.resolve(jsonResponse(bitkubBody));
+    const entry = table[hit] as { body?: unknown; status?: number } | unknown;
+    const isEnvelope =
+      !!entry &&
+      typeof entry === "object" &&
+      "status" in (entry as Record<string, unknown>);
+    return isEnvelope
+      ? Promise.resolve(
+          jsonResponse(
+            (entry as { body?: unknown }).body ?? null,
+            (entry as { status: number }).status,
+          ),
+        )
+      : Promise.resolve(jsonResponse(entry));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+/** URLs the FX chain actually hit, in order — the assertion for chain ordering. */
+function fxUrls(fetchMock: { mock: { calls: unknown[][] } }): string[] {
+  return fetchMock.mock.calls.map((c) => String(c[0])).filter(isFxUrl);
+}
+
+/**
+ * The rate a stubbed chain resolved to, read back out of a converted price.
+ * `markPx` is `last / rate`, so `last / markPx` recovers the rate exactly —
+ * which is the only observable the provider exposes, and the thing that actually
+ * matters (a wrong rate is a wrong board).
+ */
+async function resolvedRate(provider: {
+  getDayStats(): Promise<Record<string, { markPx: number }>>;
+}): Promise<number> {
+  const stats = await provider.getDayStats();
+  return 20.16 / stats.KUB.markPx;
 }
 
 /** One row of the legacy THB_* ticker map (Bitkub sends these as JSON numbers). */
@@ -62,7 +189,7 @@ function tickerRow(
 function bitkubUrl(fetchMock: ReturnType<typeof stubFetch>, nth = 0): string {
   const calls = fetchMock.mock.calls
     .map((c) => String(c[0]))
-    .filter((u) => !u.includes("frankfurter"));
+    .filter((u) => !isFxUrl(u));
   return calls[nth];
 }
 
@@ -163,16 +290,14 @@ describe("BitkubProvider", () => {
     });
 
     it("throws when no USD/THB rate is available, rather than quoting baht as USD", async () => {
-      vi.stubGlobal(
-        "fetch",
-        vi.fn((url: string) =>
-          Promise.resolve(
-            String(url).includes("frankfurter")
-              ? jsonResponse({ rates: {} })
-              : jsonResponse({ THB_KUB: tickerRow(20.16, 1) }),
-          ),
-        ),
-      );
+      // Every source answers 200 with a body carrying no rate — the shape of a
+      // silent upstream regression, which must never be read as 1:1.
+      stubFx({
+        fxratesapi: { rates: {} },
+        "currency-api": { usd: {} },
+        "D.THB.EUR": { dataSets: [] },
+        "D.USD.EUR": { dataSets: [] },
+      });
 
       await expect(new BitkubProvider().getDayStats()).rejects.toThrow(
         "bitkub fx: no USD/THB rate",
@@ -372,17 +497,13 @@ describe("BitkubProvider", () => {
           provider.getCandles("KUB", "4h"),
         ]);
         expect(a).toEqual(b);
-        const bitkubCalls = fetchMock.mock.calls.filter(
-          (c) => !String(c[0]).includes("frankfurter"),
-        );
+        const bitkubCalls = fetchMock.mock.calls.filter((c) => !isFxUrl(c[0]));
         expect(bitkubCalls).toHaveLength(1);
 
         await provider.getCandles("KUB", "1d");
-        expect(
-          fetchMock.mock.calls.filter(
-            (c) => !String(c[0]).includes("frankfurter"),
-          ),
-        ).toHaveLength(2);
+        expect(fetchMock.mock.calls.filter((c) => !isFxUrl(c[0]))).toHaveLength(
+          2,
+        );
       } finally {
         vi.useRealTimers();
       }
@@ -395,10 +516,226 @@ describe("BitkubProvider", () => {
       await provider.getCandles("KUB", "4h");
       await provider.getOrderBook("KUB");
 
-      const fxCalls = fetchMock.mock.calls.filter((c) =>
-        String(c[0]).includes("frankfurter"),
+      expect(fxUrls(fetchMock)).toHaveLength(1);
+    });
+  });
+
+  /**
+   * The USD/THB rate divides every price this provider emits, so it used to be a
+   * single point of failure for the whole venue: one Frankfurter outage threw and
+   * killed every Bitkub card. These cover the ordered fallback chain that replaced
+   * that — each source's parser against its real captured shape, the ordering,
+   * and the two ways a chain can be worse than useless (a plausible-looking wrong
+   * number, and giving up while a usable stale rate is in hand).
+   */
+  describe("USD/THB fallback chain", () => {
+    it("prefers Frankfurter and asks nothing else when it answers", async () => {
+      const fetchMock = stubFx({
+        frankfurter: { ...FX_BODIES.frankfurter, rates: { THB: 33.465 } },
+      });
+
+      expect(await resolvedRate(new BitkubProvider())).toBeCloseTo(33.465, 10);
+      // Zero regression on the healthy path: exactly one FX call, to the primary.
+      expect(fxUrls(fetchMock)).toEqual([
+        "https://api.frankfurter.dev/v1/latest?base=USD&symbols=THB",
+      ]);
+    });
+
+    it("falls through to FXRatesAPI when the primary is down", async () => {
+      const fetchMock = stubFx({ frankfurter: { status: 503 } });
+
+      expect(await resolvedRate(new BitkubProvider())).toBeCloseTo(
+        33.3330042997,
+        10,
       );
-      expect(fxCalls).toHaveLength(1);
+      const urls = fxUrls(fetchMock);
+      expect(urls).toHaveLength(2);
+      expect(urls[1]).toContain("api.fxratesapi.com");
+    });
+
+    it("falls through a 429 without retrying it", async () => {
+      // FXRatesAPI is rate-limited (~61/window); a 429 must cost exactly one
+      // request and hand over, never spin.
+      const fetchMock = stubFx({
+        frankfurter: { status: 503 },
+        fxratesapi: { status: 429 },
+      });
+
+      expect(await resolvedRate(new BitkubProvider())).toBeCloseTo(
+        33.3446932,
+        10,
+      );
+      const urls = fxUrls(fetchMock);
+      expect(urls.filter((u) => u.includes("fxratesapi"))).toHaveLength(1);
+      expect(urls[2]).toContain("currency-api.pages.dev");
+    });
+
+    it("reads currency-api's lower-case, base-keyed shape", async () => {
+      stubFx({
+        frankfurter: { status: 500 },
+        fxratesapi: { status: 500 },
+      });
+
+      // {usd:{thb:...}} — not {rates:{THB:...}}; reading it with the upper-case
+      // key would yield 0 and fall through to the ECB cross instead.
+      expect(await resolvedRate(new BitkubProvider())).toBeCloseTo(
+        33.3446932,
+        10,
+      );
+    });
+
+    it("crosses the ECB's two EUR-based series as a last resort", async () => {
+      const fetchMock = stubFx({
+        frankfurter: { status: 500 },
+        fxratesapi: { status: 500 },
+        "currency-api": { status: 500 },
+      });
+
+      // THB/EUR ÷ USD/EUR = 38.435 / 1.1485 ≈ 33.46 — and it must read the
+      // NEWEST observation ("1"), not whichever key enumerates first.
+      expect(await resolvedRate(new BitkubProvider())).toBeCloseTo(
+        ECB_CROSS,
+        10,
+      );
+      const urls = fxUrls(fetchMock);
+      expect(urls.filter((u) => u.includes("D.THB.EUR"))).toHaveLength(1);
+      expect(urls.filter((u) => u.includes("D.USD.EUR"))).toHaveLength(1);
+    });
+
+    it("keeps the ECB cross last, given it costs two calls", async () => {
+      const fetchMock = stubFx({
+        frankfurter: { status: 500 },
+        fxratesapi: { status: 500 },
+        "currency-api": { status: 500 },
+      });
+
+      await new BitkubProvider().getDayStats();
+
+      expect(
+        fxUrls(fetchMock).map((u) =>
+          u.includes("frankfurter")
+            ? "frankfurter"
+            : u.includes("fxratesapi")
+              ? "fxratesapi"
+              : u.includes("currency-api")
+                ? "currency-api"
+                : "ecb",
+        ),
+      ).toEqual(["frankfurter", "fxratesapi", "currency-api", "ecb", "ecb"]);
+    });
+
+    it("skips the ECB cross when its USD leg is missing, rather than dividing by zero", async () => {
+      stubFx({
+        frankfurter: { status: 500 },
+        fxratesapi: { status: 500 },
+        "currency-api": { status: 500 },
+        "D.USD.EUR": { dataSets: [] },
+      });
+
+      await expect(new BitkubProvider().getDayStats()).rejects.toThrow(
+        "bitkub fx: no USD/THB rate",
+      );
+    });
+
+    it.each([
+      ["inverted (USD per THB)", 1 / 33.4],
+      ["a EUR/USD-shaped cross that skipped the baht leg", 1.1485],
+      ["a decimal slip down", 3.34],
+      ["a decimal slip up", 3340],
+      ["zero", 0],
+      ["negative", -33.4],
+      ["not a number", Number.NaN],
+    ])("rejects an implausible primary rate: %s", async (_label, rate) => {
+      const fetchMock = stubFx({
+        frankfurter: { ...FX_BODIES.frankfurter, rates: { THB: rate } },
+      });
+
+      // A wrong-but-finite rate misprices the entire board silently, so it is
+      // treated exactly like an outage: fall through to the next source.
+      expect(await resolvedRate(new BitkubProvider())).toBeCloseTo(
+        33.3330042997,
+        10,
+      );
+      expect(fxUrls(fetchMock).length).toBeGreaterThan(1);
+    });
+
+    it.each([
+      ["the low edge of the band", 10],
+      ["a 1997-crisis-era baht", 56],
+      ["the high edge of the band", 100],
+    ])("accepts a rate inside the band: %s", async (_label, rate) => {
+      const fetchMock = stubFx({
+        frankfurter: { ...FX_BODIES.frankfurter, rates: { THB: rate } },
+      });
+
+      expect(await resolvedRate(new BitkubProvider())).toBeCloseTo(rate, 10);
+      expect(fxUrls(fetchMock)).toHaveLength(1);
+    });
+
+    it("names every failed source in the all-sources-down error", async () => {
+      stubFx({
+        frankfurter: { status: 500 },
+        fxratesapi: { status: 429 },
+        "currency-api": { usd: {} },
+        "D.THB.EUR": { dataSets: [] },
+      });
+
+      // The message is the only breadcrumb for a source that has quietly
+      // changed shape or moved, so each one has to be identifiable.
+      const error = await new BitkubProvider()
+        .getDayStats()
+        .catch((e: unknown) => e as Error);
+      expect(error.message).toContain("frankfurter");
+      expect(error.message).toContain("fxratesapi");
+      expect(error.message).toContain("currency-api");
+      expect(error.message).toContain("ecb-cross");
+    });
+
+    it("serves a stale rate rather than dying when the whole chain goes down", async () => {
+      const provider = new BitkubProvider();
+      stubFx({});
+      // Prime the cache from a healthy chain. It resolves at FXRatesAPI, since
+      // the captured Frankfurter body carries an empty `rates` — which also
+      // shows the primed value came from a fallback, not the primary.
+      expect(await resolvedRate(provider)).toBeCloseTo(33.3330042997, 10);
+
+      // Now every source dies. The card must keep quoting the last good rate —
+      // a slightly stale rate beats an error card, matching the core currency
+      // layer's own degradation.
+      vi.useFakeTimers();
+      try {
+        vi.setSystemTime(Date.now() + 3 * 60 * 60_000);
+        stubFx({
+          frankfurter: { status: 500 },
+          fxratesapi: { status: 500 },
+          "currency-api": { status: 500 },
+          "D.THB.EUR": { status: 500 },
+          "D.USD.EUR": { status: 500 },
+        });
+        expect(await resolvedRate(provider)).toBeCloseTo(33.3330042997, 10);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("still converts prices but never sizes, whichever source supplied the rate", async () => {
+      stubFx(
+        { frankfurter: { status: 500 }, fxratesapi: { status: 500 } },
+        {
+          error: 0,
+          result: { asks: [[20.97, 139.43]], bids: [[20.66, 1391.36]] },
+        },
+      );
+
+      const book = await new BitkubProvider().getOrderBook("KUB");
+
+      expect(book.asks[0].price).toBeCloseTo(20.97 / 33.3446932, 10);
+      // A size is a quantity of KUB — no exchange rate touches it, no matter
+      // which upstream the rate came from.
+      expect(book.asks[0].size).toBe(139.43);
+      expect(book.bids[0].size).toBe(1391.36);
+      // And the v3 pair spelling is unaffected by the FX path.
+      expect(book.pair).toBe("KUB_THB");
     });
   });
 });
