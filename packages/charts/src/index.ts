@@ -13,6 +13,20 @@ export type {
   HeatmapChartProps,
 } from "./heatmap-chart";
 
+export { default as CalendarHeatmap } from "./calendar-heatmap";
+export type {
+  CalendarDatum,
+  CalendarDay,
+  CalendarHeatmapProps,
+  WeekStart,
+} from "./calendar-heatmap";
+export {
+  buildCalendarGrid,
+  levelScale,
+  monthLabels,
+  parseDay,
+} from "./calendar-heatmap/utils";
+
 export { MultiSeriesLineChart } from "./multi-series-line-chart";
 export type {
   ChartEvent,
@@ -31,6 +45,21 @@ export type { BarDatum, BarChartProps } from "./bar-chart";
 
 export { default as ScatterChart } from "./scatter-chart";
 export type { ScatterDatum, ScatterChartProps } from "./scatter-chart";
+
+export { default as HistogramChart } from "./histogram-chart";
+export type { HistogramChartProps, HistogramMarker } from "./histogram-chart";
+export type {
+  BinnedSample,
+  BinOptions,
+  HistogramBin,
+  SampleStats,
+} from "./histogram-chart/utils";
+export {
+  binSample,
+  chooseBinWidth,
+  normalCurve,
+  sampleStats,
+} from "./histogram-chart/utils";
 
 export { default as BubbleChart } from "./bubble-chart";
 export type { BubbleNode, BubbleChartProps } from "./bubble-chart";

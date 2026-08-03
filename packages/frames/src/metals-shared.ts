@@ -197,6 +197,37 @@ export function monthlyReturns(
   return out;
 }
 
+/**
+ * Week-close to week-close percent returns, oldest→newest.
+ *
+ * Weeks are keyed by their Monday (UTC), so a series with holes still buckets
+ * each observation into the right week instead of drifting once a print is
+ * missing. Only consecutive weeks yield a return — a gap in the data would
+ * otherwise be reported as one enormous "week", the same trap
+ * {@link annualReturns} guards against.
+ */
+export function weeklyReturns(points: readonly SeriesPoint[]): number[] {
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const lastOfWeek = new Map<number, { time: number; value: number }>();
+  for (const p of points) {
+    const d = new Date(p.time);
+    // UTC Monday of this observation's week.
+    const monday = Date.UTC(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate() - ((d.getUTCDay() + 6) % 7),
+    );
+    lastOfWeek.set(monday, { time: p.time, value: p.value });
+  }
+  const weeks = [...lastOfWeek.entries()].sort((a, b) => a[0] - b[0]);
+  const out: number[] = [];
+  for (let i = 1; i < weeks.length; i += 1) {
+    if (weeks[i][0] - weeks[i - 1][0] !== WEEK_MS) continue;
+    out.push(pctChange(weeks[i - 1][1].value, weeks[i][1].value));
+  }
+  return out;
+}
+
 export const MONTH_LABELS = [
   "Jan",
   "Feb",

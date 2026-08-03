@@ -286,6 +286,11 @@ const NO_MONEY: Record<string, string> = {
   "movers-bars": "24h change %",
   "movers-bubbles": "24h change %",
   "mvrv-zscore-chart": "a z-score",
+  // The `volume` metric is base-asset traded volume, not notional — the same
+  // "share volume" case `formatCompact` exists for. Its other two metrics are
+  // percentages, so no square on this grid is ever a currency amount.
+  "return-calendar": "daily return %, intraday range %, or base-asset volume",
+  "return-distribution": "return distribution %, σ % and observation counts",
   "news-feed": "headlines",
   "nft-activity-bars": "24h sales counts",
   note: "user-authored markdown",

@@ -80,6 +80,8 @@ export { piCycleFrame } from "./pi-cycle";
 export { maMultiplierFrame } from "./ma-multiplier";
 export { rsiMomentumFrame } from "./rsi-momentum";
 export { volumeProfileFrame } from "./volume-profile";
+export { returnCalendarFrame } from "./return-calendar";
+export { returnDistributionFrame } from "./return-distribution";
 export { dxyFrame } from "./dxy";
 export { cycleSignalsFrame } from "./cycle-signals";
 export { stablecoinSupplyFrame } from "./stablecoin-supply";
@@ -328,6 +330,8 @@ import { puellMultipleFrame } from "./puell-multiple";
 import { mayerMultipleFrame } from "./mayer-multiple";
 import { piCycleFrame } from "./pi-cycle";
 import { maMultiplierFrame } from "./ma-multiplier";
+import { returnCalendarFrame } from "./return-calendar";
+import { returnDistributionFrame } from "./return-distribution";
 import { rsiMomentumFrame } from "./rsi-momentum";
 import { volumeProfileFrame } from "./volume-profile";
 import { dxyFrame } from "./dxy";
@@ -581,6 +585,8 @@ export const allFrames: AnyFrameDefinition[] = [
   maMultiplierFrame,
   rsiMomentumFrame,
   volumeProfileFrame,
+  returnCalendarFrame,
+  returnDistributionFrame,
   dxyFrame,
   cycleSignalsFrame,
   stablecoinSupplyFrame,
