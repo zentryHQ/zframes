@@ -25,8 +25,26 @@ import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createKeylessProviders } from "@zframes/providers-keyless";
 import { SecProvider } from "@zframes/provider-sec";
+import { WalletProvider } from "@zframes/provider-wallet";
 
 type Shape = "array" | "object";
+
+// provider-wallet is filed under the keyed/account tier, so it is NOT in
+// `createKeylessProviders` and was therefore the one provider the published
+// runtime ships (apps/runtime/src/App.tsx composes it on top of the keyless
+// set) with no liveness coverage at all. It nonetheless needs no credential —
+// a public address read over public RPC, priced through CoinGecko — so it can
+// be probed here exactly like a keyless provider, registered by hand below the
+// same way SecProvider is. Its sibling, provider-binance, genuinely cannot be:
+// it reads a connected account through the server-side signed relay.
+//
+// The probe address is a long-lived institutional wallet (a Binance hot wallet)
+// rather than an individual's: it reliably holds ETH plus several of the
+// bundled ERC-20s, so the probe exercises the full path — JSON-RPC batch, the
+// balance decode, and the CoinGecko pricing call — instead of short-circuiting
+// on an empty wallet. A zero-balance address would return a valid, empty
+// Portfolio and quietly prove nothing.
+const WALLET_PROBE_ADDRESS = "0x28C6c06298d514Db089934071355E5743bf21d60";
 
 // SEC's fair-access policy requires a contact EMAIL in the User-Agent (verified:
 // a URL-only UA 403s, an email UA 200s). In production SEC is reached via the
@@ -606,6 +624,19 @@ const PROBES: Probe[] = [
     args: [],
     expect: "object",
   },
+
+  // ── Keyed tier that needs no key ──────────────────────────────────────
+  // The only keyed-tier provider probeable without credentials (see
+  // WALLET_PROBE_ADDRESS above). This is the drift signal for the public-RPC
+  // endpoints and the CoinGecko simple/price shape — neither of which any
+  // hermetic test can observe.
+  {
+    pkg: "provider-wallet",
+    cls: "WalletProvider",
+    method: "getPortfolio",
+    args: [{ kind: "wallet", address: WALLET_PROBE_ADDRESS }],
+    expect: "object",
+  },
 ];
 
 type Status = "ok" | "warn" | "fail";
@@ -748,6 +779,12 @@ async function main() {
       "SecProvider",
       new SecProvider(SEC_CONTACT) as unknown as Instance,
     );
+  // The keyed tier is absent from `createKeylessProviders`, so register the one
+  // member that needs no credential by hand. Deliberately NOT pushed into
+  // `instances`: that list drives the registry-drift warning, which asks "is
+  // every KEYLESS provider probed?" — adding a keyed provider there would make
+  // the two lists mean different things.
+  byClass.set("WalletProvider", new WalletProvider() as unknown as Instance);
 
   let selected = ONLY.length
     ? PROBES.filter((p) => ONLY.some((o) => p.pkg.includes(o)))
