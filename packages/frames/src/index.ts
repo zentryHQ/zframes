@@ -82,6 +82,11 @@ export { rsiMomentumFrame } from "./rsi-momentum";
 export { volumeProfileFrame } from "./volume-profile";
 export { returnCalendarFrame } from "./return-calendar";
 export { returnDistributionFrame } from "./return-distribution";
+export { breadthHistogramFrame } from "./breadth-histogram";
+export { fundingCalendarFrame } from "./funding-calendar";
+export { fundingDistributionFrame } from "./funding-distribution";
+export { sentimentCalendarFrame } from "./sentiment-calendar";
+export { yieldDistributionFrame } from "./yield-distribution";
 export { dxyFrame } from "./dxy";
 export { cycleSignalsFrame } from "./cycle-signals";
 export { stablecoinSupplyFrame } from "./stablecoin-supply";
@@ -330,8 +335,13 @@ import { puellMultipleFrame } from "./puell-multiple";
 import { mayerMultipleFrame } from "./mayer-multiple";
 import { piCycleFrame } from "./pi-cycle";
 import { maMultiplierFrame } from "./ma-multiplier";
+import { breadthHistogramFrame } from "./breadth-histogram";
+import { fundingCalendarFrame } from "./funding-calendar";
+import { fundingDistributionFrame } from "./funding-distribution";
 import { returnCalendarFrame } from "./return-calendar";
 import { returnDistributionFrame } from "./return-distribution";
+import { sentimentCalendarFrame } from "./sentiment-calendar";
+import { yieldDistributionFrame } from "./yield-distribution";
 import { rsiMomentumFrame } from "./rsi-momentum";
 import { volumeProfileFrame } from "./volume-profile";
 import { dxyFrame } from "./dxy";
@@ -587,6 +597,11 @@ export const allFrames: AnyFrameDefinition[] = [
   volumeProfileFrame,
   returnCalendarFrame,
   returnDistributionFrame,
+  breadthHistogramFrame,
+  fundingCalendarFrame,
+  fundingDistributionFrame,
+  sentimentCalendarFrame,
+  yieldDistributionFrame,
   dxyFrame,
   cycleSignalsFrame,
   stablecoinSupplyFrame,

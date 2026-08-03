@@ -484,19 +484,54 @@ export class MockMarketDataProvider implements MarketDataProvider {
         ["Base", "aerodrome", "USDC-ETH", 300e6, 12.4, false],
         ["Arbitrum", "gmx", "GLP", 180e6, 9.1, false],
       ];
-      return base.map(([chain, project, symbol, tvlUsd, apy, stable], i) => ({
-        pool: `mock-${i}`,
-        chain,
-        project,
-        symbol,
-        tvlUsd,
-        apy,
-        apyBase: round(apy * 0.8, 2),
-        apyReward: round(apy * 0.2, 2),
-        apyPct7D: round((rng(`y${i}`)() - 0.5) * 2, 2),
-        stablecoin: stable,
-        ilRisk: stable ? "no" : "yes",
-      }));
+      // The six curated pools above name the real protocols the list-shaped
+      // yield frames show. They are not enough of a SAMPLE, though: a
+      // distribution frame needs tens of observations before a histogram means
+      // anything, and with only six every such card renders its empty state.
+      // So the curated set is padded out deterministically with a realistic APY
+      // spread — a dense low-yield body, a thinner double-digit tail, and a
+      // couple of triple-digit incentive pools, which is the shape the real
+      // DeFiLlama universe has.
+      const CHAINS = ["Ethereum", "Solana", "Base", "Arbitrum", "Polygon"];
+      const PROJECTS = ["curve", "convex", "pendle", "morpho", "compound-v3"];
+      const padded: typeof base = [];
+      for (let i = 0; i < 30; i += 1) {
+        const r = rng(`pool:${i}`);
+        const roll = r();
+        // Exponential-ish: most pools cluster in single digits, a few don't.
+        const apy =
+          roll > 0.94
+            ? round(120 + r() * 260, 1)
+            : roll > 0.78
+              ? round(18 + r() * 55, 1)
+              : round(0.6 + r() * 11, 1);
+        const stable = r() > 0.55;
+        padded.push([
+          CHAINS[i % CHAINS.length],
+          PROJECTS[i % PROJECTS.length],
+          stable ? "USDC" : "ETH-USDC",
+          // Straddles the frames' default $1M floor so the filter is exercised.
+          round(0.4e6 + r() * 800e6, 0),
+          apy,
+          stable,
+        ]);
+      }
+
+      return [...base, ...padded].map(
+        ([chain, project, symbol, tvlUsd, apy, stable], i) => ({
+          pool: `mock-${i}`,
+          chain,
+          project,
+          symbol,
+          tvlUsd,
+          apy,
+          apyBase: round(apy * 0.8, 2),
+          apyReward: round(apy * 0.2, 2),
+          apyPct7D: round((rng(`y${i}`)() - 0.5) * 2, 2),
+          stablecoin: stable,
+          ilRisk: stable ? "no" : "yes",
+        }),
+      );
     });
   }
 

@@ -269,6 +269,26 @@ export const frameLoaders: Record<string, FrameLoader> = {
     load: () =>
       import("./return-distribution").then((m) => m.returnDistributionFrame),
   },
+  "breadth-histogram": {
+    load: () =>
+      import("./breadth-histogram").then((m) => m.breadthHistogramFrame),
+  },
+  "funding-calendar": {
+    load: () =>
+      import("./funding-calendar").then((m) => m.fundingCalendarFrame),
+  },
+  "funding-distribution": {
+    load: () =>
+      import("./funding-distribution").then((m) => m.fundingDistributionFrame),
+  },
+  "sentiment-calendar": {
+    load: () =>
+      import("./sentiment-calendar").then((m) => m.sentimentCalendarFrame),
+  },
+  "yield-distribution": {
+    load: () =>
+      import("./yield-distribution").then((m) => m.yieldDistributionFrame),
+  },
   dxy: {
     load: () => import("./dxy").then((m) => m.dxyFrame),
   },
