@@ -28,6 +28,16 @@ export interface MultiSeriesLineChartProps {
   series: MultiSeriesData[];
   width?: number;
   height?: number;
+  /**
+   * Size the plot to its CONTAINER's height instead of `height`.
+   *
+   * `height` sizes only the <svg>; the legend row renders above it, so the
+   * chart's real footprint is legend + height and a card body exactly `height`
+   * tall overflows by the legend. With `fill` the plot takes the container
+   * height minus the legend, so it fits AND uses the whole card. Opt-in —
+   * existing callers keep their fixed height and pixel-identical output.
+   */
+  fill?: boolean;
   timeframe: ChartTimeframe;
   className?: string;
   isLoading?: boolean;

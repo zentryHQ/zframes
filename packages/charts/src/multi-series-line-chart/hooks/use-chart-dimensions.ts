@@ -10,6 +10,20 @@ interface UseChartDimensionsProps {
   yDomain: [number, number];
   formatValue?: (value: number) => string;
   containerRef: RefObject<HTMLDivElement | null>;
+  /**
+   * Size the plot to the CONTAINER's height instead of the `height` prop.
+   *
+   * Without this a caller's `height` sizes only the <svg>, while the legend row
+   * renders above it — so the chart's real footprint is legend + height, and a
+   * card whose body is exactly `height` tall overflows by the legend. Opt-in, so
+   * every existing caller keeps its fixed height and pixel-identical output.
+   */
+  fill?: boolean;
+  /**
+   * Chrome already rendered inside the container that the plot must not sit on
+   * top of (the legend row). Subtracted from the measured height when filling.
+   */
+  reservedHeight?: number;
 }
 
 /**
@@ -42,10 +56,13 @@ export const useChartDimensions = ({
   yDomain,
   formatValue,
   containerRef,
+  fill = false,
+  reservedHeight = 0,
 }: UseChartDimensionsProps): ChartDimensions => {
   const [containerWidth, setContainerWidth] = useState<number | undefined>(
     width,
   );
+  const [containerHeight, setContainerHeight] = useState<number | undefined>();
 
   useLayoutEffect(() => {
     const updateWidth = () => {
@@ -57,6 +74,13 @@ export const useChartDimensions = ({
           prev !== undefined && Math.abs(prev - rect.width) < 0.5
             ? prev
             : rect.width,
+        );
+        // Same sub-pixel guard as width, for the same reason: the observer must
+        // not be able to drive itself.
+        setContainerHeight((prev) =>
+          prev !== undefined && Math.abs(prev - rect.height) < 0.5
+            ? prev
+            : rect.height,
         );
       }
     };
@@ -105,7 +129,16 @@ export const useChartDimensions = ({
   }
   effectiveWidth = effectiveWidth || width || null;
 
-  const innerHeight = height - CHART_MARGIN.top - CHART_MARGIN.bottom;
+  // When filling, the plot gets whatever the card left over after the legend.
+  // The floor keeps a squeezed card rendering a readable plot rather than a
+  // negative-height scale (d3 inverts the range and the line disappears).
+  const MIN_PLOT_HEIGHT = 80;
+  const resolvedHeight =
+    fill && containerHeight
+      ? Math.max(MIN_PLOT_HEIGHT, containerHeight - reservedHeight)
+      : height;
+
+  const innerHeight = resolvedHeight - CHART_MARGIN.top - CHART_MARGIN.bottom;
 
   const tempYScale = d3.scaleLinear().domain(yDomain).range([innerHeight, 0]);
 
@@ -126,7 +159,7 @@ export const useChartDimensions = ({
 
   return {
     width: effectiveWidth,
-    height,
+    height: resolvedHeight,
     innerWidth,
     innerHeight,
     dynamicLeftMargin,

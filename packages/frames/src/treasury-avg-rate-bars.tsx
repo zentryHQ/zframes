@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatPct } from "./format";
 import { treasuryAvgRateBarsMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = treasuryAvgRateBarsMeta.schema;
 
@@ -26,13 +26,22 @@ function TreasuryAvgRateBars({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no average-rate data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center text-normal">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        height={Math.max(data.length * 24, 96)}
-        formatValue={formatPct}
-      />
+    // The bar height is content-driven (24px per rate), so a long list is taller
+    // than the card and used to overflow the body and clip the bottom bars.
+    // Squeezing the bars to fit would make them unreadable, so the overflow
+    // scrolls instead — the package's convention for a list that outgrows its
+    // card. `justify-center` is deliberately NOT combined with the scroll area:
+    // centred flex content that overflows becomes unreachable above the scroll
+    // origin.
+    <div className="flex h-full min-h-0 flex-col text-normal">
+      <div className={`min-h-0 flex-1 ${scrollAreaClass}`}>
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          height={Math.max(data.length * 24, 96)}
+          formatValue={formatPct}
+        />
+      </div>
     </div>
   );
 }

@@ -53,7 +53,7 @@ function EtfFlowsChart({ config }: { config: z.output<typeof schema> }) {
     <TimeSeriesChart
       series={series}
       timeframe={timeframe}
-      height={220}
+      fill
       formatValue={money.compact}
       control={
         <TimeframeToggle
