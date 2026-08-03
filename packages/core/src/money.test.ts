@@ -25,9 +25,10 @@
 // jsdom` docblock, so importing `money.ts` under the default node environment
 // is itself part of what is pinned.
 import { CURRENCY_CODES, type CurrencyCode } from "@zframes/spec";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   CURRENCY_SYMBOLS,
+  currencyDigits,
   currencySymbol,
   formatAmount,
   formatMagnitude,
@@ -36,10 +37,11 @@ import {
 } from "./money";
 
 describe("module surface", () => {
-  it("exports exactly the six money helpers, nothing more", async () => {
+  it("exports exactly the seven money helpers, nothing more", async () => {
     const mod = await import("./money");
     expect(Object.keys(mod).sort()).toEqual([
       "CURRENCY_SYMBOLS",
+      "currencyDigits",
       "currencySymbol",
       "formatAmount",
       "formatMagnitude",
@@ -71,6 +73,106 @@ describe("CURRENCY_SYMBOLS", () => {
     expect(CURRENCY_SYMBOLS.BRL).toBe("R$");
     expect(CURRENCY_SYMBOLS.ZAR).toBe("R");
     expect(CURRENCY_SYMBOLS.THB).toBe("฿");
+  });
+});
+
+// The exact symbol every code shipped with when the table was hand-written.
+// The table is now DERIVED from `Intl.NumberFormat`, so this is the regression
+// net for that swap: not one of these strings may move, because each is what is
+// already printed on somebody's board. `en-US` Intl reproduces most of them
+// (including "CN¥", "A$", "HK$", "MX$", "R$"); the rest come from the small
+// `SYMBOL_OVERRIDES` map, and CHF's trailing space from the "a code-shaped
+// symbol needs a separator" rule.
+const SHIPPED_SYMBOLS: Record<string, string> = {
+  USD: "$",
+  THB: "฿",
+  EUR: "€",
+  GBP: "£",
+  JPY: "¥",
+  CNY: "CN¥",
+  KRW: "₩",
+  SGD: "S$",
+  AUD: "A$",
+  CAD: "C$",
+  CHF: "CHF ",
+  INR: "₹",
+  IDR: "Rp",
+  MYR: "RM",
+  PHP: "₱",
+  HKD: "HK$",
+  BRL: "R$",
+  MXN: "MX$",
+  ZAR: "R",
+};
+
+describe("Intl-derived symbols preserve every shipped glyph", () => {
+  for (const [code, symbol] of Object.entries(SHIPPED_SYMBOLS)) {
+    it(`renders ${code} as ${JSON.stringify(symbol)}`, () => {
+      expect(currencySymbol(code as CurrencyCode)).toBe(symbol);
+      expect(CURRENCY_SYMBOLS[code as CurrencyCode]).toBe(symbol);
+    });
+  }
+});
+
+describe("currencyDigits", () => {
+  it("gives zero minor units to the currencies that have none", () => {
+    // A yen/won/dong price with a ".00" on it is not a price anyone quotes.
+    // IDR is an override: CLDR reports 2 for the rupiah, market data quotes 0.
+    for (const code of ["JPY", "KRW", "VND", "IDR"]) {
+      expect(currencyDigits(code as CurrencyCode)).toBe(0);
+    }
+  });
+
+  it("gives three minor units to the Gulf dinars", () => {
+    for (const code of ["KWD", "BHD", "OMR", "JOD", "TND"]) {
+      expect(currencyDigits(code as CurrencyCode)).toBe(3);
+    }
+  });
+
+  it("leaves the ordinary currencies at two", () => {
+    for (const code of ["USD", "EUR", "GBP", "THB", "CHF", "INR"]) {
+      expect(currencyDigits(code as CurrencyCode)).toBe(2);
+    }
+  });
+
+  it("degrades to two for a code Intl cannot resolve", () => {
+    expect(currencyDigits("not a code!" as unknown as CurrencyCode)).toBe(2);
+  });
+});
+
+describe("minor units in the unit-scale band", () => {
+  it("drops the fake decimals from a zero-minor-unit price", () => {
+    expect(formatMoney(123.456, "JPY")).toBe("¥123");
+    expect(formatMoney(694.5, "KRW")).toBe("₩695");
+    expect(formatAmount(123.456, "JPY")).toBe("123");
+  });
+
+  it("keeps the third digit of a three-minor-unit price", () => {
+    expect(formatMoney(20.665, "KWD" as CurrencyCode)).toBe("KWD 20.665");
+    expect(formatAmount(20.665, "BHD" as CurrencyCode)).toBe("20.665");
+  });
+
+  it("leaves two-minor-unit currencies exactly as before", () => {
+    expect(formatMoney(20.665, "USD")).toBe("$20.67");
+    expect(formatAmount(20.665)).toBe("20.67");
+    expect(formatAmount(20.665, "THB")).toBe("20.67");
+  });
+
+  it("does not touch the bands above 1,000 or below 1", () => {
+    // Above 1,000 every currency already rounds to whole units; below 1 the
+    // four-significant-digit floor is what makes a sub-unit price legible, so a
+    // zero-minor-unit currency must NOT collapse it to "1".
+    expect(formatMoney(1234.56, "JPY")).toBe("¥1,235");
+    expect(formatMoney(1234.56, "USD")).toBe("$1,235");
+    expect(formatAmount(0.6145, "JPY")).toBe("0.6145");
+    expect(formatAmount(0.6145, "KWD" as CurrencyCode)).toBe("0.6145");
+  });
+
+  it("keeps formatMagnitude and the compact path currency-blind", () => {
+    // A scale, not a price: "1.23T" must read identically in every currency.
+    expect(formatMagnitude(1.23e12)).toBe("1.23T");
+    expect(formatMoneyCompact(1.23e9, "JPY")).toBe("¥1.23B");
+    expect(formatMoneyCompact(1.23e9, "KWD" as CurrencyCode)).toBe("KWD 1.23B");
   });
 });
 
@@ -232,5 +334,75 @@ describe("formatMoneyCompact", () => {
 
   it("treats zero as non-negative", () => {
     expect(formatMoneyCompact(0, "USD")).toBe("$0");
+  });
+});
+
+describe("Intl formatter memoization", () => {
+  const RealNumberFormat = Intl.NumberFormat;
+
+  afterEach(() => {
+    Intl.NumberFormat = RealNumberFormat;
+    vi.resetModules();
+  });
+
+  /**
+   * Counts currency-formatter constructions while still building real
+   * formatters. The module registry is reset first: the memo is module state, so
+   * the copy this file imported at the top already has a warm cache and would
+   * report zero constructions for any code.
+   */
+  function countConstructions() {
+    vi.resetModules();
+    const calls: string[] = [];
+    class Counting extends RealNumberFormat {
+      constructor(
+        locales?: string | string[],
+        options?: Intl.NumberFormatOptions,
+      ) {
+        // Recorded BEFORE super, so a code that makes the constructor throw
+        // still counts as an attempt.
+        if (options?.style === "currency") calls.push(String(options.currency));
+        super(locales, options);
+      }
+    }
+    Intl.NumberFormat = Counting as unknown as typeof Intl.NumberFormat;
+    return calls;
+  }
+
+  it("builds one formatter per code, however many times it is asked", async () => {
+    // This runs on every money figure of every card on every render, and
+    // constructing an Intl.NumberFormat is the expensive part — a formatter per
+    // call would be a per-frame tax paid forever.
+    const calls = countConstructions();
+    const { currencySymbol: sym, currencyDigits: digits } =
+      await import("./money");
+
+    for (let i = 0; i < 50; i++) {
+      sym("THB");
+      digits("THB");
+      sym("JPY");
+    }
+
+    expect(calls).toEqual(["THB", "JPY"]);
+  });
+
+  it("caches the degraded result too, so a bad code cannot thrash", async () => {
+    const calls = countConstructions();
+    const { currencySymbol: sym } = await import("./money");
+
+    const bad = "not a code!" as unknown as CurrencyCode;
+    expect(sym(bad)).toBe("$");
+    expect(sym(bad)).toBe("$");
+    // One attempt only: the RangeError path is memoized like any other.
+    expect(calls).toEqual(["not a code!"]);
+  });
+
+  it("builds nothing for a code nobody asks about", async () => {
+    // CURRENCY_SYMBOLS is a table of lazy getters over the same memo, so
+    // importing the module must not resolve ~150 currencies up front.
+    const calls = countConstructions();
+    const mod = await import("./money");
+    expect(Object.keys(mod.CURRENCY_SYMBOLS).length).toBeGreaterThan(10);
+    expect(calls).toEqual([]);
   });
 });
