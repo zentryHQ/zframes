@@ -245,6 +245,12 @@ const ORB_CSS = `
   position: absolute;
   right: 72px;
   bottom: 14px;
+  /* The dock is only as wide as the orb (~70px), so an auto-width absolute box
+     anchored at right:72px gets a NEGATIVE available width and shrink-to-fit
+     collapses it to its longest word — the suggestion wrapped down a ~69px
+     sliver and max-width never applied. max-content opts out of shrink-to-fit,
+     letting the bubble size to its text and wrap at max-width instead. */
+  width: max-content;
   max-width: 244px;
   margin: 0;
   padding: 9px 13px;
