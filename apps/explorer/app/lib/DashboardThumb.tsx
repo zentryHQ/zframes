@@ -5,7 +5,8 @@
 // tiny generative glyph keyed to its kind (chart / list / gauge / tiles / …).
 // Purely presentational and fully deterministic (glyph shapes are seeded off the
 // frame id), so it's SSR-safe, hydration-stable, and needs no live data — it
-// reads as "a real dashboard" without mounting 76 frames + hammering the APIs.
+// reads as "a real dashboard" without mounting a board's frames + hammering the
+// APIs.
 
 export type ThumbFrame = {
   id: string;
