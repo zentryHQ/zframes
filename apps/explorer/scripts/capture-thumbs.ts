@@ -18,9 +18,12 @@
 // `networkidle` NEVER settles — wait on `.zf-frame` in the DOM instead, then a
 // fixed settle for chart data.
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { chromium } from "playwright-core";
 import postgres from "postgres";
 import { CURATED } from "../app/lib/curated-dashboards";
+import { CAPTURE_WATERMARK_BAND } from "../app/lib/thumb-image";
 
 const BASE = (
   process.env.EXPLORER_BASE_URL ?? "http://localhost:37264"
@@ -37,6 +40,17 @@ const MIN_BYTES = 5_000;
 
 // Margin of page backdrop kept around the grid in the capture.
 const CAPTURE_PAD = 24;
+
+// Extra backdrop below the grid, holding the brand watermark. Real page padding
+// (see below) so the clip extends into empty backdrop rather than over a card.
+// Shared with the og:image, which must crop this band off its own composite.
+const WATERMARK_BAND = CAPTURE_WATERMARK_BAND;
+
+// The official mark, same file the og:image composites (assets/ is inside the
+// app so Next's build tracing can reach it; docs/assets is the source of truth).
+const MARK_DATA_URI = `data:image/png;base64,${readFileSync(
+  join(import.meta.dirname, "..", "assets", "zframes-icon-512.png"),
+).toString("base64")}`;
 
 async function main() {
   // max 1: sequential anyway, and the dev PGlite socket handles one wire
@@ -122,9 +136,13 @@ async function main() {
       // into a scroll-stitched shot, and the preview page's title row (main's
       // first child) sits inside the capture margin. visibility (not display)
       // keeps layout geometry so the grid's bounding box is unaffected.
+      // The band under the grid is where the brand watermark goes — added as
+      // real page padding BEFORE measuring, so scrollHeight grows with it and
+      // the clip below can extend into clean backdrop instead of over a card.
       await page.addStyleTag({
         content:
-          "header, main > div:first-child { visibility: hidden !important; }",
+          "header, main > div:first-child { visibility: hidden !important; }" +
+          `body { padding-bottom: ${WATERMARK_BAND}px !important; }`,
       });
 
       // Clip the full-page shot to the grid's box plus a margin of the page's
@@ -136,6 +154,69 @@ async function main() {
         w: document.documentElement.scrollWidth,
         h: document.documentElement.scrollHeight,
       }));
+
+      // Brand the capture itself, bottom-right in the band under the grid, so
+      // the screenshot carries the mark wherever it travels (gallery cards, and
+      // any reuse of /api/thumbs). Injected into the page rather than composited
+      // after the fact: Playwright is already here, so there's no image-encoder
+      // dependency and no JPEG re-encode. Right-aligned to the grid's own edge,
+      // not the clip's, so it lines up with the cards above it.
+      await page.evaluate(
+        ({ mark, right, top, band }) => {
+          const el = document.createElement("div");
+          el.style.cssText = [
+            "position:absolute",
+            `top:${top}px`,
+            `left:${right - 168}px`,
+            "width:168px",
+            `height:${band}px`,
+            "display:flex",
+            "align-items:center",
+            "justify-content:flex-end",
+            "gap:8px",
+            "z-index:2147483647",
+            "pointer-events:none",
+            "opacity:0.92",
+          ].join(";");
+          // A translucent pill: the backdrop is dark on most boards but a
+          // light-mode board (theme.surface) would swallow plain white text.
+          const pill = document.createElement("div");
+          pill.style.cssText = [
+            "display:flex",
+            "align-items:center",
+            "gap:8px",
+            "padding:5px 13px 5px 6px",
+            "border-radius:999px",
+            "background:rgba(8,8,14,0.58)",
+            "border:1px solid rgba(255,255,255,0.12)",
+          ].join(";");
+          const img = document.createElement("img");
+          img.src = mark;
+          img.width = 26;
+          img.height = 26;
+          img.style.cssText = "display:block;border-radius:7px";
+          const word = document.createElement("span");
+          word.textContent = "zframes";
+          word.style.cssText = [
+            "color:#ffffff",
+            "font-size:15px",
+            "font-weight:700",
+            "letter-spacing:-0.01em",
+            "line-height:1",
+            "white-space:nowrap",
+          ].join(";");
+          pill.append(img, word);
+          el.append(pill);
+          document.body.append(el);
+        },
+        {
+          mark: MARK_DATA_URI,
+          right: box.x + box.width,
+          top: box.y + box.height + CAPTURE_PAD,
+          band: WATERMARK_BAND,
+        },
+      );
+
       const x = Math.max(0, box.x - CAPTURE_PAD);
       const y = Math.max(0, box.y - CAPTURE_PAD);
       const image = await page.screenshot({
@@ -147,7 +228,10 @@ async function main() {
           x,
           y,
           width: Math.min(box.width + CAPTURE_PAD * 2, pageSize.w - x),
-          height: Math.min(box.height + CAPTURE_PAD * 2, pageSize.h - y),
+          height: Math.min(
+            box.height + CAPTURE_PAD * 2 + WATERMARK_BAND,
+            pageSize.h - y,
+          ),
         },
       });
       if (image.length < MIN_BYTES)

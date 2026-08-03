@@ -2,6 +2,24 @@
 // the guard test can import it directly (the DB loader next door pulls in the
 // postgres driver, which needs DATABASE_URL at import time).
 
+// Height of the brand-watermark band scripts/capture-thumbs.ts appends below the
+// grid in every capture. The og:image draws its own lockup, so it must exclude
+// this band or a SHORT board shows the mark twice — tall boards only avoid it by
+// accident of the top-anchored crop. Shared with the capture script so the two
+// can't drift; changing it there without here silently double-marks short boards.
+export const CAPTURE_WATERMARK_BAND = 52;
+
+// The board region of a capture — the whole thing minus the watermark band. The
+// og:image cover-fits against THIS, never the raw dimensions, so the band always
+// lands below the card's bottom edge. Lives here (not inline in the route) so the
+// guard test exercises the same code the route runs.
+export function boardArea(dim: { width: number; height: number }) {
+  return {
+    width: dim.width,
+    height: Math.max(1, dim.height - CAPTURE_WATERMARK_BAND),
+  };
+}
+
 // Cover-fit a capture into a fixed card box. Satori has no reliable
 // object-fit/object-position, so the compositor gets explicit pixel geometry
 // instead: fill the box on both axes, centre horizontally, and anchor the crop

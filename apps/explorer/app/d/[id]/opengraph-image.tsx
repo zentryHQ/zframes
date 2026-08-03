@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { loadDashboardThumb } from "@/app/lib/dashboard-thumb";
 import { resolveDashboard } from "@/app/lib/resolve-dashboard";
-import { coverFit, imageSize } from "@/app/lib/thumb-image";
+import { boardArea, coverFit, imageSize } from "@/app/lib/thumb-image";
 
 // Dynamic 1200×630 social-share card for /d/<id>. next/og's ImageResponse is
 // built in (no @vercel/og dep). Node runtime so it can resolve community
@@ -63,9 +63,12 @@ async function captureLayer(id: string) {
     const dim = imageSize(thumb.image);
     if (!dim || !dim.width || !dim.height) return null;
 
+    // Fit against the BOARD area, not the raw capture: this card draws the
+    // lockup itself, and including the capture's watermark band would put a
+    // second mark on-canvas for any board short enough that its bottom shows.
     return {
       src: `data:${thumb.contentType};base64,${thumb.image.toString("base64")}`,
-      ...coverFit(dim, size),
+      ...coverFit(boardArea(dim), size),
     };
   } catch {
     // A capture is decoration, never a reason to 500 the unfurl — an
@@ -74,36 +77,26 @@ async function captureLayer(id: string) {
   }
 }
 
-function BrandLockup() {
+// The OFFICIAL mark + wordmark, matching the site header (BrandMark.tsx) and
+// every other rendered surface. The badge is the real raster icon, not a
+// look-alike: this card used to hand-draw a plain letter "Z" with a gradient
+// text fill, which is a different glyph from the mark's slash + Z pair. The
+// mark is passed in as a data URI rather than inlined as SVG because satori
+// doesn't resolve `<defs>` / `url(#id)` gradient references, and the mark is
+// built from three of them.
+function BrandLockup({ mark }: { mark: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+      <img src={mark} width={48} height={48} alt="" />
       <div
         style={{
           display: "flex",
-          width: 48,
-          height: 48,
-          borderRadius: 12,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundImage: "linear-gradient(180deg, #15151E, #0A0A11)",
-          border: "1px solid rgba(255,255,255,0.10)",
+          fontSize: 26,
+          fontWeight: 700,
+          color: "#ffffff",
         }}
       >
-        <div
-          style={{
-            fontSize: 30,
-            fontWeight: 700,
-            backgroundImage: "linear-gradient(135deg, #5C8CFF, #A974FF)",
-            backgroundClip: "text",
-            color: "transparent",
-          }}
-        >
-          Z
-        </div>
-      </div>
-      <div style={{ display: "flex", fontSize: 24, fontWeight: 700 }}>
-        <span style={{ color: "#ffffff" }}>zframes</span>
-        <span style={{ color: "#818cf8" }}>.explorer</span>
+        zframes
       </div>
     </div>
   );
@@ -189,14 +182,17 @@ export default async function Image({
     resolveDashboard(id),
     captureLayer(id),
   ]);
-  // Node runtime: read the (static, non-variable) fonts off disk. fetch(new URL(
-  // ..., import.meta.url)) doesn't work here — Next emits the asset to a relative
-  // /_next/static/media URL fetch can't parse. Prod is covered by
-  // outputFileTracingIncludes in next.config.
-  const [regular, bold] = await Promise.all([
+  // Node runtime: read the (static, non-variable) fonts + brand mark off disk.
+  // fetch(new URL(..., import.meta.url)) doesn't work here — Next emits the
+  // asset to a relative /_next/static/media URL fetch can't parse. All three are
+  // covered by outputFileTracingIncludes in next.config; the mark is a copy of
+  // docs/assets/zframes-icon-512.png, kept inside the app so tracing can reach it.
+  const [regular, bold, markPng] = await Promise.all([
     readFile(join(process.cwd(), "assets", "DMSans-Regular.ttf")),
     readFile(join(process.cwd(), "assets", "DMSans-Bold.ttf")),
+    readFile(join(process.cwd(), "assets", "zframes-icon-512.png")),
   ]);
+  const mark = `data:image/png;base64,${markPng.toString("base64")}`;
 
   const title = entry?.title ?? "zframes";
   const frames = ((entry?.spec as { frames?: Frame[] })?.frames ??
@@ -292,7 +288,7 @@ export default async function Image({
             justifyContent: "space-between",
           }}
         >
-          <BrandLockup />
+          <BrandLockup mark={mark} />
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div
               style={{
@@ -332,7 +328,7 @@ export default async function Image({
           "radial-gradient(900px 520px at 12% -8%, rgba(89,84,255,0.28), transparent 62%), radial-gradient(820px 620px at 100% 0%, rgba(150,90,240,0.20), transparent 58%)",
       }}
     >
-      <BrandLockup />
+      <BrandLockup mark={mark} />
 
       {/* Body */}
       <div
