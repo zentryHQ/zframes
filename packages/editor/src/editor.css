@@ -733,9 +733,7 @@ body:has(.ui-draggable-dragging) * {
   color: rgba(255, 255, 255, 0.95);
 }
 
-/* Icon-only button (the collapsed "Customise" affordance, top-right). Portaled
-   into the host header — outside .zf-editor — so it derives its accent from
-   --zf-accent-hue directly, never the editor-scoped --zf-accent. */
+/* Icon-only buttons for compact toolbar actions. */
 .zf-btn--icon {
   padding: 0;
   width: 38px;
@@ -749,6 +747,59 @@ body:has(.ui-draggable-dragging) * {
 }
 .zf-btn--icon > svg {
   display: block;
+}
+
+/* Collapsed "Customize" affordance. Portaled into fixed host chrome outside
+   .zf-editor, so it derives its accent from --zf-accent-hue directly, never the
+   editor-scoped --zf-accent. */
+.zf-btn--customise {
+  pointer-events: auto;
+  min-height: 40px;
+  padding: 0 14px 0 12px;
+  border-radius: 9999px;
+  gap: 8px;
+  border-color: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.38);
+  background:
+    linear-gradient(
+      180deg,
+      hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.16),
+      transparent 52%
+    ),
+    linear-gradient(180deg, rgba(29, 31, 44, 0.86), rgba(10, 11, 18, 0.88));
+  color: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 10px 28px -18px rgba(0, 0, 0, 0.9),
+    0 0 0 1px
+      hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.12);
+}
+.zf-btn--customise:hover {
+  border-color: hsl(var(--zf-accent-hue, 242) 94% 80% / 0.72);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 14px 34px -18px rgba(0, 0, 0, 0.92),
+    0 0 0 1px
+      hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.24);
+}
+.zf-btn--customise > svg {
+  display: block;
+  color: hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 78%);
+}
+.zf-btn--customise > span {
+  font-family: var(--font-dmsans, "DM Sans", system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+@media (max-width: 520px) {
+  .zf-btn--customise {
+    width: 40px;
+    padding: 0;
+  }
+  .zf-btn--customise > span {
+    display: none;
+  }
 }
 
 /* Reduced motion: keep each control's color + shadow feedback, but drop the

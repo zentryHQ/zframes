@@ -302,7 +302,7 @@ export default function App() {
         }
       >
         <header
-          className={`mb-5 flex flex-col gap-2 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-center sm:justify-between ${
+          className={`mb-5 flex flex-col gap-2 border-b border-white/[0.06] pb-4 pr-28 sm:flex-row sm:items-center ${
             isHorizontal ? "px-4 sm:px-6" : ""
           }`}
         >
@@ -326,11 +326,11 @@ export default function App() {
               v{__ZFRAMES_VERSION__}
             </span>
           </div>
-          <div
-            ref={setCustomiseButtonTarget}
-            className="flex min-h-9 items-center justify-end"
-          />
         </header>
+        <div
+          ref={setCustomiseButtonTarget}
+          className="pointer-events-none fixed right-4 top-4 z-40 flex min-h-10 items-center justify-end sm:right-6 sm:top-5"
+        />
         {!isDesktop ? (
           <DashboardRenderer spec={spec} registry={registry} />
         ) : (
