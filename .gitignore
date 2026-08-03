@@ -52,3 +52,9 @@ cli-smoke-report.json
 audit-report.json
 frame-render-report.json
 fx-coverage-report.json
+
+# copy-widget-icons.mjs resolves its destination from the CWD (each app vendors
+# the PNGs on predev/prebuild, run with cwd=apps/<app>). Running it from the repo
+# root instead drops ~1.5 MB of duplicate icons here; the repo has no legitimate
+# root public/, so make that accident uncommittable.
+/public/
