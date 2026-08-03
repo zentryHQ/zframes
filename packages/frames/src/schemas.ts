@@ -6206,7 +6206,7 @@ export const homeValueScatterMeta = defineFrameMeta({
   iconUrl: widgetIcon("home-value-scatter"),
   layout: { w: 6, h: 4, minW: 4, minH: 3 },
   description:
-    "Every metro plotted by what a home costs (y, log) against how fast that price is changing (x) — the four quadrants separate expensive-and-cooling from cheap-and-heating, which neither a ranked list nor a single chart shows. Keyless (Zillow), monthly.",
+    "Every metro plotted by what a home costs (y) against how fast that price is changing (x) — the four quadrants separate expensive-and-cooling from cheap-and-heating, which neither a ranked list nor a single chart shows. Keyless (Zillow), monthly.",
   capabilities: ["home-value-index"],
   source: SOURCES.zillow,
   schema: z.object({
