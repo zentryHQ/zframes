@@ -1,7 +1,7 @@
 {
   "name": "@zframes/provider-fx",
   "version": "0.0.0",
-  "description": "Free keyless zframes data provider for foreign-exchange rates via Frankfurter (ECB daily reference rates): latest rate, daily change, and a short trend per currency (fx-rates capability).",
+  "description": "Free keyless zframes data provider for foreign-exchange rates: latest rate, daily change, and a short trend per currency (fx-rates + dollar-index capabilities). Frankfurter (ECB daily reference rates) is the primary, with a keyless CORS-open fallback chain — FXRatesAPI, currency-api, then the ECB Data Portal itself — so an upstream outage can't silently revert every non-USD board to quoting USD.",
   "license": "Apache-2.0",
   "author": "Zentry",
   "repository": {
