@@ -50,6 +50,8 @@ import {
   type ThemePreset,
 } from "@zframes/spec/presets";
 import {
+  CURRENCY_CODES,
+  DashboardSpecSchema,
   FONT_FAMILY_STACKS,
   NUMERIC_VARIANTS,
   surfaceModeVars,
@@ -77,6 +79,72 @@ function unmountRootSoon(root: Root): void {
   queueMicrotask(() => root.unmount());
 }
 
+/**
+ * The Cosmetics rail's sections, with the words that should find each one.
+ *
+ * The rail was nine non-collapsible sections — roughly 35 controls stacked in a
+ * single 320px scroll column — so reaching "elevation" meant scrolling past every
+ * background control. Sections now collapse, and searching matches these keywords
+ * so a term auto-opens the section holding it. Keywords are the vocabulary a user
+ * would actually type, not just the visible labels: "shadow" finds Appearance,
+ * "font" finds Typography, "green" finds Gain / Loss.
+ */
+const COSMETIC_SECTIONS = [
+  { key: "presets", label: "Presets", words: "preset look theme style named" },
+  { key: "mode", label: "Mode", words: "mode dark light daylight surface" },
+  {
+    key: "accent",
+    label: "Accent",
+    words: "accent hue saturation colour color",
+  },
+  { key: "surface", label: "Surface", words: "surface tint base hue card" },
+  {
+    key: "updown",
+    label: "Gain / Loss",
+    words: "gain loss up down green red profit semantic colourblind",
+  },
+  {
+    key: "background",
+    label: "Background",
+    words:
+      "background backdrop scene gradient image colour color opacity blur overlay unicorn",
+  },
+  {
+    key: "layout",
+    label: "Layout",
+    words:
+      "layout direction vertical horizontal gap padding columns rows grid geometry cell height",
+  },
+  {
+    key: "appearance",
+    label: "Appearance",
+    words:
+      "appearance radius corner border opacity density elevation shadow card",
+  },
+  {
+    key: "typography",
+    label: "Typography",
+    words:
+      "typography font family sans mono serif numbers tabular text size scale",
+  },
+  { key: "currency", label: "Currency", words: "currency money price fx code" },
+] as const;
+
+type CosmeticSectionKey = (typeof COSMETIC_SECTIONS)[number]["key"];
+
+/** Which cosmetic sections a query matches, or null when not searching. */
+function matchCosmeticSections(query: string): Set<string> | null {
+  const q = query.trim().toLowerCase();
+  if (!q) return null;
+  const terms = q.split(/\s+/);
+  return new Set(
+    COSMETIC_SECTIONS.filter((s) => {
+      const haystack = `${s.label} ${s.words}`.toLowerCase();
+      return terms.every((t) => haystack.includes(t));
+    }).map((s) => s.key),
+  );
+}
+
 /** Trailing window used to collapse a continuous slider drag into ONE undo step.
  *  Long enough to span the gaps in a slow drag, short enough that two deliberate
  *  tweaks stay separately undoable. */
@@ -84,6 +152,64 @@ const COMMIT_DEBOUNCE_MS = 400;
 
 /** How long the "Frame removed — Undo" toast stays up. */
 const UNDO_TOAST_MS = 7000;
+
+/**
+ * The spec's own default for every cosmetic field, parsed straight out of the
+ * schema.
+ *
+ * Each "Reset" link in the Cosmetics rail decides whether to appear by comparing
+ * the live value to a default, and each of those was an inline literal repeated
+ * at 20-odd call sites — so a schema default could change and silently desync
+ * every one of them. It already had: the schema's `rowHeight` default is 96,
+ * and a hand-written `!== 90` here would have offered "Reset" on an untouched
+ * board and reset it to a value the schema never chose.
+ */
+const SPEC_DEFAULTS = DashboardSpecSchema.parse({ title: "", frames: [] });
+
+/**
+ * One collapsible Cosmetics section. Mirrors the frame palette's category
+ * accordion (same chevron, same aria-expanded header button) so the rail's two
+ * tabs behave identically rather than each inventing a disclosure.
+ */
+function RailSection({
+  label,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={open ? "zf-theme is-open" : "zf-theme"}>
+      <button
+        type="button"
+        className="zf-theme-header"
+        aria-expanded={open}
+        onClick={onToggle}
+      >
+        <svg
+          className="zf-theme-chevron"
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+        >
+          <path
+            d="M6 4l4 4-4 4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span className="zf-theme-header-label">{label}</span>
+      </button>
+      {open && <div className="zf-theme-body">{children}</div>}
+    </section>
+  );
+}
 
 /**
  * Interactive, in-browser dashboard editor — a drag/resize/add/delete
@@ -305,6 +431,26 @@ export function DashboardEditor({
   const [bgOverlayOpacity, setBgOverlayOpacity] = useState(
     spec.background.overlayOpacity,
   );
+  // Display currency (spec.currency.code). Every money figure on the board is
+  // converted from USD through it, which made it the highest-impact setting the
+  // editor didn't expose at all — changing it meant hand-editing dashboard.json.
+  const [currencyCode, setCurrencyCode] = useState(spec.currency.code);
+  // Grid geometry (spec.grid): the column count the board is laid out on, and the
+  // pixel height of one row. Neither was editable — a board's shape could only be
+  // changed by hand-editing dashboard.json. Both apply LIVE through GridStack's
+  // own column()/cellHeight() setters, so changing them never tears down the 200+
+  // per-item React roots (which would re-subscribe every frame's data hooks).
+  const [columns, setColumns] = useState(spec.grid.columns);
+  const [rowHeight, setRowHeight] = useState(spec.grid.rowHeight);
+  // Unlike the other cosmetics, currency must also follow the `spec` PROP: the
+  // host can swap in a different board (the dashboard switcher does), and the
+  // per-item roots read the code from a ref, so nothing else would notice.
+  // A local edit is unaffected — the prop's value hasn't changed, so this
+  // doesn't re-run.
+  const specCurrencyCode = spec.currency.code;
+  useEffect(() => {
+    setCurrencyCode(specCurrencyCode);
+  }, [specCurrencyCode]);
 
   // One-click looks. A preset sets the full colour, typography, and card-surface
   // state it owns (everything except grid geometry) — no separate render path, so
@@ -377,6 +523,37 @@ export function DashboardEditor({
   // rail used to stack both; the tabs split them so theme knobs and frame
   // management each get the full panel.
   const [railTab, setRailTab] = useState<"cosmetics" | "frames">("frames");
+  // Which Cosmetics sections are expanded. Presets opens by default — it's the
+  // one-click route to a whole look, so it should be the first thing offered;
+  // everything else is opened deliberately.
+  const [openSections, setOpenSections] = useState<Set<string>>(
+    () => new Set<CosmeticSectionKey>(["presets"]),
+  );
+  const [cosmeticQuery, setCosmeticQuery] = useState("");
+  const cosmeticMatches = useMemo(
+    () => matchCosmeticSections(cosmeticQuery),
+    [cosmeticQuery],
+  );
+  const toggleSection = useCallback((key: string) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+  // While searching, a matching section is forced open — the point of the query
+  // is to reveal the control, not to reveal a header you then have to click.
+  const sectionOpen = useCallback(
+    (key: string) =>
+      cosmeticMatches ? cosmeticMatches.has(key) : openSections.has(key),
+    [cosmeticMatches, openSections],
+  );
+  /** Hide a section entirely when a search excludes it. */
+  const sectionVisible = useCallback(
+    (key: string) => !cosmeticMatches || cosmeticMatches.has(key),
+    [cosmeticMatches],
+  );
   // Which frame's settings dialog is open (null = none). The per-item gear
   // button (added imperatively in decorateItem) flips it; the portaled
   // FrameConfigDialog reads it. The ref mirrors it for the imperative deleteItem
@@ -584,8 +761,13 @@ export function DashboardEditor({
   // (below). Context from the editor's tree does NOT reach those roots — they
   // must re-provide anything frames read, which is why the display currency is
   // provided per item here as well as at the editor root.
-  const currencyRef = useRef(spec.currency.code);
-  currencyRef.current = spec.currency.code;
+  const currencyRef = useRef(currencyCode);
+  currencyRef.current = currencyCode;
+  // Mirrors for the []-deps GridStack callbacks, same reason as modeRef.
+  const columnsRef = useRef(columns);
+  columnsRef.current = columns;
+  const rowHeightRef = useRef(rowHeight);
+  rowHeightRef.current = rowHeight;
 
   const renderInstance = useCallback((id: string) => {
     const content = contentRef.current.get(id);
@@ -619,7 +801,7 @@ export function DashboardEditor({
   // changes, or already-mounted cards would keep quoting the old one.
   useEffect(() => {
     for (const id of instancesRef.current.keys()) renderInstance(id);
-  }, [spec.currency.code, renderInstance]);
+  }, [currencyCode, renderInstance]);
 
   const patchInstance = useCallback(
     (id: string, patch: Record<string, unknown>) => {
@@ -867,10 +1049,10 @@ export function DashboardEditor({
   const initGrid = useCallback(
     (m: LayoutMode, cols: number): GridStack => {
       const horizontal = m === "flow-horizontal";
-      const cell = horizontal ? horizontalCellPx() : spec.grid.rowHeight;
+      const cell = horizontal ? horizontalCellPx() : rowHeightRef.current;
       const grid = GridStack.init(
         {
-          column: horizontal ? cols : spec.grid.columns,
+          column: horizontal ? cols : columnsRef.current,
           cellHeight: cell,
           margin: spec.grid.gap / 2,
           float: true,
@@ -965,8 +1147,6 @@ export function DashboardEditor({
     },
     [
       horizontalCellPx,
-      spec.grid.columns,
-      spec.grid.rowHeight,
       spec.grid.rows,
       spec.grid.gap,
       uniqueId,
@@ -984,7 +1164,7 @@ export function DashboardEditor({
     const horizontal = modeRef.current === "flow-horizontal";
     const cols = horizontal
       ? colsForHorizontal(spec.frames, spec.grid.rows)
-      : spec.grid.columns;
+      : columnsRef.current;
     gridInstanceRef.current = initGrid(modeRef.current, cols);
     restore(
       horizontal
@@ -1108,7 +1288,7 @@ export function DashboardEditor({
     );
     return {
       ...spec,
-      grid: { ...spec.grid, gap, paddingX, mode },
+      grid: { ...spec.grid, gap, paddingX, mode, columns, rowHeight },
       background: {
         ...spec.background,
         type: bgType,
@@ -1147,10 +1327,12 @@ export function DashboardEditor({
         density,
         elevation,
       },
+      currency: { ...spec.currency, code: currencyCode },
       frames,
     };
   }, [
     spec,
+    currencyCode,
     accentHue,
     accentSat,
     baseHue,
@@ -1164,6 +1346,8 @@ export function DashboardEditor({
     gap,
     paddingX,
     mode,
+    columns,
+    rowHeight,
     radius,
     borderStrength,
     surfaceOpacity,
@@ -1263,7 +1447,7 @@ export function DashboardEditor({
       const horizontal = nextMode === "flow-horizontal";
       const cols = horizontal
         ? colsForHorizontal(frames, spec.grid.rows)
-        : spec.grid.columns;
+        : columnsRef.current;
       teardownGrid();
       modeRef.current = nextMode;
       setMode(nextMode);
@@ -1278,14 +1462,7 @@ export function DashboardEditor({
         grid.getGridItems().forEach(decorateItem);
       }
     },
-    [
-      teardownGrid,
-      initGrid,
-      restore,
-      decorateItem,
-      spec.grid.rows,
-      spec.grid.columns,
-    ],
+    [teardownGrid, initGrid, restore, decorateItem, spec.grid.rows],
   );
 
   // Swap the layout mode behind a brief blur+fade, so the structural reflow is
@@ -1349,6 +1526,8 @@ export function DashboardEditor({
       setSurface(next.theme.surface);
       setGap(next.grid.gap);
       setPaddingX(next.grid.paddingX);
+      setColumns(next.grid.columns);
+      setRowHeight(next.grid.rowHeight);
       setRadius(next.appearance.radius);
       setBorderStrength(next.appearance.borderStrength);
       setSurfaceOpacity(next.appearance.surfaceOpacity);
@@ -1370,6 +1549,7 @@ export function DashboardEditor({
       setBgImageFit(next.background.imageFit);
       setBgImageBlur(next.background.imageBlur);
       setBgOverlayOpacity(next.background.overlayOpacity);
+      setCurrencyCode(next.currency.code);
 
       // A snapshot from the other layout mode can't be morphed into — the two are
       // separate GridStack configs — so crossing modes always means a rebuild.
@@ -1502,12 +1682,46 @@ export function DashboardEditor({
     return () => clearTimeout(t);
   }, [removed, editing]);
 
-  /** ⌘Z / ⌘⇧Z (Ctrl on Windows/Linux) while customising. Skipped when the focus
-   *  is in a text field, so undo keeps its native meaning inside an input. */
+  /**
+   * Push grid geometry into the live GridStack.
+   *
+   * `column()` and `cellHeight()` both reflow in place, so changing the board's
+   * shape costs no teardown — the alternative (re-initialising the grid) would
+   * unmount and remount every frame's React root, re-subscribing all their
+   * WS/poll hooks, on each step of a slider.
+   *
+   * flow-horizontal is excluded on purpose: there the column count is derived
+   * from the frames and the cell height from the viewport, so both are computed,
+   * not chosen.
+   */
+  useEffect(() => {
+    const grid = gridInstanceRef.current;
+    if (!grid || modeRef.current === "flow-horizontal") return;
+    if (grid.getColumn() !== columns) grid.column(columns);
+    grid.cellHeight(rowHeight);
+  }, [columns, rowHeight]);
+
+  /**
+   * Customise-mode keyboard shortcuts: ⌘Z / ⌘⇧Z to undo/redo, ⌘S to save
+   * (Ctrl on Windows/Linux).
+   *
+   * ⌘Z is skipped while focus is in a text field so it keeps its native
+   * text-editing meaning; ⌘S is not, because the browser's own ⌘S (save this
+   * page) is never what someone editing a dashboard wants.
+   */
   useEffect(() => {
     if (!editing) return;
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const key = e.key.toLowerCase();
+
+      if (key === "s") {
+        e.preventDefault();
+        if (!saving) void save();
+        return;
+      }
+      if (key !== "z") return;
+
       const el = document.activeElement;
       if (
         el instanceof HTMLInputElement ||
@@ -1522,7 +1736,7 @@ export function DashboardEditor({
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [editing, undo, redo]);
+  }, [editing, undo, redo, save, saving]);
 
   const renderCustomiseButton = () => (
     <button
@@ -1550,7 +1764,7 @@ export function DashboardEditor({
   return (
     // Same display-currency wrapper the renderer applies, so a board looks
     // identical in customise mode and when served.
-    <DashboardCurrencyProvider code={spec.currency.code}>
+    <DashboardCurrencyProvider code={currencyCode}>
       <style>{FRAME_CSS}</style>
       {customiseButtonTarget && !editing
         ? createPortal(renderCustomiseButton(), customiseButtonTarget)
@@ -1723,6 +1937,31 @@ export function DashboardEditor({
         <div className="zf-editor-main">
           <div className="zf-editor-grid" data-switching={switching}>
             <div ref={gridRef} className="grid-stack" />
+            {/* A board with no frames rendered as a blank page with no
+                explanation and no way forward — the one state where the user
+                most needs telling what to do next. */}
+            {count === 0 && (
+              <div className="zf-board-empty">
+                <p className="zf-board-empty-title">This board is empty</p>
+                {editing ? (
+                  <p className="zf-board-empty-note">
+                    Pick a frame from the{" "}
+                    <button
+                      type="button"
+                      className="zf-board-empty-link"
+                      onClick={() => setRailTab("frames")}
+                    >
+                      Frames
+                    </button>{" "}
+                    panel — click to drop it in, or drag it onto the grid.
+                  </p>
+                ) : (
+                  <p className="zf-board-empty-note">
+                    Open Customise to add your first frame.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* The rail stays mounted so its width reveal animates *both* ways —
@@ -1735,887 +1974,1144 @@ export function DashboardEditor({
                 role="tablist"
                 aria-label="Customise"
               >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={railTab === "frames"}
-                  className={
-                    railTab === "frames"
-                      ? "zf-rail-tab is-active"
-                      : "zf-rail-tab"
-                  }
-                  onClick={() => setRailTab("frames")}
-                >
-                  Frames
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={railTab === "cosmetics"}
-                  className={
-                    railTab === "cosmetics"
-                      ? "zf-rail-tab is-active"
-                      : "zf-rail-tab"
-                  }
-                  onClick={() => setRailTab("cosmetics")}
-                >
-                  Cosmetics
-                </button>
+                {/* Complete tab semantics: each tab owns its panel via
+                    aria-controls, only the selected tab is in the tab order
+                    (tabIndex -1 on the other), and Left/Right move between them
+                    — the pattern role="tab" already promised. */}
+                {(["frames", "cosmetics"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    id={`zf-rail-tab-${tab}`}
+                    aria-selected={railTab === tab}
+                    aria-controls={`zf-rail-panel-${tab}`}
+                    tabIndex={railTab === tab ? 0 : -1}
+                    className={
+                      railTab === tab ? "zf-rail-tab is-active" : "zf-rail-tab"
+                    }
+                    onClick={() => setRailTab(tab)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight")
+                        return;
+                      e.preventDefault();
+                      const next = tab === "frames" ? "cosmetics" : "frames";
+                      setRailTab(next);
+                      document.getElementById(`zf-rail-tab-${next}`)?.focus();
+                    }}
+                  >
+                    {tab === "frames" ? "Frames" : "Cosmetics"}
+                  </button>
+                ))}
               </div>
 
               {railTab === "cosmetics" && (
-                <>
-                  <section className="zf-theme">
-                    <h3 className="zf-rail-title" style={{ margin: 0 }}>
-                      Presets
-                    </h3>
-                    <div className="zf-presets">
-                      {THEME_PRESETS.map((p) => (
-                        <button
-                          key={p.key}
-                          type="button"
-                          className={
-                            activePresetKey === p.key
-                              ? "zf-preset is-active"
-                              : "zf-preset"
-                          }
-                          title={p.description}
-                          aria-pressed={activePresetKey === p.key}
-                          onClick={() => applyPreset(p)}
-                        >
-                          <span
-                            className="zf-preset-swatch"
-                            style={{
-                              background: `linear-gradient(135deg, hsl(${p.theme.baseHue} ${p.theme.baseSat}% 16%) 0 52%, hsl(${p.theme.accentHue} ${p.theme.accentSat}% 62%) 52% 100%)`,
-                            }}
-                          />
-                          <span className="zf-preset-label">{p.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="zf-theme">
-                    <h3 className="zf-rail-title" style={{ margin: 0 }}>
-                      Mode
-                    </h3>
-                    <div
-                      className="zf-seg"
-                      role="group"
-                      aria-label="Surface mode"
-                      style={{ marginTop: 10 }}
-                    >
-                      {(["dark", "light"] as const).map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          className={
-                            surface === s
-                              ? "zf-seg-btn is-active"
-                              : "zf-seg-btn"
-                          }
-                          aria-pressed={surface === s}
-                          onClick={() => setSurface(s)}
-                        >
-                          {s === "dark" ? "Dark" : "Light"}
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-
-                  <section className="zf-theme">
-                    <h3 className="zf-rail-title" style={{ margin: 0 }}>
-                      Accent
-                    </h3>
-                    <div
-                      className="zf-theme-row"
-                      style={{ margin: "10px 0 0" }}
-                    >
-                      <span className="zf-theme-val">
-                        <span className="zf-theme-swatch" />
-                        Hue {accentHue}°
-                      </span>
-                      {accentHue !== 242 && (
-                        <button
-                          type="button"
-                          className="zf-theme-reset"
-                          onClick={() => setAccentHue(242)}
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-hue-slider"
-                      min={0}
-                      max={360}
-                      value={accentHue}
-                      aria-label="Accent hue"
-                      onChange={(e) => setAccentHue(Number(e.target.value))}
+                <div
+                  role="tabpanel"
+                  id="zf-rail-panel-cosmetics"
+                  aria-labelledby="zf-rail-tab-cosmetics"
+                >
+                  {/* Same affordance the frame palette already offers. With ~35
+                      controls behind nine headers, a header list alone still
+                      means knowing which family owns "elevation". */}
+                  <div className="zf-palette-search">
+                    <Search
+                      size={13}
+                      className="zf-palette-search-icon"
+                      aria-hidden="true"
                     />
-                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                      <span className="zf-theme-val">Saturation</span>
-                      <span className="zf-theme-knob-end">
-                        {accentSat !== 90 && (
+                    <input
+                      className="zf-palette-search-input"
+                      type="search"
+                      value={cosmeticQuery}
+                      placeholder="Search settings…"
+                      aria-label="Search settings"
+                      spellCheck={false}
+                      onChange={(e) => setCosmeticQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape" && cosmeticQuery) {
+                          e.stopPropagation();
+                          setCosmeticQuery("");
+                        }
+                      }}
+                    />
+                  </div>
+                  {cosmeticMatches?.size === 0 && (
+                    <p className="zf-palette-empty">
+                      No settings match &ldquo;{cosmeticQuery.trim()}&rdquo;.
+                    </p>
+                  )}
+                  {sectionVisible("presets") && (
+                    <RailSection
+                      label="Presets"
+                      open={sectionOpen("presets")}
+                      onToggle={() => toggleSection("presets")}
+                    >
+                      <div className="zf-presets">
+                        {THEME_PRESETS.map((p) => (
                           <button
+                            key={p.key}
                             type="button"
-                            className="zf-theme-reset"
-                            onClick={() => setAccentSat(90)}
+                            className={
+                              activePresetKey === p.key
+                                ? "zf-preset is-active"
+                                : "zf-preset"
+                            }
+                            title={p.description}
+                            aria-pressed={activePresetKey === p.key}
+                            onClick={() => applyPreset(p)}
                           >
-                            Reset
+                            <span
+                              className="zf-preset-swatch"
+                              style={{
+                                background: `linear-gradient(135deg, hsl(${p.theme.baseHue} ${p.theme.baseSat}% 16%) 0 52%, hsl(${p.theme.accentHue} ${p.theme.accentSat}% 62%) 52% 100%)`,
+                              }}
+                            />
+                            <span className="zf-preset-label">{p.label}</span>
                           </button>
-                        )}
-                        <span className="zf-theme-val">{accentSat}%</span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-range"
-                      min={0}
-                      max={100}
-                      value={accentSat}
-                      aria-label="Accent saturation"
-                      onChange={(e) => setAccentSat(Number(e.target.value))}
-                    />
-                  </section>
+                        ))}
+                      </div>
+                    </RailSection>
+                  )}
 
-                  <section className="zf-theme">
-                    <h3 className="zf-rail-title">Surface</h3>
-                    <div
-                      className="zf-theme-row"
-                      style={{ margin: "10px 0 0" }}
+                  {sectionVisible("mode") && (
+                    <RailSection
+                      label="Mode"
+                      open={sectionOpen("mode")}
+                      onToggle={() => toggleSection("mode")}
                     >
-                      <span className="zf-theme-val">
-                        <span
-                          className="zf-theme-swatch"
-                          style={{
-                            background: `hsl(${baseHue} ${baseSat}% 32%)`,
-                            boxShadow: "none",
-                          }}
-                        />
-                        Tint {baseHue}°
-                      </span>
-                      {baseHue !== 233 && (
-                        <button
-                          type="button"
-                          className="zf-theme-reset"
-                          onClick={() => setBaseHue(233)}
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-hue-slider"
-                      min={0}
-                      max={360}
-                      value={baseHue}
-                      aria-label="Surface tint hue"
-                      onChange={(e) => setBaseHue(Number(e.target.value))}
-                    />
-                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                      <span className="zf-theme-val">Tint strength</span>
-                      <span className="zf-theme-knob-end">
-                        {baseSat !== 20 && (
+                      <div
+                        className="zf-seg"
+                        role="group"
+                        aria-label="Surface mode"
+                        style={{ marginTop: 10 }}
+                      >
+                        {(["dark", "light"] as const).map((s) => (
                           <button
+                            key={s}
                             type="button"
-                            className="zf-theme-reset"
-                            onClick={() => setBaseSat(20)}
+                            className={
+                              surface === s
+                                ? "zf-seg-btn is-active"
+                                : "zf-seg-btn"
+                            }
+                            aria-pressed={surface === s}
+                            onClick={() => setSurface(s)}
                           >
-                            Reset
+                            {s === "dark" ? "Dark" : "Light"}
                           </button>
-                        )}
-                        <span className="zf-theme-val">{baseSat}%</span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-range"
-                      min={0}
-                      max={100}
-                      value={baseSat}
-                      aria-label="Surface tint strength"
-                      onChange={(e) => setBaseSat(Number(e.target.value))}
-                    />
-                  </section>
+                        ))}
+                      </div>
+                    </RailSection>
+                  )}
 
-                  <section className="zf-theme">
-                    <h3 className="zf-rail-title">Gain / Loss</h3>
-                    <div
-                      className="zf-theme-row"
-                      style={{ margin: "10px 0 0" }}
+                  {sectionVisible("accent") && (
+                    <RailSection
+                      label="Accent"
+                      open={sectionOpen("accent")}
+                      onToggle={() => toggleSection("accent")}
                     >
-                      <label className="zf-theme-val">
-                        <input
-                          type="color"
-                          className="zf-color"
-                          value={upColor}
-                          aria-label="Gain (up) colour"
-                          onChange={(e) => setUpColor(e.target.value)}
-                        />
-                        Up {upColor}
-                      </label>
-                      {upColor.toLowerCase() !== "#3fd08f" && (
-                        <button
-                          type="button"
-                          className="zf-theme-reset"
-                          onClick={() => setUpColor("#3fd08f")}
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                    <div className="zf-theme-row" style={{ marginTop: 9 }}>
-                      <label className="zf-theme-val">
-                        <input
-                          type="color"
-                          className="zf-color"
-                          value={downColor}
-                          aria-label="Loss (down) colour"
-                          onChange={(e) => setDownColor(e.target.value)}
-                        />
-                        Down {downColor}
-                      </label>
-                      {downColor.toLowerCase() !== "#ff6b81" && (
-                        <button
-                          type="button"
-                          className="zf-theme-reset"
-                          onClick={() => setDownColor("#ff6b81")}
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                  </section>
-
-                  <section className="zf-theme">
-                    <h3 className="zf-rail-title">Background</h3>
-                    <div
-                      className="zf-bg-seg"
-                      role="group"
-                      aria-label="Background style"
-                    >
-                      {(
-                        [
-                          "none",
-                          "color",
-                          "gradient",
-                          "unicorn",
-                          "image",
-                        ] as const
-                      ).map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          className={
-                            bgType === t ? "zf-seg-btn is-active" : "zf-seg-btn"
-                          }
-                          aria-pressed={bgType === t}
-                          onClick={() => setBgType(t)}
-                        >
-                          {t === "none"
-                            ? "Glow"
-                            : t === "color"
-                              ? "Color"
-                              : t === "gradient"
-                                ? "Gradient"
-                                : t === "unicorn"
-                                  ? "Scene"
-                                  : "Image"}
-                        </button>
-                      ))}
-                    </div>
-                    {bgType === "color" && (
-                      <div className="zf-theme-row" style={{ marginTop: 12 }}>
-                        <label className="zf-theme-val">
-                          <input
-                            type="color"
-                            className="zf-color"
-                            value={bgColor}
-                            aria-label="Background colour"
-                            onChange={(e) => setBgColor(e.target.value)}
-                          />
-                          {bgColor}
-                        </label>
-                        {bgColor.toLowerCase() !== "#0a0a12" && (
+                      <div
+                        className="zf-theme-row"
+                        style={{ margin: "10px 0 0" }}
+                      >
+                        <span className="zf-theme-val">
+                          <span className="zf-theme-swatch" />
+                          Hue {accentHue}°
+                        </span>
+                        {accentHue !== SPEC_DEFAULTS.theme.accentHue && (
                           <button
                             type="button"
                             className="zf-theme-reset"
-                            onClick={() => setBgColor("#0a0a12")}
+                            onClick={() =>
+                              setAccentHue(SPEC_DEFAULTS.theme.accentHue)
+                            }
                           >
                             Reset
                           </button>
                         )}
                       </div>
-                    )}
-                    {bgType === "gradient" && (
-                      <>
+                      <input
+                        type="range"
+                        className="zf-hue-slider"
+                        min={0}
+                        max={360}
+                        value={accentHue}
+                        aria-label="Accent hue"
+                        onChange={(e) => setAccentHue(Number(e.target.value))}
+                      />
+                      <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                        <span className="zf-theme-val">Saturation</span>
+                        <span className="zf-theme-knob-end">
+                          {accentSat !== SPEC_DEFAULTS.theme.accentSat && (
+                            <button
+                              type="button"
+                              className="zf-theme-reset"
+                              onClick={() =>
+                                setAccentSat(SPEC_DEFAULTS.theme.accentSat)
+                              }
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <span className="zf-theme-val">{accentSat}%</span>
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-range"
+                        min={0}
+                        max={100}
+                        value={accentSat}
+                        aria-label="Accent saturation"
+                        onChange={(e) => setAccentSat(Number(e.target.value))}
+                      />
+                    </RailSection>
+                  )}
+
+                  {sectionVisible("surface") && (
+                    <RailSection
+                      label="Surface"
+                      open={sectionOpen("surface")}
+                      onToggle={() => toggleSection("surface")}
+                    >
+                      <div
+                        className="zf-theme-row"
+                        style={{ margin: "10px 0 0" }}
+                      >
+                        <span className="zf-theme-val">
+                          <span
+                            className="zf-theme-swatch"
+                            style={{
+                              background: `hsl(${baseHue} ${baseSat}% 32%)`,
+                              boxShadow: "none",
+                            }}
+                          />
+                          Tint {baseHue}°
+                        </span>
+                        {baseHue !== SPEC_DEFAULTS.theme.baseHue && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() =>
+                              setBaseHue(SPEC_DEFAULTS.theme.baseHue)
+                            }
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-hue-slider"
+                        min={0}
+                        max={360}
+                        value={baseHue}
+                        aria-label="Surface tint hue"
+                        onChange={(e) => setBaseHue(Number(e.target.value))}
+                      />
+                      <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                        <span className="zf-theme-val">Tint strength</span>
+                        <span className="zf-theme-knob-end">
+                          {baseSat !== SPEC_DEFAULTS.theme.baseSat && (
+                            <button
+                              type="button"
+                              className="zf-theme-reset"
+                              onClick={() =>
+                                setBaseSat(SPEC_DEFAULTS.theme.baseSat)
+                              }
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <span className="zf-theme-val">{baseSat}%</span>
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-range"
+                        min={0}
+                        max={100}
+                        value={baseSat}
+                        aria-label="Surface tint strength"
+                        onChange={(e) => setBaseSat(Number(e.target.value))}
+                      />
+                    </RailSection>
+                  )}
+
+                  {sectionVisible("updown") && (
+                    <RailSection
+                      label="Gain / Loss"
+                      open={sectionOpen("updown")}
+                      onToggle={() => toggleSection("updown")}
+                    >
+                      <div
+                        className="zf-theme-row"
+                        style={{ margin: "10px 0 0" }}
+                      >
+                        <label className="zf-theme-val">
+                          <input
+                            type="color"
+                            className="zf-color"
+                            value={upColor}
+                            aria-label="Gain (up) colour"
+                            onChange={(e) => setUpColor(e.target.value)}
+                          />
+                          Up {upColor}
+                        </label>
+                        {upColor.toLowerCase() !==
+                          SPEC_DEFAULTS.theme.upColor && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() =>
+                              setUpColor(SPEC_DEFAULTS.theme.upColor)
+                            }
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                      <div className="zf-theme-row" style={{ marginTop: 9 }}>
+                        <label className="zf-theme-val">
+                          <input
+                            type="color"
+                            className="zf-color"
+                            value={downColor}
+                            aria-label="Loss (down) colour"
+                            onChange={(e) => setDownColor(e.target.value)}
+                          />
+                          Down {downColor}
+                        </label>
+                        {downColor.toLowerCase() !==
+                          SPEC_DEFAULTS.theme.downColor && (
+                          <button
+                            type="button"
+                            className="zf-theme-reset"
+                            onClick={() =>
+                              setDownColor(SPEC_DEFAULTS.theme.downColor)
+                            }
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </RailSection>
+                  )}
+
+                  {sectionVisible("background") && (
+                    <RailSection
+                      label="Background"
+                      open={sectionOpen("background")}
+                      onToggle={() => toggleSection("background")}
+                    >
+                      <div
+                        className="zf-bg-seg"
+                        role="group"
+                        aria-label="Background style"
+                      >
+                        {(
+                          [
+                            "none",
+                            "color",
+                            "gradient",
+                            "unicorn",
+                            "image",
+                          ] as const
+                        ).map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            className={
+                              bgType === t
+                                ? "zf-seg-btn is-active"
+                                : "zf-seg-btn"
+                            }
+                            aria-pressed={bgType === t}
+                            onClick={() => setBgType(t)}
+                          >
+                            {t === "none"
+                              ? "Glow"
+                              : t === "color"
+                                ? "Color"
+                                : t === "gradient"
+                                  ? "Gradient"
+                                  : t === "unicorn"
+                                    ? "Scene"
+                                    : "Image"}
+                          </button>
+                        ))}
+                      </div>
+                      {bgType === "color" && (
                         <div className="zf-theme-row" style={{ marginTop: 12 }}>
                           <label className="zf-theme-val">
                             <input
                               type="color"
                               className="zf-color"
-                              value={bgGradFrom}
-                              aria-label="Gradient start colour"
-                              onChange={(e) => setBgGradFrom(e.target.value)}
+                              value={bgColor}
+                              aria-label="Background colour"
+                              onChange={(e) => setBgColor(e.target.value)}
                             />
-                            From {bgGradFrom}
+                            {bgColor}
                           </label>
-                        </div>
-                        <div className="zf-theme-row" style={{ marginTop: 9 }}>
-                          <label className="zf-theme-val">
-                            <input
-                              type="color"
-                              className="zf-color"
-                              value={bgGradTo}
-                              aria-label="Gradient end colour"
-                              onChange={(e) => setBgGradTo(e.target.value)}
-                            />
-                            To {bgGradTo}
-                          </label>
-                        </div>
-                        <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                          <span className="zf-theme-val">Angle</span>
-                          <span className="zf-theme-knob-end">
-                            {bgGradAngle !== 160 && (
-                              <button
-                                type="button"
-                                className="zf-theme-reset"
-                                onClick={() => setBgGradAngle(160)}
-                              >
-                                Reset
-                              </button>
-                            )}
-                            <span className="zf-theme-val">{bgGradAngle}°</span>
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          className="zf-range"
-                          min={0}
-                          max={360}
-                          value={bgGradAngle}
-                          aria-label="Gradient angle"
-                          onChange={(e) =>
-                            setBgGradAngle(Number(e.target.value))
-                          }
-                        />
-                      </>
-                    )}
-                    {bgType === "unicorn" && (
-                      <>
-                        <div
-                          className="zf-presets"
-                          style={{ marginTop: 12 }}
-                          role="group"
-                          aria-label="Background scene"
-                        >
-                          {BACKGROUND_SCENES.map((s) => (
+                          {bgColor.toLowerCase() !==
+                            SPEC_DEFAULTS.background.color && (
                             <button
-                              key={s.key}
                               type="button"
-                              className={
-                                bgProjectId === s.projectId
-                                  ? "zf-preset is-active"
-                                  : "zf-preset"
+                              className="zf-theme-reset"
+                              onClick={() =>
+                                setBgColor(SPEC_DEFAULTS.background.color)
                               }
-                              title={s.description}
-                              aria-pressed={bgProjectId === s.projectId}
-                              onClick={() => setBgProjectId(s.projectId)}
                             >
-                              <span
-                                className="zf-preset-swatch"
-                                style={{ background: s.swatch }}
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {bgType === "gradient" && (
+                        <>
+                          <div
+                            className="zf-theme-row"
+                            style={{ marginTop: 12 }}
+                          >
+                            <label className="zf-theme-val">
+                              <input
+                                type="color"
+                                className="zf-color"
+                                value={bgGradFrom}
+                                aria-label="Gradient start colour"
+                                onChange={(e) => setBgGradFrom(e.target.value)}
                               />
-                              <span className="zf-preset-label">{s.label}</span>
-                            </button>
-                          ))}
-                        </div>
-                        <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                          <span className="zf-theme-val">Opacity</span>
-                          <span className="zf-theme-knob-end">
-                            {bgOpacity !== 0.16 && (
-                              <button
-                                type="button"
-                                className="zf-theme-reset"
-                                onClick={() => setBgOpacity(0.16)}
-                              >
-                                Reset
-                              </button>
-                            )}
-                            <span className="zf-theme-val">
-                              {Math.round(bgOpacity * 100)}%
+                              From {bgGradFrom}
+                            </label>
+                          </div>
+                          <div
+                            className="zf-theme-row"
+                            style={{ marginTop: 9 }}
+                          >
+                            <label className="zf-theme-val">
+                              <input
+                                type="color"
+                                className="zf-color"
+                                value={bgGradTo}
+                                aria-label="Gradient end colour"
+                                onChange={(e) => setBgGradTo(e.target.value)}
+                              />
+                              To {bgGradTo}
+                            </label>
+                          </div>
+                          <div
+                            className="zf-theme-row"
+                            style={{ marginTop: 13 }}
+                          >
+                            <span className="zf-theme-val">Angle</span>
+                            <span className="zf-theme-knob-end">
+                              {bgGradAngle !== 160 && (
+                                <button
+                                  type="button"
+                                  className="zf-theme-reset"
+                                  onClick={() => setBgGradAngle(160)}
+                                >
+                                  Reset
+                                </button>
+                              )}
+                              <span className="zf-theme-val">
+                                {bgGradAngle}°
+                              </span>
                             </span>
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          className="zf-range"
-                          min={0}
-                          max={0.6}
-                          step={0.02}
-                          value={bgOpacity}
-                          aria-label="Background scene opacity"
-                          onChange={(e) =>
-                            setBgOpacity(
-                              Math.round(Number(e.target.value) * 100) / 100,
-                            )
-                          }
-                        />
-                      </>
-                    )}
-                    {bgType === "image" && (
-                      <>
-                        <div className="zf-field" style={{ marginTop: 12 }}>
-                          <label htmlFor="zf-bg-image-url">Image URL</label>
+                          </div>
                           <input
-                            id="zf-bg-image-url"
-                            className="zf-input"
-                            type="url"
-                            value={bgImageUrl}
-                            placeholder="https://… or /hero.png"
-                            spellCheck={false}
-                            autoComplete="off"
-                            aria-label="Background image URL"
-                            onChange={(e) => setBgImageUrl(e.target.value)}
+                            type="range"
+                            className="zf-range"
+                            min={0}
+                            max={360}
+                            value={bgGradAngle}
+                            aria-label="Gradient angle"
+                            onChange={(e) =>
+                              setBgGradAngle(Number(e.target.value))
+                            }
                           />
-                          <p className="zf-field-hint">
-                            Full-bleed behind the dashboard, with a dark scrim
-                            for legibility.
-                          </p>
-                        </div>
-                        <div className="zf-theme-row">
-                          <span className="zf-theme-val">Fit</span>
-                        </div>
-                        <div
-                          className="zf-seg"
-                          role="group"
-                          aria-label="Background image fit"
+                        </>
+                      )}
+                      {bgType === "unicorn" && (
+                        <>
+                          <div
+                            className="zf-presets"
+                            style={{ marginTop: 12 }}
+                            role="group"
+                            aria-label="Background scene"
+                          >
+                            {BACKGROUND_SCENES.map((s) => (
+                              <button
+                                key={s.key}
+                                type="button"
+                                className={
+                                  bgProjectId === s.projectId
+                                    ? "zf-preset is-active"
+                                    : "zf-preset"
+                                }
+                                title={s.description}
+                                aria-pressed={bgProjectId === s.projectId}
+                                onClick={() => setBgProjectId(s.projectId)}
+                              >
+                                <span
+                                  className="zf-preset-swatch"
+                                  style={{ background: s.swatch }}
+                                />
+                                <span className="zf-preset-label">
+                                  {s.label}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                          <div
+                            className="zf-theme-row"
+                            style={{ marginTop: 13 }}
+                          >
+                            <span className="zf-theme-val">Opacity</span>
+                            <span className="zf-theme-knob-end">
+                              {bgOpacity !==
+                                SPEC_DEFAULTS.background.opacity && (
+                                <button
+                                  type="button"
+                                  className="zf-theme-reset"
+                                  onClick={() =>
+                                    setBgOpacity(
+                                      SPEC_DEFAULTS.background.opacity,
+                                    )
+                                  }
+                                >
+                                  Reset
+                                </button>
+                              )}
+                              <span className="zf-theme-val">
+                                {Math.round(bgOpacity * 100)}%
+                              </span>
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            className="zf-range"
+                            min={0}
+                            max={0.6}
+                            step={0.02}
+                            value={bgOpacity}
+                            aria-label="Background scene opacity"
+                            onChange={(e) =>
+                              setBgOpacity(
+                                Math.round(Number(e.target.value) * 100) / 100,
+                              )
+                            }
+                          />
+                        </>
+                      )}
+                      {bgType === "image" && (
+                        <>
+                          <div className="zf-field" style={{ marginTop: 12 }}>
+                            <label htmlFor="zf-bg-image-url">Image URL</label>
+                            <input
+                              id="zf-bg-image-url"
+                              className="zf-input"
+                              type="url"
+                              value={bgImageUrl}
+                              placeholder="https://… or /hero.png"
+                              spellCheck={false}
+                              autoComplete="off"
+                              aria-label="Background image URL"
+                              onChange={(e) => setBgImageUrl(e.target.value)}
+                            />
+                            <p className="zf-field-hint">
+                              Full-bleed behind the dashboard, with a dark scrim
+                              for legibility.
+                            </p>
+                          </div>
+                          <div className="zf-theme-row">
+                            <span className="zf-theme-val">Fit</span>
+                          </div>
+                          <div
+                            className="zf-seg"
+                            role="group"
+                            aria-label="Background image fit"
+                          >
+                            {(["cover", "contain"] as const).map((f) => (
+                              <button
+                                key={f}
+                                type="button"
+                                className={
+                                  bgImageFit === f
+                                    ? "zf-seg-btn is-active"
+                                    : "zf-seg-btn"
+                                }
+                                aria-pressed={bgImageFit === f}
+                                onClick={() => setBgImageFit(f)}
+                              >
+                                {f === "cover" ? "Cover" : "Contain"}
+                              </button>
+                            ))}
+                          </div>
+                          <div
+                            className="zf-theme-row"
+                            style={{ marginTop: 13 }}
+                          >
+                            <span className="zf-theme-val">Blur</span>
+                            <span className="zf-theme-knob-end">
+                              {bgImageBlur !==
+                                SPEC_DEFAULTS.background.imageBlur && (
+                                <button
+                                  type="button"
+                                  className="zf-theme-reset"
+                                  onClick={() =>
+                                    setBgImageBlur(
+                                      SPEC_DEFAULTS.background.imageBlur,
+                                    )
+                                  }
+                                >
+                                  Reset
+                                </button>
+                              )}
+                              <span className="zf-theme-val">
+                                {bgImageBlur}px
+                              </span>
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            className="zf-range"
+                            min={0}
+                            max={40}
+                            value={bgImageBlur}
+                            aria-label="Background image blur"
+                            onChange={(e) =>
+                              setBgImageBlur(Number(e.target.value))
+                            }
+                          />
+                          <div
+                            className="zf-theme-row"
+                            style={{ marginTop: 13 }}
+                          >
+                            <span className="zf-theme-val">Overlay</span>
+                            <span className="zf-theme-knob-end">
+                              {bgOverlayOpacity !==
+                                SPEC_DEFAULTS.background.overlayOpacity && (
+                                <button
+                                  type="button"
+                                  className="zf-theme-reset"
+                                  onClick={() =>
+                                    setBgOverlayOpacity(
+                                      SPEC_DEFAULTS.background.overlayOpacity,
+                                    )
+                                  }
+                                >
+                                  Reset
+                                </button>
+                              )}
+                              <span className="zf-theme-val">
+                                {Math.round(bgOverlayOpacity * 100)}%
+                              </span>
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            className="zf-range"
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            value={bgOverlayOpacity}
+                            aria-label="Background image overlay opacity"
+                            onChange={(e) =>
+                              setBgOverlayOpacity(
+                                Math.round(Number(e.target.value) * 100) / 100,
+                              )
+                            }
+                          />
+                        </>
+                      )}
+                    </RailSection>
+                  )}
+
+                  {sectionVisible("layout") && (
+                    <RailSection
+                      label="Layout"
+                      open={sectionOpen("layout")}
+                      onToggle={() => toggleSection("layout")}
+                    >
+                      <div className="zf-theme-row">
+                        <span className="zf-theme-val">Direction</span>
+                      </div>
+                      <div
+                        className="zf-mode-seg"
+                        role="group"
+                        aria-label="Dashboard layout direction"
+                      >
+                        <button
+                          type="button"
+                          className={
+                            mode === "flow-vertical"
+                              ? "zf-mode-seg-btn is-active"
+                              : "zf-mode-seg-btn"
+                          }
+                          aria-pressed={mode === "flow-vertical"}
+                          onClick={() => switchMode("flow-vertical")}
                         >
-                          {(["cover", "contain"] as const).map((f) => (
+                          Vertical
+                        </button>
+                        <button
+                          type="button"
+                          className={
+                            mode === "flow-horizontal"
+                              ? "zf-mode-seg-btn is-active"
+                              : "zf-mode-seg-btn"
+                          }
+                          aria-pressed={mode === "flow-horizontal"}
+                          onClick={() => switchMode("flow-horizontal")}
+                        >
+                          Horizontal
+                        </button>
+                      </div>
+                      {isHorizontal && (
+                        <p className="zf-mode-seg-hint">
+                          Rows fill the height; the board scrolls sideways.
+                          Arrange it freely — this layout is saved separately
+                          from Vertical.
+                        </p>
+                      )}
+                      <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                        <span className="zf-theme-val">Frame gap</span>
+                        <span className="zf-theme-knob-end">
+                          {gap !== SPEC_DEFAULTS.grid.gap && (
                             <button
-                              key={f}
                               type="button"
-                              className={
-                                bgImageFit === f
-                                  ? "zf-seg-btn is-active"
-                                  : "zf-seg-btn"
-                              }
-                              aria-pressed={bgImageFit === f}
-                              onClick={() => setBgImageFit(f)}
+                              className="zf-theme-reset"
+                              onClick={() => setGap(SPEC_DEFAULTS.grid.gap)}
                             >
-                              {f === "cover" ? "Cover" : "Contain"}
+                              Reset
                             </button>
-                          ))}
-                        </div>
-                        <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                          <span className="zf-theme-val">Blur</span>
-                          <span className="zf-theme-knob-end">
-                            {bgImageBlur !== 0 && (
-                              <button
-                                type="button"
-                                className="zf-theme-reset"
-                                onClick={() => setBgImageBlur(0)}
-                              >
-                                Reset
-                              </button>
-                            )}
-                            <span className="zf-theme-val">
-                              {bgImageBlur}px
+                          )}
+                          <span className="zf-theme-val">{gap}px</span>
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-range"
+                        min={0}
+                        max={12}
+                        value={gap}
+                        aria-label="Frame gap"
+                        onChange={(e) => setGap(Number(e.target.value))}
+                      />
+                      <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                        <span className="zf-theme-val">Side padding</span>
+                        <span className="zf-theme-knob-end">
+                          {paddingX !== SPEC_DEFAULTS.grid.paddingX && (
+                            <button
+                              type="button"
+                              className="zf-theme-reset"
+                              onClick={() =>
+                                setPaddingX(SPEC_DEFAULTS.grid.paddingX)
+                              }
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <span className="zf-theme-val">{paddingX}px</span>
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-range"
+                        min={0}
+                        max={96}
+                        step={4}
+                        value={paddingX}
+                        aria-label="Grid side padding"
+                        onChange={(e) => setPaddingX(Number(e.target.value))}
+                      />
+                      {/* Geometry. Both apply live via GridStack's own setters —
+                          and both are hidden in flow-horizontal, where the column
+                          count comes from the frames and the cell height from the
+                          viewport, so neither is the user's to pick. */}
+                      {!isHorizontal && (
+                        <>
+                          <div className="zf-theme-row">
+                            <span className="zf-theme-val">Columns</span>
+                            <span className="zf-theme-knob-end">
+                              {columns !== SPEC_DEFAULTS.grid.columns && (
+                                <button
+                                  type="button"
+                                  className="zf-theme-reset"
+                                  onClick={() =>
+                                    setColumns(SPEC_DEFAULTS.grid.columns)
+                                  }
+                                >
+                                  Reset
+                                </button>
+                              )}
+                              <span className="zf-theme-val">{columns}</span>
                             </span>
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          className="zf-range"
-                          min={0}
-                          max={40}
-                          value={bgImageBlur}
-                          aria-label="Background image blur"
-                          onChange={(e) =>
-                            setBgImageBlur(Number(e.target.value))
-                          }
-                        />
-                        <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                          <span className="zf-theme-val">Overlay</span>
-                          <span className="zf-theme-knob-end">
-                            {bgOverlayOpacity !== 0.55 && (
-                              <button
-                                type="button"
-                                className="zf-theme-reset"
-                                onClick={() => setBgOverlayOpacity(0.55)}
-                              >
-                                Reset
-                              </button>
-                            )}
-                            <span className="zf-theme-val">
-                              {Math.round(bgOverlayOpacity * 100)}%
+                          </div>
+                          <input
+                            type="range"
+                            className="zf-range"
+                            min={4}
+                            max={24}
+                            step={1}
+                            value={columns}
+                            aria-label="Grid columns"
+                            onChange={(e) => setColumns(Number(e.target.value))}
+                          />
+                          <div className="zf-theme-row">
+                            <span className="zf-theme-val">Row height</span>
+                            <span className="zf-theme-knob-end">
+                              {rowHeight !== SPEC_DEFAULTS.grid.rowHeight && (
+                                <button
+                                  type="button"
+                                  className="zf-theme-reset"
+                                  onClick={() =>
+                                    setRowHeight(SPEC_DEFAULTS.grid.rowHeight)
+                                  }
+                                >
+                                  Reset
+                                </button>
+                              )}
+                              <span className="zf-theme-val">
+                                {rowHeight}px
+                              </span>
                             </span>
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          className="zf-range"
-                          min={0}
-                          max={1}
-                          step={0.05}
-                          value={bgOverlayOpacity}
-                          aria-label="Background image overlay opacity"
-                          onChange={(e) =>
-                            setBgOverlayOpacity(
-                              Math.round(Number(e.target.value) * 100) / 100,
-                            )
-                          }
-                        />
-                      </>
-                    )}
-                  </section>
+                          </div>
+                          <input
+                            type="range"
+                            className="zf-range"
+                            min={40}
+                            max={200}
+                            step={2}
+                            value={rowHeight}
+                            aria-label="Grid row height"
+                            onChange={(e) =>
+                              setRowHeight(Number(e.target.value))
+                            }
+                          />
+                        </>
+                      )}
+                    </RailSection>
+                  )}
 
-                  <section className="zf-theme">
-                    <h3 className="zf-rail-title">Layout</h3>
-                    <div className="zf-theme-row">
-                      <span className="zf-theme-val">Direction</span>
-                    </div>
-                    <div
-                      className="zf-mode-seg"
-                      role="group"
-                      aria-label="Dashboard layout direction"
+                  {sectionVisible("appearance") && (
+                    <RailSection
+                      label="Appearance"
+                      open={sectionOpen("appearance")}
+                      onToggle={() => toggleSection("appearance")}
                     >
-                      <button
-                        type="button"
-                        className={
-                          mode === "flow-vertical"
-                            ? "zf-mode-seg-btn is-active"
-                            : "zf-mode-seg-btn"
+                      <div className="zf-theme-row">
+                        <span className="zf-theme-val">Corner radius</span>
+                        <span className="zf-theme-knob-end">
+                          {radius !== SPEC_DEFAULTS.appearance.radius && (
+                            <button
+                              type="button"
+                              className="zf-theme-reset"
+                              onClick={() =>
+                                setRadius(SPEC_DEFAULTS.appearance.radius)
+                              }
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <span className="zf-theme-val">{radius}px</span>
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-range"
+                        min={0}
+                        max={32}
+                        value={radius}
+                        aria-label="Corner radius"
+                        onChange={(e) => setRadius(Number(e.target.value))}
+                      />
+                      <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                        <span className="zf-theme-val">Border</span>
+                        <span className="zf-theme-knob-end">
+                          {borderStrength !==
+                            SPEC_DEFAULTS.appearance.borderStrength && (
+                            <button
+                              type="button"
+                              className="zf-theme-reset"
+                              onClick={() =>
+                                setBorderStrength(
+                                  SPEC_DEFAULTS.appearance.borderStrength,
+                                )
+                              }
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <span className="zf-theme-val">
+                            {Math.round(borderStrength * 100)}%
+                          </span>
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-range"
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={borderStrength}
+                        aria-label="Border strength"
+                        onChange={(e) =>
+                          setBorderStrength(
+                            Math.round(Number(e.target.value) * 100) / 100,
+                          )
                         }
-                        aria-pressed={mode === "flow-vertical"}
-                        onClick={() => switchMode("flow-vertical")}
-                      >
-                        Vertical
-                      </button>
-                      <button
-                        type="button"
-                        className={
-                          mode === "flow-horizontal"
-                            ? "zf-mode-seg-btn is-active"
-                            : "zf-mode-seg-btn"
+                      />
+                      <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                        <span className="zf-theme-val">Card opacity</span>
+                        <span className="zf-theme-knob-end">
+                          {surfaceOpacity !==
+                            SPEC_DEFAULTS.appearance.surfaceOpacity && (
+                            <button
+                              type="button"
+                              className="zf-theme-reset"
+                              onClick={() =>
+                                setSurfaceOpacity(
+                                  SPEC_DEFAULTS.appearance.surfaceOpacity,
+                                )
+                              }
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <span className="zf-theme-val">
+                            {Math.round(surfaceOpacity * 100)}%
+                          </span>
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-range"
+                        min={0.3}
+                        max={1}
+                        step={0.05}
+                        value={surfaceOpacity}
+                        aria-label="Card opacity"
+                        onChange={(e) =>
+                          setSurfaceOpacity(
+                            Math.round(Number(e.target.value) * 100) / 100,
+                          )
                         }
-                        aria-pressed={mode === "flow-horizontal"}
-                        onClick={() => switchMode("flow-horizontal")}
+                      />
+                      <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                        <span className="zf-theme-val">Density</span>
+                        <span className="zf-theme-knob-end">
+                          {density !== SPEC_DEFAULTS.appearance.density && (
+                            <button
+                              type="button"
+                              className="zf-theme-reset"
+                              onClick={() =>
+                                setDensity(SPEC_DEFAULTS.appearance.density)
+                              }
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <span className="zf-theme-val">
+                            {Math.round(density * 100)}%
+                          </span>
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-range"
+                        min={0.6}
+                        max={1.4}
+                        step={0.05}
+                        value={density}
+                        aria-label="Card density"
+                        onChange={(e) =>
+                          setDensity(
+                            Math.round(Number(e.target.value) * 100) / 100,
+                          )
+                        }
+                      />
+                      <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                        <span className="zf-theme-val">Elevation</span>
+                        <span className="zf-theme-knob-end">
+                          {elevation !== SPEC_DEFAULTS.appearance.elevation && (
+                            <button
+                              type="button"
+                              className="zf-theme-reset"
+                              onClick={() =>
+                                setElevation(SPEC_DEFAULTS.appearance.elevation)
+                              }
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <span className="zf-theme-val">
+                            {elevation.toFixed(1)}×
+                          </span>
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-range"
+                        min={0}
+                        max={2}
+                        step={0.1}
+                        value={elevation}
+                        aria-label="Card elevation"
+                        onChange={(e) =>
+                          setElevation(
+                            Math.round(Number(e.target.value) * 10) / 10,
+                          )
+                        }
+                      />
+                    </RailSection>
+                  )}
+
+                  {sectionVisible("typography") && (
+                    <RailSection
+                      label="Typography"
+                      open={sectionOpen("typography")}
+                      onToggle={() => toggleSection("typography")}
+                    >
+                      <div className="zf-theme-row">
+                        <span className="zf-theme-val">Font</span>
+                      </div>
+                      <div
+                        className="zf-seg"
+                        role="group"
+                        aria-label="Font family"
                       >
-                        Horizontal
-                      </button>
-                    </div>
-                    {isHorizontal && (
-                      <p className="zf-mode-seg-hint">
-                        Rows fill the height; the board scrolls sideways.
-                        Arrange it freely — this layout is saved separately from
-                        Vertical.
+                        {(["sans", "mono", "serif"] as const).map((f) => (
+                          <button
+                            key={f}
+                            type="button"
+                            className={
+                              fontFamily === f
+                                ? "zf-seg-btn is-active"
+                                : "zf-seg-btn"
+                            }
+                            aria-pressed={fontFamily === f}
+                            style={{ fontFamily: FONT_FAMILY_STACKS[f] }}
+                            onClick={() => setFontFamily(f)}
+                          >
+                            {f === "sans"
+                              ? "Sans"
+                              : f === "mono"
+                                ? "Mono"
+                                : "Serif"}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                        <span className="zf-theme-val">Numbers</span>
+                      </div>
+                      <div
+                        className="zf-seg"
+                        role="group"
+                        aria-label="Numeric style"
+                      >
+                        {(["proportional", "tabular"] as const).map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            className={
+                              numericStyle === n
+                                ? "zf-seg-btn is-active"
+                                : "zf-seg-btn"
+                            }
+                            aria-pressed={numericStyle === n}
+                            onClick={() => setNumericStyle(n)}
+                          >
+                            <span
+                              style={{
+                                fontVariantNumeric: NUMERIC_VARIANTS[n],
+                              }}
+                            >
+                              {n === "proportional"
+                                ? "Normal 1,071"
+                                : "Tabular 1,071"}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="zf-theme-row" style={{ marginTop: 13 }}>
+                        <span className="zf-theme-val">Text size</span>
+                        <span className="zf-theme-knob-end">
+                          {fontScale !== SPEC_DEFAULTS.typography.scale && (
+                            <button
+                              type="button"
+                              className="zf-theme-reset"
+                              onClick={() =>
+                                setFontScale(SPEC_DEFAULTS.typography.scale)
+                              }
+                            >
+                              Reset
+                            </button>
+                          )}
+                          <span className="zf-theme-val">
+                            {Math.round(fontScale * 100)}%
+                          </span>
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        className="zf-range"
+                        min={0.85}
+                        max={1.25}
+                        step={0.05}
+                        value={fontScale}
+                        aria-label="Text size"
+                        onChange={(e) =>
+                          setFontScale(
+                            Math.round(Number(e.target.value) * 100) / 100,
+                          )
+                        }
+                      />
+                    </RailSection>
+                  )}
+
+                  {sectionVisible("currency") && (
+                    <RailSection
+                      label="Currency"
+                      open={sectionOpen("currency")}
+                      onToggle={() => toggleSection("currency")}
+                    >
+                      <p className="zf-field-hint">
+                        Every money figure is converted from USD at the live ECB
+                        rate. Percentages and counts are unaffected, and
+                        US-macro series (Treasury yields, CPI, the national
+                        debt) stay in USD — a converted national debt is a
+                        figure nobody quotes.
                       </p>
-                    )}
-                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                      <span className="zf-theme-val">Frame gap</span>
-                      <span className="zf-theme-knob-end">
-                        {gap !== 12 && (
-                          <button
-                            type="button"
-                            className="zf-theme-reset"
-                            onClick={() => setGap(12)}
-                          >
-                            Reset
-                          </button>
-                        )}
-                        <span className="zf-theme-val">{gap}px</span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-range"
-                      min={0}
-                      max={12}
-                      value={gap}
-                      aria-label="Frame gap"
-                      onChange={(e) => setGap(Number(e.target.value))}
-                    />
-                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                      <span className="zf-theme-val">Side padding</span>
-                      <span className="zf-theme-knob-end">
-                        {paddingX !== 0 && (
-                          <button
-                            type="button"
-                            className="zf-theme-reset"
-                            onClick={() => setPaddingX(0)}
-                          >
-                            Reset
-                          </button>
-                        )}
-                        <span className="zf-theme-val">{paddingX}px</span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-range"
-                      min={0}
-                      max={96}
-                      step={4}
-                      value={paddingX}
-                      aria-label="Grid side padding"
-                      onChange={(e) => setPaddingX(Number(e.target.value))}
-                    />
-                  </section>
-
-                  <section className="zf-theme">
-                    <h3 className="zf-rail-title">Appearance</h3>
-                    <div className="zf-theme-row">
-                      <span className="zf-theme-val">Corner radius</span>
-                      <span className="zf-theme-knob-end">
-                        {radius !== 18 && (
-                          <button
-                            type="button"
-                            className="zf-theme-reset"
-                            onClick={() => setRadius(18)}
-                          >
-                            Reset
-                          </button>
-                        )}
-                        <span className="zf-theme-val">{radius}px</span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-range"
-                      min={0}
-                      max={32}
-                      value={radius}
-                      aria-label="Corner radius"
-                      onChange={(e) => setRadius(Number(e.target.value))}
-                    />
-                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                      <span className="zf-theme-val">Border</span>
-                      <span className="zf-theme-knob-end">
-                        {borderStrength !== 0.22 && (
-                          <button
-                            type="button"
-                            className="zf-theme-reset"
-                            onClick={() => setBorderStrength(0.22)}
-                          >
-                            Reset
-                          </button>
-                        )}
-                        <span className="zf-theme-val">
-                          {Math.round(borderStrength * 100)}%
-                        </span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-range"
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      value={borderStrength}
-                      aria-label="Border strength"
-                      onChange={(e) =>
-                        setBorderStrength(
-                          Math.round(Number(e.target.value) * 100) / 100,
-                        )
-                      }
-                    />
-                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                      <span className="zf-theme-val">Card opacity</span>
-                      <span className="zf-theme-knob-end">
-                        {surfaceOpacity !== 1 && (
-                          <button
-                            type="button"
-                            className="zf-theme-reset"
-                            onClick={() => setSurfaceOpacity(1)}
-                          >
-                            Reset
-                          </button>
-                        )}
-                        <span className="zf-theme-val">
-                          {Math.round(surfaceOpacity * 100)}%
-                        </span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-range"
-                      min={0.3}
-                      max={1}
-                      step={0.05}
-                      value={surfaceOpacity}
-                      aria-label="Card opacity"
-                      onChange={(e) =>
-                        setSurfaceOpacity(
-                          Math.round(Number(e.target.value) * 100) / 100,
-                        )
-                      }
-                    />
-                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                      <span className="zf-theme-val">Density</span>
-                      <span className="zf-theme-knob-end">
-                        {density !== 1 && (
-                          <button
-                            type="button"
-                            className="zf-theme-reset"
-                            onClick={() => setDensity(1)}
-                          >
-                            Reset
-                          </button>
-                        )}
-                        <span className="zf-theme-val">
-                          {Math.round(density * 100)}%
-                        </span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-range"
-                      min={0.6}
-                      max={1.4}
-                      step={0.05}
-                      value={density}
-                      aria-label="Card density"
-                      onChange={(e) =>
-                        setDensity(
-                          Math.round(Number(e.target.value) * 100) / 100,
-                        )
-                      }
-                    />
-                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                      <span className="zf-theme-val">Elevation</span>
-                      <span className="zf-theme-knob-end">
-                        {elevation !== 1 && (
-                          <button
-                            type="button"
-                            className="zf-theme-reset"
-                            onClick={() => setElevation(1)}
-                          >
-                            Reset
-                          </button>
-                        )}
-                        <span className="zf-theme-val">
-                          {elevation.toFixed(1)}×
-                        </span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-range"
-                      min={0}
-                      max={2}
-                      step={0.1}
-                      value={elevation}
-                      aria-label="Card elevation"
-                      onChange={(e) =>
-                        setElevation(
-                          Math.round(Number(e.target.value) * 10) / 10,
-                        )
-                      }
-                    />
-                  </section>
-
-                  <section className="zf-theme">
-                    <h3 className="zf-rail-title">Typography</h3>
-                    <div className="zf-theme-row">
-                      <span className="zf-theme-val">Font</span>
-                    </div>
-                    <div
-                      className="zf-seg"
-                      role="group"
-                      aria-label="Font family"
-                    >
-                      {(["sans", "mono", "serif"] as const).map((f) => (
-                        <button
-                          key={f}
-                          type="button"
-                          className={
-                            fontFamily === f
-                              ? "zf-seg-btn is-active"
-                              : "zf-seg-btn"
-                          }
-                          aria-pressed={fontFamily === f}
-                          style={{ fontFamily: FONT_FAMILY_STACKS[f] }}
-                          onClick={() => setFontFamily(f)}
-                        >
-                          {f === "sans"
-                            ? "Sans"
-                            : f === "mono"
-                              ? "Mono"
-                              : "Serif"}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                      <span className="zf-theme-val">Numbers</span>
-                    </div>
-                    <div
-                      className="zf-seg"
-                      role="group"
-                      aria-label="Numeric style"
-                    >
-                      {(["proportional", "tabular"] as const).map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          className={
-                            numericStyle === n
-                              ? "zf-seg-btn is-active"
-                              : "zf-seg-btn"
-                          }
-                          aria-pressed={numericStyle === n}
-                          onClick={() => setNumericStyle(n)}
-                        >
-                          <span
-                            style={{ fontVariantNumeric: NUMERIC_VARIANTS[n] }}
-                          >
-                            {n === "proportional"
-                              ? "Normal 1,071"
-                              : "Tabular 1,071"}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    <div className="zf-theme-row" style={{ marginTop: 13 }}>
-                      <span className="zf-theme-val">Text size</span>
-                      <span className="zf-theme-knob-end">
-                        {fontScale !== 1 && (
-                          <button
-                            type="button"
-                            className="zf-theme-reset"
-                            onClick={() => setFontScale(1)}
-                          >
-                            Reset
-                          </button>
-                        )}
-                        <span className="zf-theme-val">
-                          {Math.round(fontScale * 100)}%
-                        </span>
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      className="zf-range"
-                      min={0.85}
-                      max={1.25}
-                      step={0.05}
-                      value={fontScale}
-                      aria-label="Text size"
-                      onChange={(e) =>
-                        setFontScale(
-                          Math.round(Number(e.target.value) * 100) / 100,
-                        )
-                      }
-                    />
-                  </section>
-                </>
+                      <select
+                        className="zf-select"
+                        style={{ marginTop: 8 }}
+                        value={currencyCode}
+                        aria-label="Display currency"
+                        onChange={(e) =>
+                          setCurrencyCode(
+                            e.target.value as DashboardSpec["currency"]["code"],
+                          )
+                        }
+                      >
+                        {CURRENCY_CODES.map((code) => (
+                          <option key={code} value={code}>
+                            {code}
+                          </option>
+                        ))}
+                      </select>
+                    </RailSection>
+                  )}
+                </div>
               )}
 
               {railTab === "frames" && (
-                <section>
+                <section
+                  role="tabpanel"
+                  id="zf-rail-panel-frames"
+                  aria-labelledby="zf-rail-tab-frames"
+                >
                   <h3 className="zf-rail-title">Add a frame</h3>
                   <p className="zf-palette-hint">
                     Search, or open a category, then click a frame to add it —

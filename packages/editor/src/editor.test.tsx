@@ -959,3 +959,456 @@ describe("honest save", () => {
     expect(view.queryByRole("button", { name: "Save" })).toBeNull();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The rail.
+//
+// The Cosmetics rail was nine non-collapsible sections — ~35 controls stacked in
+// one 320px scroll column with no search — so reaching "elevation" meant
+// scrolling past every background control. Two settings weren't in the editor at
+// all: grid geometry, and display CURRENCY, which converts every money figure on
+// the board and so could only be changed by hand-editing dashboard.json.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function railSections(container: HTMLElement) {
+  return [...container.querySelectorAll(".zf-rail .zf-theme")].map((el) => ({
+    label:
+      el.querySelector(".zf-theme-header-label")?.textContent?.trim() ?? "?",
+    open: el.classList.contains("is-open"),
+  }));
+}
+
+async function openCosmetics(view: RenderResult) {
+  await act(async () => {
+    fireEvent.click(view.getByRole("tab", { name: "Cosmetics" }));
+  });
+}
+
+async function searchSettings(view: RenderResult, query: string) {
+  await act(async () => {
+    fireEvent.change(view.getByLabelText("Search settings"), {
+      target: { value: query },
+    });
+  });
+}
+
+describe("cosmetics rail: collapsible sections", () => {
+  it("collapses every section but Presets, so the rail is a scannable list", async () => {
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+
+    const sections = railSections(view.container);
+    expect(sections.map((s) => s.label)).toEqual([
+      "Presets",
+      "Mode",
+      "Accent",
+      "Surface",
+      "Gain / Loss",
+      "Background",
+      "Layout",
+      "Appearance",
+      "Typography",
+      "Currency",
+    ]);
+    // Presets is the one-click route to a whole look, so it's the thing offered
+    // first; everything else is opened deliberately.
+    expect(sections.filter((s) => s.open).map((s) => s.label)).toEqual([
+      "Presets",
+    ]);
+  });
+
+  it("toggles a section open and shut", async () => {
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+    const header = view.getByRole("button", { name: "Appearance" });
+    expect(header.getAttribute("aria-expanded")).toBe("false");
+
+    await act(async () => fireEvent.click(header));
+    expect(
+      view
+        .getByRole("button", { name: "Appearance" })
+        .getAttribute("aria-expanded"),
+    ).toBe("true");
+
+    await act(async () => fireEvent.click(header));
+    expect(
+      view
+        .getByRole("button", { name: "Appearance" })
+        .getAttribute("aria-expanded"),
+    ).toBe("false");
+  });
+});
+
+describe("cosmetics rail: search", () => {
+  it("narrows to the matching section and opens it", async () => {
+    // The whole point of the query is to reveal the control, not to reveal a
+    // header you then have to click.
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+    await searchSettings(view, "elevation");
+
+    expect(railSections(view.container)).toEqual([
+      { label: "Appearance", open: true },
+    ]);
+  });
+
+  it("matches the words a user would type, not only the visible labels", async () => {
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+
+    // "shadow" is what the elevation slider does; "font" and "green" name no
+    // section at all.
+    for (const [query, expected] of [
+      ["shadow", "Appearance"],
+      ["font", "Typography"],
+      ["green", "Gain / Loss"],
+      ["scene", "Background"],
+    ] as const) {
+      await searchSettings(view, query);
+      expect(
+        railSections(view.container).map((s) => s.label),
+        `"${query}" should find ${expected}`,
+      ).toContain(expected);
+    }
+  });
+
+  it("says so when nothing matches, rather than showing a blank rail", async () => {
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+    await searchSettings(view, "qqqq");
+
+    expect(railSections(view.container)).toEqual([]);
+    expect(view.container.textContent).toContain("No settings match");
+  });
+
+  it("restores every section when the query is cleared", async () => {
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+    await searchSettings(view, "elevation");
+    expect(railSections(view.container)).toHaveLength(1);
+
+    await searchSettings(view, "");
+    expect(railSections(view.container)).toHaveLength(10);
+    // And back to the pre-search open/shut state, not all-open.
+    expect(
+      railSections(view.container)
+        .filter((s) => s.open)
+        .map((s) => s.label),
+    ).toEqual(["Presets"]);
+  });
+});
+
+describe("display currency is editable", () => {
+  it("reprices every live card and lands in the saved spec", async () => {
+    // Currency converts every money figure on the board, which made it the
+    // highest-impact setting the editor didn't expose at all.
+    const { provider } = fxProvider({ THB: 36.5 });
+    const onSave = vi.fn();
+    hostProviders.current = [provider];
+    const view = render(
+      <FramesProvider providers={hostProviders.current}>
+        <DashboardEditor
+          spec={parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }])}
+          registry={registry}
+          onSave={onSave}
+        />
+      </FramesProvider>,
+    );
+
+    expect(probeOf(view.container, "a").dataset.code).toBe("USD");
+    await enterCustomise(view);
+    await openCosmetics(view);
+    await searchSettings(view, "currency");
+
+    await act(async () => {
+      fireEvent.change(view.getByLabelText("Display currency"), {
+        target: { value: "THB" },
+      });
+    });
+
+    // The already-mounted item root follows — the code is read from a ref, so
+    // only the explicit re-render effect can push it in.
+    await waitFor(() =>
+      expect(probeOf(view.container, "a").dataset.code).toBe("THB"),
+    );
+    expect(probeOf(view.container, "a").dataset.rate).toBe("36.5");
+
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    expect((onSave.mock.calls[0][0] as DashboardSpec).currency.code).toBe(
+      "THB",
+    );
+  });
+
+  it("is undoable like any other cosmetic", async () => {
+    const { provider } = fxProvider({ THB: 36.5 });
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [provider],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+    await searchSettings(view, "currency");
+    await act(async () => {
+      fireEvent.change(view.getByLabelText("Display currency"), {
+        target: { value: "THB" },
+      });
+    });
+    await waitFor(() =>
+      expect(probeOf(view.container, "a").dataset.code).toBe("THB"),
+    );
+
+    // The debounced cosmetics watcher records it, so ⌘Z reverses it.
+    await waitFor(() =>
+      expect(
+        view.getByRole("button", { name: "Undo" }).hasAttribute("disabled"),
+      ).toBe(false),
+    );
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Undo" }));
+    });
+    await waitFor(() =>
+      expect(probeOf(view.container, "a").dataset.code).toBe("USD"),
+    );
+  });
+});
+
+describe("empty board", () => {
+  it("explains itself and points at the Frames panel", async () => {
+    // A frameless board rendered as a blank page: no explanation, no next step.
+    const view = mount(parseSpec([]), []);
+    expect(view.container.textContent).toContain("This board is empty");
+    expect(view.container.textContent).toContain("Open Customise");
+
+    await enterCustomise(view);
+    expect(view.container.textContent).toContain("Frames");
+    // The prompt's link switches the rail to the panel that can fix it.
+    await act(async () => {
+      fireEvent.click(
+        view.container.querySelector(".zf-board-empty-link") as HTMLElement,
+      );
+    });
+    expect(
+      view.getByRole("tab", { name: "Frames" }).getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
+  it("disappears once the board has a frame", async () => {
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    expect(view.container.textContent).not.toContain("This board is empty");
+  });
+});
+
+describe("keyboard and tab semantics", () => {
+  it("saves on ⌘S", async () => {
+    const onSave = vi.fn();
+    const view = mountWith(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      onSave,
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    await act(async () => {
+      fireEvent.keyDown(document, { key: "s", metaKey: true });
+    });
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(
+      (onSave.mock.calls[0][0] as DashboardSpec).frames.map((f) => f.id),
+    ).toEqual(["b"]);
+  });
+
+  it("gives each tab its panel, and moves between them with arrow keys", async () => {
+    // role="tab" was already there, but with no aria-controls, no tabpanel, and
+    // no arrow-key handling — a tablist in name only.
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+
+    const frames = view.getByRole("tab", { name: "Frames" });
+    expect(frames.getAttribute("aria-controls")).toBe("zf-rail-panel-frames");
+    expect(frames.getAttribute("tabindex")).toBe("0");
+    // Only the selected tab is in the tab order.
+    expect(
+      view.getByRole("tab", { name: "Cosmetics" }).getAttribute("tabindex"),
+    ).toBe("-1");
+    expect(
+      view.container
+        .querySelector("#zf-rail-panel-frames")
+        ?.getAttribute("role"),
+    ).toBe("tabpanel");
+
+    await act(async () => fireEvent.keyDown(frames, { key: "ArrowRight" }));
+    expect(
+      view
+        .getByRole("tab", { name: "Cosmetics" })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(
+      view.container
+        .querySelector("#zf-rail-panel-cosmetics")
+        ?.getAttribute("aria-labelledby"),
+    ).toBe("zf-rail-tab-cosmetics");
+  });
+});
+
+describe("grid geometry is editable", () => {
+  it("reflows the live grid and saves the new shape", async () => {
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+    await searchSettings(view, "columns");
+
+    const before = gridEl(view.container).getAttribute("gs-current-row");
+    await act(async () => {
+      fireEvent.change(view.getByLabelText("Grid columns"), {
+        target: { value: "6" },
+      });
+    });
+
+    // Applied in place through GridStack's own column() — NOT a re-init, which
+    // would remount every frame's React root and re-subscribe its data hooks.
+    expect(gridEl(view.container).classList.contains("gs-6")).toBe(true);
+    expect(mounts.count).toBe(1);
+    expect(before).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.change(view.getByLabelText("Grid row height"), {
+        target: { value: "120" },
+      });
+    });
+
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    const saved = savedSpec(view.onSave);
+    expect(saved.grid.columns).toBe(6);
+    expect(saved.grid.rowHeight).toBe(120);
+  });
+
+  it("hides geometry in flow-horizontal, where both are derived", async () => {
+    // There the column count comes from the frames and the cell height from the
+    // viewport, so offering a control would imply a choice the user doesn't have.
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }], {
+        mode: "flow-horizontal",
+      }),
+      [],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+    await searchSettings(view, "columns");
+    expect(view.queryByLabelText("Grid columns")).toBeNull();
+    expect(view.queryByLabelText("Grid row height")).toBeNull();
+  });
+});
+
+describe("Reset links track the schema, not hand-copied literals", () => {
+  it("offers no Reset anywhere on a board that is entirely at its defaults", async () => {
+    // Every Reset link decides whether to appear by comparing the live value to a
+    // default, and each of those used to be an inline literal repeated at ~20 call
+    // sites. One had already drifted: the schema's rowHeight default is 96, and a
+    // hand-written `!== 90` offered "Reset" on an untouched board — then reset it
+    // to a value the schema never chose. Deriving the comparisons from the schema
+    // makes that class of drift impossible, and this is the assertion that keeps
+    // it that way: a default board has nothing to reset, by definition.
+    // NOT parseSpec: that fixture pins grid values (rowHeight 90) which are
+    // legitimately off-default, so a Reset there would be correct. This board
+    // takes every cosmetic straight from the schema.
+    const view = mount(
+      DashboardSpecSchema.parse({
+        title: "defaults",
+        frames: [
+          {
+            id: "a",
+            frame: "probe",
+            position: { x: 0, y: 0, w: 3, h: 2 },
+            config: {},
+          },
+        ],
+      }),
+      [],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+
+    // Open every section so no Reset is merely hidden behind a collapsed header.
+    for (const { label } of railSections(view.container)) {
+      const header = view.getByRole("button", { name: label });
+      if (header.getAttribute("aria-expanded") === "false") {
+        await act(async () => fireEvent.click(header));
+      }
+    }
+    expect(
+      railSections(view.container).every((s) => s.open),
+      "every section should be open for this assertion to mean anything",
+    ).toBe(true);
+
+    const stray = view.queryAllByRole("button", { name: "Reset" }).map((b) => {
+      const sec = b.closest(".zf-theme");
+      const row = b.closest(".zf-theme-row");
+      return `${sec?.querySelector(".zf-theme-header-label")?.textContent} / ${row?.textContent}`;
+    });
+    expect(stray).toEqual([]);
+  });
+
+  it("offers Reset once a value moves off its default, and it restores it", async () => {
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    await openCosmetics(view);
+    await searchSettings(view, "appearance");
+
+    const slider = view.getByLabelText("Corner radius");
+    expect((slider as HTMLInputElement).value).toBe("18"); // the schema default
+    await act(async () => {
+      fireEvent.change(slider, { target: { value: "4" } });
+    });
+
+    const reset = view.getByRole("button", { name: "Reset" });
+    await act(async () => fireEvent.click(reset));
+    expect(
+      (view.getByLabelText("Corner radius") as HTMLInputElement).value,
+    ).toBe("18");
+    expect(view.queryAllByRole("button", { name: "Reset" })).toEqual([]);
+  });
+});
