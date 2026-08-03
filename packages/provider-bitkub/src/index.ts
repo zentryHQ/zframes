@@ -12,6 +12,36 @@ import { fetchJson } from "@zframes/data-primitives/fetch";
 const BASE_URL = "https://api.bitkub.com";
 /** ECB reference rates, keyless — the same source @zframes/provider-fx uses. */
 const FX_URL = "https://api.frankfurter.dev/v1/latest?base=USD&symbols=THB";
+/** Intraday commercial rates, keyless but rate-limited (~61 requests/window). */
+const FX_URL_FXRATESAPI =
+  "https://api.fxratesapi.com/latest?base=USD&currencies=THB";
+/**
+ * CC0, no rate limits, USD-based. The pages.dev origin, NOT the jsDelivr mirror
+ * of the same dataset — the CDN copy was observed a full day behind.
+ */
+const FX_URL_CURRENCY_API =
+  "https://latest.currency-api.pages.dev/v1/currencies/usd.json";
+/**
+ * The ECB's own data portal, which publishes everything against EUR — so a
+ * USD/THB rate needs two series and a cross. Last resort for that reason.
+ */
+const FX_URL_ECB_THB =
+  "https://data-api.ecb.europa.eu/service/data/EXR/D.THB.EUR.SP00.A?format=jsondata&lastNObservations=2";
+const FX_URL_ECB_USD =
+  "https://data-api.ecb.europa.eu/service/data/EXR/D.USD.EUR.SP00.A?format=jsondata&lastNObservations=2";
+
+/**
+ * Plausibility band for THB per 1 USD. Every price this provider emits is
+ * divided by this number, so a wrong-but-finite rate silently corrupts the whole
+ * board — worse than no data at all. The band is deliberately far wider than the
+ * baht ever trades (it spent the 1990s near 25 and spiked to ~56 in the 1997
+ * crisis; it has been 30–38 for years) but tight enough to catch every way a
+ * source can hand back the wrong number: an inverted quote (USD per THB, ~0.03),
+ * a EUR/USD-shaped cross that skipped the baht leg (~1.15), or a decimal slip
+ * (~3.3 or ~334). Anything outside falls through to the next source.
+ */
+const FX_MIN = 10;
+const FX_MAX = 100;
 /** Bitkub quotes everything against Thai baht; there is no second quote asset. */
 const QUOTE = "THB";
 const DEFAULT_SYMBOL = "KUB";
@@ -54,9 +84,11 @@ const candlesCache = new TtlCache<Candle[]>({
   namespace: "zframes:bitkub:candles",
   ttlMs: 50_000,
 });
-// USD/THB is an ECB *daily* reference rate, so an hour-long TTL is already far
-// finer than the source's resolution. Persisted: it survives a reload, which
-// keeps the very first paint after startup denominated correctly.
+// USD/THB comes from daily-published reference rates (only the FXRatesAPI
+// fallback is intraday), so an hour-long TTL is already finer than the sources'
+// resolution. Persisted for two reasons: it survives a reload, which keeps the
+// very first paint after startup denominated correctly, and it gives
+// stale-on-error something to fall back on if the whole FX chain is down.
 const fxCache = new TtlCache<number>({
   namespace: "zframes:bitkub:usdthb",
   ttlMs: 60 * 60_000,
@@ -122,8 +154,126 @@ interface BitkubHistoryResponse {
   v?: number[];
 }
 
-interface FrankfurterResponse {
+/**
+ * Frankfurter and FXRatesAPI happen to agree on shape: `{rates:{THB:number}}`
+ * with an upper-case currency key. (FXRatesAPI adds `success`/`timestamp`, which
+ * we ignore — a bad rate is caught by the plausibility band, not a flag.)
+ */
+interface RatesMapResponse {
   rates?: Record<string, number>;
+}
+
+/** currency-api keys by *lower-case* code, base first: `{usd:{thb:number}}`. */
+interface CurrencyApiResponse {
+  usd?: Record<string, number>;
+}
+
+/**
+ * SDMX-JSON, as served by the ECB data portal. Observations live under a
+ * positional series key (one series per request here, so always "0:0:0:0:0") and
+ * are keyed by *observation index* as a string, value-first in a tuple.
+ */
+interface SdmxResponse {
+  dataSets?: {
+    series?: Record<string, { observations?: Record<string, unknown[]> }>;
+  }[];
+}
+
+/** THB per 1 USD, or 0 when the source can't supply a usable number. */
+interface FxSource {
+  /** Names the source in the all-sources-failed error, so a dead link is findable. */
+  name: string;
+  load(): Promise<number>;
+}
+
+/**
+ * Latest observation of a single-series SDMX response. The observation keys are
+ * stringified indices ("0", "1", …) in publication order, so the newest print is
+ * the highest key — not the first one the object happens to enumerate.
+ */
+function latestSdmxObservation(body: SdmxResponse | undefined): number {
+  const series = body?.dataSets?.[0]?.series ?? {};
+  const observations = Object.values(series)[0]?.observations ?? {};
+  let bestIndex = -1;
+  let bestValue = 0;
+  for (const [index, tuple] of Object.entries(observations)) {
+    const i = Number(index);
+    const value = num(Array.isArray(tuple) ? tuple[0] : undefined);
+    if (!Number.isFinite(i) || value <= 0 || i <= bestIndex) continue;
+    bestIndex = i;
+    bestValue = value;
+  }
+  return bestValue;
+}
+
+/**
+ * USD/THB sources in preference order. Frankfurter stays first (it is what this
+ * provider always used, so the healthy path is unchanged); the rest exist because
+ * a single upstream outage otherwise killed every Bitkub card on the board.
+ *
+ * A source that throws — including a 429, which `fetchJson` surfaces as a
+ * non-2xx error — simply hands over to the next one; nothing retries, so a
+ * rate-limited source is asked once per TTL and never hammered.
+ */
+const FX_SOURCES: readonly FxSource[] = [
+  {
+    name: "frankfurter",
+    load: async () =>
+      num((await fetchJson<RatesMapResponse>(FX_URL))?.rates?.THB),
+  },
+  {
+    name: "fxratesapi",
+    load: async () =>
+      num((await fetchJson<RatesMapResponse>(FX_URL_FXRATESAPI))?.rates?.THB),
+  },
+  {
+    name: "currency-api",
+    load: async () =>
+      num(
+        (await fetchJson<CurrencyApiResponse>(FX_URL_CURRENCY_API))?.usd?.thb,
+      ),
+  },
+  {
+    name: "ecb-cross",
+    load: async () => {
+      // EUR-based series, so USD/THB = (THB per EUR) ÷ (USD per EUR).
+      const [thbPerEur, usdPerEur] = await Promise.all([
+        fetchJson<SdmxResponse>(FX_URL_ECB_THB).then(latestSdmxObservation),
+        fetchJson<SdmxResponse>(FX_URL_ECB_USD).then(latestSdmxObservation),
+      ]);
+      if (usdPerEur <= 0) return 0;
+      return thbPerEur / usdPerEur;
+    },
+  },
+];
+
+/** Reject anything that would silently misprice the board (see FX_MIN/FX_MAX). */
+function plausibleRate(rate: number): boolean {
+  return Number.isFinite(rate) && rate >= FX_MIN && rate <= FX_MAX;
+}
+
+/**
+ * Walk {@link FX_SOURCES} in order, returning the first plausible rate. Only
+ * when every source has failed (or answered something implausible) does this
+ * throw — and even then `fxCache`'s stale-on-error serves the last good rate if
+ * there is one, so a board that has ever resolved a rate degrades to a slightly
+ * stale one rather than to error cards. That mirrors how the core currency layer
+ * degrades: a marginally old rate beats a dead card.
+ */
+async function loadUsdThb(): Promise<number> {
+  const failures: string[] = [];
+  for (const source of FX_SOURCES) {
+    try {
+      const rate = await source.load();
+      if (plausibleRate(rate)) return rate;
+      failures.push(`${source.name} implausible (${rate})`);
+    } catch (error) {
+      failures.push(
+        `${source.name} ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+  throw new Error(`bitkub fx: no USD/THB rate — ${failures.join("; ")}`);
 }
 
 /** Cumulate size from the best level down, dropping malformed tuples. */
@@ -156,9 +306,9 @@ function toLevels(
  * `source: "bitkub"` (capability routing is otherwise first-match, which would
  * always hand these to Hyperliquid). Bitkub quotes in Thai baht, but every
  * capability in this codebase is denominated in USD, so prices are converted at
- * the live ECB reference rate on the way out — a `currency: "THB"` dashboard
- * then converts back for display at the same rate, so a baht board shows the
- * exchange's own baht numbers.
+ * a live USD/THB reference rate on the way out (see {@link FX_SOURCES}) — a
+ * `currency: "THB"` dashboard then converts back for display at the same rate,
+ * so a baht board shows the exchange's own baht numbers.
  * - day-stats: last price, 24h change and 24h volume per market.
  * - ohlcv: candles for one market, window anchored to now.
  * - order-book: a two-sided depth snapshot with cumulative size.
@@ -174,16 +324,17 @@ export class BitkubProvider implements MarketDataProvider {
   /**
    * THB per 1 USD. Fetched here rather than borrowed from the FX provider
    * because a provider is self-contained (nothing wires providers to each
-   * other), and it's the same keyless ECB source that provider serves, so the
-   * two can't disagree.
+   * other), and Frankfurter — the primary — is the same keyless ECB source that
+   * provider serves, so the two can't disagree in the healthy case.
+   *
+   * The rate gates *every* number this provider emits, which made one upstream a
+   * single point of failure for the whole venue: a Frankfurter outage used to
+   * throw and take every Bitkub card with it. It now walks an ordered chain of
+   * four keyless, CORS-open sources ({@link FX_SOURCES}) and sanity-checks the
+   * result ({@link plausibleRate}) before trusting it.
    */
   private async usdThb(): Promise<number> {
-    return fxCache.get("USD:THB", async () => {
-      const body = await fetchJson<FrankfurterResponse>(FX_URL);
-      const rate = num(body?.rates?.THB);
-      if (rate <= 0) throw new Error("bitkub fx: no USD/THB rate");
-      return rate;
-    });
+    return fxCache.get("USD:THB", loadUsdThb);
   }
 
   async getDayStats(symbols?: string[]): Promise<Record<string, DayStats>> {
