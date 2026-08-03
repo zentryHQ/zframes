@@ -30,16 +30,17 @@ import { MockMarketDataProvider } from "./testing/mock-provider";
  *   - `tests/currency-coverage.test.ts` greps frame sources for the hard-coded
  *     `$` helpers. It cannot see a frame that leaks dollars through a SHARED
  *     component's default formatter — the `$` lives in the primitive, not in the
- *     frame — which is exactly how the two `MoverRow` leaks below hide. Nor can a
- *     grep tell a sound exemption from an unsound one: it exempts `journal-log`
- *     and `journal-ui` as "user-entered journal amounts", and the figures they
- *     actually print are live provider mids (the other two leaks below).
+ *     frame. That is how two `MoverRow` consumers leaked dollars, and a grep
+ *     also cannot tell a sound exemption from an unsound one: it once exempted
+ *     `journal-log`/`journal-ui` as "user-entered journal amounts" when the
+ *     figures they print are live provider mids. Both classes are fixed, and the
+ *     regression tests at the bottom of this file are what keep them fixed.
  *   - `frame-currency-smoke.test.tsx` renders a curated ~35-frame subset.
  *
  * So this file renders ALL of them, twice — a USD board and a THB board at a
  * fixed 36.5 rate — through the real DashboardRenderer + real registry, and
- * classifies every frame in `allFrameMetas` into exactly one of four buckets
- * with a stated reason: CONVERTS, USD_ONLY, NO_MONEY, LEAKING.
+ * classifies every frame in `allFrameMetas` into exactly one of three buckets
+ * with a stated reason: CONVERTS, USD_ONLY, NO_MONEY.
  *
  * REAL FAILURE IT CATCHES: a card quoting `$99,355` on a baht board (a wrong
  * number, not a slow one — the user reads it as baht), or the mirror image, a
@@ -47,7 +48,7 @@ import { MockMarketDataProvider } from "./testing/mock-provider";
  * dashboard renders, no error card, nothing throws. It also catches the subtler
  * axis case — a converted spot price sitting next to an UNconverted strike axis.
  *
- * The four buckets partition the registry exactly, so a NEW frame fails this
+ * The three buckets partition the registry exactly, so a NEW frame fails this
  * file until someone classifies it. That guard is the point: the classification
  * is only worth something if it cannot rot.
  */
@@ -64,6 +65,8 @@ const CONVERTS: Record<string, string> = {
   "bitcoin-dominance": "total crypto market cap",
   "defi-revenue": "24h protocol fees and revenue",
   "dex-hot-pools": "pool price, liquidity and 24h volume",
+  "journal-log": "the ticker picker's live mid",
+  "journal-open": "an open call's entry, live now, and target",
   "dex-pool-bubbles": "pool 24h volume",
   "dex-pool-liquidity-scatter": "liquidity and 24h-volume axes",
   "dex-pool-treemap": "pool 24h volume per tile",
@@ -347,31 +350,6 @@ const NO_MONEY: Record<string, string> = {
   "yield-composition-scatter": "base vs reward APY %",
   "yield-curve": "Treasury yields %",
   "yield-momentum-bars": "yield change in bps",
-};
-
-/**
- * Frames that SHOULD convert but do not. Each pins the CURRENT (wrong) output so
- * the suite stays green; fixing the frame must flip the assertion.
- */
-const LEAKING: Record<string, string> = {
-  // KNOWN BUG: journal-log's ticker picker shows the LIVE mid of the symbol
-  // you're about to log (`useMids`, falling back to `useDayStats.markPx`)
-  // through the hard-coded `formatPrice`, so it reads `$410.14` on a baht
-  // board — should be `money.price(price)`, in both the button and the picker
-  // list. NOT the "user typed it" carve-out: the only numbers the user enters
-  // here are the confidence % and a note; every figure with a currency symbol
-  // on this card comes from a provider. (Fixing it also retires
-  // `journal-log.tsx` from `tests/currency-coverage.test.ts`'s USD_ONLY.)
-  "journal-log": "the picker's live mid behind a hard-coded USD formatPrice",
-  // KNOWN BUG: journal-open's entry→target track prints `entry`, `now` and
-  // `target` through journal-ui's hard-coded `formatPrice` (`journal-ui.tsx`
-  // OpenCard), where `now` is a live `useMids` quote and `entry` is the mid
-  // captured at log time — market prices, stored in USD but displayed
-  // unconverted, so a baht board shows `now $67,178`. Should be
-  // `money.price(...)` for all three (the stored USD is untouched; only the
-  // rendering converts). Pinned so the suite stays green; fixing the source
-  // must flip these assertions.
-  "journal-open": "OpenCard's entry/now/target through hard-coded formatPrice",
 };
 
 /**
@@ -806,7 +784,6 @@ const CLASSIFIED = [
   ...Object.keys(CONVERTS),
   ...Object.keys(USD_ONLY),
   ...Object.keys(NO_MONEY),
-  ...Object.keys(LEAKING),
 ];
 
 // ── the classification is exhaustive and maintained ────────────────────────
@@ -819,8 +796,8 @@ describe("the currency classification covers the whole registry", () => {
     const unclassified = registered.filter((n) => !CLASSIFIED.includes(n));
     expect(
       unclassified,
-      `unclassified frames — add each to CONVERTS, USD_ONLY, NO_MONEY or ` +
-        `LEAKING with a reason:\n${unclassified.map((n) => `  - ${n}`).join("\n")}`,
+      `unclassified frames — add each to CONVERTS, USD_ONLY or ` +
+        `NO_MONEY with a reason:\n${unclassified.map((n) => `  - ${n}`).join("\n")}`,
     ).toEqual([]);
     const unknown = CLASSIFIED.filter((n) => !registered.includes(n));
     expect(unknown, `classified but not registered: ${unknown}`).toEqual([]);
@@ -831,7 +808,7 @@ describe("the currency classification covers the whole registry", () => {
   });
 
   it("every entry carries a reason", () => {
-    for (const bucket of [CONVERTS, USD_ONLY, NO_MONEY, LEAKING]) {
+    for (const bucket of [CONVERTS, USD_ONLY, NO_MONEY]) {
       for (const [name, reason] of Object.entries(bucket)) {
         expect(reason.length, `${name} needs a reason`).toBeGreaterThan(3);
       }
@@ -1013,21 +990,7 @@ describe("frames with no money show none on either board", () => {
 
 // ── the leaks ──────────────────────────────────────────────────────────────
 
-describe("hard-coded USD leaks past the currency layer", () => {
-  it.each(Object.keys(LEAKING))("%s prints dollars on a THB board", (name) => {
-    const onThb = thb(name);
-    assertRendered(name, onThb, "THB");
-    // KNOWN BUG: each of these frames renders provider money through a direct
-    // hard-coded `formatPrice` call (`journal-log`, `journal-open`), so the card
-    // quotes dollars on a baht board. It should go through `useMoney()`
-    // (`money.price`); see the per-frame reason in LEAKING. Pinned so the suite
-    // stays green; fixing a source must flip these assertions.
-    expect(onThb.text).toMatch(/\$[\d-]/);
-    expect(onThb.text).not.toContain(BAHT);
-    // The leak is total: the THB board is indistinguishable from the USD one.
-    expect(onThb.text).toBe(usd(name).text);
-  });
-
+describe("hard-coded USD leak regressions", () => {
   it("converts every MoverRow consumer, not just the one that opted in", () => {
     // The regression: MoverRow's price formatter was an optional prop defaulting
     // to the USD `formatPrice`, and only `top-movers` passed one — so on a baht
@@ -1056,20 +1019,28 @@ describe("hard-coded USD leaks past the currency layer", () => {
     expect(btc).toBeGreaterThan(1000);
 
     const open = thb("journal-open").text;
-    // KNOWN BUG: `now` is the live quote and should read
-    // `formatMoney(btc * RATE, "THB")` on this board; it prints raw USD.
-    expect(open).toContain(`now ${formatMoney(btc, "USD")}`);
+    // `now` is the live quote, converted exactly once — the × RATE² and raw-USD
+    // renderings are asserted absent so "it shows baht" can't pass on a
+    // double-converted or unconverted number.
+    expect(open).toContain(`now ${formatMoney(btc * RATE, "THB")}`);
+    expect(open).not.toContain(formatMoney(btc * RATE * RATE, "THB"));
+    expect(open).not.toContain(formatMoney(btc, "USD"));
     // And the card really is the populated one — the "no open calls" empty state
     // carries no money, so every absence assertion above would pass for free.
     expect(open).not.toContain("no open calls");
-    expect(open).toContain(formatMoney(SEEDED_ENTRY, "USD"));
-    expect(open).toContain(formatMoney(SEEDED_TARGET, "USD"));
+    // `entry` is the mid captured at log time and `target` is derived from it,
+    // so both convert as well. The STORED call stays USD — only rendering moves.
+    expect(open).toContain(formatMoney(SEEDED_ENTRY * RATE, "THB"));
+    expect(open).toContain(formatMoney(SEEDED_TARGET * RATE, "THB"));
 
     // journal-log prints the same kind of figure: the live mid of the symbol its
     // picker has selected (a HIP-3 equity by default), not a logged amount.
     const picked = firstMid("xyz:TSLA");
     expect(picked).toBeGreaterThan(0);
-    expect(thb("journal-log").text).toContain(formatMoney(picked, "USD"));
+    expect(thb("journal-log").text).toContain(
+      formatMoney(picked * RATE, "THB"),
+    );
+    expect(thb("journal-log").text).not.toContain(formatMoney(picked, "USD"));
   });
 });
 

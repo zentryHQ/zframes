@@ -39,26 +39,6 @@ const NON_FRAME_USD_OK: Record<string, string> = {
   "metals-shared.ts": "GBP/EUR LBMA fixes are shown as published",
 };
 
-/**
- * Frames that DO leak hard-coded USD onto a converted board — a known bug, not a
- * carve-out, so they deliberately do NOT carry `usdOnly` (which would grey out
- * the editor's currency control on a card that should convert).
- *
- * `packages/frames/src/frame-content-smoke.test.tsx` pins each one's dollars in
- * its `LEAKING` map, with the analysis: the figures on the journal cards are
- * provider quotes (the live mid of the symbol being logged, `entry`/`now`/
- * `target` on an open call), not amounts the user typed — the entry that used to
- * sit in this file's exemption list calling them "user-entered" was wrong about
- * what the card renders. Fixing them means routing those through `useMoney()`
- * and deleting the entry here, not flagging the frame.
- */
-const PENDING_FIX: Record<string, string> = {
-  "journal-log.tsx":
-    "known leak: the picker's live mid behind formatPrice (see LEAKING in frame-content-smoke)",
-  "journal-ui.tsx":
-    "known leak: OpenCard's entry/now/target for the journal frames (see LEAKING)",
-};
-
 const USD_HELPER_REF = /\b(formatPrice|formatCompactUsd)\b/;
 
 /**
@@ -113,8 +93,7 @@ describe("display-currency coverage", () => {
     const exempt = await usdOnlyFiles();
     const offenders: string[] = [];
     for (const file of frameFiles()) {
-      if (file in NON_FRAME_USD_OK || file in PENDING_FIX || exempt.has(file))
-        continue;
+      if (file in NON_FRAME_USD_OK || exempt.has(file)) continue;
       if (rendersHardCodedUsd(file)) offenders.push(file);
     }
     expect(
@@ -157,10 +136,13 @@ describe("display-currency coverage", () => {
     ])
       expect(exempt.has(name), `${name} should be usdOnly`).toBe(true);
     expect(exempt.size).toBeGreaterThanOrEqual(10);
-    // The known leaks are NOT carve-outs: flagging one would grey out a control
-    // that should work. Kept apart on purpose.
-    for (const file of Object.keys(PENDING_FIX))
-      expect(exempt.has(file), `${file} is a known leak, not usdOnly`).toBe(
+    // The journal frames were once listed here as "user-typed" and then as a
+    // pending leak; both were wrong. Their figures are provider quotes (the
+    // picker's live mid; `entry`/`target` derived from the mid at log time), so
+    // they convert and must NOT be flagged — a flag would grey out a control
+    // that works.
+    for (const name of ["journal-log.tsx", "journal-ui.tsx"])
+      expect(exempt.has(name), `${name} converts, so it is not usdOnly`).toBe(
         false,
       );
   });
@@ -183,22 +165,6 @@ describe("display-currency coverage", () => {
       stale,
       `stale NON_FRAME_USD_OK entries:\n${stale.join("\n")}`,
     ).toEqual([]);
-  });
-
-  it("every PENDING_FIX entry is a real file that still leaks", () => {
-    // The list is a to-do, not a permanent exemption: when one is migrated to
-    // useMoney() this fails until the entry is deleted.
-    const present = new Set(frameFiles());
-    const stale: string[] = [];
-    for (const [file, reason] of Object.entries(PENDING_FIX)) {
-      expect(reason.length, `${file} needs a reason`).toBeGreaterThan(0);
-      if (!present.has(file)) stale.push(`${file} (no such file)`);
-      else if (!rendersHardCodedUsd(file))
-        stale.push(`${file} (fixed — delete)`);
-    }
-    expect(stale, `stale PENDING_FIX entries:\n${stale.join("\n")}`).toEqual(
-      [],
-    );
   });
 
   it("no shared primitive renders money through an omittable USD default", () => {

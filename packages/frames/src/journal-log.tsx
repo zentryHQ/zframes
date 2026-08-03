@@ -1,15 +1,9 @@
-import { defineFrame, useDayStats, useMids } from "@zframes/core";
+import { defineFrame, useDayStats, useMids, useMoney } from "@zframes/core";
 import { useMemo, useState } from "react";
 import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
 import { interactiveSurface } from "./content-shared";
-import {
-  DOWN_COLOR,
-  UP_COLOR,
-  changeColor,
-  formatChangePct,
-  formatPrice,
-} from "./format";
+import { DOWN_COLOR, UP_COLOR, changeColor, formatChangePct } from "./format";
 import {
   CLASS_LABEL,
   CLASS_RECORD,
@@ -61,6 +55,10 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
   const [note, setNote] = useState("");
   const [conf, setConf] = useState(65);
   const [flash, setFlash] = useState(false);
+  // The picker quotes provider mids, so they follow the card's display
+  // currency. What gets STORED on the call stays USD (`logCall`'s `entry`) —
+  // the journal is canonical in the providers' unit, like every capability.
+  const money = useMoney();
 
   // The picker universe = the live, gradeable Hyperliquid markets (every HIP-3
   // equity + crypto), so any tradeable ticker is findable and anything not a
@@ -127,7 +125,7 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
           </span>
           <span className="ml-auto flex items-baseline gap-2 tabular-nums">
             <span className="body-sm text-strong">
-              {price != null ? formatPrice(price) : "…"}
+              {price != null ? money.price(price) : "…"}
             </span>
             {change != null && (
               <span className="caption" style={{ color: changeColor(change) }}>
@@ -170,7 +168,7 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
                   <AssetLogo symbol={s} size={16} />
                   <span className="body-sm text-normal">{tickerOf(s)}</span>
                   <span className="caption text-soft ml-auto tabular-nums">
-                    {priceOf(s) != null ? formatPrice(priceOf(s)!) : "—"}
+                    {priceOf(s) != null ? money.price(priceOf(s)!) : "—"}
                   </span>
                 </button>
               ))}

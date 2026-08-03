@@ -1,6 +1,8 @@
+import { useMoney } from "@zframes/core";
+
 import { AssetLogo, tickerOf } from "./asset-logo";
 import { interactiveSurface } from "./content-shared";
-import { DOWN_COLOR, UP_COLOR, formatChangePct, formatPrice } from "./format";
+import { DOWN_COLOR, UP_COLOR, formatChangePct } from "./format";
 import {
   CLASS_LABEL,
   type Dir,
@@ -76,6 +78,10 @@ export function OpenCard({
   /** Close the call now (grade at the current price) — optional. */
   onClose?: () => void;
 }) {
+  // entry/target are provider quotes too — `logCall` stamps `entry` from the
+  // live mid and derives `target` off it — so all three figures on this card
+  // convert. The call itself stays stored in USD, the providers' unit.
+  const money = useMoney();
   const color = dirColor(call.dir);
   const ret = mid != null ? callReturn(call, mid) : null;
   const frac = mid != null ? targetFrac(call, mid) : 0;
@@ -112,11 +118,11 @@ export function OpenCard({
           />
         </div>
         <div className="caption text-disabled flex items-center justify-between tabular-nums">
-          <span>entry {formatPrice(call.entry)}</span>
+          <span>entry {money.price(call.entry)}</span>
           <span className="text-soft">
-            now {mid != null ? formatPrice(mid) : "…"}
+            now {mid != null ? money.price(mid) : "…"}
           </span>
-          <span>target {formatPrice(call.target)}</span>
+          <span>target {money.price(call.target)}</span>
         </div>
       </div>
       <div className="flex items-center justify-between gap-2">
