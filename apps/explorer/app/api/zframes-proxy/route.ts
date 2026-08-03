@@ -31,6 +31,11 @@ const TTL_BY_HOST: Record<string, number> = {
   "www.financialresearch.gov": 3 * HOUR,
   // BLS
   "api.bls.gov": 12 * HOUR,
+  // FRED — daily/weekly published series behind fredgraph.csv
+  "fred.stlouisfed.org": 3 * HOUR,
+  // FHFA — quarterly HPI. The metro file is ~4 MB, so a short TTL is the one
+  // that actually costs here: the data only changes four times a year.
+  "www.fhfa.gov": 12 * HOUR,
   // FINRA
   "cdn.finra.org": 3 * HOUR,
   // Exchanges (halts / reference)

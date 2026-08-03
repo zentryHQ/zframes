@@ -11,13 +11,26 @@ import { allFrames } from "@zframes/frames";
 import { createKeylessProviders } from "@zframes/providers-keyless";
 import { WalletProvider } from "@zframes/provider-wallet";
 
+const keyless = createKeylessProviders();
+
+/**
+ * How many keyless providers the explorer actually mounts — read off the
+ * factory, not typed into copy. The landing quotes this number as a headline
+ * claim ("N free public sources"), and a hand-written one silently rots the
+ * moment a provider package lands; this cannot.
+ *
+ * Deliberately excludes WalletProvider below: it is keyless-*safe* but it is
+ * not part of the keyless market-data set the claim is about.
+ */
+export const KEYLESS_PROVIDER_COUNT = keyless.length;
+
 // Keyless set + WalletProvider. Wallet is keyless-safe — a public on-chain
 // address read straight from the browser (public RPC + CoinGecko, no key, no
 // signing, no relay) — so it powers the `portfolio` capability on public
 // surfaces (e.g. the hero's live on-chain wallet portfolio). Binance is the one
 // provider still excluded: its signed relay has no server in the static/SSR
 // explorer.
-export const providers = [...createKeylessProviders(), new WalletProvider()];
+export const providers = [...keyless, new WalletProvider()];
 
 // Eager registry over all built-in frames. Lazy per-frame splitting is a later
 // bundle optimization; eager is correct and simplest.
