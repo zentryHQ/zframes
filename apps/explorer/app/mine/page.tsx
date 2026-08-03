@@ -114,7 +114,7 @@ export default function MyDashboardsPage() {
             >
               <div className="min-w-0">
                 <Link
-                  href={`/d/${d.id}`}
+                  href={`/dashboard/${d.id}`}
                   className="font-medium text-white transition-colors hover:text-indigo-300"
                 >
                   {d.title}
@@ -134,7 +134,7 @@ export default function MyDashboardsPage() {
                   </span>
                   <span>· {d.frameCount} frames</span>
                   <span>· {d.views} views</span>
-                  <code className="text-white/55">/d/{d.id}</code>
+                  <code className="text-white/55">/dashboard/{d.id}</code>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">

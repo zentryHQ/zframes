@@ -103,7 +103,7 @@ async function main() {
   for (const id of targets) {
     const page = await context.newPage();
     try {
-      await page.goto(`${BASE}/d/${id}`, {
+      await page.goto(`${BASE}/dashboard/${id}`, {
         waitUntil: "domcontentloaded",
         timeout: 60_000,
       });

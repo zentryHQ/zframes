@@ -90,7 +90,7 @@ export const dashboards = pgTable("dashboards", {
 export type DashboardRow = typeof dashboards.$inferSelect;
 
 // ── nightly dashboard screenshots ────────────────────────────────────────────
-// Real browser captures of /d/[id], refreshed by scripts/capture-thumbs.ts on a
+// Real browser captures of /dashboard/[id], refreshed by scripts/capture-thumbs.ts on a
 // nightly cron. A SEPARATE table (not a column on `dashboards`) so gallery
 // queries (listCommunity/listByOwner select full rows) never drag image blobs
 // over the wire. Keyed by dashboard id — covers BOTH community rows and the

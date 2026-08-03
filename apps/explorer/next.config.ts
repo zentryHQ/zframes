@@ -49,7 +49,7 @@ const nextConfig: NextConfig = {
   // — force-trace them into the serverless bundle so they ship to prod. Without
   // the mark listed here the card still renders, just with a missing badge.
   outputFileTracingIncludes: {
-    "/d/[id]/opengraph-image": [
+    "/dashboard/[id]/opengraph-image": [
       "./assets/DMSans-Regular.ttf",
       "./assets/DMSans-Bold.ttf",
       "./assets/zframes-icon-512.png",
@@ -61,6 +61,20 @@ const nextConfig: NextConfig = {
   // route. Rewrites preserve the query string, so `?url=…` carries through.
   async rewrites() {
     return [{ source: "/__zframes/proxy", destination: "/api/zframes-proxy" }];
+  },
+  // Boards lived at `/d/<id>` until the route was renamed to `/dashboard/<id>`.
+  // Those short links are already pasted into Slack/X and printed by older
+  // published CLI/skill versions, so the old prefix redirects permanently rather
+  // than 404ing — `:path*` covers the bare board AND its `/dashboard.json` and
+  // `/opengraph-image` children in one rule.
+  async redirects() {
+    return [
+      {
+        source: "/d/:path*",
+        destination: "/dashboard/:path*",
+        permanent: true,
+      },
+    ];
   },
   // Non-breaking security headers (defense-in-depth alongside the publish-time
   // URL sanitizer). A full script/connect-src CSP is a tracked follow-up — it

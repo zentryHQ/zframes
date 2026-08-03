@@ -1,6 +1,6 @@
 ---
 name: zframes
-description: Build, update, serve, or fork the user's personal zframes market dashboard. Use when the user says "/zframes", "build me a dashboard", "set up my terminal", "make me a market terminal", "add X to my dashboard", "start/open/serve my dashboard", "fork this dashboard <url>", "run this shared zframes link", or wants a personalized live market dashboard (crypto + stocks). If they give a zframes explorer link (a .../d/<id> URL), fork it onto their machine. If a dashboard already exists and the user just wants to start it, serve it — don't rebuild from scratch. Writes a validated dashboard.json and serves it live with the CLI — the agent never writes React.
+description: Build, update, serve, or fork the user's personal zframes market dashboard. Use when the user says "/zframes", "build me a dashboard", "set up my terminal", "make me a market terminal", "add X to my dashboard", "start/open/serve my dashboard", "fork this dashboard <url>", "run this shared zframes link", or wants a personalized live market dashboard (crypto + stocks). If they give a zframes explorer link (a .../dashboard/<id> URL, or a legacy .../d/<id> one), fork it onto their machine. If a dashboard already exists and the user just wants to start it, serve it — don't rebuild from scratch. Writes a validated dashboard.json and serves it live with the CLI — the agent never writes React.
 ---
 
 # zframes — your dashboard, generated
@@ -47,7 +47,8 @@ unless you're genuinely creating a dashboard the user doesn't have yet.
   have (or explicitly asks for a fresh one alongside their others). Name it,
   `init` it (below), then run the full build, steps 2 → 6.
 - **Fork a shared dashboard** — the user gives a zframes **explorer link**
-  (`.../d/<id>` or `.../d/<id>/dashboard.json`), or pastes the "fork" prompt.
+  (`.../dashboard/<id>` or `.../dashboard/<id>/dashboard.json`; a legacy `.../d/<id>`
+  link still redirects), or pastes the "fork" prompt.
   They want that shared dashboard **on their machine** to keep and extend. Don't
   interview or build — fetch it, land it in the store, serve, then offer to
   personalize. See **Fork a shared dashboard** below.
@@ -93,8 +94,9 @@ file unless you pass `--force`.
 
 ## Fork a shared dashboard (from an explorer link)
 
-When the user gives you a zframes **explorer link** — a `.../d/<id>` URL, a
-`.../d/<id>/dashboard.json` URL, or the pasted fork prompt — they want that shared
+When the user gives you a zframes **explorer link** — a `.../dashboard/<id>` URL, a
+`.../dashboard/<id>/dashboard.json` URL, a legacy `.../d/<id>` URL (the old prefix,
+still permanently redirected), or the pasted fork prompt — they want that shared
 dashboard **on their own machine** to own and personalize. Don't interview or
 build from scratch; fetch it, serve it, then offer to tweak it. This is the
 web→local handoff: the explorer is the showroom; forking pulls the artifact home.

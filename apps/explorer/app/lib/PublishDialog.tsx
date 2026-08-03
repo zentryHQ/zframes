@@ -78,7 +78,7 @@ export function PublishDialog({
   }
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const shareUrl = result ? `${origin}/d/${result.id}` : "";
+  const shareUrl = result ? `${origin}/dashboard/${result.id}` : "";
   const forkPrompt = result
     ? `Fork this zframes dashboard and help me personalize it:\n  npx skills add zentryhq/zframes\n  ${shareUrl}/dashboard.json`
     : "";
@@ -117,7 +117,7 @@ export function PublishDialog({
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button asChild variant="outline" size="sm">
-                <Link href={`/d/${result.id}`}>Open preview</Link>
+                <Link href={`/dashboard/${result.id}`}>Open preview</Link>
               </Button>
               <Button variant="ghost" size="sm" onClick={onClose}>
                 Done
