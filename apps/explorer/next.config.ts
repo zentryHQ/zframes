@@ -60,12 +60,14 @@ const nextConfig: NextConfig = {
   // Keep the DB drivers out of the bundle — PGlite ships WASM and postgres is a
   // native-ish driver; they must load from node_modules in the Node runtime.
   serverExternalPackages: ["postgres"],
-  // The OG image reads assets/DMSans.ttf via fs at request time — force-trace it
-  // into the serverless bundle so the font ships to prod.
+  // The OG image reads assets/DMSans.ttf + the brand mark via fs at request time
+  // — force-trace them into the serverless bundle so they ship to prod. Without
+  // the mark listed here the card still renders, just with a missing badge.
   outputFileTracingIncludes: {
     "/d/[id]/opengraph-image": [
       "./assets/DMSans-Regular.ttf",
       "./assets/DMSans-Bold.ttf",
+      "./assets/zframes-icon-512.png",
     ],
   },
   // The browser's fetch layer hard-rewrites proxied provider calls to the shared
