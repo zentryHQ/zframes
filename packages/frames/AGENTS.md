@@ -12,6 +12,7 @@ These frames are meant to read as **one system**, not a pile of one-offs. Every 
 | Market money (price / aggregate) | **`useMoney()`** (`@zframes/core`) — `money.price(usd)`, `money.compact(usd)`; takes USD in, renders the card's display currency | `formatPrice`/`formatCompactUsd` on market data (they hard-code `$`) |
 | Money on an axis / bar label (no symbol) | **`money.magnitude(usd)`** — converted but unitless, e.g. an options strike axis | bare `formatCompact` on a money value — it converts nothing, so a THB board prints USD strikes next to a baht spot |
 | Exact price — US-macro / explicitly-USD only | `formatPrice` | `toLocaleString` inline |
+| Unit-less INDEX level (equity index, base-year-100 HPI) | `formatLevel` (`./format`) — grouped thousands, always 2dp, no symbol | `formatPrice` (an index has no currency) |
 | Signed delta % | `formatChangePct` (`+1.23%`) | `toFixed` + manual sign |
 | Level / ratio % | `formatPct` · funding → `formatFundingPct` | — |
 | BTC / sats · hashrate · slug · "time since" | `formatBtc` · `formatHashrate` · `prettySlug` · `timeAgo` | — |
@@ -30,9 +31,12 @@ These frames are meant to read as **one system**, not a pile of one-offs. Every 
 | Canvas-game HUD / accent | `accentColor` · `GAME_HUD` · `drawScore` (`./game-ui`) | a baked-in indigo / per-game HUD |
 | Asset logo / ticker | `AssetLogo` · `assetLogoUrl` · `tickerOf` (`./asset-logo`) | — |
 | Time-series line chart | **`TimeSeriesChart`** (`./series-chart`) — `MultiSeriesLineChart` plus the card's event markers (+ `annotatable: true` on the meta) | importing `MultiSeriesLineChart` from `@zframes/charts` (silently drops the card's event flags) |
+| Official published series (FRED/FHFA index levels, spreads, rates) | `./official-series-shared` — `SeriesHeader` (label · date · value · move) + `formatSeriesValue`/`formatSeriesChange` (percent for a level, **basis points** for a rate/spread) | a per-frame header + a per-frame idea of what a spread move means |
 | Metals series maths + units | `./metals-shared` — windowing (`sliceYears`/`downsample`/`timeframeFor`), returns (`annualReturns`/`monthlyReturns`/`simpleReturns`/`cagrPct`), `drawdownSeries`/`allTimeHigh`, `rollingVolatility`, `percentileRank`/`correlation`, `alignSeries`/`ratioSeries`/`onSharedFixDays`/`rebaseToPct`, `pricePerUnit`/`toTroyOunces`, `formatFixPrice` | a per-frame definition of "annual return" |
 
 Read the JSDoc on the primitive before using it — each says exactly when to reach for it vs. a sibling.
+
+`./metals-shared`'s **windowing/thinning/rebasing** helpers (`sliceYears`, `downsample`, `toChartData`, `timeframeFor`, `rebaseToPct`, `pctChange`) are generic `SeriesPoint[]` maths that merely live in that module for historical reasons — the FRED/Zillow/FHFA frames import them directly rather than re-deriving them. Its *metals-specific* helpers (fix days, troy ounces, `formatFixPrice`) are not for general use.
 
 ## Deliberate exceptions — leave these alone
 

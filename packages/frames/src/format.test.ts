@@ -1,21 +1,22 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  changeColor,
   DOWN_COLOR,
   DOWN_COLOR_HEX,
+  UP_COLOR,
+  UP_COLOR_HEX,
+  changeColor,
   formatBtc,
   formatChangePct,
   formatCompact,
   formatCompactUsd,
   formatFundingPct,
   formatHashrate,
+  formatLevel,
   formatPct,
   formatPrice,
   formatRate,
   prettySlug,
   timeAgo,
-  UP_COLOR,
-  UP_COLOR_HEX,
 } from "./format";
 
 describe("formatPrice", () => {
@@ -79,6 +80,34 @@ describe("formatRate", () => {
 
   it("pads a short fraction to the fixed precision below 100", () => {
     expect(formatRate(1.5)).toBe("1.5000");
+  });
+});
+
+describe("formatLevel", () => {
+  it("groups thousands so a five-figure index stays readable", () => {
+    expect(formatLevel(7489.72)).toBe("7,489.72");
+    expect(formatLevel(25373.85)).toBe("25,373.85");
+  });
+
+  it("always shows two decimals, so a column of levels lines up", () => {
+    expect(formatLevel(17.09)).toBe("17.09");
+    expect(formatLevel(100)).toBe("100.00");
+    expect(formatLevel(335.1)).toBe("335.10");
+  });
+
+  it("rounds to two decimals rather than truncating", () => {
+    expect(formatLevel(332.9846)).toBe("332.98");
+    expect(formatLevel(332.9856)).toBe("332.99");
+  });
+
+  it("carries no currency symbol — an index level has no currency", () => {
+    // This is the whole reason it isn't formatPrice: wrapping a base-year-100
+    // index in a "$" states something false.
+    expect(formatLevel(335.1)).not.toContain("$");
+  });
+
+  it("keeps a native minus for a negative level", () => {
+    expect(formatLevel(-2.5)).toBe("-2.50");
   });
 });
 

@@ -81,6 +81,11 @@ export type {
   GoldReserveEntry,
   GoldReserve,
   TokenizedGold,
+  OfficialSeries,
+  HomeValueEntry,
+  HomeValueIndex,
+  RegionalHousingSeries,
+  RegionalHousingPrice,
 } from "./types";
 export {
   defineFrame,

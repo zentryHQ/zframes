@@ -231,6 +231,13 @@ export { metalPositioningVsPriceFrame } from "./metal-positioning-vs-price";
 export { usGoldReserveFrame } from "./us-gold-reserve";
 export { usGoldVaultsFrame } from "./us-gold-vaults";
 export { tokenizedGoldFrame } from "./tokenized-gold";
+export { indexLevelChartFrame } from "./index-level-chart";
+export { creditSpreadChartFrame } from "./credit-spread-chart";
+export { homePriceIndexFrame } from "./home-price-index";
+export { mortgageRateChartFrame } from "./mortgage-rate-chart";
+export { regionalHomePricesFrame } from "./regional-home-prices";
+export { metroHomeValuesFrame } from "./metro-home-values";
+export { homeValueChartFrame } from "./home-value-chart";
 import type { AnyFrameDefinition } from "@zframes/core";
 import { portfolioValueFrame } from "./portfolio-value";
 import { portfolioAllocationFrame } from "./portfolio-allocation";
@@ -463,6 +470,13 @@ import { metalPositioningVsPriceFrame } from "./metal-positioning-vs-price";
 import { usGoldReserveFrame } from "./us-gold-reserve";
 import { usGoldVaultsFrame } from "./us-gold-vaults";
 import { tokenizedGoldFrame } from "./tokenized-gold";
+import { indexLevelChartFrame } from "./index-level-chart";
+import { creditSpreadChartFrame } from "./credit-spread-chart";
+import { homePriceIndexFrame } from "./home-price-index";
+import { mortgageRateChartFrame } from "./mortgage-rate-chart";
+import { regionalHomePricesFrame } from "./regional-home-prices";
+import { metroHomeValuesFrame } from "./metro-home-values";
+import { homeValueChartFrame } from "./home-value-chart";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
@@ -697,4 +711,11 @@ export const allFrames: AnyFrameDefinition[] = [
   usGoldReserveFrame,
   usGoldVaultsFrame,
   tokenizedGoldFrame,
+  indexLevelChartFrame,
+  creditSpreadChartFrame,
+  homePriceIndexFrame,
+  mortgageRateChartFrame,
+  regionalHomePricesFrame,
+  metroHomeValuesFrame,
+  homeValueChartFrame,
 ];

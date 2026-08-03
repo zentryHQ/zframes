@@ -678,7 +678,33 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-fhfa:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-finra:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-fred:
     dependencies:
       '@zframes/data-primitives':
         specifier: workspace:*
@@ -860,6 +886,19 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-zillow:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/providers-keyless:
     dependencies:
       '@zframes/provider-alternativeme':
@@ -895,9 +934,15 @@ importers:
       '@zframes/provider-etf-flows':
         specifier: workspace:*
         version: link:../provider-etf-flows
+      '@zframes/provider-fhfa':
+        specifier: workspace:*
+        version: link:../provider-fhfa
       '@zframes/provider-finra':
         specifier: workspace:*
         version: link:../provider-finra
+      '@zframes/provider-fred':
+        specifier: workspace:*
+        version: link:../provider-fred
       '@zframes/provider-fx':
         specifier: workspace:*
         version: link:../provider-fx
@@ -934,6 +979,9 @@ importers:
       '@zframes/provider-ultrasound':
         specifier: workspace:*
         version: link:../provider-ultrasound
+      '@zframes/provider-zillow':
+        specifier: workspace:*
+        version: link:../provider-zillow
       '@zframes/spec':
         specifier: workspace:*
         version: link:../spec
