@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { prettySlug } from "./format";
 import { protocolTvlShareAreaMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const LOOKBACKS = {
@@ -12,6 +13,8 @@ const LOOKBACKS = {
   "3M": 90 * 24 * 60 * 60 * 1000,
 } as const;
 
+const LOOKBACK_OPTIONS = ["7D", "1M", "3M"] as const;
+
 const schema = protocolTvlShareAreaMeta.schema;
 
 function formatMonthDay(date: Date): string {
@@ -19,11 +22,9 @@ function formatMonthDay(date: Date): string {
 }
 
 function ProtocolTvlShareArea({ config }: { config: z.output<typeof schema> }) {
+  const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
   // History is fetched in full once; the lookback only slices it client-side.
-  const cutoff = useMemo(
-    () => Date.now() - LOOKBACKS[config.lookback],
-    [config.lookback],
-  );
+  const cutoff = useMemo(() => Date.now() - LOOKBACKS[lookback], [lookback]);
   const { history, isLoading } = useProtocolTvlHistory(config.protocols);
   const money = useMoney();
 
@@ -46,13 +47,24 @@ function ProtocolTvlShareArea({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no protocol TVL data yet</FrameStatus>;
 
   return (
-    <StackedAreaChart
-      series={series}
-      height={240}
-      formatXAxis={formatMonthDay}
-      formatYAxis={money.compact}
-      formatValue={money.compact}
-    />
+    // No existing header row to slot the toggle into — overlay it top-right
+    // rather than adding a row that would shrink the chart.
+    <div className="relative h-full">
+      <TimeframeToggle
+        options={LOOKBACK_OPTIONS}
+        value={lookback}
+        onChange={setLookback}
+        label="protocol TVL lookback"
+        className="absolute top-0 right-0 z-10"
+      />
+      <StackedAreaChart
+        series={series}
+        height={240}
+        formatXAxis={formatMonthDay}
+        formatYAxis={money.compact}
+        formatValue={money.compact}
+      />
+    </div>
   );
 }
 

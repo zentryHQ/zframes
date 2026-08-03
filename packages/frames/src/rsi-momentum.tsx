@@ -6,11 +6,15 @@ import { MetricGauge, ZONE_NEUTRAL, zoneOf } from "./cycle-shared";
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { rsi, tail, windowDays } from "./indicators";
 import { rsiMomentumMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const schema = rsiMomentumMeta.schema;
 
+const WINDOW_OPTIONS = ["90D", "180D", "1Y", "2Y"] as const;
+
 function RsiMomentum({ config }: { config: z.output<typeof schema> }) {
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
   const { history, isLoading } = useDailyCloseHistory("btc");
 
   const series = useMemo<SeriesPoint[]>(() => {
@@ -46,8 +50,16 @@ function RsiMomentum({ config }: { config: z.output<typeof schema> }) {
       headline={latest.toFixed(0)}
       headlineColor={zone.color}
       zone={zone}
-      sparkline={tail(series, windowDays(config.window))}
+      sparkline={tail(series, windowDays(chartWindow))}
       sparkColor={zone.color}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="RSI Momentum history window"
+        />
+      }
     />
   );
 }

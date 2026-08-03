@@ -9,6 +9,7 @@ import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
 import { priceEventsMeta } from "./schemas";
 import { TimeSeriesChart } from "./series-chart";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 // Candle interval per window, sized so each lookback lands around 100–200
@@ -41,9 +42,12 @@ const REFRESH_MS = 5 * 60_000;
 
 const schema = priceEventsMeta.schema;
 
+const LOOKBACK_OPTIONS = ["7D", "1M", "3M", "1Y"] as const;
+
 function PriceEvents({ config }: { config: z.output<typeof schema> }) {
   const money = useMoney();
-  const { ms, interval, timeframe } = LOOKBACKS[config.lookback];
+  const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
+  const { ms, interval, timeframe } = LOOKBACKS[lookback];
   // Stable start time: recompute only when the window changes, so the polling
   // effect doesn't re-run every render.
   const startTimeMs = useMemo(() => Date.now() - ms, [ms]);
@@ -82,6 +86,14 @@ function PriceEvents({ config }: { config: z.output<typeof schema> }) {
       timeframe={timeframe}
       height={240}
       formatValue={money.price}
+      control={
+        <TimeframeToggle
+          options={LOOKBACK_OPTIONS}
+          value={lookback}
+          onChange={setLookback}
+          label="price & events history window"
+        />
+      }
     />
   );
 }

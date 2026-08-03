@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { prettySlug } from "./format";
 import { dexVolumeShareAreaMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const LOOKBACKS = {
@@ -14,16 +15,16 @@ const LOOKBACKS = {
 
 const schema = dexVolumeShareAreaMeta.schema;
 
+const LOOKBACK_OPTIONS = ["7D", "1M", "3M"] as const;
+
 function formatMonthDay(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function DexVolumeShareArea({ config }: { config: z.output<typeof schema> }) {
+  const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
   // History is fetched in full once; the lookback only slices it client-side.
-  const cutoff = useMemo(
-    () => Date.now() - LOOKBACKS[config.lookback],
-    [config.lookback],
-  );
+  const cutoff = useMemo(() => Date.now() - LOOKBACKS[lookback], [lookback]);
   const { history, isLoading } = useDexVolumeHistory(config.protocols);
   const money = useMoney();
 
@@ -45,13 +46,27 @@ function DexVolumeShareArea({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no DEX volume data yet</FrameStatus>;
 
   return (
-    <StackedAreaChart
-      series={series}
-      height={240}
-      formatXAxis={formatMonthDay}
-      formatYAxis={money.compact}
-      formatValue={money.compact}
-    />
+    <div className="relative h-full min-h-0">
+      <StackedAreaChart
+        series={series}
+        height={240}
+        formatXAxis={formatMonthDay}
+        formatYAxis={money.compact}
+        formatValue={money.compact}
+      />
+      {/* No header row to place the control in — overlaid top-right rather
+          than stacked above, which would steal height from the chart. */}
+      <div className="pointer-events-none absolute top-0 right-0 z-10">
+        <div className="pointer-events-auto">
+          <TimeframeToggle
+            options={LOOKBACK_OPTIONS}
+            value={lookback}
+            onChange={setLookback}
+            label="DEX volume share lookback"
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 

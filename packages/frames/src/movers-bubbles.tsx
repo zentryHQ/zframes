@@ -6,8 +6,11 @@ import { assetLogoUrl } from "./asset-logo";
 import { BubbleCloud } from "./bubbles-shared";
 import { changeColor, formatChangePct } from "./format";
 import { moversBubblesMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = moversBubblesMeta.schema;
+
+const WINDOW_OPTIONS = ["1h", "24h", "7d", "30d"] as const;
 
 interface MoverBubble extends BubbleNode {
   changePct: number;
@@ -15,14 +18,17 @@ interface MoverBubble extends BubbleNode {
 
 function MoversBubbles({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useCoinMovers();
-  const window = config.window;
+  // Not named `window` — that would shadow the global inside a browser
+  // component.
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
 
   const nodes: MoverBubble[] = useMemo(() => {
     const ranked = entries
       .filter(
-        (e) => Number.isFinite(e.changePct?.[window]) && e.volume24hUsd > 0,
+        (e) =>
+          Number.isFinite(e.changePct?.[chartWindow]) && e.volume24hUsd > 0,
       )
-      .sort((a, b) => b.changePct[window] - a.changePct[window]);
+      .sort((a, b) => b.changePct[chartWindow] - a.changePct[chartWindow]);
     // Gainers and losers in equal halves, so the cloud reads both sides of
     // the tape (skipped when there aren't enough distinct entries).
     const half = Math.floor(config.limit / 2);
@@ -33,25 +39,36 @@ function MoversBubbles({ config }: { config: z.output<typeof schema> }) {
     return picked.map((e) => ({
       id: e.symbol,
       label: e.symbol,
-      value: Math.max(Math.abs(e.changePct[window]), 0.05),
+      value: Math.max(Math.abs(e.changePct[chartWindow]), 0.05),
       imageUrl: assetLogoUrl(e.symbol),
-      color: changeColor(e.changePct[window]),
-      borderColor: changeColor(e.changePct[window]),
-      changePct: e.changePct[window],
+      color: changeColor(e.changePct[chartWindow]),
+      borderColor: changeColor(e.changePct[chartWindow]),
+      changePct: e.changePct[chartWindow],
     }));
-  }, [entries, window, config.limit]);
+  }, [entries, chartWindow, config.limit]);
 
   return (
-    <BubbleCloud
-      nodes={nodes}
-      isLoading={isLoading}
-      loadingText="loading movers…"
-      emptyText="no mover data yet"
-      caption={`area by ${window} move · green gainers / red losers`}
-      formatTitle={(n) =>
-        `${n.label} · ${formatChangePct((n as MoverBubble).changePct)} ${window}`
-      }
-    />
+    // BubbleCloud's caption row is shared, centered, and has no room for a
+    // control — overlay the toggle top-right instead of adding a row.
+    <div className="relative h-full">
+      <TimeframeToggle
+        options={WINDOW_OPTIONS}
+        value={chartWindow}
+        onChange={setChartWindow}
+        label="movers window"
+        className="absolute top-0 right-0 z-10"
+      />
+      <BubbleCloud
+        nodes={nodes}
+        isLoading={isLoading}
+        loadingText="loading movers…"
+        emptyText="no mover data yet"
+        caption={`area by ${chartWindow} move · green gainers / red losers`}
+        formatTitle={(n) =>
+          `${n.label} · ${formatChangePct((n as MoverBubble).changePct)} ${chartWindow}`
+        }
+      />
+    </div>
   );
 }
 

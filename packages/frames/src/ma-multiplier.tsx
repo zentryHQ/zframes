@@ -12,9 +12,12 @@ import {
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { sma, tail, windowDays } from "./indicators";
 import { maMultiplierMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const schema = maMultiplierMeta.schema;
+
+const WINDOW_OPTIONS = ["2Y", "4Y", "all"] as const;
 
 function zoneFor(years: "2" | "4", value: number): Zone {
   if (years === "4")
@@ -40,6 +43,7 @@ function zoneFor(years: "2" | "4", value: number): Zone {
 }
 
 function MaMultiplier({ config }: { config: z.output<typeof schema> }) {
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
   const { history, isLoading } = useDailyCloseHistory("btc");
   const period = (config.years === "4" ? 4 : 2) * 365;
 
@@ -69,8 +73,16 @@ function MaMultiplier({ config }: { config: z.output<typeof schema> }) {
       headline={`${latest.toFixed(2)}×`}
       headlineColor={zone.color}
       zone={zone}
-      sparkline={tail(series, windowDays(config.window))}
+      sparkline={tail(series, windowDays(chartWindow))}
       sparkColor={zone.color}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="MA Multiplier history window"
+        />
+      }
     />
   );
 }

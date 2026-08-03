@@ -4,12 +4,16 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatPct } from "./format";
 import { miningPoolsShareMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const schema = miningPoolsShareMeta.schema;
 
+const WINDOW_OPTIONS = ["24h", "3d", "1w", "1m"] as const;
+
 function MiningPoolsShare({ config }: { config: z.output<typeof schema> }) {
-  const { pools, isLoading } = useMiningPools(config.window);
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
+  const { pools, isLoading } = useMiningPools(chartWindow);
 
   const slices = useMemo(() => {
     const all = pools?.pools ?? [];
@@ -48,7 +52,16 @@ function MiningPoolsShare({ config }: { config: z.output<typeof schema> }) {
   if (slices.length === 0) return <FrameStatus>no mining data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-4">
+    // No existing header row to slot the toggle into — overlay it top-right
+    // rather than adding a row that would shrink the donut.
+    <div className="relative flex h-full w-full flex-col items-center justify-center gap-4">
+      <TimeframeToggle
+        options={WINDOW_OPTIONS}
+        value={chartWindow}
+        onChange={setChartWindow}
+        label="mining pool window"
+        className="absolute top-0 right-0 z-10"
+      />
       <PieChart
         data={slices}
         width={188}

@@ -4,11 +4,15 @@ import { MetricGauge, ZONE_NEUTRAL, zoneOf } from "./cycle-shared";
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { tail, windowDays } from "./indicators";
 import { reserveRiskMeta } from "./schemas";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
 const schema = reserveRiskMeta.schema;
 
+const WINDOW_OPTIONS = ["90D", "180D", "1Y"] as const;
+
 function ReserveRisk({ config }: { config: z.output<typeof schema> }) {
+  const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);
   const { extras, isLoading } = useOnchainExtras();
 
   if (isLoading)
@@ -33,8 +37,16 @@ function ReserveRisk({ config }: { config: z.output<typeof schema> }) {
       headline={extras.reserveRisk.toPrecision(2)}
       headlineColor={zone.color}
       zone={zone}
-      sparkline={tail(extras.history.reserveRisk, windowDays(config.window))}
+      sparkline={tail(extras.history.reserveRisk, windowDays(chartWindow))}
       sparkColor={zone.color}
+      control={
+        <TimeframeToggle
+          options={WINDOW_OPTIONS}
+          value={chartWindow}
+          onChange={setChartWindow}
+          label="Reserve Risk history window"
+        />
+      }
     />
   );
 }

@@ -11,6 +11,7 @@ import { formatFundingPct } from "./format";
 import { fundingRateChartMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 import { TimeSeriesChart } from "./series-chart";
+import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const LOOKBACKS = {
   "24h": { ms: 24 * 60 * 60 * 1000, timeframe: ChartTimeframe["24h"] },
@@ -18,10 +19,13 @@ const LOOKBACKS = {
   "1M": { ms: 30 * 24 * 60 * 60 * 1000, timeframe: ChartTimeframe["1M"] },
 } as const;
 
+const LOOKBACK_OPTIONS = ["24h", "7D", "1M"] as const;
+
 const schema = fundingRateChartMeta.schema;
 
 function FundingRateChart({ config }: { config: z.output<typeof schema> }) {
-  const { ms, timeframe } = LOOKBACKS[config.lookback];
+  const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
+  const { ms, timeframe } = LOOKBACKS[lookback];
   // Stable start time: recompute only when the lookback changes, so the
   // useFundingHistory effect doesn't re-run every render.
   const startTimeMs = useMemo(() => Date.now() - ms, [ms]);
@@ -53,6 +57,14 @@ function FundingRateChart({ config }: { config: z.output<typeof schema> }) {
       timeframe={timeframe}
       height={250}
       formatValue={formatFundingPct}
+      control={
+        <TimeframeToggle
+          options={LOOKBACK_OPTIONS}
+          value={lookback}
+          onChange={setLookback}
+          label="funding rate history window"
+        />
+      }
     />
   );
 }
