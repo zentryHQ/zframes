@@ -43,8 +43,14 @@ export function FeePill({
 }) {
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded-lg px-2 py-2 ${className}`}
-      style={{ background: `${color}14`, border: `1px solid ${color}33` }}
+      // No coloured border and no tinted fill — the numeral alone carries the fee
+      // colour. Both used to be alpha-suffixed versions of `color` (`33` border,
+      // `14` fill), which read completely differently between the two callers of
+      // this one component: mempool's low-fee greens vanished at those alphas,
+      // while btc-fees' warm ramp drew a hard box around every tier. Dropping
+      // them is a no-op on mempool (its boxes were already invisible) and is what
+      // actually makes the two cards read as a pair.
+      className={`flex flex-col items-center justify-center px-2 py-2 ${className}`}
     >
       <span className="metric-md leading-none" style={{ color }}>
         {value}
