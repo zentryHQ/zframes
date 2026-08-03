@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { coverFit, imageSize } from "./thumb-image";
+import {
+  boardArea,
+  CAPTURE_WATERMARK_BAND,
+  coverFit,
+  imageSize,
+} from "./thumb-image";
 
 // Guards the two pure halves of the /d/[id] og:image compositor. Both fail
 // SILENTLY if they drift — an unparseable header or a bad fit just falls the
@@ -87,6 +92,36 @@ describe("coverFit", () => {
     expect(fit.width).toBeGreaterThanOrEqual(OG.width);
     expect(fit.left).toBeLessThanOrEqual(0); // overflow centred, not clipped left
     expect(fit.left * 2 + fit.width).toBeGreaterThanOrEqual(OG.width);
+  });
+
+  // The og:image draws its own lockup, so the capture's watermark band must land
+  // BELOW the 630px canvas. Tall boards get that for free from the top-anchored
+  // crop; a short, wide board does not — it's the case that would silently show
+  // the mark twice, so it's the case pinned here.
+  // Asserted as an invariant, not a snapshot: the band has to be tall enough to
+  // actually hold the 26px watermark badge plus breathing room. Without this the
+  // test below passes trivially when the band drifts to 0 — which would put the
+  // watermark on top of the last row of cards.
+  it("reserves a band big enough for the watermark it holds", () => {
+    expect(CAPTURE_WATERMARK_BAND).toBeGreaterThanOrEqual(40);
+    expect(boardArea({ width: 1280, height: 1000 }).height).toBe(
+      1000 - CAPTURE_WATERMARK_BAND,
+    );
+  });
+
+  it("keeps the capture's watermark band off-canvas, even for a short board", () => {
+    for (const src of [
+      { width: 1280, height: 400 + CAPTURE_WATERMARK_BAND }, // wider than 1.9:1
+      { width: 1280, height: 660 + CAPTURE_WATERMARK_BAND },
+      { width: 1280, height: 1440 + CAPTURE_WATERMARK_BAND },
+    ]) {
+      const board = boardArea(src); // the exact call the og:image route makes
+      const fit = coverFit(board, { width: 1200, height: 630 });
+      // Where the band starts once the whole capture is drawn at the fit scale.
+      const scale = fit.width / src.width;
+      const bandTop = board.height * scale;
+      expect(bandTop).toBeGreaterThanOrEqual(630);
+    }
   });
 
   it("never leaves a gap, whatever the aspect ratio", () => {
