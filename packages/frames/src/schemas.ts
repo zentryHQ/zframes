@@ -2412,6 +2412,84 @@ export const volumeProfileMeta = defineFrameMeta({
   }),
 });
 
+export const returnCalendarMeta = defineFrameMeta({
+  name: "return-calendar",
+  label: "Return Calendar",
+  category: "markets",
+  iconUrl: widgetIcon("return-calendar"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "A GitHub-contribution-style calendar heatmap of daily activity — one square per calendar day, weeks running left to right and weekdays top to bottom. Answers *when*, which a line chart cannot: seasonality, day-of-week rhythm, clustered volatility, and the holes where the market was shut (weekends stripe across an equity's grid; crypto's is solid). Daily returns are tinted green/red from zero; volume and range use a single-hue ramp. Intensity is ranked by quantile, so one crash day cannot wash out every other square. Computed in-browser from OHLCV candles — pass any tradable symbol (crypto or a HIP-3 equity like 'xyz:TSLA').",
+  capabilities: ["ohlcv"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    symbol: z
+      .string()
+      .default("BTC")
+      .describe(
+        "Symbol to chart, e.g. 'BTC', 'ETH', or a HIP-3 equity 'xyz:TSLA'.",
+      ),
+    metric: z
+      .enum(["return", "volume", "range"])
+      .default("return")
+      .describe(
+        "What each square measures. 'return' = close-to-close percent change, tinted green above zero and red below. 'volume' = the day's traded volume. 'range' = the day's high-low span as a percent of its close, i.e. realised intraday volatility. Volume and range are one-sided, so they use a single-hue ramp.",
+      ),
+    lookback: z
+      .enum(["3M", "6M", "1Y"])
+      .default("6M")
+      .describe(
+        "How much history the grid covers. A year fits in a wide card; 3 months gives noticeably larger squares in a narrow one.",
+      ),
+    weekStart: z
+      .enum(["sunday", "monday"])
+      .default("sunday")
+      .describe(
+        "Which weekday is the top row. 'monday' puts Saturday and Sunday together at the bottom, which reads better for an equity whose weekends are empty.",
+      ),
+    source: sourceField(),
+  }),
+});
+
+export const returnDistributionMeta = defineFrameMeta({
+  name: "return-distribution",
+  label: "Return Histogram",
+  category: "markets",
+  iconUrl: widgetIcon("return-distribution"),
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  description:
+    "Histogram of the symbol's periodic returns — how often a move of each size actually happens, rather than where the price is now. Optionally overlays the normal curve implied by the sample's own mean and standard deviation: the gap between the bars and that curve is the fat tail a risk model assuming normality would underprice. Marks the mean and the latest return so you can see where today sits in its own history, with a mean / σ / win-rate / last stat row underneath. The extreme tails are folded into the end bars (marked « ») so one outlier can't flatten the middle; the true best and worst are still reported. Computed in-browser from OHLCV candles — pass any tradable symbol (crypto or a HIP-3 equity like 'xyz:TSLA').",
+  capabilities: ["ohlcv"],
+  source: SOURCES.hyperliquid,
+  schema: z.object({
+    symbol: z
+      .string()
+      .default("BTC")
+      .describe(
+        "Symbol to analyse, e.g. 'BTC', 'ETH', or a HIP-3 equity 'xyz:TSLA'.",
+      ),
+    period: z
+      .enum(["daily", "weekly", "monthly"])
+      .default("daily")
+      .describe(
+        "Bucket returns by trading day, calendar week or calendar month. Daily exposes the tails; weekly and monthly are smoother but need a longer lookback to have enough observations to shape a histogram.",
+      ),
+    lookback: z
+      .enum(["6M", "1Y", "2Y", "5Y"])
+      .default("1Y")
+      .describe(
+        "How much history to bucket. Longer is a better-shaped distribution but mixes regimes; monthly returns need '2Y' or more to be worth plotting.",
+      ),
+    showNormalCurve: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Overlay the fitted normal distribution as a dashed curve — the reference the fat tails are read against.",
+      ),
+    source: sourceField(),
+  }),
+});
+
 export const dxyMeta = defineFrameMeta({
   name: "dxy",
   label: "Dollar Index (DXY)",
@@ -6398,6 +6476,8 @@ export const frameMetas: FrameMeta[] = [
   maMultiplierMeta,
   rsiMomentumMeta,
   volumeProfileMeta,
+  returnCalendarMeta,
+  returnDistributionMeta,
   dxyMeta,
   cycleSignalsMeta,
   stablecoinSupplyMeta,
