@@ -92,31 +92,179 @@ export type FrameStyle = z.infer<typeof FrameStyleSchema>;
 
 /**
  * Currency codes a dashboard can be denominated in. Providers report USD (the
- * canonical unit of every capability); the display layer converts at the live
- * ECB reference rate, so this list is exactly what that keyless FX source
- * publishes — adding a code it doesn't quote would render as an unconverted
- * dollar figure wearing the wrong symbol.
+ * canonical unit of every capability); the display layer converts through
+ * `provider-fx`'s ordered chain of keyless upstreams — Frankfurter/ECB →
+ * FXRatesAPI → currency-api → the ECB Data Portal direct — so what a board can
+ * be priced in is a question of coverage across that chain, not of one feed's
+ * price list.
+ *
+ * The rule: a code belongs here **iff at least TWO of those four sources quote
+ * it**. Single-source codes are excluded deliberately — a code only, say,
+ * currency-api carries would put back into the spec exactly the single point of
+ * failure the chain exists to remove, and the day that source blinked every card
+ * on the board would silently revert to quoting dollars.
+ *
+ * Non-currencies are excluded regardless of coverage: metals (XAU/XAG/XPT/XPD)
+ * are units, not currencies — no ISO minor digits, no `Intl` currency support,
+ * and "price this board in gold ounces" is a separate feature; funds codes (XDR)
+ * and crypto never circulate; and withdrawn codes (HRK, CUC, SLL, ZWL, ANG) name
+ * currencies that no longer exist. Every entry is an active ISO-4217 code,
+ * cross-checked against `Intl.supportedValuesOf("currency")`.
+ *
+ * Upstream coverage drifts as sources add and drop codes, so a scheduled monitor
+ * re-checks this list against live source coverage and reports codes that have
+ * fallen to a single source (or gained a second). It reports, never prunes:
+ * removing a code is a BREAKING spec change that invalidates saved dashboards.
+ *
+ * USD stays first — it is the provider unit and this enum's default.
  */
 export const CURRENCY_CODES = [
   "USD",
-  "THB",
-  "EUR",
-  "GBP",
-  "JPY",
-  "CNY",
-  "KRW",
-  "SGD",
+  "AED",
+  "AFN",
+  "ALL",
+  "AMD",
+  "AOA",
+  "ARS",
   "AUD",
-  "CAD",
-  "CHF",
-  "INR",
-  "IDR",
-  "MYR",
-  "PHP",
-  "HKD",
+  "AWG",
+  "AZN",
+  "BAM",
+  "BBD",
+  "BDT",
+  "BGN",
+  "BHD",
+  "BIF",
+  "BMD",
+  "BND",
+  "BOB",
   "BRL",
+  "BSD",
+  "BTN",
+  "BWP",
+  "BYN",
+  "BZD",
+  "CAD",
+  "CDF",
+  "CHF",
+  "CLP",
+  "CNY",
+  "COP",
+  "CRC",
+  "CUP",
+  "CVE",
+  "CZK",
+  "DJF",
+  "DKK",
+  "DOP",
+  "DZD",
+  "EGP",
+  "ERN",
+  "ETB",
+  "EUR",
+  "FJD",
+  "FKP",
+  "GBP",
+  "GEL",
+  "GHS",
+  "GIP",
+  "GMD",
+  "GNF",
+  "GTQ",
+  "GYD",
+  "HKD",
+  "HNL",
+  "HTG",
+  "HUF",
+  "IDR",
+  "ILS",
+  "INR",
+  "IQD",
+  "IRR",
+  "ISK",
+  "JMD",
+  "JOD",
+  "JPY",
+  "KES",
+  "KGS",
+  "KHR",
+  "KMF",
+  "KRW",
+  "KWD",
+  "KYD",
+  "KZT",
+  "LAK",
+  "LBP",
+  "LKR",
+  "LRD",
+  "LSL",
+  "LYD",
+  "MAD",
+  "MDL",
+  "MGA",
+  "MKD",
+  "MMK",
+  "MNT",
+  "MOP",
+  "MUR",
+  "MVR",
+  "MWK",
   "MXN",
+  "MYR",
+  "MZN",
+  "NAD",
+  "NGN",
+  "NIO",
+  "NOK",
+  "NPR",
+  "NZD",
+  "OMR",
+  "PAB",
+  "PEN",
+  "PGK",
+  "PHP",
+  "PKR",
+  "PLN",
+  "PYG",
+  "QAR",
+  "RON",
+  "RSD",
+  "RUB",
+  "RWF",
+  "SAR",
+  "SBD",
+  "SCR",
+  "SDG",
+  "SEK",
+  "SGD",
+  "SHP",
+  "SOS",
+  "SRD",
+  "SVC",
+  "SZL",
+  "THB",
+  "TJS",
+  "TMT",
+  "TND",
+  "TOP",
+  "TRY",
+  "TTD",
+  "TWD",
+  "TZS",
+  "UAH",
+  "UGX",
+  "UYU",
+  "UZS",
+  "VND",
+  "VUV",
+  "WST",
+  "XAF",
+  "XCD",
+  "XOF",
+  "XPF",
+  "YER",
   "ZAR",
+  "ZMW",
 ] as const;
 
 export const CurrencySchema = z
@@ -125,7 +273,7 @@ export const CurrencySchema = z
       .enum(CURRENCY_CODES)
       .default("USD")
       .describe(
-        'Currency every money figure on the dashboard is displayed in, converted from USD at the live ECB reference rate — e.g. "THB" shows a Thai-baht board. Non-money figures (percentages, counts, rates) are unaffected, and US-macro series (Treasury yields, CPI, the national debt) stay in USD because converting them would be meaningless.',
+        'Currency every money figure on the dashboard is displayed in, converted from USD through a chain of keyless FX sources (Frankfurter/ECB, then FXRatesAPI, currency-api, ECB direct) so one outage cannot revert the board to dollars — e.g. "THB" shows a Thai-baht board. Every listed code is quoted by at least two of those sources. Non-money figures (percentages, counts, rates) are unaffected, and US-macro series (Treasury yields, CPI, the national debt) stay in USD because converting them would be meaningless.',
       ),
   })
   .describe(
@@ -208,7 +356,7 @@ export const FrameInstanceSchema = z.object({
     .enum(CURRENCY_CODES)
     .optional()
     .describe(
-      'Display currency for THIS card only, overriding the dashboard-wide `currency` (e.g. keep one card in "USD" on a baht board). Omit to inherit. Purely presentational — it converts USD figures for display. Note it is NOT the same as a `config.currency` some frames have (the metals LBMA-fix frames use that to pick which published fix series to READ); this field never changes which data is fetched.',
+      'Display currency for THIS card only, overriding the dashboard-wide `currency` (e.g. keep one card in "USD" on a baht board). Omit to inherit. Purely presentational — it converts USD figures for display at the same multi-source keyless FX chain rate the board uses (Frankfurter/ECB → FXRatesAPI → currency-api → ECB direct). Note it is NOT the same as a `config.currency` some frames have (the metals LBMA-fix frames use that to pick which published fix series to READ); this field never changes which data is fetched.',
     ),
   events: z
     .array(EventMarkerSchema)
