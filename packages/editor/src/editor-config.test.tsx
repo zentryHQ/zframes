@@ -250,6 +250,106 @@ describe("FrameConfigDialog validation gating", () => {
 });
 
 /**
+ * Not committing an invalid draft is right — inputs must never snap back
+ * mid-edit — but on its own it silently discarded work: the dialog showed your
+ * text, the card kept the old value, and Done/Esc/backdrop all closed without a
+ * word, so Save wrote the old value and the edit was simply gone.
+ *
+ * The resolution is to make the state impossible to leave *unknowingly*: say the
+ * draft isn't applied, block the exit that would drop it, and offer Revert as a
+ * one-click way out so the dialog is still never a trap.
+ */
+describe("FrameConfigDialog invalid-draft exits", () => {
+  const invalidate = (container: HTMLElement) =>
+    fireEvent.change(
+      container.querySelector("#zf-cfg-label") as HTMLInputElement,
+      { target: { value: "ab" } },
+    );
+
+  it("states that the draft is not applied and won't be saved", () => {
+    const { container, getByRole } = setup();
+    invalidate(container);
+
+    // Announced, not just coloured — the consequence is the part that matters.
+    const alert = getByRole("alert");
+    expect(alert.textContent).toContain("aren’t applied");
+    expect(alert.textContent).toContain("Save will write");
+    // The raw validator output is still there for the fix, just demoted.
+    expect(alert.textContent).toContain("label");
+  });
+
+  it("blocks Done while the draft is invalid", () => {
+    const { container, getByRole, onClose } = setup();
+    invalidate(container);
+
+    const done = getByRole("button", { name: "Done" });
+    expect(done.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(done);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("reverts to the last valid config, then allows Done again", () => {
+    const { container, getByRole, onClose, committed } = setup();
+    const field = () =>
+      container.querySelector("#zf-cfg-label") as HTMLInputElement;
+    invalidate(container);
+    expect(field().value).toBe("ab");
+
+    fireEvent.click(getByRole("button", { name: "Revert" }));
+
+    // Snapped back to what the card is actually rendering — a visible change,
+    // which is the whole difference from the silent discard this replaces.
+    expect(field().value).toBe("Name");
+    expect(committed().label).toBe("Name");
+    expect(container.querySelector(".zf-config-error")).toBeNull();
+
+    fireEvent.click(getByRole("button", { name: "Done" }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("Esc reverts instead of closing over an invalid draft", () => {
+    const { container, onClose } = setup();
+    const field = () =>
+      container.querySelector("#zf-cfg-label") as HTMLInputElement;
+    invalidate(container);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    // Did NOT close-and-discard; reverted in place so the loss is visible.
+    expect(onClose).not.toHaveBeenCalled();
+    expect(field().value).toBe("Name");
+
+    // With the draft valid again, Esc closes as usual.
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("a backdrop click reverts instead of closing over an invalid draft", () => {
+    const { container, onClose } = setup();
+    const backdrop = container.querySelector(
+      ".zf-dialog-backdrop",
+    ) as HTMLElement;
+    invalidate(container);
+
+    fireEvent.mouseDown(backdrop);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(
+      (container.querySelector("#zf-cfg-label") as HTMLInputElement).value,
+    ).toBe("Name");
+
+    fireEvent.mouseDown(backdrop);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("leaves a valid draft's exits exactly as they were", () => {
+    const { getByRole, onClose } = setup();
+    fireEvent.click(getByRole("button", { name: "Done" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    // Revert is only offered when there's something to revert from.
+    expect(() => getByRole("button", { name: "Revert" })).toThrow();
+  });
+});
+
+/**
  * The card's Events panel. Markers live on the INSTANCE (`events`), not in
  * `config`, so they take their own commit path — and the panel is offered only
  * for frames whose meta says `annotatable`, because a marker anywhere else
