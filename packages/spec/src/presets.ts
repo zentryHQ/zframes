@@ -245,14 +245,32 @@ export type BackgroundScene = {
   /** Unicorn Studio public project id rendered behind the dashboard. */
   projectId: string;
   /**
-   * The scene's authored dominant hue (0–360). The runtime hue-rotates the
-   * backdrop by how far the dashboard accent has drifted from *this* hue (see
-   * `sceneBaseHue` + the runtime's background.tsx), so a scene paired to a
-   * matching accent (a preset's) renders as authored, and a rolled accent spins
-   * it from there. Kept roughly in step with `swatch`'s dominant hue.
+   * The scene's authored dominant hue (0–360) — the anchor the runtime rotates
+   * *away from*: the backdrop is spun by (accentHue − baseHue), so when this
+   * value is the scene's real hue the backdrop lands exactly on the dashboard
+   * accent and moves in lockstep with the cards.
+   *
+   * **These are MEASURED, not guessed.** The scenes are remotely hosted, so this
+   * field is a claim about a file nobody here can read, and every value except
+   * Aurora's was originally wrong — three of them by more than 100°, which left
+   * boards wearing a colour nobody chose (the "warm ember" macro board rendered
+   * violet). Measured 2026-08-03 by isolating each scene at `/embed/<board>`
+   * (hide the content layer and the swatch layer, clear the filter), screenshotting,
+   * and taking the chroma×value-weighted circular mean hue of the capture.
+   *
+   * **Re-measure that way if a hosted scene is ever re-authored** — a scene can
+   * change under us with no local diff, and nothing in CI can catch it.
    */
   baseHue: number;
-  /** Representative CSS `background` for the rail swatch (no live thumbnail). */
+  /**
+   * Representative CSS `background` for the rail swatch (no live thumbnail).
+   *
+   * Not decoration: this layer actually renders under the live scene (at 0.6×
+   * the scene opacity) and is the whole backdrop while the scene is loading,
+   * suspended, or gated off for reduced-motion / low-end devices. So it must
+   * approximate the REAL scene — a prettier-but-wrong gradient here silently
+   * becomes the board's colour on every one of those paths.
+   */
   swatch: string;
 };
 
@@ -268,58 +286,70 @@ export const BACKGROUND_SCENES: BackgroundScene[] = [
     key: "aurora",
     label: "Aurora",
     description:
-      "The signature zframes scene — a slow indigo aurora drifting over near-black. The default backdrop.",
+      "Broad bands of light drifting behind fine horizontal scanlines — the signature zframes scene, and the default backdrop.",
     projectId: SCENE_DEFAULT_PROJECT_ID,
-    // 242 = the zframes accent default, so an unrolled dashboard hue-rotates by 0°.
+    // Measures 264°, but stays pinned to 242 ON PURPOSE: 242 is the accent
+    // default, so the out-of-the-box dashboard hue-rotates by 0° and the
+    // signature look every existing board already ships with is preserved
+    // (presets.test.ts pins that invariant). The cost is that Aurora alone sits
+    // ~22° off its accent instead of exactly on it — a deliberate design choice
+    // about the default, not the measurement error the other five were.
     baseHue: 242,
     swatch:
-      "radial-gradient(120% 120% at 30% 20%, hsl(248 80% 60%) 0%, hsl(250 70% 22%) 45%, hsl(240 40% 6%) 100%)",
+      "radial-gradient(120% 120% at 30% 20%, hsl(263 65% 58%) 0%, hsl(265 72% 40%) 45%, hsl(261 70% 14%) 100%)",
   },
   {
     key: "nebula",
     label: "Nebula",
     description:
-      "A deeper violet nebula with brighter drifting cores — a touch more energy than Aurora.",
+      "Hard glitch scanlines over steel and olive bands. The busiest scene here, and the only one that renders a zframes wordmark of its own — read it as branded, not neutral.",
     projectId: "K42KSY4FXeXhjVOj9RgT",
-    baseHue: 268,
+    baseHue: 229, // measured (was 268)
     swatch:
-      "radial-gradient(120% 120% at 70% 30%, hsl(280 75% 62%) 0%, hsl(262 65% 26%) 45%, hsl(250 45% 7%) 100%)",
+      "radial-gradient(120% 120% at 70% 30%, hsl(230 52% 72%) 0%, hsl(212 20% 34%) 45%, hsl(60 25% 7%) 100%)",
   },
   {
     key: "ember",
     label: "Ember",
-    description: "Warm ember tones drifting over charcoal.",
+    description:
+      "A bright iridescent wash folding through itself — by far the most luminous scene in the set, and the one that most lifts a whole board.",
     projectId: "E4221P7lwTy049d7ISxc",
-    baseHue: 24,
+    baseHue: 254, // measured (was 24 — this scene was never warm)
     swatch:
-      "radial-gradient(120% 120% at 30% 25%, hsl(24 85% 58%) 0%, hsl(12 65% 28%) 45%, hsl(8 40% 7%) 100%)",
+      "radial-gradient(120% 120% at 30% 25%, hsl(187 35% 80%) 0%, hsl(242 45% 70%) 45%, hsl(254 80% 46%) 100%)",
   },
   {
     key: "tide",
     label: "Tide",
-    description: "Cool teal currents on deep blue-black.",
+    description:
+      "A dense rain of glyphs falling through the dark — the most textural scene, and the closest to a terminal.",
     projectId: "cYpXuEzDqm4r3fdp4TGx",
-    baseHue: 190,
+    baseHue: 264, // measured (was 190 — no teal in it)
     swatch:
-      "radial-gradient(120% 120% at 70% 25%, hsl(180 70% 55%) 0%, hsl(196 65% 26%) 45%, hsl(205 45% 7%) 100%)",
+      "radial-gradient(120% 120% at 70% 25%, hsl(265 60% 30%) 0%, hsl(264 56% 10%) 45%, hsl(265 40% 3%) 100%)",
   },
   {
     key: "verdant",
     label: "Verdant",
-    description: "Soft green light over near-black.",
+    description:
+      "Big soft blobs of light bleeding across near-black — slow, diffuse, and the least busy of the set.",
     projectId: "PrFtFGDE5duemLmr2YKQ",
-    baseHue: 150,
+    baseHue: 4, // measured (was 150 — this scene is scarlet, not green)
     swatch:
-      "radial-gradient(120% 120% at 30% 25%, hsl(140 65% 55%) 0%, hsl(152 55% 24%) 45%, hsl(160 40% 6%) 100%)",
+      "radial-gradient(120% 120% at 30% 25%, hsl(6 85% 56%) 0%, hsl(0 70% 24%) 45%, hsl(0 30% 5%) 100%)",
   },
   {
     key: "dusk",
     label: "Dusk",
-    description: "Magenta-pink glow fading into dark.",
+    description:
+      "Fine silver ribbons curving through black. NEAR-MONOCHROME — it barely takes the accent the way every other scene does, so pick it for texture rather than colour.",
     projectId: "qpoj0wFWmgwRVXmzRMiL",
-    baseHue: 320,
+    // Measured 31°, but off only ~7% of pixels at 0.23 saturation: there is
+    // almost no chroma here to rotate, which is the honest reason this scene
+    // stays silver whatever the accent does.
+    baseHue: 31,
     swatch:
-      "radial-gradient(120% 120% at 70% 30%, hsl(320 80% 62%) 0%, hsl(300 60% 28%) 45%, hsl(290 45% 7%) 100%)",
+      "radial-gradient(120% 120% at 70% 30%, hsl(35 6% 76%) 0%, hsl(30 5% 22%) 45%, hsl(0 0% 2%) 100%)",
   },
 ];
 
@@ -334,10 +364,17 @@ export const SCENE_DEFAULT_HUE = 242;
  * The authored dominant hue of the scene with this `projectId`, or
  * {@link SCENE_DEFAULT_HUE} if it isn't one of the curated scenes (a custom
  * projectId, or none). The host feeds this to the backdrop as the reference the
- * dashboard accent hue-rotates the scene relative to — so a preset's paired scene
- * (accent ≈ scene hue) renders essentially as authored, and a rolled accent spins
- * it from there. Kept host-side so the heavy runtime background stays a dumb
- * renderer and @zframes/core owns the scene registry.
+ * dashboard accent hue-rotates the scene relative to.
+ *
+ * Because the rotation is (accentHue − this), a correct anchor means **the
+ * backdrop always lands on the board's accent** — the scene contributes motion
+ * and texture, the accent contributes the colour, and the two stay in lockstep
+ * when either is rolled. An anchor that does NOT match the scene leaves the
+ * backdrop stranded at (sceneTrueHue − anchor) away from the cards, which is
+ * exactly how a "warm ember" board came to render violet.
+ *
+ * Kept host-side so the heavy runtime background stays a dumb renderer and
+ * @zframes/core owns the scene registry.
  */
 export function sceneBaseHue(projectId: string | undefined): number {
   const scene = BACKGROUND_SCENES.find((s) => s.projectId === projectId);
