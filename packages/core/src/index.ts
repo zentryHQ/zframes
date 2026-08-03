@@ -63,7 +63,7 @@ export {
   useDexPools,
   useChainActivity,
   useOrderBook,
-  useVenuesFor,
+  useSourcesFor,
   useMetalSpot,
   useMetalHistory,
   useMetalPositioning,

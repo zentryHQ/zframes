@@ -74,7 +74,7 @@
       "title": "KUB / THB",
       "config": {
         "symbol": "KUB",
-        "venue": "bitkub",
+        "source": "bitkub",
         "interval": "4h",
         "mode": "candle",
         "color": "#4cba64"
@@ -91,7 +91,7 @@
       },
       "config": {
         "symbol": "KUB",
-        "venue": "bitkub",
+        "source": "bitkub",
         "levels": 8
       }
     },
@@ -107,7 +107,7 @@
       "title": "KUB / THB \u00b7 Daily",
       "config": {
         "symbol": "KUB",
-        "venue": "bitkub",
+        "source": "bitkub",
         "interval": "1d",
         "mode": "line",
         "color": "#4cba64"
@@ -125,7 +125,7 @@
       "title": "Bitkub Movers",
       "config": {
         "count": 5,
-        "venue": "bitkub"
+        "source": "bitkub"
       }
     },
     {
@@ -141,7 +141,7 @@
       "currency": "USD",
       "config": {
         "symbol": "KUB",
-        "venue": "bitkub",
+        "source": "bitkub",
         "levels": 8
       }
     },

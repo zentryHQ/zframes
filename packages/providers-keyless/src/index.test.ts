@@ -4,10 +4,10 @@
 //
 //  1. ORDER IS THE ROUTING TABLE. Capability routing is first-match with no
 //     dedup: `useProviderFor` (packages/core/src/hooks.tsx) filters the fleet by
-//     capability and takes `[0]` unless the frame pins a `venue`. Hyperliquid
+//     capability and takes `[0]` unless the frame pins a `source`. Hyperliquid
 //     and Bitkub BOTH advertise `day-stats` + `ohlcv`, so moving Bitkub ahead of
 //     Hyperliquid silently re-routes every unpinned price/candle frame to a THB
-//     venue: baht-derived prices, no `quote-stream` ticks, and HIP-3 equity
+//     source: baht-derived prices, no `quote-stream` ticks, and HIP-3 equity
 //     symbols (`xyz:TSLA`) that don't exist there. tests/dep-dag.test.ts pins
 //     only the manifest, and the frame smoke suite renders against a mock
 //     provider — so the constructed sequence is pinned here, verbatim.
@@ -46,7 +46,7 @@ async function loadFactory(): Promise<Factory> {
  * The fleet in construction order — which IS the capability-routing order.
  * These are the providers' real `.name` values (several differ from their
  * package name: `provider-etf-flows` reports "SoSoValue", `provider-ultrasound`
- * reports "ultrasound.money", …), because `.name` is what a frame's `venue`
+ * reports "ultrasound.money", …), because `.name` is what a frame's `source`
  * pins against.
  */
 const EXPECTED_ORDER = [
@@ -78,19 +78,19 @@ const EXPECTED_ORDER = [
 
 /**
  * `useProviderFor` (packages/core/src/hooks.tsx) reproduced exactly: filter the
- * fleet by capability, honour a case-insensitive `venue` pin, otherwise take the
+ * fleet by capability, honour a case-insensitive `source` pin, otherwise take the
  * first covering provider. Duplicated here because the hook itself needs React,
  * while the behaviour under test is a property of this array's order.
  */
 function routeFor(
   providers: MarketDataProvider[],
   capability: Capability,
-  venue?: string,
+  source?: string,
 ): MarketDataProvider | null {
   const covering = providers.filter((p) => p.capabilities.includes(capability));
-  if (venue) {
+  if (source) {
     const pinned = covering.find(
-      (p) => p.name.toLowerCase() === venue.toLowerCase(),
+      (p) => p.name.toLowerCase() === source.toLowerCase(),
     );
     if (pinned) return pinned;
   }
@@ -115,14 +115,14 @@ describe("createKeylessProviders", () => {
     expect(names[0]).toBe("hyperliquid");
     expect(names[names.length - 1]).toBe("bitkub");
     // The invariant that actually matters is the relative order of the two
-    // venues that overlap on day-stats/ohlcv.
+    // sources that overlap on day-stats/ohlcv.
     expect(names.indexOf("hyperliquid")).toBeLessThan(names.indexOf("bitkub"));
   });
 
-  it("names every provider uniquely, so a venue pin is unambiguous", () => {
+  it("names every provider uniquely, so a source pin is unambiguous", () => {
     const names = createKeylessProviders().map((p) => p.name);
     expect(new Set(names).size).toBe(names.length);
-    // `venue` matching lower-cases both sides, so names differing only in case
+    // `source` matching lower-cases both sides, so names differing only in case
     // would be ambiguous too.
     const lowered = names.map((n) => n.toLowerCase());
     expect(new Set(lowered).size).toBe(lowered.length);
@@ -141,7 +141,7 @@ describe("createKeylessProviders", () => {
   });
 
   describe("first-match routing", () => {
-    // Both venues cover these two capabilities; first-match decides, so the
+    // Both sources cover these two capabilities; first-match decides, so the
     // fleet's order alone determines which one every unpinned frame gets.
     const OVERLAPPING = ["day-stats", "ohlcv"] as const;
 
@@ -161,13 +161,13 @@ describe("createKeylessProviders", () => {
     );
 
     it.each(OVERLAPPING)(
-      "reaches bitkub for %s only when the frame pins venue: bitkub",
+      "reaches bitkub for %s only when the frame pins source: bitkub",
       (capability) => {
         const providers = createKeylessProviders();
         expect(routeFor(providers, capability, "bitkub")?.name).toBe("bitkub");
         // Case-insensitively, as the hook compares it.
         expect(routeFor(providers, capability, "BitKub")?.name).toBe("bitkub");
-        // An unknown venue falls back to first-match rather than nothing.
+        // An unknown source falls back to first-match rather than nothing.
         expect(routeFor(providers, capability, "kraken")?.name).toBe(
           "hyperliquid",
         );
@@ -181,7 +181,7 @@ describe("createKeylessProviders", () => {
       expect(streaming.map((p) => p.name)).toEqual(["hyperliquid"]);
     });
 
-    it("routes order-book to bitkub, the only venue that serves it", () => {
+    it("routes order-book to bitkub, the only source that serves it", () => {
       const books = createKeylessProviders().filter((p) =>
         p.capabilities.includes("order-book"),
       );

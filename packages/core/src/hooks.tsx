@@ -94,30 +94,30 @@ export function useProviders(): MarketDataProvider[] {
 /**
  * The provider that should serve a capability, or null.
  *
- * Default is first-match by registration order. Pass `venue` (a provider
+ * Default is first-match by registration order. Pass `source` (a provider
  * `name`, e.g. "bitkub") to pin a specific one — that's how a frame sourced
  * from a second exchange reaches it at all, since first-match alone would
  * always hand the capability to the earlier provider. An unknown or
- * non-covering `venue` falls back to first-match rather than rendering an empty
- * card, so a typo degrades to the default source instead of nothing.
+ * non-covering `source` falls back to first-match rather than rendering an
+ * empty card, so a typo degrades to the default source instead of nothing.
  */
 export function useProviderFor(
   capability: Capability,
-  venue?: string,
+  source?: string,
 ): MarketDataProvider | null {
   const providers = useProviders();
   const covering = providers.filter((p) => p.capabilities.includes(capability));
-  if (venue) {
+  if (source) {
     const pinned = covering.find(
-      (p) => p.name.toLowerCase() === venue.toLowerCase(),
+      (p) => p.name.toLowerCase() === source.toLowerCase(),
     );
     if (pinned) return pinned;
   }
   return covering[0] ?? null;
 }
 
-/** Provider names that can serve a capability — what a `venue` picker offers. */
-export function useVenuesFor(capability: Capability): string[] {
+/** Provider names that can serve a capability — what a `source` picker offers. */
+export function useSourcesFor(capability: Capability): string[] {
   const providers = useProviders();
   return providers
     .filter((p) => p.capabilities.includes(capability))
@@ -276,9 +276,9 @@ export function useMids(symbols: readonly string[]): Record<string, number> {
 export function useDayStatsState(
   symbols?: readonly string[],
   refreshMs = 30_000,
-  venue?: string,
+  source?: string,
 ): { stats: Record<string, DayStats>; isLoading: boolean } {
-  const provider = useProviderFor("day-stats", venue);
+  const provider = useProviderFor("day-stats", source);
   // Sorted so order-variant symbol tuples (["ETH","BTC"] vs ["BTC","ETH"])
   // collapse to one effect identity here AND one provider cache key downstream.
   const key = symbols ? [...symbols].sort().join(",") : "*";
@@ -295,9 +295,9 @@ export function useDayStatsState(
 export function useDayStats(
   symbols?: readonly string[],
   refreshMs = 30_000,
-  venue?: string,
+  source?: string,
 ): Record<string, DayStats> {
-  return useDayStatsState(symbols, refreshMs, venue).stats;
+  return useDayStatsState(symbols, refreshMs, source).stats;
 }
 
 /**
@@ -332,9 +332,9 @@ export function useCandles(
   interval: string,
   startTimeMs: number,
   refreshMs = 60_000,
-  venue?: string,
+  source?: string,
 ): { candles: Candle[]; isLoading: boolean } {
-  const provider = useProviderFor("ohlcv", venue);
+  const provider = useProviderFor("ohlcv", source);
   const { data: candles, isLoading } = usePolled<Candle[]>(
     provider?.getCandles && symbol
       ? () => provider.getCandles!(symbol, interval, startTimeMs)
@@ -1250,9 +1250,9 @@ export function useOrderBook(
   symbol = "KUB",
   depth = 15,
   refreshMs = 20_000,
-  venue?: string,
+  source?: string,
 ): { book: OrderBook | null; isLoading: boolean } {
-  const provider = useProviderFor("order-book", venue);
+  const provider = useProviderFor("order-book", source);
   const { data: book, isLoading } = usePolled<OrderBook | null>(
     provider?.getOrderBook ? () => provider.getOrderBook!(symbol, depth) : null,
     null,
