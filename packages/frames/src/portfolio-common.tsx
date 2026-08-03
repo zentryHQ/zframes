@@ -76,9 +76,20 @@ export function usePricedHoldings(holdings: readonly Holding[] | undefined): {
   }, [holdings, mids]);
 }
 
+// The mark for where a portfolio's numbers came from, so a card carrying a bare
+// `0x…` says at a glance which chain it read. provider-wallet reads Ethereum
+// only, so a wallet source is always ETH; Binance's brand mark is BNB's coin
+// icon. Both resolve through `AssetLogo`, which falls back to a monogram chip if
+// the logo CDN misses — no new asset, no new mapping table.
+const SOURCE_LOGO: Record<PortfolioConfig["source"], string> = {
+  wallet: "ETH",
+  binance: "BNB",
+};
+
 /**
- * The account label, rendered as an Etherscan link for a wallet source (the
- * label is its address) and plain text otherwise (e.g. "Binance").
+ * The account label, prefixed with its source's chain/venue mark and rendered as
+ * an Etherscan link for a wallet source (the label is its address) or plain text
+ * otherwise (e.g. "Binance").
  */
 export function PortfolioLabel({
   portfolio,
@@ -92,22 +103,36 @@ export function PortfolioLabel({
   const label =
     portfolio.label ?? (config.source === "wallet" ? "wallet" : "portfolio");
   const address = config.address?.trim();
+  // The logo is decorative — `AssetLogo` is already aria-hidden, and the source
+  // is named in the title text beside it.
+  const logo = <AssetLogo symbol={SOURCE_LOGO[config.source]} size={12} />;
+  const sourceTitle = config.source === "wallet" ? "Ethereum" : "Binance";
+
   if (config.source === "wallet" && address) {
     return (
       <a
         href={`https://etherscan.io/address/${encodeURIComponent(address)}`}
         target="_blank"
         rel="noopener noreferrer"
-        title="View on Etherscan"
-        className={`hover:text-white hover:underline ${className}`}
+        title={`${sourceTitle} · view on Etherscan`}
+        className={`inline-flex items-center gap-1.5 hover:text-white hover:underline ${className}`}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >
+        {logo}
         {label}
       </a>
     );
   }
-  return <span className={className}>{label}</span>;
+  return (
+    <span
+      title={sourceTitle}
+      className={`inline-flex items-center gap-1.5 ${className}`}
+    >
+      {logo}
+      {label}
+    </span>
+  );
 }
 
 // ---------------------------------------------------------------------------
