@@ -57,6 +57,13 @@ const LEGEND_HEIGHT = 16;
 const LEGEND_SWATCH = 8;
 /** Below this a cell can't read as a square, so the grid stops shrinking. */
 const MIN_CELL = 2;
+/**
+ * Ceiling on cell size. A short window in a large card would otherwise inflate
+ * the squares until the grid reads as a matrix heatmap rather than a calendar —
+ * a 6-week view was drawing 60px tiles. Capping keeps the calendar's identity
+ * and leaves the slack as margin, which the centring below absorbs.
+ */
+const MAX_CELL = 26;
 /** Weakest and strongest band opacity — level 1 must still be visible. */
 const MIN_FILL_OPACITY = 0.24;
 const MAX_FILL_OPACITY = 1;
@@ -136,13 +143,17 @@ const CalendarHeatmap = ({
     const innerWidth = Math.max(width - marginLeft, 10);
     const innerHeight = Math.max(svgHeight - marginTop - marginBottom, 10);
 
-    // Square cells: whichever axis runs out of room first sets the size.
+    // Square cells: whichever axis runs out of room first sets the size, then
+    // MAX_CELL keeps a short window from inflating into a matrix heatmap.
     const cell = Math.max(
       MIN_CELL,
-      Math.floor(
-        Math.min(
-          (innerWidth - gap * (weeks - 1)) / weeks,
-          (innerHeight - gap * 6) / 7,
+      Math.min(
+        MAX_CELL,
+        Math.floor(
+          Math.min(
+            (innerWidth - gap * (weeks - 1)) / weeks,
+            (innerHeight - gap * 6) / 7,
+          ),
         ),
       ),
     );
@@ -237,12 +248,16 @@ const CalendarHeatmap = ({
 
     if (showWeekdayLabels && cell >= 6) {
       const labels = weekdayLabels(weekStart);
+      // Every other row, phased so the labelled rows are always Mon/Wed/Fri
+      // whatever the week starts on. Labelling by raw row index instead put a
+      // Monday-anchored grid on Tue/Thu/Sat, which reads as an off-by-one.
+      const phase = weekStart === "monday" ? 0 : 1;
       svg
         .selectAll("text.weekday")
         .data(
           labels
             .map((label, weekday) => ({ label, weekday }))
-            .filter((l) => l.weekday % WEEKDAY_LABEL_STEP === 1),
+            .filter((l) => l.weekday % WEEKDAY_LABEL_STEP === phase),
         )
         .enter()
         .append("text")

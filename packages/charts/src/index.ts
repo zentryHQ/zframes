@@ -58,6 +58,7 @@ export {
   binSample,
   chooseBinWidth,
   normalCurve,
+  quantile,
   sampleStats,
 } from "./histogram-chart/utils";
 

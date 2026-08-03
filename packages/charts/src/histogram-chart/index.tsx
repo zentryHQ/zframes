@@ -235,11 +235,32 @@ const HistogramChart = ({
         .attr("stroke", "currentColor")
         .attr("stroke-opacity", 0.28);
 
-    for (const marker of markers) {
-      if (!Number.isFinite(marker.value)) continue;
+    // Markers are placed left to right with their labels nudged apart. Two
+    // markers often land close together — a symbol whose latest move is near its
+    // own mean, say — and centring each label on its own line printed "BTC" and
+    // "median" straight through each other. The dashed line stays exactly on the
+    // value; only the label shifts, and each keeps its own colour and tooltip.
+    let labelCursor = Number.NEGATIVE_INFINITY;
+    const ordered = markers
+      .filter((m) => Number.isFinite(m.value))
       // Clamped into the axis: a marker for an observation out past the folded
       // tail still belongs on screen, at the edge it fell beyond.
-      const mx = x(Math.min(Math.max(marker.value, domain[0]), domain[1]));
+      .map((m) => ({
+        m,
+        mx: x(Math.min(Math.max(m.value, domain[0]), domain[1])),
+      }))
+      .sort((a, b) => a.mx - b.mx);
+
+    for (const { m: marker, mx } of ordered) {
+      const labelWidth = marker.label.length * CHAR_PX;
+      let tx = mx;
+      if (tx - labelWidth / 2 < labelCursor) tx = labelCursor + labelWidth / 2;
+      tx = Math.min(
+        Math.max(tx, labelWidth / 2),
+        Math.max(innerWidth - labelWidth / 2, labelWidth / 2),
+      );
+      labelCursor = tx + labelWidth / 2 + MIN_LABEL_GAP;
+
       const line = g.append("g");
       line
         .append("line")
@@ -253,7 +274,7 @@ const HistogramChart = ({
         .attr("stroke-dasharray", "2,2");
       line
         .append("text")
-        .attr("x", Math.min(Math.max(mx, 12), innerWidth - 12))
+        .attr("x", tx)
         .attr("y", -4)
         .attr("text-anchor", "middle")
         .style("fill", marker.color ?? "currentColor")
