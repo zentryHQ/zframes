@@ -6,6 +6,7 @@ import {
   fireEvent,
   render,
   waitFor,
+  type RenderResult,
 } from "@testing-library/react";
 import { useEffect } from "react";
 import { z } from "zod";
@@ -561,5 +562,357 @@ describe("Save carries a card's event markers", () => {
     const a = savedSpec(view.onSave).frames.find((f) => f.id === "a")!;
     expect(a.position).toEqual({ x: 8, y: 0, w: 4, h: 2 });
     expect(a.events).toEqual(MARKERS);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The safety net: undo/redo, recoverable delete, honest save.
+//
+// Every case below was a way to lose work in the editor before this suite:
+// deleting a configured card was one unconfirmed, unrecoverable click; there was
+// no undo at any granularity, so the only rollback was Cancel's all-or-nothing
+// revert; and `save()` left customise mode BEFORE awaiting `onSave`, which made
+// a rejected write (the host failing to put dashboard.json on disk) look exactly
+// like a successful one. The user walked away believing the board was saved.
+//
+// These pin behaviour through the real DOM the user actually drives — the
+// injected per-item × button, the toolbar, the keyboard — not the history kernel,
+// which editor-history.test.ts covers on its own.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Mount with an explicit `onSave`, so a test can control when (or whether) the
+ *  host's write resolves. */
+function mountWith(
+  spec: DashboardSpec,
+  onSave: ((next: DashboardSpec) => void | Promise<void>) | undefined,
+) {
+  hostProviders.current = [];
+  const view = render(
+    <FramesProvider providers={hostProviders.current}>
+      <DashboardEditor spec={spec} registry={registry} onSave={onSave} />
+    </FramesProvider>,
+  );
+  return view;
+}
+
+async function enterCustomise(view: Pick<RenderResult, "getByRole">) {
+  await act(async () => {
+    fireEvent.click(view.getByRole("button", { name: "Customise" }));
+  });
+}
+
+/** The per-item delete affordance the editor injects imperatively in customise
+ *  mode (not React-rendered, so it has to be found in the DOM). */
+function deleteBtn(container: HTMLElement, id: string): HTMLElement {
+  const el = container.querySelector<HTMLElement>(
+    `.grid-stack-item[gs-id="${id}"] .zf-del-btn`,
+  );
+  if (!el) throw new Error(`no delete button on item "${id}"`);
+  return el;
+}
+
+function itemIds(container: HTMLElement): (string | null)[] {
+  return domOrder(container);
+}
+
+describe("recoverable delete", () => {
+  it("offers an undo toast naming what was removed", async () => {
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+
+    expect(itemIds(view.container)).toEqual(["b"]);
+    // Named, so it's clear WHICH card went — the label comes from the registry
+    // when the instance has no explicit title.
+    expect(view.getByRole("status").textContent).toContain("Probe removed");
+    // The toast's action is named distinctly from the toolbar's Undo, which is
+    // on screen at the same time.
+    expect(
+      view.getByRole("button", { name: "Undo removing Probe" }),
+    ).toBeTruthy();
+  });
+
+  it("restores the deleted frame — with its config — from the toast", async () => {
+    // The point of undo over a confirm dialog: a delete takes the card's config,
+    // tickers, events and style overrides with it, none of which re-adding the
+    // frame from the palette would bring back.
+    const spec = DashboardSpecSchema.parse({
+      title: "editor-test",
+      currency: { code: "USD" },
+      grid: { columns: 12, rowHeight: 90, rows: 3, gap: 12 },
+      frames: [
+        {
+          id: "a",
+          frame: "probe",
+          title: "My tuned card",
+          position: { x: 0, y: 0, w: 3, h: 2 },
+          config: {},
+          events: [{ date: "2026-01-02", label: "halving" }],
+        },
+      ],
+    });
+    const onSave = vi.fn();
+    const view = mountWith(spec, onSave);
+    await enterCustomise(view);
+
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    expect(itemIds(view.container)).toEqual([]);
+    // The toast names the instance's own title, not the frame's generic label.
+    expect(view.getByRole("status").textContent).toContain("My tuned card");
+
+    await act(async () => {
+      fireEvent.click(
+        view.getByRole("button", { name: "Undo removing My tuned card" }),
+      );
+    });
+    expect(itemIds(view.container)).toEqual(["a"]);
+
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    const saved = onSave.mock.calls[0][0] as DashboardSpec;
+    const a = saved.frames.find((f) => f.id === "a")!;
+    expect(a.title).toBe("My tuned card");
+    expect(a.events).toEqual([{ date: "2026-01-02", label: "halving" }]);
+  });
+
+  it("dismisses the toast without restoring anything", async () => {
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Dismiss" }));
+    });
+    expect(view.queryByRole("status")).toBeNull();
+    expect(itemIds(view.container)).toEqual([]);
+  });
+});
+
+describe("undo / redo", () => {
+  it("starts with nothing to undo and reports a clean board", async () => {
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    // Disabled rather than absent: a greyed Undo says "you're at the start",
+    // where a missing button reads as a missing feature.
+    expect(
+      view.getByRole("button", { name: "Undo" }).hasAttribute("disabled"),
+    ).toBe(true);
+    expect(
+      view.getByRole("button", { name: "Redo" }).hasAttribute("disabled"),
+    ).toBe(true);
+    expect(view.container.textContent).toContain("No changes");
+  });
+
+  it("walks a delete back and forward again", async () => {
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    expect(itemIds(view.container)).toEqual(["b"]);
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Dismiss" }));
+    });
+
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Undo" }));
+    });
+    expect(itemIds(view.container).sort()).toEqual(["a", "b"]);
+    expect(view.container.textContent).toContain("No changes");
+
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Redo" }));
+    });
+    expect(itemIds(view.container)).toEqual(["b"]);
+    expect(view.container.textContent).toContain("Unsaved changes");
+  });
+
+  it("undoes via ⌘Z, and leaves undo inside a text field to the browser", async () => {
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+
+    // With focus in the palette's search box, ⌘Z must keep its native
+    // text-editing meaning rather than rewinding the board under the user.
+    const search = view.container.querySelector<HTMLInputElement>(
+      ".zf-rail input[type='search'], .zf-rail input",
+    );
+    if (search) {
+      search.focus();
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "z", metaKey: true });
+      });
+      expect(itemIds(view.container)).toEqual(["b"]);
+      search.blur();
+    }
+
+    await act(async () => {
+      fireEvent.keyDown(document, { key: "z", metaKey: true });
+    });
+    expect(itemIds(view.container).sort()).toEqual(["a", "b"]);
+
+    await act(async () => {
+      fireEvent.keyDown(document, { key: "z", metaKey: true, shiftKey: true });
+    });
+    expect(itemIds(view.container)).toEqual(["b"]);
+  });
+
+  it("reverts a delete on Cancel", async () => {
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Cancel" }));
+    });
+    expect(itemIds(view.container).sort()).toEqual(["a", "b"]);
+    // Cancel left customise mode, so the collapsed entry point is back.
+    expect(view.getByRole("button", { name: "Customise" })).toBeTruthy();
+  });
+});
+
+describe("honest save", () => {
+  it("stays in customise mode until the host's write resolves", async () => {
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const onSave = vi.fn(() => pending);
+    const view = mountWith(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      onSave,
+    );
+    await enterCustomise(view);
+
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    expect(onSave).toHaveBeenCalledTimes(1);
+    // Still editing, and saying so — the write hasn't landed yet.
+    expect(view.container.textContent).toContain("Saving…");
+    expect(view.queryByRole("button", { name: "Customise" })).toBeNull();
+    // The same spec can't be submitted twice mid-flight.
+    expect(
+      view.getByRole("button", { name: "Saving…" }).hasAttribute("disabled"),
+    ).toBe(true);
+
+    await act(async () => {
+      release();
+      await pending;
+    });
+    expect(view.getByRole("button", { name: "Customise" })).toBeTruthy();
+  });
+
+  it("keeps the edits and shows why when the host rejects the write", async () => {
+    const onSave = vi.fn(async () => {
+      throw new Error("EACCES: dashboard.json is read-only");
+    });
+    const view = mountWith(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      onSave,
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+
+    // The failure is stated, not swallowed.
+    expect(view.getByRole("alert").textContent).toContain("read-only");
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Dismiss" }));
+    });
+    // And the work survives: still in customise mode, still one frame deleted,
+    // still undoable.
+    expect(view.queryByRole("button", { name: "Customise" })).toBeNull();
+    expect(itemIds(view.container)).toEqual(["b"]);
+    expect(
+      view.getByRole("button", { name: "Undo" }).hasAttribute("disabled"),
+    ).toBe(false);
+  });
+
+  it("marks the saved state clean, so re-entering has nothing to revert", async () => {
+    const onSave = vi.fn();
+    const view = mountWith(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      onSave,
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    await enterCustomise(view);
+
+    expect(view.container.textContent).toContain("No changes");
+    expect(
+      view.getByRole("button", { name: "Undo" }).hasAttribute("disabled"),
+    ).toBe(true);
+    // Cancel now can't resurrect the frame the user deliberately saved away.
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Cancel" }));
+    });
+    expect(itemIds(view.container)).toEqual(["b"]);
+  });
+
+  it("says Download when there is no host to save to", async () => {
+    // Without onSave the button writes a file to the user's disk. Labelling it
+    // "Save" made that look like a persist that went somewhere.
+    const view = mountWith(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      undefined,
+    );
+    await enterCustomise(view);
+    expect(view.getByRole("button", { name: "Download" })).toBeTruthy();
+    expect(view.queryByRole("button", { name: "Save" })).toBeNull();
   });
 });

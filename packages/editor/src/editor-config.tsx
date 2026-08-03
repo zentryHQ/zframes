@@ -178,14 +178,33 @@ export function FrameConfigDialog({
     [instanceId, instancesRef, onApply],
   );
 
-  // Esc closes the dialog.
+  /**
+   * Put the draft back to the last config that actually validated — the one the
+   * card is rendering and the one Save would write.
+   *
+   * This is the exit from an invalid draft. Without it, "invalid drafts stay
+   * local" (which is right — inputs must never snap back mid-edit) has no
+   * resolution: the only ways out were Done and Esc, both of which dropped the
+   * typed value with no indication it was never applied.
+   */
+  const revertConfig = useCallback(() => {
+    const current = instancesRef.current.get(instanceId);
+    setConfig({ ...(current?.config ?? {}) });
+    setError(null);
+  }, [instanceId, instancesRef]);
+
+  // Esc closes the dialog — unless the draft is invalid, in which case closing
+  // would silently discard it. Then Esc reverts to the last valid config instead,
+  // which is a visible change (the fields snap back) rather than a silent loss.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (error) revertConfig();
+      else onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, error, revertConfig]);
 
   const setField = (key: string, value: unknown) =>
     commit({ ...config, [key]: value });
@@ -196,7 +215,11 @@ export function FrameConfigDialog({
       className="zf-dialog-backdrop"
       style={{ ["--zf-accent-hue" as string]: accentHue }}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        // Backdrop click closes — but not over an invalid draft, which closing
+        // would discard without saying so. See the Esc handler above.
+        if (e.target !== e.currentTarget) return;
+        if (error) revertConfig();
+        else onClose();
       }}
     >
       <div
@@ -261,7 +284,19 @@ export function FrameConfigDialog({
           {!symbolControl && fields.length === 0 && (
             <p className="zf-rail-empty">This frame has no settings.</p>
           )}
-          {error && <div className="zf-config-error">{error}</div>}
+          {error && (
+            <div className="zf-config-error" role="alert">
+              <p className="zf-config-error-head">
+                These settings aren&rsquo;t applied
+              </p>
+              <p className="zf-config-error-note">
+                The card is still using its last valid settings, and
+                that&rsquo;s what Save will write. Fix the field below, or
+                revert.
+              </p>
+              <pre className="zf-config-error-detail">{error}</pre>
+            </div>
+          )}
           {def?.annotatable && (
             <FrameEventsPanel events={events} onChange={commitEvents} />
           )}
@@ -272,10 +307,28 @@ export function FrameConfigDialog({
           />
         </div>
         <footer className="zf-dialog-foot">
+          {/* Done is blocked while the draft is invalid — leaving would drop the
+              edit — but Revert always offers a one-click way out, so the dialog
+              is never a trap. */}
+          {error && (
+            <button
+              type="button"
+              className="zf-btn zf-btn--ghost"
+              onClick={revertConfig}
+            >
+              Revert
+            </button>
+          )}
           <button
             type="button"
             className="zf-btn zf-btn--primary"
             onClick={onClose}
+            disabled={Boolean(error)}
+            title={
+              error
+                ? "Fix or revert the invalid settings first"
+                : "Close this frame's settings"
+            }
           >
             Done
           </button>

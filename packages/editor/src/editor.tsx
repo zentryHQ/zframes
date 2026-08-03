@@ -4,7 +4,7 @@ import {
   type GridStackNode,
 } from "gridstack";
 import "gridstack/dist/gridstack.min.css";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Redo2, Search, SlidersHorizontal, Undo2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
@@ -18,6 +18,17 @@ import {
   type LayoutMode,
 } from "./editor-grid";
 import { buildDefaultConfig, useSymbolUniverse } from "./editor-symbols";
+import {
+  baselineOf,
+  canRedo,
+  canUndo,
+  initHistory,
+  isDirty,
+  pushHistory,
+  redoHistory,
+  undoHistory,
+  type History,
+} from "./editor-history";
 import {
   FRAME_CATEGORIES,
   type AnyFrameDefinition,
@@ -65,6 +76,14 @@ import {
 function unmountRootSoon(root: Root): void {
   queueMicrotask(() => root.unmount());
 }
+
+/** Trailing window used to collapse a continuous slider drag into ONE undo step.
+ *  Long enough to span the gaps in a slow drag, short enough that two deliberate
+ *  tweaks stay separately undoable. */
+const COMMIT_DEBOUNCE_MS = 400;
+
+/** How long the "Frame removed — Undo" toast stays up. */
+const UNDO_TOAST_MS = 7000;
 
 /**
  * Interactive, in-browser dashboard editor — a drag/resize/add/delete
@@ -147,40 +166,53 @@ export function DashboardEditor({
   const instancesRef = useRef<Map<string, FrameInstance>>(new Map());
   const rootsRef = useRef<Map<string, Root>>(new Map());
   const contentRef = useRef<Map<string, HTMLElement>>(new Map());
-  const snapshotRef = useRef<FrameInstance[]>([]);
-  const snapshotHueRef = useRef(spec.theme.accentHue);
-  const snapshotSatRef = useRef(spec.theme.accentSat);
-  const snapshotBaseHueRef = useRef(spec.theme.baseHue);
-  const snapshotBaseSatRef = useRef(spec.theme.baseSat);
-  const snapshotUpColorRef = useRef(spec.theme.upColor);
-  const snapshotDownColorRef = useRef(spec.theme.downColor);
-  const snapshotGapRef = useRef(spec.grid.gap);
-  const snapshotPaddingXRef = useRef(spec.grid.paddingX);
-  const snapshotModeRef = useRef(spec.grid.mode);
   const switchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const snapshotRadiusRef = useRef(spec.appearance.radius);
-  const snapshotBorderRef = useRef(spec.appearance.borderStrength);
-  const snapshotSurfaceRef = useRef(spec.appearance.surfaceOpacity);
-  const snapshotDensityRef = useRef(spec.appearance.density);
-  const snapshotElevationRef = useRef(spec.appearance.elevation);
-  const snapshotFontFamilyRef = useRef(spec.typography.fontFamily);
-  const snapshotNumericRef = useRef(spec.typography.numericStyle);
-  const snapshotFontScaleRef = useRef(spec.typography.scale);
-  const snapshotBgTypeRef = useRef(spec.background.type);
-  const snapshotBgProjectIdRef = useRef(spec.background.projectId);
-  const snapshotBgOpacityRef = useRef(spec.background.opacity);
-  const snapshotBgColorRef = useRef(spec.background.color);
-  const snapshotBgGradFromRef = useRef(spec.background.gradientFrom);
-  const snapshotBgGradToRef = useRef(spec.background.gradientTo);
-  const snapshotBgGradAngleRef = useRef(spec.background.gradientAngle);
-  const snapshotBgImageUrlRef = useRef(spec.background.imageUrl);
-  const snapshotBgImageFitRef = useRef(spec.background.imageFit);
-  const snapshotBgImageBlurRef = useRef(spec.background.imageBlur);
-  const snapshotBgOverlayOpacityRef = useRef(spec.background.overlayOpacity);
-  const snapshotSurfaceModeRef = useRef(spec.theme.surface);
   const counterRef = useRef(0);
 
+  // Undo/redo, Cancel, and the dirty indicator all read from ONE linear history
+  // of whole-spec snapshots (see editor-history.ts for why snapshots rather than
+  // a command stack). Entry 0 is the state customise mode opened on, so Cancel is
+  // "apply the baseline" and dirty is "index !== 0" — no parallel bookkeeping.
+  const historyRef = useRef<History<DashboardSpec>>(initHistory(spec));
+  // Mirror of the ref for the toolbar's disabled/dirty states. The ref is what
+  // the []-deps callbacks read; this is what re-renders the buttons.
+  const [historyState, setHistoryState] = useState(() => ({
+    undo: false,
+    redo: false,
+    dirty: false,
+  }));
+  const publishHistory = useCallback(() => {
+    const h = historyRef.current;
+    setHistoryState({
+      undo: canUndo(h),
+      redo: canRedo(h),
+      dirty: isDirty(h),
+    });
+  }, []);
+  // Timestamp until which commits are ignored — applySpec sets it so writing an
+  // undone snapshot back isn't recorded as a fresh edit.
+  const suppressCommitUntilRef = useRef(0);
+  // Indirection for the GridStack handlers, which are registered once at grid
+  // init and must reach the *current* commitHistory (defined far below, since it
+  // depends on collectSpec).
+  const commitHistoryRef = useRef<(() => void) | null>(null);
+
   const [editing, setEditing] = useState(false);
+  // Save is in flight (the host is writing dashboard.json). Disables the toolbar
+  // so the same spec can't be submitted twice.
+  const [saving, setSaving] = useState(false);
+  // Why the last save failed, if it did — shown in the toolbar so a rejected
+  // write is visible instead of looking exactly like a successful one.
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // The frame the last delete removed, kept so it can be put back with one click.
+  // The history already holds the state to undo to; this only drives the toast.
+  const [removed, setRemoved] = useState<{ id: string; label: string } | null>(
+    null,
+  );
+  // Mirror for the []-deps callbacks (rebuildGrid, the keyboard handler) that
+  // must read the *current* mode without being re-created on every toggle.
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
   const symbolUniverse = useSymbolUniverse(providers, editing);
   const [count, setCount] = useState(spec.frames.length);
   // Dashboard-wide accent hue (0–360). Set inline on .zf-editor so it themes
@@ -608,15 +640,27 @@ export function DashboardEditor({
     if (!grid) return;
     const id = el.getAttribute("gs-id");
     if (id) {
+      // Name the removal before the instance is gone, so the toast can say what
+      // was deleted rather than "a frame".
+      const inst = instancesRef.current.get(id);
+      const label =
+        inst?.title ??
+        registryRef.current.get(inst?.frame ?? "")?.label ??
+        inst?.frame.replace(/-/g, " ") ??
+        "Frame";
       const root = rootsRef.current.get(id);
       if (root) unmountRootSoon(root);
       rootsRef.current.delete(id);
       contentRef.current.delete(id);
       instancesRef.current.delete(id);
       if (editingIdRef.current === id) setEditingId(null);
+      setRemoved({ id, label });
     }
     grid.removeWidget(el, true);
     setCount(grid.getGridItems().length);
+    // Record the removal so ⌘Z and the toast's Undo can both put it back — with
+    // its config, tickers, events and style overrides, which a re-add can't.
+    commitHistoryRef.current?.();
   }, []);
 
   // Adds the customise-mode affordances to a grid item: a per-frame gear that
@@ -755,6 +799,7 @@ export function DashboardEditor({
       renderInstance(id);
       decorateItem(el);
       setCount(grid.getGridItems().length);
+      commitHistoryRef.current?.();
       // Newly added → open its settings dialog straight away (required-field
       // frames land as error cards until configured, so jump the user there).
       setEditingId(id);
@@ -874,6 +919,7 @@ export function DashboardEditor({
         renderInstance(id);
         decorateItem(el);
         setCount(grid.getGridItems().length);
+        commitHistoryRef.current?.();
         setEditingId(id);
       });
 
@@ -884,7 +930,14 @@ export function DashboardEditor({
       // the placeholder/grid, so pin `grabbing` on <body> from dragstart→dragstop
       // — covers the placeholder, sibling cards, and any body-appended helper.
       grid.on("dragstart", () => document.body.classList.add("zf-dragging"));
-      grid.on("dragstop", () => document.body.classList.remove("zf-dragging"));
+      grid.on("dragstop", () => {
+        document.body.classList.remove("zf-dragging");
+        // One undo step per completed gesture, not per intermediate position.
+        // A drag that ended where it began pushes nothing (pushHistory drops
+        // structural no-ops), so ⌘Z never burns a press on a non-change.
+        commitHistoryRef.current?.();
+      });
+      grid.on("resizestop", () => commitHistoryRef.current?.());
 
       if (horizontal) {
         // GridStack has no horizontal drag-scroll — nudge the wrapper when the
@@ -1137,127 +1190,13 @@ export function DashboardEditor({
   }, []);
 
   const startCustomise = useCallback(() => {
-    snapshotRef.current = collectSpec().frames;
-    snapshotHueRef.current = accentHue;
-    snapshotSatRef.current = accentSat;
-    snapshotBaseHueRef.current = baseHue;
-    snapshotBaseSatRef.current = baseSat;
-    snapshotUpColorRef.current = upColor;
-    snapshotDownColorRef.current = downColor;
-    snapshotGapRef.current = gap;
-    snapshotPaddingXRef.current = paddingX;
-    snapshotModeRef.current = mode;
-    snapshotRadiusRef.current = radius;
-    snapshotBorderRef.current = borderStrength;
-    snapshotSurfaceRef.current = surfaceOpacity;
-    snapshotDensityRef.current = density;
-    snapshotElevationRef.current = elevation;
-    snapshotFontFamilyRef.current = fontFamily;
-    snapshotNumericRef.current = numericStyle;
-    snapshotFontScaleRef.current = fontScale;
-    snapshotBgTypeRef.current = bgType;
-    snapshotBgProjectIdRef.current = bgProjectId;
-    snapshotBgOpacityRef.current = bgOpacity;
-    snapshotBgColorRef.current = bgColor;
-    snapshotBgGradFromRef.current = bgGradFrom;
-    snapshotBgGradToRef.current = bgGradTo;
-    snapshotBgGradAngleRef.current = bgGradAngle;
-    snapshotBgImageUrlRef.current = bgImageUrl || undefined;
-    snapshotBgImageFitRef.current = bgImageFit;
-    snapshotBgImageBlurRef.current = bgImageBlur;
-    snapshotBgOverlayOpacityRef.current = bgOverlayOpacity;
-    snapshotSurfaceModeRef.current = surface;
+    // The session baseline. Everything else — undo's floor, Cancel's target, the
+    // dirty flag — is derived from this one entry.
+    historyRef.current = initHistory(collectSpec());
+    publishHistory();
+    setSaveError(null);
     setEditing(true);
-  }, [
-    collectSpec,
-    accentHue,
-    accentSat,
-    baseHue,
-    baseSat,
-    upColor,
-    downColor,
-    surface,
-    gap,
-    paddingX,
-    mode,
-    radius,
-    borderStrength,
-    surfaceOpacity,
-    density,
-    elevation,
-    fontFamily,
-    numericStyle,
-    fontScale,
-    bgType,
-    bgProjectId,
-    bgOpacity,
-    bgColor,
-    bgGradFrom,
-    bgGradTo,
-    bgGradAngle,
-    bgImageUrl,
-    bgImageFit,
-    bgImageBlur,
-    bgOverlayOpacity,
-  ]);
-
-  const cancel = useCallback(() => {
-    // restore() unmounts + recreates EVERY frame's React root (re-subscribing
-    // WS/poll hooks and replaying first-render for each) — a real hitch on a big
-    // board. Skip it when the frames are byte-for-byte unchanged: collectSpec()
-    // reads the same shape the snapshot was taken from (positions AND configs),
-    // so an identical JSON means nothing structural changed and the live roots
-    // already show the snapshot state. A mode switch re-inited the grid under a
-    // different layout, so it always needs the restore. The cosmetic setters
-    // below always run, so an accent/appearance/background tweak still reverts.
-    const modeChanged = snapshotModeRef.current !== modeRef.current;
-    const changed =
-      modeChanged ||
-      JSON.stringify(collectSpec().frames) !==
-        JSON.stringify(snapshotRef.current);
-    if (changed) restore(snapshotRef.current);
-    setAccentHue(snapshotHueRef.current);
-    setAccentSat(snapshotSatRef.current);
-    setBaseHue(snapshotBaseHueRef.current);
-    setBaseSat(snapshotBaseSatRef.current);
-    setUpColor(snapshotUpColorRef.current);
-    setDownColor(snapshotDownColorRef.current);
-    setGap(snapshotGapRef.current);
-    setPaddingX(snapshotPaddingXRef.current);
-    setMode(snapshotModeRef.current);
-    setRadius(snapshotRadiusRef.current);
-    setBorderStrength(snapshotBorderRef.current);
-    setSurfaceOpacity(snapshotSurfaceRef.current);
-    setDensity(snapshotDensityRef.current);
-    setElevation(snapshotElevationRef.current);
-    setFontFamily(snapshotFontFamilyRef.current);
-    setNumericStyle(snapshotNumericRef.current);
-    setFontScale(snapshotFontScaleRef.current);
-    setBgType(snapshotBgTypeRef.current);
-    setBgProjectId(
-      snapshotBgProjectIdRef.current ?? BACKGROUND_SCENES[0].projectId,
-    );
-    setBgOpacity(snapshotBgOpacityRef.current);
-    setBgColor(snapshotBgColorRef.current);
-    setBgGradFrom(snapshotBgGradFromRef.current);
-    setBgGradTo(snapshotBgGradToRef.current);
-    setBgGradAngle(snapshotBgGradAngleRef.current);
-    setBgImageUrl(snapshotBgImageUrlRef.current ?? "");
-    setBgImageFit(snapshotBgImageFitRef.current);
-    setBgImageBlur(snapshotBgImageBlurRef.current);
-    setBgOverlayOpacity(snapshotBgOverlayOpacityRef.current);
-    setSurface(snapshotSurfaceModeRef.current);
-    setEditingId(null);
-    setEditing(false);
-  }, [restore, collectSpec]);
-
-  const save = useCallback(async () => {
-    const next = collectSpec();
-    setEditing(false);
-    setEditingId(null);
-    if (onSave) await onSave(next);
-    else download(next);
-  }, [collectSpec, onSave, download]);
+  }, [collectSpec, publishHistory]);
 
   // Reclaim empty space in the ACTIVE grid (float:true otherwise preserves gaps).
   // Mode-aware: the vertical column grid reflows top-left to fill any hole
@@ -1266,6 +1205,9 @@ export function DashboardEditor({
   // reshuffled. collectSpec reads positions live off gridstackNode, so the
   // tidied layout round-trips through Save with no extra bookkeeping.
   const tidy = useCallback(() => {
+    // Tidy reflows every card at once — the single most disruptive thing in the
+    // toolbar — so it must be one ⌘Z away.
+    queueMicrotask(() => commitHistoryRef.current?.());
     gridInstanceRef.current?.compact(
       modeRef.current === "flow-horizontal" ? "list" : "compact",
     );
@@ -1299,36 +1241,55 @@ export function DashboardEditor({
     }
   }, []);
 
-  // Swap the layout mode behind a brief blur+fade. The two layouts are different
-  // GridStack configs (vertical column grid vs the coerced wide side-scroller)
-  // with independent positions, so we capture the current arrangement, re-init
-  // GridStack for the new mode, and restore each frame at the new mode's layout
-  // — all while the grid is blurred out, so the structural swap is invisible.
-  // Reduced-motion users get the instant swap.
+  /**
+   * Tear the grid down and rebuild it for `nextMode` from an explicit frame list.
+   *
+   * The two modes are different GridStack configs (vertical column grid vs the
+   * coerced wide side-scroller) with independent per-frame positions, so they
+   * can't morph — crossing between them means a re-init. Extracted from
+   * `switchMode` because `applySpec` needs exactly the same rebuild when an undo
+   * lands on a snapshot from the *other* mode; taking the frames as an argument
+   * is what lets applySpec pass the snapshot's list rather than the live one.
+   */
+  const rebuildGrid = useCallback(
+    (nextMode: LayoutMode, frames: FrameInstance[]) => {
+      const wasEditing = editingRef.current;
+      const horizontal = nextMode === "flow-horizontal";
+      const cols = horizontal
+        ? colsForHorizontal(frames, spec.grid.rows)
+        : spec.grid.columns;
+      teardownGrid();
+      modeRef.current = nextMode;
+      setMode(nextMode);
+      const grid = initGrid(nextMode, cols);
+      gridInstanceRef.current = grid;
+      restore(
+        horizontal ? seedHorizontal(frames, cols, spec.grid.rows) : frames,
+      );
+      if (wasEditing) {
+        grid.enableMove(true);
+        grid.enableResize(true);
+        grid.getGridItems().forEach(decorateItem);
+      }
+    },
+    [
+      teardownGrid,
+      initGrid,
+      restore,
+      decorateItem,
+      spec.grid.rows,
+      spec.grid.columns,
+    ],
+  );
+
+  // Swap the layout mode behind a brief blur+fade, so the structural reflow is
+  // invisible. Reduced-motion users get the instant swap.
   const switchMode = useCallback(
     (next: LayoutMode) => {
       if (next === modeRef.current) return;
       const swap = () => {
         captureLayout();
-        const frames = [...instancesRef.current.values()];
-        const wasEditing = editing;
-        const horizontal = next === "flow-horizontal";
-        const cols = horizontal
-          ? colsForHorizontal(frames, spec.grid.rows)
-          : spec.grid.columns;
-        teardownGrid();
-        modeRef.current = next;
-        setMode(next);
-        const grid = initGrid(next, cols);
-        gridInstanceRef.current = grid;
-        restore(
-          horizontal ? seedHorizontal(frames, cols, spec.grid.rows) : frames,
-        );
-        if (wasEditing) {
-          grid.enableMove(true);
-          grid.enableResize(true);
-          grid.getGridItems().forEach(decorateItem);
-        }
+        rebuildGrid(next, [...instancesRef.current.values()]);
       };
       const reduce =
         typeof window !== "undefined" &&
@@ -1344,16 +1305,7 @@ export function DashboardEditor({
         requestAnimationFrame(() => setSwitching(false)); // dissolve back in
       }, 150);
     },
-    [
-      editing,
-      captureLayout,
-      teardownGrid,
-      initGrid,
-      restore,
-      decorateItem,
-      spec.grid.rows,
-      spec.grid.columns,
-    ],
+    [captureLayout, rebuildGrid],
   );
 
   useEffect(
@@ -1362,6 +1314,209 @@ export function DashboardEditor({
     },
     [],
   );
+
+  /**
+   * Write a whole snapshot back over the live editor — the inverse of
+   * `collectSpec()`, and the single mechanism behind undo, redo and Cancel.
+   *
+   * Every cosmetic setter runs unconditionally (they're cheap React state), but
+   * the grid is only rebuilt when it has to be: `restore()` unmounts and
+   * recreates EVERY frame's React root, re-subscribing its WS/poll hooks and
+   * replaying first render, which is a visible hitch on a large board. So a
+   * pure-cosmetic undo touches no roots at all.
+   */
+  const applySpec = useCallback(
+    (next: DashboardSpec) => {
+      // Suppress the debounced cosmetics watcher for longer than its own window,
+      // so writing this snapshot back can't be mistaken for a fresh edit. Without
+      // it, any tiny non-round-trip between collectSpec and applySpec (a frame
+      // re-sort, an omitted-vs-undefined key) would push a new entry and silently
+      // truncate the redo tail.
+      suppressCommitUntilRef.current = Date.now() + COMMIT_DEBOUNCE_MS + 200;
+
+      setAccentHue(next.theme.accentHue);
+      setAccentSat(next.theme.accentSat);
+      setBaseHue(next.theme.baseHue);
+      setBaseSat(next.theme.baseSat);
+      setUpColor(next.theme.upColor);
+      setDownColor(next.theme.downColor);
+      setSurface(next.theme.surface);
+      setGap(next.grid.gap);
+      setPaddingX(next.grid.paddingX);
+      setRadius(next.appearance.radius);
+      setBorderStrength(next.appearance.borderStrength);
+      setSurfaceOpacity(next.appearance.surfaceOpacity);
+      setDensity(next.appearance.density);
+      setElevation(next.appearance.elevation);
+      setFontFamily(next.typography.fontFamily);
+      setNumericStyle(next.typography.numericStyle);
+      setFontScale(next.typography.scale);
+      setBgType(next.background.type);
+      setBgProjectId(
+        next.background.projectId ?? BACKGROUND_SCENES[0].projectId,
+      );
+      setBgOpacity(next.background.opacity);
+      setBgColor(next.background.color);
+      setBgGradFrom(next.background.gradientFrom);
+      setBgGradTo(next.background.gradientTo);
+      setBgGradAngle(next.background.gradientAngle);
+      setBgImageUrl(next.background.imageUrl ?? "");
+      setBgImageFit(next.background.imageFit);
+      setBgImageBlur(next.background.imageBlur);
+      setBgOverlayOpacity(next.background.overlayOpacity);
+
+      // A snapshot from the other layout mode can't be morphed into — the two are
+      // separate GridStack configs — so crossing modes always means a rebuild.
+      if (next.grid.mode !== modeRef.current) {
+        rebuildGrid(next.grid.mode, next.frames);
+      } else if (
+        JSON.stringify(collectSpec().frames) !== JSON.stringify(next.frames)
+      ) {
+        restore(next.frames);
+      }
+
+      // The open dialog may belong to a frame this snapshot doesn't have (undoing
+      // an add, redoing a delete) — close it rather than leaving it configuring a
+      // frame that no longer exists.
+      const openId = editingIdRef.current;
+      if (openId && !next.frames.some((f) => f.id === openId)) {
+        setEditingId(null);
+      }
+    },
+    [collectSpec, rebuildGrid, restore],
+  );
+
+  const undo = useCallback(() => {
+    const step = undoHistory(historyRef.current);
+    if (!step) return;
+    historyRef.current = step.history;
+    applySpec(step.snapshot);
+    publishHistory();
+  }, [applySpec, publishHistory]);
+
+  const redo = useCallback(() => {
+    const step = redoHistory(historyRef.current);
+    if (!step) return;
+    historyRef.current = step.history;
+    applySpec(step.snapshot);
+    publishHistory();
+  }, [applySpec, publishHistory]);
+
+  const cancel = useCallback(() => {
+    applySpec(baselineOf(historyRef.current));
+    historyRef.current = initHistory(baselineOf(historyRef.current));
+    publishHistory();
+    setSaveError(null);
+    setEditingId(null);
+    setEditing(false);
+  }, [applySpec, publishHistory]);
+
+  /**
+   * Persist the edited spec.
+   *
+   * Leaving customise mode is deferred until `onSave` actually resolves: the host
+   * writes `dashboard.json` over HTTP, and reporting success before that lands
+   * meant a failed write was indistinguishable from a successful one — the user
+   * walked away believing the board was saved. A rejection now keeps you in
+   * customise mode with your work intact and the reason on screen.
+   */
+  const save = useCallback(async () => {
+    const next = collectSpec();
+    if (!onSave) {
+      download(next);
+      historyRef.current = initHistory(next);
+      publishHistory();
+      setEditing(false);
+      setEditingId(null);
+      return;
+    }
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onSave(next);
+      // The saved state is the new clean baseline, so re-opening customise mode
+      // doesn't offer to revert to a state that's already on disk.
+      historyRef.current = initHistory(next);
+      publishHistory();
+      setEditing(false);
+      setEditingId(null);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : "Could not save the dashboard.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }, [collectSpec, onSave, download, publishHistory]);
+
+  /**
+   * Record the current state as a history entry.
+   *
+   * Deliberately coarse: callers signal "a gesture just ended" (a card was
+   * dropped, a dialog closed, a drag stopped) without knowing whether anything
+   * actually changed. `pushHistory` drops no-op pushes structurally, so an
+   * over-eager call site costs nothing and ⌘Z always produces one visible change.
+   */
+  const commitHistory = useCallback(() => {
+    if (!editingRef.current) return;
+    if (Date.now() < suppressCommitUntilRef.current) return;
+    historyRef.current = pushHistory(historyRef.current, collectSpec());
+    publishHistory();
+  }, [collectSpec, publishHistory]);
+  commitHistoryRef.current = commitHistory;
+
+  /**
+   * Record cosmetic changes on a trailing debounce.
+   *
+   * `collectSpec`'s identity changes exactly when any cosmetic state does (they
+   * are all its dependencies), so depending on it here is a precise "some
+   * cosmetic moved" signal without wiring a commit into all ~35 rail controls.
+   * The trailing window is what collapses a continuous slider drag into a single
+   * undo step instead of one per pixel.
+   */
+  useEffect(() => {
+    if (!editing) return;
+    const t = setTimeout(
+      () => commitHistoryRef.current?.(),
+      COMMIT_DEBOUNCE_MS,
+    );
+    return () => clearTimeout(t);
+  }, [collectSpec, editing]);
+
+  /** The undo toast is a time-limited offer, and it's scoped to customise mode —
+   *  a stale "Undo" after leaving would rewind an edit the user has moved on
+   *  from. Keyed on the removed id so each delete restarts the countdown. */
+  useEffect(() => {
+    if (!removed) return;
+    if (!editing) {
+      setRemoved(null);
+      return;
+    }
+    const t = setTimeout(() => setRemoved(null), UNDO_TOAST_MS);
+    return () => clearTimeout(t);
+  }, [removed, editing]);
+
+  /** ⌘Z / ⌘⇧Z (Ctrl on Windows/Linux) while customising. Skipped when the focus
+   *  is in a text field, so undo keeps its native meaning inside an input. */
+  useEffect(() => {
+    if (!editing) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "z") return;
+      const el = document.activeElement;
+      if (
+        el instanceof HTMLInputElement ||
+        el instanceof HTMLTextAreaElement ||
+        (el instanceof HTMLElement && el.isContentEditable)
+      ) {
+        return;
+      }
+      e.preventDefault();
+      if (e.shiftKey) redo();
+      else undo();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [editing, undo, redo]);
 
   const renderCustomiseButton = () => (
     <button
@@ -1436,15 +1591,58 @@ export function DashboardEditor({
       >
         {(editing || !customiseButtonTarget) && (
           <div className="zf-editor-bar">
+            {/* Unsaved-changes state, stated rather than implied. Sits at the far
+                left so it reads before the actions it applies to. */}
+            {editing && (
+              <p className="zf-editor-state" aria-live="polite">
+                {saving ? (
+                  "Saving…"
+                ) : historyState.dirty ? (
+                  <>
+                    <span className="zf-dirty-dot" aria-hidden="true" />
+                    Unsaved changes
+                  </>
+                ) : (
+                  "No changes"
+                )}
+              </p>
+            )}
             <div className="zf-editor-bar-spacer" />
             {!editing ? (
               renderCustomiseButton()
             ) : (
               <>
+                {/* A rejected save must not read like a successful one. */}
+                {saveError && (
+                  <p className="zf-editor-error" role="alert">
+                    {saveError}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  className="zf-btn zf-btn--icon"
+                  onClick={undo}
+                  disabled={!historyState.undo || saving}
+                  aria-label="Undo"
+                  title="Undo (⌘Z)"
+                >
+                  <Undo2 size={16} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="zf-btn zf-btn--icon"
+                  onClick={redo}
+                  disabled={!historyState.redo || saving}
+                  aria-label="Redo"
+                  title="Redo (⌘⇧Z)"
+                >
+                  <Redo2 size={16} aria-hidden="true" />
+                </button>
                 <button
                   type="button"
                   className="zf-btn zf-btn--ghost"
                   onClick={tidy}
+                  disabled={saving}
                   title="Reclaim empty grid space"
                 >
                   Tidy
@@ -1453,18 +1651,61 @@ export function DashboardEditor({
                   type="button"
                   className="zf-btn zf-btn--ghost"
                   onClick={cancel}
+                  disabled={saving}
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   className="zf-btn zf-btn--primary"
-                  onClick={save}
+                  // `save` settles its own rejection into `saveError`, so nothing
+                  // is left floating — discard the promise explicitly.
+                  onClick={() => void save()}
+                  disabled={saving}
+                  // With no host to persist to, this button downloads a file.
+                  // Saying so is the difference between a deliberate export and
+                  // a save the user thinks went somewhere.
+                  title={
+                    onSave
+                      ? "Save the dashboard"
+                      : "Download dashboard.json (no host to save to)"
+                  }
                 >
-                  Save
+                  {saving ? "Saving…" : onSave ? "Save" : "Download"}
                 </button>
               </>
             )}
+          </div>
+        )}
+
+        {/* Deleting a card takes its config, tickers, events and style overrides
+            with it — none of which a re-add restores. The toast makes that
+            recoverable in one click, for the case where ⌘Z isn't reached for. */}
+        {editing && removed && (
+          <div className="zf-toast" role="status">
+            <span className="zf-toast-text">{removed.label} removed</span>
+            <button
+              type="button"
+              className="zf-toast-action"
+              // Distinct from the toolbar's Undo, which is on screen at the same
+              // time — two controls both announcing "Undo" is ambiguous by voice
+              // even though the visible label is unmistakable in context.
+              aria-label={`Undo removing ${removed.label}`}
+              onClick={() => {
+                setRemoved(null);
+                undo();
+              }}
+            >
+              Undo
+            </button>
+            <button
+              type="button"
+              className="zf-toast-close"
+              onClick={() => setRemoved(null)}
+              aria-label="Dismiss"
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
           </div>
         )}
 
@@ -2540,7 +2781,14 @@ export function DashboardEditor({
                 elevation,
               }}
               onApply={(id) => renderInstance(id)}
-              onClose={() => setEditingId(null)}
+              onClose={() => {
+                setEditingId(null);
+                // The dialog commits each valid keystroke straight into
+                // instancesRef, so the *close* is the gesture boundary — one undo
+                // step for the whole configuring session rather than one per
+                // character typed.
+                commitHistoryRef.current?.();
+              }}
             />,
             document.body,
           )
