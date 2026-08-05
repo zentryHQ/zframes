@@ -22,6 +22,17 @@
  *    served (even past its TTL) instead of surfacing an error — a few-minutes-old
  *    number beats a blank card. Its timestamp is left stale so the next call
  *    retries; failures are never written, so a failure is never cached.
+ *  - **Bounded size (`maxEntries`, default {@link DEFAULT_MAX_ENTRIES}):** a cache
+ *    whose key embeds a drifting value grows forever otherwise. Candle and
+ *    funding keys carry the caller's `startTimeMs`, which is `Date.now() - window`
+ *    computed once per mount — so every reload of the same chart mints a *new*
+ *    key for the same series, and with `persist` on, a new localStorage entry
+ *    that nothing ever removes (measured: nine `hyperliquid:candles` entries,
+ *    five of them the same `xyz:TSLA|1h` series, on one dev board). Past the ~5 MB
+ *    origin quota `setItem` starts throwing, which this class deliberately
+ *    swallows — so the failure mode is persistence silently ceasing to work
+ *    rather than an error anyone sees. Both the memo and the namespace's
+ *    localStorage entries are trimmed oldest-first to `maxEntries`.
  *  - **Persistence (opt-in `persist`):** resolved values round-trip through
  *    localStorage so a cold reload shows the last value immediately. Browser-only
  *    and best-effort: a no-op in Node/CLI (the in-memory memo suffices) and
@@ -45,7 +56,21 @@ export interface TtlCacheOptions<T> {
    * null to reject a corrupt or schema-changed entry. Only used on the persist path.
    */
   revive?: (value: unknown) => T | null;
+  /**
+   * Cap on distinct keys held (memo and, when persisting, localStorage), trimmed
+   * oldest-first. Defaults to {@link DEFAULT_MAX_ENTRIES} — generous next to any
+   * real argument fan-out (a handful of symbols, windows or series ids), tight
+   * enough that a drifting key can't grow without bound.
+   */
+  maxEntries?: number;
 }
+
+/**
+ * Default key cap. Above every observed per-source fan-out (the widest is
+ * hyperliquid candles at one key per symbol×interval on a board), so the cap
+ * only ever bites a cache whose keys drift.
+ */
+export const DEFAULT_MAX_ENTRIES = 24;
 
 interface CacheEntry<T> {
   at: number;
@@ -60,6 +85,7 @@ export class TtlCache<T> {
   private readonly persist: boolean;
   private readonly staleOnError: boolean;
   private readonly revive?: (value: unknown) => T | null;
+  private readonly maxEntries: number;
 
   constructor(options: TtlCacheOptions<T>) {
     this.namespace = options.namespace;
@@ -67,6 +93,7 @@ export class TtlCache<T> {
     this.persist = options.persist ?? false;
     this.staleOnError = options.staleOnError ?? true;
     this.revive = options.revive;
+    this.maxEntries = Math.max(1, options.maxEntries ?? DEFAULT_MAX_ENTRIES);
   }
 
   /**
@@ -129,11 +156,60 @@ export class TtlCache<T> {
   private write(key: string, value: T): void {
     const entry: CacheEntry<T> = { at: Date.now(), value };
     this.entries.set(key, entry);
+    this.trimMemo();
     if (!this.persist || typeof localStorage === "undefined") return;
     try {
       localStorage.setItem(this.storageKey(key), JSON.stringify(entry));
     } catch {
       // ignore quota / serialisation errors — the in-memory memo still helps this session
+    }
+    this.trimStorage();
+  }
+
+  /** Drop the oldest memo entries once the key count exceeds the cap. */
+  private trimMemo(): void {
+    if (this.entries.size <= this.maxEntries) return;
+    const byAge = [...this.entries.entries()].sort((a, b) => a[1].at - b[1].at);
+    for (const [key] of byAge.slice(0, this.entries.size - this.maxEntries))
+      this.entries.delete(key);
+  }
+
+  /**
+   * Same trim for this namespace's localStorage entries. Scoped to the
+   * `namespace:` prefix, so one source never evicts another's — or anything else
+   * on the origin. Timestamps come from the stored envelope rather than the memo,
+   * so entries written by an earlier page load are prunable too (which is exactly
+   * the accumulation this exists to stop).
+   */
+  private trimStorage(): void {
+    try {
+      const prefix = `${this.namespace}:`;
+      const mine: string[] = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const storageKey = localStorage.key(i);
+        if (storageKey?.startsWith(prefix)) mine.push(storageKey);
+      }
+      // Enumerating keys is cheap; READING them is not. Bail before the reads on
+      // the overwhelmingly common under-cap write, so a bounded cache pays only a
+      // key scan per load rather than a parse of its whole namespace.
+      if (mine.length <= this.maxEntries) return;
+      const aged = mine.map((storageKey) => {
+        let at = 0; // unreadable / unparseable envelope → oldest, so it goes first
+        try {
+          const parsed = JSON.parse(localStorage.getItem(storageKey) ?? "") as {
+            at?: unknown;
+          };
+          if (typeof parsed?.at === "number") at = parsed.at;
+        } catch {
+          // leave at = 0
+        }
+        return { storageKey, at };
+      });
+      aged.sort((a, b) => a.at - b.at);
+      for (const { storageKey } of aged.slice(0, aged.length - this.maxEntries))
+        localStorage.removeItem(storageKey);
+    } catch {
+      // inaccessible storage (private mode, disabled) — the memo cap still holds
     }
   }
 
