@@ -2,7 +2,7 @@
 
 import { DashboardSpecSchema } from "@zframes/core";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardBackground } from "@/app/lib/DashboardBackground";
 
 // The live board, client-only (shared WS + browser APIs) → dynamic ssr:false,
@@ -29,6 +29,13 @@ const DashboardView = dynamic(() => import("@/app/lib/DashboardView"), {
 //     visibility gating (usePolled pause + liveline heartbeat) off for free.
 //     React state survives, so a reveal repaints instantly with warm data.
 // Standalone (top-level) embeds get no parent message and just run fully live.
+//   • scrollProgress (`zf:scroll`) — how far through its own content the board
+//     should be, 0..1, driven by the framing page's scroll. The iframe is only
+//     one viewport tall but a real board is several, so the parent scrubs the
+//     content THROUGH the frame while the panel itself holds still. Applied
+//     straight to the DOM (a transform, no React state) because it arrives on
+//     every scroll frame; the overflow it maps onto is measured here, inside the
+//     iframe, since only this document knows its own content and viewport height.
 type BoardMessage = {
   type: "zf:board";
   sceneActive: boolean;
@@ -45,6 +52,17 @@ function isBoardMessage(data: unknown): data is BoardMessage {
   );
 }
 
+function scrollProgressOf(data: unknown): number | null {
+  if (typeof data !== "object" || data === null) return null;
+  const m = data as { type?: unknown; progress?: unknown };
+  if (m.type !== "zf:scroll" || typeof m.progress !== "number") return null;
+  return Math.min(1, Math.max(0, m.progress));
+}
+
+// Outer padding of the board shell (p-4, both edges) — the content's viewport is
+// the iframe minus that, so overflow is measured against it.
+const SHELL_PAD = 32;
+
 export function EmbedBoard({ spec }: { spec: unknown }) {
   // Parse only to read the background + accent for the backdrop; DashboardView
   // re-parses and owns the invalid-spec message, so a bad spec just skips the bg.
@@ -57,6 +75,41 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
   // the framing parent dictates. Effect-based init avoids any SSR/hydration
   // divergence.
   const [board, setBoard] = useState({ sceneActive: false, visible: true });
+
+  // Content scrub. `overflow` is how far the content exceeds the frame; it is
+  // re-measured whenever the content resizes (frames settle, data arrives) and
+  // the last progress is re-applied, so a board that grows mid-dwell doesn't
+  // freeze part-way. Both live in refs — this runs on every scroll frame.
+  const contentRef = useRef<HTMLDivElement>(null);
+  const overflowRef = useRef(0);
+  const progressRef = useRef(0);
+  const applyScroll = useCallback(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const y = -Math.round(overflowRef.current * progressRef.current);
+    el.style.transform = `translate3d(0, ${y}px, 0)`;
+  }, []);
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const measure = () => {
+      // A hidden board (content-visibility) measures as ~0 — keep the last known
+      // overflow rather than snapping the content back to the top behind the stack.
+      const h = el.scrollHeight;
+      if (h <= 0) return;
+      overflowRef.current = Math.max(0, h - (window.innerHeight - SHELL_PAD));
+      applyScroll();
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [applyScroll]);
+
   useEffect(() => {
     if (window.self === window.top) {
       setBoard({ sceneActive: true, visible: true });
@@ -66,13 +119,18 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
       if (e.origin !== window.location.origin) return;
       if (isBoardMessage(e.data))
         setBoard({ sceneActive: e.data.sceneActive, visible: e.data.visible });
+      const p = scrollProgressOf(e.data);
+      if (p !== null) {
+        progressRef.current = p;
+        applyScroll();
+      }
     };
     window.addEventListener("message", onMessage);
     // Hello AFTER the listener is attached — the parent replies with the current
     // state, so a state pushed before this document hydrated is never lost.
     window.parent.postMessage({ type: "zf:bg-hello" }, window.location.origin);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [applyScroll]);
 
   return (
     <div className="relative min-h-screen w-full p-4">
@@ -88,7 +146,12 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
         className="relative z-10"
         style={{ contentVisibility: board.visible ? undefined : "hidden" }}
       >
-        <DashboardView spec={spec} />
+        {/* Scrubbed by the framing page (`zf:scroll`); a standalone embed leaves
+            progress at 0, so this is an identity transform and the document
+            scrolls normally. */}
+        <div ref={contentRef} style={{ willChange: "transform" }}>
+          <DashboardView spec={spec} />
+        </div>
       </div>
     </div>
   );

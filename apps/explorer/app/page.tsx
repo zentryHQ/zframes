@@ -2,10 +2,17 @@
 
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
-import { useMotionValueEvent, useReducedMotion } from "motion/react";
+import {
+  useMotionValueEvent,
+  useReducedMotion,
+  type MotionValue,
+} from "motion/react";
 import Link from "next/link";
 import { allFrameMetas } from "@zframes/frames/schemas";
-import { CURATED } from "@/app/lib/curated-dashboards";
+import {
+  LANDING_BOARDS,
+  type CuratedDashboard,
+} from "@/app/lib/curated-dashboards";
 import { CopyCommand } from "@/app/lib/CopyCommand";
 import { KEYLESS_PROVIDER_COUNT, PUBLIC_DEMO_ADDRESS } from "@/app/lib/frames";
 import { FramesShowcase } from "@/app/lib/FramesShowcase";
@@ -18,6 +25,7 @@ import {
   Parallax,
   Reveal,
   ScrollExit,
+  useFocusDwellProgress,
   useSectionProgress,
 } from "@/app/lib/motion";
 import { SectionHeading } from "@/app/lib/SectionHeading";
@@ -25,6 +33,10 @@ import { SectionHeading } from "@/app/lib/SectionHeading";
 // The focus-gallery's shared sticky box sits below the header (57px) with a
 // little air. Every board renders full inside this box; scale/opacity animate.
 const FOCUS_STICKY_TOP = 72;
+// Scroll depth (vh) allotted to each board's slot. Generous on purpose: the dwell
+// band is a fixed fraction of the slot, so this is the dial that decides how long
+// a board holds focus — and therefore how gently its own frames scroll past.
+const FOCUS_SLOT_VH = 300;
 
 // Gallery home — the public front door as a five-act scroll narrative:
 //
@@ -163,13 +175,15 @@ export default function GalleryHome() {
   const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 1]);
 
   useMotionValueEvent(progress, "change", (p) => {
-    const n = CURATED.length;
+    const n = LANDING_BOARDS.length;
     const t = focusT(p, n);
     const r = Math.round(t);
     // Settled only while resting in a board's dwell band; else nothing is
     // "active" (the crossfade owns the mid-transition look, no scene needed).
+    // The band has to cover the whole dwell — the content scrubs across it, and
+    // a board whose own frames are scrolling past must keep its scene alive.
     const settled =
-      Math.abs(t - r) < 0.2 ? Math.min(n - 1, Math.max(0, r)) : -1;
+      Math.abs(t - r) < 0.34 ? Math.min(n - 1, Math.max(0, r)) : -1;
     setActiveIndex((a) => (a === settled ? a : settled));
     const lo = Math.max(0, Math.floor(t - 0.7));
     const hi = Math.min(n - 1, Math.ceil(t + 0.7));
@@ -293,13 +307,15 @@ export default function GalleryHome() {
         </Reveal>
       </section>
 
-      {/* Focus gallery. Each board grows from small into a full, un-clipped view
-          (the whole dashboard visible), dwells there, then shrinks and fades as
-          the next grows up in its place — one board in focus at a time, so every
-          dashboard is seen in full. Under reduced motion: a plain vertical list. */}
+      {/* Focus gallery — three boards, one per asset class (bullion, equities,
+          crypto). Each grows from small into a full, un-clipped view, DWELLS
+          there long enough for its own content to scroll through the frame (so a
+          board taller than the viewport is still seen whole), then shrinks and
+          fades as the next grows up in its place. Under reduced motion: a plain
+          vertical list, no scrub. */}
       {reduced ? (
         <section className="mx-auto max-w-[88rem] space-y-6 px-4 pb-[8vh] sm:px-6">
-          {CURATED.map((d) => (
+          {LANDING_BOARDS.map((d) => (
             <div key={d.id} className="h-[78vh]">
               <LiveBoardFrame
                 id={d.id}
@@ -318,8 +334,10 @@ export default function GalleryHome() {
           ref={stackRef}
           className="relative overflow-x-clip"
           // One scroll "slot" per board (plus lead-in/out); the sticky box below
-          // stays pinned across the whole range while the boards crossfade.
-          style={{ height: `${CURATED.length * 125 + 30}vh` }}
+          // stays pinned across the whole range while the boards crossfade. The
+          // slot is deliberately deep — most of it is dwell, and the dwell is
+          // what scrolls the board's own frames past (FOCUS_SLOT_VH).
+          style={{ height: `${LANDING_BOARDS.length * FOCUS_SLOT_VH + 30}vh` }}
         >
           <div
             className="sticky mx-auto w-full max-w-[88rem] px-4 sm:px-6"
@@ -328,24 +346,16 @@ export default function GalleryHome() {
               height: `calc(100svh - ${FOCUS_STICKY_TOP}px - 2rem)`,
             }}
           >
-            {CURATED.map((d, i) => (
-              <FocusPanel
+            {LANDING_BOARDS.map((d, i) => (
+              <ShowcaseBoard
                 key={d.id}
+                board={d}
                 progress={progress}
                 index={i}
-                count={CURATED.length}
+                count={LANDING_BOARDS.length}
                 active={i === activeIndex}
-              >
-                <LiveBoardFrame
-                  id={d.id}
-                  title={d.title}
-                  description={d.description}
-                  tags={d.tags}
-                  frameCount={d.spec.frames.length}
-                  bgActive={i === activeIndex}
-                  boardVisible={i >= visibleRange[0] && i <= visibleRange[1]}
-                />
-              </FocusPanel>
+                boardVisible={i >= visibleRange[0] && i <= visibleRange[1]}
+              />
             ))}
           </div>
         </section>
@@ -496,6 +506,41 @@ function StepCard({
         </code>
       </div>
     </Reveal>
+  );
+}
+
+// One board in the focus stack. Exists as its own component only because the
+// dwell-scrub is a hook: each board derives its own 0..1 content progress from
+// the shared section scroll, and hands it to the embed (see LiveBoardFrame).
+function ShowcaseBoard({
+  board,
+  progress,
+  index,
+  count,
+  active,
+  boardVisible,
+}: {
+  board: CuratedDashboard;
+  progress: MotionValue<number>;
+  index: number;
+  count: number;
+  active: boolean;
+  boardVisible: boolean;
+}) {
+  const contentScroll = useFocusDwellProgress(progress, index, count);
+  return (
+    <FocusPanel progress={progress} index={index} count={count} active={active}>
+      <LiveBoardFrame
+        id={board.id}
+        title={board.title}
+        description={board.description}
+        tags={board.tags}
+        frameCount={board.spec.frames.length}
+        bgActive={active}
+        boardVisible={boardVisible}
+        scrollProgress={contentScroll}
+      />
+    </FocusPanel>
   );
 }
 

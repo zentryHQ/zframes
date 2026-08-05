@@ -1,6 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import {
+  useMotionValue,
+  useMotionValueEvent,
+  type MotionValue,
+} from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // A full-bleed live example board — the real board rendered inside a same-origin
@@ -23,6 +28,7 @@ export function LiveBoardFrame({
   frameCount,
   bgActive = true,
   boardVisible = true,
+  scrollProgress,
 }: {
   id: string;
   title: string;
@@ -37,6 +43,14 @@ export function LiveBoardFrame({
    * and polling entirely (`content-visibility: hidden`), not just its scene.
    */
   boardVisible?: boolean;
+  /**
+   * How far through the board's OWN content to scrub, 0..1. A real board is
+   * several viewports tall, so while the panel dwells in focus the landing
+   * scrolls the content through this fixed frame — the whole board gets seen
+   * without the panel moving. Omitted (gallery, reduced motion) → the board
+   * just shows its top, as before.
+   */
+  scrollProgress?: MotionValue<number>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -65,15 +79,37 @@ export function LiveBoardFrame({
   // actually listening — so the initial state can't be lost to the load race.
   const stateRef = useRef({ bgActive, boardVisible });
   stateRef.current = { bgActive, boardVisible };
-  const sendState = useCallback((sceneActive: boolean, visible: boolean) => {
+  const post = useCallback((message: unknown) => {
     iframeRef.current?.contentWindow?.postMessage(
-      { type: "zf:board", sceneActive, visible },
+      message,
       window.location.origin,
     );
   }, []);
+  const sendState = useCallback(
+    (sceneActive: boolean, visible: boolean) => {
+      post({ type: "zf:board", sceneActive, visible });
+    },
+    [post],
+  );
   useEffect(() => {
     sendState(bgActive, boardVisible);
   }, [bgActive, boardVisible, sendState]);
+
+  // Content scrub — fires on every scroll frame while this board dwells, so it
+  // goes straight out as a message (no React state) and the embed applies it as
+  // a transform. The last value is kept so the embed's hello can be answered
+  // with it too, exactly like the board state above.
+  const scrollRef = useRef(0);
+  const sendScroll = useCallback(
+    (progress: number) => {
+      scrollRef.current = progress;
+      post({ type: "zf:scroll", progress });
+    },
+    [post],
+  );
+  const fallbackScroll = useMotionValue(0);
+  useMotionValueEvent(scrollProgress ?? fallbackScroll, "change", sendScroll);
+
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
@@ -81,11 +117,12 @@ export function LiveBoardFrame({
       if ((e.data as { type?: unknown } | null)?.type === "zf:bg-hello") {
         const s = stateRef.current;
         sendState(s.bgActive, s.boardVisible);
+        sendScroll(scrollRef.current);
       }
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [sendState]);
+  }, [sendScroll, sendState]);
 
   return (
     <div
@@ -135,8 +172,11 @@ export function LiveBoardFrame({
       </div>
 
       {/* Bottom caption — title, blurb, tags, and the open affordance. Visual
-            only (pointer-events:none); the overlay link above owns the click. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-5 pb-6 pt-16 sm:px-8 sm:pb-8">
+            only (pointer-events:none); the overlay link above owns the click.
+            The scrim runs deep and near-opaque at the foot because the board's
+            own frames now travel underneath it (scrollProgress) — a thin one let
+            passing card titles collide with the caption text. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/95 via-black/75 to-transparent px-5 pb-6 pt-24 sm:px-8 sm:pb-8">
         <div className="flex items-end justify-between gap-6">
           <div className="min-w-0">
             <h3 className="text-xl font-bold tracking-tight text-white transition-colors group-hover:text-indigo-200 sm:text-2xl">
