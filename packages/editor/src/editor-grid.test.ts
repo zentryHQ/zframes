@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
+import type { AnyFrameDefinition } from "@zframes/spec/frame";
 import type { FrameInstance, GridPosition } from "@zframes/spec/spec";
-import { colsForHorizontal, posFor, seedHorizontal } from "./editor-grid";
+import {
+  colsForHorizontal,
+  containerGeometry,
+  posFor,
+  seedHorizontal,
+  subCellPx,
+} from "./editor-grid";
 
 // The pure grid math behind flow-horizontal boards. All three functions are
 // exported, side-effect-free, and DOM-free (Node env, no GridStack) — so the
@@ -359,5 +367,96 @@ describe("colsForHorizontal", () => {
     expect(colsForHorizontal(frames, 3)).toBe(158); // 360/3=120 → 150 + 8
     expect(colsForHorizontal(frames, 6)).toBe(83); // 360/6=60 → 75 + 8
     expect(colsForHorizontal(frames, 12)).toBe(46); // 360/12=30 → 37.5→38 + 8
+  });
+});
+
+// ── container (group) geometry ──────────────────────────────────────────────
+//
+// The two pure pieces behind nested grids. `subCellPx` in particular is the one
+// bit of the editor's nesting jsdom can NEVER exercise through the DOM
+// (clientHeight is always 0 there), so its arithmetic is pinned directly: a wrong
+// margin term is invisible in a test of the caller and shows up only as children
+// overflowing their group in a real browser.
+
+describe("containerGeometry", () => {
+  const containerDef = {
+    container: true,
+    schema: z.object({
+      columns: z.number().int().min(1).default(2),
+      rows: z.number().int().min(1).default(2),
+      gap: z.number().min(0).default(8),
+    }),
+  } as unknown as AnyFrameDefinition;
+
+  const plainDef = {
+    schema: z.object({}),
+  } as unknown as AnyFrameDefinition;
+
+  it("returns null for a frame that is not a container", () => {
+    // This is the editor's ONE test for "does this item hold a subgrid", so a
+    // truthy answer here would build a nested grid inside an ordinary card.
+    expect(containerGeometry(plainDef, {})).toBeNull();
+    expect(containerGeometry(undefined, {})).toBeNull();
+  });
+
+  it("reads the declared geometry off the config", () => {
+    expect(
+      containerGeometry(containerDef, { columns: 4, rows: 3, gap: 0 }),
+    ).toEqual({ columns: 4, rows: 3, gap: 0 });
+  });
+
+  it("applies the schema's own defaults for an empty config", () => {
+    expect(containerGeometry(containerDef, {})).toEqual({
+      columns: 2,
+      rows: 2,
+      gap: 8,
+    });
+    expect(containerGeometry(containerDef, undefined)).toEqual({
+      columns: 2,
+      rows: 2,
+      gap: 8,
+    });
+  });
+
+  it("falls back to a usable grid when the config is invalid", () => {
+    // The group still renders its own error card through the normal path, but the
+    // editor needs numbers either way — NaN columns would break GridStack itself
+    // rather than showing the user a bad config.
+    expect(
+      containerGeometry(containerDef, { columns: "lots", rows: -4 }),
+    ).toEqual({ columns: 2, rows: 2, gap: 8 });
+  });
+});
+
+describe("subCellPx", () => {
+  it("divides the measured height into rows, net of each row's margin", () => {
+    // GridStack's margin is gap/2 per side, so every row carries a full `gap`.
+    // 200px, 2 rows, gap 8 → (200 - 16) / 2 = 92.
+    expect(subCellPx(200, 2, 8)).toBe(92);
+    // No gap → a clean division.
+    expect(subCellPx(200, 4, 0)).toBe(50);
+  });
+
+  it("forgetting the margin term would overflow the group", () => {
+    // The regression this exists to catch: a plain `height / rows` (100 instead of
+    // 88 at 4 rows) puts the bottom row `gap * rows` past the group's own box.
+    const rows = 4;
+    const gap = 12;
+    const height = 400;
+    const cell = subCellPx(height, rows, gap);
+    expect(cell * rows + gap * rows).toBeLessThanOrEqual(height);
+    // …and it isn't merely conservative — it uses the room it has.
+    expect((cell + 1) * rows + gap * rows).toBeGreaterThan(height);
+  });
+
+  it("returns whole pixels, never a fraction", () => {
+    expect(Number.isInteger(subCellPx(199, 3, 7))).toBe(true);
+  });
+
+  it("floors at a visible size for a group too small to divide", () => {
+    // A group dragged down to a few pixels would otherwise compute a zero or
+    // negative cell height, which GridStack turns into items of no height at all.
+    expect(subCellPx(10, 6, 12)).toBe(24);
+    expect(subCellPx(0, 2, 8)).toBe(24);
   });
 });
