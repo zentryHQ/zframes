@@ -212,6 +212,28 @@ export function useSectionProgress(
   return scrollYProgress;
 }
 
+// Sub-progress across a board's DWELL band — 0 as it settles at full, 1 just
+// before it starts demoting. This is what lets a board be taller than the sticky
+// box and still be seen whole: the panel holds still while its *content* scrolls
+// through it (LiveBoardFrame → the embed's own translate). Deliberately narrower
+// than the band (×0.8) so the travel starts and ends while the board is fully
+// opaque — content must never still be moving during the crossfade.
+const FOCUS_INNER_SPAN = FOCUS_HOLD * 0.8;
+
+export function useFocusDwellProgress(
+  progress: MotionValue<number>,
+  index: number,
+  count: number,
+): MotionValue<number> {
+  return useTransform(progress, (p) =>
+    clamp(
+      (focusT(p, count) - index + FOCUS_INNER_SPAN) / (2 * FOCUS_INNER_SPAN),
+      0,
+      1,
+    ),
+  );
+}
+
 // One board in a focus-scroll gallery. Absolutely fills its shared sticky box and
 // scales/fades by its distance to the centred position `t`: full & opaque inside
 // the dwell band, shrinking + fading to nothing beyond it. A small opposite-sign
