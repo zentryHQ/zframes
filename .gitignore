@@ -52,6 +52,7 @@ cli-smoke-report.json
 audit-report.json
 frame-render-report.json
 fx-coverage-report.json
+dashboard-validity-report.json
 
 # copy-widget-icons.mjs resolves its destination from the CWD (each app vendors
 # the PNGs on predev/prebuild, run with cwd=apps/<app>). Running it from the repo

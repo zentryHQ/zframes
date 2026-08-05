@@ -20,6 +20,7 @@
  * alongside the provider-liveness and frame-render suites (see
  * .github/scripts/README.md) and file an issue rather than gate a PR.
  */
+import { writeFileSync } from "node:fs";
 import {
   formatProblems,
   validateDashboardSpec,
@@ -53,6 +54,11 @@ async function main() {
   if (rows.length === 0) {
     // Not a pass. An empty table means the showcase is missing — the gallery and
     // the landing page would render empty and nothing else would complain.
+    report(
+      "monitor: the dashboards table is empty",
+      "No dashboards in the database. The gallery and the landing showcase render empty.\n\nSeed them:\n\n```\npnpm --dir apps/explorer seed:curated\n```",
+      1,
+    );
     console.error(
       "✗ no dashboards in the database. Seed them: pnpm --dir apps/explorer seed:curated",
     );
@@ -76,10 +82,31 @@ async function main() {
   );
 
   if (broken.length) {
+    report(
+      `monitor: ${broken.length} stored dashboard(s) no longer validate`,
+      `Checked ${rows.length} dashboard(s) — ${curatedCount} curated, ${rows.length - curatedCount} community.\n\n` +
+        "These were valid when written and are not now, so something in the frame registry moved under them — a renamed frame, a dropped loader, a renamed config field, a tightened enum.\n\n" +
+        `\`\`\`\n${broken.join("\n\n")}\n\`\`\``,
+      broken.length,
+    );
     console.error(`\n✗ ${broken.length} invalid:\n\n${broken.join("\n\n")}`);
     process.exit(1);
   }
+  report("", "", 0);
   console.log("✓ every stored dashboard still validates against the registry");
+}
+
+/**
+ * Emit the report shape `.github/scripts/report-to-issue.mjs --kind generic`
+ * consumes, so this joins the existing scheduled-monitor machinery (one issue,
+ * updated in place, auto-closed when clean) rather than inventing its own.
+ * `findingsCount: 0` is what closes the issue.
+ */
+function report(title: string, body: string, findingsCount: number) {
+  writeFileSync(
+    process.env.DASHBOARD_VALIDITY_REPORT ?? "dashboard-validity-report.json",
+    `${JSON.stringify({ title, body, findingsCount, generatedAt: new Date().toISOString() }, null, 2)}\n`,
+  );
 }
 
 main().catch((err) => {
