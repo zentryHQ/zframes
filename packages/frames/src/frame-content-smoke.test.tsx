@@ -253,6 +253,7 @@ const NO_MONEY: Record<string, string> = {
   "fx-movers-bars": "FX day change %",
   "fx-trend-chart": "FX rate history",
   "gold-silver-ratio": "ounces of silver per ounce of gold",
+  group: "a container — its children each render their own money",
   heading: "static heading text",
   "hero-number": "a user-typed display value",
   "holiday-calendar": "market-holiday dates",
@@ -702,7 +703,7 @@ async function renderOnce(
     </FramesProvider>,
   );
   await settle();
-  const card = container.querySelector(".zf-frame, .zf-bare");
+  const card = container.querySelector(".zf-frame, .zf-bare, .zf-group");
   const titles = Array.from(card?.querySelectorAll("[title]") ?? [])
     .map((el) => el.getAttribute("title") ?? "")
     .join(" ");
@@ -833,7 +834,10 @@ describe("the currency classification covers the whole registry", () => {
     // counts. The one member of that batch that *does* show dollars — the
     // migrated `etf-flow-calendar`, whose day tooltip is `money.compact` — is in
     // CONVERTS, which is the check that this ratchet is still meaningful.
-    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(156);
+    // Raised once more (156 → 157) for the `group` container, which renders no
+    // content of its own at all — each child card resolves its own currency, so
+    // there is nothing here to classify either way.
+    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(157);
     expect(Object.keys(CONVERTS).length).toBeGreaterThanOrEqual(70);
   });
 

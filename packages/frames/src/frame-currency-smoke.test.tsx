@@ -236,7 +236,7 @@ async function cardTextOf(
     </FramesProvider>,
   );
   await settle();
-  const card = container.querySelector(".zf-frame, .zf-bare");
+  const card = container.querySelector(".zf-frame, .zf-bare, .zf-group");
   expect(card, `${frameName} [${code}] mounted no card`).not.toBeNull();
   expect(
     container.querySelector(".zf-frame--error"),

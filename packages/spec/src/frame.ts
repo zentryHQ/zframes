@@ -194,6 +194,19 @@ export interface FrameMeta<S extends z.ZodType = z.ZodType> {
    */
   layout?: FrameLayout;
   /**
+   * True when this frame is a *container*: it renders the instance's `children`
+   * as its own nested grid instead of rendering content of its own. Exactly one
+   * frame declares it today (`group`), and the flag — not the frame's name — is
+   * what the renderer and the editor branch on, so a second container kind
+   * needs no changes to either.
+   *
+   * A container's config must expose `columns` and `rows` (the child grid's
+   * units) and `gap`; the renderer reads those three off the validated config.
+   * Children are bounded by `MAX_GROUP_CHILDREN` and may not themselves be
+   * containers — groups don't nest (see `ChildFrameInstanceSchema`).
+   */
+  container?: boolean;
+  /**
    * True when this frame plots a time axis and therefore draws the instance's
    * `events` markers on it. Purely declarative: it tells the editor whether to
    * offer the card's Events panel, and the AI catalogue which frames accept

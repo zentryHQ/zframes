@@ -61,7 +61,10 @@ describe("posFor", () => {
     },
   );
   const withoutLayout = frame("b", { x: 1, y: 5, w: 6, h: 3 });
-  const otherModeOnly = frame(
+  // `layouts` is a record keyed by mode name, so a spec written against an older
+  // schema can carry a key for a mode that no longer exists (the retired
+  // "canvas" was one). Such a key must be inert, not mistaken for a placement.
+  const staleModeOnly = frame(
     "c",
     { x: 1, y: 5, w: 6, h: 3 },
     {
@@ -76,7 +79,7 @@ describe("posFor", () => {
   it("returns undefined in flow-horizontal mode when there is no override", () => {
     // undefined is the caller's "seed/pack this one" signal.
     expect(posFor(withoutLayout, "flow-horizontal")).toBeUndefined();
-    expect(posFor(otherModeOnly, "flow-horizontal")).toBeUndefined();
+    expect(posFor(staleModeOnly, "flow-horizontal")).toBeUndefined();
   });
 
   it("never falls back to the canonical position in flow-horizontal mode", () => {
@@ -85,19 +88,18 @@ describe("posFor", () => {
     expect(posFor(withoutLayout, "flow-horizontal")).not.toEqual(
       withoutLayout.position,
     );
-    expect(posFor(otherModeOnly, "flow-horizontal")).not.toEqual(
-      otherModeOnly.position,
+    expect(posFor(staleModeOnly, "flow-horizontal")).not.toEqual(
+      staleModeOnly.position,
     );
   });
 
-  it("returns the canonical position for every other mode", () => {
+  it("returns the canonical position in flow-vertical", () => {
     expect(posFor(withoutLayout, "flow-vertical")).toBe(withoutLayout.position);
-    expect(posFor(withoutLayout, "canvas")).toBe(withoutLayout.position);
     // …even when a flow-horizontal override exists (modes stay independent).
     expect(posFor(withLayout, "flow-vertical")).toBe(withLayout.position);
-    // …and even when a same-named `canvas` override exists: only
-    // flow-horizontal is layout-aware today.
-    expect(posFor(otherModeOnly, "canvas")).toBe(otherModeOnly.position);
+    // …and even when a stale key for a retired mode is still in `layouts`:
+    // only flow-horizontal is layout-aware.
+    expect(posFor(staleModeOnly, "flow-vertical")).toBe(staleModeOnly.position);
   });
 });
 

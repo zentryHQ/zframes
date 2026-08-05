@@ -93,6 +93,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
     load: () =>
       import("./funding-rate-chart").then((m) => m.fundingRateChartFrame),
   },
+  group: { load: () => import("./group").then((m) => m.groupFrame) },
   heading: { load: () => import("./heading").then((m) => m.headingFrame) },
   "hero-number": {
     load: () => import("./hero-number").then((m) => m.heroNumberFrame),

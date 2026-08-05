@@ -131,9 +131,10 @@ describe("every frame renders without crashing the dashboard", () => {
           specFor(frame.name, config),
           mode,
         );
-        // A card (or bare zone) always mounts — the renderer never lets a frame
-        // take down the dashboard; the worst case is a contained error card.
-        const card = container.querySelector(".zf-frame, .zf-bare");
+        // A card (or bare zone, or container group) always mounts — the renderer
+        // never lets a frame take down the dashboard; the worst case is a
+        // contained error card.
+        const card = container.querySelector(".zf-frame, .zf-bare, .zf-group");
         expect(card, `${frame.name} [${mode}] mounted no card`).not.toBeNull();
         cleanup();
       }
