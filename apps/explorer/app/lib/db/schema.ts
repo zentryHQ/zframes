@@ -128,3 +128,22 @@ export const dashboardThumbs = pgTable("dashboard_thumbs", {
   contentType: text("content_type").notNull().default("image/jpeg"),
   capturedAt: timestamp("captured_at").notNull().defaultNow(),
 });
+
+// ── migration bookkeeping ────────────────────────────────────────────────────
+// One row per applied file in `drizzle/`. WRITTEN AND CREATED BY
+// scripts/migrate.ts, not by a migration — it has to exist before the first
+// migration can be recorded, so the runner bootstraps it with
+// `create table if not exists`.
+//
+// Declared here anyway, and that matters: a schema-diff tool compares this file
+// against the live database, and a table missing from here reads as "drop it".
+// `drizzle-kit push` did exactly that — it offered to delete this table, and with
+// it the entire record of which migrations had run. Keeping the declaration is
+// what makes `pnpm check:schema` (and any future diff) clean without a
+// maintained exclusion list.
+export const schemaMigrations = pgTable("schema_migrations", {
+  name: text("name").primaryKey(), // the .sql filename
+  appliedAt: timestamp("applied_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

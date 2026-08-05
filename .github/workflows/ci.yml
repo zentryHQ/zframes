@@ -40,6 +40,13 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
 
+      # Do the migrations in apps/explorer/drizzle/ actually build the schema that
+      # app/lib/db/schema.ts declares? Nothing else compares them: edit schema.ts,
+      # forget the migration, and typecheck/lint/test all pass while production 500s
+      # on a missing column. Runs on two throwaway PGlite databases — no service
+      # container, no secrets, nothing touched outside the runner's temp dir.
+      - run: pnpm --dir apps/explorer check:schema
+
       # Slowest step last (full runtime build → tsup → assert-artifacts), so the
       # cheap checks fail fast. This also runs the publish-time artifact guard on
       # every PR — a buildable, packable CLI is verified before merge.
