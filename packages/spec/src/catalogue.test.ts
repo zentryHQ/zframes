@@ -78,6 +78,7 @@ const ENTRY_KEYS = [
   "capabilities",
   "category",
   "configSchema",
+  "container",
   "description",
   "iconUrl",
   "label",
@@ -130,6 +131,20 @@ describe("catalogueForAI", () => {
     ]);
     expect(macro.usdOnly).toBe(true);
     expect(Object.keys(macro).sort()).toEqual(ENTRY_KEYS);
+  });
+
+  it("tells the agent which frames hold other frames", () => {
+    // A container's useful output lives in the instance's `children` array, which
+    // is a sibling of `config` and therefore invisible in `configSchema`. Without
+    // this flag an agent reading only the schema emits a correctly-configured
+    // empty box. Always present, like the two flags above.
+    const [plain] = catalogueForAI([fakeMeta({ name: "clock" })]);
+    expect(plain.container).toBe(false);
+    const [group] = catalogueForAI([
+      fakeMeta({ name: "group", container: true }),
+    ]);
+    expect(group.container).toBe(true);
+    expect(Object.keys(group).sort()).toEqual(ENTRY_KEYS);
   });
 
   it("keeps the key set fixed when the meta omits the optional iconUrl", () => {
