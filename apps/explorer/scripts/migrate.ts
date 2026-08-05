@@ -32,6 +32,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import postgres from "postgres";
+import { assertDatabaseUrl, databaseUrl } from "./database-url";
 
 const MIGRATIONS_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -39,16 +40,10 @@ const MIGRATIONS_DIR = join(
   "drizzle",
 );
 
-// Same default as the sibling scripts: the local PGlite socket, so a dev run needs
-// no env at all.
-// `.trim()` is load-bearing: a secret set from a paste can carry a leading space
-// or a trailing newline, and the `postgres` driver feeds the raw string to
-// `new URL()`, which throws ERR_INVALID_URL and prints the value MASKED
-// (`input: ' ***'`) — so the offending character is invisible in CI logs. That cost
-// a production outage on 2026-08-05.
-const DATABASE_URL =
-  process.env.DATABASE_URL?.trim() ||
-  "postgres://postgres:postgres@127.0.0.1:5433/postgres";
+// Trimmed, defaulted to the local PGlite socket, and shape-checked before the
+// driver sees it — see scripts/database-url.ts for why a bad secret is otherwise
+// undiagnosable (the driver's error masks the value).
+const DATABASE_URL = assertDatabaseUrl(databaseUrl());
 
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
