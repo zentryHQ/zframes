@@ -7,6 +7,7 @@ import React, {
   useState,
   useTransition,
 } from "react";
+import { observeResize } from "../lib/observe-resize";
 import { cn } from "../lib/utils";
 
 /**
@@ -92,20 +93,20 @@ function HeatmapChartInner<T extends HeatmapCell>({
 
   useEffect(() => {
     const container = containerRef.current;
-    if (container) {
-      const observer = new ResizeObserver(() => {
-        startTransition(() => {
-          setDimension({
-            width: container.offsetWidth,
-            height: container.offsetHeight,
-          });
-        });
+    if (!container) return;
+    return observeResize(container, () => {
+      startTransition(() => {
+        setDimension((prev) =>
+          prev.width === container.offsetWidth &&
+          prev.height === container.offsetHeight
+            ? prev
+            : {
+                width: container.offsetWidth,
+                height: container.offsetHeight,
+              },
+        );
       });
-      observer.observe(container);
-      return () => {
-        observer.disconnect();
-      };
-    }
+    });
   }, []);
 
   // Extract unique rows and columns, preserving order of first occurrence

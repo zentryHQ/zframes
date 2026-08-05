@@ -1,4 +1,5 @@
-import { useState, useLayoutEffect, RefObject } from "react";
+import { useState, useLayoutEffect, useMemo, RefObject } from "react";
+import { observeResize } from "../../lib/observe-resize";
 import { CHART_MARGIN, CHART_DEFAULTS } from "../constants";
 import type { StackedAreaChartDimensions } from "../types";
 
@@ -29,33 +30,40 @@ export function useChartDimensions({
     const updateWidth = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        setContainerWidth(rect.width);
+        setContainerWidth((prev) =>
+          Math.abs(prev - rect.width) < 0.5 ? prev : rect.width,
+        );
       }
     };
 
     updateWidth();
 
-    const resizeObserver = new ResizeObserver(updateWidth);
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
+    return observeResize(containerRef.current, updateWidth);
   }, [containerRef]);
 
-  const innerWidth = Math.max(0, containerWidth - marginLeft - marginRight);
-  const innerHeight = Math.max(0, height - marginTop - marginBottom);
+  // Memoized on the scalars: the returned object sits in the consumer's
+  // axes-effect deps, so a fresh literal per render re-created the axes on every
+  // tooltip mousemove.
+  return useMemo(() => {
+    const innerWidth = Math.max(0, containerWidth - marginLeft - marginRight);
+    const innerHeight = Math.max(0, height - marginTop - marginBottom);
 
-  return {
-    width: containerWidth,
+    return {
+      width: containerWidth,
+      height,
+      innerWidth,
+      innerHeight,
+      marginTop,
+      marginRight,
+      marginBottom,
+      marginLeft,
+    };
+  }, [
+    containerWidth,
     height,
-    innerWidth,
-    innerHeight,
     marginTop,
     marginRight,
     marginBottom,
     marginLeft,
-  };
+  ]);
 }

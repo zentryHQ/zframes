@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef, useState } from "react";
+import { observeResize } from "./lib/observe-resize";
 import { prefersReducedMotion } from "./lib/utils";
 
 export interface ScatterDatum {
@@ -31,6 +32,13 @@ export interface ScatterChartProps {
 
 const FONT = "10px 'DM Sans', sans-serif";
 const DEFAULT_COLOR = "var(--color-highlight, #8b8bff)";
+/**
+ * Module-level so omitted props keep one identity across renders — they sit in
+ * the redraw effect's deps, and fresh defaults rebuilt the chart on every render
+ * of the card.
+ */
+const DEFAULT_FORMAT = (v: number) => String(v);
+const DEFAULT_RADIUS_RANGE: [number, number] = [3, 14];
 
 /**
  * X/Y bubble scatter — correlation / distribution views (e.g. market cap vs
@@ -42,10 +50,10 @@ const ScatterChart = ({
   height = 220,
   yScale = "linear",
   color = DEFAULT_COLOR,
-  formatX = (v) => String(v),
-  formatY = (v) => String(v),
+  formatX = DEFAULT_FORMAT,
+  formatY = DEFAULT_FORMAT,
   zeroXLine = false,
-  radiusRange = [3, 14],
+  radiusRange = DEFAULT_RADIUS_RANGE,
   maxLabels = 12,
 }: ScatterChartProps) => {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -62,10 +70,7 @@ const ScatterChart = ({
       );
     };
     update();
-    const observer =
-      typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
-    observer?.observe(el);
-    return () => observer?.disconnect();
+    return observeResize(el, update);
   }, []);
 
   useEffect(() => {

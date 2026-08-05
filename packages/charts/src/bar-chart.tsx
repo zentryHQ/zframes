@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef, useState } from "react";
+import { observeResize } from "./lib/observe-resize";
 import { prefersReducedMotion } from "./lib/utils";
 
 export interface BarDatum {
@@ -37,6 +38,12 @@ const CHAR_PX = 6.4;
 const LABEL_GAP = 8;
 /** Left gutter before label text so the leading glyph never clips at x=0. */
 const LABEL_INSET = 4;
+/**
+ * Module-level so an omitted `formatValue` keeps one identity across renders —
+ * it sits in the redraw effect's deps, and a fresh default rebuilt the chart on
+ * every render of the card.
+ */
+const DEFAULT_FORMAT_VALUE = (v: number) => String(Math.round(v));
 
 /**
  * Truncate a label with a trailing ellipsis so its rendered width never
@@ -62,7 +69,7 @@ const BarChart = ({
   color = DEFAULT_COLOR,
   negativeColor,
   height = 200,
-  formatValue = (v) => String(Math.round(v)),
+  formatValue = DEFAULT_FORMAT_VALUE,
   showValues = true,
   maxTickLabels = 8,
 }: BarChartProps) => {
@@ -80,10 +87,7 @@ const BarChart = ({
       );
     };
     update();
-    const observer =
-      typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
-    observer?.observe(el);
-    return () => observer?.disconnect();
+    return observeResize(el, update);
   }, []);
 
   useEffect(() => {

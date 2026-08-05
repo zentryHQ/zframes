@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { observeResize } from "../lib/observe-resize";
 import { prefersReducedMotion } from "../lib/utils";
 import { type BinOptions, binSample, normalCurve } from "./utils";
 
@@ -50,6 +51,13 @@ const MARGIN_RIGHT = 10;
 const CHAR_PX = 5.6;
 /** Clear space required between two x-axis labels. */
 const MIN_LABEL_GAP = 8;
+/**
+ * Module-level so omitted props keep one identity across renders — they sit in
+ * the redraw effect's deps, and fresh defaults rebuilt the chart on every render
+ * of the card.
+ */
+const DEFAULT_FORMAT = (v: number) => String(v);
+const NO_MARKERS: HistogramMarker[] = [];
 
 /**
  * Distribution histogram — how a sample is *shaped*, rather than where it sits
@@ -71,9 +79,9 @@ const HistogramChart = ({
   height = 200,
   color = DEFAULT_COLOR,
   negativeColor,
-  formatValue = (v) => String(v),
-  formatCount = (n) => String(n),
-  markers = [],
+  formatValue = DEFAULT_FORMAT,
+  formatCount = DEFAULT_FORMAT,
+  markers = NO_MARKERS,
   showNormalCurve = false,
   showYAxis = true,
   maxTickLabels = 7,
@@ -96,10 +104,7 @@ const HistogramChart = ({
       );
     };
     update();
-    const observer =
-      typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
-    observer?.observe(el);
-    return () => observer?.disconnect();
+    return observeResize(el, update);
   }, []);
 
   const binned = useMemo(

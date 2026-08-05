@@ -2,6 +2,7 @@ import { useState, useLayoutEffect, RefObject } from "react";
 import * as d3 from "d3";
 import { CHART_MARGIN, CHART_DEFAULTS } from "../constants";
 import { parseMarketData } from "../../lib/format";
+import { observeResize } from "../../lib/observe-resize";
 import type { ChartDimensions } from "../types";
 
 interface UseChartDimensionsProps {
@@ -89,15 +90,10 @@ export const useChartDimensions = ({
     // Observe the container itself, not just window resize — GridStack drag-
     // resizes the card without firing a window resize, which otherwise leaves
     // dimensions.width stale and scales the whole SVG (labels included) down.
-    const observer =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(updateWidth)
-        : null;
-    if (observer && containerRef.current)
-      observer.observe(containerRef.current);
+    const unobserve = observeResize(containerRef.current, updateWidth);
     window.addEventListener("resize", updateWidth);
     return () => {
-      observer?.disconnect();
+      unobserve();
       window.removeEventListener("resize", updateWidth);
     };
   }, [containerRef]);
