@@ -237,6 +237,27 @@ describe("a container item becomes a live nested grid", () => {
     expect(host.classList.contains("zf-group-host--titled")).toBe(true);
   });
 
+  it("draws the panel surface while editing, not only after a reload", () => {
+    // The editor never renders the renderer's `.zf-group--panel` (a group's box is
+    // a GridStack container, not a FrameContent tree), so customise mode has to
+    // restate the look itself. Caught in a real browser: the panel showed up on
+    // reload but not while editing — a WYSIWYG break in the one mode whose job is
+    // to look like the result.
+    const { container: on } = mount(
+      specWith([group("g", { x: 0, y: 0, w: 6, h: 4 }, [], { panel: true })]),
+    );
+    expect(subGridEl(on, "g").classList.contains("zf-group-host--panel")).toBe(
+      true,
+    );
+    cleanup();
+    const { container: off } = mount(
+      specWith([group("g", { x: 0, y: 0, w: 6, h: 4 }, [])]),
+    );
+    expect(subGridEl(off, "g").classList.contains("zf-group-host--panel")).toBe(
+      false,
+    );
+  });
+
   it("mounts a usable nested grid for an EMPTY group", () => {
     const { container } = mount(
       specWith([group("g", { x: 0, y: 0, w: 6, h: 4 }, [])]),
