@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCsvRows, splitCsvRow } from "./csv";
+import { parseCsvRows, parseCsvRowsAsync, splitCsvRow } from "./csv";
 
 // What this file pins, and why it matters:
 //
@@ -67,6 +67,41 @@ describe("splitCsvRow", () => {
   it("handles a quoted field that is itself empty", () => {
     expect(splitCsvRow('a,"",c')).toEqual(["a", "", "c"]);
   });
+
+  it("keeps data that follows a closing quote in the same field", () => {
+    // Not valid CSV, but published files do emit it; the tail must not vanish.
+    expect(splitCsvRow('"Austin, TX" (MSAD),1')).toEqual([
+      "Austin, TX (MSAD)",
+      "1",
+    ]);
+  });
+
+  it("quotes only the fields that are quoted, leaving neighbours verbatim", () => {
+    // The mixed row is what the fast path (no quote anywhere) must agree with
+    // once a single quoted field appears later in the line.
+    expect(splitCsvRow('102001,1,"Dallas, TX",msa,TX')).toEqual([
+      "102001",
+      "1",
+      "Dallas, TX",
+      "msa",
+      "TX",
+    ]);
+  });
+
+  it("ends a quoted field that runs to the last character of the line", () => {
+    expect(splitCsvRow('a,"Boise City, ID"')).toEqual(["a", "Boise City, ID"]);
+  });
+
+  it("reads a quote after a closed empty field as opening a new quoted field", () => {
+    // `""` closes an empty field, so the next `,` still delimits and the `"`
+    // after it opens the following field — pinned because a slice-based scan
+    // could easily treat the stray quote as data instead.
+    expect(splitCsvRow('"",",a')).toEqual(["", ",a"]);
+  });
+
+  it("handles a row that is entirely escaped quotes", () => {
+    expect(splitCsvRow('"""",x')).toEqual(['"', "x"]);
+  });
 });
 
 describe("parseCsvRows", () => {
@@ -96,5 +131,36 @@ describe("parseCsvRows", () => {
       ["name", "v"],
       ["Dallas, TX", "4"],
     ]);
+  });
+});
+
+describe("parseCsvRowsAsync", () => {
+  // The async variant exists only to stop a 4.4 MB file monopolising one task;
+  // its output must stay indistinguishable from the sync one, so it's pinned
+  // against `parseCsvRows` rather than against literals.
+  const cases = [
+    "",
+    "a,b\n1,2",
+    "a,b\r\n1,2\r\n",
+    'name,v\n"Dallas, TX",4\n\n"say ""hi"", now",5',
+    ",a,,b,",
+  ];
+
+  it("returns exactly what the sync parser returns", async () => {
+    for (const text of cases) {
+      expect(await parseCsvRowsAsync(text)).toEqual(parseCsvRows(text));
+    }
+  });
+
+  it("parses a document large enough to cross several yield points", async () => {
+    const rows = Array.from(
+      { length: 5_000 },
+      (_, i) => `"Metro ${i}, TX",${i},${i * 2}`,
+    );
+    const text = `name,rank,value\n${rows.join("\n")}\n`;
+    const parsed = await parseCsvRowsAsync(text);
+    expect(parsed).toHaveLength(5_001);
+    expect(parsed[1]).toEqual(["Metro 0, TX", "0", "0"]);
+    expect(parsed.at(-1)).toEqual(["Metro 4999, TX", "4999", "9998"]);
   });
 });
