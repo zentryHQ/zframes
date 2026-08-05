@@ -1055,10 +1055,22 @@ export function DashboardEditor({
         childEl.className = "grid-stack-item";
         childEl.setAttribute("gs-id", child.id);
         childEl.setAttribute("data-frame", child.frame);
-        childEl.setAttribute("gs-x", String(Math.min(child.position.x, geo.columns - 1)));
-        childEl.setAttribute("gs-y", String(Math.min(child.position.y, geo.rows - 1)));
-        childEl.setAttribute("gs-w", String(Math.min(child.position.w, geo.columns)));
-        childEl.setAttribute("gs-h", String(Math.min(child.position.h, geo.rows)));
+        childEl.setAttribute(
+          "gs-x",
+          String(Math.min(child.position.x, geo.columns - 1)),
+        );
+        childEl.setAttribute(
+          "gs-y",
+          String(Math.min(child.position.y, geo.rows - 1)),
+        );
+        childEl.setAttribute(
+          "gs-w",
+          String(Math.min(child.position.w, geo.columns)),
+        );
+        childEl.setAttribute(
+          "gs-h",
+          String(Math.min(child.position.h, geo.rows)),
+        );
         const childContent = document.createElement("div");
         childContent.className = "grid-stack-item-content";
         childEl.appendChild(childContent);
@@ -1126,13 +1138,7 @@ export function DashboardEditor({
       // resize handler.
       requestAnimationFrame(() => fitSubGrid(host, sub));
     },
-    [
-      decorateItem,
-      defaultConfig,
-      fitSubGrid,
-      renderInstance,
-      uniqueId,
-    ],
+    [decorateItem, defaultConfig, fitSubGrid, renderInstance, uniqueId],
   );
 
   // Build an item, register it with the grid, and — when it's a container — turn
@@ -1594,7 +1600,10 @@ export function DashboardEditor({
               })
               .filter((c): c is NonNullable<typeof c> => c !== null)
               // Same reason the board sorts: keep the written JSON diff-friendly.
-              .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)
+              .sort(
+                (a, b) =>
+                  a.position.y - b.position.y || a.position.x - b.position.x,
+              )
           : inst.children;
         // `undefined` rather than `[]` for an empty group: the two mean the same
         // thing to the schema, and JSON.stringify omits the key entirely, so the

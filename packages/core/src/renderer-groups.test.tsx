@@ -162,7 +162,9 @@ describe("a container frame renders its children as a nested grid", () => {
       }),
     ]);
 
-    const card = container.querySelector<HTMLElement>(".zf-subgrid > .zf-frame")!;
+    const card = container.querySelector<HTMLElement>(
+      ".zf-subgrid > .zf-frame",
+    )!;
     expect(card.style.getPropertyValue("--zf-col-start")).toBe("3");
     expect(card.style.getPropertyValue("--zf-col-span")).toBe("2");
     expect(card.style.getPropertyValue("--zf-row-start")).toBe("2");
@@ -180,7 +182,9 @@ describe("a container frame renders its children as a nested grid", () => {
       }),
     ]);
 
-    const card = container.querySelector<HTMLElement>(".zf-subgrid > .zf-frame")!;
+    const card = container.querySelector<HTMLElement>(
+      ".zf-subgrid > .zf-frame",
+    )!;
     expect(card.style.getPropertyValue("--zf-col-span")).toBe("2");
     expect(card.style.getPropertyValue("--zf-row-span")).toBe("2");
     // The start lines are clamped into range too, so the child stays on a track
@@ -238,7 +242,9 @@ describe("edge cases a generated spec actually produces", () => {
     expect(container.querySelector(".zf-group")).not.toBeNull();
     // …whose subgrid holds the frame's own component instead of children.
     expect(container.querySelector(".zf-subgrid--empty")).not.toBeNull();
-    expect(container.querySelector("[data-testid='empty-hint']")).not.toBeNull();
+    expect(
+      container.querySelector("[data-testid='empty-hint']"),
+    ).not.toBeNull();
   });
 
   it("treats a missing `children` key the same as an empty one", () => {

@@ -206,9 +206,9 @@ describe("a container item becomes a live nested grid", () => {
       ]),
     );
 
-    expect(childItems(container, "g").map((el) => el.getAttribute("gs-id"))).toEqual(
-      ["c1", "c2"],
-    );
+    expect(
+      childItems(container, "g").map((el) => el.getAttribute("gs-id")),
+    ).toEqual(["c1", "c2"]);
     // Two separate mounted components, one per child item.
     for (const id of ["c1", "c2"]) {
       const probe = container.querySelector(
@@ -293,10 +293,9 @@ describe("Save reassembles the nested tree", () => {
       ]),
     );
     await clickSave(view);
-    expect(savedSpec(view.onSave).frames[0].children?.map((c) => c.id)).toEqual([
-      "high",
-      "low",
-    ]);
+    expect(savedSpec(view.onSave).frames[0].children?.map((c) => c.id)).toEqual(
+      ["high", "low"],
+    );
   });
 
   it("never writes `layouts` or nested `children` onto a child", async () => {
@@ -321,9 +320,7 @@ describe("Save reassembles the nested tree", () => {
   });
 
   it("omits `children` entirely for an empty group rather than writing []", async () => {
-    const view = mount(
-      specWith([group("g", { x: 0, y: 0, w: 6, h: 4 }, [])]),
-    );
+    const view = mount(specWith([group("g", { x: 0, y: 0, w: 6, h: 4 }, [])]));
     await clickSave(view);
     const g = savedSpec(view.onSave).frames[0];
     expect(g.children).toBeUndefined();
@@ -344,7 +341,9 @@ describe("Save reassembles the nested tree", () => {
     expect(saved.frames.find((f) => f.id === "g")?.children?.[0].id).toBe(
       "inside",
     );
-    expect(saved.frames.find((f) => f.id === "board")?.children).toBeUndefined();
+    expect(
+      saved.frames.find((f) => f.id === "board")?.children,
+    ).toBeUndefined();
   });
 });
 

@@ -262,6 +262,42 @@ price history, 7D–1Y) is the one built for this. A marker outside a chart's
 window isn't drawn, so widen `lookback` to reach older ones. Never invent events
 or dates you aren't sure of — ask the user, or leave them out.
 
+**Grouping frames that belong together.** When several cards are one idea — "put
+the four BTC network stats in one block", "a chart with its key numbers under it",
+"split this panel in two" — use the **`group`** frame. Its children go in a
+`children` array beside `position` (NOT inside `config`), and each child is a
+normal frame instance whose `position` is in the **group's own** `columns` ×
+`rows`, not the board's 12:
+
+```json
+{
+  "id": "btc-block", "frame": "group",
+  "position": { "x": 0, "y": 0, "w": 6, "h": 4 },
+  "title": "Bitcoin Network",
+  "config": { "columns": 2, "rows": 2, "gap": 8 },
+  "children": [
+    { "id": "fees", "frame": "btc-fees",
+      "position": { "x": 0, "y": 0, "w": 1, "h": 1 }, "config": {} },
+    { "id": "mempool", "frame": "btc-mempool",
+      "position": { "x": 1, "y": 0, "w": 1, "h": 1 }, "config": {} },
+    { "id": "hashrate", "frame": "btc-hashrate",
+      "position": { "x": 0, "y": 1, "w": 2, "h": 1 }, "config": {} }
+  ]
+}
+```
+
+The whole cluster then moves and resizes as ONE card when the user rearranges the
+board, instead of coming apart. The group's rows are fractions of its own height,
+so the children always fill it exactly — size the group with `position` and lay the
+children out in the small grid. `config.columns`/`rows` default to `2`×`2`; keep
+them small (a group is a cluster, not a second dashboard, and 24 children is the
+hard ceiling). `title` on the group renders as a label above the cluster — reach
+for that instead of spending a row on a `heading` child. **Groups cannot contain
+groups**: a `children` on a child is rejected outright, so lay the whole cluster
+out in one group. The group itself draws no card by default (the children's own
+cards carry the look); add `"panel": true` to its config for a surrounding
+surface. Catalogue entries carry `"container": true` for frames that work this way.
+
 **Sourcing a frame from a second exchange.** Data routing is first-match by
 capability, so a frame only reads another venue if you say so: set
 `"venue": "bitkub"` in the frame's `config` (supported on `price-chart`,
