@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef, useState } from "react";
+import { observeResize } from "../lib/observe-resize";
 import { prefersReducedMotion } from "../lib/utils";
 import {
   type CalendarDatum,
@@ -69,6 +70,12 @@ const MIN_FILL_OPACITY = 0.24;
 const MAX_FILL_OPACITY = 1;
 /** Weekday rows are labelled every other row; all seven never fit. */
 const WEEKDAY_LABEL_STEP = 2;
+/**
+ * Module-level so an omitted `formatValue` keeps one identity across renders —
+ * it sits in the redraw effect's deps, and a fresh default rebuilt the grid on
+ * every render of the card.
+ */
+const DEFAULT_FORMAT_VALUE = (v: number) => String(v);
 
 /**
  * Calendar heatmap — one square per calendar day, weeks running left to right
@@ -91,7 +98,7 @@ const CalendarHeatmap = ({
   gap = 2,
   from,
   to,
-  formatValue = (v) => String(v),
+  formatValue = DEFAULT_FORMAT_VALUE,
   showMonthLabels = true,
   showWeekdayLabels = true,
   showLegend = true,
@@ -119,10 +126,7 @@ const CalendarHeatmap = ({
       );
     };
     update();
-    const observer =
-      typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
-    observer?.observe(el);
-    return () => observer?.disconnect();
+    return observeResize(el, update);
   }, []);
 
   const width = box?.width ?? 0;

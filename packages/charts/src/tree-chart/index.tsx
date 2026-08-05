@@ -8,6 +8,7 @@ import React, {
   useTransition,
 } from "react";
 import * as d3 from "d3-hierarchy";
+import { observeResize } from "../lib/observe-resize";
 import { cn } from "../lib/utils";
 
 export interface LeafComponentProps<T> {
@@ -185,20 +186,20 @@ function TreeChartInner<T extends TreeNode>({
 
   useEffect(() => {
     const container = outerContainerRef.current;
-    if (container) {
-      const observer = new ResizeObserver(() => {
-        startTransition(() => {
-          setDimension({
-            width: container.offsetWidth,
-            height: container.offsetHeight,
-          });
-        });
+    if (!container) return;
+    return observeResize(container, () => {
+      startTransition(() => {
+        setDimension((prev) =>
+          prev.width === container.offsetWidth &&
+          prev.height === container.offsetHeight
+            ? prev
+            : {
+                width: container.offsetWidth,
+                height: container.offsetHeight,
+              },
+        );
       });
-      observer.observe(container);
-      return () => {
-        observer.disconnect();
-      };
-    }
+    });
   }, []);
 
   useEffect(() => {

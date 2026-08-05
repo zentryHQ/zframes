@@ -3,6 +3,7 @@ import { findClosestDataPoint } from "../utils";
 import { CHART_BREAKPOINTS, TOOLTIP, CHART_MARGIN } from "../constants";
 import type { CombinedDataPoint, MultiSeriesData } from "../types";
 import { parseMarketData } from "../../lib/format";
+import { observeResize } from "../../lib/observe-resize";
 import { prefersReducedMotion } from "../../lib/utils";
 
 interface InteractionHandlers {
@@ -308,19 +309,15 @@ export const createInteractions = ({
       .remove();
   };
 
-  const resizeObserver = new ResizeObserver(() => {
+  const unobserve = observeResize(containerRef.current, () => {
     if (containerRef.current) {
       cachedContainerWidth = containerRef.current.getBoundingClientRect().width;
     }
   });
 
-  if (containerRef.current) {
-    resizeObserver.observe(containerRef.current);
-  }
-
   return {
     onMouseMove: handleMouseMove,
     onMouseLeave: handleMouseLeave,
-    destroy: () => resizeObserver.disconnect(),
+    destroy: unobserve,
   };
 };

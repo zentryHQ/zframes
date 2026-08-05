@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { memo, useEffect, useId, useRef, useState } from "react";
+import { observeResize } from "./lib/observe-resize";
 import { prefersReducedMotion } from "./lib/utils";
 
 export interface BubbleNode {
@@ -83,6 +84,9 @@ const BubbleChart = ({
     if (!el) return;
     const update = () => {
       const rect = el.getBoundingClientRect();
+      // Keeping the previous object when the size hasn't really moved is what
+      // stops a drag-resize from restarting the force simulation: `box` is a
+      // dependency of the layout effect below.
       setBox((prev) =>
         prev &&
         Math.abs(prev.w - rect.width) < 0.5 &&
@@ -92,10 +96,7 @@ const BubbleChart = ({
       );
     };
     update();
-    const observer =
-      typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
-    observer?.observe(el);
-    return () => observer?.disconnect();
+    return observeResize(el, update);
   }, []);
 
   useEffect(() => {
