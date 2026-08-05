@@ -10,6 +10,7 @@ import React, {
 } from "react";
 import * as d3 from "d3";
 import { cn, prefersReducedMotion } from "../lib/utils";
+import { observeResize } from "../lib/observe-resize";
 import { Skeleton } from "../lib/skeleton";
 
 import type { MultiSeriesLineChartProps } from "./types";
@@ -59,7 +60,7 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
   const legendRef = useRef<HTMLDivElement>(null);
   // The legend row's own height, so `fill` can hand the plot only what's left.
   const [plotOffsetTop, setPlotOffsetTop] = useState(0);
-  const plotObserverRef = useRef<ResizeObserver | null>(null);
+  const plotObserverRef = useRef<(() => void) | null>(null);
   const hasAnimatedRef = useRef(false);
 
   const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
@@ -102,7 +103,7 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
    * and never re-ran once the plot mounted.
    */
   const attachPlot = useCallback((el: HTMLDivElement | null) => {
-    plotObserverRef.current?.disconnect();
+    plotObserverRef.current?.();
     plotObserverRef.current = null;
     if (!el) {
       setPlotOffsetTop(0);
@@ -115,14 +116,12 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
       );
     };
     measure();
-    if (typeof ResizeObserver !== "undefined") {
-      // Observe the container too: chrome above the plot changing size moves the
-      // plot without resizing it.
-      plotObserverRef.current = new ResizeObserver(measure);
-      plotObserverRef.current.observe(el);
-      if (containerRef.current)
-        plotObserverRef.current.observe(containerRef.current);
-    }
+    // Observe the container too: chrome above the plot changing size moves the
+    // plot without resizing it.
+    plotObserverRef.current = observeResize(
+      [el, containerRef.current],
+      measure,
+    );
   }, []);
 
   const dimensions = useChartDimensions({
