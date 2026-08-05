@@ -1,6 +1,6 @@
 import type { DashboardBackground as BackgroundConfig } from "@zframes/core";
 import { useLowEndDevice } from "@zframes/unicorn";
-import { lazy, Suspense } from "react";
+import { lazy, memo, Suspense } from "react";
 
 // Lazy so dashboards with no Unicorn scene never load the (tiny) scene module.
 // In-house loader (@zframes/unicorn, shared with the explorer), NOT the
@@ -83,7 +83,7 @@ const accentSaturation = (accentSat: number) =>
  * clobber each other — so they compose on top of the static accent tint (and the
  * orb-open charge) instead of replacing it. Both self-disable under reduced-motion.
  */
-export function DashboardBackground({
+export const DashboardBackground = memo(function DashboardBackground({
   background,
   surface = "dark",
   active = false,
@@ -277,4 +277,4 @@ export function DashboardBackground({
       </div>
     </div>
   );
-}
+});

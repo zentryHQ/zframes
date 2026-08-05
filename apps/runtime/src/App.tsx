@@ -22,7 +22,8 @@ import { WalletProvider } from "@zframes/provider-wallet";
 import { createKeylessProviders } from "@zframes/providers-keyless";
 import { DashboardBackground } from "./background";
 import { DashboardChooser } from "./dashboard-chooser";
-import { createLazyRegistry } from "./lazy-registry";
+import { createLazyRegistry, prefetchFrames } from "./lazy-registry";
+import { prefetchIdle } from "./prefetch-idle";
 import { TickerTape } from "./ticker-tape";
 import { useIsDesktop } from "./use-is-desktop";
 import { ZaiOrb } from "./zai-orb";
@@ -30,8 +31,9 @@ import { ZaiOrb } from "./zai-orb";
 // The GridStack editor is desktop-only and heavy (GridStack + its CSS side-effect
 // import + editor-only icons). Lazy-load it so the dashboard paints through
 // DashboardRenderer first and the editor chunk swaps in once it's loaded.
+const loadEditor = () => import("@zframes/editor/editor");
 const DashboardEditor = lazy(() =>
-  import("@zframes/editor/editor").then((m) => ({
+  loadEditor().then((m) => ({
     default: m.DashboardEditor,
   })),
 );
@@ -262,6 +264,23 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  // The spec is parsed before anything renders, so the exact set of frame chunks
+  // this board needs is known up front — warm them (and the editor chunk) at idle
+  // instead of waiting for each card to scroll into view. Best-effort: every
+  // failure is swallowed, the render path retries on its own.
+  useEffect(() => {
+    if (load.status !== "ready") return;
+    const names = new Set<string>();
+    for (const instance of load.spec.frames) {
+      names.add(instance.frame);
+      for (const child of instance.children ?? []) names.add(child.frame);
+    }
+    return prefetchIdle(() => {
+      prefetchFrames(registry, names);
+      if (isDesktop) void loadEditor().catch(() => {});
+    });
+  }, [load, isDesktop]);
 
   if (load.status === "loading") return <Splash />;
   if (load.status === "error") return <LoadError message={load.message} />;
