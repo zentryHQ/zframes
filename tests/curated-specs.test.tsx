@@ -19,13 +19,27 @@
  *   3. every `config` key is still a field of that frame's schema, and the
  *      config still passes it                               — renamed field
  *   4. geometry fits the grid and no two cards overlap       — bad placement
- *   5. the whole spec renders through the real `DashboardRenderer` with one
- *      card per frame and zero error cards                  — crash regression
+ *   5. every group's children fit THAT GROUP's inner grid and don't overlap
+ *      each other                                           — bad nesting
+ *   6. the whole spec renders through the real `DashboardRenderer` with one
+ *      card per frame, every grouped child in the DOM, and zero error cards
+ *      anywhere — top level or nested                       — crash regression
  *
  * #4's overlap half is specific to these boards: the coordinates are written by
  * hand, so inserting a section means re-flowing every `y` below it. Miss one
  * and two cards land in the same cells, which the CSS grid renders as one card
  * silently sitting on another — no error, no warning, just a broken showcase.
+ *
+ * GROUPED CARDS. Several boards nest a cluster inside a `group` frame, so checks
+ * 2/3 walk `children` as well as `frames` (via `allInstances`) — a child names a
+ * frame and carries a config exactly like a top-level card, and fails just as
+ * silently. #5 exists because a child's coordinates are in its group's own
+ * columns/rows, which the board-level geometry check says nothing about, and the
+ * renderer *clamps* an oversized child rather than letting it spill — so a
+ * mis-authored cluster renders plausibly-but-wrong instead of visibly broken.
+ * #6's whole-container error sweep matters for the same reason: a grouped card's
+ * error box sits inside its `.zf-group`, where a scan over top-level grid items
+ * cannot see it.
  *
  * Unlike golden-specs there is no `knownInvalidConfigIds` escape hatch. A store
  * dashboard is the author's own and may carry a broken card for a while; a
@@ -61,6 +75,39 @@ import { CURATED } from "../apps/explorer/app/lib/curated-dashboards";
 const metaByName = new Map(allFrameMetas.map((meta) => [meta.name, meta]));
 const loaderNames = new Set(Object.keys(frameLoaders));
 const registry = createRegistry(allFrames);
+
+/**
+ * Every instance on a board, board-level frames AND the children nested inside
+ * container (`group`) frames — because every check below applies just as much to
+ * a grouped card, and a child that names a dead frame or a renamed config field
+ * fails exactly as silently as a top-level one. Iterating only `spec.frames`
+ * would have switched this guard off for the boards that use grouping most.
+ *
+ * `where` labels which group a child came from, so a failure names the board
+ * position rather than just an id.
+ */
+function allInstances(frames: readonly BoardFrame[]): InstanceRef[] {
+  const out: InstanceRef[] = [];
+  for (const f of frames) {
+    out.push({ instance: f, where: "board" });
+    for (const child of f.children ?? [])
+      out.push({ instance: child, where: `inside ${f.id}` });
+  }
+  return out;
+}
+
+type BoardFrame = {
+  id: string;
+  frame: string;
+  position: { x: number; y: number; w: number; h: number };
+  config?: Record<string, unknown>;
+  children?: readonly Omit<BoardFrame, "children">[];
+};
+
+type InstanceRef = {
+  instance: Omit<BoardFrame, "children">;
+  where: string;
+};
 
 /**
  * The top-level config field names a frame schema accepts, unwrapping the
@@ -190,23 +237,33 @@ describe.each(CURATED.map((d) => [d.id, d] as const))(
         );
       }
       expect(parsed.data.frames.length).toBeGreaterThan(0);
-      expect(new Set(parsed.data.frames.map((f) => f.id)).size).toBe(
-        parsed.data.frames.length,
-      );
+      // Ids must be unique across the WHOLE board, children included: the editor
+      // keys its per-item React roots by id, so a child sharing an id with a
+      // board-level card would have the two fight over one root.
+      const ids = allInstances(parsed.data.frames).map((r) => r.instance.id);
+      const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
+      expect([...new Set(dupes)], `duplicate instance id(s)`).toEqual([]);
     });
 
     it("every frame name is renderable and has a lazy loader", () => {
       // Registry parity is pinned generically in packages/frames; this pins it
       // against the names a published board actually uses. A missing `lazy.ts`
       // loader is the silent half — it renders as "Unknown frame".
-      const unknown = board.spec.frames
-        .filter((f) => !metaByName.has(f.frame))
-        .map((f) => `${f.id} -> ${f.frame}`);
+      const refs = allInstances(board.spec.frames);
+      const unknown = refs
+        .filter(({ instance }) => !metaByName.has(instance.frame))
+        .map(
+          ({ instance, where }) =>
+            `${instance.id} -> ${instance.frame} (${where})`,
+        );
       expect(unknown).toEqual([]);
 
-      const loaderless = board.spec.frames
-        .filter((f) => !loaderNames.has(f.frame))
-        .map((f) => `${f.id} -> ${f.frame}`);
+      const loaderless = refs
+        .filter(({ instance }) => !loaderNames.has(instance.frame))
+        .map(
+          ({ instance, where }) =>
+            `${instance.id} -> ${instance.frame} (${where})`,
+        );
       expect(loaderless).toEqual([]);
     });
 
@@ -217,7 +274,7 @@ describe.each(CURATED.map((d) => [d.id, d] as const))(
       // the curated one, and shows the WRONG number with no error anywhere.
       const orphaned: string[] = [];
       const unintrospectable: string[] = [];
-      for (const instance of board.spec.frames) {
+      for (const { instance, where } of allInstances(board.spec.frames)) {
         const meta = metaByName.get(instance.frame);
         if (!meta) continue; // already failed the test above
         const fields = configFieldsOf(meta.schema);
@@ -227,7 +284,9 @@ describe.each(CURATED.map((d) => [d.id, d] as const))(
         }
         for (const key of Object.keys(instance.config ?? {}))
           if (!fields.has(key))
-            orphaned.push(`${instance.id} (${instance.frame}): config.${key}`);
+            orphaned.push(
+              `${instance.id} (${instance.frame}, ${where}): config.${key}`,
+            );
       }
       // Guard the guard: if a frame schema stops being introspectable this
       // check would quietly pass on nothing, so fail instead.
@@ -237,13 +296,13 @@ describe.each(CURATED.map((d) => [d.id, d] as const))(
 
     it("every config still passes its frame's Zod schema", () => {
       const invalid: string[] = [];
-      for (const instance of board.spec.frames) {
+      for (const { instance, where } of allInstances(board.spec.frames)) {
         const meta = metaByName.get(instance.frame);
         if (!meta) continue;
         const result = meta.schema.safeParse(instance.config ?? {});
         if (!result.success)
           invalid.push(
-            `${instance.id} (${instance.frame}): ${result.error.issues
+            `${instance.id} (${instance.frame}, ${where}): ${result.error.issues
               .map((i) => `${i.path.join(".") || "(root)"} ${i.message}`)
               .join("; ")}`,
           );
@@ -277,6 +336,49 @@ describe.each(CURATED.map((d) => [d.id, d] as const))(
         }
       }
       expect(collisions).toEqual([]);
+    });
+
+    it("every group's children fit that group and don't overlap each other", () => {
+      // A child's coordinates are in its GROUP's columns/rows, not the board's,
+      // so the board-level check above says nothing about them. The renderer
+      // clamps an oversized child rather than letting it spill — which means a
+      // mis-authored cluster renders *plausibly* (a child silently the wrong
+      // size) instead of visibly broken. This is the check that catches it.
+      const spec = DashboardSpecSchema.parse(board.spec);
+      const problems: string[] = [];
+      for (const f of spec.frames) {
+        const children = f.children ?? [];
+        if (children.length === 0) continue;
+        const cfg = f.config as { columns?: number; rows?: number };
+        const columns = cfg.columns ?? 2;
+        const rows = cfg.rows ?? 2;
+        for (const c of children) {
+          const p = c.position;
+          if (p.x + p.w > columns)
+            problems.push(
+              `${f.id}/${c.id}: x(${p.x}) + w(${p.w}) > ${columns} group columns`,
+            );
+          if (p.y + p.h > rows)
+            problems.push(
+              `${f.id}/${c.id}: y(${p.y}) + h(${p.h}) > ${rows} group rows`,
+            );
+        }
+        for (let i = 0; i < children.length; i++)
+          for (let j = i + 1; j < children.length; j++) {
+            const a = children[i].position;
+            const b = children[j].position;
+            if (
+              a.x < b.x + b.w &&
+              b.x < a.x + a.w &&
+              a.y < b.y + b.h &&
+              b.y < a.y + a.h
+            )
+              problems.push(
+                `${f.id}: ${children[i].id} n ${children[j].id} share cells`,
+              );
+          }
+      }
+      expect(problems).toEqual([]);
     });
 
     it("renders through the real DashboardRenderer with no error card", async () => {
@@ -315,6 +417,26 @@ describe.each(CURATED.map((d) => [d.id, d] as const))(
             `${instance.id} (${instance.frame}): ${headline}`,
         );
       expect(errored.sort()).toEqual([]);
+
+      // A GROUPED card's error box lives inside its `.zf-group`, so the
+      // per-top-level-item scan above cannot see it — a broken child would pass
+      // this test while rendering an "Unknown frame" box on the front page.
+      // Sweep the whole container and account for every headline found.
+      const allHeadlines = [
+        ...container.querySelectorAll(".zf-error-headline"),
+      ].map((el) => el.textContent);
+      expect(allHeadlines, "error card(s) somewhere on the board").toEqual([]);
+
+      // And the groups really did render their children — otherwise "no error
+      // cards" would also be true of a board that silently rendered nothing.
+      const expectedChildren = spec.frames.reduce(
+        (n, f) => n + (f.children?.length ?? 0),
+        0,
+      );
+      expect(
+        container.querySelectorAll(".zf-subgrid > *").length,
+        "grouped children that reached the DOM",
+      ).toBe(expectedChildren);
     }, 30_000);
   },
 );

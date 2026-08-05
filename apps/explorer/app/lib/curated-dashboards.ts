@@ -14,7 +14,61 @@ type Frame = {
   title?: string;
   position: { x: number; y: number; w: number; h: number };
   config?: Record<string, unknown>;
+  /**
+   * Frames nested inside this one — only meaningful when `frame` is a container
+   * (`group`). Each child's `position` is in the GROUP's own `columns` × `rows`
+   * units, not the board's 12, so the cluster fills the group's slot and moves
+   * as one card. Groups don't nest, hence `ChildFrame` rather than `Frame`.
+   */
+  children?: ChildFrame[];
 };
+
+type ChildFrame = Omit<Frame, "children">;
+
+/**
+ * A container frame holding a cluster that reads as one object — a row of
+ * valuation ratios, a set of desk tools, a chart over its own numbers. Used on
+ * the boards where cards genuinely belong together; the chart-heavy boards are
+ * deliberately left flat, since grouping a full-width chart only shrinks it.
+ *
+ * `columns`/`rows` are the INNER grid; `w`/`h` is the group's own board
+ * footprint, so keeping `w`/`h` equal to the bounding box of the cards it
+ * replaces (and `columns`/`rows` equal to how they were arranged) leaves the
+ * board looking the same while making the cluster a single draggable unit.
+ */
+function group(
+  id: string,
+  position: Frame["position"],
+  inner: { columns: number; rows: number; gap?: number; panel?: boolean },
+  children: ChildFrame[],
+  title?: string,
+): Frame {
+  return {
+    id,
+    frame: "group",
+    ...(title ? { title } : {}),
+    position,
+    config: { gap: 8, ...inner },
+    children,
+  };
+}
+
+/** A child of a {@link group}, positioned in that group's inner units. */
+function kid(
+  id: string,
+  frame: string,
+  position: Frame["position"],
+  config?: Record<string, unknown>,
+  title?: string,
+): ChildFrame {
+  return {
+    id,
+    frame,
+    ...(title ? { title } : {}),
+    position,
+    ...(config ? { config } : {}),
+  };
+}
 
 // A per-board cosmetic identity — colour + type + card surface. Mirrors the
 // THEME_PRESETS in @zframes/spec (kept inline as plain data so this file stays
@@ -524,19 +578,24 @@ export const CURATED: CuratedDashboard[] = [
           position: { x: 0, y: 13, w: 6, h: 4 },
           config: { series: "SP500", years: 20 },
         },
-        {
-          id: "ndx-level",
-          frame: "index-level",
-          title: "Nasdaq Composite",
-          position: { x: 6, y: 13, w: 3, h: 4 },
-          config: { series: "NASDAQCOM", trendDays: 180 },
-        },
-        {
-          id: "vix-1",
-          frame: "vix-gauge",
-          position: { x: 9, y: 13, w: 3, h: 4 },
-          config: { max: 50 },
-        },
+        // Grouped: level and volatility are the two-number read on the index —
+        // "where is it" beside "how nervous is it". They only mean something
+        // together, so they occupy one slot beside the returns chart.
+        group(
+          "grp-index-now",
+          { x: 6, y: 13, w: 6, h: 4 },
+          { columns: 2, rows: 1, gap: 8 },
+          [
+            kid(
+              "ndx-level",
+              "index-level",
+              { x: 0, y: 0, w: 1, h: 1 },
+              { series: "NASDAQCOM", trendDays: 180 },
+              "Nasdaq Composite",
+            ),
+            kid("vix-1", "vix-gauge", { x: 1, y: 0, w: 1, h: 1 }, { max: 50 }),
+          ],
+        ),
         {
           id: "hd-macro",
           frame: "heading",
@@ -981,18 +1040,29 @@ export const CURATED: CuratedDashboard[] = [
             logScale: false,
           },
         },
-        {
-          id: "gold-spot",
-          frame: "metal-price",
-          position: { x: 9, y: 1, w: 3, h: 2 },
-          config: { symbol: "XAU", unit: "ounce", showFix: true },
-        },
-        {
-          id: "gold-ath",
-          frame: "metal-ath",
-          position: { x: 9, y: 3, w: 3, h: 2 },
-          config: { symbol: "XAU" },
-        },
+        // Grouped: spot and distance-from-high are the two numbers you read
+        // together beside the chart — "what is it" and "where is that". They were
+        // already a stacked column; the group makes that pairing survive a
+        // rearrange.
+        group(
+          "grp-gold-now",
+          { x: 9, y: 1, w: 3, h: 4 },
+          { columns: 1, rows: 2, gap: 8 },
+          [
+            kid(
+              "gold-spot",
+              "metal-price",
+              { x: 0, y: 0, w: 1, h: 1 },
+              { symbol: "XAU", unit: "ounce", showFix: true },
+            ),
+            kid(
+              "gold-ath",
+              "metal-ath",
+              { x: 0, y: 1, w: 1, h: 1 },
+              { symbol: "XAU" },
+            ),
+          ],
+        ),
         {
           id: "gold-perf",
           frame: "metal-performance",
@@ -1038,24 +1108,37 @@ export const CURATED: CuratedDashboard[] = [
               "Who is long the paper, where the physical sits, and what the tokenized version costs",
           },
         },
-        {
-          id: "cot-net",
-          frame: "metal-cot-net",
-          position: { x: 0, y: 14, w: 5, h: 4 },
-          config: { symbol: "XAU", years: 5, showOpenInterest: false },
-        },
-        {
-          id: "cot-classes",
-          frame: "metal-cot-breakdown",
-          position: { x: 5, y: 14, w: 4, h: 4 },
-          config: { symbol: "XAU" },
-        },
-        {
-          id: "cot-gauge",
-          frame: "metal-cot-gauge",
-          position: { x: 9, y: 14, w: 3, h: 4 },
-          config: { symbol: "XAU" },
-        },
+        // Grouped: three views of ONE weekly CFTC print — the net history, the
+        // trader classes behind it, and where it sits in its own range. Uneven
+        // widths are preserved by giving the inner grid 12 columns and keeping
+        // each child's 5/4/3 span, so the group changes what they ARE (one
+        // reading) without changing how they look.
+        group(
+          "grp-cot",
+          { x: 0, y: 14, w: 12, h: 4 },
+          { columns: 12, rows: 1, gap: 8 },
+          [
+            kid(
+              "cot-net",
+              "metal-cot-net",
+              { x: 0, y: 0, w: 5, h: 1 },
+              { symbol: "XAU", years: 5, showOpenInterest: false },
+            ),
+            kid(
+              "cot-classes",
+              "metal-cot-breakdown",
+              { x: 5, y: 0, w: 4, h: 1 },
+              { symbol: "XAU" },
+            ),
+            kid(
+              "cot-gauge",
+              "metal-cot-gauge",
+              { x: 9, y: 0, w: 3, h: 1 },
+              { symbol: "XAU" },
+            ),
+          ],
+          "CFTC positioning · gold",
+        ),
         {
           id: "vaults",
           frame: "us-gold-vaults",
@@ -1234,38 +1317,49 @@ export const CURATED: CuratedDashboard[] = [
           position: { x: 8, y: 10, w: 4, h: 4 },
           config: { base: "EUR", symbols: ["USD", "GBP", "CHF", "SEK"] },
         },
-        {
-          id: "clock-tokyo",
-          frame: "clock",
-          position: { x: 0, y: 14, w: 3, h: 2 },
-          config: { timezone: "Asia/Tokyo", label: "Tokyo", showSeconds: true },
-        },
-        {
-          id: "clock-london",
-          frame: "clock",
-          position: { x: 3, y: 14, w: 3, h: 2 },
-          config: {
-            timezone: "Europe/London",
-            label: "London",
-            showSeconds: true,
-          },
-        },
-        {
-          id: "clock-ny",
-          frame: "clock",
-          position: { x: 6, y: 14, w: 3, h: 2 },
-          config: {
-            timezone: "America/New_York",
-            label: "New York",
-            showSeconds: true,
-          },
-        },
-        {
-          id: "clock-utc",
-          frame: "clock",
-          position: { x: 9, y: 14, w: 3, h: 2 },
-          config: { timezone: "UTC", label: "UTC", showSeconds: true },
-        },
+        // Grouped: four clocks are a single instrument — the FX day read east to
+        // west. Their order is the meaning, so they move as one strip rather than
+        // as four cards that could end up shuffled out of sequence.
+        group(
+          "grp-clocks",
+          { x: 0, y: 14, w: 12, h: 2 },
+          { columns: 4, rows: 1, gap: 8 },
+          [
+            kid(
+              "clock-tokyo",
+              "clock",
+              { x: 0, y: 0, w: 1, h: 1 },
+              { timezone: "Asia/Tokyo", label: "Tokyo", showSeconds: true },
+            ),
+            kid(
+              "clock-london",
+              "clock",
+              { x: 1, y: 0, w: 1, h: 1 },
+              {
+                timezone: "Europe/London",
+                label: "London",
+                showSeconds: true,
+              },
+            ),
+            kid(
+              "clock-ny",
+              "clock",
+              { x: 2, y: 0, w: 1, h: 1 },
+              {
+                timezone: "America/New_York",
+                label: "New York",
+                showSeconds: true,
+              },
+            ),
+            kid(
+              "clock-utc",
+              "clock",
+              { x: 3, y: 0, w: 1, h: 1 },
+              { timezone: "UTC", label: "UTC", showSeconds: true },
+            ),
+          ],
+          "The FX day",
+        ),
         {
           id: "fixing-note",
           frame: "note",
@@ -1311,24 +1405,35 @@ export const CURATED: CuratedDashboard[] = [
             subtitle: "Live from mempool.space — keyless, browser-direct",
           },
         },
-        {
-          id: "fees",
-          frame: "btc-fees",
-          position: { x: 0, y: 1, w: 3, h: 3 },
-          config: { tiers: ["fastest", "halfHour", "hour", "economy"] },
-        },
-        {
-          id: "mempool",
-          frame: "btc-mempool",
-          position: { x: 3, y: 1, w: 5, h: 3 },
-          config: { projectedBlocks: 5 },
-        },
-        {
-          id: "difficulty",
-          frame: "btc-difficulty",
-          position: { x: 8, y: 1, w: 4, h: 3 },
-          config: { showPrevious: true },
-        },
+        // Grouped: the instantaneous state of the node — what a block costs, what
+        // is queued, and when the next retarget lands. One glance, so one card.
+        // The inner grid keeps 12 columns so the authored 3/5/4 widths survive.
+        group(
+          "grp-node-now",
+          { x: 0, y: 1, w: 12, h: 3 },
+          { columns: 12, rows: 1, gap: 8, panel: true },
+          [
+            kid(
+              "fees",
+              "btc-fees",
+              { x: 0, y: 0, w: 3, h: 1 },
+              { tiers: ["fastest", "halfHour", "hour", "economy"] },
+            ),
+            kid(
+              "mempool",
+              "btc-mempool",
+              { x: 3, y: 0, w: 5, h: 1 },
+              { projectedBlocks: 5 },
+            ),
+            kid(
+              "difficulty",
+              "btc-difficulty",
+              { x: 8, y: 0, w: 4, h: 1 },
+              { showPrevious: true },
+            ),
+          ],
+          "Node right now",
+        ),
         // The fee curve and the price side by side: the pair that shows whether
         // a fee spike is being driven by the market moving or by something
         // purely on-chain (an inscription wave, a large consolidation).
@@ -1462,30 +1567,42 @@ export const CURATED: CuratedDashboard[] = [
             subtitle: "Price against on-chain cost basis",
           },
         },
-        {
-          id: "mvrv-1",
-          frame: "mvrv",
-          position: { x: 0, y: 1, w: 3, h: 3 },
-          config: { window: "all" },
-        },
-        {
-          id: "nupl-1",
-          frame: "nupl",
-          position: { x: 3, y: 1, w: 3, h: 3 },
-          config: { window: "all" },
-        },
-        {
-          id: "mayer-1",
-          frame: "mayer-multiple",
-          position: { x: 6, y: 1, w: 3, h: 3 },
-          config: { window: "2Y" },
-        },
-        {
-          id: "puell-1",
-          frame: "puell-multiple",
-          position: { x: 9, y: 1, w: 3, h: 3 },
-          config: { window: "1Y" },
-        },
+        // Grouped: the four gauges are ONE reading of the same question, so they
+        // travel as one card. Same footprint and same 4-across arrangement as
+        // when they were four peers — a panel surface around them is what makes
+        // "these four together" visible rather than implied.
+        group(
+          "grp-valuation",
+          { x: 0, y: 1, w: 12, h: 3 },
+          { columns: 4, rows: 1, gap: 8, panel: true },
+          [
+            kid(
+              "mvrv-1",
+              "mvrv",
+              { x: 0, y: 0, w: 1, h: 1 },
+              { window: "all" },
+            ),
+            kid(
+              "nupl-1",
+              "nupl",
+              { x: 1, y: 0, w: 1, h: 1 },
+              { window: "all" },
+            ),
+            kid(
+              "mayer-1",
+              "mayer-multiple",
+              { x: 2, y: 0, w: 1, h: 1 },
+              { window: "2Y" },
+            ),
+            kid(
+              "puell-1",
+              "puell-multiple",
+              { x: 3, y: 0, w: 1, h: 1 },
+              { window: "1Y" },
+            ),
+          ],
+          "Valuation ratios",
+        ),
         // Full-history windows on both charts on purpose: the Z-score and NUPL
         // bands are only legible across multiple halvings.
         {
@@ -1511,18 +1628,25 @@ export const CURATED: CuratedDashboard[] = [
             subtitle: "Spend behaviour, moving-average crosses, the checklist",
           },
         },
-        {
-          id: "sopr-1",
-          frame: "sopr",
-          position: { x: 0, y: 9, w: 3, h: 3 },
-          config: { window: "1Y" },
-        },
-        {
-          id: "pi-cycle-1",
-          frame: "pi-cycle",
-          position: { x: 3, y: 9, w: 3, h: 3 },
-          config: { window: "4Y" },
-        },
+        // Grouped: the two timing oscillators pair off against the checklist
+        // beside them, so they read as one "signals" half of the row.
+        group(
+          "grp-timing",
+          { x: 0, y: 9, w: 6, h: 3 },
+          { columns: 2, rows: 1, gap: 8 },
+          [
+            kid("sopr-1", "sopr", { x: 0, y: 0, w: 1, h: 1 }, { window: "1Y" }),
+            kid(
+              "pi-cycle-1",
+              "pi-cycle",
+              { x: 1, y: 0, w: 1, h: 1 },
+              { window: "4Y" },
+            ),
+          ],
+          // Untitled for the same reason as traders-desk's pair: `cycle-signals`
+          // sits beside this group on the same row, and a label row here would
+          // drop these two cards below its top edge.
+        ),
         // The capstone card — seven of this board's own metrics checked against
         // their historical extremes with a live "X of N firing" tally, so it gets
         // half the row and an extra row of height for the full checklist.
@@ -1636,20 +1760,33 @@ export const CURATED: CuratedDashboard[] = [
           position: { x: 0, y: 5, w: 6, h: 4 },
           config: { asset: "btc", lookback: "1M" },
         },
-        {
-          id: "flows-btc",
-          frame: "etf-flows",
-          title: "BTC issuers",
-          position: { x: 6, y: 5, w: 3, h: 4 },
-          config: { asset: "btc", limit: 8 },
-        },
-        {
-          id: "flows-eth",
-          frame: "etf-flows",
-          title: "ETH issuers",
-          position: { x: 9, y: 5, w: 3, h: 4 },
-          config: { asset: "eth", limit: 8 },
-        },
+        // Grouped: the same frame twice, once per asset — a comparison, not two
+        // independent cards. Splitting them would leave a BTC issuer list beside
+        // whatever happened to land next, which is how a like-for-like read gets
+        // misread.
+        group(
+          "grp-issuers",
+          { x: 6, y: 5, w: 6, h: 4 },
+          { columns: 2, rows: 1, gap: 8 },
+          [
+            kid(
+              "flows-btc",
+              "etf-flows",
+              { x: 0, y: 0, w: 1, h: 1 },
+              { asset: "btc", limit: 8 },
+              "BTC issuers",
+            ),
+            kid(
+              "flows-eth",
+              "etf-flows",
+              { x: 1, y: 0, w: 1, h: 1 },
+              { asset: "eth", limit: 8 },
+              "ETH issuers",
+            ),
+          ],
+          // Untitled: `etf-flow-bars` shares this row, so a label row would drop
+          // the two issuer lists below its top edge.
+        ),
 
         // ── Issuer share ────────────────────────────────────────────────────
         // The section above is about how much; this one is about who. The two
@@ -2320,21 +2457,25 @@ export const CURATED: CuratedDashboard[] = [
             subtitle: "The staking yield every DeFi APY is quoted against",
           },
         },
-        {
-          id: "eth-apr",
-          frame: "eth-staking",
-          position: { x: 0, y: 20, w: 3, h: 3 },
-        },
-        {
-          id: "eth-supply",
-          frame: "eth-supply",
-          position: { x: 3, y: 20, w: 4, h: 3 },
-        },
-        {
-          id: "eth-issuance",
-          frame: "eth-issuance-impact",
-          position: { x: 7, y: 20, w: 5, h: 3 },
-        },
+        // Grouped: yield, supply and issuance are one argument — the rate, what
+        // backs it, and what it costs to mint. The section heading above already
+        // says so; the group makes the board itself say it.
+        group(
+          "grp-eth-rate",
+          { x: 0, y: 20, w: 12, h: 3 },
+          { columns: 12, rows: 1, gap: 8 },
+          [
+            kid("eth-apr", "eth-staking", { x: 0, y: 0, w: 3, h: 1 }),
+            kid("eth-supply", "eth-supply", { x: 3, y: 0, w: 4, h: 1 }),
+            kid("eth-issuance", "eth-issuance-impact", {
+              x: 7,
+              y: 0,
+              w: 5,
+              h: 1,
+            }),
+          ],
+          "Ethereum's own rate",
+        ),
         {
           id: "yield-note",
           frame: "note",
@@ -2586,29 +2727,41 @@ export const CURATED: CuratedDashboard[] = [
           position: { x: 4, y: 1, w: 4, h: 4 },
           config: { exchange: "NYSE", count: 5, label: "New York" },
         },
-        {
-          id: "session-nyse",
-          frame: "session-progress",
-          position: { x: 8, y: 1, w: 4, h: 2 },
-          config: {
-            exchange: "NYSE",
-            label: "Cash session",
-            showCountdown: true,
-          },
-        },
-        {
-          // A dated anchor rather than a rolling one: the next FOMC decision,
-          // pinned to New York so the instant is unambiguous wherever the board
-          // is opened.
-          id: "fomc",
-          frame: "countdown",
-          position: { x: 8, y: 3, w: 4, h: 2 },
-          config: {
-            target: "2026-09-17T14:00:00-04:00",
-            label: "FOMC Decision",
-            showTarget: true,
-          },
-        },
+        // Grouped: both cards answer "how much time is left" at two scales —
+        // this session, and the next decision. They were already stacked in one
+        // column; as a group they stay stacked wherever the board is rearranged.
+        group(
+          "grp-clocks",
+          { x: 8, y: 1, w: 4, h: 4 },
+          { columns: 1, rows: 2, gap: 8 },
+          [
+            kid(
+              "session-nyse",
+              "session-progress",
+              { x: 0, y: 0, w: 1, h: 1 },
+              { exchange: "NYSE", label: "Cash session", showCountdown: true },
+            ),
+            // A dated anchor rather than a rolling one: the next FOMC decision,
+            // pinned to New York so the instant is unambiguous wherever the
+            // board is opened.
+            kid(
+              "fomc",
+              "countdown",
+              { x: 0, y: 1, w: 1, h: 1 },
+              {
+                target: "2026-09-17T14:00:00-04:00",
+                label: "FOMC Decision",
+                showTarget: true,
+              },
+            ),
+          ],
+          // No group label, deliberately: a titled group reserves a row for it,
+          // which pushes its children below the tops of the ungrouped cards
+          // beside them on the same row. Both children already carry their own
+          // titles, so the label was decoration bought with a ragged row. Groups
+          // that span the full width have no neighbour to misalign against and
+          // do carry one.
+        ),
         {
           // Full width because it is a strip, not a panel — the week read left
           // to right, with the holidays above flagged in place.
@@ -2634,67 +2787,80 @@ export const CURATED: CuratedDashboard[] = [
               "One setup, sized before it is taken — pure client-side math",
           },
         },
-        {
-          id: "sizer",
-          frame: "calculator",
-          title: "Position Size",
-          position: { x: 0, y: 8, w: 3, h: 4 },
-          config: {
-            account: 25000,
-            riskPct: 1,
-            entry: 182.4,
-            stop: 174.8,
-            currency: "$",
-          },
-        },
-        {
-          id: "rr",
-          frame: "risk-reward",
-          position: { x: 3, y: 8, w: 3, h: 4 },
-          config: {
-            entry: 182.4,
-            stop: 174.8,
-            target: 205.2,
-            direction: "long",
-            label: "NVDA · 3R",
-          },
-        },
-        {
-          // Scaled in over three fills, so the average entry is not the number
-          // on the ticket — which is exactly the case where guessing it costs
-          // you the stop distance.
-          id: "avg",
-          frame: "breakeven",
-          position: { x: 6, y: 8, w: 3, h: 4 },
-          config: {
-            fills: [
-              { price: 181.2, size: 12 },
-              { price: 183.05, size: 8 },
-              { price: 184.6, size: 13 },
-            ],
-            currentPrice: 189.7,
-            label: "NVDA long",
-          },
-        },
-        {
-          // The gate the three cards to its left exist to satisfy. Checked
-          // state persists into the dashboard, so a half-finished routine is
-          // still half-finished after a reload.
-          id: "preflight",
-          frame: "checklist",
-          position: { x: 9, y: 8, w: 3, h: 4 },
-          config: {
-            title: "Pre-flight",
-            items: [
-              "Higher-timeframe bias agrees",
-              "Stop is at a level, not a number",
-              "Size respects the 1% budget",
-              "No print inside the hold window",
-              "I can name what invalidates this",
-            ],
-            checked: [true, true, true, false, false],
-          },
-        },
+        // Grouped, and the clearest case on any of these boards: all four cards
+        // describe ONE trade (a 25k account risking 1% on a 182.40 entry with a
+        // 174.80 stop). Splitting them apart on a rearrange would leave four
+        // cards quoting the same numbers with nothing saying they belong to the
+        // same setup — the panel surface is that statement.
+        group(
+          "grp-setup",
+          { x: 0, y: 8, w: 12, h: 4 },
+          { columns: 4, rows: 1, gap: 8, panel: true },
+          [
+            kid(
+              "sizer",
+              "calculator",
+              { x: 0, y: 0, w: 1, h: 1 },
+              {
+                account: 25000,
+                riskPct: 1,
+                entry: 182.4,
+                stop: 174.8,
+                currency: "$",
+              },
+              "Position Size",
+            ),
+            kid(
+              "rr",
+              "risk-reward",
+              { x: 1, y: 0, w: 1, h: 1 },
+              {
+                entry: 182.4,
+                stop: 174.8,
+                target: 205.2,
+                direction: "long",
+                label: "NVDA · 3R",
+              },
+            ),
+            // Scaled in over three fills, so the average entry is not the number
+            // on the ticket — which is exactly the case where guessing it costs
+            // you the stop distance.
+            kid(
+              "avg",
+              "breakeven",
+              { x: 2, y: 0, w: 1, h: 1 },
+              {
+                fills: [
+                  { price: 181.2, size: 12 },
+                  { price: 183.05, size: 8 },
+                  { price: 184.6, size: 13 },
+                ],
+                currentPrice: 189.7,
+                label: "NVDA long",
+              },
+            ),
+            // The gate the three cards to its left exist to satisfy. Checked
+            // state persists into the dashboard, so a half-finished routine is
+            // still half-finished after a reload.
+            kid(
+              "preflight",
+              "checklist",
+              { x: 3, y: 0, w: 1, h: 1 },
+              {
+                title: "Pre-flight",
+                items: [
+                  "Higher-timeframe bias agrees",
+                  "Stop is at a level, not a number",
+                  "Size respects the 1% budget",
+                  "No print inside the hold window",
+                  "I can name what invalidates this",
+                ],
+                checked: [true, true, true, false, false],
+              },
+            ),
+          ],
+          "One setup, sized",
+        ),
 
         // ── The journal ───────────────────────────────────────────────────
         // The loop the board is built around: log the call at the live price,
@@ -2710,24 +2876,25 @@ export const CURATED: CuratedDashboard[] = [
             subtitle: "Log the call, watch it mark, read it back graded",
           },
         },
-        {
-          id: "log",
-          frame: "journal-log",
-          position: { x: 0, y: 13, w: 4, h: 5 },
-          config: {},
-        },
-        {
-          id: "open",
-          frame: "journal-open",
-          position: { x: 4, y: 13, w: 4, h: 5 },
-          config: { max: 6 },
-        },
-        {
-          id: "results",
-          frame: "journal-results",
-          position: { x: 8, y: 13, w: 4, h: 5 },
-          config: { max: 6 },
-        },
+        // Grouped: log → open → graded is one loop read left to right, and the
+        // order carries the meaning. As three peers a rearrange could put
+        // "graded" before "log"; as a group the sequence is structural.
+        group(
+          "grp-journal",
+          { x: 0, y: 13, w: 12, h: 5 },
+          { columns: 3, rows: 1, gap: 8 },
+          [
+            kid("log", "journal-log", { x: 0, y: 0, w: 1, h: 1 }, {}),
+            kid("open", "journal-open", { x: 1, y: 0, w: 1, h: 1 }, { max: 6 }),
+            kid(
+              "results",
+              "journal-results",
+              { x: 2, y: 0, w: 1, h: 1 },
+              { max: 6 },
+            ),
+          ],
+          "The loop",
+        ),
         {
           id: "score",
           frame: "journal-score",
