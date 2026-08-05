@@ -33,6 +33,14 @@ export function catalogueForAI(input: FrameRegistry | Iterable<FrameMeta>) {
     // per-card `currency` on it would be inert. Always emitted, like
     // `annotatable`, so the entry shape stays fixed.
     usdOnly: meta.usdOnly === true,
+    // This frame is a CONTAINER: it renders other frames, listed in the
+    // instance's `children` array (a sibling of `config`, not a config field),
+    // each positioned in this frame's own `columns` x `rows` units. Surfaced
+    // because a group is the one frame whose useful output isn't reachable from
+    // its config schema alone — an agent reading only `configSchema` would emit a
+    // correctly-configured empty box. Always emitted, like the two flags above,
+    // so the entry shape stays fixed.
+    container: meta.container === true,
     // io: "input" — the agent writes the *input* shape, where .default()
     // fields are optional. The output shape would wrongly mark them required.
     configSchema: z.toJSONSchema(meta.schema, { io: "input" }),
