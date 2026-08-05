@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  act,
+  cleanup,
+  fireEvent as rawFireEvent,
+  render,
+} from "@testing-library/react";
 import { z } from "zod";
 import { FrameConfigDialog } from "./editor-config";
 import { createRegistry, defineFrame } from "@zframes/spec/frame";
@@ -12,6 +17,24 @@ import type { CurrencyCode, FrameInstance } from "@zframes/spec/spec";
 // invalid one surfaces an error and is NOT committed. These tests drive the real
 // FrameConfigDialog with fireEvent and assert both the control dispatch and the
 // commit/validation gating (no GridStack involved).
+
+// A config edit is validated and pushed to the instance on a trailing timer
+// (CONFIG_PARSE_DEBOUNCE_MS), so an event fired here has not been applied by the
+// time the next line runs. Every event goes through this wrapper, which drains
+// that timer — the assertions below stay about the edit, not the cadence.
+const fireEvent = new Proxy(rawFireEvent, {
+  get(target, prop, receiver) {
+    const value = Reflect.get(target, prop, receiver);
+    if (typeof value !== "function") return value;
+    return (...args: unknown[]) => {
+      const result = (value as (...a: unknown[]) => unknown)(...args);
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      return result;
+    };
+  },
+}) as typeof rawFireEvent;
 
 // One synthetic frame whose schema exercises every control branch. Deliberately
 // avoids the symbol/symbols/holdings keys so the ticker picker stays out of the
@@ -148,7 +171,11 @@ function setup(
   };
 }
 
-afterEach(() => cleanup());
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe("FrameConfigDialog control dispatch", () => {
   it("boolean → a checkbox that commits the toggled value", () => {
