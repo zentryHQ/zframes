@@ -18,9 +18,19 @@ export interface ContainerGeometry {
   columns: number;
   rows: number;
   gap: number;
+  /** `config.panel` — whether the group draws its own surrounding surface. Not
+   *  geometry, but it travels with it: the editor has to restate the look the
+   *  renderer's `.zf-group--panel` gives, or the panel appears only after a
+   *  save + reload. */
+  panel: boolean;
 }
 
-const CONTAINER_FALLBACK: ContainerGeometry = { columns: 2, rows: 2, gap: 8 };
+const CONTAINER_FALLBACK: ContainerGeometry = {
+  columns: 2,
+  rows: 2,
+  gap: 8,
+  panel: false,
+};
 
 /**
  * A container frame's inner geometry, or `null` when the frame isn't a container
@@ -38,6 +48,7 @@ export function containerGeometry(
     columns: data.columns ?? CONTAINER_FALLBACK.columns,
     rows: data.rows ?? CONTAINER_FALLBACK.rows,
     gap: data.gap ?? CONTAINER_FALLBACK.gap,
+    panel: data.panel ?? CONTAINER_FALLBACK.panel,
   };
 }
 

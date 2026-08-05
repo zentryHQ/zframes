@@ -311,6 +311,11 @@ export function DashboardEditor({
   // item list is the only account of who is inside a group that can't go stale —
   // collectSpec reads children straight off it.
   const subGridsRef = useRef<Map<string, GridStack>>(new Map());
+  // One ResizeObserver per group, keeping its inner row height fitted to its
+  // current pixel height (GridStack nested grids need a px cellHeight). Held so
+  // they can be disconnected — an observer on a removed group's detached node
+  // would otherwise leak for the life of the editor.
+  const subObserversRef = useRef<Map<string, ResizeObserver>>(new Map());
   const switchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const counterRef = useRef(0);
 
@@ -872,6 +877,10 @@ export function DashboardEditor({
           instancesRef.current.delete(childId);
         }
         subGridsRef.current.delete(id);
+        // An observer left watching a removed group's detached node would leak
+        // for the life of the editor.
+        subObserversRef.current.get(id)?.disconnect();
+        subObserversRef.current.delete(id);
       }
       if (editingIdRef.current === id) setEditingId(null);
       setRemoved({ id, label });
@@ -975,19 +984,32 @@ export function DashboardEditor({
   // nested grids need a px cellHeight (its docs are explicit that % doesn't
   // work), so without this the children keep the height they were built with and
   // either overflow or float above the bottom of a resized group.
-  const fitSubGrid = useCallback((host: HTMLElement, sub: GridStack) => {
-    const rows = Number(host.dataset.subRows) || 2;
-    const gap = Number(host.dataset.subGap) || 0;
-    // clientHeight includes the padding a titled group carries for its label, but
-    // the child grid only occupies the space below it — count that padding out or
-    // the bottom row hangs `label-height` px past the group.
-    const padTop = parseFloat(getComputedStyle(host).paddingTop) || 0;
-    const h = host.clientHeight - padTop;
-    // Pre-layout (height 0) there is nothing to fit yet — the rAF in
-    // mountSubGrid comes back once the browser has sized the item.
-    if (h <= 0) return;
-    sub.cellHeight(subCellPx(h, rows, gap));
-  }, []);
+  const fitSubGrid = useCallback(
+    (item: HTMLElement, host: HTMLElement, sub: GridStack) => {
+      const rows = Number(host.dataset.subRows) || 2;
+      const gap = Number(host.dataset.subGap) || 0;
+      // Measured off the ITEM, not the grid host — deliberately. `sub.cellHeight`
+      // drives the host's own height, so measuring the host makes this a feedback
+      // loop: each fit shrinks the box the next fit measures, converging a few
+      // percent short. (That was visible in the browser as dead space under a
+      // panel group's last child.) The item's height comes from the BOARD grid
+      // and is unaffected by the nested row height, so it's a stable input.
+      const cs = getComputedStyle(host);
+      const pad =
+        (parseFloat(cs.paddingTop) || 0) +
+        (parseFloat(cs.paddingBottom) || 0) +
+        // The item's own inter-frame gutter, which GridStack applies as margin on
+        // the content box rather than as item padding.
+        (parseFloat(getComputedStyle(host).marginTop) || 0) +
+        (parseFloat(getComputedStyle(host).marginBottom) || 0);
+      const h = item.clientHeight - pad;
+      // Pre-layout (height 0) there is nothing to fit yet — the ResizeObserver in
+      // mountSubGrid calls back once the browser has sized the item.
+      if (h <= 0) return;
+      sub.cellHeight(subCellPx(h, rows, gap));
+    },
+    [],
+  );
 
   // Turn a container item into a real nested GridStack and mount its children.
   //
@@ -1025,6 +1047,11 @@ export function DashboardEditor({
         host.classList.add("zf-group-host--titled");
         host.setAttribute("data-group-title", instance.title);
       }
+      // `config.panel` has to be restated here too: the editor never renders the
+      // renderer's `.zf-group--panel`, so without this the surrounding surface
+      // appeared only after Save + reload — a WYSIWYG break in the one mode whose
+      // whole job is to look like the result.
+      host.classList.toggle("zf-group-host--panel", geo.panel);
       // Stashed on the element so fitSubGrid (called from resize handlers that
       // have only the DOM) doesn't need to re-resolve the instance's config.
       host.dataset.subRows = String(geo.rows);
@@ -1133,10 +1160,25 @@ export function DashboardEditor({
       sub.on("dragstop", () => commitHistoryRef.current?.());
       sub.on("resizestop", () => commitHistoryRef.current?.());
 
-      // The item has no measured height until the browser has laid the board out,
-      // so the first fit waits a frame. Everything after that rides the parent's
-      // resize handler.
-      requestAnimationFrame(() => fitSubGrid(host, sub));
+      // A ResizeObserver rather than a one-shot rAF: the group's pixel height is
+      // not final on the next frame (GridStack animates, fonts settle, the
+      // customise toolbar appears and reflows the board), and a fit computed
+      // against a half-laid-out box sticks — which showed up in the browser as
+      // dead space under a panel group's last child. The observer also covers the
+      // cases a resize handler misses: window resize, a density/gap change, and
+      // the board's own column reflow.
+      // Guarded because jsdom (the test environment) has no ResizeObserver, and
+      // the fit is an enhancement over GridStack's own layout rather than a
+      // prerequisite for it — one deferred fit is the honest fallback there.
+      // Observes the ITEM for the same reason fitSubGrid measures it: the host's
+      // height is an output of the fit, so watching it would feed back.
+      if (typeof ResizeObserver === "function") {
+        const ro = new ResizeObserver(() => fitSubGrid(el, host, sub));
+        ro.observe(el);
+        subObserversRef.current.set(instance.id, ro);
+      } else {
+        requestAnimationFrame(() => fitSubGrid(el, host, sub));
+      }
     },
     [decorateItem, defaultConfig, fitSubGrid, renderInstance, uniqueId],
   );
@@ -1174,6 +1216,8 @@ export function DashboardEditor({
       // Nested grids are recreated per item below, so the old instances are
       // dropped wholesale — keeping a stale one would leave collectSpec reading a
       // detached grid and saving the pre-undo children.
+      for (const ro of subObserversRef.current.values()) ro.disconnect();
+      subObserversRef.current.clear();
       subGridsRef.current.clear();
       instancesRef.current = new Map(frames.map((f) => [f.id, f]));
 
@@ -1269,6 +1313,8 @@ export function DashboardEditor({
     // Nested grids are destroyed along with their parent items by grid.destroy,
     // but the maps pointing at them are ours to clear — a stale entry would have
     // collectSpec read a detached grid after a mode switch.
+    for (const ro of subObserversRef.current.values()) ro.disconnect();
+    subObserversRef.current.clear();
     subGridsRef.current.clear();
     grid.destroy(false);
     if (el) {
@@ -1386,18 +1432,10 @@ export function DashboardEditor({
         // structural no-ops), so ⌘Z never burns a press on a non-change.
         commitHistoryRef.current?.();
       });
-      // A resized group must re-derive its children's row height, or they keep
-      // the size they were built at: shrink the group and they overflow it, grow
-      // it and they float above the bottom. Runs for any resize (cheap, and a
-      // resize elsewhere can reflow a group's pixel height too).
-      grid.on("resizestop", () => {
-        for (const [id, sub] of subGridsRef.current) {
-          const host = sub.el as HTMLElement;
-          if (host.isConnected) fitSubGrid(host, sub);
-          else subGridsRef.current.delete(id);
-        }
-        commitHistoryRef.current?.();
-      });
+      // Resizing a group re-fits its children's row height too, but that is the
+      // per-group ResizeObserver's job (mountSubGrid) — it sees the settled box,
+      // which this event does not. Nothing to do here but record the gesture.
+      grid.on("resizestop", () => commitHistoryRef.current?.());
 
       if (horizontal) {
         // GridStack has no horizontal drag-scroll — nudge the wrapper when the
@@ -1425,7 +1463,6 @@ export function DashboardEditor({
       defaultConfig,
       renderInstance,
       decorateItem,
-      fitSubGrid,
       mountSubGrid,
     ],
   );

@@ -241,6 +241,23 @@ body.zf-dragging * {
   position: relative;
   min-height: 0;
 }
+/* `config.panel` — the same opt-in surface `.zf-group--panel` draws in FRAME_CSS,
+   restated here because the editor never renders that class: a group's box is a
+   GridStack container, not a FrameContent tree. Without this the panel look
+   appeared only after Save + reload, which is exactly the WYSIWYG break customise
+   mode exists to avoid. Values mirror FRAME_CSS; keep the two in step. */
+.zf-group-host--panel {
+  background: hsl(
+    var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l2, 7%) /
+      calc(0.5 * var(--zf-surface-opacity, 1))
+  );
+  border: 1px solid
+    hsl(
+      var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% /
+        calc(var(--zf-border-alpha, 0.22) * 0.7)
+    );
+  border-radius: var(--zf-frame-radius, 18px);
+}
 /* The group's label, mirroring `.zf-group-title` in FRAME_CSS so the editor and
    the live dashboard read the same. Rendered from a data attribute rather than a
    real element because this box is a GridStack container: a non-item child in
@@ -250,10 +267,16 @@ body.zf-dragging * {
 .zf-group-host--titled {
   padding-top: 20px;
 }
+/* `top` is NEGATIVE on purpose. GridStack's items are absolutely positioned, so
+   their containing block is this element's PADDING box — the padding-top above
+   insets the children, but it insets this label by the same amount, and the two
+   landed on top of each other (confirmed in the browser: the label rendered
+   behind the first row of cards). Pulling it back up into the padding band is
+   what puts it above the cluster instead of under it. */
 .zf-group-host--titled::before {
   content: attr(data-group-title);
   position: absolute;
-  top: 2px;
+  top: -18px;
   left: 4px;
   right: 4px;
   font-family: var(--font-dmsans, inherit);
