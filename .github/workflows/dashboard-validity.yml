@@ -1,0 +1,71 @@
+name: Dashboard validity
+
+# Re-validates every dashboard STORED IN THE DATABASE against the current frame
+# registry.
+#
+# Why this exists: the curated showcase used to be TypeScript
+# (`apps/explorer/app/lib/curated-dashboards.ts`) and `tests/curated-specs.test.tsx`
+# validated it at CI time, so a frame rename failed the build. The showcase moved
+# into the `dashboards` table on 2026-08-05, and a jsonb column cannot fail a
+# typecheck. `validateDashboardSpec` gates every write, so nothing enters broken —
+# but a board that was valid when written goes stale when the registry moves under
+# it (renamed frame, dropped lazy loader, renamed config field, tightened enum).
+# That is the common case, and this is where it gets caught.
+#
+# Setup: secret THUMBS_DATABASE_URL (the prod Neon DATABASE_URL — reused rather
+# than adding a second copy of the same connection string). Skips cleanly when
+# unset, like the thumbnail cron.
+#
+# Opens/updates one `dashboard-validity` issue; auto-closes when clean.
+
+on:
+  schedule:
+    - cron: "20 4 * * *" # nightly 04:20 UTC — after frame-render (03:50), so a
+      # registry regression is reported by the renderer first
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.THUMBS_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Skip when no database is configured
+        if: env.DATABASE_URL == ''
+        run: echo "THUMBS_DATABASE_URL secret not set — skipping."
+
+      - run: pnpm install --frozen-lockfile
+        if: env.DATABASE_URL != ''
+
+      - name: Validate stored dashboards
+        if: env.DATABASE_URL != ''
+        continue-on-error: true
+        run: pnpm --dir apps/explorer validate:dashboards
+        env:
+          DASHBOARD_VALIDITY_REPORT: dashboard-validity-report.json
+
+      - name: File / update / close issue
+        if: always() && env.DATABASE_URL != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/report-to-issue.mjs --kind generic --label dashboard-validity --report dashboard-validity-report.json
+
+      - name: Upload report
+        if: always() && env.DATABASE_URL != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: dashboard-validity-report
+          path: dashboard-validity-report.json
+          if-no-files-found: warn
