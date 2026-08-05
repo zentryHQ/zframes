@@ -134,7 +134,12 @@ export function useSourcesFor(capability: Capability): string[] {
  */
 function deepEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
-  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null)
+  if (
+    typeof a !== "object" ||
+    typeof b !== "object" ||
+    a === null ||
+    b === null
+  )
     return false;
   if (a instanceof Date || b instanceof Date)
     return (
