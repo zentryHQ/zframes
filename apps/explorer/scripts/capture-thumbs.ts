@@ -27,8 +27,10 @@ import { CAPTURE_WATERMARK_BAND } from "../app/lib/thumb-image";
 const BASE = (
   process.env.EXPLORER_BASE_URL ?? "http://localhost:37264"
 ).replace(/\/$/, "");
+// Trimmed — see the note in scripts/migrate.ts on why whitespace in a secret is
+// so hard to spot.
 const DATABASE_URL =
-  process.env.DATABASE_URL ??
+  process.env.DATABASE_URL?.trim() ||
   "postgres://postgres:postgres@127.0.0.1:5433/postgres";
 const CHANNEL = process.env.THUMBS_BROWSER_CHANNEL ?? "chrome";
 const SETTLE_MS = Number(process.env.THUMBS_SETTLE_MS ?? 9000);
