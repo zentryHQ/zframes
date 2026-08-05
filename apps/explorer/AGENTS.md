@@ -17,6 +17,7 @@ pnpm --dir apps/explorer validate:dashboards  # re-validate every STORED board
 pnpm --dir apps/explorer thumbs:capture       # nightly screenshot job, run by cron
 pnpm --dir apps/explorer migrate              # apply pending drizzle/*.sql (fresh DB or existing)
 pnpm --dir apps/explorer migrate --dry-run    # list pending migrations, apply nothing
+pnpm --dir apps/explorer check:schema         # do the migrations match schema.ts? (CI gate)
 node scripts/pglite-server.mjs                # the dev database (from apps/explorer)
 ```
 
@@ -92,9 +93,30 @@ removes the only thing that made it safe.
    `0000_baseline.sql` runs against databases that already have every table, and the
    deploy workflow applies migrations *while the previous release is still serving*.
 4. `pnpm --dir apps/explorer migrate --dry-run`, then `migrate`.
+5. `pnpm --dir apps/explorer check:schema` — proves the migration actually produces
+   what `schema.ts` declares. **This is a CI gate**, so a forgotten migration fails
+   the PR rather than production.
 
 A migration and its bookkeeping row commit in one transaction, so a failure records
 nothing and a re-run retries it rather than skipping a half-applied file.
+
+### How the drift check works
+
+`scripts/check-schema-drift.ts` builds the schema **twice** on throwaway PGlite
+databases — once by running the migrations, once by `drizzle-kit push`-ing
+`schema.ts` — then diffs `information_schema` (columns, types, nullability,
+defaults, constraint names). Identical ⇒ the migrations and the app agree.
+
+It deliberately does **not** parse `drizzle-kit push` output against the real
+database: push prints "Changes applied" whether or not it changed anything, so the
+output is not a verdict, and pointing a tool that mutates at a live database to ask
+a read-only question is how you lose a table. Here push only ever touches a
+database that exists for a few seconds.
+
+`schema_migrations` is declared in `schema.ts` **for this check's sake** even though
+the runner creates it. A table absent from `schema.ts` reads as "drop it" to any
+diff — `drizzle-kit push` offered to delete it, and with it the whole record of
+which migrations had run.
 
 ## Deploys are automated — with one gate
 
