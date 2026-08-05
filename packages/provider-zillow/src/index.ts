@@ -6,7 +6,7 @@ import type {
   SeriesPoint,
 } from "@zframes/spec";
 import { TtlCache } from "@zframes/data-primitives/cache";
-import { parseCsvRows } from "@zframes/data-primitives/csv";
+import { parseCsvRowsAsync } from "@zframes/data-primitives/csv";
 import { fetchText } from "@zframes/data-primitives/fetch";
 
 /**
@@ -116,6 +116,17 @@ function pctChange(from: number | undefined, to: number): number | undefined {
 }
 
 /**
+ * How long the row-mapping loop may hold the thread before yielding, matching
+ * the budget the CSV parser itself uses.
+ */
+const YIELD_BUDGET_MS = 5;
+
+/** Hand the event loop back so a pending render or input can run. */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/**
  * Parse the wide ZHVI table into per-region point series.
  *
  * The header is `RegionID,SizeRank,RegionName,RegionType,StateName` followed by
@@ -123,9 +134,15 @@ function pctChange(from: number | undefined, to: number): number | undefined {
  * they're used verbatim as the point times. A region's early months are blank
  * until Zillow has enough transactions to publish, so blanks are skipped rather
  * than zero-filled — a zero would draw a chart crashing to the axis.
+ *
+ * **Async because of the size, not the I/O.** Both halves of the work are
+ * enormous for one task — ~4.4 MB of text to field-split, then ~280k
+ * `SeriesPoint` objects to allocate — so the parse yields to the event loop
+ * every few milliseconds. It runs once per 12h TTL, but that one run used to
+ * stall every frame on the board while it went; the output is unchanged.
  */
-export function parseZhviCsv(csv: string): ZhviTable {
-  const rows = parseCsvRows(csv);
+export async function parseZhviCsv(csv: string): Promise<ZhviTable> {
+  const rows = await parseCsvRowsAsync(csv);
   const header = rows[0] ?? [];
   if (header.length <= META_COLUMNS || header[COL_REGION_NAME] !== "RegionName")
     throw new Error("zillow: unexpected ZHVI CSV header");
@@ -137,7 +154,12 @@ export function parseZhviCsv(csv: string): ZhviTable {
   }
 
   const regions = new Map<string, RegionRow>();
+  let deadline = Date.now() + YIELD_BUDGET_MS;
   for (let r = 1; r < rows.length; r++) {
+    if (Date.now() >= deadline) {
+      await yieldToEventLoop();
+      deadline = Date.now() + YIELD_BUDGET_MS;
+    }
     const cells = rows[r];
     const region = cells[COL_REGION_NAME]?.trim();
     if (!region) continue;
