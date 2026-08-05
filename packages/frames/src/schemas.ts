@@ -909,6 +909,57 @@ export const imageGalleryMeta = defineFrameMeta({
   }),
 });
 
+export const groupMeta = defineFrameMeta({
+  name: "group",
+  label: "Group",
+  category: "layout",
+  // No iconUrl yet — the palette renders the card text-only rather than a broken
+  // <img>; drop a `group.png` into the runtime's widget-icons and add
+  // `iconUrl: widgetIcon("group")` when one exists.
+  layout: { w: 6, h: 4, minW: 2, minH: 2 },
+  description:
+    "A container that holds OTHER frames as its own little grid, so a cluster of related cards occupies one board slot and moves/resizes as a single unit. Use it to build a composite panel — a 2x2 of sparklines, a chart with its own stat strip beneath, a side-by-side split — that stays together when the board is rearranged. The nested frames go in the instance's `children` array (not in `config`), each with a `position` in this group's own `columns` x `rows` units. Groups cannot contain other groups. Needs no data provider of its own; each child declares its own.",
+  capabilities: [],
+  // No card and no auto-title: the children's own cards carry the chrome, and a
+  // group that wants a surrounding surface sets `panel` instead.
+  chrome: "bare",
+  container: true,
+  schema: z.object({
+    columns: z
+      .number()
+      .int()
+      .min(1)
+      .max(12)
+      .default(2)
+      .describe(
+        "How many columns the group's INNER grid is divided into (1-12). A child's position x/w are in these units — so with columns: 2, a child at x: 0, w: 1 fills the left half. Keep it small: a group is a cluster, not a second dashboard.",
+      ),
+    rows: z
+      .number()
+      .int()
+      .min(1)
+      .max(12)
+      .default(2)
+      .describe(
+        "How many rows the group's INNER grid is divided into (1-12). Unlike the board's rows these are FRACTIONS of the group's own height, so the cluster always fills the slot exactly — a child's position y/h are in these units.",
+      ),
+    gap: z
+      .number()
+      .min(0)
+      .max(48)
+      .default(8)
+      .describe(
+        "Pixels between the child frames. Defaults tighter than the board gutter so a group reads as one object; 0 makes the children flush.",
+      ),
+    panel: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Draw a surrounding surface (tinted panel + border) around the whole group. Off by default — the children's own cards usually carry enough weight, and a card-inside-a-card reads as clutter. Turn it on for a group meant to read as one composite object.",
+      ),
+  }),
+});
+
 export const headingMeta = defineFrameMeta({
   name: "heading",
   label: "Heading",
@@ -6595,6 +6646,7 @@ export const frameMetas: FrameMeta[] = [
   treasuryAuctionsMeta,
   fundingHeatmapMeta,
   fundingRateChartMeta,
+  groupMeta,
   headingMeta,
   heroNumberMeta,
   imageMeta,

@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+/**
+ * How many frames one container (group) frame may hold. A ceiling, not a target
+ * — a group is a cluster, and past a couple of dozen cards the children are
+ * smaller than their own chrome. Bounded so a generated spec can't produce a
+ * group with thousands of children that the editor then has to mount.
+ */
+export const MAX_GROUP_CHILDREN = 24;
+
 export const GridPositionSchema = z.object({
   x: z.number().int().min(0).describe("Column offset, 0-based"),
   y: z.number().int().min(0).describe("Row offset, 0-based"),
@@ -340,7 +348,13 @@ export const EventMarkerSchema = z.object({
 
 export type EventMarker = z.infer<typeof EventMarkerSchema>;
 
-export const FrameInstanceSchema = z.object({
+/**
+ * The fields every frame instance carries, whether it sits on the board or
+ * inside a container (group) frame. Split out so a child instance can reuse the
+ * whole shape without inheriting the two fields that only make sense at board
+ * level — `layouts` (per-board-mode placement) and `children` (nesting).
+ */
+const frameInstanceBase = {
   id: z.string().describe("Unique instance id within the dashboard"),
   frame: z.string().describe("Name of a registered frame"),
   style: FrameStyleSchema.optional().describe(
@@ -365,17 +379,44 @@ export const FrameInstanceSchema = z.object({
       "Event markers for THIS card — dated annotations drawn on its time axis, so a move can be read against what caused it (a rate cut on a rates chart, an earnings date on the TSLA chart). Each is `{date, label, note?, color?, url?}`. Only time-axis history charts draw them; every other frame ignores the field. Markers outside the chart's window aren't drawn, so widen the frame's lookback to reach older ones.",
     ),
   position: GridPositionSchema,
+  config: z
+    .record(z.string(), z.unknown())
+    .default({})
+    .describe(
+      "Frame config; validated against the frame's own schema at render time",
+    ),
+};
+
+/**
+ * A frame nested inside a container (group) frame. Its `position` is in the
+ * *group's* own column/row units (`config.columns` × `config.rows` on the
+ * group), not the board's — a group is a self-contained grid that fills its
+ * card, so a child's rows are fractions of the group's height rather than
+ * `grid.rowHeight` pixels.
+ *
+ * Deliberately has no `children` of its own: **groups do not nest.** One level
+ * buys the composition that matters (clusters that drag as a unit, split
+ * panes) while keeping the renderer non-recursive and making an unbounded-depth
+ * spec unrepresentable rather than merely discouraged. Also no `layouts`: a
+ * group arranges its children once and carries that arrangement into every
+ * board layout mode.
+ */
+export const ChildFrameInstanceSchema = z.object(frameInstanceBase);
+
+export const FrameInstanceSchema = z.object({
+  ...frameInstanceBase,
   layouts: z
     .record(z.string(), GridPositionSchema)
     .optional()
     .describe(
       'Per-mode layout overrides keyed by grid.mode (e.g. "flow-horizontal"). `position` is the canonical flow-vertical layout; this holds the other modes\' placements so each layout mode keeps its own independent arrangement. Editor-managed — agents only need to set `position`.',
     ),
-  config: z
-    .record(z.string(), z.unknown())
-    .default({})
+  children: z
+    .array(ChildFrameInstanceSchema)
+    .max(MAX_GROUP_CHILDREN)
+    .optional()
     .describe(
-      "Frame config; validated against the frame's own schema at render time",
+      "Frames nested inside THIS one — only meaningful when `frame` is a container frame (`group`), which renders them as its own little grid instead of its own content. Each child is a normal frame instance whose `position` is in the group's `config.columns` × `config.rows` units, so the cluster fills the group's card and moves/resizes as one unit. Children may not themselves have `children` — groups don't nest.",
     ),
 });
 
@@ -699,8 +740,9 @@ export type DashboardAppearance = z.infer<typeof AppearanceSchema>;
  * Cosmetic groups, by fault line: `grid` is geometry (cell layout), `theme` is
  * colour (accent + the card-surface tint), `typography` is the type family +
  * numeric style, and `appearance` is per-card surface treatment. A `z.preprocess`
- * migrates legacy specs where `radius` lived under `grid` (it now belongs to
- * `appearance`) so older `dashboard.json` files keep loading.
+ * migrates legacy specs so older `dashboard.json` files keep loading: `radius`
+ * that lived under `grid` (it now belongs to `appearance`), a colour-less
+ * `background.type: "gradient"`, and the retired `grid.mode: "canvas"`.
  */
 export const DashboardSpecSchema = z.preprocess(
   (raw) => {
@@ -717,6 +759,23 @@ export const DashboardSpecSchema = z.preprocess(
         appearance: {
           radius,
           ...((r.appearance as Record<string, unknown>) ?? {}),
+        },
+      };
+    }
+    // Legacy `grid.mode: "canvas"` was declared in the enum but never
+    // implemented — it always rendered as flow-vertical. The mode is gone now,
+    // so rewrite it to what it actually did rather than failing a spec that
+    // took the schema at its word.
+    if (
+      grid &&
+      typeof grid === "object" &&
+      (grid as Record<string, unknown>).mode === "canvas"
+    ) {
+      r = {
+        ...r,
+        grid: {
+          ...(r.grid as Record<string, unknown>),
+          mode: "flow-vertical",
         },
       };
     }
@@ -755,10 +814,10 @@ export const DashboardSpecSchema = z.preprocess(
     grid: z
       .object({
         mode: z
-          .enum(["flow-vertical", "flow-horizontal", "canvas"])
+          .enum(["flow-vertical", "flow-horizontal"])
           .default("flow-vertical")
           .describe(
-            "Layout model. 'flow-vertical' (default): a fixed number of columns fill the viewport width; the board grows downward and scrolls vertically — the classic dashboard. 'flow-horizontal': a fixed number of rows fill the viewport height; the board grows rightward and scrolls horizontally — suited to ultrawide and wall displays. 'canvas': an unbounded pan/zoom plane (not yet implemented; rendered as flow-vertical for now).",
+            "Layout model. 'flow-vertical' (default): a fixed number of columns fill the viewport width; the board grows downward and scrolls vertically — the classic dashboard. 'flow-horizontal': a fixed number of rows fill the viewport height; the board grows rightward and scrolls horizontally — suited to ultrawide and wall displays.",
           ),
         columns: z
           .number()
@@ -846,5 +905,6 @@ export const DashboardSpecSchema = z.preprocess(
 );
 
 export type GridPosition = z.infer<typeof GridPositionSchema>;
+export type ChildFrameInstance = z.infer<typeof ChildFrameInstanceSchema>;
 export type FrameInstance = z.infer<typeof FrameInstanceSchema>;
 export type DashboardSpec = z.infer<typeof DashboardSpecSchema>;
