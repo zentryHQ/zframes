@@ -39,6 +39,11 @@ import {
   type SymbolUniverse,
 } from "./editor-symbols";
 
+/** Trailing window before a typed draft is validated and pushed to the card.
+ *  Short enough to still read as live, long enough that a burst of keystrokes
+ *  costs one schema parse and one frame re-render instead of a dozen. */
+const CONFIG_PARSE_DEBOUNCE_MS = 150;
+
 /**
  * The per-frame settings dialog — a modal that edits ONE frame. Each grid item
  * carries its own gear button (see decorateItem); clicking it opens this over a
@@ -114,17 +119,20 @@ export function FrameConfigDialog({
    */
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const commit = useCallback(
-    (next: Record<string, unknown>) => {
-      setConfig(next);
+  /**
+   * Validate a draft and push it to the shared instance, returning the error text
+   * it produced (null when it validated) so a caller that must act on validity
+   * right now doesn't have to wait for the `error` state to land.
+   */
+  const applyConfig = useCallback(
+    (next: Record<string, unknown>): string | null => {
       if (def) {
         const result = def.schema.safeParse(next);
         if (!result.success) {
-          setError(
-            result.error.issues
-              .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
-              .join("\n"),
-          );
+          const message = result.error.issues
+            .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
+            .join("\n");
+          setError(message);
           const byField: Record<string, string> = {};
           for (const issue of result.error.issues) {
             const owner = issue.path[0];
@@ -136,17 +144,70 @@ export function FrameConfigDialog({
             if (!byField[owner]) byField[owner] = `${where}${issue.message}`;
           }
           setFieldErrors(byField);
-          return;
+          return message;
         }
       }
       setError(null);
       setFieldErrors({});
       const current = instancesRef.current.get(instanceId);
-      if (!current) return;
+      if (!current) return null;
       instancesRef.current.set(instanceId, { ...current, config: next });
       onApply(instanceId);
+      return null;
     },
     [def, instanceId, instancesRef, onApply],
+  );
+
+  // The draft waiting to be validated + applied, and the trailing timer that will
+  // do it. Typing is what makes this worth deferring: every keystroke re-parses
+  // the whole schema and re-renders the card's React root, and only the last one
+  // in a burst is a state anybody sees.
+  const pendingConfigRef = useRef<Record<string, unknown> | null>(null);
+  const parseTimerRef = useRef<number | null>(null);
+
+  /**
+   * Apply the deferred draft right now. Returns the error text of that apply, or
+   * `undefined` when there was nothing pending — so a caller can distinguish
+   * "just validated, and this is the result" from "nothing changed, use `error`".
+   */
+  const flushConfig = useCallback((): string | null | undefined => {
+    if (parseTimerRef.current !== null) {
+      clearTimeout(parseTimerRef.current);
+      parseTimerRef.current = null;
+    }
+    const next = pendingConfigRef.current;
+    pendingConfigRef.current = null;
+    if (!next) return undefined;
+    return applyConfig(next);
+  }, [applyConfig]);
+
+  const commit = useCallback(
+    (next: Record<string, unknown>) => {
+      // The draft itself is never deferred — the controls are its only source of
+      // truth, so a delayed setConfig would drop keystrokes.
+      setConfig(next);
+      pendingConfigRef.current = next;
+      if (parseTimerRef.current !== null) clearTimeout(parseTimerRef.current);
+      parseTimerRef.current = window.setTimeout(() => {
+        parseTimerRef.current = null;
+        const pending = pendingConfigRef.current;
+        pendingConfigRef.current = null;
+        if (pending) applyConfig(pending);
+      }, CONFIG_PARSE_DEBOUNCE_MS);
+    },
+    [applyConfig],
+  );
+
+  // Closing, saving and unmounting all end the dialog's life, so the last draft
+  // has to be applied before it goes — a debounce that can lose the final
+  // keystroke is a data-loss bug, not a perf win.
+  const flushConfigRef = useRef(flushConfig);
+  flushConfigRef.current = flushConfig;
+  useEffect(
+    () => () => {
+      flushConfigRef.current();
+    },
+    [],
   );
 
   const commitTitle = useCallback(
@@ -256,12 +317,15 @@ export function FrameConfigDialog({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      if (error) revertConfig();
+      // A deferred draft is validated first, and its own verdict wins — `error`
+      // is one debounce behind whatever was just typed.
+      const flushed = flushConfig();
+      if (flushed !== undefined ? flushed : error) revertConfig();
       else onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose, error, revertConfig]);
+  }, [onClose, error, revertConfig, flushConfig]);
 
   /**
    * Focus management for a real modal: move focus in on open, keep Tab inside it,
@@ -342,7 +406,8 @@ export function FrameConfigDialog({
         // Backdrop click closes — but not over an invalid draft, which closing
         // would discard without saying so. See the Esc handler above.
         if (e.target !== e.currentTarget) return;
-        if (error) revertConfig();
+        const flushed = flushConfig();
+        if (flushed !== undefined ? flushed : error) revertConfig();
         else onClose();
       }}
     >
@@ -365,7 +430,9 @@ export function FrameConfigDialog({
             <X size={16} aria-hidden="true" />
           </button>
         </header>
-        <div className="zf-dialog-body">
+        {/* Leaving a control commits it immediately: the debounce is there to
+            skip intermediate keystrokes, not to make a finished edit wait. */}
+        <div className="zf-dialog-body" onBlur={() => flushConfig()}>
           {def?.chrome !== "bare" && (
             <div className="zf-field">
               <label
@@ -465,7 +532,13 @@ export function FrameConfigDialog({
           <button
             type="button"
             className="zf-btn zf-btn--primary"
-            onClick={onClose}
+            onClick={() => {
+              // `disabled` can be one debounce stale, so the pending draft is
+              // validated here too rather than closing over an unparsed edit.
+              const flushed = flushConfig();
+              if (flushed !== undefined ? flushed : error) return;
+              onClose();
+            }}
             disabled={Boolean(error)}
             title={
               error
