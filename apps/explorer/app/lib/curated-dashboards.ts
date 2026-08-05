@@ -581,10 +581,12 @@ export const CURATED: CuratedDashboard[] = [
         // Grouped: level and volatility are the two-number read on the index —
         // "where is it" beside "how nervous is it". They only mean something
         // together, so they occupy one slot beside the returns chart.
+        // Panelled, untitled — same reasoning as gold-desk's pair: visible on a
+        // landing board, still level with the returns chart sharing its row.
         group(
           "grp-index-now",
           { x: 6, y: 13, w: 6, h: 4 },
-          { columns: 2, rows: 1, gap: 8 },
+          { columns: 2, rows: 1, gap: 8, panel: true },
           [
             kid(
               "ndx-level",
@@ -646,20 +648,33 @@ export const CURATED: CuratedDashboard[] = [
             subtitle: "Majors, sentiment, and on-chain",
           },
         },
-        {
-          id: "btc",
-          frame: "price-chart",
-          title: "BTC",
-          position: { x: 0, y: 1, w: 6, h: 3 },
-          config: { symbol: "BTC" },
-        },
-        {
-          id: "eth",
-          frame: "price-chart",
-          title: "ETH",
-          position: { x: 6, y: 1, w: 6, h: 3 },
-          config: { symbol: "ETH" },
-        },
+        // Grouped: the same frame twice, one per major — a like-for-like
+        // comparison, not two unrelated charts. Titled AND panelled on purpose:
+        // this board is one of the three on the landing page, and it spans the
+        // full row, so there is no neighbour to misalign against and the grouping
+        // is legible to a first-time visitor rather than merely structural.
+        group(
+          "grp-majors",
+          { x: 0, y: 1, w: 12, h: 3 },
+          { columns: 2, rows: 1, gap: 8, panel: true },
+          [
+            kid(
+              "btc",
+              "price-chart",
+              { x: 0, y: 0, w: 1, h: 1 },
+              { symbol: "BTC" },
+              "BTC",
+            ),
+            kid(
+              "eth",
+              "price-chart",
+              { x: 1, y: 0, w: 1, h: 1 },
+              { symbol: "ETH" },
+              "ETH",
+            ),
+          ],
+          "The majors, side by side",
+        ),
         {
           id: "watch",
           frame: "price-ticker",
@@ -1044,6 +1059,12 @@ export const CURATED: CuratedDashboard[] = [
         // together beside the chart — "what is it" and "where is that". They were
         // already a stacked column; the group makes that pairing survive a
         // rearrange.
+        // No panel, and NOT for lack of trying: a panel's padding costs each child
+        // ~12px, and `metal-ath` at h:2 is already tight enough that losing that
+        // made its headline number overlap its own date line (seen in the
+        // browser). A group whose children are height-constrained takes the
+        // invisible form — the pairing is still structural, just not decorated.
+        // crypto-desk carries the visible demonstration on the landing page.
         group(
           "grp-gold-now",
           { x: 9, y: 1, w: 3, h: 4 },
