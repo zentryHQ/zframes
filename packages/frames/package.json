@@ -35,7 +35,7 @@
     "react": ">=18"
   },
   "devDependencies": {
-    "@types/react": "^19.1.0",
+    "@types/react": "^19.2.18",
     "@zframes/editor": "workspace:*",
     "typescript": "^5.8.0"
   }
