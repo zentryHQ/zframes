@@ -31,7 +31,9 @@ import {
 // throws on a missing DATABASE_URL at import time, and a static import of
 // `../app/lib/dashboards` would be hoisted above this assignment. Hence the
 // dynamic import in `main()`.
-process.env.DATABASE_URL ??=
+// Trimmed as well as defaulted — see scripts/migrate.ts for why.
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL?.trim() ||
   "postgres://postgres:postgres@127.0.0.1:5433/postgres";
 
 type SeedEntry = {

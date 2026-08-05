@@ -28,7 +28,9 @@ import {
 
 // Same default as the other scripts; set before the db module is imported (it
 // throws at import time on a missing DATABASE_URL).
-process.env.DATABASE_URL ??=
+// Trimmed as well as defaulted — see scripts/migrate.ts for why.
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL?.trim() ||
   "postgres://postgres:postgres@127.0.0.1:5433/postgres";
 
 async function main() {
