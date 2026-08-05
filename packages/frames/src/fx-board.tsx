@@ -1,5 +1,6 @@
 import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useFxRates } from "@zframes/core";
+import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct, formatRate } from "./format";
 import { fxBoardMeta } from "./schemas";
@@ -9,6 +10,18 @@ const schema = fxBoardMeta.schema;
 
 function FxBoard({ config }: { config: z.output<typeof schema> }) {
   const { rates, isLoading } = useFxRates(config.base, config.symbols);
+  const rows = useMemo(
+    () =>
+      rates.map((fx) => ({
+        fx,
+        color: changeColor(fx.changePct),
+        spark: fx.history.map((point) => ({
+          date: new Date(point.time).toISOString(),
+          value: point.value,
+        })),
+      })),
+    [rates],
+  );
 
   if (isLoading) return <FrameStatus loading>loading FX rates…</FrameStatus>;
   if (!rates.length) return <FrameStatus>no FX data yet</FrameStatus>;
@@ -35,12 +48,7 @@ function FxBoard({ config }: { config: z.output<typeof schema> }) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden">
-        {rates.map((fx) => {
-          const color = changeColor(fx.changePct);
-          const spark = fx.history.map((point) => ({
-            date: new Date(point.time).toISOString(),
-            value: point.value,
-          }));
+        {rows.map(({ fx, color, spark }) => {
           return (
             <div
               key={fx.symbol}

@@ -9,6 +9,10 @@ import { FrameStatus } from "./ui";
 
 const schema = shortVolumeBarsMeta.schema;
 
+function formatShare(v: number) {
+  return formatPct(v, 1);
+}
+
 function ShortVolumeBars({ config }: { config: z.output<typeof schema> }) {
   const { data, isLoading } = useShortVolume(config.symbols);
 
@@ -34,7 +38,7 @@ function ShortVolumeBars({ config }: { config: z.output<typeof schema> }) {
         data={bars}
         orientation="horizontal"
         height={Math.max(bars.length * 24, 96)}
-        formatValue={(v) => formatPct(v, 1)}
+        formatValue={formatShare}
       />
       <div className="caption text-soft text-center">
         % of reported volume sold short · FINRA, not short interest

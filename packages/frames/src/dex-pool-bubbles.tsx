@@ -1,6 +1,6 @@
 import type { BubbleNode } from "@zframes/charts";
 import { defineFrame, useDexPools, useMoney } from "@zframes/core";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { z } from "zod";
 import { BubbleCloud } from "./bubbles-shared";
 import { changeColor, formatChangePct } from "./format";
@@ -32,6 +32,12 @@ function DexPoolBubbles({ config }: { config: z.output<typeof schema> }) {
     [pools, config.count],
   );
 
+  const formatTitle = useCallback(
+    (n: BubbleNode) =>
+      `${n.label} · ${money.compact(n.value)} vol · ${formatChangePct((n as PoolBubble).changePct24h)}`,
+    [money],
+  );
+
   return (
     <BubbleCloud
       nodes={nodes}
@@ -39,9 +45,7 @@ function DexPoolBubbles({ config }: { config: z.output<typeof schema> }) {
       loadingText="loading hot pools…"
       emptyText="no pool data"
       caption={`${config.network} · area by 24h volume · ring by 24h change`}
-      formatTitle={(n) =>
-        `${n.label} · ${money.compact(n.value)} vol · ${formatChangePct((n as PoolBubble).changePct24h)}`
-      }
+      formatTitle={formatTitle}
     />
   );
 }

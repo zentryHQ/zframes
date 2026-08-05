@@ -8,6 +8,14 @@ import { miseryIndexMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = miseryIndexMeta.schema;
+
+function formatAxis(v: number) {
+  return formatPct(v, 0);
+}
+
+function formatPoint(v: number) {
+  return formatPct(v, 1);
+}
 const CPI_SERIES_ID = "CUUR0000SA0";
 const UNEMPLOYMENT_SERIES_ID = "LNS14000000";
 
@@ -107,8 +115,8 @@ function MiseryIndex({ config }: { config: z.output<typeof schema> }) {
         series={series}
         height={200}
         formatXAxis={axisMonth}
-        formatYAxis={(v) => formatPct(v, 0)}
-        formatValue={(v) => formatPct(v, 1)}
+        formatYAxis={formatAxis}
+        formatValue={formatPoint}
       />
       <div className="caption text-soft text-center">
         BLS CPI-U + unemployment · {points.length} monthly observations

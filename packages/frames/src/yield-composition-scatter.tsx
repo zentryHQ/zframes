@@ -8,6 +8,10 @@ import { FrameStatus } from "./ui";
 
 const schema = yieldCompositionScatterMeta.schema;
 
+function formatAxisPct(v: number) {
+  return formatPct(v, 1);
+}
+
 function YieldCompositionScatter({
   config,
 }: {
@@ -45,8 +49,8 @@ function YieldCompositionScatter({
       <ScatterChart
         data={data}
         height={210}
-        formatX={(v) => formatPct(v, 1)}
-        formatY={(v) => formatPct(v, 1)}
+        formatX={formatAxisPct}
+        formatY={formatAxisPct}
         maxLabels={8}
       />
       <div className="caption text-soft text-center">

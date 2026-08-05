@@ -8,6 +8,10 @@ import { FrameStatus } from "./ui";
 
 const schema = dominanceBarsMeta.schema;
 
+function formatShare(v: number) {
+  return formatPct(v, 1);
+}
+
 function DominanceBars({ config }: { config: z.output<typeof schema> }) {
   const { market, isLoading } = useGlobalMarket();
 
@@ -29,7 +33,7 @@ function DominanceBars({ config }: { config: z.output<typeof schema> }) {
         data={data}
         orientation="horizontal"
         height={Math.max(data.length * 24, 96)}
-        formatValue={(v) => formatPct(v, 1)}
+        formatValue={formatShare}
       />
       <div className="caption text-soft text-center">
         market-cap share · top {data.length}

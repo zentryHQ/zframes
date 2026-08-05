@@ -1,6 +1,6 @@
 import { BarChart, MiniLineChart } from "@zframes/charts";
 import { defineFrame } from "@zframes/core";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
 import {
   clampText,
@@ -191,6 +191,10 @@ function Caption({ config }: { config: Config }) {
 function CustomData({ config }: { config: Config }) {
   const { extracted, error, loaded } = useCustomData(config);
   const { ref: chartRef, size: chartSize } = useMeasure<HTMLDivElement>();
+  const formatBarValue = useCallback(
+    (v: number) => formatCell(v, config.unit),
+    [config.unit],
+  );
 
   if (!loaded && extracted === null)
     return <FrameStatus loading>fetching {hostOf(config.url)}…</FrameStatus>;
@@ -281,7 +285,7 @@ function CustomData({ config }: { config: Config }) {
           data={data.slice(0, 40)}
           orientation={data.length > 12 ? "vertical" : "horizontal"}
           height={Math.max(Math.min(data.length, 12) * 24, 96)}
-          formatValue={(v) => formatCell(v, config.unit)}
+          formatValue={formatBarValue}
         />
         <Caption config={config} />
       </div>

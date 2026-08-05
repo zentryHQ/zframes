@@ -1,6 +1,6 @@
 import type { BubbleNode } from "@zframes/charts";
 import { defineFrame, useMoney, useSectorPerformance } from "@zframes/core";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { z } from "zod";
 import { BubbleCloud } from "./bubbles-shared";
 import { changeColor, formatChangePct } from "./format";
@@ -34,6 +34,12 @@ function SectorBubbles({ config }: { config: z.output<typeof schema> }) {
     [sectors, config.limit],
   );
 
+  const formatTitle = useCallback(
+    (n: BubbleNode) =>
+      `${n.label} · ${money.compact(n.value)} mcap · ${formatChangePct((n as SectorBubble).changePct24h)}`,
+    [money],
+  );
+
   return (
     <BubbleCloud
       nodes={nodes}
@@ -41,9 +47,7 @@ function SectorBubbles({ config }: { config: z.output<typeof schema> }) {
       loadingText="loading sectors…"
       emptyText="no sector data yet"
       caption={`area by sector mcap · ring by 24h change · top ${nodes.length}`}
-      formatTitle={(n) =>
-        `${n.label} · ${money.compact(n.value)} mcap · ${formatChangePct((n as SectorBubble).changePct24h)}`
-      }
+      formatTitle={formatTitle}
     />
   );
 }
