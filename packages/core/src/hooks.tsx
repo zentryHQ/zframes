@@ -128,6 +128,41 @@ export function useSourcesFor(capability: Capability): string[] {
 }
 
 /**
+ * Structural equality for the JSON-shaped payloads providers return. Anything
+ * exotic (Map, Set, class instance, null-prototype object) falls back to
+ * reference equality rather than being walked.
+ */
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null)
+    return false;
+  if (a instanceof Date || b instanceof Date)
+    return (
+      a instanceof Date && b instanceof Date && a.getTime() === b.getTime()
+    );
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length)
+      return false;
+    return a.every((value, i) => deepEqual(value, b[i]));
+  }
+  if (
+    Object.getPrototypeOf(a) !== Object.prototype ||
+    Object.getPrototypeOf(b) !== Object.prototype
+  )
+    return false;
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b as object);
+  if (aKeys.length !== bKeys.length) return false;
+  const left = a as Record<string, unknown>;
+  const right = b as Record<string, unknown>;
+  return aKeys.every(
+    (key) =>
+      Object.prototype.hasOwnProperty.call(right, key) &&
+      deepEqual(left[key], right[key]),
+  );
+}
+
+/**
  * Shared engine for every poll-on-an-interval hook: fetch once, then re-fetch
  * on `refreshMs`, keep the last good value on error, and cancel cleanly on
  * unmount or dep change. Pass `load = null` when no provider covers the
@@ -159,7 +194,10 @@ function usePolled<T>(
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     let errorStreak = 0;
-    setData(fallback);
+    // Every state write here goes through a value-diff: a poll whose payload is
+    // structurally identical to the last one must not install a new identity,
+    // or every frame re-renders and its memoized chart re-derives on a no-op.
+    setData((prev) => (deepEqual(prev, fallback) ? prev : fallback));
     setIsLoading(true);
     // ±15% jitter on each delay so many dashboards running this same code don't
     // poll the public APIs in lockstep.
@@ -181,8 +219,8 @@ function usePolled<T>(
         .then((next) => {
           if (cancelled) return;
           errorStreak = 0;
-          setData(next);
-          setIsLoading(false);
+          setData((prev) => (deepEqual(prev, next) ? prev : next));
+          setIsLoading((loading) => (loading ? false : loading));
           scheduleNext(refreshMs);
         })
         .catch(() => {
@@ -192,7 +230,7 @@ function usePolled<T>(
           // otherwise stick as an empty "no data" card until a manual reload.
           // Retry with a short exponential backoff, capped so it never exceeds
           // the normal cadence.
-          setIsLoading(false);
+          setIsLoading((loading) => (loading ? false : loading));
           errorStreak += 1;
           const backoff = Math.min(
             3_000 * 2 ** (errorStreak - 1),
@@ -242,7 +280,9 @@ export function useMidsState(symbols: readonly string[]): {
       if (cancelled) return;
       received = true;
       clearTimeout(timeout);
-      setIsLoading(false);
+      // A tick that changes nothing must cost zero state updates, so this only
+      // fires while still loading rather than on every message.
+      setIsLoading((loading) => (loading ? false : loading));
       setMids((prev) => {
         let changed = false;
         const next: Record<string, number> = {};

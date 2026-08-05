@@ -14,6 +14,8 @@ import { TtlCache } from "@zframes/data-primitives/cache";
 
 const WS_URL = "wss://api.hyperliquid.xyz/ws";
 const INFO_URL = "https://api.hyperliquid.xyz/info";
+/** Window the allMids merge + listener fan-out is throttled to. */
+const MIDS_FLUSH_MS = 150;
 
 interface AllMidsMessage {
   channel: string;
@@ -227,6 +229,9 @@ export class HyperliquidProvider implements MarketDataProvider {
   private subscribedDexes = new Set<string>();
   /** Latest mids across all dexes, merged. */
   private mergedMids: Record<string, number> = {};
+  /** Mids received since the last flush, awaiting the merge + fan-out. */
+  private pendingMids: Record<string, number> | null = null;
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
 
   subscribeMids(
     onMids: (mids: Record<string, number>) => void,
@@ -445,18 +450,54 @@ export class HyperliquidProvider implements MarketDataProvider {
         return;
       }
       if (msg.channel !== "allMids" || !msg.data?.mids) return;
-      // Each dex subscription sends its own mids map; merge so listeners
-      // always see one map covering every subscribed dex.
+      const pending = (this.pendingMids ??= {});
       for (const [symbol, px] of Object.entries(msg.data.mids))
-        this.mergedMids[symbol] = Number(px);
-      for (const listener of this.listeners) listener(this.mergedMids);
+        pending[symbol] = Number(px);
+      // The full-universe merge + listener fan-out costs 200+ symbols a message,
+      // so it runs at most once per window: immediately on the first message
+      // after an idle period (first paint isn't delayed), then on the trailing
+      // edge while messages keep arriving.
+      if (this.flushTimer) return;
+      this.flushMids();
+      this.openFlushWindow();
     };
     ws.onclose = () => {
       this.ws = null;
+      if (this.pendingMids) this.flushMids();
+      this.clearFlush();
       if (!this.closedByUser && this.listeners.size > 0) {
         this.reconnectTimer = setTimeout(() => this.ensureSocket(), 2_000);
       }
     };
+  }
+
+  /**
+   * Merge the buffered mids into the shared map and notify every listener.
+   * Each dex subscription sends its own mids map, so listeners always see one
+   * map covering every subscribed dex.
+   */
+  private flushMids() {
+    const pending = this.pendingMids;
+    this.pendingMids = null;
+    if (pending) Object.assign(this.mergedMids, pending);
+    for (const listener of this.listeners) listener(this.mergedMids);
+  }
+
+  private openFlushWindow() {
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null;
+      if (!this.pendingMids) return;
+      this.flushMids();
+      this.openFlushWindow();
+    }, MIDS_FLUSH_MS);
+  }
+
+  private clearFlush() {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    this.pendingMids = null;
   }
 
   private subscribeMissingDexes() {
@@ -473,6 +514,7 @@ export class HyperliquidProvider implements MarketDataProvider {
 
   private teardown() {
     this.closedByUser = true;
+    this.clearFlush();
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
