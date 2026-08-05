@@ -15,9 +15,14 @@ pnpm --dir apps/explorer seed:curated         # upsert the curated showcase into
 pnpm --dir apps/explorer seed:curated --dry-run   # validate the seed, write nothing (no DB needed)
 pnpm --dir apps/explorer validate:dashboards  # re-validate every STORED board
 pnpm --dir apps/explorer thumbs:capture       # nightly screenshot job, run by cron
+pnpm --dir apps/explorer migrate              # apply pending drizzle/*.sql (fresh DB or existing)
+pnpm --dir apps/explorer migrate --dry-run    # list pending migrations, apply nothing
 node scripts/pglite-server.mjs                # the dev database (from apps/explorer)
-npx drizzle-kit push                          # apply app/lib/db/schema.ts to DATABASE_URL
 ```
+
+**Do not run `drizzle-kit push`.** It was retired on 2026-08-05 in favour of
+versioned migrations — see below. `drizzle-kit generate` is still useful for
+*authoring* the SQL for a new migration file.
 
 ## Dashboards live in the database, not in code
 
@@ -67,13 +72,50 @@ nothing until someone runs `seed:curated`; editing the table takes effect
 immediately.** A board edited in SQL and never exported back will pass the CI test
 and be caught by the nightly monitor — that split is deliberate.
 
-### Deploying a schema or showcase change
+## Schema changes: versioned migrations, not `push`
 
-`next build` no longer bakes boards in, so shipping code is not enough:
+`apps/explorer/drizzle/NNNN_name.sql`, applied in filename order by
+`scripts/migrate.ts`, tracked in a `schema_migrations` table. `drizzle-kit push`
+was retired on 2026-08-05: it diffs against the live database at run time, so what
+runs is never what was reviewed, and it reads a column rename as drop-then-add
+(data loss). In CI you would silence its confirmation prompt with `--force`, which
+removes the only thing that made it safe.
 
-1. `DATABASE_URL=<neon> npx drizzle-kit push` — if `schema.ts` changed.
-2. `DATABASE_URL=<neon> pnpm --dir apps/explorer seed:curated` — if the showcase
-   changed. Safe to re-run: it upserts by id and never touches `views`/`forks`.
+**Writing one:**
+
+1. Edit `app/lib/db/schema.ts`.
+2. `npx drizzle-kit generate --dialect postgresql --schema ./app/lib/db/schema.ts
+   --out /tmp/gen` to get correct DDL, then hand the statements you need into a new
+   `drizzle/NNNN_name.sql`.
+3. Make it **idempotent** (`IF NOT EXISTS`, guarded `DO $$ … EXCEPTION WHEN
+   duplicate_object`) and **additive or constraint-relaxing**. Both are load-bearing:
+   `0000_baseline.sql` runs against databases that already have every table, and the
+   deploy workflow applies migrations *while the previous release is still serving*.
+4. `pnpm --dir apps/explorer migrate --dry-run`, then `migrate`.
+
+A migration and its bookkeeping row commit in one transaction, so a failure records
+nothing and a re-run retries it rather than skipping a half-applied file.
+
+## Deploys are automated — with one gate
+
+`.github/workflows/db-deploy.yml` runs on pushes to `main` that touch the schema,
+migrations, or the seed:
+
+1. **Migrate** immediately — safe against the old release, per the rule above, so it
+   needs no coordination with Vercel (which builds in parallel).
+2. **Seed** — only if `curated-seed.json` changed, and only after
+   `.github/scripts/wait-for-deployment.mjs` confirms the Vercel Production
+   deployment *for that SHA* is live. A seeded board may use a frame the release
+   introduced; seeding early puts "Unknown frame" cards on the front page.
+3. **Validate** everything stored.
+
+⚠️ **Re-seeding OVERWRITES database edits** to the boards in `curated-seed.json`
+(it upserts by id). Editing a board without a deploy is why the showcase moved into
+Postgres, so a seed on every push would silently undo that — hence the gate. If you
+edit a board in SQL and want it to survive, export it back into the seed file.
+
+Secret: `PRODUCTION_DATABASE_URL`, falling back to `THUMBS_DATABASE_URL` (same Neon
+string, already set). The workflow skips cleanly when neither exists.
 
 ## Footguns
 

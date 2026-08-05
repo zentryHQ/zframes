@@ -148,8 +148,33 @@ Tag-triggered npm publish of the CLI (the only published artifact). Push
 Requires the one-time trusted-publisher link on npmjs.com (see the workflow
 header).
 
+## Not a monitor: `db-deploy.yml` · `wait-for-deployment.mjs`
+
+Applies pending SQL migrations to production, and re-seeds the curated showcase
+only when `apps/explorer/scripts/curated-seed.json` changed. Runs on pushes to
+`main` that touch the schema, the migrations, or the seed.
+
+The ordering is the interesting part, because Vercel builds on the same push in
+parallel and cannot be sequenced from here:
+
+- **Migrations run immediately**, without waiting. Files in
+  `apps/explorer/drizzle/` are required to be additive or constraint-relaxing, so
+  the *previous* release keeps serving correctly while they apply. That rule is what
+  removes the need for a cutover.
+- **The seed waits** for the Vercel Production deployment of that exact SHA, via
+  `wait-for-deployment.mjs` (polls the GitHub deployments API — no Vercel token).
+  A seeded board can reference a frame the release introduced; seeding early puts
+  "Unknown frame" cards on the front page. Timeout or a failed deploy fails the step
+  and leaves the database alone, which is the safe direction.
+
+Re-seeding **overwrites** DB edits to the boards in the seed file, which is why it
+is gated rather than run on every push — see `apps/explorer/AGENTS.md`.
+
+Secret: `PRODUCTION_DATABASE_URL` (falls back to `THUMBS_DATABASE_URL`).
+
 ## Enabling in a fork
 
-All workflows need `issues: write` (declared in each). No secrets required.
+All the monitors need `issues: write` (declared in each). No secrets required.
 Set repo variable `ZFRAMES_CONTACT` (an email) to additionally cover the SEC
-provider.
+provider. `db-deploy.yml` additionally needs a database URL secret and skips
+cleanly without one.

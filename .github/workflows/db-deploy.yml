@@ -1,0 +1,134 @@
+name: DB deploy
+
+# Applies pending SQL migrations to production, and re-seeds the curated showcase
+# WHEN — and only when — the seed file changed.
+#
+# ── the ordering this encodes ────────────────────────────────────────────────
+# Vercel builds the app on the same push, in parallel with this workflow, so the
+# two cannot be sequenced by wishing. Instead each step is placed where it is safe:
+#
+#   1. MIGRATE runs immediately, without waiting for the app deploy. Migrations in
+#      `apps/explorer/drizzle/` are required to be additive or constraint-relaxing
+#      (see the runner's docblock), so the PREVIOUS release keeps serving traffic
+#      correctly while they apply. That requirement is what removes the need for a
+#      coordinated cutover.
+#   2. SEED waits for the Vercel Production deployment of this exact SHA to report
+#      success. It has to: a seeded board may reference a frame that only exists in
+#      the new code (nine of them use `group`, added 2026-08-05), and seeding first
+#      would put "Unknown frame" cards on the front page.
+#   3. VALIDATE runs last, over whatever is actually stored.
+#
+# ── why the seed is GATED ────────────────────────────────────────────────────
+# `seed:curated` upserts by id from `curated-seed.json`, so running it OVERWRITES
+# any edit made directly in the database for those boards. Editing a board without
+# a deploy is the entire reason the showcase moved into Postgres, so seeding on
+# every push would quietly undo that. It therefore runs only when the seed file
+# itself changed in the push, or when a human explicitly asks via workflow_dispatch.
+#
+# Setup: secret PRODUCTION_DATABASE_URL (falls back to THUMBS_DATABASE_URL, which is
+# the same Neon connection string and already set). Skips cleanly when neither is
+# set, so a fork or a fresh clone does not fail.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/explorer/drizzle/**"
+      - "apps/explorer/scripts/curated-seed.json"
+      - "apps/explorer/scripts/migrate.ts"
+      - "apps/explorer/scripts/seed-curated.ts"
+      - "apps/explorer/app/lib/db/schema.ts"
+      - ".github/workflows/db-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      force_seed:
+        description: "Re-seed the showcase from curated-seed.json (OVERWRITES DB edits to those boards)"
+        type: boolean
+        default: false
+
+# One at a time: two concurrent runs would race the same tables.
+concurrency:
+  group: db-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  deployments: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL || secrets.THUMBS_DATABASE_URL }}
+    steps:
+      - name: Skip when no database is configured
+        if: env.DATABASE_URL == ''
+        run: |
+          echo "::warning::Neither PRODUCTION_DATABASE_URL nor THUMBS_DATABASE_URL is set — skipping."
+
+      - uses: actions/checkout@v7
+        if: env.DATABASE_URL != ''
+        with:
+          # Need the previous commit to tell whether the seed file changed.
+          fetch-depth: 2
+
+      - uses: pnpm/action-setup@v6
+        if: env.DATABASE_URL != ''
+      - uses: actions/setup-node@v7
+        if: env.DATABASE_URL != ''
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: env.DATABASE_URL != ''
+
+      # ── 1 · migrate ────────────────────────────────────────────────────────
+      - name: Show pending migrations
+        if: env.DATABASE_URL != ''
+        run: pnpm --dir apps/explorer migrate --dry-run
+
+      - name: Apply migrations
+        if: env.DATABASE_URL != ''
+        run: pnpm --dir apps/explorer migrate
+
+      # ── 2 · seed, but only if the seed file moved ──────────────────────────
+      - name: Decide whether to seed
+        id: decide
+        if: env.DATABASE_URL != ''
+        run: |
+          if [ "${{ inputs.force_seed }}" = "true" ]; then
+            echo "reason=manual dispatch" >> "$GITHUB_OUTPUT"
+            echo "seed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -qx "apps/explorer/scripts/curated-seed.json"; then
+            echo "reason=curated-seed.json changed in this push" >> "$GITHUB_OUTPUT"
+            echo "seed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "reason=seed file unchanged — leaving the database as the source of truth" >> "$GITHUB_OUTPUT"
+            echo "seed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report the decision
+        if: env.DATABASE_URL != ''
+        run: echo "seed=${{ steps.decide.outputs.seed }} (${{ steps.decide.outputs.reason }})"
+
+      # The seed needs the NEW code live — a board may use a frame this release
+      # introduced. Polls the GitHub deployment Vercel creates for this SHA.
+      - name: Wait for the Vercel production deployment of this SHA
+        if: env.DATABASE_URL != '' && steps.decide.outputs.seed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/wait-for-deployment.mjs "${{ github.sha }}"
+
+      - name: Validate the seed (writes nothing)
+        if: env.DATABASE_URL != '' && steps.decide.outputs.seed == 'true'
+        run: pnpm --dir apps/explorer seed:curated --dry-run
+
+      - name: Seed the curated showcase
+        if: env.DATABASE_URL != '' && steps.decide.outputs.seed == 'true'
+        run: pnpm --dir apps/explorer seed:curated
+
+      # ── 3 · validate what is actually stored ───────────────────────────────
+      - name: Validate stored dashboards
+        if: env.DATABASE_URL != ''
+        run: pnpm --dir apps/explorer validate:dashboards
