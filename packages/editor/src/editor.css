@@ -228,6 +228,65 @@ body.zf-dragging * {
   cursor: grabbing !important;
 }
 
+/* ── Container (group) items ────────────────────────────────────────────── */
+/* A group's content box IS its nested GridStack (see mountSubGrid), so its
+   children are real grid items — they must stay interactive. The blanket
+   `> .grid-stack-item-content > * { pointer-events: none }` above, which makes
+   card interiors inert while customising, would otherwise make every frame
+   inside a group undraggable: the one place a nested item must NOT be inert. */
+.zf-editor.zf-customise .grid-stack-item > .zf-group-host > * {
+  pointer-events: auto;
+}
+.zf-group-host {
+  position: relative;
+  min-height: 0;
+}
+/* The group's label, mirroring `.zf-group-title` in FRAME_CSS so the editor and
+   the live dashboard read the same. Rendered from a data attribute rather than a
+   real element because this box is a GridStack container: a non-item child in
+   there would sit in the absolutely-positioned item flow. The matching
+   padding-top insets the child grid, and fitSubGrid subtracts it again so the
+   bottom row still lands inside the group. */
+.zf-group-host--titled {
+  padding-top: 20px;
+}
+.zf-group-host--titled::before {
+  content: attr(data-group-title);
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  right: 4px;
+  font-family: var(--font-dmsans, inherit);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.5);
+  pointer-events: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* An empty group has to say what it wants: it's the state every freshly-added one
+   is in, and a bare dashed box reads as a frame that failed to load. Mirrors the
+   group frame's own empty component, which the read-only renderer shows. */
+.zf-group-host:not(:has(.grid-stack-item))::after {
+  content: "Drop frames here";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-dmsans, inherit);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.3);
+  pointer-events: none;
+}
+
 /* The iOS-style jiggle, with per-item desync so they don't march in lockstep. */
 @keyframes zf-wiggle {
   0%,
@@ -254,6 +313,14 @@ body.zf-dragging * {
   > .grid-stack-item-content {
   animation-delay: 0.1s;
   animation-duration: 0.34s;
+}
+/* One cluster, one jiggle: the group already wiggles as a unit, so wiggling its
+   children too reads as noise rather than as "this is draggable". */
+.zf-editor.zf-customise
+  .zf-group-host
+  .grid-stack-item
+  > .grid-stack-item-content {
+  animation: none;
 }
 .zf-editor.zf-customise
   .grid-stack-item:nth-child(5n)

@@ -1,3 +1,4 @@
+import type { AnyFrameDefinition } from "@zframes/spec/frame";
 import type {
   DashboardSpec,
   FrameInstance,
@@ -5,6 +6,59 @@ import type {
 } from "@zframes/spec/spec";
 
 export type LayoutMode = DashboardSpec["grid"]["mode"];
+
+/**
+ * The inner-grid geometry a container frame declares in its config. Read off the
+ * *validated* config so a group whose config is broken falls back to a usable
+ * grid rather than producing `NaN` column counts — the group still renders its
+ * own error card through the normal path, but the editor needs numbers either
+ * way to build the nested GridStack.
+ */
+export interface ContainerGeometry {
+  columns: number;
+  rows: number;
+  gap: number;
+}
+
+const CONTAINER_FALLBACK: ContainerGeometry = { columns: 2, rows: 2, gap: 8 };
+
+/**
+ * A container frame's inner geometry, or `null` when the frame isn't a container
+ * at all — which is the editor's one test for "does this item hold a subgrid".
+ */
+export function containerGeometry(
+  def: AnyFrameDefinition | undefined,
+  config: unknown,
+): ContainerGeometry | null {
+  if (!def?.container) return null;
+  const parsed = def.schema.safeParse(config ?? {});
+  if (!parsed.success) return CONTAINER_FALLBACK;
+  const data = parsed.data as Partial<ContainerGeometry>;
+  return {
+    columns: data.columns ?? CONTAINER_FALLBACK.columns,
+    rows: data.rows ?? CONTAINER_FALLBACK.rows,
+    gap: data.gap ?? CONTAINER_FALLBACK.gap,
+  };
+}
+
+/**
+ * Pixel height of one row of a group's inner grid.
+ *
+ * GridStack's nested grids need a **px** `cellHeight` (its own docs say `%`
+ * values don't work), so the children only fill their group if we compute it from
+ * the group's measured content box and re-apply it whenever the group is
+ * resized. `margin` is `gap / 2` per side, so each of the `rows` tracks carries a
+ * full `gap` of margin — subtract that before dividing, or the children overflow
+ * their group by `gap * rows`.
+ */
+export function subCellPx(
+  contentHeightPx: number,
+  rows: number,
+  gap: number,
+): number {
+  const usable = contentHeightPx - rows * gap;
+  return Math.max(24, Math.floor(usable / Math.max(1, rows)));
+}
 
 // flow-horizontal runs GridStack as a wide, height-bounded grid: the column
 // count is sized to the content (colsForHorizontal) so the forced-wide element
