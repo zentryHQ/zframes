@@ -40,12 +40,20 @@ function installStorage(
     hooks.onSetItem?.(key, raw);
     store.set(key, raw);
   });
+  const removeItem = vi.fn((key: string) => void store.delete(key));
+  // `length` + `key(i)` are what the size trim enumerates the namespace with. A
+  // stub missing them makes the trim a silent no-op (the loop just never runs
+  // inside its catch), so the cap would look enforced while nothing was pruned.
   vi.stubGlobal("localStorage", {
     getItem,
     setItem,
-    removeItem: (key: string) => void store.delete(key),
+    removeItem,
+    get length() {
+      return store.size;
+    },
+    key: (i: number) => [...store.keys()][i] ?? null,
   } as unknown as Storage);
-  return { store, getItem, setItem };
+  return { store, getItem, setItem, removeItem };
 }
 
 /**
@@ -376,5 +384,122 @@ describe("TtlCache — read-side persist guard", () => {
     expect(await cache.get("k", load)).toEqual({ n: 2 });
     expect(await cache.get("k", load)).toEqual({ n: 2 });
     expect(load).toHaveBeenCalledTimes(1);
+  });
+});
+
+// The unbounded-growth guard. Several providers key on a value that DRIFTS: a
+// candle/funding key embeds the caller's `startTimeMs`, which frames compute as
+// `Date.now() - window` once per mount — so the same chart mints a fresh key on
+// every reload. Without a cap that is a leak in two places at once: the memo Map
+// grows for the life of the tab, and (with persist on) localStorage grows across
+// reloads until the ~5 MB origin quota, at which point `setItem` throws and the
+// write guard above swallows it — persistence stops working with no symptom.
+describe("TtlCache — bounded key count", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** Write `count` drifting keys, the way successive mounts of one chart would. */
+  async function writeDrifting(cache: TtlCache<{ n: number }>, count: number) {
+    for (let i = 0; i < count; i += 1)
+      await cache.get(`BTC|1h|${1_700_000_000_000 + i}`, async () => ({
+        n: i,
+      }));
+  }
+
+  it("evicts the oldest memo entries past maxEntries", async () => {
+    const cache = new TtlCache<{ n: number }>({
+      namespace: "zframes:memo",
+      ttlMs: 60_000,
+      maxEntries: 3,
+    });
+    await writeDrifting(cache, 5);
+
+    // The two oldest keys are gone, so they re-load; the newest three are served
+    // from the memo without one.
+    const reload = vi.fn().mockResolvedValue({ n: 99 });
+    expect(await cache.get("BTC|1h|1700000000000", reload)).toEqual({ n: 99 });
+    const fresh = vi.fn().mockResolvedValue({ n: 99 });
+    expect(await cache.get("BTC|1h|1700000000004", fresh)).toEqual({ n: 4 });
+    expect(fresh).not.toHaveBeenCalled();
+  });
+
+  it("trims this namespace's localStorage entries to the cap, oldest first", async () => {
+    const { store } = installStorage();
+    const cache = new TtlCache<{ n: number }>({
+      namespace: "zframes:hyperliquid:candles",
+      ttlMs: 60_000,
+      persist: true,
+      maxEntries: 3,
+    });
+    await writeDrifting(cache, 6);
+
+    const mine = [...store.keys()].filter((k) =>
+      k.startsWith("zframes:hyperliquid:candles:"),
+    );
+    expect(mine).toHaveLength(3);
+    // Newest three survive (each write stamps a later `at` than the last).
+    expect(mine.map((k) => k.split("|")[2]).sort()).toEqual([
+      "1700000000003",
+      "1700000000004",
+      "1700000000005",
+    ]);
+  });
+
+  it("prunes entries left by an earlier page load, not just this session's", async () => {
+    // The accumulation this guard exists to stop is cross-reload: a fresh cache
+    // starts with an empty memo, so pruning driven off the memo alone would never
+    // touch the pile a previous session left behind.
+    const seed = Object.fromEntries(
+      Array.from({ length: 8 }, (_, i) => [
+        `zframes:stale:BTC|1h|${i}`,
+        JSON.stringify({ at: 1_600_000_000_000 + i, value: { n: i } }),
+      ]),
+    );
+    const { store } = installStorage(seed);
+    const cache = new TtlCache<{ n: number }>({
+      namespace: "zframes:stale",
+      ttlMs: 60_000,
+      persist: true,
+      maxEntries: 3,
+    });
+
+    await cache.get("BTC|1h|new", async () => ({ n: 100 }));
+
+    const mine = [...store.keys()].filter((k) =>
+      k.startsWith("zframes:stale:"),
+    );
+    expect(mine).toHaveLength(3);
+    expect(mine).toContain("zframes:stale:BTC|1h|new");
+  });
+
+  it("never evicts another namespace's entries", async () => {
+    const { store } = installStorage({
+      "zframes:other:keep": JSON.stringify({ at: 1, value: { n: 0 } }),
+    });
+    const cache = new TtlCache<{ n: number }>({
+      namespace: "zframes:mine",
+      ttlMs: 60_000,
+      persist: true,
+      maxEntries: 2,
+    });
+    await writeDrifting(cache, 5);
+
+    expect(store.has("zframes:other:keep")).toBe(true);
+  });
+
+  it("leaves a bounded cache's keys alone (the common case)", async () => {
+    const { store, removeItem } = installStorage();
+    const cache = new TtlCache<{ n: number }>({
+      namespace: "zframes:bounded",
+      ttlMs: 60_000,
+      persist: true,
+    });
+    // A handful of real argument variants, well under the default cap.
+    for (const key of ["BTC", "ETH", "SOL"])
+      await cache.get(key, async () => ({ n: 1 }));
+
+    expect(store.size).toBe(3);
+    expect(removeItem).not.toHaveBeenCalled();
   });
 });
