@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   DASHBOARD_LIST_ROUTE,
@@ -23,7 +23,11 @@ interface ChooserInfo {
   dashboards: Entry[];
 }
 
-export function DashboardChooser({ currentTitle }: { currentTitle: string }) {
+export const DashboardChooser = memo(function DashboardChooser({
+  currentTitle,
+}: {
+  currentTitle: string;
+}) {
   const [info, setInfo] = useState<ChooserInfo | null>(null);
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
@@ -189,4 +193,4 @@ export function DashboardChooser({ currentTitle }: { currentTitle: string }) {
         )}
     </>
   );
-}
+});

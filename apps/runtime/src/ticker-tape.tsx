@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { useDayStats, useProviderFor } from "@zframes/core";
 // Import from the leaf module, not the package index — the index statically
 // pulls in all 76 frame components, which would defeat the per-frame code-split
@@ -84,7 +84,10 @@ const TAPE_CSS = `
 }
 `;
 
-export function TickerTape() {
+// Memoized (and prop-less) so a cosmetics slider re-rendering App never
+// reconciles the ~400-item track — its own polls and the mids effect are the
+// only things that should move it.
+export const TickerTape = memo(function TickerTape() {
   const equityStats = useDayStats(EQUITY_DEX_WILDCARDS, 60_000);
   const cryptoStats = useDayStats(undefined, 60_000);
 
@@ -194,4 +197,4 @@ export function TickerTape() {
       </div>
     </>
   );
-}
+});

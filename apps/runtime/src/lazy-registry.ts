@@ -7,6 +7,33 @@ import { allFrameMetas } from "@zframes/frames/schemas";
 const NullSlot = () => null;
 
 /**
+ * Per-registry chunk getters, so a host can warm a frame's chunk *before* the
+ * frame renders. The getter is the same memoized one `React.lazy` resolves
+ * through, so a prefetch followed by a render costs one fetch, not two.
+ */
+const chunkGetters = new WeakMap<
+  FrameRegistry,
+  Map<string, () => Promise<AnyFrameDefinition>>
+>();
+
+/**
+ * Start loading the chunks for `names` without rendering them. Best-effort:
+ * unknown names are skipped and a rejected import is swallowed here (the
+ * getter clears its memo, so the real render retries).
+ */
+export function prefetchFrames(
+  registry: FrameRegistry,
+  names: Iterable<string>,
+): void {
+  const getters = chunkGetters.get(registry);
+  if (!getters) return;
+  for (const name of names) {
+    const get = getters.get(name);
+    if (get) void get().catch(() => {});
+  }
+}
+
+/**
  * Build the runtime frame registry with **lazily-loaded** components.
  *
  * Iterates `allFrameMetas` — the FULL 76-frame metadata set (the React-free
@@ -26,6 +53,8 @@ const NullSlot = () => null;
  */
 export function createLazyRegistry(): FrameRegistry {
   const registry: FrameRegistry = new Map();
+  const getters = new Map<string, () => Promise<AnyFrameDefinition>>();
+  chunkGetters.set(registry, getters);
   for (const meta of allFrameMetas) {
     const loader = frameLoaders[meta.name];
     if (!loader) {
@@ -48,6 +77,7 @@ export function createLazyRegistry(): FrameRegistry {
         pending = null;
         throw err;
       }));
+    getters.set(meta.name, get);
     const component = lazy(() =>
       get().then((def) => ({ default: def.component })),
     );
