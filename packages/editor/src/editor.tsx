@@ -14,8 +14,11 @@ import { FrameConfigDialog } from "./editor-config";
 import {
   GEAR_SVG,
   colsForHorizontal,
+  containerGeometry,
   posFor,
   seedHorizontal,
+  subCellPx,
+  type ContainerGeometry,
   type LayoutMode,
 } from "./editor-grid";
 import { buildDefaultConfig, useSymbolUniverse } from "./editor-symbols";
@@ -58,6 +61,7 @@ import {
   type DashboardBackground,
   type DashboardSpec,
   type DashboardTypography,
+  type ChildFrameInstance,
   type FrameInstance,
   type GridPosition,
 } from "@zframes/spec/spec";
@@ -294,9 +298,19 @@ export function DashboardEditor({
   const modeRef = useRef<LayoutMode>(spec.grid.mode);
   // Authoritative per-instance data (frame/title/config). GridStack
   // owns position; we merge the two at save time.
+  // Children of a group live in this SAME flat map, keyed by their own id (ids are
+  // unique board-wide), so renderInstance / patchInstance / the config rail work
+  // on a nested frame with no special case. The tree is reassembled only at save
+  // time, from the two refs below.
   const instancesRef = useRef<Map<string, FrameInstance>>(new Map());
   const rootsRef = useRef<Map<string, Root>>(new Map());
   const contentRef = useRef<Map<string, HTMLElement>>(new Map());
+  // The nested GridStack per container instance, rebuilt from scratch by
+  // restore(). Parentage itself is deliberately NOT tracked here: GridStack moves
+  // an item's DOM between grids on a cross-grid drag, so the nested grid's own
+  // item list is the only account of who is inside a group that can't go stale —
+  // collectSpec reads children straight off it.
+  const subGridsRef = useRef<Map<string, GridStack>>(new Map());
   const switchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const counterRef = useRef(0);
 
@@ -823,7 +837,10 @@ export function DashboardEditor({
   patchInstanceRef.current = patchInstance;
 
   const deleteItem = useCallback((el: GridItemHTMLElement) => {
-    const grid = gridInstanceRef.current;
+    // The owning grid, which for a frame inside a group is that group's NESTED
+    // grid — removing it from the board grid instead would leave the item's DOM
+    // in place and the board's item count unchanged.
+    const grid = el.gridstackNode?.grid ?? gridInstanceRef.current;
     if (!grid) return;
     const id = el.getAttribute("gs-id");
     if (id) {
@@ -840,11 +857,27 @@ export function DashboardEditor({
       rootsRef.current.delete(id);
       contentRef.current.delete(id);
       instancesRef.current.delete(id);
+      // Deleting a group takes its children with it — they exist only inside it.
+      // Their instances have to go too, or the next save would still carry them
+      // (and the recoverable-delete snapshot is what puts them all back).
+      const sub = subGridsRef.current.get(id);
+      if (sub) {
+        for (const childEl of sub.getGridItems()) {
+          const childId = childEl.getAttribute("gs-id");
+          if (!childId) continue;
+          const childRoot = rootsRef.current.get(childId);
+          if (childRoot) unmountRootSoon(childRoot);
+          rootsRef.current.delete(childId);
+          contentRef.current.delete(childId);
+          instancesRef.current.delete(childId);
+        }
+        subGridsRef.current.delete(id);
+      }
       if (editingIdRef.current === id) setEditingId(null);
       setRemoved({ id, label });
     }
     grid.removeWidget(el, true);
-    setCount(grid.getGridItems().length);
+    setCount(gridInstanceRef.current?.getGridItems().length ?? 0);
     // Record the removal so ⌘Z and the toast's Undo can both put it back — with
     // its config, tickers, events and style overrides, which a re-add can't.
     commitHistoryRef.current?.();
@@ -925,10 +958,203 @@ export function DashboardEditor({
       const content = document.createElement("div");
       content.className = "grid-stack-item-content";
       el.appendChild(content);
-      contentRef.current.set(instance.id, content);
+      // A container frame's content div becomes the nested GridStack itself (see
+      // mountSubGrid), so it gets NO React root of its own — registering it would
+      // have FrameContent render the group's chrome into the very element
+      // GridStack is about to fill with child items. Its children each get their
+      // own root instead, exactly like a top-level frame.
+      if (!containerGeometry(def, instance.config)) {
+        contentRef.current.set(instance.id, content);
+      }
       return el;
     },
     [spec.grid.rows],
+  );
+
+  // Re-fit a group's inner row height to its CURRENT pixel height. GridStack
+  // nested grids need a px cellHeight (its docs are explicit that % doesn't
+  // work), so without this the children keep the height they were built with and
+  // either overflow or float above the bottom of a resized group.
+  const fitSubGrid = useCallback((host: HTMLElement, sub: GridStack) => {
+    const rows = Number(host.dataset.subRows) || 2;
+    const gap = Number(host.dataset.subGap) || 0;
+    // clientHeight includes the padding a titled group carries for its label, but
+    // the child grid only occupies the space below it — count that padding out or
+    // the bottom row hangs `label-height` px past the group.
+    const padTop = parseFloat(getComputedStyle(host).paddingTop) || 0;
+    const h = host.clientHeight - padTop;
+    // Pre-layout (height 0) there is nothing to fit yet — the rAF in
+    // mountSubGrid comes back once the browser has sized the item.
+    if (h <= 0) return;
+    sub.cellHeight(subCellPx(h, rows, gap));
+  }, []);
+
+  // Turn a container item into a real nested GridStack and mount its children.
+  //
+  // `makeSubGrid(el, opts, undefined, false)` is the whole trick: with
+  // saveContent=false GridStack calls addGrid on the item's EXISTING content div
+  // (rather than wrapping that content as a first child, which is what the
+  // default `true` does and is wrong here — the group has no content of its own).
+  // It also sets `node.subGrid`, which is how collectSpec reads the children back,
+  // and registers the nested grid for cross-grid dragging so a card can be
+  // dragged into and out of the group.
+  const mountSubGrid = useCallback(
+    (
+      parent: GridStack,
+      el: GridItemHTMLElement,
+      instance: FrameInstance,
+      geo: ContainerGeometry,
+    ) => {
+      const host = el.querySelector<HTMLElement>(
+        ".grid-stack-item-content",
+      ) as HTMLElement | null;
+      if (!host) return;
+      el.setAttribute("data-container", "true");
+      // `grid-stack` goes on FIRST, deliberately: GridStack.addGrid (which
+      // makeSubGrid calls) only reuses the element it is handed if that element
+      // already carries the class — otherwise it creates its own inner div. With
+      // the class here, `sub.el === host`, so the box fitSubGrid measures is the
+      // box the children are laid out in. Without it there is a silent extra
+      // wrapper and the row height is computed against the wrong height.
+      host.classList.add("grid-stack", "zf-group-host");
+      // The group's own label. In the read-only renderer it's a flow child above
+      // the subgrid; here the subgrid IS the content box, so it rides a ::before
+      // fed from this attribute, with the grid inset to match. Same words, same
+      // place, without a stray non-item child inside a GridStack container.
+      if (instance.title) {
+        host.classList.add("zf-group-host--titled");
+        host.setAttribute("data-group-title", instance.title);
+      }
+      // Stashed on the element so fitSubGrid (called from resize handlers that
+      // have only the DOM) doesn't need to re-resolve the instance's config.
+      host.dataset.subRows = String(geo.rows);
+      host.dataset.subGap = String(geo.gap);
+
+      const sub = parent.makeSubGrid(
+        el,
+        {
+          column: geo.columns,
+          maxRow: geo.rows,
+          margin: geo.gap / 2,
+          // Same reasoning as the board grid: explicit placements are preserved
+          // rather than gravity-packed, so a child stays where it was dropped.
+          float: true,
+          animate: true,
+          acceptWidgets: true,
+          disableDrag: !editingRef.current,
+          disableResize: !editingRef.current,
+        },
+        undefined,
+        false,
+      );
+      subGridsRef.current.set(instance.id, sub);
+
+      for (const child of instance.children ?? []) {
+        instancesRef.current.set(child.id, child);
+        const childEl = document.createElement("div") as GridItemHTMLElement;
+        childEl.className = "grid-stack-item";
+        childEl.setAttribute("gs-id", child.id);
+        childEl.setAttribute("data-frame", child.frame);
+        childEl.setAttribute("gs-x", String(Math.min(child.position.x, geo.columns - 1)));
+        childEl.setAttribute("gs-y", String(Math.min(child.position.y, geo.rows - 1)));
+        childEl.setAttribute("gs-w", String(Math.min(child.position.w, geo.columns)));
+        childEl.setAttribute("gs-h", String(Math.min(child.position.h, geo.rows)));
+        const childContent = document.createElement("div");
+        childContent.className = "grid-stack-item-content";
+        childEl.appendChild(childContent);
+        sub.el.appendChild(childEl);
+        sub.makeWidget(childEl);
+        contentRef.current.set(child.id, childContent);
+        renderInstance(child.id);
+        if (editingRef.current) decorateItem(childEl);
+      }
+
+      // A drop lands in whichever grid the pointer was over, so the nested grid
+      // needs the same new-frame handling the board has — otherwise a palette card
+      // dropped into a group becomes a GridStack item with no instance behind it
+      // and saves as nothing.
+      sub.on("dropped", (_event, _prev, node?: GridStackNode) => {
+        const dropped = node?.el as GridItemHTMLElement | undefined;
+        if (!dropped) return;
+        const content = dropped.querySelector<HTMLElement>(
+          ".grid-stack-item-content",
+        );
+        const frame = dropped.getAttribute("data-frame");
+        if (!content || !frame) return;
+        const existing = dropped.getAttribute("gs-id");
+        // A card dragged in from the board (or another group) already has an
+        // instance, a content node and a live React root — GridStack moved the
+        // whole item element, so all of that came with it and there is nothing to
+        // register. Its new parentage is simply where its DOM now sits.
+        if (existing && instancesRef.current.has(existing)) {
+          commitHistoryRef.current?.();
+          return;
+        }
+        const def = registryRef.current.get(frame);
+        // A group holds frames, not more groups — the spec makes a nested group
+        // unrepresentable, so refuse the drop here rather than saving something
+        // that won't parse.
+        if (def?.container) {
+          sub.removeWidget(dropped, true);
+          return;
+        }
+        const id = existing || uniqueId(frame);
+        dropped.setAttribute("gs-id", id);
+        instancesRef.current.set(id, {
+          id,
+          frame,
+          position: {
+            x: node?.x ?? 0,
+            y: node?.y ?? 0,
+            w: node?.w ?? def?.layout?.w ?? 1,
+            h: node?.h ?? def?.layout?.h ?? 1,
+          },
+          config: defaultConfig(def),
+        });
+        contentRef.current.set(id, content);
+        renderInstance(id);
+        decorateItem(dropped);
+        commitHistoryRef.current?.();
+        setEditingId(id);
+      });
+
+      sub.on("dragstop", () => commitHistoryRef.current?.());
+      sub.on("resizestop", () => commitHistoryRef.current?.());
+
+      // The item has no measured height until the browser has laid the board out,
+      // so the first fit waits a frame. Everything after that rides the parent's
+      // resize handler.
+      requestAnimationFrame(() => fitSubGrid(host, sub));
+    },
+    [
+      decorateItem,
+      defaultConfig,
+      fitSubGrid,
+      renderInstance,
+      uniqueId,
+    ],
+  );
+
+  // Build an item, register it with the grid, and — when it's a container — turn
+  // it into a nested grid holding its children. The one path every add/restore
+  // route goes through, so nesting can't be forgotten in one of them.
+  const addItemEl = useCallback(
+    (
+      grid: GridStack,
+      instance: FrameInstance,
+      autoPosition = false,
+    ): GridItemHTMLElement => {
+      const el = buildItemEl(instance, autoPosition);
+      grid.el.appendChild(el);
+      grid.makeWidget(el);
+      const geo = containerGeometry(
+        registryRef.current.get(instance.frame),
+        instance.config,
+      );
+      if (geo) mountSubGrid(grid, el, instance, geo);
+      return el;
+    },
+    [buildItemEl, mountSubGrid],
   );
 
   // Tears down all items + roots and rebuilds the grid from a frame list.
@@ -939,6 +1165,10 @@ export function DashboardEditor({
       rootsRef.current.forEach(unmountRootSoon);
       rootsRef.current.clear();
       contentRef.current.clear();
+      // Nested grids are recreated per item below, so the old instances are
+      // dropped wholesale — keeping a stale one would leave collectSpec reading a
+      // detached grid and saving the pre-undo children.
+      subGridsRef.current.clear();
       instancesRef.current = new Map(frames.map((f) => [f.id, f]));
 
       grid.removeAll(true);
@@ -948,9 +1178,10 @@ export function DashboardEditor({
 
       grid.batchUpdate();
       for (const f of frames) {
-        const el = buildItemEl(f);
-        grid.el.appendChild(el);
-        grid.makeWidget(el);
+        // addItemEl also mounts the nested grid + child roots for a container,
+        // and registers each child in instancesRef — so an undo restores a
+        // group's contents, not just the empty group.
+        const el = addItemEl(grid, f);
         renderInstance(f.id);
         // These are brand-new item elements, so the per-item gear + delete have
         // to be re-attached. The `editing` effect that normally decorates won't
@@ -962,7 +1193,7 @@ export function DashboardEditor({
       grid.batchUpdate(false);
       setCount(frames.length);
     },
-    [buildItemEl, renderInstance, decorateItem],
+    [addItemEl, renderInstance, decorateItem],
   );
 
   // Click-to-add: append a new frame to the grid in the first free slot.
@@ -986,9 +1217,7 @@ export function DashboardEditor({
         config: defaultConfig(def),
       };
       instancesRef.current.set(id, instance);
-      const el = buildItemEl(instance, true);
-      grid.el.appendChild(el);
-      grid.makeWidget(el);
+      const el = addItemEl(grid, instance, true);
       renderInstance(id);
       decorateItem(el);
       setCount(grid.getGridItems().length);
@@ -997,7 +1226,7 @@ export function DashboardEditor({
       // frames land as error cards until configured, so jump the user there).
       setEditingId(id);
     },
-    [buildItemEl, decorateItem, defaultConfig, renderInstance, uniqueId],
+    [addItemEl, decorateItem, defaultConfig, renderInstance, uniqueId],
   );
 
   // Pixel size of one horizontal band: the height left below the chrome / row
@@ -1031,6 +1260,10 @@ export function DashboardEditor({
     rootsRef.current.forEach(unmountRootSoon);
     rootsRef.current.clear();
     contentRef.current.clear();
+    // Nested grids are destroyed along with their parent items by grid.destroy,
+    // but the maps pointing at them are ours to clear — a stale entry would have
+    // collectSpec read a detached grid after a mode switch.
+    subGridsRef.current.clear();
     grid.destroy(false);
     if (el) {
       el.querySelectorAll(".grid-stack-item").forEach((node) => node.remove());
@@ -1086,7 +1319,16 @@ export function DashboardEditor({
         ) as HTMLElement | null;
         const frame = el.getAttribute("data-frame");
         if (!content || !frame) return;
-        const id = el.getAttribute("gs-id") || uniqueId(frame);
+        const existing = el.getAttribute("gs-id");
+        // A frame dragged OUT of a group and onto the board already has an
+        // instance and a React root — it just stopped being someone's child.
+        // Re-registering it here would build a second root over the live one.
+        if (existing && instancesRef.current.has(existing)) {
+          setCount(grid.getGridItems().length);
+          commitHistoryRef.current?.();
+          return;
+        }
+        const id = existing || uniqueId(frame);
         el.setAttribute("gs-id", id);
         const def = registryRef.current.get(frame);
         const w = node?.w ?? def?.layout?.w ?? 4;
@@ -1108,8 +1350,16 @@ export function DashboardEditor({
               }
             : { id, frame, position: dropPos, config: defaultConfig(def) };
         instancesRef.current.set(id, instance);
-        contentRef.current.set(id, content);
-        renderInstance(id);
+        // A group dragged in from the palette becomes a nested grid immediately,
+        // so the user can drop frames straight into it — the alternative was an
+        // inert box until the board was reloaded.
+        const geo = containerGeometry(def, instance.config);
+        if (geo) {
+          mountSubGrid(grid, el, instance, geo);
+        } else {
+          contentRef.current.set(id, content);
+          renderInstance(id);
+        }
         decorateItem(el);
         setCount(grid.getGridItems().length);
         commitHistoryRef.current?.();
@@ -1130,7 +1380,18 @@ export function DashboardEditor({
         // structural no-ops), so ⌘Z never burns a press on a non-change.
         commitHistoryRef.current?.();
       });
-      grid.on("resizestop", () => commitHistoryRef.current?.());
+      // A resized group must re-derive its children's row height, or they keep
+      // the size they were built at: shrink the group and they overflow it, grow
+      // it and they float above the bottom. Runs for any resize (cheap, and a
+      // resize elsewhere can reflow a group's pixel height too).
+      grid.on("resizestop", () => {
+        for (const [id, sub] of subGridsRef.current) {
+          const host = sub.el as HTMLElement;
+          if (host.isConnected) fitSubGrid(host, sub);
+          else subGridsRef.current.delete(id);
+        }
+        commitHistoryRef.current?.();
+      });
 
       if (horizontal) {
         // GridStack has no horizontal drag-scroll — nudge the wrapper when the
@@ -1158,6 +1419,8 @@ export function DashboardEditor({
       defaultConfig,
       renderInstance,
       decorateItem,
+      fitSubGrid,
+      mountSubGrid,
     ],
   );
 
@@ -1187,12 +1450,14 @@ export function DashboardEditor({
   useEffect(() => {
     const grid = gridInstanceRef.current;
     if (!grid) return;
-    grid.enableMove(editing);
-    grid.enableResize(editing);
-    if (editing) {
-      grid.getGridItems().forEach(decorateItem);
-    } else {
-      grid.getGridItems().forEach(undecorateItem);
+    // Nested grids get the same treatment as the board: without this a group's
+    // children stay locked (or stay draggable) while the board toggles, so a
+    // cluster couldn't be rearranged in customise mode at all.
+    const grids = [grid, ...subGridsRef.current.values()];
+    for (const g of grids) {
+      g.enableMove(editing);
+      g.enableResize(editing);
+      g.getGridItems().forEach(editing ? decorateItem : undecorateItem);
     }
   }, [editing, decorateItem, undecorateItem]);
 
@@ -1280,10 +1545,72 @@ export function DashboardEditor({
           w: node?.w ?? prev.w,
           h: node?.h ?? prev.h,
         };
+        // A container's children come from its live nested grid, so a child
+        // dragged/resized inside the group is saved from the same source of truth
+        // as a board-level move. `node.subGrid` is set by makeSubGrid; a group
+        // whose subgrid somehow never mounted keeps whatever it loaded with
+        // rather than silently saving as empty.
+        const sub = node?.subGrid ?? subGridsRef.current.get(id);
+        const children = sub
+          ? sub
+              .getGridItems()
+              .map((childEl): ChildFrameInstance | null => {
+                const childId = childEl.getAttribute("gs-id");
+                const childInst = childId
+                  ? instancesRef.current.get(childId)
+                  : undefined;
+                if (!childInst) return null;
+                const cn = childEl.gridstackNode;
+                // Built field by field rather than spread, because a child carries
+                // neither `layouts` nor `children` — a group holds one arrangement
+                // for every board mode, and groups don't nest — and a frame
+                // dragged in from the board arrives still carrying its `layouts`.
+                // Spreading would smuggle that into the saved child (where the
+                // schema strips it on the next read, so the junk would be
+                // invisible until someone diffed the file).
+                return {
+                  id: childInst.id,
+                  frame: childInst.frame,
+                  config: childInst.config,
+                  ...(childInst.title !== undefined
+                    ? { title: childInst.title }
+                    : {}),
+                  ...(childInst.style !== undefined
+                    ? { style: childInst.style }
+                    : {}),
+                  ...(childInst.currency !== undefined
+                    ? { currency: childInst.currency }
+                    : {}),
+                  ...(childInst.events !== undefined
+                    ? { events: childInst.events }
+                    : {}),
+                  position: {
+                    x: cn?.x ?? childInst.position.x,
+                    y: cn?.y ?? childInst.position.y,
+                    w: cn?.w ?? childInst.position.w,
+                    h: cn?.h ?? childInst.position.h,
+                  },
+                };
+              })
+              .filter((c): c is NonNullable<typeof c> => c !== null)
+              // Same reason the board sorts: keep the written JSON diff-friendly.
+              .sort((a, b) => a.position.y - b.position.y || a.position.x - b.position.x)
+          : inst.children;
+        // `undefined` rather than `[]` for an empty group: the two mean the same
+        // thing to the schema, and JSON.stringify omits the key entirely, so the
+        // written file stays the short one a human reads. Set explicitly (not by
+        // omission) because `inst` may itself carry a stale `children` — an
+        // emptied group would otherwise save the array it loaded with.
+        const nextChildren =
+          children && children.length > 0 ? children : undefined;
         frames.push(
           mode === "flow-horizontal"
-            ? { ...inst, layouts: { ...inst.layouts, "flow-horizontal": pos } }
-            : { ...inst, position: pos },
+            ? {
+                ...inst,
+                children: nextChildren,
+                layouts: { ...inst.layouts, "flow-horizontal": pos },
+              }
+            : { ...inst, children: nextChildren, position: pos },
         );
       }
     }
