@@ -25,13 +25,14 @@ import {
   formatProblems,
   validateDashboardSpec,
 } from "../app/lib/validate-spec";
+import { assertDatabaseUrl, databaseUrl } from "./database-url";
 
 // Same default as the other scripts; set before the db module is imported (it
 // throws at import time on a missing DATABASE_URL).
-// Trimmed as well as defaulted — see scripts/migrate.ts for why.
-process.env.DATABASE_URL =
-  process.env.DATABASE_URL?.trim() ||
-  "postgres://postgres:postgres@127.0.0.1:5433/postgres";
+// Trimmed, defaulted and shape-checked before the db module is reached — see
+// scripts/database-url.ts. Assigned back into the env because the db module reads
+// process.env at import time.
+process.env.DATABASE_URL = assertDatabaseUrl(databaseUrl());
 
 async function main() {
   const curatedOnly = process.argv.includes("--curated");
