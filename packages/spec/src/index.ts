@@ -104,8 +104,10 @@ export {
   AppearanceSchema,
   BackgroundSchema,
   DashboardSpecSchema,
+  ChildFrameInstanceSchema,
   FrameInstanceSchema,
   GridPositionSchema,
+  MAX_GROUP_CHILDREN,
   ThemeSchema,
   TypographySchema,
   CurrencySchema,
@@ -121,6 +123,7 @@ export {
   type DashboardSpec,
   type DashboardTheme,
   type DashboardTypography,
+  type ChildFrameInstance,
   type FrameInstance,
   type GridPosition,
 } from "./spec";

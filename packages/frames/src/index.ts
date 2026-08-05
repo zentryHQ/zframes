@@ -20,6 +20,7 @@ export { nationalDebtFrame } from "./national-debt";
 export { treasuryAuctionsFrame } from "./treasury-auctions";
 export { fundingHeatmapFrame } from "./funding-heatmap";
 export { fundingRateChartFrame } from "./funding-rate-chart";
+export { groupFrame } from "./group";
 export { headingFrame } from "./heading";
 export { heroNumberFrame } from "./hero-number";
 export { imageFrame } from "./image";
@@ -277,6 +278,7 @@ import { nationalDebtFrame } from "./national-debt";
 import { treasuryAuctionsFrame } from "./treasury-auctions";
 import { fundingHeatmapFrame } from "./funding-heatmap";
 import { fundingRateChartFrame } from "./funding-rate-chart";
+import { groupFrame } from "./group";
 import { headingFrame } from "./heading";
 import { heroNumberFrame } from "./hero-number";
 import { imageFrame } from "./image";
@@ -535,6 +537,7 @@ export const allFrames: AnyFrameDefinition[] = [
   treasuryAuctionsFrame,
   fundingHeatmapFrame,
   fundingRateChartFrame,
+  groupFrame,
   headingFrame,
   heroNumberFrame,
   imageFrame,

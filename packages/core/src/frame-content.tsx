@@ -25,7 +25,11 @@ import type { FrameRegistry, FrameSource } from "@zframes/spec/frame";
 import { FrameCurrencyOverride } from "./currency";
 import { FrameEventsProvider } from "./events";
 import { useProviders } from "./hooks";
-import type { FrameInstance, FrameStyle } from "@zframes/spec/spec";
+import type {
+  ChildFrameInstance,
+  FrameInstance,
+  FrameStyle,
+} from "@zframes/spec/spec";
 
 /**
  * Map a frame's optional per-instance `style` overrides to the `--zf-*` CSS vars
@@ -252,7 +256,8 @@ export const FRAME_CSS = `
 .zf-grid,
 .zf-editor,
 .zf-frame,
-.zf-bare {
+.zf-bare,
+.zf-group {
   --color-highlight: hsl(
     var(--zf-accent-hue, 242) calc(var(--zf-accent-sat, 90%) + 10%) 89%
   );
@@ -486,6 +491,62 @@ export const FRAME_CSS = `
   animation: zf-enter 0.45s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) backwards;
   animation-delay: min(calc((var(--zf-enter-i, 0) + 1) * 35ms), 350ms);
 }
+/* Container (group) frames. A group takes a normal board slot but holds its own
+   little grid of child frames, so a cluster drags and resizes as ONE unit. It
+   has no card of its own by default — the children's cards already carry the
+   visual weight, and a card-inside-a-card reads as clutter; \`config.panel\`
+   opts into a surrounding surface for a group meant to read as one object.
+   Cosmetic overrides set on the group (frameStyleVars) cascade to its children,
+   which is how a whole zone gets one accent in a single edit. */
+.zf-group {
+  grid-column: var(--zf-col-start, auto) / span var(--zf-col-span, 1);
+  grid-row: var(--zf-row-start, auto) / span var(--zf-row-span, 1);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  animation: zf-enter 0.45s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) backwards;
+  animation-delay: min(calc((var(--zf-enter-i, 0) + 1) * 35ms), 350ms);
+}
+/* Opt-in surrounding surface. Deliberately quieter than .zf-frame — no hover
+   lift, no accent glow, no top sheen: the group is furniture holding cards, and
+   giving it the full card treatment made every child look recessed. */
+.zf-group--panel {
+  padding: calc(12px * var(--zf-density, 1));
+  background: hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l2, 7%) / calc(0.5 * var(--zf-surface-opacity, 1)));
+  border: 1px solid hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / calc(var(--zf-border-alpha, 0.22) * 0.7));
+  border-radius: var(--zf-frame-radius, 18px);
+}
+/* A group's optional label. Matches the card title's type so a titled group and
+   a titled card read as the same system, but sits outside any card. */
+.zf-group-title {
+  flex: none;
+  margin-bottom: 8px;
+  font-family: var(--font-dmsans, inherit);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--zf-frame-title, hsl(0 0% var(--zf-ink-l, 100%) / 0.5));
+}
+/* The child grid. Rows are FRACTIONS of the group's height (not --zf-row-h
+   pixels) so the cluster always fills its slot exactly — resize the group and
+   the children scale with it, instead of overflowing or leaving dead space. */
+.zf-subgrid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  gap: var(--zf-sub-gap, var(--zf-gap, 12px));
+  grid-template-columns: repeat(var(--zf-sub-cols, 6), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--zf-sub-rows, 4), minmax(0, 1fr));
+}
+/* An empty group renders its own hint instead of a void — the state a freshly
+   added group is in, so it has to explain itself. */
+.zf-subgrid--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 /* Phones: the absolute x/y/w grid can't shrink below ~30px columns, so collapse
    to a single full-width column. Frames flow in spec order and keep their row
    span (height), but ignore horizontal placement. */
@@ -493,8 +554,13 @@ export const FRAME_CSS = `
   .zf-grid {
     grid-template-columns: 1fr;
   }
-  .zf-frame,
-  .zf-bare {
+  /* Direct children only. A group's children live in the group's OWN grid, which
+     is already sized to its card — stacking them full-width here would make them
+     overflow a slot that didn't grow. The group itself collapses like any card
+     and its cluster scales down inside it. */
+  .zf-grid > .zf-frame,
+  .zf-grid > .zf-bare,
+  .zf-grid > .zf-group {
     grid-column: 1 / -1;
     grid-row: auto / span var(--zf-row-span, 1);
   }
@@ -515,8 +581,9 @@ export const FRAME_CSS = `
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-flow: row dense;
   }
-  .zf-grid:not(.zf-flow-horizontal) .zf-frame,
-  .zf-grid:not(.zf-flow-horizontal) .zf-bare {
+  .zf-grid:not(.zf-flow-horizontal) > .zf-frame,
+  .zf-grid:not(.zf-flow-horizontal) > .zf-bare,
+  .zf-grid:not(.zf-flow-horizontal) > .zf-group {
     grid-column: auto / span var(--zf-col-span-sm, 1);
     grid-row: auto / span var(--zf-row-span, 1);
   }
@@ -533,7 +600,8 @@ export const FRAME_CSS = `
 }
 @media (prefers-reduced-motion: reduce) {
   .zf-frame,
-  .zf-bare {
+  .zf-bare,
+  .zf-group {
     animation-name: zf-fade;
   }
   .zf-frame:hover {
@@ -807,6 +875,43 @@ function ValidFrameCard({
   );
 }
 
+/**
+ * The three geometry fields every container frame's config must expose (see
+ * `FrameMeta.container`). Read off the *validated* config, so a container whose
+ * schema is missing one fails its own safeParse and renders an error card long
+ * before this cast is reached.
+ */
+type ContainerConfig = {
+  columns: number;
+  rows: number;
+  gap: number;
+  panel?: boolean;
+};
+
+/**
+ * Grid placement for a frame nested inside a container, in the GROUP's column /
+ * row units. Same `--zf-*` vars the board-level placement uses (so `.zf-frame`
+ * needs no nesting-aware rule of its own), just resolved against the subgrid's
+ * tracks. Spans are clamped to the group's own size: a child wider than its
+ * group would otherwise silently spill out of the card, and unlike the board —
+ * which grows downward — a group's rows are fixed fractions of its height.
+ */
+function childPositionStyle(
+  child: ChildFrameInstance,
+  index: number,
+  columns: number,
+  rows: number,
+): CSSProperties {
+  const { x, y, w, h } = child.position;
+  return {
+    ["--zf-enter-i" as string]: index,
+    ["--zf-col-start" as string]: Math.min(x, Math.max(0, columns - 1)) + 1,
+    ["--zf-col-span" as string]: Math.min(w, columns),
+    ["--zf-row-start" as string]: Math.min(y, Math.max(0, rows - 1)) + 1,
+    ["--zf-row-span" as string]: Math.min(h, rows),
+  };
+}
+
 function FrameContentImpl({
   instance,
   registry,
@@ -905,6 +1010,54 @@ function FrameContentImpl({
   const TitleIcon = def.titleIcon;
   const TitleContent = def.titleContent;
   const sources = activeSources(def, parsed.data);
+
+  // Container frames (`group`) render the instance's CHILDREN as their own grid
+  // rather than content of their own — so a cluster of cards occupies one board
+  // slot and moves/resizes as a unit. Checked before the chrome branches because
+  // a container's chrome question is already settled: it never draws a card
+  // title row, only the optional group label below.
+  if (def.container) {
+    const { columns, rows, gap, panel } = parsed.data as ContainerConfig;
+    const children = instance.children ?? [];
+    return (
+      <div
+        className={cx("zf-group", panel ? "zf-group--panel" : "", className)}
+        style={{
+          ...frameStyle,
+          // The child grid's own units. Named --zf-sub-* rather than reusing
+          // --zf-cols/--zf-gap so a group can't be confused for the board it
+          // sits on: the children's --zf-col-start/span resolve against THESE.
+          ["--zf-sub-cols" as string]: columns,
+          ["--zf-sub-rows" as string]: rows,
+          ["--zf-sub-gap" as string]: `${gap}px`,
+        }}
+      >
+        {instance.title && (
+          <div className="zf-group-title">{instance.title}</div>
+        )}
+        {children.length > 0 ? (
+          <div className="zf-subgrid">
+            {children.map((child, i) => (
+              <FrameContent
+                key={child.id}
+                instance={child}
+                registry={registry}
+                style={childPositionStyle(child, i, columns, rows)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="zf-subgrid zf-subgrid--empty">
+            <FrameErrorBoundary>
+              <Suspense fallback={null}>
+                <FrameComponent config={parsed.data} />
+              </Suspense>
+            </FrameErrorBoundary>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // Bare frames (e.g. headings) structure a dashboard into zones — they get a
   // positioned slot but no card chrome and no auto-title.
