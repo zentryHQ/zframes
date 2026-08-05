@@ -46,6 +46,10 @@ const MONO_COLORS = [
   "#c0556b",
 ];
 
+// URLs the CDN has already 404'd this session. A long-tail ticker's logo is
+// missing for good, so remounting its card must not re-request it.
+const FAILED_LOGOS = new Set<string>();
+
 function monoColor(ticker: string): string {
   let hash = 0;
   for (let i = 0; i < ticker.length; i++)
@@ -70,11 +74,12 @@ export function AssetLogo({
 }) {
   const ticker = tickerOf(symbol);
   const hip3Market = isHip3Market(symbol);
-  const [failed, setFailed] = useState(false);
+  const url = assetLogoUrl(symbol);
+  const [failed, setFailed] = useState(() => FAILED_LOGOS.has(url));
 
   // A new symbol gets a fresh shot at its logo (instances are reused as
-  // watchlists change in the editor).
-  useEffect(() => setFailed(false), [symbol]);
+  // watchlists change in the editor) unless that URL is already known missing.
+  useEffect(() => setFailed(FAILED_LOGOS.has(url)), [url]);
 
   const radius = hip3Market ? "rounded-[5px]" : "rounded-full";
   const box = { width: size, height: size } as const;
@@ -97,14 +102,18 @@ export function AssetLogo({
 
   return (
     <img
-      src={assetLogoUrl(symbol)}
+      src={url}
       width={size}
       height={size}
       alt=""
       aria-hidden
       draggable={false}
       loading="lazy"
-      onError={() => setFailed(true)}
+      decoding="async"
+      onError={() => {
+        FAILED_LOGOS.add(url);
+        setFailed(true);
+      }}
       className={`shrink-0 object-contain ${radius} ${hip3Market ? "bg-white p-px" : ""} ${className}`}
       style={box}
     />

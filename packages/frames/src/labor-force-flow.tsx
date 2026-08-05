@@ -13,6 +13,10 @@ import { FrameStatus } from "./ui";
 import { TimeSeriesChart } from "./series-chart";
 
 const schema = laborForceFlowMeta.schema;
+
+function formatRate(v: number) {
+  return formatPct(v, 1);
+}
 const UNEMPLOYMENT_SERIES_ID = "LNS14000000";
 const PARTICIPATION_SERIES_ID = "LNS11300000";
 
@@ -61,7 +65,7 @@ function LaborForceFlow({ config }: { config: z.output<typeof schema> }) {
         series={series}
         timeframe={ChartTimeframe.YTD}
         height={250}
-        formatValue={(v) => formatPct(v, 1)}
+        formatValue={formatRate}
       />
       <div className="caption text-soft text-center">
         unemployment vs labor-force participation · monthly, BLS

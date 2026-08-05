@@ -7,6 +7,10 @@ import { payrollsBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = payrollsBarsMeta.schema;
+
+function formatJobs(v: number) {
+  return formatCompact(v * 1000);
+}
 const PAYROLLS_SERIES_ID = "CES0000000001"; // total nonfarm, thousands of jobs
 
 function PayrollsBars({ config }: { config: z.output<typeof schema> }) {
@@ -42,7 +46,7 @@ function PayrollsBars({ config }: { config: z.output<typeof schema> }) {
         color={UP_COLOR}
         negativeColor={DOWN_COLOR}
         height={200}
-        formatValue={(v) => formatCompact(v * 1000)}
+        formatValue={formatJobs}
         showValues={false}
         maxTickLabels={6}
       />

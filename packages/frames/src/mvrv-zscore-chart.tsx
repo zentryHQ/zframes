@@ -14,6 +14,10 @@ import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = mvrvZscoreChartMeta.schema;
 
+function formatZscore(v: number) {
+  return v.toFixed(2);
+}
+
 const WINDOW_OPTIONS = ["1Y", "2Y", "4Y", "all"] as const;
 
 function MvrvZscoreChart({ config }: { config: z.output<typeof schema> }) {
@@ -43,7 +47,7 @@ function MvrvZscoreChart({ config }: { config: z.output<typeof schema> }) {
       series={series}
       timeframe={ChartTimeframe.YTD}
       height={220}
-      formatValue={(v) => v.toFixed(2)}
+      formatValue={formatZscore}
       control={
         <TimeframeToggle
           options={WINDOW_OPTIONS}

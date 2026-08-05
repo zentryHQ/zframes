@@ -48,6 +48,14 @@ function isRollup(entry: GoldReserveEntry): boolean {
   return `${entry.location} ${entry.facility}`.toLowerCase().includes("total");
 }
 
+function formatOunces(value: number) {
+  return `${formatCompact(value)} oz`;
+}
+
+function vaultSharePct(node: VaultNode) {
+  return node.sharePct;
+}
+
 function Leaf({
   width,
   height,
@@ -73,7 +81,7 @@ function Leaf({
 function UsGoldVaults({ config }: { config: z.output<typeof schema> }) {
   const { reserve, isLoading } = useGoldReserve();
 
-  const { vaults, totalOunces } = useMemo(() => {
+  const { vaults, totalOunces, bars } = useMemo(() => {
     const byVault = new Map<string, number>();
     for (const entry of reserve?.entries ?? []) {
       if (entry.ounces <= 0 || isRollup(entry)) continue;
@@ -90,7 +98,11 @@ function UsGoldVaults({ config }: { config: z.output<typeof schema> }) {
         sharePct: total > 0 ? (ounces / total) * 100 : 0,
       }))
       .sort((a, b) => b.ounces - a.ounces);
-    return { vaults: nodes, totalOunces: total };
+    return {
+      vaults: nodes,
+      totalOunces: total,
+      bars: nodes.map((v) => ({ label: v.id, value: v.ounces })),
+    };
   }, [reserve]);
 
   if (isLoading && vaults.length === 0)
@@ -110,10 +122,10 @@ function UsGoldVaults({ config }: { config: z.output<typeof schema> }) {
       {config.mode === "bars" ? (
         <div className="text-normal flex min-h-0 flex-1 flex-col justify-center">
           <BarChart
-            data={vaults.map((v) => ({ label: v.id, value: v.ounces }))}
+            data={bars}
             orientation="horizontal"
             height={Math.max(vaults.length * 26, 96)}
-            formatValue={(value) => `${formatCompact(value)} oz`}
+            formatValue={formatOunces}
           />
         </div>
       ) : (
@@ -121,7 +133,7 @@ function UsGoldVaults({ config }: { config: z.output<typeof schema> }) {
           <TreeChart
             data={vaults}
             LeafComponent={Leaf}
-            getColorValue={(node) => node.sharePct}
+            getColorValue={vaultSharePct}
           />
         </div>
       )}

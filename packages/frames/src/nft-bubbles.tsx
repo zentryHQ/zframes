@@ -1,6 +1,6 @@
 import type { BubbleNode } from "@zframes/charts";
 import { defineFrame, useMoney, useNftMarket } from "@zframes/core";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { z } from "zod";
 import { BubbleCloud } from "./bubbles-shared";
 import { changeColor, formatChangePct } from "./format";
@@ -36,6 +36,14 @@ function NftBubbles({ config }: { config: z.output<typeof schema> }) {
     [collections, config.topN],
   );
 
+  const formatTitle = useCallback(
+    (n: BubbleNode) => {
+      const c = n as NftBubble;
+      return `${c.label} · ${money.price(c.floorUsd)} floor · ${formatChangePct(c.floorChangePct24h)}`;
+    },
+    [money],
+  );
+
   return (
     <BubbleCloud
       nodes={nodes}
@@ -43,10 +51,7 @@ function NftBubbles({ config }: { config: z.output<typeof schema> }) {
       loadingText="loading NFT floors…"
       emptyText="no NFT data"
       caption={`area by mcap · ring by 24h floor change · top ${nodes.length}`}
-      formatTitle={(n) => {
-        const c = n as NftBubble;
-        return `${c.label} · ${money.price(c.floorUsd)} floor · ${formatChangePct(c.floorChangePct24h)}`;
-      }}
+      formatTitle={formatTitle}
     />
   );
 }

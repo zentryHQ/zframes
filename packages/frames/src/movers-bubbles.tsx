@@ -1,6 +1,6 @@
 import type { BubbleNode } from "@zframes/charts";
 import { defineFrame, useCoinMovers } from "@zframes/core";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { z } from "zod";
 import { assetLogoUrl } from "./asset-logo";
 import { BubbleCloud } from "./bubbles-shared";
@@ -47,6 +47,12 @@ function MoversBubbles({ config }: { config: z.output<typeof schema> }) {
     }));
   }, [entries, chartWindow, config.limit]);
 
+  const formatTitle = useCallback(
+    (n: BubbleNode) =>
+      `${n.label} · ${formatChangePct((n as MoverBubble).changePct)} ${chartWindow}`,
+    [chartWindow],
+  );
+
   return (
     // BubbleCloud's caption row is shared, centered, and has no room for a
     // control — overlay the toggle top-right instead of adding a row.
@@ -64,9 +70,7 @@ function MoversBubbles({ config }: { config: z.output<typeof schema> }) {
         loadingText="loading movers…"
         emptyText="no mover data yet"
         caption={`area by ${chartWindow} move · green gainers / red losers`}
-        formatTitle={(n) =>
-          `${n.label} · ${formatChangePct((n as MoverBubble).changePct)} ${chartWindow}`
-        }
+        formatTitle={formatTitle}
       />
     </div>
   );

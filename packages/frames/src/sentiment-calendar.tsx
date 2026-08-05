@@ -8,6 +8,10 @@ import { FrameStatus } from "./ui";
 
 const schema = sentimentCalendarMeta.schema;
 
+function formatScore(v: number) {
+  return `${Math.round(v + NEUTRAL)} / 100`;
+}
+
 /**
  * The index's own neutral line. Plotting `value − NEUTRAL` rather than the raw
  * 0–100 reading is what makes the grid diverge: fear falls below it and takes
@@ -50,7 +54,7 @@ function SentimentCalendar({ config }: { config: z.output<typeof schema> }) {
           color={UP_COLOR}
           negativeColor={DOWN_COLOR}
           weekStart={config.weekStart}
-          formatValue={(v) => `${Math.round(v + NEUTRAL)} / 100`}
+          formatValue={formatScore}
           legendLowLabel="fear"
           legendHighLabel="greed"
         />

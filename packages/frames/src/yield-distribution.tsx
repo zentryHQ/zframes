@@ -12,6 +12,14 @@ const schema = yieldDistributionMeta.schema;
 /** Fewer pools than this is a list, not a distribution. */
 const MIN_POOLS = 12;
 
+function formatAxisWhole(v: number) {
+  return formatPct(v, 0);
+}
+
+function formatAxisDecimal(v: number) {
+  return formatPct(v, 1);
+}
+
 function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="min-w-0">
@@ -42,11 +50,13 @@ function YieldDistribution({ config }: { config: z.output<typeof schema> }) {
     if (!stats || values.length < MIN_POOLS) return null;
 
     const sorted = [...values].sort((a, b) => a - b);
+    const median = quantile(sorted, 0.5);
     return {
       values,
       stats,
-      median: quantile(sorted, 0.5),
+      median,
       p90: quantile(sorted, 0.9),
+      markers: [{ value: median, label: "median" }],
     };
   }, [pools, config.minTvlUsd, config.stablecoinOnly, config.maxApy]);
 
@@ -56,7 +66,7 @@ function YieldDistribution({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus loading>loading yield pools…</FrameStatus>;
   if (!sample) return <FrameStatus>no pools clear these filters</FrameStatus>;
 
-  const { values, stats, median, p90 } = sample;
+  const { values, stats, median, p90, markers } = sample;
   // Precision chosen once from the whole range, not per tick: deciding per value
   // printed "0.0%" beside "10%" on the same axis. A stablecoin-only view spans a
   // few points and needs the decimal; a general view spanning 0–200% does not.
@@ -69,9 +79,9 @@ function YieldDistribution({ config }: { config: z.output<typeof schema> }) {
       <HistogramChart
         values={values}
         height={140}
-        formatValue={(v) => formatPct(v, axisDp)}
+        formatValue={axisDp === 0 ? formatAxisWhole : formatAxisDecimal}
         formatCount={formatCompact}
-        markers={[{ value: median, label: "median" }]}
+        markers={markers}
       />
 
       {/* The TVL floor is deliberately not echoed here: it is a USD figure the

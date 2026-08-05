@@ -1,6 +1,6 @@
 import type { BubbleNode } from "@zframes/charts";
 import { defineFrame, useMoney, useProtocolFees } from "@zframes/core";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { z } from "zod";
 import { BubbleCloud } from "./bubbles-shared";
 import { changeColor, formatChangePct } from "./format";
@@ -32,6 +32,12 @@ function ProtocolFeesBubbles({ config }: { config: z.output<typeof schema> }) {
     [entries, config.topN],
   );
 
+  const formatTitle = useCallback(
+    (n: BubbleNode) =>
+      `${n.label} · ${money.compact(n.value)} fees · ${formatChangePct((n as FeesBubble).changePct)}`,
+    [money],
+  );
+
   return (
     <BubbleCloud
       nodes={nodes}
@@ -39,9 +45,7 @@ function ProtocolFeesBubbles({ config }: { config: z.output<typeof schema> }) {
       loadingText="loading protocol fees…"
       emptyText="no protocol fee data"
       caption={`area by 24h fees · ring by 1d change · top ${nodes.length}`}
-      formatTitle={(n) =>
-        `${n.label} · ${money.compact(n.value)} fees · ${formatChangePct((n as FeesBubble).changePct)}`
-      }
+      formatTitle={formatTitle}
     />
   );
 }
