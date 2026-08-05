@@ -1,0 +1,4364 @@
+[
+  {
+    "id": "stocks-macro",
+    "title": "Stocks & Macro",
+    "description": "Crypto majors alongside official US macro and the equity indices — the same mix used to prove the proxy end-to-end.",
+    "tags": ["markets", "macro", "equities"],
+    "landingOrder": 1,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Stocks & Macro",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "PrFtFGDE5duemLmr2YKQ",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 145,
+        "accentSat": 85,
+        "baseHue": 150,
+        "baseSat": 16
+      },
+      "typography": {
+        "fontFamily": "mono",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 4,
+        "borderStrength": 0.34,
+        "surfaceOpacity": 1,
+        "density": 0.85,
+        "elevation": 0.4
+      },
+      "frames": [
+        {
+          "id": "hd-markets",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Markets",
+            "subtitle": "Live crypto — browser-direct"
+          }
+        },
+        {
+          "id": "chart-btc",
+          "frame": "price-chart",
+          "title": "BTC",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 6,
+            "h": 3
+          },
+          "config": {
+            "symbol": "BTC"
+          }
+        },
+        {
+          "id": "ticker-1",
+          "frame": "price-ticker",
+          "title": "Watchlist",
+          "position": {
+            "x": 6,
+            "y": 1,
+            "w": 3,
+            "h": 3
+          },
+          "config": {
+            "symbols": ["BTC", "ETH", "SOL", "xyz:TSLA", "xyz:NVDA"]
+          }
+        },
+        {
+          "id": "feargreed-1",
+          "frame": "fear-greed",
+          "position": {
+            "x": 9,
+            "y": 1,
+            "w": 3,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "mcap-treemap",
+          "frame": "market-cap-treemap",
+          "position": {
+            "x": 0,
+            "y": 4,
+            "w": 6,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "tvl-treemap",
+          "frame": "tvl-treemap",
+          "position": {
+            "x": 6,
+            "y": 4,
+            "w": 6,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "hd-indices",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Indices & Volatility",
+            "subtitle": "S&P 500, Nasdaq and the VIX — read off FRED's own published CSV, still no key"
+          }
+        },
+        {
+          "id": "spx-chart",
+          "frame": "index-level-chart",
+          "title": "S&P 500",
+          "position": {
+            "x": 0,
+            "y": 9,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "series": "SP500",
+            "years": 10
+          }
+        },
+        {
+          "id": "ndx-drawdown",
+          "frame": "index-drawdown",
+          "position": {
+            "x": 6,
+            "y": 9,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "series": "NASDAQCOM",
+            "years": 30
+          }
+        },
+        {
+          "id": "spx-years",
+          "frame": "index-annual-returns",
+          "position": {
+            "x": 0,
+            "y": 13,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "series": "SP500",
+            "years": 20
+          }
+        },
+        {
+          "id": "grp-index-now",
+          "frame": "group",
+          "position": {
+            "x": 6,
+            "y": 13,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "gap": 8,
+            "columns": 2,
+            "rows": 1,
+            "panel": true
+          },
+          "children": [
+            {
+              "id": "ndx-level",
+              "frame": "index-level",
+              "title": "Nasdaq Composite",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "series": "NASDAQCOM",
+                "trendDays": 180
+              }
+            },
+            {
+              "id": "vix-1",
+              "frame": "vix-gauge",
+              "position": {
+                "x": 1,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "max": 50
+              }
+            }
+          ]
+        },
+        {
+          "id": "hd-macro",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 17,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Macro & Equities",
+            "subtitle": "Official data via /__zframes/proxy"
+          }
+        },
+        {
+          "id": "yieldcurve-1",
+          "frame": "yield-curve",
+          "position": {
+            "x": 0,
+            "y": 18,
+            "w": 4,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "finstress-1",
+          "frame": "financial-stress",
+          "position": {
+            "x": 4,
+            "y": 18,
+            "w": 4,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "shortvol-1",
+          "frame": "short-volume",
+          "position": {
+            "x": 8,
+            "y": 18,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "symbols": ["TSLA", "NVDA", "AAPL", "AMD"]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "crypto-desk",
+    "title": "Crypto Desk",
+    "description": "A crypto-first board — BTC/ETH charts, a majors watchlist, sentiment, and the market-cap + TVL landscape.",
+    "tags": ["crypto", "markets"],
+    "landingOrder": 2,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Crypto Desk",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "qpoj0wFWmgwRVXmzRMiL",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 320,
+        "accentSat": 88,
+        "baseHue": 280,
+        "baseSat": 26
+      },
+      "typography": {
+        "fontFamily": "sans",
+        "numericStyle": "proportional"
+      },
+      "appearance": {
+        "radius": 20,
+        "borderStrength": 0.3,
+        "surfaceOpacity": 0.9,
+        "density": 1,
+        "elevation": 1.7
+      },
+      "frames": [
+        {
+          "id": "hd",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Crypto Desk",
+            "subtitle": "Majors, sentiment, and on-chain"
+          }
+        },
+        {
+          "id": "grp-majors",
+          "frame": "group",
+          "title": "The majors, side by side",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "gap": 8,
+            "columns": 2,
+            "rows": 1,
+            "panel": true
+          },
+          "children": [
+            {
+              "id": "btc",
+              "frame": "price-chart",
+              "title": "BTC",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "symbol": "BTC"
+              }
+            },
+            {
+              "id": "eth",
+              "frame": "price-chart",
+              "title": "ETH",
+              "position": {
+                "x": 1,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "symbol": "ETH"
+              }
+            }
+          ]
+        },
+        {
+          "id": "watch",
+          "frame": "price-ticker",
+          "title": "Majors",
+          "position": {
+            "x": 0,
+            "y": 4,
+            "w": 4,
+            "h": 3
+          },
+          "config": {
+            "symbols": ["BTC", "ETH", "SOL", "AVAX", "LINK"]
+          }
+        },
+        {
+          "id": "fg",
+          "frame": "fear-greed",
+          "position": {
+            "x": 4,
+            "y": 4,
+            "w": 4,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "mcap",
+          "frame": "market-cap-treemap",
+          "position": {
+            "x": 8,
+            "y": 4,
+            "w": 4,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "tvl",
+          "frame": "tvl-treemap",
+          "position": {
+            "x": 0,
+            "y": 7,
+            "w": 12,
+            "h": 4
+          },
+          "config": {}
+        }
+      ]
+    }
+  },
+  {
+    "id": "housing-credit",
+    "title": "Housing & Credit",
+    "description": "What a home costs, what it costs to borrow, and what the credit market charges for risk — Zillow, the FHFA and the Fed's own series, all keyless.",
+    "tags": ["housing", "credit", "macro"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Housing & Credit",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "YrTzGatwjK7EoFpCSfgZ",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 242,
+        "accentSat": 72,
+        "baseHue": 224,
+        "baseSat": 18
+      },
+      "typography": {
+        "fontFamily": "sans",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 22,
+        "borderStrength": 0.14,
+        "surfaceOpacity": 1,
+        "density": 1.2,
+        "elevation": 0.5
+      },
+      "frames": [
+        {
+          "id": "hd",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Housing & Credit",
+            "subtitle": "Zillow, FHFA and FRED — no keys, no signup"
+          }
+        },
+        {
+          "id": "zhvi-chart",
+          "frame": "home-value-chart",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "regions": ["United States", "Austin, TX", "Miami, FL"],
+            "years": 25
+          }
+        },
+        {
+          "id": "mortgage-rate",
+          "frame": "mortgage-rate-chart",
+          "position": {
+            "x": 6,
+            "y": 1,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "years": 25
+          }
+        },
+        {
+          "id": "payment",
+          "frame": "mortgage-payment",
+          "position": {
+            "x": 0,
+            "y": 5,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "region": "Austin, TX",
+            "downPaymentPct": 20,
+            "termYears": 30
+          }
+        },
+        {
+          "id": "case-shiller",
+          "frame": "home-price-index",
+          "position": {
+            "x": 4,
+            "y": 5,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "years": 25
+          }
+        },
+        {
+          "id": "credit",
+          "frame": "credit-spread-chart",
+          "position": {
+            "x": 8,
+            "y": 5,
+            "w": 4,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "fhfa-states",
+          "frame": "regional-home-prices",
+          "position": {
+            "x": 0,
+            "y": 9,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "level": "state",
+            "regions": ["CA", "TX", "FL", "NY", "WA"],
+            "years": 20
+          }
+        },
+        {
+          "id": "zhvi-metros",
+          "frame": "metro-home-values",
+          "position": {
+            "x": 6,
+            "y": 9,
+            "w": 6,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "hd-divergence",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 13,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Divergence",
+            "subtitle": "Which markets are still appreciating, and what credit charges for quality"
+          }
+        },
+        {
+          "id": "zhvi-momentum",
+          "frame": "home-value-momentum",
+          "position": {
+            "x": 0,
+            "y": 14,
+            "w": 4,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "zhvi-bars",
+          "frame": "home-value-bars",
+          "position": {
+            "x": 4,
+            "y": 14,
+            "w": 4,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "fhfa-bars",
+          "frame": "regional-home-price-bars",
+          "position": {
+            "x": 8,
+            "y": 14,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "level": "state"
+          }
+        },
+        {
+          "id": "zhvi-quadrants",
+          "frame": "home-value-scatter",
+          "position": {
+            "x": 0,
+            "y": 18,
+            "w": 6,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "credit-gap",
+          "frame": "credit-quality-gap",
+          "position": {
+            "x": 6,
+            "y": 18,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "years": 3
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "macro-rates",
+    "title": "Macro & Rates",
+    "description": "The official-data board — Treasury yield curve, OFR financial stress, FINRA short volume, and equity perps.",
+    "tags": ["macro", "equities"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Macro & Rates",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "E4221P7lwTy049d7ISxc",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 22,
+        "accentSat": 60,
+        "baseHue": 28,
+        "baseSat": 12
+      },
+      "typography": {
+        "fontFamily": "serif",
+        "numericStyle": "proportional"
+      },
+      "appearance": {
+        "radius": 10,
+        "borderStrength": 0.18,
+        "surfaceOpacity": 1,
+        "density": 1.15,
+        "elevation": 0.8
+      },
+      "frames": [
+        {
+          "id": "hd",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Macro & Rates",
+            "subtitle": "Official US data via the same-origin proxy"
+          }
+        },
+        {
+          "id": "yc",
+          "frame": "yield-curve",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 6,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "fs",
+          "frame": "financial-stress",
+          "position": {
+            "x": 6,
+            "y": 1,
+            "w": 6,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "sv",
+          "frame": "short-volume",
+          "position": {
+            "x": 0,
+            "y": 4,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "symbols": ["TSLA", "NVDA", "AAPL", "AMD", "MSFT"]
+          }
+        },
+        {
+          "id": "eq",
+          "frame": "price-ticker",
+          "title": "Equity perps",
+          "position": {
+            "x": 6,
+            "y": 4,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "symbols": ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL", "xyz:AMD"]
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "onchain-defi",
+    "title": "On-chain & DeFi",
+    "description": "The chain-level view — stablecoin supply, cross-chain activity, hot DEX pools, protocol fees, and the best live yields.",
+    "tags": ["defi", "on-chain"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "On-chain & DeFi",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "cYpXuEzDqm4r3fdp4TGx",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 190,
+        "accentSat": 72,
+        "baseHue": 202,
+        "baseSat": 20
+      },
+      "typography": {
+        "fontFamily": "sans",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 12,
+        "borderStrength": 0.26,
+        "surfaceOpacity": 0.96,
+        "density": 0.95,
+        "elevation": 0.9
+      },
+      "frames": [
+        {
+          "id": "hd",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "On-chain & DeFi",
+            "subtitle": "Stablecoins, chains, pools, and yields"
+          }
+        },
+        {
+          "id": "stables",
+          "frame": "stablecoin-supply",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 6,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "chains",
+          "frame": "chain-activity",
+          "position": {
+            "x": 6,
+            "y": 1,
+            "w": 6,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "pools",
+          "frame": "dex-hot-pools",
+          "position": {
+            "x": 0,
+            "y": 4,
+            "w": 6,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "fees",
+          "frame": "protocol-fees-treemap",
+          "position": {
+            "x": 6,
+            "y": 4,
+            "w": 6,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "yields",
+          "frame": "yield-scanner",
+          "position": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 3
+          },
+          "config": {}
+        }
+      ]
+    }
+  },
+  {
+    "id": "derivatives-desk",
+    "title": "Derivatives Desk",
+    "description": "Funding, open interest, and the BTC options surface — put/call ratio, DVOL, and open interest by strike from Deribit.",
+    "tags": ["derivatives", "options"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Derivatives Desk",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "K42KSY4FXeXhjVOj9RgT",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 268,
+        "accentSat": 80,
+        "baseHue": 258,
+        "baseSat": 24
+      },
+      "typography": {
+        "fontFamily": "sans",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 16,
+        "borderStrength": 0.28,
+        "surfaceOpacity": 0.92,
+        "density": 1,
+        "elevation": 1.3
+      },
+      "frames": [
+        {
+          "id": "hd",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Derivatives Desk",
+            "subtitle": "Funding, open interest, and options"
+          }
+        },
+        {
+          "id": "funding",
+          "frame": "funding-rate-chart",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 6,
+            "h": 3
+          },
+          "config": {
+            "symbols": ["BTC", "ETH"]
+          }
+        },
+        {
+          "id": "oi",
+          "frame": "open-interest",
+          "position": {
+            "x": 6,
+            "y": 1,
+            "w": 6,
+            "h": 3
+          },
+          "config": {
+            "symbols": ["BTC", "ETH", "SOL", "xyz:TSLA"]
+          }
+        },
+        {
+          "id": "pcr",
+          "frame": "options-put-call",
+          "position": {
+            "x": 0,
+            "y": 4,
+            "w": 4,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "iv",
+          "frame": "options-iv",
+          "position": {
+            "x": 4,
+            "y": 4,
+            "w": 4,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "strikes",
+          "frame": "options-oi-strike",
+          "position": {
+            "x": 8,
+            "y": 4,
+            "w": 4,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "carry",
+          "frame": "funding-comparison",
+          "position": {
+            "x": 0,
+            "y": 7,
+            "w": 12,
+            "h": 3
+          },
+          "config": {}
+        }
+      ]
+    }
+  },
+  {
+    "id": "gold-desk",
+    "title": "Gold Desk",
+    "description": "Bullion end to end — live spot, the LBMA London fix back to 1968, CFTC positioning, and the vaults the US Treasury reports every month.",
+    "tags": ["metals", "gold", "macro"],
+    "landingOrder": 0,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Gold Desk",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "E4221P7lwTy049d7ISxc",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 43,
+        "accentSat": 90,
+        "baseHue": 32,
+        "baseSat": 20
+      },
+      "typography": {
+        "fontFamily": "serif",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 6,
+        "borderStrength": 0.36,
+        "surfaceOpacity": 1,
+        "density": 0.95,
+        "elevation": 0.5
+      },
+      "frames": [
+        {
+          "id": "hd-spot",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Gold Desk",
+            "subtitle": "Live spot, and the London fix the physical market settles against"
+          }
+        },
+        {
+          "id": "complex",
+          "frame": "metals-board",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "symbols": ["XAU", "XAG", "XPT", "XPD"],
+            "showChange": true
+          }
+        },
+        {
+          "id": "gold-chart",
+          "frame": "metal-price-chart",
+          "title": "Gold — London fix",
+          "position": {
+            "x": 3,
+            "y": 1,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "symbols": ["XAU"],
+            "currency": "USD",
+            "years": 20,
+            "logScale": false
+          }
+        },
+        {
+          "id": "grp-gold-now",
+          "frame": "group",
+          "position": {
+            "x": 9,
+            "y": 1,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "gap": 8,
+            "columns": 1,
+            "rows": 2
+          },
+          "children": [
+            {
+              "id": "gold-spot",
+              "frame": "metal-price",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "symbol": "XAU",
+                "unit": "ounce",
+                "showFix": true
+              }
+            },
+            {
+              "id": "gold-ath",
+              "frame": "metal-ath",
+              "position": {
+                "x": 0,
+                "y": 1,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "symbol": "XAU"
+              }
+            }
+          ]
+        },
+        {
+          "id": "gold-perf",
+          "frame": "metal-performance",
+          "position": {
+            "x": 0,
+            "y": 5,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "symbol": "XAU",
+            "mode": "cumulative"
+          }
+        },
+        {
+          "id": "gsr",
+          "frame": "gold-silver-ratio",
+          "position": {
+            "x": 4,
+            "y": 5,
+            "w": 4,
+            "h": 3
+          },
+          "config": {
+            "years": 20,
+            "showPercentile": true
+          }
+        },
+        {
+          "id": "us-reserve",
+          "frame": "us-gold-reserve",
+          "position": {
+            "x": 8,
+            "y": 5,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "showMarketValue": true
+          }
+        },
+        {
+          "id": "gold-underwater",
+          "frame": "metal-drawdown",
+          "position": {
+            "x": 0,
+            "y": 9,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "symbol": "XAU",
+            "years": 45
+          }
+        },
+        {
+          "id": "gold-years",
+          "frame": "metal-annual-returns",
+          "position": {
+            "x": 6,
+            "y": 9,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "symbol": "XAU",
+            "years": 25
+          }
+        },
+        {
+          "id": "hd-positioning",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 13,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Positioning & Vaults",
+            "subtitle": "Who is long the paper, where the physical sits, and what the tokenized version costs"
+          }
+        },
+        {
+          "id": "grp-cot",
+          "frame": "group",
+          "title": "CFTC positioning · gold",
+          "position": {
+            "x": 0,
+            "y": 14,
+            "w": 12,
+            "h": 4
+          },
+          "config": {
+            "gap": 8,
+            "columns": 12,
+            "rows": 1
+          },
+          "children": [
+            {
+              "id": "cot-net",
+              "frame": "metal-cot-net",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 5,
+                "h": 1
+              },
+              "config": {
+                "symbol": "XAU",
+                "years": 5,
+                "showOpenInterest": false
+              }
+            },
+            {
+              "id": "cot-classes",
+              "frame": "metal-cot-breakdown",
+              "position": {
+                "x": 5,
+                "y": 0,
+                "w": 4,
+                "h": 1
+              },
+              "config": {
+                "symbol": "XAU"
+              }
+            },
+            {
+              "id": "cot-gauge",
+              "frame": "metal-cot-gauge",
+              "position": {
+                "x": 9,
+                "y": 0,
+                "w": 3,
+                "h": 1
+              },
+              "config": {
+                "symbol": "XAU"
+              }
+            }
+          ]
+        },
+        {
+          "id": "vaults",
+          "frame": "us-gold-vaults",
+          "position": {
+            "x": 0,
+            "y": 18,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "mode": "treemap"
+          }
+        },
+        {
+          "id": "paxg",
+          "frame": "tokenized-gold",
+          "position": {
+            "x": 4,
+            "y": 18,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "showPremium": true
+          }
+        },
+        {
+          "id": "fixes",
+          "frame": "metal-fix-table",
+          "position": {
+            "x": 8,
+            "y": 18,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "symbol": "XAU",
+            "currency": "USD",
+            "rows": 12
+          }
+        },
+        {
+          "id": "hd-record",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 22,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "The Long Record",
+            "subtitle": "Six decades of daily London fixes, LBMA's own files"
+          }
+        },
+        {
+          "id": "seasonality",
+          "frame": "metal-seasonality",
+          "position": {
+            "x": 0,
+            "y": 23,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "symbol": "XAU",
+            "years": 25
+          }
+        },
+        {
+          "id": "btc-gold",
+          "frame": "btc-in-gold",
+          "position": {
+            "x": 5,
+            "y": 23,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "years": 12,
+            "logScale": true
+          }
+        },
+        {
+          "id": "milestones",
+          "frame": "metal-milestones",
+          "position": {
+            "x": 9,
+            "y": 23,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "symbol": "XAU",
+            "newestFirst": true
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "fx-desk",
+    "title": "FX Desk",
+    "description": "The dollar and its counterparties — daily reference fixings, the full cross matrix, the day's movers, and DXY. Keyless, no proxy, four fallback sources deep.",
+    "tags": ["fx", "macro", "currencies"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "FX Desk",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "cYpXuEzDqm4r3fdp4TGx",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 212,
+        "accentSat": 76,
+        "baseHue": 220,
+        "baseSat": 18
+      },
+      "typography": {
+        "fontFamily": "mono",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 6,
+        "borderStrength": 0.3,
+        "surfaceOpacity": 1,
+        "density": 0.9,
+        "elevation": 0.5
+      },
+      "frames": [
+        {
+          "id": "hd-majors",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "FX Desk",
+            "subtitle": "ECB daily reference rates — no key, no proxy, four keyless sources deep"
+          }
+        },
+        {
+          "id": "majors",
+          "frame": "fx-board",
+          "title": "Majors vs USD",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "base": "USD",
+            "symbols": ["EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD", "SEK"],
+            "showSparkline": true
+          }
+        },
+        {
+          "id": "majors-trend",
+          "frame": "fx-trend-chart",
+          "position": {
+            "x": 4,
+            "y": 1,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "base": "USD",
+            "symbols": ["EUR", "GBP", "JPY", "CHF"]
+          }
+        },
+        {
+          "id": "dxy-now",
+          "frame": "dxy",
+          "position": {
+            "x": 9,
+            "y": 1,
+            "w": 3,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "crosses",
+          "frame": "fx-cross-heatmap",
+          "position": {
+            "x": 0,
+            "y": 5,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "symbols": ["USD", "EUR", "GBP", "JPY", "CHF", "CAD"]
+          }
+        },
+        {
+          "id": "dxy-history",
+          "frame": "dxy-chart",
+          "position": {
+            "x": 6,
+            "y": 5,
+            "w": 6,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "hd-wider",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 9,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Beyond the Majors",
+            "subtitle": "Asia, Latin America and the Nordics — same feed, same day's fixing"
+          }
+        },
+        {
+          "id": "wider",
+          "frame": "fx-board",
+          "title": "Asia & LatAm vs USD",
+          "position": {
+            "x": 0,
+            "y": 10,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "base": "USD",
+            "symbols": ["THB", "SGD", "KRW", "INR", "CNY", "MXN", "BRL", "ZAR"],
+            "showSparkline": true
+          }
+        },
+        {
+          "id": "movers",
+          "frame": "fx-movers-bars",
+          "position": {
+            "x": 4,
+            "y": 10,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "base": "USD",
+            "symbols": [
+              "EUR",
+              "GBP",
+              "JPY",
+              "CHF",
+              "CAD",
+              "AUD",
+              "NZD",
+              "SEK",
+              "NOK",
+              "PLN"
+            ]
+          }
+        },
+        {
+          "id": "eur-trend",
+          "frame": "fx-trend-chart",
+          "title": "Trend vs EUR",
+          "position": {
+            "x": 8,
+            "y": 10,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "base": "EUR",
+            "symbols": ["USD", "GBP", "CHF", "SEK"]
+          }
+        },
+        {
+          "id": "grp-clocks",
+          "frame": "group",
+          "title": "The FX day",
+          "position": {
+            "x": 0,
+            "y": 14,
+            "w": 12,
+            "h": 2
+          },
+          "config": {
+            "gap": 8,
+            "columns": 4,
+            "rows": 1
+          },
+          "children": [
+            {
+              "id": "clock-tokyo",
+              "frame": "clock",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "timezone": "Asia/Tokyo",
+                "label": "Tokyo",
+                "showSeconds": true
+              }
+            },
+            {
+              "id": "clock-london",
+              "frame": "clock",
+              "position": {
+                "x": 1,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "timezone": "Europe/London",
+                "label": "London",
+                "showSeconds": true
+              }
+            },
+            {
+              "id": "clock-ny",
+              "frame": "clock",
+              "position": {
+                "x": 2,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "timezone": "America/New_York",
+                "label": "New York",
+                "showSeconds": true
+              }
+            },
+            {
+              "id": "clock-utc",
+              "frame": "clock",
+              "position": {
+                "x": 3,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "timezone": "UTC",
+                "label": "UTC",
+                "showSeconds": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "fixing-note",
+          "frame": "note",
+          "position": {
+            "x": 0,
+            "y": 16,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "text": "**These are reference fixings, not tradable quotes.** The ECB publishes one set of rates each working day around 16:00 CET, and every cross on this board is derived from that same snapshot — so a weekend or a holiday shows the last working day's fixing rather than a stale tick.\n\nzframes resolves them through four keyless sources in order — Frankfurter/ECB, FXRatesAPI, currency-api and the ECB Data Portal — so one upstream going down does not blank the board.",
+            "align": "left"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "bitcoin-node",
+    "title": "Bitcoin Node",
+    "description": "The network behind the price — live mempool congestion, fee tiers, recent blocks, hashrate, the difficulty epoch, pool concentration and Lightning. One keyless source, no proxy.",
+    "tags": ["bitcoin", "onchain", "mempool"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Bitcoin Node",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "E4221P7lwTy049d7ISxc",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 32,
+        "accentSat": 88,
+        "baseHue": 26,
+        "baseSat": 22
+      },
+      "typography": {
+        "fontFamily": "mono",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 4,
+        "borderStrength": 0.34,
+        "surfaceOpacity": 1,
+        "density": 0.88,
+        "elevation": 0.35
+      },
+      "frames": [
+        {
+          "id": "hd-mempool",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Mempool & Fees",
+            "subtitle": "Live from mempool.space — keyless, browser-direct"
+          }
+        },
+        {
+          "id": "grp-node-now",
+          "frame": "group",
+          "title": "Node right now",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "gap": 8,
+            "columns": 12,
+            "rows": 1,
+            "panel": true
+          },
+          "children": [
+            {
+              "id": "fees",
+              "frame": "btc-fees",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 3,
+                "h": 1
+              },
+              "config": {
+                "tiers": ["fastest", "halfHour", "hour", "economy"]
+              }
+            },
+            {
+              "id": "mempool",
+              "frame": "btc-mempool",
+              "position": {
+                "x": 3,
+                "y": 0,
+                "w": 5,
+                "h": 1
+              },
+              "config": {
+                "projectedBlocks": 5
+              }
+            },
+            {
+              "id": "difficulty",
+              "frame": "btc-difficulty",
+              "position": {
+                "x": 8,
+                "y": 0,
+                "w": 4,
+                "h": 1
+              },
+              "config": {
+                "showPrevious": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "fee-curve",
+          "frame": "mempool-fee-curve",
+          "position": {
+            "x": 0,
+            "y": 4,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "projectedBlocks": 6
+          }
+        },
+        {
+          "id": "btc-price",
+          "frame": "price-chart",
+          "title": "BTC",
+          "position": {
+            "x": 6,
+            "y": 4,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "symbol": "BTC",
+            "interval": "1h",
+            "mode": "line",
+            "color": "#f7931a"
+          }
+        },
+        {
+          "id": "hd-blocks",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Blocks",
+            "subtitle": "Who found them, how full they were"
+          }
+        },
+        {
+          "id": "blocks",
+          "frame": "btc-blocks",
+          "position": {
+            "x": 0,
+            "y": 9,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "count": 10
+          }
+        },
+        {
+          "id": "block-sizes",
+          "frame": "btc-block-size-bars",
+          "position": {
+            "x": 6,
+            "y": 9,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "count": 12
+          }
+        },
+        {
+          "id": "hd-hashpower",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 13,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Hashpower & Security",
+            "subtitle": "Two years of hashrate, difficulty and pool concentration"
+          }
+        },
+        {
+          "id": "hashrate",
+          "frame": "btc-hashrate",
+          "position": {
+            "x": 0,
+            "y": 14,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "window": "2y"
+          }
+        },
+        {
+          "id": "difficulty-chart",
+          "frame": "btc-difficulty-chart",
+          "position": {
+            "x": 6,
+            "y": 14,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "window": "2y"
+          }
+        },
+        {
+          "id": "pools",
+          "frame": "mining-pools",
+          "position": {
+            "x": 0,
+            "y": 18,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "window": "1w",
+            "topN": 12
+          }
+        },
+        {
+          "id": "pools-share",
+          "frame": "mining-pools-share",
+          "position": {
+            "x": 5,
+            "y": 18,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "window": "1w",
+            "topN": 5
+          }
+        },
+        {
+          "id": "lightning",
+          "frame": "lightning-stats",
+          "position": {
+            "x": 8,
+            "y": 18,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "showSplit": true
+          }
+        },
+        {
+          "id": "source-note",
+          "frame": "note",
+          "position": {
+            "x": 0,
+            "y": 22,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "text": "**Source: [mempool.space](https://mempool.space), keyless.** Every card above except the BTC chart reads one public API — no key, no signup, and no same-origin proxy, because mempool.space serves CORS-open. That is why this board still renders on a static host where the SEC, Treasury and FRED boards go empty.\n\nFee tiers are estimates the node derives from what is currently sitting in *its* mempool, so two nodes can disagree during a spike; the projected blocks are a template of what would be mined next, not a promise. Difficulty retargets every 2016 blocks (~2 weeks) and the estimated change drifts until the epoch is most of the way through. Pool attribution comes from coinbase tags, which pools set themselves — treat concentration figures as a strong hint rather than a measurement.",
+            "align": "left"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "onchain-cycle",
+    "title": "On-chain Cycle",
+    "description": "Bitcoin's cycle-valuation oscillators on one board — MVRV, NUPL, SOPR, Puell, Mayer and Pi Cycle, each against its own historical extreme, then composited.",
+    "tags": ["bitcoin", "on-chain", "cycle"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "On-chain Cycle",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "PrFtFGDE5duemLmr2YKQ",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 168,
+        "accentSat": 78,
+        "baseHue": 172,
+        "baseSat": 18
+      },
+      "typography": {
+        "fontFamily": "sans",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 14,
+        "borderStrength": 0.24,
+        "surfaceOpacity": 0.94,
+        "density": 1,
+        "elevation": 1.1
+      },
+      "frames": [
+        {
+          "id": "hd-valuation",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Valuation",
+            "subtitle": "Price against on-chain cost basis"
+          }
+        },
+        {
+          "id": "grp-valuation",
+          "frame": "group",
+          "title": "Valuation ratios",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "gap": 8,
+            "columns": 4,
+            "rows": 1,
+            "panel": true
+          },
+          "children": [
+            {
+              "id": "mvrv-1",
+              "frame": "mvrv",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "window": "all"
+              }
+            },
+            {
+              "id": "nupl-1",
+              "frame": "nupl",
+              "position": {
+                "x": 1,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "window": "all"
+              }
+            },
+            {
+              "id": "mayer-1",
+              "frame": "mayer-multiple",
+              "position": {
+                "x": 2,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "window": "2Y"
+              }
+            },
+            {
+              "id": "puell-1",
+              "frame": "puell-multiple",
+              "position": {
+                "x": 3,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "window": "1Y"
+              }
+            }
+          ]
+        },
+        {
+          "id": "mvrv-z-chart",
+          "frame": "mvrv-zscore-chart",
+          "position": {
+            "x": 0,
+            "y": 4,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "window": "all"
+          }
+        },
+        {
+          "id": "nupl-chart",
+          "frame": "nupl-cycle-chart",
+          "position": {
+            "x": 6,
+            "y": 4,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "window": "all"
+          }
+        },
+        {
+          "id": "hd-timing",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Cycle Timing",
+            "subtitle": "Spend behaviour, moving-average crosses, the checklist"
+          }
+        },
+        {
+          "id": "grp-timing",
+          "frame": "group",
+          "position": {
+            "x": 0,
+            "y": 9,
+            "w": 6,
+            "h": 3
+          },
+          "config": {
+            "gap": 8,
+            "columns": 2,
+            "rows": 1
+          },
+          "children": [
+            {
+              "id": "sopr-1",
+              "frame": "sopr",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "window": "1Y"
+              }
+            },
+            {
+              "id": "pi-cycle-1",
+              "frame": "pi-cycle",
+              "position": {
+                "x": 1,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "window": "4Y"
+              }
+            }
+          ]
+        },
+        {
+          "id": "cycle-signals-1",
+          "frame": "cycle-signals",
+          "title": "Top Signals Firing",
+          "position": {
+            "x": 6,
+            "y": 9,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "mode": "peak"
+          }
+        },
+        {
+          "id": "realized-1",
+          "frame": "realized-price",
+          "position": {
+            "x": 0,
+            "y": 13,
+            "w": 12,
+            "h": 4
+          },
+          "config": {
+            "window": "4Y"
+          }
+        },
+        {
+          "id": "hd-composite",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 17,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Composite Reads",
+            "subtitle": "Unrelated scales normalized 0–100% and overlaid"
+          }
+        },
+        {
+          "id": "composite-1",
+          "frame": "cycle-valuation-composite",
+          "position": {
+            "x": 0,
+            "y": 18,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "window": "2Y"
+          }
+        },
+        {
+          "id": "oscillators-1",
+          "frame": "onchain-oscillator-overlay",
+          "position": {
+            "x": 6,
+            "y": 18,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "window": "1Y"
+          }
+        },
+        {
+          "id": "note-limits",
+          "frame": "note",
+          "position": {
+            "x": 0,
+            "y": 22,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "align": "left",
+            "text": "### Reading these oscillators\n\nEvery metric here answers one question: **is Bitcoin expensive relative to what its holders actually paid?** MVRV and NUPL compare market cap to realized cap — the aggregate on-chain cost basis — so a high reading means most coins are sitting in unrealized profit and have something to sell. SOPR says whether coins that *did* move went out in profit or loss. Puell measures miner revenue against its own annual average. Mayer and Pi Cycle are pure price-versus-moving-average, included because they have historically turned in the same weeks as the on-chain set.\n\n**The limits are real.** These are cycle-scale indicators with a handful of observations each — four halvings is not a sample size, and every threshold on this board (MVRV 3, Mayer 2.4, NUPL 75%) was fitted after the fact to the very tops it now claims to predict. They say nothing about *when*, only *how stretched*; MVRV sat above 3 for months in 2017 and never reached it in 2021. Spot ETFs and custodial rehypothecation have also broken the assumption that an on-chain move means a change of owner, which biases SOPR and realized price in ways nobody has cleanly measured yet. Read the composites for agreement between independent signals, not any single card for a call."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "etf-flows",
+    "title": "ETF Flow Desk",
+    "description": "Where institutional money actually went — spot BTC and ETH ETF net flows, per-issuer share, and the weekly rhythm, alongside the allocation context.",
+    "tags": ["crypto", "etf", "flows", "institutional"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "ETF Flow Desk",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "cYpXuEzDqm4r3fdp4TGx",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 205,
+        "accentSat": 70,
+        "baseHue": 210,
+        "baseSat": 14
+      },
+      "typography": {
+        "fontFamily": "serif",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 10,
+        "borderStrength": 0.16,
+        "surfaceOpacity": 1,
+        "density": 1.15,
+        "elevation": 0.7
+      },
+      "frames": [
+        {
+          "id": "hd-tape",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "The Flow Tape",
+            "subtitle": "Spot BTC and ETH ETF net creations — keyless, no signup, best-effort"
+          }
+        },
+        {
+          "id": "flow-line-btc",
+          "frame": "etf-flows-chart",
+          "title": "Bitcoin — net flow trend",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "asset": "btc",
+            "lookback": "3M"
+          }
+        },
+        {
+          "id": "flow-line-eth",
+          "frame": "etf-flows-chart",
+          "title": "Ethereum — net flow trend",
+          "position": {
+            "x": 6,
+            "y": 1,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "asset": "eth",
+            "lookback": "3M"
+          }
+        },
+        {
+          "id": "flow-bars-btc",
+          "frame": "etf-flow-bars",
+          "title": "Bitcoin — daily prints",
+          "position": {
+            "x": 0,
+            "y": 5,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "asset": "btc",
+            "lookback": "1M"
+          }
+        },
+        {
+          "id": "grp-issuers",
+          "frame": "group",
+          "position": {
+            "x": 6,
+            "y": 5,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "gap": 8,
+            "columns": 2,
+            "rows": 1
+          },
+          "children": [
+            {
+              "id": "flows-btc",
+              "frame": "etf-flows",
+              "title": "BTC issuers",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "asset": "btc",
+                "limit": 8
+              }
+            },
+            {
+              "id": "flows-eth",
+              "frame": "etf-flows",
+              "title": "ETH issuers",
+              "position": {
+                "x": 1,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "asset": "eth",
+                "limit": 8
+              }
+            }
+          ]
+        },
+        {
+          "id": "hd-issuers",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 9,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Issuer Share",
+            "subtitle": "Who holds the assets, and who is gathering or losing them today"
+          }
+        },
+        {
+          "id": "issuer-treemap",
+          "frame": "etf-issuer-treemap",
+          "title": "BTC issuers by AUM",
+          "position": {
+            "x": 0,
+            "y": 10,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "asset": "btc",
+            "limit": 10
+          }
+        },
+        {
+          "id": "issuer-bars-btc",
+          "frame": "etf-issuer-bars",
+          "title": "BTC — today's flow by issuer",
+          "position": {
+            "x": 5,
+            "y": 10,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "asset": "btc",
+            "limit": 10
+          }
+        },
+        {
+          "id": "issuer-bars-eth",
+          "frame": "etf-issuer-bars",
+          "title": "ETH — today's flow by issuer",
+          "position": {
+            "x": 9,
+            "y": 10,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "asset": "eth",
+            "limit": 8
+          }
+        },
+        {
+          "id": "flow-calendar",
+          "frame": "etf-flow-calendar",
+          "title": "Bitcoin — a year of daily prints",
+          "position": {
+            "x": 0,
+            "y": 14,
+            "w": 12,
+            "h": 5
+          },
+          "config": {
+            "asset": "btc",
+            "lookback": "1Y"
+          }
+        },
+        {
+          "id": "hd-context",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 19,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Allocation Context",
+            "subtitle": "What the flows are buying into"
+          }
+        },
+        {
+          "id": "dominance",
+          "frame": "bitcoin-dominance",
+          "position": {
+            "x": 0,
+            "y": 20,
+            "w": 5,
+            "h": 3
+          },
+          "config": {
+            "showTotalMarketCap": true
+          }
+        },
+        {
+          "id": "eth-supply",
+          "frame": "eth-supply",
+          "position": {
+            "x": 5,
+            "y": 20,
+            "w": 4,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "eth-staking",
+          "frame": "eth-staking",
+          "position": {
+            "x": 9,
+            "y": 20,
+            "w": 3,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "note-caveats",
+          "frame": "note",
+          "position": {
+            "x": 0,
+            "y": 23,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "align": "left",
+            "text": "### Reading these numbers\n\nA daily net flow is **creations minus redemptions** in the ETF wrapper — the shares the authorised participants struck that day, not the number of coins any one investor bought. It is the cleanest institutional-demand series that exists in crypto, because it is disclosed rather than inferred.\n\nWhat it is **not**: it is not net market demand. A redemption can be one holder rotating from GBTC into IBIT, which prints as a large outflow and a large inflow on the same day and moves nothing on-chain. It is not a price driver you can trade directly — flows are published after the close, so the tape you are reading here has already been priced. And it is not the whole market: perps, spot venues and OTC desks dwarf the ETF complex on most days.\n\nSource is [SoSoValue](https://sosovalue.com), a keyless mirror of issuer disclosures. These cards render **empty rather than wrong** when it is unreachable — a blank flow card means no print was available, never a zero-flow day. Market holidays genuinely have no print, which is why the calendar has gaps."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "nft-sectors",
+    "title": "NFT & Sector Rotation",
+    "description": "Where crypto capital and attention are rotating — blue-chip NFT floors, sector market caps, and the coins retail is searching for, all off CoinGecko's keyless tier.",
+    "tags": ["crypto", "nft", "rotation"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "NFT & Sector Rotation",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "K42KSY4FXeXhjVOj9RgT",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 292,
+        "accentSat": 82,
+        "baseHue": 278,
+        "baseSat": 24
+      },
+      "typography": {
+        "fontFamily": "sans",
+        "numericStyle": "proportional"
+      },
+      "appearance": {
+        "radius": 22,
+        "borderStrength": 0.2,
+        "surfaceOpacity": 0.9,
+        "density": 1.05,
+        "elevation": 1.6
+      },
+      "frames": [
+        {
+          "id": "hd-nft",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Blue-chip NFTs",
+            "subtitle": "Floors, caps and sales for ten curated majors — keyless CoinGecko"
+          }
+        },
+        {
+          "id": "nft-map",
+          "frame": "nft-treemap",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "topN": 8
+          }
+        },
+        {
+          "id": "nft-quadrants",
+          "frame": "nft-scatter",
+          "position": {
+            "x": 6,
+            "y": 1,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "limit": 12
+          }
+        },
+        {
+          "id": "nft-list",
+          "frame": "nft-collections",
+          "position": {
+            "x": 0,
+            "y": 5,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "topN": 8
+          }
+        },
+        {
+          "id": "nft-cloud",
+          "frame": "nft-bubbles",
+          "position": {
+            "x": 4,
+            "y": 5,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "topN": 8
+          }
+        },
+        {
+          "id": "nft-sales",
+          "frame": "nft-activity-bars",
+          "position": {
+            "x": 8,
+            "y": 5,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "limit": 10
+          }
+        },
+        {
+          "id": "hd-sectors",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 9,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Sector Rotation",
+            "subtitle": "Market categories ranked by 24h market-cap change — where capital moved"
+          }
+        },
+        {
+          "id": "sector-map",
+          "frame": "sector-treemap",
+          "position": {
+            "x": 0,
+            "y": 10,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "limit": 16
+          }
+        },
+        {
+          "id": "sector-cloud",
+          "frame": "sector-bubbles",
+          "position": {
+            "x": 6,
+            "y": 10,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "limit": 16
+          }
+        },
+        {
+          "id": "sector-move",
+          "frame": "sector-bars",
+          "position": {
+            "x": 0,
+            "y": 14,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "limit": 12
+          }
+        },
+        {
+          "id": "sector-list",
+          "frame": "sector-performance",
+          "position": {
+            "x": 6,
+            "y": 14,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "limit": 12
+          }
+        },
+        {
+          "id": "hd-attention",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 18,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Attention",
+            "subtitle": "What retail is searching for on CoinGecko right now"
+          }
+        },
+        {
+          "id": "trend-cloud",
+          "frame": "trending-bubbles",
+          "position": {
+            "x": 0,
+            "y": 19,
+            "w": 6,
+            "h": 5
+          },
+          "config": {
+            "limit": 10
+          }
+        },
+        {
+          "id": "trend-list",
+          "frame": "trending-coins",
+          "position": {
+            "x": 6,
+            "y": 19,
+            "w": 3,
+            "h": 5
+          },
+          "config": {
+            "limit": 7
+          }
+        },
+        {
+          "id": "trend-move",
+          "frame": "trending-bars",
+          "position": {
+            "x": 9,
+            "y": 19,
+            "w": 3,
+            "h": 5
+          },
+          "config": {
+            "limit": 7
+          }
+        },
+        {
+          "id": "nft-caveat",
+          "frame": "note",
+          "position": {
+            "x": 0,
+            "y": 24,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "align": "left",
+            "text": "**About the NFT data.** CoinGecko's keyless tier has no bulk NFT endpoint, so the provider walks a hand-picked list of ten majors (Bored Ape, CryptoPunks, Pudgy Penguins, Azuki, …) **one `/nfts/{id}` call at a time**, skipping any collection that fails rather than dropping the whole card. That has three consequences worth knowing before you read a number off this board:\n\n- The set is **curated, not ranked** — a collection that mooned last night is not here unless it was already on the list.\n- The sequential walk shares this provider's rate limit with the sector and trending rows above, so the NFT cards are cached on a **long ~45 minute TTL** and lag the others.\n- A missing tile means that one collection's call was skipped, not that it went to zero.\n\nThe sector and trending sections have proper bulk endpoints and refresh on a normal short cycle."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "vol-surface",
+    "title": "Volatility Surface",
+    "description": "The Deribit options book, read as a surface — vol indices, the smile, OI across strike and expiry, and where max pain pins each dated book.",
+    "tags": ["options", "volatility", "derivatives"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Volatility Surface",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "qpoj0wFWmgwRVXmzRMiL",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 350,
+        "accentSat": 84,
+        "baseHue": 340,
+        "baseSat": 20
+      },
+      "typography": {
+        "fontFamily": "mono",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 5,
+        "borderStrength": 0.32,
+        "surfaceOpacity": 1,
+        "density": 0.85,
+        "elevation": 0.45
+      },
+      "frames": [
+        {
+          "id": "hd-level",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Volatility Surface",
+            "subtitle": "Deribit options — the level, the skew and the term"
+          }
+        },
+        {
+          "id": "dvol-spread",
+          "frame": "options-vol-spread",
+          "title": "BTC vs ETH Implied Vol",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 8,
+            "h": 4
+          },
+          "config": {
+            "lookback": "3M"
+          }
+        },
+        {
+          "id": "pc-gauge",
+          "frame": "put-call-gauge",
+          "position": {
+            "x": 8,
+            "y": 1,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "currency": "BTC",
+            "basis": "oi"
+          }
+        },
+        {
+          "id": "oi-ladder",
+          "frame": "options-oi-ladder-heatmap",
+          "position": {
+            "x": 0,
+            "y": 5,
+            "w": 8,
+            "h": 5
+          },
+          "config": {
+            "currency": "BTC",
+            "expiries": 8,
+            "buckets": 12
+          }
+        },
+        {
+          "id": "maxpain-term",
+          "frame": "options-max-pain-multi",
+          "position": {
+            "x": 8,
+            "y": 5,
+            "w": 4,
+            "h": 5
+          },
+          "config": {
+            "currency": "BTC",
+            "expiries": 8
+          }
+        },
+        {
+          "id": "hd-smile",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 10,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "The Smile",
+            "subtitle": "Nearest expiry — what each tail costs, strike by strike"
+          }
+        },
+        {
+          "id": "smile-btc",
+          "frame": "options-vol-smile",
+          "title": "BTC Vol Smile",
+          "position": {
+            "x": 0,
+            "y": 11,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "currency": "BTC"
+          }
+        },
+        {
+          "id": "smile-eth",
+          "frame": "options-vol-smile",
+          "title": "ETH Vol Smile",
+          "position": {
+            "x": 6,
+            "y": 11,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "currency": "ETH"
+          }
+        },
+        {
+          "id": "oi-skew-btc",
+          "frame": "options-oi-skew",
+          "position": {
+            "x": 0,
+            "y": 15,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "currency": "BTC",
+            "strikes": 16
+          }
+        },
+        {
+          "id": "maxpain-btc",
+          "frame": "options-max-pain",
+          "position": {
+            "x": 6,
+            "y": 15,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "currency": "BTC"
+          }
+        },
+        {
+          "id": "hd-flow",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 19,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Flow vs Positioning",
+            "subtitle": "24h volume skew against standing open-interest skew"
+          }
+        },
+        {
+          "id": "flow-btc",
+          "frame": "options-flow-skew",
+          "title": "BTC — Flow vs OI",
+          "position": {
+            "x": 0,
+            "y": 20,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "currency": "BTC"
+          }
+        },
+        {
+          "id": "flow-eth",
+          "frame": "options-flow-skew",
+          "title": "ETH — Flow vs OI",
+          "position": {
+            "x": 6,
+            "y": 20,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "currency": "ETH"
+          }
+        },
+        {
+          "id": "read-me",
+          "frame": "note",
+          "title": "How to read this board",
+          "position": {
+            "x": 0,
+            "y": 24,
+            "w": 12,
+            "h": 4
+          },
+          "config": {
+            "text": "**Max pain** is the settlement strike at which option writers pay out the least — the point where the most contracts expire worthless. It is an *arithmetic property of the open book*, not a forecast: it moves whenever positioning moves, and it is recomputed from scratch on every poll. Price does drift toward it into a large expiry, but the honest reading is “here is where the book is heaviest”, not “here is where price is going”.\n\n**Skew** is the asymmetry between the call and put sides. On the OI-skew card that is the standing book; on the flow-skew cards it is netted against 24h volume, so the two bases fighting each other is the interesting state — fresh flow buying calls into a put-heavy book is a different market from one where both agree.\n\n**The smile** is implied vol by strike for one expiry. Its *shape* is the signal: a steep put wing means the market pays up for downside protection, a lifted call wing means it is paying for upside convexity. A flat smile is a market pricing no tail at all.\n\nCaveats worth holding onto: every card here reads **Deribit only**, which is the deepest crypto options venue but not the whole market — OTC and CME books are invisible. Illiquid far strikes carry wide, stale marks, so the wings of the smile are the least trustworthy part of it. And OI is a *stock*, not a flow: a large number at a strike says a position exists, never who is long it or why.",
+            "align": "left"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "funding-carry",
+    "title": "Funding & Carry",
+    "description": "What it costs to hold a perp — funding ranked across the whole Hyperliquid universe, its cross-venue spreads, and the open interest crowded behind them.",
+    "tags": ["derivatives", "funding", "crypto"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Funding & Carry",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "PrFtFGDE5duemLmr2YKQ",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 96,
+        "accentSat": 74,
+        "baseHue": 100,
+        "baseSat": 14
+      },
+      "typography": {
+        "fontFamily": "mono",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 3,
+        "borderStrength": 0.3,
+        "surfaceOpacity": 1,
+        "density": 0.9,
+        "elevation": 0.3
+      },
+      "frames": [
+        {
+          "id": "hd-now",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Funding & Carry",
+            "subtitle": "The cost of holding, ranked across the perp universe"
+          }
+        },
+        {
+          "id": "leaderboard",
+          "frame": "funding-leaderboard-bars",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "limit": 12
+          }
+        },
+        {
+          "id": "carry",
+          "frame": "funding-carry-area",
+          "position": {
+            "x": 4,
+            "y": 1,
+            "w": 8,
+            "h": 4
+          },
+          "config": {
+            "symbols": ["BTC", "ETH", "SOL"],
+            "lookback": "1M"
+          }
+        },
+        {
+          "id": "calendar",
+          "frame": "funding-calendar",
+          "position": {
+            "x": 0,
+            "y": 5,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "symbol": "BTC",
+            "lookback": "3M",
+            "weekStart": "monday"
+          }
+        },
+        {
+          "id": "histogram",
+          "frame": "funding-distribution",
+          "position": {
+            "x": 6,
+            "y": 5,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "symbol": "BTC",
+            "lookback": "3M"
+          }
+        },
+        {
+          "id": "hd-venue",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 9,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Venue dispersion",
+            "subtitle": "Where Hyperliquid, Binance and Bybit disagree on the price of time"
+          }
+        },
+        {
+          "id": "spread",
+          "frame": "funding-spread-bars",
+          "position": {
+            "x": 0,
+            "y": 10,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "limit": 10
+          }
+        },
+        {
+          "id": "venue-map",
+          "frame": "funding-venue-heatmap",
+          "position": {
+            "x": 4,
+            "y": 10,
+            "w": 8,
+            "h": 4
+          },
+          "config": {
+            "limit": 10
+          }
+        },
+        {
+          "id": "hd-crowding",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 14,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Crowding & liquidity",
+            "subtitle": "Which stretched rates have the size behind them to squeeze"
+          }
+        },
+        {
+          "id": "crowding",
+          "frame": "funding-crowding-scatter",
+          "position": {
+            "x": 0,
+            "y": 15,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "limit": 40
+          }
+        },
+        {
+          "id": "oi",
+          "frame": "oi-treemap",
+          "position": {
+            "x": 6,
+            "y": 15,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "limit": 14
+          }
+        },
+        {
+          "id": "vol-movers",
+          "frame": "volume-movers-scatter",
+          "position": {
+            "x": 0,
+            "y": 19,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "limit": 40
+          }
+        },
+        {
+          "id": "vol-share",
+          "frame": "volume-share-donut",
+          "position": {
+            "x": 6,
+            "y": 19,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "limit": 8
+          }
+        },
+        {
+          "id": "basis",
+          "frame": "liquidity-basis-bars",
+          "position": {
+            "x": 9,
+            "y": 19,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "metric": "basis",
+            "limit": 10
+          }
+        },
+        {
+          "id": "btc-volume",
+          "frame": "ohlcv-volume-bars",
+          "position": {
+            "x": 0,
+            "y": 23,
+            "w": 8,
+            "h": 4
+          },
+          "config": {
+            "symbol": "BTC",
+            "interval": "4h"
+          }
+        },
+        {
+          "id": "explainer",
+          "frame": "note",
+          "position": {
+            "x": 8,
+            "y": 23,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "text": "**What funding is.** A perp has no expiry, so nothing forces it back to spot. Funding does the forcing: every hour, whichever side is trading rich pays the other. Positive funding means longs pay shorts — the market is leaning long and paying for the privilege.\n\nSo the rate is a *price of positioning*, not a price of the asset. Hold a perp for a month at 30% annualised funding and you have paid 2.5% before the trade is right or wrong.\n\n**Why the venue spread matters.** Each venue sets its own rate off its own book, so the same coin can pay on one and charge on another. That gap is a delta-neutral trade: long where funding is negative, short where it is positive, collect the difference. It is also a warning — a rate stretched far past its neighbours usually means one venue's longs are crowded, and crowded longs are what liquidation cascades are made of.",
+            "align": "left"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "yield-stables",
+    "title": "Yield & Stablecoins",
+    "description": "What DeFi actually pays and where the stablecoin float sits — the yield distribution behind the headline pools, the incentive-vs-organic split, and the capital that funds it.",
+    "tags": ["defi", "yield", "stablecoins"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Yield & Stablecoins",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "cYpXuEzDqm4r3fdp4TGx",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 158,
+        "accentSat": 66,
+        "baseHue": 196,
+        "baseSat": 12
+      },
+      "typography": {
+        "fontFamily": "sans",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 18,
+        "borderStrength": 0.14,
+        "surfaceOpacity": 1,
+        "density": 1.18,
+        "elevation": 0.6
+      },
+      "frames": [
+        {
+          "id": "hd-yield",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "What DeFi pays",
+            "subtitle": "Every pool above the TVL floor — not just the top ten"
+          }
+        },
+        {
+          "id": "yield-hist",
+          "frame": "yield-distribution",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "stablecoinOnly": false,
+            "minTvlUsd": 5000000,
+            "maxApy": 150
+          }
+        },
+        {
+          "id": "yield-scatter",
+          "frame": "yield-scatter",
+          "position": {
+            "x": 5,
+            "y": 1,
+            "w": 7,
+            "h": 4
+          },
+          "config": {
+            "limit": 45,
+            "maxApy": 60,
+            "stablecoinOnly": false
+          }
+        },
+        {
+          "id": "yield-composition",
+          "frame": "yield-composition-scatter",
+          "title": "Organic vs Incentive APY — Stables",
+          "position": {
+            "x": 0,
+            "y": 5,
+            "w": 5,
+            "h": 5
+          },
+          "config": {
+            "limit": 40,
+            "stablecoinOnly": true
+          }
+        },
+        {
+          "id": "yield-momentum",
+          "frame": "yield-momentum-bars",
+          "position": {
+            "x": 5,
+            "y": 5,
+            "w": 3,
+            "h": 5
+          },
+          "config": {
+            "limit": 12,
+            "minTvlUsd": 5000000
+          }
+        },
+        {
+          "id": "yield-risk",
+          "frame": "yield-risk-pie",
+          "position": {
+            "x": 8,
+            "y": 5,
+            "w": 4,
+            "h": 5
+          }
+        },
+        {
+          "id": "hd-float",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 10,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "The float and the capital",
+            "subtitle": "Where stablecoins sit, and which slice of DeFi holds it"
+          }
+        },
+        {
+          "id": "stable-chains",
+          "frame": "stablecoin-chains",
+          "position": {
+            "x": 0,
+            "y": 11,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "limit": 12
+          }
+        },
+        {
+          "id": "tvl-category",
+          "frame": "protocol-tvl-by-category",
+          "position": {
+            "x": 5,
+            "y": 11,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "limit": 10
+          }
+        },
+        {
+          "id": "defi-rev",
+          "frame": "defi-revenue",
+          "position": {
+            "x": 9,
+            "y": 11,
+            "w": 3,
+            "h": 4
+          }
+        },
+        {
+          "id": "tvl-share",
+          "frame": "protocol-tvl-share-area",
+          "position": {
+            "x": 0,
+            "y": 15,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "protocols": ["lido", "aave", "eigenlayer", "uniswap"],
+            "lookback": "3M"
+          }
+        },
+        {
+          "id": "dex-share",
+          "frame": "dex-volume-share-area",
+          "position": {
+            "x": 6,
+            "y": 15,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "protocols": ["uniswap", "pancakeswap", "aerodrome-slipstream"],
+            "lookback": "3M"
+          }
+        },
+        {
+          "id": "hd-eth",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 19,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Ethereum's own rate",
+            "subtitle": "The staking yield every DeFi APY is quoted against"
+          }
+        },
+        {
+          "id": "grp-eth-rate",
+          "frame": "group",
+          "title": "Ethereum's own rate",
+          "position": {
+            "x": 0,
+            "y": 20,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "gap": 8,
+            "columns": 12,
+            "rows": 1
+          },
+          "children": [
+            {
+              "id": "eth-apr",
+              "frame": "eth-staking",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 3,
+                "h": 1
+              }
+            },
+            {
+              "id": "eth-supply",
+              "frame": "eth-supply",
+              "position": {
+                "x": 3,
+                "y": 0,
+                "w": 4,
+                "h": 1
+              }
+            },
+            {
+              "id": "eth-issuance",
+              "frame": "eth-issuance-impact",
+              "position": {
+                "x": 7,
+                "y": 0,
+                "w": 5,
+                "h": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "yield-note",
+          "frame": "note",
+          "position": {
+            "x": 0,
+            "y": 23,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "text": "**Advertised APY is not risk-adjusted.** Every yield number on this board is a quoted rate, not an expected return: it carries no charge for smart-contract risk, no haircut for the depeg risk in a stablecoin pair, and — where the reward axis of the composition scatter is doing the work — no guarantee the emissions funding it survive the next epoch. The impermanent-loss donut splits pools by *exposure*, not by realised loss.\n\nPool, TVL, category and DEX-volume figures come from [DefiLlama](https://defillama.com) (keyless public API, daily granularity on the stacked areas); ETH issuance, burn and staking APR come from ultrasound.money. Nothing here is a recommendation.",
+            "align": "left"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "labor-inflation",
+    "title": "Labor & Inflation",
+    "description": "Jobs, wages and the price level as the statistical agencies actually publish them — BLS payrolls, participation and CPI beside the Treasury's own debt books, all keyless.",
+    "tags": ["macro", "labor", "inflation"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Labor & Inflation",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "YrTzGatwjK7EoFpCSfgZ",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 218,
+        "accentSat": 26,
+        "baseHue": 220,
+        "baseSat": 10
+      },
+      "typography": {
+        "fontFamily": "serif",
+        "numericStyle": "proportional"
+      },
+      "appearance": {
+        "radius": 2,
+        "borderStrength": 0.42,
+        "surfaceOpacity": 1,
+        "density": 0.88,
+        "elevation": 0.2
+      },
+      "frames": [
+        {
+          "id": "hd-labor",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Labor",
+            "subtitle": "The BLS household and establishment surveys — monthly, revised twice"
+          }
+        },
+        {
+          "id": "labor-snapshot",
+          "frame": "labor-market",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "months": 24
+          }
+        },
+        {
+          "id": "payrolls",
+          "frame": "payrolls-bars",
+          "position": {
+            "x": 4,
+            "y": 1,
+            "w": 8,
+            "h": 4
+          },
+          "config": {
+            "months": 24
+          }
+        },
+        {
+          "id": "participation",
+          "frame": "labor-force-flow",
+          "position": {
+            "x": 0,
+            "y": 5,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "months": 36
+          }
+        },
+        {
+          "id": "real-wages",
+          "frame": "real-wages",
+          "position": {
+            "x": 6,
+            "y": 5,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "months": 36
+          }
+        },
+        {
+          "id": "hd-prices",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 9,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Prices",
+            "subtitle": "CPI-U all items, and what it costs when jobs go with it"
+          }
+        },
+        {
+          "id": "cpi",
+          "frame": "inflation-pulse",
+          "position": {
+            "x": 0,
+            "y": 10,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "months": 24
+          }
+        },
+        {
+          "id": "misery",
+          "frame": "misery-index",
+          "position": {
+            "x": 4,
+            "y": 10,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "months": 36
+          }
+        },
+        {
+          "id": "calendar",
+          "frame": "macro-calendar",
+          "position": {
+            "x": 8,
+            "y": 10,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "limit": 6,
+            "events": [
+              {
+                "date": "2026-08-12",
+                "label": "CPI — July"
+              },
+              {
+                "date": "2026-09-04",
+                "label": "Jobs report — August"
+              },
+              {
+                "date": "2026-09-11",
+                "label": "CPI — August"
+              },
+              {
+                "date": "2026-09-16",
+                "label": "FOMC decision"
+              },
+              {
+                "date": "2026-10-02",
+                "label": "Jobs report — September"
+              },
+              {
+                "date": "2026-10-13",
+                "label": "CPI — September"
+              },
+              {
+                "date": "2026-10-28",
+                "label": "FOMC decision"
+              }
+            ]
+          }
+        },
+        {
+          "id": "hd-ledger",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 14,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "The Public Ledger",
+            "subtitle": "Treasury debt and what it costs to carry — daily, official"
+          }
+        },
+        {
+          "id": "debt-total",
+          "frame": "national-debt",
+          "position": {
+            "x": 0,
+            "y": 15,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "trendDays": 365,
+            "showSplit": false
+          }
+        },
+        {
+          "id": "debt-composition",
+          "frame": "treasury-debt-composition-area",
+          "position": {
+            "x": 4,
+            "y": 15,
+            "w": 8,
+            "h": 4
+          },
+          "config": {
+            "trendDays": 365
+          }
+        },
+        {
+          "id": "avg-rates",
+          "frame": "treasury-avg-rate-bars",
+          "position": {
+            "x": 0,
+            "y": 19,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "limit": 14
+          }
+        },
+        {
+          "id": "stress-categories",
+          "frame": "ofr-stress-category-area",
+          "position": {
+            "x": 6,
+            "y": 19,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "trendDays": 90
+          }
+        },
+        {
+          "id": "provenance",
+          "frame": "note",
+          "position": {
+            "x": 0,
+            "y": 23,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "text": "**Everything here is an official published series** — the Bureau of Labor Statistics' payroll, participation, earnings and CPI prints, the Treasury's Debt to the Penny and average interest rates, and the OFR's stress index. None of it is modelled, estimated or forecast by zframes.\n\n**Read the lag.** The labor and CPI series describe a month that ended weeks ago, and the BLS revises payrolls twice after first publication — the most recent bar on the payrolls chart is the least trustworthy one on it. Only the Treasury and OFR cards update daily.\n\n**These route through the runtime's proxy.** BLS, Treasury and OFR all refuse cross-origin browser requests, so `zframes serve` relays them same-origin. On a static host with no runtime, every card above blanks."
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "traders-desk",
+    "title": "Trader's Desk",
+    "description": "The discipline layer — session clocks, position sizing, and a decision journal. Almost nothing here is market data; it is the trader's own process, laid out as a board.",
+    "tags": ["tools", "journal", "workflow"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Trader's Desk",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "YrTzGatwjK7EoFpCSfgZ",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 48,
+        "accentSat": 90,
+        "baseHue": 40,
+        "baseSat": 8
+      },
+      "typography": {
+        "fontFamily": "mono",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 4,
+        "borderStrength": 0.38,
+        "surfaceOpacity": 1,
+        "density": 0.82,
+        "elevation": 0.3
+      },
+      "frames": [
+        {
+          "id": "hd-session",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "The Session",
+            "subtitle": "Where the trading day actually is — computed client-side, no data provider"
+          }
+        },
+        {
+          "id": "hours",
+          "frame": "market-hours",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "exchanges": ["NYSE", "NASDAQ", "LSE", "TSE", "HKEX", "SGX"],
+            "sort": "status"
+          }
+        },
+        {
+          "id": "holidays",
+          "frame": "holiday-calendar",
+          "title": "Closures Ahead",
+          "position": {
+            "x": 4,
+            "y": 1,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "exchange": "NYSE",
+            "count": 5,
+            "label": "New York"
+          }
+        },
+        {
+          "id": "grp-clocks",
+          "frame": "group",
+          "position": {
+            "x": 8,
+            "y": 1,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "gap": 8,
+            "columns": 1,
+            "rows": 2
+          },
+          "children": [
+            {
+              "id": "session-nyse",
+              "frame": "session-progress",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "exchange": "NYSE",
+                "label": "Cash session",
+                "showCountdown": true
+              }
+            },
+            {
+              "id": "fomc",
+              "frame": "countdown",
+              "position": {
+                "x": 0,
+                "y": 1,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "target": "2026-09-17T14:00:00-04:00",
+                "label": "FOMC Decision",
+                "showTarget": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "week",
+          "frame": "day-meter",
+          "position": {
+            "x": 0,
+            "y": 5,
+            "w": 12,
+            "h": 2
+          },
+          "config": {
+            "exchange": "NYSE",
+            "weekdaysOnly": true,
+            "label": "This week"
+          }
+        },
+        {
+          "id": "hd-sizing",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 7,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Sizing & Risk",
+            "subtitle": "One setup, sized before it is taken — pure client-side math"
+          }
+        },
+        {
+          "id": "grp-setup",
+          "frame": "group",
+          "title": "One setup, sized",
+          "position": {
+            "x": 0,
+            "y": 8,
+            "w": 12,
+            "h": 4
+          },
+          "config": {
+            "gap": 8,
+            "columns": 4,
+            "rows": 1,
+            "panel": true
+          },
+          "children": [
+            {
+              "id": "sizer",
+              "frame": "calculator",
+              "title": "Position Size",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "account": 25000,
+                "riskPct": 1,
+                "entry": 182.4,
+                "stop": 174.8,
+                "currency": "$"
+              }
+            },
+            {
+              "id": "rr",
+              "frame": "risk-reward",
+              "position": {
+                "x": 1,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "entry": 182.4,
+                "stop": 174.8,
+                "target": 205.2,
+                "direction": "long",
+                "label": "NVDA · 3R"
+              }
+            },
+            {
+              "id": "avg",
+              "frame": "breakeven",
+              "position": {
+                "x": 2,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "fills": [
+                  {
+                    "price": 181.2,
+                    "size": 12
+                  },
+                  {
+                    "price": 183.05,
+                    "size": 8
+                  },
+                  {
+                    "price": 184.6,
+                    "size": 13
+                  }
+                ],
+                "currentPrice": 189.7,
+                "label": "NVDA long"
+              }
+            },
+            {
+              "id": "preflight",
+              "frame": "checklist",
+              "position": {
+                "x": 3,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "title": "Pre-flight",
+                "items": [
+                  "Higher-timeframe bias agrees",
+                  "Stop is at a level, not a number",
+                  "Size respects the 1% budget",
+                  "No print inside the hold window",
+                  "I can name what invalidates this"
+                ],
+                "checked": [true, true, true, false, false]
+              }
+            }
+          ]
+        },
+        {
+          "id": "hd-journal",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 12,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "The Journal",
+            "subtitle": "Log the call, watch it mark, read it back graded"
+          }
+        },
+        {
+          "id": "grp-journal",
+          "frame": "group",
+          "title": "The loop",
+          "position": {
+            "x": 0,
+            "y": 13,
+            "w": 12,
+            "h": 5
+          },
+          "config": {
+            "gap": 8,
+            "columns": 3,
+            "rows": 1
+          },
+          "children": [
+            {
+              "id": "log",
+              "frame": "journal-log",
+              "position": {
+                "x": 0,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {}
+            },
+            {
+              "id": "open",
+              "frame": "journal-open",
+              "position": {
+                "x": 1,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "max": 6
+              }
+            },
+            {
+              "id": "results",
+              "frame": "journal-results",
+              "position": {
+                "x": 2,
+                "y": 0,
+                "w": 1,
+                "h": 1
+              },
+              "config": {
+                "max": 6
+              }
+            }
+          ]
+        },
+        {
+          "id": "score",
+          "frame": "journal-score",
+          "position": {
+            "x": 0,
+            "y": 18,
+            "w": 4,
+            "h": 3
+          },
+          "config": {}
+        },
+        {
+          "id": "rules",
+          "frame": "rules-card",
+          "position": {
+            "x": 4,
+            "y": 18,
+            "w": 4,
+            "h": 3
+          },
+          "config": {
+            "title": "Desk rules",
+            "rules": [
+              "No trade without a written invalidation",
+              "One percent, whatever the conviction",
+              "Never widen a stop; you may only cut",
+              "Two losses closes the session",
+              "Log it at the price, not at the memory"
+            ]
+          }
+        },
+        {
+          "id": "about",
+          "frame": "note",
+          "title": "About this board",
+          "position": {
+            "x": 8,
+            "y": 18,
+            "w": 4,
+            "h": 3
+          },
+          "config": {
+            "text": "**Nothing on this board is live market data.** The clocks are computed from bundled exchange hours, the sizing cards are arithmetic over numbers you typed, and the journal is your own log — the only feed anywhere here is the quote the journal marks your open calls against.\n\nThat is deliberate. The other boards tell you what the market did; this one is the part you control. Edit every value on it — the fills, the rules, the checklist, the countdown — because the defaults are somebody else's trade.",
+            "align": "left"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "id": "crowd-signal",
+    "title": "Crowd Signal",
+    "description": "What the crowd believes, priced — live Polymarket odds, the fear & greed mood, the news tape, and the return distribution that eventually settles the argument.",
+    "tags": ["sentiment", "prediction-markets", "crypto"],
+    "landingOrder": null,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Crowd Signal",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "PrFtFGDE5duemLmr2YKQ",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 72,
+        "accentSat": 95,
+        "baseHue": 90,
+        "baseSat": 14
+      },
+      "typography": {
+        "fontFamily": "sans",
+        "numericStyle": "proportional"
+      },
+      "appearance": {
+        "radius": 16,
+        "borderStrength": 0.22,
+        "surfaceOpacity": 0.88,
+        "density": 1.05,
+        "elevation": 1.8
+      },
+      "frames": [
+        {
+          "id": "hd-odds",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "The Odds",
+            "subtitle": "Live Polymarket — real money, staked on what happens next"
+          }
+        },
+        {
+          "id": "pm-list",
+          "frame": "prediction-markets",
+          "title": "Highest-Volume Markets",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 4,
+            "h": 5
+          },
+          "config": {
+            "limit": 8
+          }
+        },
+        {
+          "id": "pm-bars",
+          "frame": "prediction-market-bars",
+          "position": {
+            "x": 4,
+            "y": 1,
+            "w": 5,
+            "h": 5
+          },
+          "config": {
+            "limit": 10
+          }
+        },
+        {
+          "id": "mood-dial",
+          "frame": "sentiment-gauge",
+          "title": "Crowd Mood",
+          "position": {
+            "x": 9,
+            "y": 1,
+            "w": 3,
+            "h": 5
+          },
+          "config": {}
+        },
+        {
+          "id": "pm-scatter",
+          "frame": "prediction-market-scatter",
+          "position": {
+            "x": 0,
+            "y": 6,
+            "w": 6,
+            "h": 5
+          },
+          "config": {
+            "limit": 20
+          }
+        },
+        {
+          "id": "pm-bubbles",
+          "frame": "prediction-markets-bubble",
+          "position": {
+            "x": 6,
+            "y": 6,
+            "w": 6,
+            "h": 5
+          },
+          "config": {
+            "limit": 14
+          }
+        },
+        {
+          "id": "hd-mood",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 11,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Mood",
+            "subtitle": "A year of fear and greed — the swing, and how long it stuck"
+          }
+        },
+        {
+          "id": "fg-chart",
+          "frame": "fear-greed-chart",
+          "position": {
+            "x": 0,
+            "y": 12,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "days": 365
+          }
+        },
+        {
+          "id": "fg-calendar",
+          "frame": "sentiment-calendar",
+          "position": {
+            "x": 6,
+            "y": 12,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "days": 365,
+            "weekStart": "monday"
+          }
+        },
+        {
+          "id": "momentum-heatmap",
+          "frame": "coin-momentum-heatmap",
+          "position": {
+            "x": 0,
+            "y": 16,
+            "w": 5,
+            "h": 5
+          },
+          "config": {
+            "limit": 18
+          }
+        },
+        {
+          "id": "momentum-scatter",
+          "frame": "coin-momentum-scatter",
+          "position": {
+            "x": 5,
+            "y": 16,
+            "w": 7,
+            "h": 5
+          },
+          "config": {
+            "limit": 60
+          }
+        },
+        {
+          "id": "hd-tape",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 21,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "The Tape & The Reality Check",
+            "subtitle": "What the crowd is reading, against what the market actually did"
+          }
+        },
+        {
+          "id": "tape",
+          "frame": "news-feed",
+          "title": "Markets Tape",
+          "position": {
+            "x": 0,
+            "y": 22,
+            "w": 4,
+            "h": 5
+          },
+          "config": {
+            "source": "cnbc",
+            "count": 10
+          }
+        },
+        {
+          "id": "breadth",
+          "frame": "breadth-histogram",
+          "position": {
+            "x": 4,
+            "y": 22,
+            "w": 4,
+            "h": 5
+          },
+          "config": {
+            "window": "24h",
+            "minRank": 200
+          }
+        },
+        {
+          "id": "btc-returns",
+          "frame": "return-distribution",
+          "position": {
+            "x": 8,
+            "y": 22,
+            "w": 4,
+            "h": 5
+          },
+          "config": {
+            "symbol": "BTC",
+            "period": "daily",
+            "lookback": "2Y",
+            "showNormalCurve": true
+          }
+        },
+        {
+          "id": "reading-note",
+          "frame": "note",
+          "position": {
+            "x": 0,
+            "y": 27,
+            "w": 12,
+            "h": 3
+          },
+          "config": {
+            "text": "**How to read this board.** A prediction-market price is a *price*, not a promise. \"68%\" means someone was willing to pay 68 cents for a dollar that pays out if the event happens — a number shaped by who showed up, how much capital they had, and what it costs them to hold the position until settlement. Thin markets drift, and a resolution months away carries a funding cost that pulls the quote away from anyone's honest estimate. Read the volume beside the odds; the scatter above is there for exactly that reason.\n\nSentiment is the same trap in a different shape. Fear & greed measures *how the crowd feels*, which is most useful when it disagrees with what the crowd is doing — extreme readings have historically marked turns more often than continuations, so treat it as a contrarian input rather than a signal to follow. Nothing here is a forecast. It is a record of what people currently believe, worth exactly as much as the money standing behind it."
+          }
+        }
+      ]
+    }
+  }
+]

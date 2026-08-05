@@ -22,7 +22,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
 import postgres from "postgres";
-import { CURATED } from "../app/lib/curated-dashboards";
 import { CAPTURE_WATERMARK_BAND } from "../app/lib/thumb-image";
 
 const BASE = (
@@ -76,11 +75,15 @@ async function main() {
     )
   `;
 
-  const community = await sql<{ id: string }[]>`
+  // One query for BOTH kinds now. Curated boards were a static module until
+  // 2026-08-05; they are `curated: true` rows in this same table, so this no
+  // longer unions a code list with a DB list — the `where` already covers them
+  // (curated rows are listed + approved).
+  const rows = await sql<{ id: string }[]>`
     select id from dashboards
     where visibility = 'listed' and status = 'approved'
-  `.catch(() => []); // no dashboards table yet → curated only
-  const targets = [...CURATED.map((d) => d.id), ...community.map((r) => r.id)];
+  `.catch(() => []); // no dashboards table yet → nothing to capture
+  const targets = rows.map((r) => r.id);
 
   if (targets.length === 0) {
     console.log("no dashboards to capture");
