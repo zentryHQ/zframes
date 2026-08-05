@@ -162,6 +162,11 @@ const COMMIT_DEBOUNCE_MS = 400;
 /** How long the "Frame removed — Undo" toast stays up. */
 const UNDO_TOAST_MS = 7000;
 
+/** Row height last handed to each nested grid, so a re-fit that computes the same
+ *  value doesn't rewrite the grid's stylesheet. Keyed by the grid itself, so a
+ *  torn-down group takes its entry with it. */
+const appliedCellPx = new WeakMap<GridStack, number>();
+
 /**
  * The spec's own default for every cosmetic field, parsed straight out of the
  * schema.
@@ -1000,13 +1005,20 @@ export function DashboardEditor({
         (parseFloat(cs.paddingBottom) || 0) +
         // The item's own inter-frame gutter, which GridStack applies as margin on
         // the content box rather than as item padding.
-        (parseFloat(getComputedStyle(host).marginTop) || 0) +
-        (parseFloat(getComputedStyle(host).marginBottom) || 0);
+        (parseFloat(cs.marginTop) || 0) +
+        (parseFloat(cs.marginBottom) || 0);
       const h = item.clientHeight - pad;
       // Pre-layout (height 0) there is nothing to fit yet — the ResizeObserver in
       // mountSubGrid calls back once the browser has sized the item.
       if (h <= 0) return;
-      sub.cellHeight(subCellPx(h, rows, gap));
+      const cell = subCellPx(h, rows, gap);
+      // The observer fires continuously through GridStack's resize animation, and
+      // most of those frames land on the same row height. cellHeight() rewrites
+      // the nested grid's stylesheet, so re-applying an unchanged value is pure
+      // layout thrash.
+      if (appliedCellPx.get(sub) === cell) return;
+      appliedCellPx.set(sub, cell);
+      sub.cellHeight(cell);
     },
     [],
   );
@@ -1173,7 +1185,17 @@ export function DashboardEditor({
       // Observes the ITEM for the same reason fitSubGrid measures it: the host's
       // height is an output of the fit, so watching it would feed back.
       if (typeof ResizeObserver === "function") {
-        const ro = new ResizeObserver(() => fitSubGrid(el, host, sub));
+        // The observer fires many times per GridStack resize animation, so the
+        // fit is coalesced into one pending frame (latest box wins) instead of
+        // measuring and writing a row height per notification.
+        let fitFrame = 0;
+        const ro = new ResizeObserver(() => {
+          if (fitFrame) return;
+          fitFrame = requestAnimationFrame(() => {
+            fitFrame = 0;
+            fitSubGrid(el, host, sub);
+          });
+        });
         ro.observe(el);
         subObserversRef.current.set(instance.id, ro);
       } else {
@@ -1420,12 +1442,33 @@ export function DashboardEditor({
 
       grid.on("removed", () => setCount(grid.getGridItems().length));
 
+      // Horizontal drag-scroll state. GridStack keeps ONE handler per drag event,
+      // so a second grid.on("dragstart") would replace the cursor handler below
+      // rather than run beside it — the gesture hooks live in those handlers.
+      //
+      // `drag` fires on every pointer move, so the scroller's box is measured
+      // once per gesture and the nudge is written inside one pending rAF: a rect
+      // read plus a scrollLeft write per move is a forced layout per move.
+      let scrollerRect: DOMRect | null = null;
+      let pendingScroll = 0;
+      let scrollFrame = 0;
+      const endDragScroll = () => {
+        scrollerRect = null;
+        if (scrollFrame) cancelAnimationFrame(scrollFrame);
+        scrollFrame = 0;
+        pendingScroll = 0;
+      };
+
       // Hold the closed-hand cursor for the whole drag. A hover-only rule drops
       // as soon as GridStack slides the pointer off the dragged content box onto
       // the placeholder/grid, so pin `grabbing` on <body> from dragstart→dragstop
       // — covers the placeholder, sibling cards, and any body-appended helper.
-      grid.on("dragstart", () => document.body.classList.add("zf-dragging"));
+      grid.on("dragstart", () => {
+        endDragScroll();
+        document.body.classList.add("zf-dragging");
+      });
       grid.on("dragstop", () => {
+        endDragScroll();
         document.body.classList.remove("zf-dragging");
         // One undo step per completed gesture, not per intermediate position.
         // A drag that ended where it began pushes nothing (pushHistory drops
@@ -1435,7 +1478,10 @@ export function DashboardEditor({
       // Resizing a group re-fits its children's row height too, but that is the
       // per-group ResizeObserver's job (mountSubGrid) — it sees the settled box,
       // which this event does not. Nothing to do here but record the gesture.
-      grid.on("resizestop", () => commitHistoryRef.current?.());
+      grid.on("resizestop", () => {
+        endDragScroll();
+        commitHistoryRef.current?.();
+      });
 
       if (horizontal) {
         // GridStack has no horizontal drag-scroll — nudge the wrapper when the
@@ -1443,14 +1489,20 @@ export function DashboardEditor({
         grid.on("drag", (event: Event) => {
           const scroller = gridRef.current?.parentElement;
           if (!scroller) return;
-          const r = scroller.getBoundingClientRect();
           const cx =
             (event as MouseEvent).clientX ??
             (event as TouchEvent).touches?.[0]?.clientX;
           if (cx == null) return;
+          if (!scrollerRect) scrollerRect = scroller.getBoundingClientRect();
           const edge = 64;
-          if (cx < r.left + edge) scroller.scrollLeft -= 18;
-          else if (cx > r.right - edge) scroller.scrollLeft += 18;
+          if (cx < scrollerRect.left + edge) pendingScroll = -18;
+          else if (cx > scrollerRect.right - edge) pendingScroll = 18;
+          else pendingScroll = 0;
+          if (scrollFrame || pendingScroll === 0) return;
+          scrollFrame = requestAnimationFrame(() => {
+            scrollFrame = 0;
+            if (pendingScroll !== 0) scroller.scrollLeft += pendingScroll;
+          });
         });
       }
       return grid;
