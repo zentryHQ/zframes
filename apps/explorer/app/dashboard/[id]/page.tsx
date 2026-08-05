@@ -1,13 +1,28 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CURATED } from "@/app/lib/curated-dashboards";
 import { resolveDashboard } from "@/app/lib/resolve-dashboard";
 import { DashboardPreview } from "./DashboardPreview";
 
-// Prerender the curated ids; community (DB) ids render dynamically on demand.
-export function generateStaticParams() {
-  return CURATED.map((d) => ({ id: d.id }));
-}
+/**
+ * NOT prerendered — cached on first request instead (ISR).
+ *
+ * There was a `generateStaticParams` here that baked the curated ids in at build
+ * time. It went with the move of the showcase from code into the `dashboards`
+ * table (2026-08-05), for two reasons, the first of which is the whole point of
+ * that move:
+ *
+ *  1. Prerendering content that lives in a mutable table defeats the purpose. A
+ *     board edited with SQL would not appear until the next deploy — which is
+ *     exactly the "you must ship code to change a board" problem we were removing.
+ *  2. It made `next build` depend on a reachable database. In dev that database
+ *     is the single-connection PGlite socket and the build prerenders with 11
+ *     workers, so they raced it and the build died on `ECONNRESET`.
+ *
+ * `revalidate` keeps the win that prerendering was buying: the first request
+ * renders and caches, every request after that is served from the cache until the
+ * window expires. A board is stale by at most this long after an edit.
+ */
+export const revalidate = 300; // 5 minutes
 
 // Per-dashboard unfurl. The og:image is wired automatically by the sibling
 // opengraph-image.tsx; here we set the title/description text + metadataBase

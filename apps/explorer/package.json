@@ -10,6 +10,8 @@
     "build": "next build",
     "start": "next start -p 37264",
     "thumbs:capture": "tsx scripts/capture-thumbs.ts",
+    "seed:curated": "tsx scripts/seed-curated.ts",
+    "validate:dashboards": "tsx scripts/validate-dashboards.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -3,13 +3,16 @@
 import { frameSearchTokens } from "@zframes/core";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CURATED } from "@/app/lib/curated-dashboards";
+import type { BoardListing } from "@/app/lib/board-summary";
 import { DashboardCard } from "@/app/lib/DashboardCard";
 import { synthLayout } from "@/app/lib/DashboardThumb";
 import { SectionHeading } from "@/app/lib/SectionHeading";
 import { Input } from "@/app/components/ui/input";
 
-type Row = { id: string; title: string; tags: string[]; frameCount: number };
+// Both sections now come from /api/dashboards. Curated boards used to be a static
+// import (`CURATED`); they are rows since 2026-08-05, so the whole gallery is one
+// fetch and the two sections differ only in which array they came from.
+type GalleryResponse = { curated: BoardListing[]; community: BoardListing[] };
 
 // The gallery: Curated + Community dashboards behind ONE free-text search box.
 // Client-only so the search stays interactive and the community grid can be
@@ -17,12 +20,15 @@ type Row = { id: string; title: string; tags: string[]; frameCount: number };
 // synced to the URL (?q=…) — shareable, refresh-persistent — and reuses the
 // frame tokenizer from @zframes/spec so the whole explorer filters consistently.
 export function GalleryView() {
-  const [rows, setRows] = useState<Row[] | null>(null);
+  const [data, setData] = useState<GalleryResponse | null>(null);
   useEffect(() => {
     fetch("/api/dashboards")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setRows)
-      .catch(() => setRows([]));
+      .then((r) => (r.ok ? r.json() : { curated: [], community: [] }))
+      .then((d: GalleryResponse) =>
+        // Defensive: an older cached response was a bare array (community only).
+        setData(Array.isArray(d) ? { curated: [], community: d } : d),
+      )
+      .catch(() => setData({ curated: [], community: [] }));
   }, []);
 
   const [query, setQuery] = useState(() => {
@@ -45,24 +51,25 @@ export function GalleryView() {
     tokens.every((token) => haystack.includes(token));
 
   const curated = useMemo(() => {
-    if (!searching) return CURATED;
-    return CURATED.filter((d) =>
+    if (data === null) return null;
+    if (!searching) return data.curated;
+    return data.curated.filter((d) =>
       matches(`${d.title} ${d.tags.join(" ")} ${d.description}`.toLowerCase()),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searching, tokens]);
+  }, [data, searching, tokens]);
 
   const community = useMemo(() => {
-    if (rows === null) return null;
-    if (!searching) return rows;
-    return rows.filter((d) =>
+    if (data === null) return null;
+    if (!searching) return data.community;
+    return data.community.filter((d) =>
       matches(`${d.title} ${d.tags.join(" ")}`.toLowerCase()),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, searching, tokens]);
+  }, [data, searching, tokens]);
 
   const noResults =
-    searching && curated.length === 0 && (community?.length ?? 0) === 0;
+    searching && (curated?.length ?? 0) === 0 && (community?.length ?? 0) === 0;
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
@@ -106,28 +113,47 @@ export function GalleryView() {
       )}
 
       {/* ── Curated ──────────────────────────────────────────────────────── */}
-      {curated.length > 0 && (
+      {/* `curated === null` is the pre-fetch state — it used to be impossible
+          (the boards were compiled in), so the section renders a skeleton now
+          rather than briefly claiming there are none. */}
+      {curated === null ? (
         <section className="mb-16">
-          <SectionHeading
-            eyebrow="Curated"
-            title="Boards to start from"
-            description="Hand-built dashboards spanning crypto majors, on-chain data, and official US macro."
-          />
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {curated.map((d) => (
-              <DashboardCard
-                key={d.id}
-                href={`/dashboard/${d.id}`}
-                title={d.title}
-                description={d.description}
-                tags={d.tags}
-                frameCount={d.spec.frames.length}
-                frames={d.spec.frames}
-                thumbSrc={`/api/thumbs/${d.id}`}
-              />
+          <div
+            className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+            aria-hidden
+          >
+            {Array.from({ length: 3 }, (_, i) => (
+              <div key={i} className="zf-surface h-64 animate-pulse" />
             ))}
           </div>
         </section>
+      ) : (
+        curated.length > 0 && (
+          <section className="mb-16">
+            <SectionHeading
+              eyebrow="Curated"
+              title="Boards to start from"
+              description="Hand-built dashboards spanning crypto majors, on-chain data, and official US macro."
+            />
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {curated.map((d) => (
+                <DashboardCard
+                  key={d.id}
+                  href={`/dashboard/${d.id}`}
+                  title={d.title}
+                  description={d.description}
+                  tags={d.tags}
+                  frameCount={d.frameCount}
+                  // The board's REAL geometry, projected server-side — a curated
+                  // thumbnail still mirrors its actual layout rather than falling
+                  // back to the synthesised one community boards use.
+                  frames={d.layout}
+                  thumbSrc={`/api/thumbs/${d.id}`}
+                />
+              ))}
+            </div>
+          </section>
+        )
       )}
 
       {/* ── Community ────────────────────────────────────────────────────── */}

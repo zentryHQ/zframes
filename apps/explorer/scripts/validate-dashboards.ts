@@ -1,0 +1,88 @@
+/**
+ * Validate every dashboard currently in the database.
+ *
+ *   pnpm --dir apps/explorer validate:dashboards            # all boards
+ *   pnpm --dir apps/explorer validate:dashboards --curated  # showcase only
+ *
+ * WHY THIS EXISTS. `tests/curated-specs.test.tsx` used to validate the showcase at
+ * CI time, because the boards were TypeScript. They are rows now (2026-08-05), and
+ * a jsonb column cannot fail a build — so the same checks have to run *against the
+ * data*, on a schedule, rather than against the source at compile time.
+ *
+ * `validateDashboardSpec` gates every WRITE, so a board cannot enter the table
+ * broken. What it cannot catch is a board that was valid when written and became
+ * invalid later — which is the common case, not the rare one: renaming a frame,
+ * dropping a `lazy.ts` loader, renaming a config field or tightening an enum all
+ * invalidate stored boards without touching them. That is exactly the failure the
+ * old test existed to prevent, and this is where it now gets caught.
+ *
+ * Exits non-zero when any board fails, so it can run as a scheduled monitor
+ * alongside the provider-liveness and frame-render suites (see
+ * .github/scripts/README.md) and file an issue rather than gate a PR.
+ */
+import {
+  formatProblems,
+  validateDashboardSpec,
+} from "../app/lib/validate-spec";
+
+// Same default as the other scripts; set before the db module is imported (it
+// throws at import time on a missing DATABASE_URL).
+process.env.DATABASE_URL ??=
+  "postgres://postgres:postgres@127.0.0.1:5433/postgres";
+
+async function main() {
+  const curatedOnly = process.argv.includes("--curated");
+  const { db } = await import("../app/lib/db");
+  const { dashboards } = await import("../app/lib/db/schema");
+  const { and, eq, ne } = await import("drizzle-orm");
+
+  const rows = await db
+    .select({
+      id: dashboards.id,
+      title: dashboards.title,
+      curated: dashboards.curated,
+      spec: dashboards.spec,
+    })
+    .from(dashboards)
+    .where(
+      curatedOnly
+        ? and(eq(dashboards.curated, true), ne(dashboards.status, "removed"))
+        : ne(dashboards.status, "removed"),
+    );
+
+  if (rows.length === 0) {
+    // Not a pass. An empty table means the showcase is missing — the gallery and
+    // the landing page would render empty and nothing else would complain.
+    console.error(
+      "✗ no dashboards in the database. Seed them: pnpm --dir apps/explorer seed:curated",
+    );
+    process.exit(1);
+  }
+
+  const broken: string[] = [];
+  for (const row of rows) {
+    const result = validateDashboardSpec(row.spec);
+    if (result.ok) continue;
+    broken.push(
+      `${row.curated ? "curated" : "community"} "${row.id}" (${row.title}):\n${formatProblems(
+        result.problems,
+      )}`,
+    );
+  }
+
+  const curatedCount = rows.filter((r) => r.curated).length;
+  console.log(
+    `checked ${rows.length} dashboard(s) — ${curatedCount} curated, ${rows.length - curatedCount} community`,
+  );
+
+  if (broken.length) {
+    console.error(`\n✗ ${broken.length} invalid:\n\n${broken.join("\n\n")}`);
+    process.exit(1);
+  }
+  console.log("✓ every stored dashboard still validates against the registry");
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

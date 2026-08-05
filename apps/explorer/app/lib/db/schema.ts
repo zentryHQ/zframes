@@ -63,18 +63,38 @@ export const verification = pgTable("verification", {
 });
 
 // ── zframes dashboards ───────────────────────────────────────────────────────
-// One row per published dashboard. Immutable-per-publish: publishing again mints
-// a new id (an "update" is a new row), so a shared link is a stable snapshot.
-// ownerId → user.id is a real FK (Better Auth users live in this same DB), so
-// "my dashboards" is a native join.
+// One row per dashboard — community publishes AND the curated showcase, which
+// moved out of `app/lib/curated-dashboards.ts` and into this table (2026-08-05).
+// Community rows are immutable-per-publish: publishing again mints a new id (an
+// "update" is a new row), so a shared link is a stable snapshot. Curated rows are
+// the exception — they are upserted by id, because a curated board's URL is its
+// slug (`/d/gold-desk`) and must survive an edit.
+//
+// The three curated-only columns below are what let one table serve both. A
+// community row leaves all three at their defaults, so nothing about publishing
+// changed.
 
 export const dashboards = pgTable("dashboards", {
-  id: text("id").primaryKey(), // short id (nanoid)
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey(), // community: nanoid · curated: a readable slug
+  // Nullable BECAUSE of curated rows: a showcase board has no user behind it, and
+  // inventing a synthetic "zframes" row in Better Auth's `user` table to satisfy
+  // a FK would put a fake account in the auth system to model authorship that
+  // doesn't exist. `listByOwner` filters by a real id, so null rows never match.
+  ownerId: text("owner_id").references(() => user.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   spec: jsonb("spec").notNull(), // the DashboardSpec (validated before insert)
+  // Curated only: the editorial one-liner the gallery searches and shows. A
+  // community publish has no field for it in the UI, so it stays null.
+  description: text("description"),
+  // True for the editorial showcase. Drives the gallery's two sections and marks
+  // the rows the seeder owns (it upserts by id and would otherwise have no way to
+  // tell its own rows from a user's).
+  curated: boolean("curated").notNull().default(false),
+  // Curated only: position in the landing page's sticky card stack, or null to
+  // appear in the gallery but not on the front door. Replaces the old
+  // `LANDING_IDS` array — an ORDER, so the sequence is data rather than the
+  // literal order of a hand-written list.
+  landingOrder: integer("landing_order"),
   visibility: text("visibility").notNull().default("unlisted"), // listed | unlisted
   // Publishing is open (no review queue / admin UI). `status` stays as the
   // operator's SQL-only takedown lever: set "removed" and the dashboard drops

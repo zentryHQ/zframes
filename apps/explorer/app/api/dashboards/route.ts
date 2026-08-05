@@ -1,33 +1,41 @@
-import { DashboardSpecSchema } from "@zframes/spec/spec";
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/app/lib/auth-session";
+import { toBoardListing } from "@/app/lib/board-summary";
 import {
   listCommunity,
+  listCurated,
   publishDashboard,
   type Visibility,
 } from "@/app/lib/dashboards";
-import { findUnsafeUrls } from "@/app/lib/sanitize-spec";
 import { sameOrigin } from "@/app/lib/same-origin";
+import { formatProblems, validateDashboardSpec } from "@/app/lib/validate-spec";
 
 export const runtime = "nodejs";
 
-// GET /api/dashboards — the public community gallery (listed + approved).
-// Returns lightweight summaries (no full spec — that's fetched per-id).
+// GET /api/dashboards — everything the gallery lists, in its two sections.
+//
+// Was community-only: the curated boards were a module the client imported
+// directly. They are rows now (2026-08-05), so both sections come from here, and
+// the response gained a `curated` array rather than changing the existing shape —
+// an older client reading the top-level array still works.
+//
+// Lightweight by design: `layout` is the bare {id, frame, position} per card that
+// the thumbnail draws, never the spec. A curated spec is tens of KB and the
+// gallery shows eighteen of them.
 export async function GET() {
-  const rows = await listCommunity();
-  return NextResponse.json(
-    rows.map((d) => ({
-      id: d.id,
-      title: d.title,
-      tags: d.tags,
+  const [curatedRows, communityRows] = await Promise.all([
+    listCurated(),
+    listCommunity(),
+  ]);
+  return NextResponse.json({
+    curated: curatedRows.map(toBoardListing),
+    community: communityRows.map((d) => ({
+      ...toBoardListing(d),
       views: d.views,
       forks: d.forks,
       createdAt: d.createdAt,
-      frameCount: Array.isArray((d.spec as { frames?: unknown[] })?.frames)
-        ? (d.spec as { frames: unknown[] }).frames.length
-        : 0,
     })),
-  );
+  });
 }
 
 // POST /api/dashboards — publish (auth-gated). Immutable: mints a new id.
@@ -55,30 +63,30 @@ export async function POST(request: Request) {
   };
 
   // The spec is the contract — validate it, never trust the client.
-  const parsed = DashboardSpecSchema.safeParse(b.spec);
-  if (!parsed.success) {
+  //
+  // This now runs the FULL gate (`validateDashboardSpec`), not just the schema
+  // plus a URL-scheme scan: frame names resolve in the registry, every frame has
+  // a lazy loader, configs pass their own schemas and carry no dead keys,
+  // geometry fits and nothing overlaps, grouped children fit their group, ids are
+  // unique, and no unsafe URL appears anywhere.
+  //
+  // Those checks used to exist only as a CI test over the curated module. Moving
+  // the showcase into the table meant re-homing them here — which incidentally
+  // closed a real gap: a community board naming a dead frame, or a config field
+  // that had since been renamed, was publishable before and rendered as an error
+  // card (or a silently wrong number) for everyone who opened it.
+  const validation = validateDashboardSpec(b.spec);
+  if (!validation.ok) {
     return NextResponse.json(
       {
         error: "invalid dashboard spec",
-        issues: parsed.error.issues.slice(0, 8),
+        issues: validation.problems.slice(0, 8),
+        detail: formatProblems(validation.problems.slice(0, 8)),
       },
       { status: 400 },
     );
   }
-
-  // Untrusted-render guard: this spec will render for other people. Reject any
-  // dangerous URL scheme (javascript:/data:/vbscript:/file:) in frame configs.
-  const unsafe = findUnsafeUrls(parsed.data);
-  if (unsafe.length) {
-    return NextResponse.json(
-      {
-        error:
-          "unsafe URL scheme in a frame config (javascript:/data:/vbscript:/file:)",
-        offending: unsafe.slice(0, 5),
-      },
-      { status: 400 },
-    );
-  }
+  const parsed = { data: validation.spec };
 
   const title =
     typeof b.title === "string" && b.title.trim()
