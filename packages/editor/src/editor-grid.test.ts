@@ -385,6 +385,7 @@ describe("containerGeometry", () => {
       columns: z.number().int().min(1).default(2),
       rows: z.number().int().min(1).default(2),
       gap: z.number().min(0).default(8),
+      panel: z.boolean().default(false),
     }),
   } as unknown as AnyFrameDefinition;
 
@@ -401,8 +402,13 @@ describe("containerGeometry", () => {
 
   it("reads the declared geometry off the config", () => {
     expect(
-      containerGeometry(containerDef, { columns: 4, rows: 3, gap: 0 }),
-    ).toEqual({ columns: 4, rows: 3, gap: 0 });
+      containerGeometry(containerDef, {
+        columns: 4,
+        rows: 3,
+        gap: 0,
+        panel: true,
+      }),
+    ).toEqual({ columns: 4, rows: 3, gap: 0, panel: true });
   });
 
   it("applies the schema's own defaults for an empty config", () => {
@@ -410,12 +416,23 @@ describe("containerGeometry", () => {
       columns: 2,
       rows: 2,
       gap: 8,
+      panel: false,
     });
     expect(containerGeometry(containerDef, undefined)).toEqual({
       columns: 2,
       rows: 2,
       gap: 8,
+      panel: false,
     });
+  });
+
+  it("carries `panel` through, which the editor has to restate itself", () => {
+    // The editor never renders the renderer's `.zf-group--panel`, so this flag is
+    // how the surrounding surface reaches customise mode. It travelled only after
+    // a real-browser pass showed the panel appearing on reload but not while
+    // editing — the WYSIWYG break customise mode exists to avoid.
+    expect(containerGeometry(containerDef, { panel: true })?.panel).toBe(true);
+    expect(containerGeometry(containerDef, {})?.panel).toBe(false);
   });
 
   it("falls back to a usable grid when the config is invalid", () => {
@@ -424,7 +441,7 @@ describe("containerGeometry", () => {
     // rather than showing the user a bad config.
     expect(
       containerGeometry(containerDef, { columns: "lots", rows: -4 }),
-    ).toEqual({ columns: 2, rows: 2, gap: 8 });
+    ).toEqual({ columns: 2, rows: 2, gap: 8, panel: false });
   });
 });
 
