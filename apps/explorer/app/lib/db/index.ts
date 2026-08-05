@@ -7,7 +7,9 @@ import * as schema from "./schema";
 //  • prod → Neon
 // PGlite never enters the Next bundle (it lives only in the dev socket process),
 // so there's no WASM-in-Next to fight, and dev mirrors prod exactly.
-const url = process.env.DATABASE_URL;
+// Trimmed: a platform env var pasted with a stray space or newline otherwise
+// fails deep inside the driver as ERR_INVALID_URL with the value masked.
+const url = process.env.DATABASE_URL?.trim();
 if (!url) {
   throw new Error(
     "DATABASE_URL is not set. Dev: start `node scripts/pglite-server.mjs` and set DATABASE_URL in .env.local.",
