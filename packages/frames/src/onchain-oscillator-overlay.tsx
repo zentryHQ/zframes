@@ -16,6 +16,10 @@ import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = onchainOscillatorOverlayMeta.schema;
 
+function formatOscillator(v: number) {
+  return formatPct(v * 100, 0);
+}
+
 const WINDOW_OPTIONS = ["90D", "180D", "1Y"] as const;
 
 function OnchainOscillatorOverlay({
@@ -62,7 +66,7 @@ function OnchainOscillatorOverlay({
       series={series}
       timeframe={ChartTimeframe.YTD}
       height={260}
-      formatValue={(v) => formatPct(v * 100, 0)}
+      formatValue={formatOscillator}
       control={
         <TimeframeToggle
           options={WINDOW_OPTIONS}

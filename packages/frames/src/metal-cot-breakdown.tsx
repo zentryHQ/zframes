@@ -10,6 +10,10 @@ import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = metalCotBreakdownMeta.schema;
 
+function formatContracts(v: number) {
+  return formatCompact(Math.abs(v));
+}
+
 /** "23 Jul 2026" — the reported Tuesday, matching the rest of the metals family. */
 function formatWeek(time: number): string {
   return new Date(time).toLocaleDateString("en-GB", {
@@ -94,7 +98,7 @@ function MetalCotBreakdown({ config }: { config: z.output<typeof schema> }) {
         data={bars}
         orientation="horizontal"
         height={Math.max(bars.length * 24, 96)}
-        formatValue={(v) => formatCompact(Math.abs(v))}
+        formatValue={formatContracts}
       />
 
       <div className={scrollAreaClass}>

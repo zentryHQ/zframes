@@ -20,6 +20,10 @@ import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = cycleValuationCompositeMeta.schema;
 
+function formatComposite(v: number) {
+  return formatPct(v * 100, 0);
+}
+
 const WINDOW_OPTIONS = ["1Y", "2Y", "4Y", "all"] as const;
 
 function CycleValuationComposite({
@@ -80,7 +84,7 @@ function CycleValuationComposite({
       series={series}
       timeframe={ChartTimeframe.YTD}
       height={260}
-      formatValue={(v) => formatPct(v * 100, 0)}
+      formatValue={formatComposite}
       control={
         <TimeframeToggle
           options={WINDOW_OPTIONS}

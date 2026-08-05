@@ -1,6 +1,6 @@
 import type { BubbleNode } from "@zframes/charts";
 import { defineFrame, useCoinMarkets, useMoney } from "@zframes/core";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { z } from "zod";
 import { assetLogoUrl } from "./asset-logo";
 import { BubbleCloud } from "./bubbles-shared";
@@ -41,6 +41,14 @@ function MarketBubbles({ config }: { config: z.output<typeof schema> }) {
     [entries, config.limit, config.sizeBy],
   );
 
+  const formatTitle = useCallback(
+    (n: BubbleNode) => {
+      const coin = n as CoinBubble;
+      return `${coin.label} · ${money.compact(coin.marketCapUsd)} mcap · ${formatChangePct(coin.changePct24h)}`;
+    },
+    [money],
+  );
+
   return (
     <BubbleCloud
       nodes={nodes}
@@ -48,10 +56,7 @@ function MarketBubbles({ config }: { config: z.output<typeof schema> }) {
       loadingText="loading markets…"
       emptyText="no market data yet"
       caption={`area by ${config.sizeBy === "change" ? "24h move" : "market cap"} · ring by 24h change · top ${nodes.length}`}
-      formatTitle={(n) => {
-        const coin = n as CoinBubble;
-        return `${coin.label} · ${money.compact(coin.marketCapUsd)} mcap · ${formatChangePct(coin.changePct24h)}`;
-      }}
+      formatTitle={formatTitle}
     />
   );
 }

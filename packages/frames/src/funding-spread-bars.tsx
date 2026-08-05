@@ -8,6 +8,10 @@ import { FrameStatus } from "./ui";
 
 const schema = fundingSpreadBarsMeta.schema;
 
+function formatSpread(v: number) {
+  return formatPct(v, 1);
+}
+
 function FundingSpreadBars({ config }: { config: z.output<typeof schema> }) {
   const { comparison, isLoading } = useFundingComparison();
 
@@ -29,7 +33,7 @@ function FundingSpreadBars({ config }: { config: z.output<typeof schema> }) {
         data={data}
         orientation="horizontal"
         height={Math.max(data.length * 26, 96)}
-        formatValue={(v) => formatPct(v, 1)}
+        formatValue={formatSpread}
       />
       <div className="caption text-soft text-center">
         cross-venue funding spread, annualized · top {data.length}

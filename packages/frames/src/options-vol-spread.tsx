@@ -13,6 +13,10 @@ import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = optionsVolSpreadMeta.schema;
 
+function formatVol(v: number) {
+  return v.toFixed(1);
+}
+
 const LOOKBACKS: Record<
   string,
   { ms: number; res: number; timeframe: ChartTimeframe }
@@ -67,7 +71,7 @@ function OptionsVolSpread({ config }: { config: z.output<typeof schema> }) {
       series={series}
       timeframe={timeframe}
       height={250}
-      formatValue={(v) => v.toFixed(1)}
+      formatValue={formatVol}
       control={
         <TimeframeToggle
           options={LOOKBACK_OPTIONS}

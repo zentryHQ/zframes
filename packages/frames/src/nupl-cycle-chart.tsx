@@ -15,6 +15,10 @@ import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 
 const schema = nuplCycleChartMeta.schema;
 
+function formatNupl(v: number) {
+  return formatPct(v, 1);
+}
+
 const WINDOW_OPTIONS = ["1Y", "2Y", "4Y", "all"] as const;
 
 function NuplCycleChart({ config }: { config: z.output<typeof schema> }) {
@@ -47,7 +51,7 @@ function NuplCycleChart({ config }: { config: z.output<typeof schema> }) {
       series={series}
       timeframe={ChartTimeframe.YTD}
       height={220}
-      formatValue={(v) => formatPct(v, 1)}
+      formatValue={formatNupl}
       control={
         <TimeframeToggle
           options={WINDOW_OPTIONS}

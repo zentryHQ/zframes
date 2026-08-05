@@ -20,6 +20,10 @@ const schema = returnCalendarMeta.schema;
 const LOOKBACK_DAYS = { "3M": 92, "6M": 183, "1Y": 366 } as const;
 const LOOKBACK_OPTIONS = ["3M", "6M", "1Y"] as const;
 
+function formatRangePct(v: number) {
+  return formatPct(v);
+}
+
 const METRIC_LABEL = {
   return: "daily return",
   volume: "daily volume",
@@ -85,7 +89,7 @@ function ReturnCalendar({ config }: { config: z.output<typeof schema> }) {
       ? formatChangePct
       : config.metric === "volume"
         ? formatCompact
-        : (v: number) => formatPct(v);
+        : formatRangePct;
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-1">

@@ -8,6 +8,10 @@ import { FrameStatus } from "./ui";
 
 const schema = fundingBarsMeta.schema;
 
+function formatBarValue(v: number) {
+  return formatFundingPct(v);
+}
+
 function FundingBars({ config }: { config: z.output<typeof schema> }) {
   const { comparison, isLoading } = useFundingComparison();
   const coin = config.coin.trim().toUpperCase();
@@ -37,7 +41,7 @@ function FundingBars({ config }: { config: z.output<typeof schema> }) {
         color={UP_COLOR}
         negativeColor={DOWN_COLOR}
         height={Math.max(data.length * 28, 84)}
-        formatValue={(v) => formatFundingPct(v)}
+        formatValue={formatBarValue}
       />
       <div className="caption text-soft text-center">
         {coin} funding, annualized · spread{" "}

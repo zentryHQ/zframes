@@ -1,6 +1,6 @@
 import type { BubbleNode } from "@zframes/charts";
 import { defineFrame, useMoney, useProtocolTvl } from "@zframes/core";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { z } from "zod";
 import { BubbleCloud } from "./bubbles-shared";
 import { changeColor, formatChangePct } from "./format";
@@ -32,6 +32,12 @@ function ProtocolTvlBubbles({ config }: { config: z.output<typeof schema> }) {
     [entries, config.topN],
   );
 
+  const formatTitle = useCallback(
+    (n: BubbleNode) =>
+      `${n.label} · ${money.compact(n.value)} TVL · ${formatChangePct((n as ProtocolBubble).changePct)}`,
+    [money],
+  );
+
   return (
     <BubbleCloud
       nodes={nodes}
@@ -39,9 +45,7 @@ function ProtocolTvlBubbles({ config }: { config: z.output<typeof schema> }) {
       loadingText="loading protocol TVL…"
       emptyText="no protocol TVL data"
       caption={`area by TVL · ring by 1d change · top ${nodes.length}`}
-      formatTitle={(n) =>
-        `${n.label} · ${money.compact(n.value)} TVL · ${formatChangePct((n as ProtocolBubble).changePct)}`
-      }
+      formatTitle={formatTitle}
     />
   );
 }

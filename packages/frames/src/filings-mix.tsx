@@ -42,16 +42,24 @@ const BUCKETS = [
 function FilingsMix({ config }: { config: z.output<typeof schema> }) {
   const { data, isLoading } = useCompanyFilings(config.symbol);
 
-  const slices = useMemo(() => {
+  const { slices, pie, colors } = useMemo(() => {
     const counts: Record<"important" | "insider" | "other", number> = {
       important: 0,
       insider: 0,
       other: 0,
     };
     for (const filing of data?.filings ?? []) counts[bucketOf(filing.form)]++;
-    return BUCKETS.map((bucket) => ({ ...bucket, value: counts[bucket.id] }))
+    const sorted = BUCKETS.map((bucket) => ({
+      ...bucket,
+      value: counts[bucket.id],
+    }))
       .filter((bucket) => bucket.value > 0)
       .sort((a, b) => b.value - a.value);
+    return {
+      slices: sorted,
+      pie: sorted.map((slice) => ({ name: slice.label, value: slice.value })),
+      colors: sorted.map((slice) => slice.color),
+    };
   }, [data]);
 
   const total = slices.reduce((sum, slice) => sum + slice.value, 0);
@@ -65,15 +73,12 @@ function FilingsMix({ config }: { config: z.output<typeof schema> }) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-4">
       <PieChart
-        data={slices.map((slice) => ({
-          name: slice.label,
-          value: slice.value,
-        }))}
+        data={pie}
         width={200}
         height={200}
         innerRadius={58}
         outerRadius={92}
-        colors={slices.map((slice) => slice.color)}
+        colors={colors}
       >
         <div className="flex flex-col items-center gap-0.5">
           <span className="caption text-soft">

@@ -12,6 +12,11 @@ interface TrendingBubble extends BubbleNode {
   changePct24h: number;
 }
 
+function formatTitle(n: BubbleNode) {
+  const coin = n as TrendingBubble;
+  return `${coin.label} · ${formatChangePct(coin.changePct24h)}`;
+}
+
 function TrendingBubbles({ config }: { config: z.output<typeof schema> }) {
   const { coins, isLoading } = useTrendingCoins();
 
@@ -40,10 +45,7 @@ function TrendingBubbles({ config }: { config: z.output<typeof schema> }) {
       loadingText="loading trending…"
       emptyText="no trending data yet"
       caption={`area by |24h change| · top ${nodes.length} trending`}
-      formatTitle={(n) => {
-        const coin = n as TrendingBubble;
-        return `${coin.label} · ${formatChangePct(coin.changePct24h)}`;
-      }}
+      formatTitle={formatTitle}
     />
   );
 }

@@ -5,7 +5,7 @@ import {
   useProtocolFees,
   useProtocolTvl,
 } from "@zframes/core";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { z } from "zod";
 import { protocolFeesVsTvlScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -45,6 +45,8 @@ function ProtocolFeesVsTvlScatter({
       }));
   }, [tvlEntries, feeEntries, config.limit]);
 
+  const formatX = useCallback((v: number) => money.compact(10 ** v), [money]);
+
   const isLoading = tvlLoading || feesLoading;
   if (isLoading) return <FrameStatus loading>loading protocols…</FrameStatus>;
   if (data.length === 0)
@@ -56,7 +58,7 @@ function ProtocolFeesVsTvlScatter({
         data={data}
         yScale="log"
         height={210}
-        formatX={(v) => money.compact(10 ** v)}
+        formatX={formatX}
         formatY={money.compact}
         maxLabels={10}
       />

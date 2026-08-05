@@ -8,6 +8,10 @@ import { FrameStatus } from "./ui";
 
 const schema = yieldScatterMeta.schema;
 
+function formatApy(v: number) {
+  return formatPct(v, 0);
+}
+
 function YieldScatter({ config }: { config: z.output<typeof schema> }) {
   const { pools, isLoading } = useYieldPools();
   const money = useMoney();
@@ -44,7 +48,7 @@ function YieldScatter({ config }: { config: z.output<typeof schema> }) {
         data={data}
         yScale="log"
         height={210}
-        formatX={(v) => formatPct(v, 0)}
+        formatX={formatApy}
         formatY={money.compact}
         maxLabels={8}
       />

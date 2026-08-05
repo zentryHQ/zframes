@@ -1,6 +1,6 @@
 import type { BubbleNode } from "@zframes/charts";
 import { defineFrame, useMoney, useTvlByChain } from "@zframes/core";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import type { z } from "zod";
 import { BubbleCloud } from "./bubbles-shared";
 import { tvlBubblesMeta } from "./schemas";
@@ -24,6 +24,11 @@ function TvlBubbles({ config }: { config: z.output<typeof schema> }) {
     [entries, config.topN],
   );
 
+  const formatTitle = useCallback(
+    (n: BubbleNode) => `${n.label} · ${money.compact(n.value)} TVL`,
+    [money],
+  );
+
   return (
     <BubbleCloud
       nodes={nodes}
@@ -31,7 +36,7 @@ function TvlBubbles({ config }: { config: z.output<typeof schema> }) {
       loadingText="loading TVL…"
       emptyText="no TVL data"
       caption={`area by chain TVL · top ${nodes.length}`}
-      formatTitle={(n) => `${n.label} · ${money.compact(n.value)} TVL`}
+      formatTitle={formatTitle}
     />
   );
 }
