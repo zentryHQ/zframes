@@ -401,7 +401,23 @@ const frameInstanceBase = {
  * group arranges its children once and carries that arrangement into every
  * board layout mode.
  */
-export const ChildFrameInstanceSchema = z.object(frameInstanceBase);
+export const ChildFrameInstanceSchema = z.object({
+  ...frameInstanceBase,
+  // Declared as "must be absent" rather than simply left out: a plain z.object
+  // STRIPS unknown keys, so a group nested in a group would silently lose its
+  // grandchildren and render as an empty cluster — the agent would see a board
+  // that parsed cleanly and drew nothing. This rejects it with a readable
+  // message instead, and surfaces the rule in the AI catalogue.
+  children: z
+    .never({
+      error:
+        "Groups do not nest: a frame inside a group cannot have children of its own.",
+    })
+    .optional()
+    .describe(
+      "Not allowed here — groups do not nest. A frame inside a group cannot hold children of its own; lay the cluster out in the parent group instead.",
+    ),
+});
 
 export const FrameInstanceSchema = z.object({
   ...frameInstanceBase,
