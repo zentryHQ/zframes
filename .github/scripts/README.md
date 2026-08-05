@@ -13,6 +13,7 @@ public) **file a GitHub issue** instead of turning a PR red.
 | **Frame render** | a frame renders an error card / crashes | **deterministic** | `frame-render.yml` | nightly | `frame-render` |
 | **FX coverage** | a board currency lost its FX fallback / a source died | semi (external) | `fx-coverage.yml` | weekly | `fx-coverage` |
 | **Dep audit** | a HIGH/CRITICAL advisory in deps | deterministic | `audit.yml` | weekly | `security-audit` |
+| **Dashboard validity** | a STORED dashboard stopped validating (renamed frame / config field) | deterministic | `dashboard-validity.yml` | nightly | `dashboard-validity` |
 
 All are dispatch-able on demand from the Actions tab. Issue dedup is uniform:
 **one open issue per label** — comment while a problem persists, **auto-close on
@@ -106,6 +107,28 @@ source at a dead host to exercise the outage path.
 
 Runs `pnpm audit`; opens an issue on HIGH/CRITICAL advisories (moderate/low are
 left to Dependabot's weekly PRs).
+
+## Dashboard validity · `apps/explorer/scripts/validate-dashboards.ts`
+
+`pnpm --dir apps/explorer validate:dashboards` — re-runs `validateDashboardSpec`
+over every non-removed row in the `dashboards` table.
+
+This one exists because of a trade. The curated showcase used to be TypeScript
+(`apps/explorer/app/lib/curated-dashboards.ts`) and `tests/curated-specs.test.tsx`
+validated it in CI, so a frame rename **failed the build**. The showcase moved into
+the database on 2026-08-05 (boards editable without a deploy) and a jsonb column
+cannot fail a typecheck. `validateDashboardSpec` gates every write, so nothing
+enters the table broken — what it cannot see is a board that was valid when written
+and went stale when the registry moved under it: a renamed frame, a dropped
+`lazy.ts` loader, a renamed config field, a tightened enum. That is the common
+case, and this is the net under it.
+
+Needs `THUMBS_DATABASE_URL` (the prod Neon URL, reused rather than duplicated);
+skips cleanly when unset. Locally it defaults to the PGlite dev socket, so a bare
+`pnpm --dir apps/explorer validate:dashboards` just works.
+
+An **empty table is a finding**, not a pass — it means the showcase is missing and
+nothing else would say so.
 
 ## Shared · `report-to-issue.mjs`
 
