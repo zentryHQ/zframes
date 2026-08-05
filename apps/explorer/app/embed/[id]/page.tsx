@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CURATED } from "@/app/lib/curated-dashboards";
 import { resolveDashboard } from "@/app/lib/resolve-dashboard";
 import { EmbedBoard } from "./EmbedBoard";
 
 // Chrome-less live-board route, iframed by the landing parallax showcase. Same
-// render path + resolver as /dashboard/[id], minus the site shell (AppShell hides chrome
-// on /embed/*). Curated ids prerender; community (DB) ids render on demand.
-export function generateStaticParams() {
-  return CURATED.map((d) => ({ id: d.id }));
-}
+// render path + resolver as /dashboard/[id], minus the site shell (AppShell hides
+// chrome on /embed/*).
+//
+// Cached on first request rather than prerendered, for the same two reasons as
+// /dashboard/[id] — see the note there.
+export const revalidate = 300; // 5 minutes
 
 // Not a standalone destination — kept out of the index; the canonical preview is
 // /dashboard/[id]. (Framing is allowed same-origin only via the next.config header rule.)
