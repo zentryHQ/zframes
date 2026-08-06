@@ -75,8 +75,8 @@ const PROXY_ALLOW_HOSTS = new Set<string>([
   "www.cnbc.com",
   "www.nasdaq.com",
   "news.google.com",
-  // Equity deep-dive sources. Both are keyless and both send no
-  // `Access-Control-Allow-Origin`, so the browser can only reach them here.
+  // Deep-dive sources. All keyless, none sends `Access-Control-Allow-Origin`,
+  // so the browser can only reach them here.
   //
   //   api.nasdaq.com — the exchange's own quote-page backend: real consolidated
   //     daily OHLCV, market cap / 52-week / dividend / analyst target, 4-year
@@ -87,9 +87,17 @@ const PROXY_ALLOW_HOSTS = new Set<string>([
   //     there is no stability contract, it wants a browser User-Agent, and it
   //     may rate-limit or block. Every provider method built on it caches with
   //     stale-on-error and degrades to an empty card, never a crash.
-  //   cdn.cboe.com — delayed (15 min) listed-equity option chains with IV, open
-  //     interest, volume and full greeks; ~1.7 MB per underlying, comfortably
-  //     under PROXY_MAX_BYTES.
+  //   cdn.cboe.com — serves TWO families off one host, which is why one entry
+  //     covers both halves of the deep dive:
+  //       · delayed (15 min) listed option chains with IV, open interest, volume
+  //         and full greeks; ~1.7 MB per equity underlying, 3.4 MB for GLD, so
+  //         comfortably under PROXY_MAX_BYTES. The same route answers for metal
+  //         ETFs (GLD/SLV/IAU/PPLT/CPER), which is how gold gets an options
+  //         surface without a provider of its own.
+  //       · the published commodity implied-volatility index history (GVZ gold,
+  //         VXSLV silver, VXGDX miners, OVX oil) — the metals counterpart of the
+  //         VIX, since a metal has no earnings and its own vol regime is how
+  //         "expensive" gets answered. Small CSVs, ~90–160 KB each, back to 2009.
   "api.nasdaq.com",
   "cdn.cboe.com",
 ]);

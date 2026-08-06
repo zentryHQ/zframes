@@ -16,12 +16,12 @@ import type {
   CompanyFacts,
   CompanyFactsHistory,
   AnalystRatings,
+  CryptoAssetProfile,
   EarningsCalendarEntry,
   EarningsHistory,
   EquityFinancials,
   EquityProfile,
   InstitutionalOwnership,
-  OptionsChain,
   DayStats,
   DexVolumeEntry,
   DifficultyAdjustment,
@@ -42,11 +42,14 @@ import type {
   OnchainExtras,
   OnchainValuation,
   OpenInterestEntry,
+  OptionsChain,
   OptionsSummary,
   Portfolio,
   PortfolioSource,
   ProtocolFeesEntry,
+  ProtocolFundamentals,
   ProtocolTvlEntry,
+  TokenUnlocks,
   ReferenceRate,
   SecCompanyFilings,
   SeriesPoint,
@@ -972,10 +975,11 @@ export function useInstitutionalOwnership(
 }
 
 /**
- * Listed option chain for one underlying — equities or crypto, whichever
- * provider covers the asset (pin with `source`).
+ * Full per-contract option chain for one underlying — a crypto venue, a listed
+ * equity or a metal ETF, whichever provider covers the asset (pin with
+ * `source`, since routing is first-match and several providers serve this).
  *
- * A chain is a big payload (thousands of contracts), and the keyless equity
+ * A chain is a big payload (thousands of contracts) and an exchange's keyless
  * feed is 15-minute delayed anyway, so polling faster than the delay only
  * re-downloads the same quotes: the default cadence matches it.
  */
@@ -1175,6 +1179,52 @@ export function useOptionsSummary(
     refreshMs,
   );
   return { summary, isLoading };
+}
+
+/**
+ * Identity, supply and valuation snapshot for one crypto asset. Supply and
+ * rank move slowly but price does not, and the card shows both, so this polls
+ * on a quote-ish cadence (~5 min) rather than a filing one.
+ */
+export function useCryptoProfile(
+  asset: string,
+  source?: string,
+  refreshMs = 5 * 60_000,
+): { profile: CryptoAssetProfile | null; isLoading: boolean } {
+  const provider = useProviderFor("crypto-profile", source);
+  const { data: profile, isLoading } = usePolled<CryptoAssetProfile | null>(
+    provider?.getCryptoProfile && asset
+      ? () => provider.getCryptoProfile!(asset)
+      : null,
+    null,
+    [provider, asset, refreshMs],
+    refreshMs,
+  );
+  return { profile, isLoading };
+}
+
+/**
+ * One protocol's fee and revenue history — the crypto income statement, keyed
+ * by the publisher's protocol slug ("uniswap"), not a token ticker.
+ *
+ * Daily data that only closes once a day, so this polls slowly (~30 min); the
+ * frames that pair it with a live market cap re-derive the multiple from the
+ * cap's own faster poll.
+ */
+export function useProtocolFundamentals(
+  protocol: string,
+  refreshMs = 30 * 60_000,
+): { fundamentals: ProtocolFundamentals | null; isLoading: boolean } {
+  const provider = useProviderFor("protocol-fundamentals");
+  const { data: fundamentals, isLoading } = usePolled<ProtocolFundamentals | null>(
+    provider?.getProtocolFundamentals && protocol
+      ? () => provider.getProtocolFundamentals!(protocol)
+      : null,
+    null,
+    [provider, protocol, refreshMs],
+    refreshMs,
+  );
+  return { fundamentals, isLoading };
 }
 
 /**
@@ -1613,6 +1663,81 @@ export function useGoldReserve(refreshMs = 12 * 60 * 60_000): {
     refreshMs,
   );
   return { reserve, isLoading };
+}
+
+/**
+ * Daily history of a listed commodity implied-volatility index — GVZ (gold),
+ * VXSLV (silver), VXGDX (gold miners), OVX (oil). One index per call, keyed by
+ * the publisher's symbol, so a card picks its own.
+ *
+ * The publisher posts one close per session, so this polls slowly (~6h): a
+ * faster cadence re-downloads a file whose last row cannot have moved.
+ */
+export function useCommodityVolIndex(
+  indexId: string,
+  refreshMs = 6 * 60 * 60_000,
+): { series: OfficialSeries | null; isLoading: boolean } {
+  const provider = useProviderFor("commodity-vol-index");
+  const { data: series, isLoading } = usePolled<OfficialSeries | null>(
+    provider?.getCommodityVolIndex && indexId
+      ? () => provider.getCommodityVolIndex!(indexId)
+      : null,
+    null,
+    [provider, indexId, refreshMs],
+    refreshMs,
+  );
+  return { series, isLoading };
+}
+
+/**
+ * A macro reference series to sit a commodity against: `CPIAUCSL` (CPI, for
+ * deflating a nominal price history into a real one), `DFII10` (10-year TIPS
+ * real yield), `DTWEXBGS` (broad dollar index), `T10YIE` (10-year breakeven).
+ *
+ * Note the near-namesake: {@link useMacroSeries} routes `macro-series`, which is
+ * BLS's period-labelled CPI/unemployment shape, to a provider mounted EARLIER in
+ * routing order. This is a separate capability precisely so a FRED id cannot
+ * land there. Monthly and daily official series both revise slowly, so this
+ * polls every ~6h.
+ */
+export function useMacroReferenceSeries(
+  seriesId: string,
+  refreshMs = 6 * 60 * 60_000,
+): { series: OfficialSeries | null; isLoading: boolean } {
+  const provider = useProviderFor("macro-reference-series");
+  const { data: series, isLoading } = usePolled<OfficialSeries | null>(
+    provider?.getMacroReferenceSeries && seriesId
+      ? () => provider.getMacroReferenceSeries!(seriesId)
+      : null,
+    null,
+    [provider, seriesId, refreshMs],
+    refreshMs,
+  );
+  return { series, isLoading };
+}
+
+/**
+ * One token's emission and unlock schedule, including scheduled future
+ * unlocks. Keyed by the publisher's protocol slug, not a ticker.
+ *
+ * A vesting schedule changes when a protocol amends it — measured in months —
+ * so this polls slowly (~6h). The payload is large; the provider's cache is
+ * what makes several cards on one token cheap, not a fast poll.
+ */
+export function useTokenUnlocks(
+  protocol: string,
+  refreshMs = 6 * 60 * 60_000,
+): { unlocks: TokenUnlocks | null; isLoading: boolean } {
+  const provider = useProviderFor("token-unlocks");
+  const { data: unlocks, isLoading } = usePolled<TokenUnlocks | null>(
+    provider?.getTokenUnlocks && protocol
+      ? () => provider.getTokenUnlocks!(protocol)
+      : null,
+    null,
+    [provider, protocol, refreshMs],
+    refreshMs,
+  );
+  return { unlocks, isLoading };
 }
 
 /** Gold-backed tokens and their premium to spot, polled every ~15 min. */
