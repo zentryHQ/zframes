@@ -37,11 +37,18 @@ import { padCik, resolveCik } from "./tickers";
 //  6. CIK plumbing: padCik / resolveCik input forms, and filingUrl's Archives
 //     path, which strips LEADING ZEROS from the CIK and dashes from the
 //     accession number (a link that 404s is a silently broken card).
+//  7. The reported-HISTORY reduction, whose failure mode is worse than the
+//     snapshot's because a truncated or mislabelled chart looks like data
+//     rather than a bug. Pinned below: the alias-chain merge across a tag
+//     switch, newest-`filed` restatement precedence, the 10-K/10-Q tie-break,
+//     the cadence SPAN filter (which must not trust `fp`), instant dedup by
+//     `end`, and the label rules — value from the newest print, `fy`/`fp` from
+//     the EARLIEST one, collisions degraded to dates.
 //
-// The two module-level TtlCaches (filings / facts) are singletons keyed by CIK
-// with stale-on-error ON, so a good value primed by one test would mask every
-// error path in the next. Every test therefore gets a genuinely FRESH module
-// (empty caches) via vi.resetModules() + a dynamic import.
+// The module-level TtlCaches (filings / facts / history / the raw blob) are
+// singletons keyed by CIK with stale-on-error ON, so a good value primed by one
+// test would mask every error path in the next. Every test therefore gets a
+// genuinely FRESH module (empty caches) via vi.resetModules() + a dynamic import.
 
 type Ctor = typeof SecProviderType;
 
@@ -101,10 +108,69 @@ function fetchUa(mock: FetchMock, n = 0): string | null {
 
 interface Entry {
   end?: string;
+  start?: string;
   val?: unknown;
   fy?: number;
   fp?: string;
   form?: string;
+  filed?: string;
+}
+
+/** ISO date `days` after `iso` (negative to go back) — how spans get a known length. */
+function shift(iso: string, days: number): string {
+  return new Date(Date.parse(iso) + days * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+/**
+ * A full-fiscal-year print: a 364-day span ending `end`, filed 45 days later,
+ * stamped with the fiscal year its own filing was about. Spans are what the
+ * cadence filter reads, so fixtures state them rather than leaning on `fp`.
+ */
+function annual(end: string, val: number, extra: Partial<Entry> = {}): Entry {
+  return {
+    start: shift(end, -364),
+    end,
+    val,
+    fy: Number(end.slice(0, 4)),
+    fp: "FY",
+    form: "10-K",
+    filed: shift(end, 45),
+    ...extra,
+  };
+}
+
+/** A single-quarter print: a 91-day span ending `end`, filed 30 days later. */
+function quarterly(
+  end: string,
+  val: number,
+  fp: string,
+  extra: Partial<Entry> = {},
+): Entry {
+  return {
+    start: shift(end, -91),
+    end,
+    val,
+    fy: Number(end.slice(0, 4)),
+    fp,
+    form: "10-Q",
+    filed: shift(end, 30),
+    ...extra,
+  };
+}
+
+/** A balance-sheet print at `end` — no span, so no cadence. */
+function instant(end: string, val: number, extra: Partial<Entry> = {}): Entry {
+  return {
+    end,
+    val,
+    fy: Number(end.slice(0, 4)),
+    fp: "FY",
+    form: "10-K",
+    filed: shift(end, 45),
+    ...extra,
+  };
 }
 
 /** One XBRL concept whose single `unit` key holds `entries`. */
@@ -155,10 +221,14 @@ describe("SecProvider", () => {
   });
 
   describe("identity", () => {
-    it("advertises exactly the filings + fundamentals capabilities", () => {
+    it("advertises exactly the filings + fundamentals + history capabilities", () => {
       const provider = new SecProvider();
       expect(provider.name).toBe("sec");
-      expect([...provider.capabilities]).toEqual(["filings", "fundamentals"]);
+      expect([...provider.capabilities]).toEqual([
+        "filings",
+        "fundamentals",
+        "fundamentals-history",
+      ]);
     });
   });
 
@@ -206,6 +276,9 @@ describe("SecProvider", () => {
         /sec: unknown ticker "ZZZZ" — not in the bundled map/,
       );
       await expect(provider.getCompanyFilings("ZZZZ")).rejects.toThrow(
+        /sec: unknown ticker "ZZZZ" — not in the bundled map/,
+      );
+      await expect(provider.getCompanyFactsHistory("ZZZZ")).rejects.toThrow(
         /sec: unknown ticker "ZZZZ" — not in the bundled map/,
       );
       // Resolution happens before the cache/fetch, so no request went out.
@@ -791,6 +864,618 @@ describe("SecProvider", () => {
     });
   });
 
+  // ── fundamentals-history: the alias-chain merge ───────────────────────────
+
+  const REV_NEW = "RevenueFromContractWithCustomerExcludingAssessedTax";
+  const REV_INCL = "RevenueFromContractWithCustomerIncludingAssessedTax";
+
+  /** The Revenue series out of a facts body, which is all most of these assert on. */
+  async function revenueHistory(
+    provider: InstanceType<Ctor>,
+    cadence?: "annual" | "quarterly",
+  ) {
+    const history = await provider.getCompanyFactsHistory("AAPL", cadence);
+    const series = history.series.find((s) => s.label === "Revenue");
+    if (!series) throw new Error("test: no Revenue series");
+    return series;
+  }
+
+  describe("fundamentals-history — alias-chain merge across a tag switch", () => {
+    it("stitches one continuous series out of the tags an issuer migrated between", async () => {
+      // THE contract, and the reason this capability is not a one-liner over the
+      // snapshot. Modelled on NVDA as measured live: its
+      // RevenueFromContractWithCustomerExcludingAssessedTax facts STOP at period
+      // end 2022-01-30 because it moved back to Revenues — so "first concept
+      // that exists wins" (right for a latest-value snapshot) yields a chart
+      // that flatlines mid-history and reads as an outage, not a bug.
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              // The retired tag: the MIDDLE of the history, and first in the
+              // metric's concept list.
+              [REV_NEW]: concept("USD", [
+                annual("2020-01-31", 10_918_000_000),
+                annual("2021-01-31", 16_675_000_000),
+                annual("2022-01-30", 26_914_000_000),
+              ]),
+              // The tag either side of it.
+              Revenues: concept("USD", [
+                annual("2018-01-28", 9_714_000_000),
+                annual("2019-01-27", 11_716_000_000),
+                annual("2023-01-29", 26_974_000_000),
+                annual("2024-01-28", 60_922_000_000),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const series = await revenueHistory(new SecProvider());
+      // Seven periods, no hole where the issuer changed tags.
+      expect(series.facts.map((f) => f.end)).toEqual([
+        "2018-01-28",
+        "2019-01-27",
+        "2020-01-31",
+        "2021-01-31",
+        "2022-01-30",
+        "2023-01-29",
+        "2024-01-28",
+      ]);
+      expect(series.facts.map((f) => f.value)).toEqual([
+        9_714_000_000, 11_716_000_000, 10_918_000_000, 16_675_000_000,
+        26_914_000_000, 26_974_000_000, 60_922_000_000,
+      ]);
+      // Both contributors named, in the metric's concept order — the stitch is
+      // visible rather than implied.
+      expect(series.concepts).toEqual([REV_NEW, "Revenues"]);
+      expect(series.kind).toBe("duration");
+      expect(series.unit).toBe("USD");
+    });
+
+    it("merges three tags, including the Including-assessed-tax variant", async () => {
+      // Modelled on TJX as measured live: its modern revenue is tagged
+      // Including-assessed-tax, its middle years Revenues, its oldest
+      // SalesRevenueNet. Drop the Including alias from the chain and the
+      // RECENT half of a retailer's chart is what goes missing.
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              [REV_INCL]: concept("USD", [
+                annual("2026-01-31", 60_372_000_000),
+              ]),
+              Revenues: concept("USD", [annual("2019-02-02", 38_973_000_000)]),
+              SalesRevenueNet: concept("USD", [
+                annual("2013-02-02", 25_878_000_000),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const series = await revenueHistory(new SecProvider());
+      expect(series.facts.map((f) => f.end)).toEqual([
+        "2013-02-02",
+        "2019-02-02",
+        "2026-01-31",
+      ]);
+      expect(series.concepts).toEqual([
+        REV_INCL,
+        "Revenues",
+        "SalesRevenueNet",
+      ]);
+    });
+
+    it("names only the tags whose prints actually survived", async () => {
+      // An alias that exists in the blob but contributes nothing — every entry
+      // unusable — must not be advertised, or `concepts` stops meaning
+      // "the series is stitched from these".
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              [REV_NEW]: concept("USD", [annual("2024-01-28", 60_922_000_000)]),
+              Revenues: concept("USD", [
+                annual("2023-01-29", 26_974_000_000, { val: null }),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const series = await revenueHistory(new SecProvider());
+      expect(series.concepts).toEqual([REV_NEW]);
+      expect(series.facts).toHaveLength(1);
+    });
+
+    it("keeps a ranked substitute list to ONE measure instead of splicing them", async () => {
+      // Diluted and basic EPS are both filed for every period, so unioning them
+      // would swap measures wherever one tag happened to be newer — a step
+      // change the issuer never reported. The series must be diluted end to end,
+      // and must NOT gain the period only basic covers.
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              EarningsPerShareDiluted: concept("USD/shares", [
+                annual("2023-01-29", 1.74),
+                annual("2024-01-28", 11.93),
+              ]),
+              EarningsPerShareBasic: concept("USD/shares", [
+                annual("2022-01-30", 3.91),
+                annual("2023-01-29", 1.76),
+                annual("2024-01-28", 12.05),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const history = await new SecProvider().getCompanyFactsHistory("AAPL");
+      const eps = history.series.find((s) => s.label === "Diluted EPS")!;
+      expect(eps.concepts).toEqual(["EarningsPerShareDiluted"]);
+      expect(eps.facts.map((f) => f.value)).toEqual([1.74, 11.93]);
+    });
+  });
+
+  // ── fundamentals-history: which print of a period wins ────────────────────
+
+  describe("fundamentals-history — restatement precedence", () => {
+    it("takes the newest-filed print when a period is reported more than once", async () => {
+      // EDGAR keeps every print forever, so one period routinely carries three
+      // or four values. Measured on NVDA FY2014 revenue: 4,130,162,000 (filed
+      // 2014-03-13) then 4,130,000,000 (filed 2016-03-17). The issuer correcting
+      // itself supersedes.
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Revenues: concept("USD", [
+                annual("2024-01-28", 4_130_162_000, { filed: "2024-03-13" }),
+                annual("2024-01-28", 4_130_000_000, { filed: "2026-03-17" }),
+                annual("2024-01-28", 4_131_000_000, { filed: "2025-03-12" }),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const series = await revenueHistory(new SecProvider());
+      expect(series.facts).toHaveLength(1);
+      expect(series.facts[0].value).toBe(4_130_000_000);
+    });
+
+    it("prefers the audited 10-K over a 10-Q filed the same day", async () => {
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Revenues: concept("USD", [
+                annual("2024-01-28", 111, {
+                  form: "10-Q",
+                  filed: "2024-03-13",
+                }),
+                annual("2024-01-28", 222, {
+                  form: "10-K",
+                  filed: "2024-03-13",
+                }),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const series = await revenueHistory(new SecProvider());
+      expect(series.facts[0].value).toBe(222);
+      // `form` is the provenance of the VALUE, so it names the 10-K.
+      expect(series.facts[0].form).toBe("10-K");
+    });
+
+    it("deduplicates instant facts by period end, newest filing winning", async () => {
+      // Balance-sheet dates repeat across filings even more than duration ones
+      // — measured on NVDA `Assets`: 136 prints over 69 dates, up to 5 for one.
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Assets: concept("USD", [
+                instant("2025-01-26", 111_601_000_000, { filed: "2025-02-26" }),
+                instant("2025-01-26", 111_600_000_000, { filed: "2026-02-25" }),
+                instant("2026-01-25", 200_000_000_000, { filed: "2026-02-25" }),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const history = await new SecProvider().getCompanyFactsHistory("AAPL");
+      const assets = history.series.find((s) => s.label === "Total assets")!;
+      expect(assets.kind).toBe("instant");
+      expect(assets.facts.map((f) => f.value)).toEqual([
+        111_600_000_000, 200_000_000_000,
+      ]);
+      // No `start` on an instant fact — that absence is what marks it as a
+      // point-in-time reading rather than a span.
+      expect(Object.keys(assets.facts[0]).sort()).toEqual([
+        "end",
+        "fiscalPeriod",
+        "form",
+        "value",
+      ]);
+    });
+  });
+
+  // ── fundamentals-history: cadence is a SPAN test, not an fp test ──────────
+
+  describe("fundamentals-history — cadence filtering by measured span", () => {
+    /** One concept holding an annual, a quarter and a nine-month YTD print. */
+    const MIXED_SPANS = {
+      Revenues: concept("USD", [
+        annual("2024-01-28", 60_922_000_000),
+        quarterly("2023-10-29", 18_120_000_000, "Q3"),
+        // Year-to-date: ends the same day as a quarter and is indistinguishable
+        // from a real period by anything except its length.
+        {
+          start: "2023-01-30",
+          end: "2023-10-29",
+          val: 38_819_000_000,
+          fy: 2024,
+          fp: "Q3",
+          form: "10-Q",
+          filed: "2023-11-21",
+        },
+      ]),
+    };
+
+    it("keeps only full-year spans for the annual cadence", async () => {
+      stubFetch([["companyfacts", factsBody({ "us-gaap": MIXED_SPANS })]]);
+      const series = await revenueHistory(new SecProvider(), "annual");
+      expect(series.facts).toEqual([
+        {
+          start: "2023-01-29",
+          end: "2024-01-28",
+          value: 60_922_000_000,
+          fiscalPeriod: "FY2024",
+          form: "10-K",
+        },
+      ]);
+    });
+
+    it("keeps only quarter spans for the quarterly cadence, dropping the YTD print", async () => {
+      // The YTD entry shares the quarter's `end`, so a merge keyed on `end`
+      // alone would let 38.8bn overwrite the 18.1bn quarter — nine months of
+      // revenue silently plotted as three.
+      stubFetch([["companyfacts", factsBody({ "us-gaap": MIXED_SPANS })]]);
+      const series = await revenueHistory(new SecProvider(), "quarterly");
+      expect(series.facts).toEqual([
+        {
+          start: "2023-07-30",
+          end: "2023-10-29",
+          value: 18_120_000_000,
+          fiscalPeriod: "Q3 2023",
+          form: "10-Q",
+        },
+      ]);
+    });
+
+    it('treats a 91-day span tagged fp:"FY" as a quarter, not a year', async () => {
+      // The measured trap: a 10-K re-prints its comparative quarters stamped
+      // `fp: "FY"` (confirmed on NVDA — the 90-day 2009-01-26→2009-04-26 period
+      // carries fp "FY"). Trusting `fp` would file one quarter of revenue under
+      // the annual chart, where it looks like a collapse.
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Revenues: concept("USD", [
+                quarterly("2023-10-29", 18_120_000_000, "FY"),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const provider = new SecProvider();
+      await expect(
+        provider.getCompanyFactsHistory("AAPL", "annual"),
+      ).rejects.toThrow(/no reported history found/);
+      const quarters = await revenueHistory(provider, "quarterly");
+      expect(quarters.facts).toHaveLength(1);
+      // …and with `fp` contradicting the span, the label degrades to the date
+      // rather than claiming "FY2023".
+      expect(quarters.facts[0].fiscalPeriod).toBe("2023-10-29");
+    });
+
+    it("returns instant series unchanged under either cadence", async () => {
+      // A balance sheet is a balance sheet: there is no annual-vs-quarterly
+      // choice to make, so every reported date survives both requests.
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Assets: concept("USD", [
+                instant("2025-01-26", 111_601_000_000),
+                instant("2025-04-27", 125_000_000_000),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const provider = new SecProvider();
+      const yearly = await provider.getCompanyFactsHistory("AAPL", "annual");
+      const quarters = await provider.getCompanyFactsHistory(
+        "AAPL",
+        "quarterly",
+      );
+      expect(yearly.series[0].facts).toEqual(quarters.series[0].facts);
+      expect(yearly.series[0].facts).toHaveLength(2);
+    });
+
+    it("skips a duration print with no start, and never emits a non-finite value", async () => {
+      // A span-less duration entry cannot be cadence-checked, and a NaN poisons
+      // a whole chart's y-scale — a gap beats either.
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Revenues: concept("USD", [
+                { end: "2023-01-29", val: 26_974_000_000, form: "10-K" },
+                annual("2024-01-28", 60_922_000_000, { val: "60922000000" }),
+                annual("2025-01-26", 130_497_000_000, { val: null }),
+                annual("2026-01-25", 215_938_000_000, { form: undefined }),
+                annual("2022-01-30", 26_914_000_000),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const series = await revenueHistory(new SecProvider());
+      expect(series.facts).toHaveLength(1);
+      expect(series.facts[0].value).toBe(26_914_000_000);
+      expect(series.facts.every((f) => Number.isFinite(f.value))).toBe(true);
+    });
+  });
+
+  // ── fundamentals-history: ordering and period labels ─────────────────────
+
+  describe("fundamentals-history — ordering and period labels", () => {
+    it("sorts every series oldest→newest whatever order the blob arrived in", async () => {
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Revenues: concept("USD", [
+                annual("2024-01-28", 3),
+                annual("2022-01-30", 1),
+                annual("2026-01-25", 5),
+                annual("2023-01-29", 2),
+                annual("2025-01-26", 4),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const series = await revenueHistory(new SecProvider());
+      expect(series.facts.map((f) => f.value)).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it("labels each period from its EARLIEST print, not the restatement's frame", async () => {
+      // `fy` is the FILING's fiscal year, not the period's: every 10-K re-prints
+      // prior years stamped with its own frame. Measured on NVDA, taking the
+      // newest print's `fy` labelled the FY2024, FY2025 and FY2026 revenue
+      // periods ALL "FY2026" — three points sharing one x-axis label. The value
+      // still comes from the newest print; only the label looks backwards.
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Revenues: concept("USD", [
+                annual("2024-01-28", 60_922_000_000, {
+                  fy: 2024,
+                  filed: "2024-02-21",
+                }),
+                annual("2024-01-28", 60_900_000_000, {
+                  fy: 2026,
+                  filed: "2026-02-25",
+                }),
+                annual("2025-01-26", 130_497_000_000, {
+                  fy: 2025,
+                  filed: "2025-02-26",
+                }),
+                annual("2025-01-26", 130_400_000_000, {
+                  fy: 2026,
+                  filed: "2026-02-25",
+                }),
+                annual("2026-01-25", 215_938_000_000, {
+                  fy: 2026,
+                  filed: "2026-02-25",
+                }),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const series = await revenueHistory(new SecProvider());
+      expect(series.facts.map((f) => f.fiscalPeriod)).toEqual([
+        "FY2024",
+        "FY2025",
+        "FY2026",
+      ]);
+      // Restatements still won the numbers.
+      expect(series.facts.map((f) => f.value)).toEqual([
+        60_900_000_000, 130_400_000_000, 215_938_000_000,
+      ]);
+    });
+
+    it("degrades colliding labels to period ends rather than repeating one", async () => {
+      // Periods the issuer never tagged in a filing of their own — anything
+      // predating its XBRL adoption — have no correct label available at all.
+      // Two chart points reading "FY2011" is the one failure a viewer cannot
+      // detect, so both fall back to their dates.
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Revenues: concept("USD", [
+                annual("2009-01-25", 3_424_859_000, {
+                  fy: 2011,
+                  filed: "2011-03-16",
+                }),
+                annual("2010-01-31", 3_326_445_000, {
+                  fy: 2011,
+                  filed: "2011-03-16",
+                }),
+                annual("2011-01-30", 3_543_309_000, {
+                  fy: 2011,
+                  filed: "2011-03-16",
+                }),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const series = await revenueHistory(new SecProvider());
+      expect(series.facts.map((f) => f.fiscalPeriod)).toEqual([
+        "2009-01-25",
+        "2010-01-31",
+        "2011-01-30",
+      ]);
+    });
+
+    it("labels quarters Q<n> <year> from the issuer's own frame", async () => {
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Revenues: concept("USD", [
+                quarterly("2025-10-26", 57_006_000_000, "Q3", { fy: 2026 }),
+              ]),
+            },
+          }),
+        ],
+      ]);
+
+      const series = await revenueHistory(new SecProvider(), "quarterly");
+      expect(series.facts[0].fiscalPeriod).toBe("Q3 2026");
+    });
+  });
+
+  // ── fundamentals-history: envelope, caching, failure ─────────────────────
+
+  describe("fundamentals-history — envelope, shared download, failure", () => {
+    const HISTORY_BODY = factsBody(
+      {
+        "us-gaap": {
+          Revenues: concept("USD", [annual("2026-01-25", 215_938_000_000)]),
+          ...ASSETS_ONLY,
+        },
+      },
+      { cik: 1045810, entityName: "NVIDIA CORP" },
+    );
+
+    it("echoes the identity and the cadence it filtered to, defaulting to annual", async () => {
+      stubFetch([["companyfacts", HISTORY_BODY]]);
+      const history = await new SecProvider().getCompanyFactsHistory("AAPL");
+      expect(history.cik).toBe("0001045810");
+      expect(history.entityName).toBe("NVIDIA CORP");
+      expect(history.cadence).toBe("annual");
+      // Display order follows the metric list, and metrics with nothing to show
+      // are dropped rather than emitted empty.
+      expect(history.series.map((s) => s.label)).toEqual([
+        "Revenue",
+        "Total assets",
+      ]);
+    });
+
+    it("downloads the blob ONCE for the snapshot and both cadences", async () => {
+      // companyfacts is multi-megabyte (3.9 MB for NVDA), and a deep-dive board
+      // shows a fundamentals card beside a revenue chart. Paying for it per
+      // consumer is the whole reason the raw response is cached ahead of both
+      // derived shapes.
+      const mock = stubFetch([["companyfacts", HISTORY_BODY]]);
+      const provider = new SecProvider();
+      await provider.getCompanyFacts("AAPL");
+      await provider.getCompanyFactsHistory("AAPL", "annual");
+      await provider.getCompanyFactsHistory("AAPL", "quarterly");
+      expect(mock).toHaveBeenCalledTimes(1);
+    });
+
+    it("proxies the history request, like the snapshot", async () => {
+      // Same endpoint, same missing CORS header: losing `proxied: true` here
+      // breaks the chart in every browser while still passing in Node.
+      vi.stubGlobal("document", {} as Document);
+      const mock = stubFetch([["companyfacts", HISTORY_BODY]]);
+      await new SecProvider().getCompanyFactsHistory("AAPL");
+      expect(fetchTarget(mock).startsWith(PROXY_PREFIX)).toBe(true);
+    });
+
+    it("throws on a payload with no usable history, then serves the last good one", async () => {
+      // The throw is what lets the TtlCache fall back — a stale chart beats an
+      // error card, exactly as on the snapshot path.
+      vi.useFakeTimers();
+      let call = 0;
+      const mock = vi.fn(async () => {
+        call++;
+        return jsonResponse(call === 1 ? HISTORY_BODY : factsBody({}));
+      });
+      vi.stubGlobal("fetch", mock);
+
+      const provider = new SecProvider();
+      const first = await provider.getCompanyFactsHistory("AAPL");
+      expect(first.series).toHaveLength(2);
+
+      vi.advanceTimersByTime(15 * 60_000 + 1);
+      const stale = await provider.getCompanyFactsHistory("AAPL");
+      expect(stale.series).toHaveLength(2);
+      expect(mock).toHaveBeenCalledTimes(2);
+    });
+
+    it("keys the cache by cadence so the two views cannot overwrite each other", async () => {
+      stubFetch([
+        [
+          "companyfacts",
+          factsBody({
+            "us-gaap": {
+              Revenues: concept("USD", [
+                annual("2026-01-25", 215_938_000_000),
+                quarterly("2025-10-26", 57_006_000_000, "Q3"),
+              ]),
+            },
+          }),
+        ],
+      ]);
+      const provider = new SecProvider();
+      const yearly = await provider.getCompanyFactsHistory("AAPL", "annual");
+      const quarters = await provider.getCompanyFactsHistory(
+        "AAPL",
+        "quarterly",
+      );
+      expect(yearly.series[0].facts[0].value).toBe(215_938_000_000);
+      expect(quarters.series[0].facts[0].value).toBe(57_006_000_000);
+      expect(quarters.cadence).toBe("quarterly");
+    });
+  });
+
   // ── filings: the submissions parallel-array zip ───────────────────────────
 
   describe("filings — submissions parallel-array zip", () => {
@@ -959,10 +1644,14 @@ describe("SecProvider", () => {
   // ── transport: proxy split + contact User-Agent ───────────────────────────
 
   describe("transport — proxy split and contact User-Agent", () => {
-    it("proxies companyfacts but fetches submissions direct in the browser", async () => {
-      // The split must not converge: companyfacts sends no CORS header, so the
-      // browser has to go through the same-origin runtime proxy, while
-      // submissions is CORS-safe and must stay direct.
+    it("proxies BOTH companyfacts and submissions in the browser", async () => {
+      // This test used to assert the opposite for submissions, on the strength
+      // of `data.sec.gov` answering `access-control-allow-origin: *` to curl.
+      // A real browser proved that wrong on 2026-08-06: the direct fetch never
+      // resolves and the Filings Feed card sat on "no SEC data" while the
+      // endpoint looked healthy from a terminal. The old assertion is why the
+      // bug survived — it pinned the belief, not the behaviour. Both endpoints
+      // go through the same-origin proxy now.
       vi.stubGlobal("document", {} as Document);
       const mock = stubFetch([
         ["companyfacts", factsBody({ "us-gaap": ASSETS_ONLY })],
@@ -980,8 +1669,12 @@ describe("SecProvider", () => {
           "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json",
         ),
       );
-      expect(fetchTarget(mock, 1)).toBe(
-        "https://data.sec.gov/submissions/CIK0000320193.json",
+      const filingsTarget = fetchTarget(mock, 1);
+      expect(filingsTarget.startsWith(PROXY_PREFIX)).toBe(true);
+      expect(filingsTarget).toContain(
+        encodeURIComponent(
+          "https://data.sec.gov/submissions/CIK0000320193.json",
+        ),
       );
     });
 

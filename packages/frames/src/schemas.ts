@@ -24,10 +24,10 @@ const widgetIcon = (name: string) => `/widget-icons/${name}.png`;
  */
 const sourceField = () =>
   z
-    .enum(["hyperliquid", "bitkub"])
+    .enum(["hyperliquid", "bitkub", "nasdaq"])
     .optional()
     .describe(
-      'Which exchange to source this card from — "hyperliquid" (default: crypto + HIP-3 stock/commodity perps, USD) or "bitkub" (Thailand\'s largest exchange, THB-quoted, the source where KUB trades). Omit for the default. Use source-native symbols: Bitkub lists bare tickers like "KUB"/"BTC" and has no HIP-3 stock perps.',
+      'Which venue to source this card from — "hyperliquid" (default: crypto + HIP-3 stock/commodity perps, USD), "bitkub" (Thailand\'s largest exchange, THB-quoted, the source where KUB trades), or "nasdaq" (the real consolidated tape for US-listed stocks, DAILY bars only — no intraday, no crypto). Omit for the default. Use source-native symbols: Bitkub lists bare tickers like "KUB"/"BTC" and has no HIP-3 stock perps; Nasdaq wants a plain US ticker like "NVDA". Pin "nasdaq" when a stock card should show the actual listing rather than its perp: the HIP-3 perp tracks direction but its volume and open interest are Hyperliquid\'s book, not the listing\'s. Nasdaq only answers for symbols a card names, so it cannot back a card that scans a whole universe (top movers).',
     );
 
 /**
@@ -107,7 +107,22 @@ const SOURCES = withSourceIds({
     name: "FHFA",
     url: "https://www.fhfa.gov/data/hpi",
   },
+  nasdaq: { name: "Nasdaq", url: "https://www.nasdaq.com" },
+  cboe: { name: "Cboe", url: "https://www.cboe.com" },
 });
+
+/**
+ * The one company a deep-dive card is about. Shared so every equity-research
+ * frame spells the field identically and the editor offers the same help — a
+ * board about NVDA sets the same string on a dozen cards.
+ */
+const companySymbolField = () =>
+  z
+    .string()
+    .min(1)
+    .describe(
+      'US-listed company to analyse — a ticker ("NVDA", "AAPL"). A HIP-3 symbol ("xyz:NVDA") works too; the dex prefix is stripped.',
+    );
 
 export const clockMeta = defineFrameMeta({
   name: "clock",
@@ -317,9 +332,12 @@ export const priceChartMeta = defineFrameMeta({
   description:
     "Live animated price chart (candlestick or line) for one symbol — canvas-rendered at 60fps via liveline, streaming live off the Hyperliquid WebSocket. Works for any HIP-3 perp — stocks (xyz:TSLA), indices (xyz:SP500), commodities (xyz:GOLD) — and crypto (BTC). The centerpiece frame.",
   capabilities: ["ohlcv", "quote-stream"],
-  // Either source can back this card (see `source`), so both are credited — the
-  // badge is static meta and can't know which one a given instance pinned.
-  source: [SOURCES.hyperliquid, SOURCES.bitkub],
+  // Any of these can back this card (see `source`), so all are credited — the
+  // renderer narrows the badge to the one this instance pinned by matching the
+  // config value against each credit's id. Nasdaq serves daily bars only and
+  // has no `quote-stream`, so a card pinned there charts polled candles with no
+  // live tick — the real listing rather than its perp.
+  source: [SOURCES.hyperliquid, SOURCES.bitkub, SOURCES.nasdaq],
   schema: z.object({
     symbol: z
       .string()
@@ -1142,7 +1160,7 @@ export const priceEventsMeta = defineFrameMeta({
   description:
     "Price history for one symbol with the dashboard's event markers drawn on the time axis — the card for reading cause and effect: where the rate cut, the hack, the earnings beat actually landed on the chart. Markers come from the dashboard-wide `events` list (and any this card adds via its own `events`); hovering a flag shows the date, label, note and source link. Longer windows than the live Price Chart, since the point is past events.",
   capabilities: ["ohlcv"],
-  source: [SOURCES.hyperliquid, SOURCES.bitkub],
+  source: [SOURCES.hyperliquid, SOURCES.bitkub, SOURCES.nasdaq],
   schema: z.object({
     symbol: z
       .string()
@@ -2508,10 +2526,25 @@ export const rsiMomentumMeta = defineFrameMeta({
   iconUrl: widgetIcon("rsi-momentum"),
   layout: { w: 3, h: 3, minW: 2, minH: 2 },
   description:
-    "Wilder RSI on BTC daily closes with a 55/45 momentum regime: above 55 = risk-on, below 45 = risk-off, in between = neutral. Also flags classic overbought (≥80) / oversold (≤30) extremes. Computed in-browser from a keyless long daily price series (Coin Metrics).",
-  capabilities: ["price-history-daily"],
-  source: SOURCES.coinMetrics,
+    'Wilder RSI on daily closes with a 55/45 momentum regime: above 55 = risk-on, below 45 = risk-off, in between = neutral. Also flags classic overbought (≥80) / oversold (≤30) extremes. Computed in-browser. With no `symbol` it reads BTC\'s deep keyless daily series (Coin Metrics, years of history); set `symbol` to run the same indicator on any traded symbol\'s daily candles instead — a stock (`"NVDA"` with source "nasdaq" for the real tape, or `"xyz:NVDA"` for its HIP-3 perp) or a coin.',
+  capabilities: ["price-history-daily", "ohlcv"],
+  // Coin Metrics first: it backs the default (no `symbol`) BTC path, and the
+  // renderer falls back to the first credit when nothing is pinned.
+  source: [
+    SOURCES.coinMetrics,
+    SOURCES.hyperliquid,
+    SOURCES.bitkub,
+    SOURCES.nasdaq,
+  ],
   schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        'Symbol to compute RSI on. Omit for BTC read from the deep Coin Metrics daily series — that path has the longest history. Set it (e.g. "NVDA", "xyz:NVDA", "ETH") to use that symbol\'s daily candles from the venue in `source`; candle history is shorter than the BTC series, so a long window may not fill.',
+      ),
+    source: sourceField(),
     period: z
       .number()
       .int()
@@ -2573,7 +2606,7 @@ export const returnCalendarMeta = defineFrameMeta({
   description:
     "A GitHub-contribution-style calendar heatmap of daily activity — one square per calendar day, weeks running left to right and weekdays top to bottom. Answers *when*, which a line chart cannot: seasonality, day-of-week rhythm, clustered volatility, and the holes where the market was shut (weekends stripe across an equity's grid; crypto's is solid). Daily returns are tinted green/red from zero; volume and range use a single-hue ramp. Intensity is ranked by quantile, so one crash day cannot wash out every other square. Computed in-browser from OHLCV candles — pass any tradable symbol (crypto or a HIP-3 equity like 'xyz:TSLA').",
   capabilities: ["ohlcv"],
-  source: SOURCES.hyperliquid,
+  source: [SOURCES.hyperliquid, SOURCES.bitkub, SOURCES.nasdaq],
   schema: z.object({
     symbol: z
       .string()
@@ -2612,7 +2645,7 @@ export const returnDistributionMeta = defineFrameMeta({
   description:
     "Histogram of the symbol's periodic returns — how often a move of each size actually happens, rather than where the price is now. Optionally overlays the normal curve implied by the sample's own mean and standard deviation: the gap between the bars and that curve is the fat tail a risk model assuming normality would underprice. Marks the mean and the latest return so you can see where today sits in its own history, with a mean / σ / win-rate / last stat row underneath. The extreme tails are folded into the end bars (marked « ») so one outlier can't flatten the middle; the true best and worst are still reported. Computed in-browser from OHLCV candles — pass any tradable symbol (crypto or a HIP-3 equity like 'xyz:TSLA').",
   capabilities: ["ohlcv"],
-  source: SOURCES.hyperliquid,
+  source: [SOURCES.hyperliquid, SOURCES.bitkub, SOURCES.nasdaq],
   schema: z.object({
     symbol: z
       .string()
@@ -6583,8 +6616,351 @@ export const regionalHomePriceBarsMeta = defineFrameMeta({
   }),
 });
 
+// ===== equity deep-dive =====
+// The company-research half of a stocks-first board: what the business is
+// worth, what it reported, what the street thinks, and what the options market
+// is pricing. Everything here is keyless but proxy-bound, so these cards
+// degrade to an empty state on a static host with no runtime — same as the
+// SEC/Treasury families.
+
+export const companyProfileMeta = defineFrameMeta({
+  name: "company-profile",
+  label: "Company Profile",
+  category: "equities",
+  iconUrl: widgetIcon("company-profile"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "Identity card for one US-listed company — name, exchange, sector and industry, the last sale with its change, market capitalisation, the 52-week range with a marker showing where price sits inside it, average volume, and the dividend and yield when the company pays one. The header a company deep-dive board opens with. Keyless exchange data through the zframes runtime proxy; empty on a static host.",
+  capabilities: ["equity-profile"],
+  source: SOURCES.nasdaq,
+  schema: z.object({
+    symbol: companySymbolField(),
+  }),
+});
+
+export const valuationMultiplesMeta = defineFrameMeta({
+  name: "valuation-multiples",
+  label: "Valuation Multiples",
+  category: "equities",
+  iconUrl: widgetIcon("valuation-multiples"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "What the market is paying for one company's earnings, sales and book value — market cap, trailing P/E, P/S, P/B, and the dividend yield, each with the inputs it was computed from. IMPORTANT: no keyless source publishes these ratios, so they are DERIVED here — market cap and price from the exchange, earnings/sales/equity from the latest published annual statements — which means a ratio can lag a fresh quarter and is trailing, never forward. A multiple whose inputs are missing or non-positive is shown as unavailable rather than as a misleading number.",
+  capabilities: ["equity-profile", "equity-financials"],
+  source: SOURCES.nasdaq,
+  schema: z.object({
+    symbol: companySymbolField(),
+  }),
+});
+
+export const financialsTrendMeta = defineFrameMeta({
+  name: "financials-trend",
+  // Stays in USD whatever the board asks for: figures as filed with the SEC.
+  usdOnly: true,
+  label: "Financials Trend",
+  category: "equities",
+  annotatable: true,
+  iconUrl: widgetIcon("financials-trend"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "One company's reported financial history as a multi-year line — pick revenue, net income, total assets or shareholders' equity and see the whole series as filed, not just the latest print. Built from SEC EDGAR XBRL company facts, stitched across the XBRL tag changes issuers make mid-history (a single-tag series would simply stop the year the company re-tagged the line). Annual or quarterly cadence. Updates only on filings. Requires the zframes runtime proxy.",
+  capabilities: ["fundamentals-history"],
+  source: SOURCES.secEdgar,
+  schema: z.object({
+    symbol: companySymbolField(),
+    metric: z
+      .enum(["revenue", "netIncome", "assets", "equity", "eps"])
+      .default("revenue")
+      .describe(
+        "Which reported line to chart: revenue, net income, total assets, shareholders' equity, or diluted EPS.",
+      ),
+    cadence: z
+      .enum(["annual", "quarterly"])
+      .default("annual")
+      .describe(
+        "Reporting cadence to chart. Annual is the readable long trend; quarterly shows seasonality but is noisier.",
+      ),
+  }),
+});
+
+export const marginTrendMeta = defineFrameMeta({
+  name: "margin-trend",
+  label: "Margin Trend",
+  category: "equities",
+  annotatable: true,
+  iconUrl: widgetIcon("margin-trend"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "How profitable one company is per dollar of sales, across the last four reported fiscal years — gross, operating and net margin as published percentage lines, so margin expansion or compression reads at a glance. The single most telling chart on whether a growth story is also a business. Published exchange figures; updates only when the company reports.",
+  capabilities: ["equity-financials"],
+  source: SOURCES.nasdaq,
+  schema: z.object({
+    symbol: companySymbolField(),
+    margins: z
+      .array(z.enum(["gross", "operating", "preTax", "net"]))
+      .min(1)
+      .max(4)
+      .default(["gross", "operating", "net"])
+      .describe("Which margin lines to draw."),
+  }),
+});
+
+export const cashflowTrendMeta = defineFrameMeta({
+  name: "cashflow-trend",
+  usdOnly: true,
+  label: "Cash Flow Trend",
+  category: "equities",
+  // Deliberately NOT annotatable: this draws grouped bars, not a time axis, so
+  // an event flag would have nowhere honest to land.
+  iconUrl: widgetIcon("cashflow-trend"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Where one company's cash actually goes, by fiscal year — operating cash flow, capital expenditure, and free cash flow (operating minus capex) as grouped bars. Cash flow is the line hardest to dress up, so it is the honest counterweight to a rising reported profit. Published exchange figures, in absolute dollars; updates only when the company reports.",
+  capabilities: ["equity-financials"],
+  source: SOURCES.nasdaq,
+  schema: z.object({
+    symbol: companySymbolField(),
+  }),
+});
+
+export const earningsSurpriseMeta = defineFrameMeta({
+  name: "earnings-surprise",
+  usdOnly: true,
+  label: "Earnings Surprise",
+  category: "equities",
+  iconUrl: widgetIcon("earnings-surprise"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Whether one company beats its own guidance — reported EPS against the consensus estimate for each of the last several quarters, as paired bars with the surprise percentage, plus the average beat across the window. A consistent beat rate is a different signal from a single blowout quarter, and this shows which one you are looking at. Keyless exchange data; updates quarterly.",
+  capabilities: ["earnings-history"],
+  source: SOURCES.nasdaq,
+  schema: z.object({
+    symbol: companySymbolField(),
+    count: z
+      .number()
+      .int()
+      .min(2)
+      .max(12)
+      .default(6)
+      .describe("How many past quarters to show (newest last)."),
+  }),
+});
+
+export const earningsCountdownMeta = defineFrameMeta({
+  name: "earnings-countdown",
+  // Stays in USD: an EPS is a per-share figure as the company reported it, the
+  // same class as the SEC filing frames — a baht-converted EPS is a number
+  // nobody quotes.
+  usdOnly: true,
+  label: "Earnings Countdown",
+  category: "equities",
+  iconUrl: widgetIcon("earnings-countdown"),
+  layout: { w: 3, h: 2, minW: 2, minH: 2 },
+  description:
+    "Days until one company's next scheduled earnings report, with the date, whether it lands before the open or after the close, and the last quarter's result for context. The date comes from the exchange's published calendar — when no date is confirmed yet the card says so rather than guessing one from the filing cadence.",
+  capabilities: ["earnings-history"],
+  source: SOURCES.nasdaq,
+  schema: z.object({
+    symbol: companySymbolField(),
+  }),
+});
+
+export const earningsCalendarMeta = defineFrameMeta({
+  name: "earnings-calendar",
+  // Stays in USD: consensus EPS is quoted as published, and the market caps
+  // here only rank the session's names rather than being spendable figures.
+  usdOnly: true,
+  label: "Earnings Calendar",
+  category: "equities",
+  iconUrl: widgetIcon("earnings-calendar"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Which companies report on a given session — ticker, name, before-open or after-close, the consensus EPS forecast and how many estimates back it, ranked by market cap so the session's heavyweights are on top. Market-wide, not tied to one company: the card that tells you whether tomorrow is a quiet day or a minefield. Keyless exchange calendar.",
+  capabilities: ["earnings-calendar"],
+  source: SOURCES.nasdaq,
+  schema: z.object({
+    date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional()
+      .describe(
+        'Session to list, ISO "YYYY-MM-DD". Omit for the next trading session. A date with no scheduled reports shows an empty state, not an error.',
+      ),
+    count: z
+      .number()
+      .int()
+      .min(3)
+      .max(25)
+      .default(10)
+      .describe("How many companies to list (largest market cap first)."),
+  }),
+});
+
+export const analystRatingsMeta = defineFrameMeta({
+  name: "analyst-ratings",
+  label: "Analyst Ratings",
+  category: "equities",
+  iconUrl: widgetIcon("analyst-ratings"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "What sell-side coverage says about one company — the headline consensus (Buy / Hold / Sell), how many analysts contribute to it, the consensus one-year price target against the live price with the implied upside or downside, and the covering brokers. Sentiment, not fact: a consensus target is an average of opinions and is routinely wrong. Keyless exchange data.",
+  capabilities: ["analyst-ratings"],
+  source: SOURCES.nasdaq,
+  schema: z.object({
+    symbol: companySymbolField(),
+    showBrokers: z
+      .boolean()
+      .default(true)
+      .describe("List the covering broker names under the consensus."),
+  }),
+});
+
+export const institutionalOwnershipMeta = defineFrameMeta({
+  name: "institutional-ownership",
+  usdOnly: true,
+  label: "Institutional Ownership",
+  category: "equities",
+  iconUrl: widgetIcon("institutional-ownership"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "How much of one company the institutions hold, and which way they moved last quarter — percent of shares outstanding in institutional hands, the total value of those holdings, and the split between holders that increased versus decreased their position, with the share counts behind each. Aggregated 13F data, so it is a quarter behind by construction. Keyless exchange data.",
+  capabilities: ["institutional-ownership"],
+  source: SOURCES.nasdaq,
+  schema: z.object({
+    symbol: companySymbolField(),
+  }),
+});
+
+export const equityOptionsOiMeta = defineFrameMeta({
+  name: "equity-options-oi",
+  label: "Equity Options OI",
+  category: "derivatives",
+  iconUrl: widgetIcon("equity-options-oi"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Where the open interest sits on one listed stock's option chain — calls and puts stacked by strike for a chosen expiry, with the spot price marked, so the strikes the market has actually positioned around are visible. Also shows the chain's put/call open-interest ratio. Keyless Cboe data, delayed ~15 minutes (the card says so); requires the zframes runtime proxy.",
+  capabilities: ["options-chain"],
+  source: SOURCES.cboe,
+  schema: z.object({
+    symbol: companySymbolField(),
+    expiry: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional()
+      .describe(
+        'Which expiry to chart, ISO "YYYY-MM-DD". Omit for the nearest expiry with meaningful open interest.',
+      ),
+    strikes: z
+      .number()
+      .int()
+      .min(6)
+      .max(40)
+      .default(16)
+      .describe("How many strikes to show, centred on spot."),
+  }),
+});
+
+export const equityOptionsSmileMeta = defineFrameMeta({
+  name: "equity-options-smile",
+  label: "Equity Vol Smile",
+  category: "derivatives",
+  iconUrl: widgetIcon("equity-options-smile"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Implied volatility across strikes for one listed stock at a single expiry — the smile (or smirk), plotted separately for calls and puts against strike, with spot marked. A steep downside skew means the market is paying up for crash protection. Contracts quoting no implied volatility are dropped rather than plotted at zero. Keyless Cboe data, delayed ~15 minutes.",
+  capabilities: ["options-chain"],
+  source: SOURCES.cboe,
+  schema: z.object({
+    symbol: companySymbolField(),
+    expiry: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional()
+      .describe(
+        'Which expiry to chart, ISO "YYYY-MM-DD". Omit for the nearest liquid expiry.',
+      ),
+    moneyness: z
+      .number()
+      .min(0.1)
+      .max(1)
+      .default(0.3)
+      .describe(
+        "How far from spot to plot, as a fraction of spot (0.3 = strikes within ±30%). Wide chains have far-out strikes whose quotes are noise.",
+      ),
+  }),
+});
+
+export const equityOptionsMaxPainMeta = defineFrameMeta({
+  name: "equity-options-max-pain",
+  label: "Equity Max Pain",
+  category: "derivatives",
+  iconUrl: widgetIcon("equity-options-max-pain"),
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  description:
+    "The strike at which the most option value expires worthless for holders on one listed stock — total in-the-money payout across the chain plotted per strike, with the minimum (max pain) and the spot price marked, plus the gap between them. A widely-watched folk indicator, not a prediction: it assumes open interest is static and ignores hedging. Keyless Cboe data, delayed ~15 minutes.",
+  capabilities: ["options-chain"],
+  source: SOURCES.cboe,
+  schema: z.object({
+    symbol: companySymbolField(),
+    expiry: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional()
+      .describe(
+        'Which expiry to evaluate, ISO "YYYY-MM-DD". Omit for the nearest expiry with meaningful open interest.',
+      ),
+  }),
+});
+
+export const equityOptionsGreeksMeta = defineFrameMeta({
+  name: "equity-options-greeks",
+  label: "Equity Options Greeks",
+  category: "derivatives",
+  iconUrl: widgetIcon("equity-options-greeks"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "A chosen greek across the strike ladder for one listed stock at a single expiry — delta, gamma, vega or theta for calls and puts, with spot marked. Gamma in particular shows where dealer hedging concentrates, which is where price tends to get pinned or accelerate. Keyless Cboe data including published greeks, delayed ~15 minutes.",
+  capabilities: ["options-chain"],
+  source: SOURCES.cboe,
+  schema: z.object({
+    symbol: companySymbolField(),
+    greek: z
+      .enum(["delta", "gamma", "vega", "theta"])
+      .default("gamma")
+      .describe("Which greek to plot across the strike ladder."),
+    expiry: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional()
+      .describe(
+        'Which expiry to chart, ISO "YYYY-MM-DD". Omit for the nearest liquid expiry.',
+      ),
+    strikes: z
+      .number()
+      .int()
+      .min(6)
+      .max(40)
+      .default(20)
+      .describe("How many strikes to show, centred on spot."),
+  }),
+});
+
 /** Every built-in frame's metadata — what the CLI and skill read. */
 export const frameMetas: FrameMeta[] = [
+  companyProfileMeta,
+  valuationMultiplesMeta,
+  financialsTrendMeta,
+  marginTrendMeta,
+  cashflowTrendMeta,
+  earningsSurpriseMeta,
+  earningsCountdownMeta,
+  earningsCalendarMeta,
+  analystRatingsMeta,
+  institutionalOwnershipMeta,
+  equityOptionsOiMeta,
+  equityOptionsSmileMeta,
+  equityOptionsMaxPainMeta,
+  equityOptionsGreeksMeta,
   metalsBoardMeta,
   metalPriceMeta,
   metalValueMeta,

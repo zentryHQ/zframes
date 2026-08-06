@@ -67,6 +67,19 @@ import type {
   HomeValueIndex,
   RegionalHousingSeries,
   RegionalHousingPrice,
+  FinancialFact,
+  FinancialSeries,
+  CompanyFactsHistory,
+  EquityProfile,
+  FinancialStatementRow,
+  EquityFinancials,
+  EarningsResult,
+  EarningsHistory,
+  EarningsCalendarEntry,
+  AnalystRatings,
+  InstitutionalOwnership,
+  OptionContract,
+  OptionsChain,
 } from "@zframes/core";
 
 /**
@@ -224,6 +237,395 @@ function round(n: number, dp = 2): number {
   return Math.round(n * f) / f;
 }
 
+const MONTH_ABBR = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/** ISO "YYYY-MM-DD" for a millisecond instant. */
+function isoDay(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
+/** "1/25/2026" — how the exchange labels a statement's period column. */
+function usDate(ms: number): string {
+  const d = new Date(ms);
+  return `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${d.getUTCFullYear()}`;
+}
+
+// ── equity research ─────────────────────────────────────────────────────────
+
+/**
+ * Registrant name, listing and classification per ticker — the fields an
+ * exchange quote page carries beside the price. Anything unmapped falls back to
+ * a generic profile, so a board pointed at an arbitrary ticker still renders a
+ * complete card rather than a half-empty one.
+ */
+const COMPANY_PROFILES: Record<
+  string,
+  { name: string; exchange: string; sector: string; industry: string }
+> = {
+  NVDA: {
+    name: "NVIDIA Corporation",
+    exchange: "NASDAQ-GS",
+    sector: "Technology",
+    industry: "Semiconductors",
+  },
+  AMD: {
+    name: "Advanced Micro Devices, Inc.",
+    exchange: "NASDAQ-GS",
+    sector: "Technology",
+    industry: "Semiconductors",
+  },
+  AVGO: {
+    name: "Broadcom Inc.",
+    exchange: "NASDAQ-GS",
+    sector: "Technology",
+    industry: "Semiconductors",
+  },
+  MU: {
+    name: "Micron Technology, Inc.",
+    exchange: "NASDAQ-GS",
+    sector: "Technology",
+    industry: "Semiconductors",
+  },
+  AAPL: {
+    name: "Apple Inc.",
+    exchange: "NASDAQ-GS",
+    sector: "Technology",
+    industry: "Computer Manufacturing",
+  },
+  MSFT: {
+    name: "Microsoft Corporation",
+    exchange: "NASDAQ-GS",
+    sector: "Technology",
+    industry: "Computer Software: Prepackaged Software",
+  },
+  GOOGL: {
+    name: "Alphabet Inc.",
+    exchange: "NASDAQ-GS",
+    sector: "Technology",
+    industry: "Computer Software: Programming, Data Processing",
+  },
+  META: {
+    name: "Meta Platforms, Inc.",
+    exchange: "NASDAQ-GS",
+    sector: "Technology",
+    industry: "Computer Software: Programming, Data Processing",
+  },
+  TSLA: {
+    name: "Tesla, Inc.",
+    exchange: "NASDAQ-GS",
+    sector: "Consumer Discretionary",
+    industry: "Auto Manufacturing",
+  },
+  COIN: {
+    name: "Coinbase Global, Inc.",
+    exchange: "NASDAQ-GS",
+    sector: "Finance",
+    industry: "Finance: Consumer Services",
+  },
+  MSTR: {
+    name: "Strategy Inc.",
+    exchange: "NASDAQ-GS",
+    sector: "Technology",
+    industry: "Computer Software: Prepackaged Software",
+  },
+};
+
+function companyProfileOf(ticker: string): {
+  name: string;
+  exchange: string;
+  sector: string;
+  industry: string;
+} {
+  return (
+    COMPANY_PROFILES[ticker] ?? {
+      name: `${ticker} Inc.`,
+      exchange: "NASDAQ-GS",
+      sector: "Technology",
+      industry: "Computer Software: Prepackaged Software",
+    }
+  );
+}
+
+/**
+ * Underlying price for an equity symbol. The equity-research frames pass a bare
+ * ticker ("NVDA") while {@link FIXED_PRICE} is keyed by the HIP-3 perp
+ * ("xyz:NVDA"), so the dex spelling is tried too — otherwise a profile card
+ * would quote a hashed [40,600) level beside a ticker tape showing the anchor.
+ */
+function equityPriceFor(symbol: string): number {
+  const t = tickerOf(symbol);
+  return FIXED_PRICE[symbol] ?? FIXED_PRICE[`xyz:${t}`] ?? priceFor(t);
+}
+
+/** Fiscal year end — late September, so the newest closed year is the FY2025 /
+ *  2025-09-27 pair the headline {@link CompanyFacts} mock already reports. */
+const FY_END_MONTH = 8;
+const FY_END_DAY = 27;
+
+/** Quarter ends of a fiscal year as `[year offset, month, day]`. Fiscal Q1 lands
+ *  in the PREVIOUS calendar year, which is exactly why a fiscal quarter can't be
+ *  inferred from its end date alone. */
+const QUARTER_ENDS: readonly (readonly [number, number, number])[] = [
+  [-1, 11, 28],
+  [0, 2, 29],
+  [0, 5, 28],
+  [0, FY_END_MONTH, FY_END_DAY],
+];
+
+/** One reporting period a mock filer has reported on. */
+interface MockPeriod {
+  endMs: number;
+  fy: number;
+  /** 1–4 for a fiscal quarter, 0 for a full year. */
+  quarter: number;
+  fiscalPeriod: string;
+  form: string;
+}
+
+/**
+ * Reporting periods oldest→newest, ending at the last fiscal year that has
+ * actually closed. Anchored to {@link BASELINE_NOW} like every other series
+ * here so the history never goes stale, while the COUNT stays fixed — a story
+ * renders the same number of columns whatever day CI runs it.
+ */
+function fiscalPeriods(
+  years: number,
+  cadence: "annual" | "quarterly",
+): MockPeriod[] {
+  const nowYear = new Date(BASELINE_NOW).getUTCFullYear();
+  const latestFy =
+    BASELINE_NOW < Date.UTC(nowYear, FY_END_MONTH, FY_END_DAY)
+      ? nowYear - 1
+      : nowYear;
+  const out: MockPeriod[] = [];
+  for (let i = years - 1; i >= 0; i--) {
+    const fy = latestFy - i;
+    if (cadence === "annual") {
+      out.push({
+        endMs: Date.UTC(fy, FY_END_MONTH, FY_END_DAY),
+        fy,
+        quarter: 0,
+        fiscalPeriod: `FY${fy}`,
+        form: "10-K",
+      });
+      continue;
+    }
+    for (let q = 1; q <= 4; q++) {
+      const [dy, month, day] = QUARTER_ENDS[q - 1];
+      out.push({
+        endMs: Date.UTC(fy + dy, month, day),
+        fy,
+        quarter: q,
+        fiscalPeriod: `Q${q} ${fy}`,
+        // A fiscal Q4 is reported inside the annual report, never on its own 10-Q.
+        form: q === 4 ? "10-K" : "10-Q",
+      });
+    }
+  }
+  return out;
+}
+
+/** Share of the fiscal year each quarter carries. Deliberately lopsided toward
+ *  the December quarter so a quarterly chart shows real seasonality instead of
+ *  four indistinguishable bars. */
+const QUARTER_SEASONALITY = [0.3, 0.22, 0.22, 0.26];
+
+/** One period's modelled figures, in dollars (EPS in dollars per share). */
+interface MockFinancials {
+  revenue: number;
+  costOfRevenue: number;
+  grossProfit: number;
+  researchDevelopment: number;
+  sellingGeneralAdmin: number;
+  operatingIncome: number;
+  pretaxIncome: number;
+  incomeTax: number;
+  netIncome: number;
+  dilutedEps: number;
+  dilutedShares: number;
+  totalAssets: number;
+  currentAssets: number;
+  totalLiabilities: number;
+  currentLiabilities: number;
+  shareholdersEquity: number;
+  operatingCashFlow: number;
+  /** Negative, the way publishers report a cash outflow. */
+  capex: number;
+  investingCashFlow: number;
+  financingCashFlow: number;
+}
+
+/**
+ * A modelled decade of financials for one filer, aligned index-for-index with
+ * `periods`. The SEC-XBRL history, the exchange's statement tables, the profile
+ * card's market cap and the earnings track record all read off this ONE model:
+ * a board carrying several of those cards would otherwise quote two different
+ * revenues for the same fiscal year, which reads as a bug in the frames.
+ */
+function modelFinancials(
+  ticker: string,
+  periods: MockPeriod[],
+): MockFinancials[] {
+  const r = rng(`financials:${ticker}`);
+  const years = [...new Set(periods.map((p) => p.fy))].sort((a, b) => a - b);
+
+  // Anchor the newest year off the ticker, then walk BACKWARDS at ~18% a year so
+  // the decade compounds instead of drifting around a flat line.
+  const annualRevenue = new Map<number, number>();
+  let revenue = 90_000_000_000 + r() * 260_000_000_000;
+  for (let i = years.length - 1; i >= 0; i--) {
+    annualRevenue.set(years[i], Math.round(revenue));
+    revenue /= 1.18 + (r() - 0.5) * 0.12;
+  }
+
+  const span = Math.max(1, periods.length - 1);
+  return periods.map((period, i) => {
+    // 0 at the oldest period, 1 at the newest — margins and the buyback both
+    // ride this so the whole statement improves coherently over the decade.
+    const t = i / span;
+    const yearRevenue = annualRevenue.get(period.fy) ?? 0;
+    const rev =
+      period.quarter === 0
+        ? yearRevenue
+        : yearRevenue * QUARTER_SEASONALITY[period.quarter - 1];
+
+    const grossMargin = 0.55 + 0.16 * t;
+    const operatingMargin = 0.24 + 0.22 * t;
+    const grossProfit = rev * grossMargin;
+    const operatingIncome = rev * operatingMargin;
+    const opex = grossProfit - operatingIncome;
+    const pretaxIncome = operatingIncome + rev * 0.015;
+    const incomeTax = pretaxIncome * 0.14;
+    const netIncome = pretaxIncome - incomeTax;
+    const dilutedShares = Math.round(26_000_000_000 * (1 - 0.11 * t));
+    const totalAssets = yearRevenue * (1.45 + 0.35 * t);
+    const shareholdersEquity = totalAssets * (0.52 + 0.14 * t);
+    const operatingCashFlow = netIncome * 1.12;
+    const capex = -rev * 0.035;
+
+    return {
+      revenue: Math.round(rev),
+      costOfRevenue: Math.round(rev - grossProfit),
+      grossProfit: Math.round(grossProfit),
+      researchDevelopment: Math.round(opex * 0.62),
+      sellingGeneralAdmin: Math.round(opex * 0.38),
+      operatingIncome: Math.round(operatingIncome),
+      pretaxIncome: Math.round(pretaxIncome),
+      incomeTax: Math.round(incomeTax),
+      netIncome: Math.round(netIncome),
+      dilutedEps: round(netIncome / dilutedShares, 2),
+      dilutedShares,
+      totalAssets: Math.round(totalAssets),
+      currentAssets: Math.round(totalAssets * (0.4 + 0.08 * t)),
+      totalLiabilities: Math.round(totalAssets - shareholdersEquity),
+      // Short-term obligations shrink as a share of the book over the decade,
+      // so the current ratio derived from these two actually MOVES — a liquidity
+      // row that prints the same figure four columns running looks synthetic.
+      currentLiabilities: Math.round(
+        (totalAssets - shareholdersEquity) * (0.46 - 0.09 * t),
+      ),
+      shareholdersEquity: Math.round(shareholdersEquity),
+      operatingCashFlow: Math.round(operatingCashFlow),
+      capex: Math.round(capex),
+      investingCashFlow: Math.round(capex - rev * 0.06),
+      financingCashFlow: Math.round(-operatingCashFlow * 0.72),
+    };
+  });
+}
+
+// ── option-chain maths ──────────────────────────────────────────────────────
+
+/** Standard normal CDF (Abramowitz & Stegun 26.2.17). Black-Scholes below runs
+ *  on it so the mock's greeks are internally consistent — a call delta that
+ *  really does fall 1→0 across the ladder, a gamma that really does peak at the
+ *  money — rather than three independent fudge curves that disagree. */
+function normCdf(x: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const poly =
+    t *
+    (0.31938153 +
+      t *
+        (-0.356563782 +
+          t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+  const p = normPdf(x) * poly;
+  return x >= 0 ? 1 - p : p;
+}
+
+function normPdf(x: number): number {
+  return 0.3989422804014327 * Math.exp((-x * x) / 2);
+}
+
+/** Risk-free rate the mock's greeks and premiums are priced off. */
+const OPTION_RATE = 0.043;
+
+/** Strike increments a listing actually uses; the ladder snaps to the first one
+ *  at least as coarse as ~2.5% of spot, so a $85 name and a $1,140 name both get
+ *  a readable axis instead of 200 strikes or 3. */
+const STRIKE_STEPS = [0.5, 1, 2.5, 5, 10, 25, 50, 100, 250];
+
+function strikeStepFor(price: number): number {
+  const target = price * 0.025;
+  return STRIKE_STEPS.find((s) => s >= target) ?? 500;
+}
+
+/**
+ * Days from {@link BASELINE_NOW} to each listed expiry, and the multiplier on
+ * that expiry's open interest.
+ *
+ * **The front expiry is deliberately near-empty.** `selectExpiry` in
+ * `equity-options-shared` skips the nearest expiry when it fails a liquidity
+ * floor of 10% of the busiest one — real front weeklies often are that thin, and
+ * charting them produces a card that looks broken. A mock where every expiry is
+ * equally busy never exercises that branch, so the choice would be untested and
+ * invisible.
+ *
+ * Whole-day offsets rather than a snap to the next Friday: days-to-expiry then
+ * never moves with the weekday CI happens to run on, and every IV, premium and
+ * greek derived from it stays byte-identical between runs.
+ */
+const OPTION_EXPIRIES: readonly { days: number; oiScale: number }[] = [
+  { days: 7, oiScale: 0.012 },
+  { days: 35, oiScale: 1 },
+  { days: 91, oiScale: 0.62 },
+  { days: 182, oiScale: 0.34 },
+];
+
+/** Strikes per expiry — 10 either side of the money. */
+const STRIKES_PER_EXPIRY = 21;
+
+/** How far out of the money a contract stops being quoted at all. Beyond this
+ *  many steps on its own OTM side the feed publishes no IV, which is the case
+ *  the smile frame has to drop rather than plot as zero vol. */
+const UNQUOTED_STEPS = 8;
+
+/** OCC-21 contract id: `<ROOT><YYMMDD><C|P><strike × 1000, 8 digits>`. */
+function occSymbol(
+  root: string,
+  expiryMs: number,
+  side: "call" | "put",
+  strike: number,
+): string {
+  const d = new Date(expiryMs);
+  const yy = String(d.getUTCFullYear() % 100).padStart(2, "0");
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const strikeField = String(Math.round(strike * 1000)).padStart(8, "0");
+  return `${root}${yy}${mm}${dd}${side === "call" ? "C" : "P"}${strikeField}`;
+}
+
 export class MockMarketDataProvider implements MarketDataProvider {
   readonly name = "mock";
   readonly capabilities: readonly Capability[] = [
@@ -243,7 +645,15 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "macro-series",
     "news",
     "fundamentals",
+    "fundamentals-history",
     "filings",
+    "equity-profile",
+    "equity-financials",
+    "earnings-history",
+    "earnings-calendar",
+    "analyst-ratings",
+    "institutional-ownership",
+    "options-chain",
     "short-volume",
     "dex-volume",
     "protocol-tvl",
@@ -1527,6 +1937,506 @@ export class MockMarketDataProvider implements MarketDataProvider {
     });
   }
 
+  // ── equity deep-dive ────────────────────────────────────────────────────
+  getCompanyFactsHistory(
+    tickerOrCik: string,
+    cadence: "annual" | "quarterly" = "annual",
+  ): Promise<CompanyFactsHistory> {
+    const t = tickerOf(tickerOrCik);
+    const resolved = cadence === "quarterly" ? "quarterly" : "annual";
+    const empty: CompanyFactsHistory = {
+      cik: "0000000000",
+      entityName: t,
+      cadence: resolved,
+      series: [],
+    };
+    return this.gate<CompanyFactsHistory>(empty, () => {
+      const periods = fiscalPeriods(10, resolved);
+      const model = modelFinancials(t, periods);
+      const facts = (
+        pick: (m: MockFinancials) => number,
+        kind: "duration" | "instant",
+        dp = 0,
+      ): FinancialFact[] =>
+        periods.map((period, i) => {
+          const fact: FinancialFact = {
+            end: isoDay(period.endMs),
+            value: round(pick(model[i]), dp),
+            fiscalPeriod: period.fiscalPeriod,
+            form: period.form,
+          };
+          // Instant (balance-sheet) facts are a snapshot and carry no start —
+          // the same asymmetry the real XBRL blob has, and what a frame keys off
+          // to decide whether a value covers a period or names a moment.
+          if (kind === "duration")
+            fact.start = isoDay(
+              period.endMs - (period.quarter === 0 ? 364 : 90) * DAY,
+            );
+          return fact;
+        });
+
+      const series: FinancialSeries[] = [
+        {
+          label: "Revenue",
+          unit: "USD",
+          kind: "duration",
+          // Two tags on purpose. Issuers move their top line between them
+          // mid-decade, so a real revenue series is stitched — and a frame that
+          // captions "stitched across N XBRL tags" only shows that caption when
+          // a series actually has more than one.
+          concepts: [
+            "RevenueFromContractWithCustomerExcludingAssessedTax",
+            "Revenues",
+          ],
+          facts: facts((m) => m.revenue, "duration"),
+        },
+        {
+          label: "Net income",
+          unit: "USD",
+          kind: "duration",
+          concepts: ["NetIncomeLoss"],
+          facts: facts((m) => m.netIncome, "duration"),
+        },
+        {
+          label: "Total assets",
+          unit: "USD",
+          kind: "instant",
+          concepts: ["Assets"],
+          facts: facts((m) => m.totalAssets, "instant"),
+        },
+        {
+          label: "Shareholders' equity",
+          unit: "USD",
+          kind: "instant",
+          concepts: [
+            "StockholdersEquity",
+            "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest",
+          ],
+          facts: facts((m) => m.shareholdersEquity, "instant"),
+        },
+        {
+          label: "EPS (diluted)",
+          unit: "USD/shares",
+          kind: "duration",
+          concepts: ["EarningsPerShareDiluted"],
+          facts: facts((m) => m.dilutedEps, "duration", 2),
+        },
+      ];
+      return {
+        cik: "0001045810",
+        entityName: companyProfileOf(t).name,
+        cadence: resolved,
+        series,
+      };
+    });
+  }
+
+  getEquityProfile(symbol: string): Promise<EquityProfile> {
+    const t = tickerOf(symbol);
+    const meta = companyProfileOf(t);
+    // Shaped but observation-free: who the registrant is survives a session with
+    // no published quote, and every figure on this contract is optional.
+    const empty: EquityProfile = {
+      symbol: t,
+      companyName: `${meta.name} Common Stock`,
+    };
+    return this.gate<EquityProfile>(empty, () => {
+      const r = rng(`profile:${t}`);
+      const price = equityPriceFor(symbol);
+      // Share count and earnings come from the same model the statements do, so
+      // a valuation card deriving P/E from price ÷ EPS and P/S from market cap ÷
+      // revenue lands on multiples that agree with each other.
+      const model = modelFinancials(t, fiscalPeriods(10, "annual"));
+      const latest = model[model.length - 1];
+      const dividend = round(price * (0.002 + r() * 0.014));
+      return {
+        symbol: t,
+        companyName: `${meta.name} Common Stock`,
+        exchange: meta.exchange,
+        sector: meta.sector,
+        industry: meta.industry,
+        price,
+        previousClose: round(price * (0.985 + r() * 0.028)),
+        marketCap: Math.round(price * latest.dilutedShares),
+        // The 52-week range BRACKETS the last price on purpose: a profile card
+        // draws a position marker along that track, and a price outside its own
+        // range renders off the end of it.
+        fiftyTwoWeekHigh: round(price * (1.14 + r() * 0.3)),
+        fiftyTwoWeekLow: round(price * (0.52 + r() * 0.16)),
+        averageVolume: Math.round(8_000_000 + r() * 160_000_000),
+        annualisedDividend: dividend,
+        // Derived from the dividend rather than drawn separately, so the two
+        // fields on the same card can't contradict each other.
+        dividendYield: round((dividend / price) * 100),
+        // Street targets sit above spot far more often than not, and the frame
+        // renders the gap as upside — a target below price shows as a shrug.
+        oneYearTarget: round(price * (1.12 + r() * 0.22)),
+      };
+    });
+  }
+
+  getEquityFinancials(
+    symbol: string,
+    frequency: "annual" | "quarterly" = "annual",
+  ): Promise<EquityFinancials> {
+    const t = tickerOf(symbol);
+    const resolved = frequency === "quarterly" ? "quarterly" : "annual";
+    const empty: EquityFinancials = {
+      symbol: t,
+      periods: [],
+      frequency: resolved,
+      incomeStatement: [],
+      balanceSheet: [],
+      cashFlow: [],
+      ratios: [],
+    };
+    return this.gate<EquityFinancials>(empty, () => {
+      // Model the whole decade, publish the newest four columns: the exchange's
+      // tables are shallow, but the margins have to sit on the same ramp the
+      // XBRL history shows or the two cards disagree about the same year.
+      const all = fiscalPeriods(10, resolved);
+      const model = modelFinancials(t, all);
+      const columns = [0, 1, 2, 3].map((i) => all.length - 1 - i);
+      const periods = columns.map((i) => usDate(all[i].endMs));
+
+      const row = (
+        label: string,
+        pick: (m: MockFinancials) => number,
+        dp = 0,
+      ): FinancialStatementRow => ({
+        label,
+        values: columns.map((i) => round(pick(model[i]), dp)),
+      });
+      /** A row the publisher only filled in for some of the columns. `null` is a
+       *  blank cell, and a frame is required to skip it rather than draw a zero
+       *  — so at least one of these ships in every statement. */
+      const sparse = (
+        label: string,
+        pick: (m: MockFinancials) => number,
+        blank: number[],
+        dp = 0,
+      ): FinancialStatementRow => ({
+        label,
+        values: columns.map((i, col) =>
+          blank.includes(col) ? null : round(pick(model[i]), dp),
+        ),
+      });
+
+      return {
+        symbol: t,
+        periods,
+        frequency: resolved,
+        incomeStatement: [
+          row("Total Revenue", (m) => m.revenue),
+          row("Cost of Revenue", (m) => m.costOfRevenue),
+          row("Gross Profit", (m) => m.grossProfit),
+          row("Research and Development", (m) => m.researchDevelopment),
+          row("SG&A Expense", (m) => m.sellingGeneralAdmin),
+          row("Operating Income", (m) => m.operatingIncome),
+          row("Pre-Tax Income", (m) => m.pretaxIncome),
+          row("Income Tax", (m) => m.incomeTax),
+          row("Net Income", (m) => m.netIncome),
+          row("Diluted EPS", (m) => m.dilutedEps, 2),
+          row("Diluted Shares Outstanding", (m) => m.dilutedShares),
+          // The classic all-blank line: the exchange prints the row whether or
+          // not the filer has anything to put in it.
+          sparse("Minority Interest", () => 0, [0, 1, 2, 3]),
+        ],
+        balanceSheet: [
+          row("Total Assets", (m) => m.totalAssets),
+          // Blank in the OLDEST column — the filer began breaking this out
+          // mid-decade, which is the ordinary reason a cell is empty.
+          sparse("Total Current Assets", (m) => m.currentAssets, [3]),
+          row("Total Liabilities", (m) => m.totalLiabilities),
+          row("Total Current Liabilities", (m) => m.currentLiabilities),
+          row("Total Shareholders Equity", (m) => m.shareholdersEquity),
+        ],
+        cashFlow: [
+          row("Net Cash Flow-Operating", (m) => m.operatingCashFlow),
+          // Negative, as publishers report a cash outflow — a frame that plots
+          // free cash flow has to ADD this, not subtract it.
+          row("Capital Expenditures", (m) => m.capex),
+          sparse("Net Cash Flow-Investing", (m) => m.investingCashFlow, [3]),
+          row("Net Cash Flow-Financing", (m) => m.financingCashFlow),
+        ],
+        // Percentages as published — 70.1 means 70.1%, not 0.701.
+        ratios: [
+          row("Gross Margin", (m) => (m.grossProfit / m.revenue) * 100, 2),
+          row(
+            "Operating Margin",
+            (m) => (m.operatingIncome / m.revenue) * 100,
+            2,
+          ),
+          row("Pre-Tax Margin", (m) => (m.pretaxIncome / m.revenue) * 100, 2),
+          row("Profit Margin", (m) => (m.netIncome / m.revenue) * 100, 2),
+          row(
+            "Return On Equity",
+            (m) => (m.netIncome / m.shareholdersEquity) * 100,
+            2,
+          ),
+          // A multiple, not a percent — the ratios table mixes both, so a frame
+          // can't assume every row in it wants a "%" suffix.
+          row(
+            "Current Ratio",
+            (m) => m.currentAssets / m.currentLiabilities,
+            2,
+          ),
+        ],
+      };
+    });
+  }
+
+  /**
+   * Surprise (percent of consensus) for the last eight quarters, newest first.
+   *
+   * Fixed rather than drawn: the frames need a run of beats, at least one MISS,
+   * and one quarter the street never published a consensus for. A seeded random
+   * walk would produce those only some of the time, and a story that renders the
+   * interesting branch on a Tuesday isn't a test.
+   */
+  private static readonly EARNINGS_SURPRISES: readonly (number | null)[] = [
+    10,
+    8.28,
+    5.6,
+    -4.2,
+    6.1,
+    2.4,
+    null,
+    12.7,
+  ];
+
+  getEarningsHistory(symbol: string): Promise<EarningsHistory> {
+    const t = tickerOf(symbol);
+    const empty: EarningsHistory = { symbol: t, results: [] };
+    return this.gate<EarningsHistory>(empty, () => {
+      const all = fiscalPeriods(10, "quarterly");
+      const model = modelFinancials(t, all);
+      const results: EarningsResult[] = [];
+      for (let i = 0; i < 8; i++) {
+        const idx = all.length - 1 - i;
+        const period = all[idx];
+        const end = new Date(period.endMs);
+        const eps = model[idx].dilutedEps;
+        const result: EarningsResult = {
+          fiscalQuarterEnd: `${MONTH_ABBR[end.getUTCMonth()]} ${end.getUTCFullYear()}`,
+          // Companies report a few weeks after the books close.
+          dateReported: isoDay(period.endMs + 24 * DAY),
+          eps,
+        };
+        const surprise = MockMarketDataProvider.EARNINGS_SURPRISES[i];
+        if (surprise !== null) {
+          const consensus = round(eps / (1 + surprise / 100), 2);
+          result.consensusEps = consensus;
+          // Recomputed off the ROUNDED consensus rather than echoed back, so a
+          // card that derives the surprise itself prints the same number as one
+          // that trusts the field.
+          result.surprisePct = round(
+            ((eps - consensus) / Math.abs(consensus)) * 100,
+            2,
+          );
+        }
+        results.push(result);
+      }
+      return {
+        symbol: t,
+        results,
+        nextReportDate: isoDay(BASELINE_NOW + 12 * DAY),
+        nextReportTime: "after-hours",
+      };
+    });
+  }
+
+  /**
+   * One session's scheduled reporters. A literal list, not a seeded draw: the
+   * mix the frames need — pre-market against after-hours, a mega-cap against a
+   * mid-cap, and one company whose market cap the exchange simply doesn't carry
+   * — is a property of this list, and a generator would keep re-rolling it.
+   *
+   * The entry with no `marketCap` sits in the MIDDLE on purpose: a frame that
+   * ranks the session by size has to sort it last, and one that forgets to
+   * handle the gap shows it stranded mid-table where a reviewer will see it.
+   */
+  private static readonly EARNINGS_CALENDAR: readonly Omit<
+    EarningsCalendarEntry,
+    "date"
+  >[] = [
+    {
+      symbol: "AAPL",
+      companyName: "Apple Inc.",
+      time: "after-hours",
+      consensusEps: 2.41,
+      estimateCount: 28,
+      marketCap: 4_182_000_000_000,
+    },
+    {
+      symbol: "COP",
+      companyName: "ConocoPhillips",
+      time: "pre-market",
+      consensusEps: 2.96,
+      estimateCount: 6,
+      marketCap: 143_685_595_186,
+    },
+    {
+      symbol: "GILD",
+      companyName: "Gilead Sciences, Inc.",
+      time: "after-hours",
+      consensusEps: 1.98,
+      estimateCount: 19,
+      marketCap: 137_402_118_000,
+    },
+    {
+      symbol: "MNST",
+      companyName: "Monster Beverage Corporation",
+      time: "after-hours",
+      consensusEps: 0.51,
+      estimateCount: 14,
+      marketCap: 62_918_400_000,
+    },
+    {
+      symbol: "PBR.A",
+      companyName: "Petroleo Brasileiro S.A.- Petrobras",
+      time: "unknown",
+      estimateCount: 1,
+      marketCap: 120_638_538_652,
+    },
+    {
+      symbol: "DDOG",
+      companyName: "Datadog, Inc.",
+      time: "pre-market",
+      consensusEps: 0.46,
+      estimateCount: 22,
+      marketCap: 48_720_000_000,
+    },
+    {
+      symbol: "TTWO",
+      companyName: "Take-Two Interactive Software, Inc.",
+      time: "after-hours",
+      consensusEps: -0.12,
+      estimateCount: 16,
+      marketCap: 41_360_000_000,
+    },
+    {
+      // No market cap published — the exchange leaves the column blank on plenty
+      // of foreign issuers and freshly listed names.
+      symbol: "GRAB",
+      companyName: "Grab Holdings Limited",
+      time: "pre-market",
+      consensusEps: 0.02,
+      estimateCount: 9,
+    },
+    {
+      symbol: "EXPE",
+      companyName: "Expedia Group, Inc.",
+      time: "after-hours",
+      consensusEps: 4.13,
+      estimateCount: 21,
+      marketCap: 25_240_000_000,
+    },
+    {
+      symbol: "PARA",
+      companyName: "Paramount Global",
+      time: "pre-market",
+      consensusEps: 0.18,
+      estimateCount: 11,
+      marketCap: 8_930_000_000,
+    },
+    {
+      symbol: "YETI",
+      companyName: "YETI Holdings, Inc.",
+      time: "pre-market",
+      consensusEps: 0.63,
+      estimateCount: 8,
+      marketCap: 2_410_000_000,
+    },
+    {
+      symbol: "SBLK",
+      companyName: "Star Bulk Carriers Corp.",
+      time: "pre-market",
+      consensusEps: 0.29,
+      estimateCount: 4,
+      marketCap: 1_870_000_000,
+    },
+  ];
+
+  getEarningsCalendar(date?: string): Promise<EarningsCalendarEntry[]> {
+    return this.gate<EarningsCalendarEntry[]>([], () => {
+      const session = date ?? isoDay(BASELINE_NOW);
+      return MockMarketDataProvider.EARNINGS_CALENDAR.map((entry) => ({
+        ...entry,
+        date: session,
+      }));
+    });
+  }
+
+  /** Covering brokers as the exchange publishes them: upper case and truncated
+   *  to a fixed width mid-word, which is what a frame's column has to survive. */
+  private static readonly BROKERS = [
+    "GOLDMAN SACHS",
+    "MORGAN STANLEY",
+    "B OF A GLBL RES",
+    "SANFORD BERNSTE",
+    "JP MORGAN",
+    "WELLS FARGO SEC",
+    "CANTOR FITZGERA",
+    "TRUIST SECURIT",
+    "OPPENHEIMER & C",
+    "RAYMOND JAMES &",
+    "PIPER SANDLER &",
+    "MIZUHO SECURITI",
+    "DEUTSCHE BANK",
+    "BARCLAYS CAPITA",
+    "STIFEL NICOLAUS",
+  ];
+
+  getAnalystRatings(symbol: string): Promise<AnalystRatings> {
+    const t = tickerOf(symbol);
+    const empty: AnalystRatings = { symbol: t, brokers: [] };
+    return this.gate<AnalystRatings>(empty, () => {
+      const r = rng(`ratings:${t}`);
+      const labels = ["Strong Buy", "Buy", "Buy", "Hold"];
+      const count = 12 + Math.floor(r() * 30);
+      return {
+        symbol: t,
+        consensus: labels[Math.floor(r() * labels.length)],
+        analystCount: count,
+        // meanRating is deliberately absent: the keyless source publishes only
+        // the label, and mapping "Buy" onto 1–5 would be our invention. The
+        // frames are built around the label, so this is the shape they must see.
+        brokers: MockMarketDataProvider.BROKERS.slice(
+          0,
+          Math.min(MockMarketDataProvider.BROKERS.length, 6 + (count % 8)),
+        ),
+      };
+    });
+  }
+
+  getInstitutionalOwnership(symbol: string): Promise<InstitutionalOwnership> {
+    const t = tickerOf(symbol);
+    const empty: InstitutionalOwnership = { symbol: t };
+    return this.gate<InstitutionalOwnership>(empty, () => {
+      const r = rng(`ownership:${t}`);
+      const model = modelFinancials(t, fiscalPeriods(10, "annual"));
+      const shares = model[model.length - 1].dilutedShares;
+      const ownedPct = round(58 + r() * 26);
+      const increasedShares = Math.round(shares * (0.1 + r() * 0.04));
+      return {
+        symbol: t,
+        institutionalOwnershipPct: ownedPct,
+        sharesOutstanding: shares,
+        totalHoldingsValue: Math.round(
+          shares * (ownedPct / 100) * equityPriceFor(symbol),
+        ),
+        increasedHolders: 2_800 + Math.floor(r() * 900),
+        increasedShares,
+        decreasedHolders: 2_100 + Math.floor(r() * 700),
+        // Accumulation, clearly: buyers add several times what sellers trim, so
+        // a frame drawing the two against each other has an obvious winner
+        // rather than two bars a reader has to measure.
+        decreasedShares: Math.round(increasedShares * (0.14 + r() * 0.12)),
+      };
+    });
+  }
+
   // ── news ──────────────────────────────────────────────────────────────────
   getNews(query: NewsQuery): Promise<NewsItem[]> {
     return this.gate<NewsItem[]>([], () => {
@@ -1617,6 +2527,139 @@ export class MockMarketDataProvider implements MarketDataProvider {
           strikes,
         },
         asOf: BASELINE_NOW,
+      };
+    });
+  }
+
+  /**
+   * At-the-money implied vol for an expiry `dte` days out. A gently downward
+   * term structure — the front is the jumpiest — so a term-structure card has a
+   * slope to draw instead of a flat line.
+   */
+  private static atmIv(dte: number): number {
+    return 0.3 + 0.06 * Math.exp(-dte / 60);
+  }
+
+  /**
+   * The smile: implied vol at log-moneyness `m` (negative = strike below spot).
+   *
+   * Two shapes on purpose. The quadratic lifts BOTH wings above the money, and
+   * the linear skew lifts the downside further than the upside — that asymmetry
+   * is the whole point of plotting an equity smile, and a symmetric parabola
+   * would let a frame look correct while showing nothing real. The small
+   * put-side offset keeps the two curves from landing exactly on top of each
+   * other, as same-strike quotes in a real chain rarely do.
+   */
+  private static smileIv(dte: number, m: number, side: "call" | "put"): number {
+    const iv =
+      MockMarketDataProvider.atmIv(dte) +
+      1.4 * m * m -
+      0.18 * m +
+      (side === "put" ? 0.004 : -0.004);
+    return round(Math.max(0.05, iv), 4);
+  }
+
+  getOptionsChain(symbol: string): Promise<OptionsChain> {
+    const t = tickerOf(symbol);
+    // A real envelope with no contracts in it: `delayMinutes` is a property of
+    // the feed, not of any quote, so it survives having nothing to report.
+    const empty: OptionsChain = { symbol: t, delayMinutes: 15, contracts: [] };
+    return this.gate<OptionsChain>(empty, () => {
+      const spot = equityPriceFor(symbol);
+      const step = strikeStepFor(spot);
+      const atm = Math.round(spot / step) * step;
+      const half = (STRIKES_PER_EXPIRY - 1) / 2;
+      const contracts: OptionContract[] = [];
+
+      // Built expiry-ascending → strike-ascending → call before put, which is
+      // the order OptionsChain documents and every frame indexes against.
+      for (const expiry of OPTION_EXPIRIES) {
+        const expiryMs = BASELINE_NOW + expiry.days * DAY;
+        const expiryIso = isoDay(expiryMs);
+        const years = expiry.days / 365;
+        const sqrtT = Math.sqrt(years);
+
+        for (let k = -half; k <= half; k++) {
+          const strike = round(atm + k * step, 2);
+          if (strike <= 0) continue;
+          const m = Math.log(strike / spot);
+
+          for (const side of ["call", "put"] as const) {
+            const iv = MockMarketDataProvider.smileIv(expiry.days, m, side);
+            const d1 =
+              (Math.log(spot / strike) +
+                (OPTION_RATE + (iv * iv) / 2) * years) /
+              (iv * sqrtT);
+            const d2 = d1 - iv * sqrtT;
+            const discount = Math.exp(-OPTION_RATE * years);
+            const callDelta = normCdf(d1);
+            const price =
+              side === "call"
+                ? spot * callDelta - strike * discount * normCdf(d2)
+                : strike * discount * normCdf(-d2) - spot * normCdf(-d1);
+
+            // Open interest humps around the money and decays out the wings —
+            // flat OI would give an OI-by-strike chart nothing to show and hand
+            // max-pain a plateau with no minimum in it. The call hump sits a
+            // touch above spot and the put hump a touch below, the way real
+            // positioning splits, so max pain lands near spot without sitting
+            // exactly on the ATM strike by construction.
+            const centre = side === "call" ? 0.02 : -0.03;
+            const offset = (m - centre) / 0.11;
+            const oi = Math.round(
+              9_000 * expiry.oiScale * Math.exp((-offset * offset) / 2),
+            );
+            const r = rng(`chain:${t}:${expiryIso}:${side}:${strike}`);
+
+            // Far enough OTM on its own side, the feed carries no IV at all.
+            // The greeks still come through — a near-zero gamma out there is
+            // genuine, so unlike IV there is no value that means "absent".
+            const quoted =
+              side === "call" ? k < UNQUOTED_STEPS : k > -UNQUOTED_STEPS;
+            const contract: OptionContract = {
+              contract: occSymbol(t, expiryMs, side, strike),
+              expiry: expiryIso,
+              strike,
+              side,
+              openInterest: oi,
+              volume: Math.round(oi * (0.05 + r() * 0.35)),
+              bid: round(Math.max(0.01, price * 0.985)),
+              ask: round(Math.max(0.02, price * 1.015)),
+              delta: round(side === "call" ? callDelta : callDelta - 1, 4),
+              gamma: round(normPdf(d1) / (spot * iv * sqrtT), 6),
+              vega: round((spot * normPdf(d1) * sqrtT) / 100, 4),
+              theta: round(
+                -(spot * normPdf(d1) * iv) / (2 * sqrtT) / 365 -
+                  (side === "call"
+                    ? OPTION_RATE * strike * discount * normCdf(d2)
+                    : -OPTION_RATE * strike * discount * normCdf(-d2)) /
+                    365,
+                4,
+              ),
+              rho: round(
+                (side === "call"
+                  ? strike * years * discount * normCdf(d2)
+                  : -strike * years * discount * normCdf(-d2)) / 100,
+                4,
+              ),
+            };
+            if (quoted) {
+              contract.iv = iv;
+              contract.lastPrice = round(Math.max(0.01, price));
+            }
+            contracts.push(contract);
+          }
+        }
+      }
+
+      return {
+        symbol: t,
+        underlyingPrice: spot,
+        iv30: round(MockMarketDataProvider.atmIv(30), 4),
+        // The listed-equity feeds are 15 minutes behind, and every card built on
+        // this data says so.
+        delayMinutes: 15,
+        contracts,
       };
     });
   }

@@ -75,6 +75,23 @@ const PROXY_ALLOW_HOSTS = new Set<string>([
   "www.cnbc.com",
   "www.nasdaq.com",
   "news.google.com",
+  // Equity deep-dive sources. Both are keyless and both send no
+  // `Access-Control-Allow-Origin`, so the browser can only reach them here.
+  //
+  //   api.nasdaq.com — the exchange's own quote-page backend: real consolidated
+  //     daily OHLCV, market cap / 52-week / dividend / analyst target, 4-year
+  //     income-balance-cashflow-ratio tables, reported-vs-consensus earnings
+  //     with report dates, the market-wide earnings calendar, sell-side
+  //     consensus, and 13F ownership aggregates. UNDOCUMENTED: it is the site's
+  //     internal API, not a published data programme like SEC or Treasury —
+  //     there is no stability contract, it wants a browser User-Agent, and it
+  //     may rate-limit or block. Every provider method built on it caches with
+  //     stale-on-error and degrades to an empty card, never a crash.
+  //   cdn.cboe.com — delayed (15 min) listed-equity option chains with IV, open
+  //     interest, volume and full greeks; ~1.7 MB per underlying, comfortably
+  //     under PROXY_MAX_BYTES.
+  "api.nasdaq.com",
+  "cdn.cboe.com",
 ]);
 
 // SEC's companyfacts blob is a few MB; allow headroom but bound it.
@@ -101,6 +118,24 @@ const PROXY_REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 // keyless default works out of the box. `--contact` swaps in a polite UA.
 const PROXY_DEFAULT_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
+/**
+ * Hosts that must keep the browser UA even when the operator passes
+ * `--contact`. `--contact` exists for SEC's fair-access policy, which asks for
+ * a contact address — but it swaps the UA for EVERY relayed host, and
+ * api.nasdaq.com's bot mitigation answers a non-browser UA by dropping the
+ * connection rather than returning a status. So a user who politely identifies
+ * themselves for the SEC's benefit would silently lose every Nasdaq card, with
+ * nothing in the logs but timeouts. Narrow the courtesy to the hosts that
+ * actually asked for it.
+ */
+const PROXY_FORCE_BROWSER_UA = new Set<string>(["api.nasdaq.com"]);
+
+function uaFor(hostname: string, contactUa?: string): string {
+  if (!contactUa || PROXY_FORCE_BROWSER_UA.has(hostname))
+    return PROXY_DEFAULT_UA;
+  return contactUa;
+}
 
 // Minimal structural shapes satisfied by both Node's http and Vite's connect
 // middleware, so neither this module nor `./vite` needs a node/vite type dep.
@@ -274,7 +309,7 @@ export async function handleProxy(
     // bound; each hop shares the same signal.
     const signal = AbortSignal.timeout(PROXY_TIMEOUT_MS);
     const headers = {
-      "User-Agent": opts.userAgent ?? PROXY_DEFAULT_UA,
+      "User-Agent": uaFor(target.hostname, opts.userAgent),
       Accept: "application/json,text/plain,*/*",
     };
     let current = target;

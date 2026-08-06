@@ -62,7 +62,14 @@ const BAHT = currencySymbol("THB");
  * baht, never a dollar sign, and their figures must differ from the USD render.
  */
 const CONVERTS: Record<string, string> = {
+  "analyst-ratings": "the consensus price target beside the live price",
   "bitcoin-dominance": "total crypto market cap",
+  "company-profile": "last sale, market cap and the 52-week range",
+  "equity-options-greeks": "spot and the strike ladder",
+  "equity-options-max-pain": "the max-pain strike and spot",
+  "equity-options-oi": "spot and the strike axis",
+  "equity-options-smile": "spot and the strike axis",
+  "valuation-multiples": "market cap; the ratios themselves are unit-less",
   "defi-revenue": "24h protocol fees and revenue",
   "dex-hot-pools": "pool price, liquidity and 24h volume",
   "journal-log": "the ticker picker's live mid",
@@ -168,7 +175,14 @@ const USD_ONLY: Record<string, string> = {
   breakeven: "user-entered position maths",
   calculator: "user-entered account size, risk and levels",
   "capital-structure-bars": "SEC balance-sheet figures, as reported",
+  "cashflow-trend": "published cash-flow statement figures, as reported",
+  "earnings-calendar": "consensus EPS as published; caps only rank the session",
+  "earnings-countdown":
+    "an EPS is a per-share figure as the company reported it",
+  "earnings-surprise": "reported vs consensus EPS, both as published",
+  "financials-trend": "SEC XBRL reported history, as filed",
   fundamentals: "SEC filing figures, as reported",
+  "institutional-ownership": "13F holdings aggregates, as reported",
   "national-debt": "US-macro — Treasury debt is quoted in USD",
   "nyfed-reference-rate-bars": "US-macro — NY Fed repo volumes in USD",
   "rates-board": "US-macro — official US rate board",
@@ -198,6 +212,7 @@ const NO_MONEY: Record<string, string> = {
   "chain-activity-bars": "24h transaction counts",
   "chain-activity-scatter": "24h change % vs transaction counts",
   "chain-price-movers": "24h price change %",
+  "margin-trend": "gross/operating/net margins — percentages of revenue",
   checklist: "user-authored checklist items",
   clock: "a wall clock",
   "coin-momentum-heatmap": "per-window change %",
@@ -837,7 +852,14 @@ describe("the currency classification covers the whole registry", () => {
     // Raised once more (156 → 157) for the `group` container, which renders no
     // content of its own at all — each child card resolves its own currency, so
     // there is nothing here to classify either way.
-    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(157);
+    // Raised once more (157 → 158) for `margin-trend`, the only member of the
+    // 14-frame equity deep-dive batch that shows no money: it plots gross,
+    // operating and net margin, which are percentages of revenue. Everything
+    // else in that batch is money and went to CONVERTS (profile, valuation,
+    // ratings, the four options frames) or USD_ONLY (the statement, earnings
+    // and 13F frames, all figures as reported) — the split is what keeps this
+    // ratchet meaningful.
+    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(158);
     expect(Object.keys(CONVERTS).length).toBeGreaterThanOrEqual(70);
   });
 

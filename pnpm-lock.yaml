@@ -603,6 +603,19 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-cboe:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-coingecko:
     dependencies:
       '@zframes/data-primitives':
@@ -785,6 +798,19 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
+  packages/provider-nasdaq:
+    dependencies:
+      '@zframes/data-primitives':
+        specifier: workspace:*
+        version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
   packages/provider-news:
     dependencies:
       '@zframes/data-primitives':
@@ -919,6 +945,9 @@ importers:
       '@zframes/provider-bls':
         specifier: workspace:*
         version: link:../provider-bls
+      '@zframes/provider-cboe':
+        specifier: workspace:*
+        version: link:../provider-cboe
       '@zframes/provider-coingecko':
         specifier: workspace:*
         version: link:../provider-coingecko
@@ -961,6 +990,9 @@ importers:
       '@zframes/provider-metals':
         specifier: workspace:*
         version: link:../provider-metals
+      '@zframes/provider-nasdaq':
+        specifier: workspace:*
+        version: link:../provider-nasdaq
       '@zframes/provider-news':
         specifier: workspace:*
         version: link:../provider-news
