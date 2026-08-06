@@ -50,7 +50,19 @@ export function LikeButton({
    *  shared map) can stay in step without refetching. */
   onLiked?: (name: string) => void;
 }) {
-  const [total, setTotal] = useState(initialTotal);
+  // THE COUNT HAS TWO SOURCES and the split matters. `initialTotal` is the parent's
+  // number, which on the catalogue arrives AFTER mount (the counts fetch resolves
+  // post-render) — so seeding state from it once left every card badge stuck at 0
+  // while the most-liked strip showed the real figures on the same screen.
+  //
+  // `confirmed` is the server's answer to OUR click, which outranks the prop from
+  // then on. Deriving the display instead of storing it means a late-arriving prop
+  // updates the badge, and a confirmed like is never reverted by one.
+  const [confirmed, setConfirmed] = useState<number | null>(null);
+  // Counts clicks in flight, so the optimistic bump survives a prop change and is
+  // removed exactly once when the request settles either way.
+  const [inFlight, setInFlight] = useState(0);
+  const total = (confirmed ?? initialTotal) + inFlight;
   const [spent, setSpent] = useState(0);
   const [pending, setPending] = useState(false);
   const [wall, setWall] = useState<"item-cap" | "ip-cap" | null>(null);
@@ -72,22 +84,22 @@ export function LikeButton({
     setPending(true);
     // Optimistic: the count moves now. The charter chose optimism over accuracy
     // here because a like that takes a round trip to appear feels broken.
-    setTotal((t) => t + 1);
+    setInFlight((n) => n + 1);
     setSpent((s) => s + 1);
     setPops((p) => [...p, Date.now()]);
     const outcome: LikeOutcome = await sendLike(kind, id);
     setPending(false);
+    // Always clear this click's optimistic unit — `confirmed` carries it on success,
+    // and on failure nothing was recorded, so leaving the number up would be a lie
+    // that survives until reload.
+    setInFlight((n) => Math.max(0, n - 1));
     if (outcome.ok) {
-      // Reconcile with the server's real total — it may have moved past our
-      // guess if someone else liked it between our render and our click.
-      setTotal(outcome.total);
+      // The server's total, not our guess — it may have moved further if someone
+      // else liked between our render and our click.
+      setConfirmed(outcome.total);
       onLiked?.(id);
       return;
     }
-    // Roll the optimistic bump back. `error` is included: a failed request means
-    // no like was recorded, so leaving the number up would be a lie that
-    // survives until reload.
-    setTotal((t) => Math.max(0, t - 1));
     setSpent((s) => Math.max(0, s - 1));
     if (outcome.reason === "item-cap" || outcome.reason === "ip-cap") {
       setWall(outcome.reason);
@@ -208,45 +220,6 @@ function HeartMeter({
           </svg>
         </span>
       )}
-    </span>
-  );
-}
-
-/**
- * The read-only twin, for gallery cards. Same object, no interaction — the charter
- * puts the button one click deeper (on the board's own page) but keeps the number
- * visible in the grid, because a "most liked" sort whose key you can't see is a UI
- * asking to be trusted.
- *
- * Server-safe on purpose: a card in a 18-board grid should not ship a client
- * component just to render an integer.
- */
-export function LikeCount({
-  total,
-  className,
-}: {
-  total: number;
-  className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 font-mono text-[10px] text-white/60",
-        className,
-      )}
-      title={`${total} ${total === 1 ? "like" : "likes"}`}
-    >
-      <svg viewBox="0 0 24 24" className="size-3" fill="none" aria-hidden>
-        <path
-          d="M12 20s-7-4.35-7-9.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 7 3.5c0 5.15-7 9.5-7 9.5Z"
-          stroke="currentColor"
-          strokeWidth="1.75"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-      <span className="tabular-nums">{total}</span>
-      <span className="sr-only">{total === 1 ? "like" : "likes"}</span>
     </span>
   );
 }

@@ -151,8 +151,11 @@ export const frameLikes = pgTable("frame_likes", {
 //     this row the cap has no ceiling at all.
 //
 // `visitorKey` is a SALTED HASH, never a raw address — same enforcement, smaller
-// privacy object. Rows are swept after 2 days (nothing reads an older bucket), so
-// this is a short-lived counter, not a visitor log.
+// privacy object. That claim rests on **`LIKES_SALT` being set in production**, which
+// is why `likes-cap.ts` throws rather than falling back there: this repo is public, so
+// its dev default is a published salt, and an unsalted IP hash is reversible by
+// enumerating the 2^32 IPv4 space. Rows are swept after 2 days (nothing reads an older
+// bucket), so this is a short-lived counter, not a visitor log.
 export const likeGrants = pgTable(
   "like_grants",
   {
