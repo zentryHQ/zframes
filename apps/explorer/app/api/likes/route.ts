@@ -40,15 +40,22 @@ const KINDS = new Set<LikeKind>(["dashboard", "frame"]);
 // which is why this route exists. One call for 255 cards, not one per card.
 //
 // Cached briefly at the edge: the charter chose no polling and freshness barely
-// matters for a popularity badge, but the window has to stay short enough that your
-// own like shows up on reload rather than looking lost.
+// matters for a popularity badge.
+//
+// THE BOUND IS ~30s AND THAT IS THE HONEST NUMBER. Within a session your own like is
+// never stale — the button holds the server's total and `useFrameLikes` merges its
+// confirmed likes over the fetch. Across a RELOAD both of those are gone, so the
+// badge can show a pre-like count until the edge entry expires. It was
+// `s-maxage=30, stale-while-revalidate=120`, which made that window up to 150s while
+// the comment here promised a like "shows up on reload" — so the numbers came down
+// and the claim now states the lag instead of denying it.
 export async function GET() {
   const likes = await allFrameLikes();
   return NextResponse.json(
     { frames: likes },
     {
       headers: {
-        "cache-control": "public, s-maxage=30, stale-while-revalidate=120",
+        "cache-control": "public, s-maxage=15, stale-while-revalidate=15",
       },
     },
   );
