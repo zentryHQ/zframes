@@ -14,6 +14,7 @@
     "check:schema": "tsx scripts/check-schema-drift.ts",
     "seed:curated": "tsx scripts/seed-curated.ts",
     "validate:dashboards": "tsx scripts/validate-dashboards.ts",
+    "sweep:likes": "tsx scripts/sweep-like-grants.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

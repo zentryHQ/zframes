@@ -403,6 +403,24 @@ body::before {
   transform: translateX(0);
 }
 
+/* The like button's "+1" float. Only transform/opacity animate, so it stays off
+ * the layout and compositor-cheap even when someone clicks five times fast. It is
+ * the one motion that confirms an ADDITIVE click landed — the count alone can't,
+ * because a second click looks identical to a re-render. */
+.zf-plusone {
+  animation: zf-plusone 0.55s var(--zf-ease-out) forwards;
+}
+@keyframes zf-plusone {
+  from {
+    opacity: 0.9;
+    transform: translateY(0) scale(0.95);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-14px) scale(1);
+  }
+}
+
 /* Filled primary CTA — the hero + sign-in buttons. The outline buttons shift
  * their border + text colour on hover; a FILLED button has neither to spare, so
  * the fill itself must react. It brightens + lifts on hover and presses
@@ -599,6 +617,22 @@ body::before {
   .zf-arrow-reveal,
   .group:hover .zf-arrow-reveal {
     transform: none;
+  }
+  /* "+1" keeps a brief fade — it is FEEDBACK that an additive click registered,
+     not decoration, so removing it outright would leave repeat clicks silent.
+     It loses the rise and shortens instead. The animation must still END, or
+     onAnimationEnd never fires and the nodes accumulate. */
+  .zf-plusone {
+    animation-duration: 0.3s;
+    animation-name: zf-plusone-fade;
+  }
+  @keyframes zf-plusone-fade {
+    from {
+      opacity: 0.9;
+    }
+    to {
+      opacity: 0;
+    }
   }
 }
 

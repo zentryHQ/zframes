@@ -115,6 +115,26 @@ export const dashboards = pgTable("dashboards", {
 
 export type DashboardRow = typeof dashboards.$inferSelect;
 
+// ── per-frame like counts ────────────────────────────────────────────────────
+// The catalogue's counterpart to `dashboards.likes`. A TABLE rather than a column
+// somewhere because frames have no row of their own anywhere in this schema —
+// they live in the code registry (`@zframes/frames`), and the catalogue page reads
+// them statically.
+//
+// Keyed by the frame's REGISTRY NAME (`price-chart`), the same string that appears
+// in every `dashboard.json`. Rows are created lazily on first like: seeding all 255
+// would be a wall of zeros serving nothing the absence of a row doesn't already
+// serve, and `0` renders identically either way.
+//
+// The name is validated against `allFrameMetas` before insert — unlike a board id,
+// which is a row that must already exist, this key is a client-supplied string, so
+// without the check the table quietly accumulates typos and probes as real frames.
+export const frameLikes = pgTable("frame_likes", {
+  name: text("name").primaryKey(), // frame registry name
+  likes: integer("likes").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ── like allowances ──────────────────────────────────────────────────────────
 // The cap behind the public like button: N per item per day, enforced server-side.
 // One row per (visitor, item, UTC day) — so rows are spread across visitors and

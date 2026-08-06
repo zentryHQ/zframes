@@ -66,6 +66,11 @@ export default async function PreviewPage({
   const entry = await resolveDashboard(id); // curated OR community
   if (!entry) notFound();
   return (
-    <DashboardPreview id={entry.id} title={entry.title} spec={entry.spec} />
+    <DashboardPreview
+      id={entry.id}
+      title={entry.title}
+      spec={entry.spec}
+      likes={entry.likes}
+    />
   );
 }
