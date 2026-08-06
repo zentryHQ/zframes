@@ -2,7 +2,7 @@
   {
     "id": "stocks-macro",
     "title": "Stocks & Macro",
-    "description": "Crypto majors alongside official US macro and the equity indices — the same mix used to prove the proxy end-to-end.",
+    "description": "Crypto majors alongside official US macro and the equity indices \u2014 the same mix used to prove the proxy end-to-end.",
     "tags": ["markets", "macro", "equities"],
     "landingOrder": 1,
     "spec": {
@@ -45,7 +45,7 @@
           },
           "config": {
             "title": "Markets",
-            "subtitle": "Live crypto — browser-direct"
+            "subtitle": "Live crypto \u2014 browser-direct"
           }
         },
         {
@@ -120,7 +120,7 @@
           },
           "config": {
             "title": "Indices & Volatility",
-            "subtitle": "S&P 500, Nasdaq and the VIX — read off FRED's own published CSV, still no key"
+            "subtitle": "S&P 500, Nasdaq and the VIX \u2014 read off FRED's own published CSV, still no key"
           }
         },
         {
@@ -607,7 +607,7 @@
   {
     "id": "crypto-desk",
     "title": "Crypto Desk",
-    "description": "A crypto-first board — BTC/ETH charts, a majors watchlist, sentiment, and the market-cap + TVL landscape.",
+    "description": "A crypto-first board \u2014 BTC/ETH charts, a majors watchlist, sentiment, and the market-cap + TVL landscape.",
     "tags": ["crypto", "markets"],
     "landingOrder": 2,
     "spec": {
@@ -746,6 +746,86 @@
             "h": 4
           },
           "config": {}
+        },
+        {
+          "id": "dd-hd",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 11,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Deep dive",
+            "subtitle": "What a token is, what its protocol earns, and what unlocks next"
+          }
+        },
+        {
+          "id": "dd-crypto-profile",
+          "frame": "crypto-profile",
+          "position": {
+            "x": 0,
+            "y": 12,
+            "w": 6,
+            "h": 5
+          },
+          "config": {
+            "symbol": "ETH"
+          }
+        },
+        {
+          "id": "dd-crypto-dilution",
+          "frame": "crypto-dilution",
+          "position": {
+            "x": 6,
+            "y": 12,
+            "w": 6,
+            "h": 5
+          },
+          "config": {
+            "symbol": "ARB"
+          }
+        },
+        {
+          "id": "dd-protocol-revenue",
+          "frame": "protocol-revenue",
+          "position": {
+            "x": 0,
+            "y": 17,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "protocol": "uniswap"
+          }
+        },
+        {
+          "id": "dd-protocol-multiples",
+          "frame": "protocol-multiples",
+          "position": {
+            "x": 6,
+            "y": 17,
+            "w": 6,
+            "h": 4
+          },
+          "config": {
+            "protocol": "uniswap",
+            "symbol": "UNI"
+          }
+        },
+        {
+          "id": "dd-token-unlock-schedule",
+          "frame": "token-unlock-schedule",
+          "position": {
+            "x": 0,
+            "y": 21,
+            "w": 12,
+            "h": 4
+          },
+          "config": {
+            "protocol": "arbitrum"
+          }
         }
       ]
     }
@@ -753,7 +833,7 @@
   {
     "id": "housing-credit",
     "title": "Housing & Credit",
-    "description": "What a home costs, what it costs to borrow, and what the credit market charges for risk — Zillow, the FHFA and the Fed's own series, all keyless.",
+    "description": "What a home costs, what it costs to borrow, and what the credit market charges for risk \u2014 Zillow, the FHFA and the Fed's own series, all keyless.",
     "tags": ["housing", "credit", "macro"],
     "landingOrder": null,
     "spec": {
@@ -796,7 +876,7 @@
           },
           "config": {
             "title": "Housing & Credit",
-            "subtitle": "Zillow, FHFA and FRED — no keys, no signup"
+            "subtitle": "Zillow, FHFA and FRED \u2014 no keys, no signup"
           }
         },
         {
@@ -970,7 +1050,7 @@
   {
     "id": "macro-rates",
     "title": "Macro & Rates",
-    "description": "The official-data board — Treasury yield curve, OFR financial stress, FINRA short volume, and equity perps.",
+    "description": "The official-data board \u2014 Treasury yield curve, OFR financial stress, FINRA short volume, and equity perps.",
     "tags": ["macro", "equities"],
     "landingOrder": null,
     "spec": {
@@ -1071,7 +1151,7 @@
   {
     "id": "onchain-defi",
     "title": "On-chain & DeFi",
-    "description": "The chain-level view — stablecoin supply, cross-chain activity, hot DEX pools, protocol fees, and the best live yields.",
+    "description": "The chain-level view \u2014 stablecoin supply, cross-chain activity, hot DEX pools, protocol fees, and the best live yields.",
     "tags": ["defi", "on-chain"],
     "landingOrder": null,
     "spec": {
@@ -1178,7 +1258,7 @@
   {
     "id": "derivatives-desk",
     "title": "Derivatives Desk",
-    "description": "Funding, open interest, and the BTC options surface — put/call ratio, DVOL, and open interest by strike from Deribit.",
+    "description": "Funding, open interest, and the BTC options surface \u2014 put/call ratio, DVOL, and open interest by strike from Deribit.",
     "tags": ["derivatives", "options"],
     "landingOrder": null,
     "spec": {
@@ -1293,6 +1373,33 @@
             "h": 3
           },
           "config": {}
+        },
+        {
+          "id": "dd-hd",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 10,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "The chain itself",
+            "subtitle": "Every listed contract for one expiry, not just the aggregate"
+          }
+        },
+        {
+          "id": "dd-options-chain-table",
+          "frame": "options-chain-table",
+          "position": {
+            "x": 0,
+            "y": 11,
+            "w": 12,
+            "h": 5
+          },
+          "config": {
+            "symbol": "BTC"
+          }
         }
       ]
     }
@@ -1300,7 +1407,7 @@
   {
     "id": "gold-desk",
     "title": "Gold Desk",
-    "description": "Bullion end to end — live spot, the LBMA London fix back to 1968, CFTC positioning, and the vaults the US Treasury reports every month.",
+    "description": "Bullion end to end \u2014 live spot, the LBMA London fix back to 1968, CFTC positioning, and the vaults the US Treasury reports every month.",
     "tags": ["metals", "gold", "macro"],
     "landingOrder": 0,
     "spec": {
@@ -1363,7 +1470,7 @@
         {
           "id": "gold-chart",
           "frame": "metal-price-chart",
-          "title": "Gold — London fix",
+          "title": "Gold \u2014 London fix",
           "position": {
             "x": 3,
             "y": 1,
@@ -1508,7 +1615,7 @@
         {
           "id": "grp-cot",
           "frame": "group",
-          "title": "CFTC positioning · gold",
+          "title": "CFTC positioning \u00b7 gold",
           "position": {
             "x": 0,
             "y": 14,
@@ -1660,6 +1767,121 @@
             "symbol": "XAU",
             "newestFirst": true
           }
+        },
+        {
+          "id": "dd-hd",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 27,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Deep dive",
+            "subtitle": "Real terms, positioning by trader class, and vol regime"
+          }
+        },
+        {
+          "id": "dd-metal-real-price",
+          "frame": "metal-real-price",
+          "position": {
+            "x": 0,
+            "y": 28,
+            "w": 6,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "dd-metal-vs-macro",
+          "frame": "metal-vs-macro",
+          "position": {
+            "x": 6,
+            "y": 28,
+            "w": 6,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "dd-metal-cot-disaggregated",
+          "frame": "metal-cot-disaggregated",
+          "position": {
+            "x": 0,
+            "y": 32,
+            "w": 7,
+            "h": 5
+          },
+          "config": {}
+        },
+        {
+          "id": "dd-commodity-vol-regime",
+          "frame": "commodity-vol-regime",
+          "position": {
+            "x": 7,
+            "y": 32,
+            "w": 5,
+            "h": 5
+          },
+          "config": {
+            "index": "GVZ"
+          }
+        },
+        {
+          "id": "dd-metal-cot-concentration",
+          "frame": "metal-cot-concentration",
+          "position": {
+            "x": 0,
+            "y": 37,
+            "w": 6,
+            "h": 5
+          },
+          "config": {}
+        },
+        {
+          "id": "dd-metal-cot-percentile",
+          "frame": "metal-cot-percentile",
+          "position": {
+            "x": 6,
+            "y": 37,
+            "w": 6,
+            "h": 5
+          },
+          "config": {}
+        },
+        {
+          "id": "dd-metal-spec-notional",
+          "frame": "metal-spec-notional",
+          "position": {
+            "x": 0,
+            "y": 42,
+            "w": 4,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "dd-metal-ratio-percentile",
+          "frame": "metal-ratio-percentile",
+          "position": {
+            "x": 4,
+            "y": 42,
+            "w": 4,
+            "h": 4
+          },
+          "config": {}
+        },
+        {
+          "id": "dd-metal-rolling-correlation",
+          "frame": "metal-rolling-correlation",
+          "position": {
+            "x": 8,
+            "y": 42,
+            "w": 4,
+            "h": 4
+          },
+          "config": {}
         }
       ]
     }
@@ -1667,7 +1889,7 @@
   {
     "id": "fx-desk",
     "title": "FX Desk",
-    "description": "The dollar and its counterparties — daily reference fixings, the full cross matrix, the day's movers, and DXY. Keyless, no proxy, four fallback sources deep.",
+    "description": "The dollar and its counterparties \u2014 daily reference fixings, the full cross matrix, the day's movers, and DXY. Keyless, no proxy, four fallback sources deep.",
     "tags": ["fx", "macro", "currencies"],
     "landingOrder": null,
     "spec": {
@@ -1710,7 +1932,7 @@
           },
           "config": {
             "title": "FX Desk",
-            "subtitle": "ECB daily reference rates — no key, no proxy, four keyless sources deep"
+            "subtitle": "ECB daily reference rates \u2014 no key, no proxy, four keyless sources deep"
           }
         },
         {
@@ -1789,7 +2011,7 @@
           },
           "config": {
             "title": "Beyond the Majors",
-            "subtitle": "Asia, Latin America and the Nordics — same feed, same day's fixing"
+            "subtitle": "Asia, Latin America and the Nordics \u2014 same feed, same day's fixing"
           }
         },
         {
@@ -1936,7 +2158,7 @@
             "h": 3
           },
           "config": {
-            "text": "**These are reference fixings, not tradable quotes.** The ECB publishes one set of rates each working day around 16:00 CET, and every cross on this board is derived from that same snapshot — so a weekend or a holiday shows the last working day's fixing rather than a stale tick.\n\nzframes resolves them through four keyless sources in order — Frankfurter/ECB, FXRatesAPI, currency-api and the ECB Data Portal — so one upstream going down does not blank the board.",
+            "text": "**These are reference fixings, not tradable quotes.** The ECB publishes one set of rates each working day around 16:00 CET, and every cross on this board is derived from that same snapshot \u2014 so a weekend or a holiday shows the last working day's fixing rather than a stale tick.\n\nzframes resolves them through four keyless sources in order \u2014 Frankfurter/ECB, FXRatesAPI, currency-api and the ECB Data Portal \u2014 so one upstream going down does not blank the board.",
             "align": "left"
           }
         }
@@ -1946,7 +2168,7 @@
   {
     "id": "bitcoin-node",
     "title": "Bitcoin Node",
-    "description": "The network behind the price — live mempool congestion, fee tiers, recent blocks, hashrate, the difficulty epoch, pool concentration and Lightning. One keyless source, no proxy.",
+    "description": "The network behind the price \u2014 live mempool congestion, fee tiers, recent blocks, hashrate, the difficulty epoch, pool concentration and Lightning. One keyless source, no proxy.",
     "tags": ["bitcoin", "onchain", "mempool"],
     "landingOrder": null,
     "spec": {
@@ -1989,7 +2211,7 @@
           },
           "config": {
             "title": "Mempool & Fees",
-            "subtitle": "Live from mempool.space — keyless, browser-direct"
+            "subtitle": "Live from mempool.space \u2014 keyless, browser-direct"
           }
         },
         {
@@ -2211,7 +2433,7 @@
             "h": 3
           },
           "config": {
-            "text": "**Source: [mempool.space](https://mempool.space), keyless.** Every card above except the BTC chart reads one public API — no key, no signup, and no same-origin proxy, because mempool.space serves CORS-open. That is why this board still renders on a static host where the SEC, Treasury and FRED boards go empty.\n\nFee tiers are estimates the node derives from what is currently sitting in *its* mempool, so two nodes can disagree during a spike; the projected blocks are a template of what would be mined next, not a promise. Difficulty retargets every 2016 blocks (~2 weeks) and the estimated change drifts until the epoch is most of the way through. Pool attribution comes from coinbase tags, which pools set themselves — treat concentration figures as a strong hint rather than a measurement.",
+            "text": "**Source: [mempool.space](https://mempool.space), keyless.** Every card above except the BTC chart reads one public API \u2014 no key, no signup, and no same-origin proxy, because mempool.space serves CORS-open. That is why this board still renders on a static host where the SEC, Treasury and FRED boards go empty.\n\nFee tiers are estimates the node derives from what is currently sitting in *its* mempool, so two nodes can disagree during a spike; the projected blocks are a template of what would be mined next, not a promise. Difficulty retargets every 2016 blocks (~2 weeks) and the estimated change drifts until the epoch is most of the way through. Pool attribution comes from coinbase tags, which pools set themselves \u2014 treat concentration figures as a strong hint rather than a measurement.",
             "align": "left"
           }
         }
@@ -2221,7 +2443,7 @@
   {
     "id": "onchain-cycle",
     "title": "On-chain Cycle",
-    "description": "Bitcoin's cycle-valuation oscillators on one board — MVRV, NUPL, SOPR, Puell, Mayer and Pi Cycle, each against its own historical extreme, then composited.",
+    "description": "Bitcoin's cycle-valuation oscillators on one board \u2014 MVRV, NUPL, SOPR, Puell, Mayer and Pi Cycle, each against its own historical extreme, then composited.",
     "tags": ["bitcoin", "on-chain", "cycle"],
     "landingOrder": null,
     "spec": {
@@ -2459,7 +2681,7 @@
           },
           "config": {
             "title": "Composite Reads",
-            "subtitle": "Unrelated scales normalized 0–100% and overlaid"
+            "subtitle": "Unrelated scales normalized 0\u2013100% and overlaid"
           }
         },
         {
@@ -2499,7 +2721,7 @@
           },
           "config": {
             "align": "left",
-            "text": "### Reading these oscillators\n\nEvery metric here answers one question: **is Bitcoin expensive relative to what its holders actually paid?** MVRV and NUPL compare market cap to realized cap — the aggregate on-chain cost basis — so a high reading means most coins are sitting in unrealized profit and have something to sell. SOPR says whether coins that *did* move went out in profit or loss. Puell measures miner revenue against its own annual average. Mayer and Pi Cycle are pure price-versus-moving-average, included because they have historically turned in the same weeks as the on-chain set.\n\n**The limits are real.** These are cycle-scale indicators with a handful of observations each — four halvings is not a sample size, and every threshold on this board (MVRV 3, Mayer 2.4, NUPL 75%) was fitted after the fact to the very tops it now claims to predict. They say nothing about *when*, only *how stretched*; MVRV sat above 3 for months in 2017 and never reached it in 2021. Spot ETFs and custodial rehypothecation have also broken the assumption that an on-chain move means a change of owner, which biases SOPR and realized price in ways nobody has cleanly measured yet. Read the composites for agreement between independent signals, not any single card for a call."
+            "text": "### Reading these oscillators\n\nEvery metric here answers one question: **is Bitcoin expensive relative to what its holders actually paid?** MVRV and NUPL compare market cap to realized cap \u2014 the aggregate on-chain cost basis \u2014 so a high reading means most coins are sitting in unrealized profit and have something to sell. SOPR says whether coins that *did* move went out in profit or loss. Puell measures miner revenue against its own annual average. Mayer and Pi Cycle are pure price-versus-moving-average, included because they have historically turned in the same weeks as the on-chain set.\n\n**The limits are real.** These are cycle-scale indicators with a handful of observations each \u2014 four halvings is not a sample size, and every threshold on this board (MVRV 3, Mayer 2.4, NUPL 75%) was fitted after the fact to the very tops it now claims to predict. They say nothing about *when*, only *how stretched*; MVRV sat above 3 for months in 2017 and never reached it in 2021. Spot ETFs and custodial rehypothecation have also broken the assumption that an on-chain move means a change of owner, which biases SOPR and realized price in ways nobody has cleanly measured yet. Read the composites for agreement between independent signals, not any single card for a call."
           }
         }
       ]
@@ -2508,7 +2730,7 @@
   {
     "id": "etf-flows",
     "title": "ETF Flow Desk",
-    "description": "Where institutional money actually went — spot BTC and ETH ETF net flows, per-issuer share, and the weekly rhythm, alongside the allocation context.",
+    "description": "Where institutional money actually went \u2014 spot BTC and ETH ETF net flows, per-issuer share, and the weekly rhythm, alongside the allocation context.",
     "tags": ["crypto", "etf", "flows", "institutional"],
     "landingOrder": null,
     "spec": {
@@ -2551,13 +2773,13 @@
           },
           "config": {
             "title": "The Flow Tape",
-            "subtitle": "Spot BTC and ETH ETF net creations — keyless, no signup, best-effort"
+            "subtitle": "Spot BTC and ETH ETF net creations \u2014 keyless, no signup, best-effort"
           }
         },
         {
           "id": "flow-line-btc",
           "frame": "etf-flows-chart",
-          "title": "Bitcoin — net flow trend",
+          "title": "Bitcoin \u2014 net flow trend",
           "position": {
             "x": 0,
             "y": 1,
@@ -2572,7 +2794,7 @@
         {
           "id": "flow-line-eth",
           "frame": "etf-flows-chart",
-          "title": "Ethereum — net flow trend",
+          "title": "Ethereum \u2014 net flow trend",
           "position": {
             "x": 6,
             "y": 1,
@@ -2587,7 +2809,7 @@
         {
           "id": "flow-bars-btc",
           "frame": "etf-flow-bars",
-          "title": "Bitcoin — daily prints",
+          "title": "Bitcoin \u2014 daily prints",
           "position": {
             "x": 0,
             "y": 5,
@@ -2678,7 +2900,7 @@
         {
           "id": "issuer-bars-btc",
           "frame": "etf-issuer-bars",
-          "title": "BTC — today's flow by issuer",
+          "title": "BTC \u2014 today's flow by issuer",
           "position": {
             "x": 5,
             "y": 10,
@@ -2693,7 +2915,7 @@
         {
           "id": "issuer-bars-eth",
           "frame": "etf-issuer-bars",
-          "title": "ETH — today's flow by issuer",
+          "title": "ETH \u2014 today's flow by issuer",
           "position": {
             "x": 9,
             "y": 10,
@@ -2708,7 +2930,7 @@
         {
           "id": "flow-calendar",
           "frame": "etf-flow-calendar",
-          "title": "Bitcoin — a year of daily prints",
+          "title": "Bitcoin \u2014 a year of daily prints",
           "position": {
             "x": 0,
             "y": 14,
@@ -2780,7 +3002,7 @@
           },
           "config": {
             "align": "left",
-            "text": "### Reading these numbers\n\nA daily net flow is **creations minus redemptions** in the ETF wrapper — the shares the authorised participants struck that day, not the number of coins any one investor bought. It is the cleanest institutional-demand series that exists in crypto, because it is disclosed rather than inferred.\n\nWhat it is **not**: it is not net market demand. A redemption can be one holder rotating from GBTC into IBIT, which prints as a large outflow and a large inflow on the same day and moves nothing on-chain. It is not a price driver you can trade directly — flows are published after the close, so the tape you are reading here has already been priced. And it is not the whole market: perps, spot venues and OTC desks dwarf the ETF complex on most days.\n\nSource is [SoSoValue](https://sosovalue.com), a keyless mirror of issuer disclosures. These cards render **empty rather than wrong** when it is unreachable — a blank flow card means no print was available, never a zero-flow day. Market holidays genuinely have no print, which is why the calendar has gaps."
+            "text": "### Reading these numbers\n\nA daily net flow is **creations minus redemptions** in the ETF wrapper \u2014 the shares the authorised participants struck that day, not the number of coins any one investor bought. It is the cleanest institutional-demand series that exists in crypto, because it is disclosed rather than inferred.\n\nWhat it is **not**: it is not net market demand. A redemption can be one holder rotating from GBTC into IBIT, which prints as a large outflow and a large inflow on the same day and moves nothing on-chain. It is not a price driver you can trade directly \u2014 flows are published after the close, so the tape you are reading here has already been priced. And it is not the whole market: perps, spot venues and OTC desks dwarf the ETF complex on most days.\n\nSource is [SoSoValue](https://sosovalue.com), a keyless mirror of issuer disclosures. These cards render **empty rather than wrong** when it is unreachable \u2014 a blank flow card means no print was available, never a zero-flow day. Market holidays genuinely have no print, which is why the calendar has gaps."
           }
         }
       ]
@@ -2789,7 +3011,7 @@
   {
     "id": "nft-sectors",
     "title": "NFT & Sector Rotation",
-    "description": "Where crypto capital and attention are rotating — blue-chip NFT floors, sector market caps, and the coins retail is searching for, all off CoinGecko's keyless tier.",
+    "description": "Where crypto capital and attention are rotating \u2014 blue-chip NFT floors, sector market caps, and the coins retail is searching for, all off CoinGecko's keyless tier.",
     "tags": ["crypto", "nft", "rotation"],
     "landingOrder": null,
     "spec": {
@@ -2832,7 +3054,7 @@
           },
           "config": {
             "title": "Blue-chip NFTs",
-            "subtitle": "Floors, caps and sales for ten curated majors — keyless CoinGecko"
+            "subtitle": "Floors, caps and sales for ten curated majors \u2014 keyless CoinGecko"
           }
         },
         {
@@ -2911,7 +3133,7 @@
           },
           "config": {
             "title": "Sector Rotation",
-            "subtitle": "Market categories ranked by 24h market-cap change — where capital moved"
+            "subtitle": "Market categories ranked by 24h market-cap change \u2014 where capital moved"
           }
         },
         {
@@ -3030,7 +3252,7 @@
           },
           "config": {
             "align": "left",
-            "text": "**About the NFT data.** CoinGecko's keyless tier has no bulk NFT endpoint, so the provider walks a hand-picked list of ten majors (Bored Ape, CryptoPunks, Pudgy Penguins, Azuki, …) **one `/nfts/{id}` call at a time**, skipping any collection that fails rather than dropping the whole card. That has three consequences worth knowing before you read a number off this board:\n\n- The set is **curated, not ranked** — a collection that mooned last night is not here unless it was already on the list.\n- The sequential walk shares this provider's rate limit with the sector and trending rows above, so the NFT cards are cached on a **long ~45 minute TTL** and lag the others.\n- A missing tile means that one collection's call was skipped, not that it went to zero.\n\nThe sector and trending sections have proper bulk endpoints and refresh on a normal short cycle."
+            "text": "**About the NFT data.** CoinGecko's keyless tier has no bulk NFT endpoint, so the provider walks a hand-picked list of ten majors (Bored Ape, CryptoPunks, Pudgy Penguins, Azuki, \u2026) **one `/nfts/{id}` call at a time**, skipping any collection that fails rather than dropping the whole card. That has three consequences worth knowing before you read a number off this board:\n\n- The set is **curated, not ranked** \u2014 a collection that mooned last night is not here unless it was already on the list.\n- The sequential walk shares this provider's rate limit with the sector and trending rows above, so the NFT cards are cached on a **long ~45 minute TTL** and lag the others.\n- A missing tile means that one collection's call was skipped, not that it went to zero.\n\nThe sector and trending sections have proper bulk endpoints and refresh on a normal short cycle."
           }
         }
       ]
@@ -3039,7 +3261,7 @@
   {
     "id": "vol-surface",
     "title": "Volatility Surface",
-    "description": "The Deribit options book, read as a surface — vol indices, the smile, OI across strike and expiry, and where max pain pins each dated book.",
+    "description": "The Deribit options book, read as a surface \u2014 vol indices, the smile, OI across strike and expiry, and where max pain pins each dated book.",
     "tags": ["options", "volatility", "derivatives"],
     "landingOrder": null,
     "spec": {
@@ -3082,7 +3304,7 @@
           },
           "config": {
             "title": "Volatility Surface",
-            "subtitle": "Deribit options — the level, the skew and the term"
+            "subtitle": "Deribit options \u2014 the level, the skew and the term"
           }
         },
         {
@@ -3153,7 +3375,7 @@
           },
           "config": {
             "title": "The Smile",
-            "subtitle": "Nearest expiry — what each tail costs, strike by strike"
+            "subtitle": "Nearest expiry \u2014 what each tail costs, strike by strike"
           }
         },
         {
@@ -3228,7 +3450,7 @@
         {
           "id": "flow-btc",
           "frame": "options-flow-skew",
-          "title": "BTC — Flow vs OI",
+          "title": "BTC \u2014 Flow vs OI",
           "position": {
             "x": 0,
             "y": 20,
@@ -3242,7 +3464,7 @@
         {
           "id": "flow-eth",
           "frame": "options-flow-skew",
-          "title": "ETH — Flow vs OI",
+          "title": "ETH \u2014 Flow vs OI",
           "position": {
             "x": 6,
             "y": 20,
@@ -3264,8 +3486,48 @@
             "h": 4
           },
           "config": {
-            "text": "**Max pain** is the settlement strike at which option writers pay out the least — the point where the most contracts expire worthless. It is an *arithmetic property of the open book*, not a forecast: it moves whenever positioning moves, and it is recomputed from scratch on every poll. Price does drift toward it into a large expiry, but the honest reading is “here is where the book is heaviest”, not “here is where price is going”.\n\n**Skew** is the asymmetry between the call and put sides. On the OI-skew card that is the standing book; on the flow-skew cards it is netted against 24h volume, so the two bases fighting each other is the interesting state — fresh flow buying calls into a put-heavy book is a different market from one where both agree.\n\n**The smile** is implied vol by strike for one expiry. Its *shape* is the signal: a steep put wing means the market pays up for downside protection, a lifted call wing means it is paying for upside convexity. A flat smile is a market pricing no tail at all.\n\nCaveats worth holding onto: every card here reads **Deribit only**, which is the deepest crypto options venue but not the whole market — OTC and CME books are invisible. Illiquid far strikes carry wide, stale marks, so the wings of the smile are the least trustworthy part of it. And OI is a *stock*, not a flow: a large number at a strike says a position exists, never who is long it or why.",
+            "text": "**Max pain** is the settlement strike at which option writers pay out the least \u2014 the point where the most contracts expire worthless. It is an *arithmetic property of the open book*, not a forecast: it moves whenever positioning moves, and it is recomputed from scratch on every poll. Price does drift toward it into a large expiry, but the honest reading is \u201chere is where the book is heaviest\u201d, not \u201chere is where price is going\u201d.\n\n**Skew** is the asymmetry between the call and put sides. On the OI-skew card that is the standing book; on the flow-skew cards it is netted against 24h volume, so the two bases fighting each other is the interesting state \u2014 fresh flow buying calls into a put-heavy book is a different market from one where both agree.\n\n**The smile** is implied vol by strike for one expiry. Its *shape* is the signal: a steep put wing means the market pays up for downside protection, a lifted call wing means it is paying for upside convexity. A flat smile is a market pricing no tail at all.\n\nCaveats worth holding onto: every card here reads **Deribit only**, which is the deepest crypto options venue but not the whole market \u2014 OTC and CME books are invisible. Illiquid far strikes carry wide, stale marks, so the wings of the smile are the least trustworthy part of it. And OI is a *stock*, not a flow: a large number at a strike says a position exists, never who is long it or why.",
             "align": "left"
+          }
+        },
+        {
+          "id": "dd-hd",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 28,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Chain and cross-asset vol",
+            "subtitle": "The raw ladder, and gold's vol regime beside crypto's"
+          }
+        },
+        {
+          "id": "dd-options-chain-table",
+          "frame": "options-chain-table",
+          "position": {
+            "x": 0,
+            "y": 29,
+            "w": 8,
+            "h": 5
+          },
+          "config": {
+            "symbol": "ETH"
+          }
+        },
+        {
+          "id": "dd-commodity-vol-regime",
+          "frame": "commodity-vol-regime",
+          "position": {
+            "x": 8,
+            "y": 29,
+            "w": 4,
+            "h": 5
+          },
+          "config": {
+            "index": "GVZ"
           }
         }
       ]
@@ -3274,7 +3536,7 @@
   {
     "id": "funding-carry",
     "title": "Funding & Carry",
-    "description": "What it costs to hold a perp — funding ranked across the whole Hyperliquid universe, its cross-venue spreads, and the open interest crowded behind them.",
+    "description": "What it costs to hold a perp \u2014 funding ranked across the whole Hyperliquid universe, its cross-venue spreads, and the open interest crowded behind them.",
     "tags": ["derivatives", "funding", "crypto"],
     "landingOrder": null,
     "spec": {
@@ -3520,7 +3782,7 @@
             "h": 4
           },
           "config": {
-            "text": "**What funding is.** A perp has no expiry, so nothing forces it back to spot. Funding does the forcing: every hour, whichever side is trading rich pays the other. Positive funding means longs pay shorts — the market is leaning long and paying for the privilege.\n\nSo the rate is a *price of positioning*, not a price of the asset. Hold a perp for a month at 30% annualised funding and you have paid 2.5% before the trade is right or wrong.\n\n**Why the venue spread matters.** Each venue sets its own rate off its own book, so the same coin can pay on one and charge on another. That gap is a delta-neutral trade: long where funding is negative, short where it is positive, collect the difference. It is also a warning — a rate stretched far past its neighbours usually means one venue's longs are crowded, and crowded longs are what liquidation cascades are made of.",
+            "text": "**What funding is.** A perp has no expiry, so nothing forces it back to spot. Funding does the forcing: every hour, whichever side is trading rich pays the other. Positive funding means longs pay shorts \u2014 the market is leaning long and paying for the privilege.\n\nSo the rate is a *price of positioning*, not a price of the asset. Hold a perp for a month at 30% annualised funding and you have paid 2.5% before the trade is right or wrong.\n\n**Why the venue spread matters.** Each venue sets its own rate off its own book, so the same coin can pay on one and charge on another. That gap is a delta-neutral trade: long where funding is negative, short where it is positive, collect the difference. It is also a warning \u2014 a rate stretched far past its neighbours usually means one venue's longs are crowded, and crowded longs are what liquidation cascades are made of.",
             "align": "left"
           }
         }
@@ -3530,7 +3792,7 @@
   {
     "id": "yield-stables",
     "title": "Yield & Stablecoins",
-    "description": "What DeFi actually pays and where the stablecoin float sits — the yield distribution behind the headline pools, the incentive-vs-organic split, and the capital that funds it.",
+    "description": "What DeFi actually pays and where the stablecoin float sits \u2014 the yield distribution behind the headline pools, the incentive-vs-organic split, and the capital that funds it.",
     "tags": ["defi", "yield", "stablecoins"],
     "landingOrder": null,
     "spec": {
@@ -3573,7 +3835,7 @@
           },
           "config": {
             "title": "What DeFi pays",
-            "subtitle": "Every pool above the TVL floor — not just the top ten"
+            "subtitle": "Every pool above the TVL floor \u2014 not just the top ten"
           }
         },
         {
@@ -3609,7 +3871,7 @@
         {
           "id": "yield-composition",
           "frame": "yield-composition-scatter",
-          "title": "Organic vs Incentive APY — Stables",
+          "title": "Organic vs Incentive APY \u2014 Stables",
           "position": {
             "x": 0,
             "y": 5,
@@ -3795,7 +4057,7 @@
             "h": 3
           },
           "config": {
-            "text": "**Advertised APY is not risk-adjusted.** Every yield number on this board is a quoted rate, not an expected return: it carries no charge for smart-contract risk, no haircut for the depeg risk in a stablecoin pair, and — where the reward axis of the composition scatter is doing the work — no guarantee the emissions funding it survive the next epoch. The impermanent-loss donut splits pools by *exposure*, not by realised loss.\n\nPool, TVL, category and DEX-volume figures come from [DefiLlama](https://defillama.com) (keyless public API, daily granularity on the stacked areas); ETH issuance, burn and staking APR come from ultrasound.money. Nothing here is a recommendation.",
+            "text": "**Advertised APY is not risk-adjusted.** Every yield number on this board is a quoted rate, not an expected return: it carries no charge for smart-contract risk, no haircut for the depeg risk in a stablecoin pair, and \u2014 where the reward axis of the composition scatter is doing the work \u2014 no guarantee the emissions funding it survive the next epoch. The impermanent-loss donut splits pools by *exposure*, not by realised loss.\n\nPool, TVL, category and DEX-volume figures come from [DefiLlama](https://defillama.com) (keyless public API, daily granularity on the stacked areas); ETH issuance, burn and staking APR come from ultrasound.money. Nothing here is a recommendation.",
             "align": "left"
           }
         }
@@ -3805,7 +4067,7 @@
   {
     "id": "labor-inflation",
     "title": "Labor & Inflation",
-    "description": "Jobs, wages and the price level as the statistical agencies actually publish them — BLS payrolls, participation and CPI beside the Treasury's own debt books, all keyless.",
+    "description": "Jobs, wages and the price level as the statistical agencies actually publish them \u2014 BLS payrolls, participation and CPI beside the Treasury's own debt books, all keyless.",
     "tags": ["macro", "labor", "inflation"],
     "landingOrder": null,
     "spec": {
@@ -3848,7 +4110,7 @@
           },
           "config": {
             "title": "Labor",
-            "subtitle": "The BLS household and establishment surveys — monthly, revised twice"
+            "subtitle": "The BLS household and establishment surveys \u2014 monthly, revised twice"
           }
         },
         {
@@ -3957,15 +4219,15 @@
             "events": [
               {
                 "date": "2026-08-12",
-                "label": "CPI — July"
+                "label": "CPI \u2014 July"
               },
               {
                 "date": "2026-09-04",
-                "label": "Jobs report — August"
+                "label": "Jobs report \u2014 August"
               },
               {
                 "date": "2026-09-11",
-                "label": "CPI — August"
+                "label": "CPI \u2014 August"
               },
               {
                 "date": "2026-09-16",
@@ -3973,11 +4235,11 @@
               },
               {
                 "date": "2026-10-02",
-                "label": "Jobs report — September"
+                "label": "Jobs report \u2014 September"
               },
               {
                 "date": "2026-10-13",
-                "label": "CPI — September"
+                "label": "CPI \u2014 September"
               },
               {
                 "date": "2026-10-28",
@@ -3997,7 +4259,7 @@
           },
           "config": {
             "title": "The Public Ledger",
-            "subtitle": "Treasury debt and what it costs to carry — daily, official"
+            "subtitle": "Treasury debt and what it costs to carry \u2014 daily, official"
           }
         },
         {
@@ -4063,7 +4325,7 @@
             "h": 3
           },
           "config": {
-            "text": "**Everything here is an official published series** — the Bureau of Labor Statistics' payroll, participation, earnings and CPI prints, the Treasury's Debt to the Penny and average interest rates, and the OFR's stress index. None of it is modelled, estimated or forecast by zframes.\n\n**Read the lag.** The labor and CPI series describe a month that ended weeks ago, and the BLS revises payrolls twice after first publication — the most recent bar on the payrolls chart is the least trustworthy one on it. Only the Treasury and OFR cards update daily.\n\n**These route through the runtime's proxy.** BLS, Treasury and OFR all refuse cross-origin browser requests, so `zframes serve` relays them same-origin. On a static host with no runtime, every card above blanks."
+            "text": "**Everything here is an official published series** \u2014 the Bureau of Labor Statistics' payroll, participation, earnings and CPI prints, the Treasury's Debt to the Penny and average interest rates, and the OFR's stress index. None of it is modelled, estimated or forecast by zframes.\n\n**Read the lag.** The labor and CPI series describe a month that ended weeks ago, and the BLS revises payrolls twice after first publication \u2014 the most recent bar on the payrolls chart is the least trustworthy one on it. Only the Treasury and OFR cards update daily.\n\n**These route through the runtime's proxy.** BLS, Treasury and OFR all refuse cross-origin browser requests, so `zframes serve` relays them same-origin. On a static host with no runtime, every card above blanks."
           }
         }
       ]
@@ -4072,7 +4334,7 @@
   {
     "id": "traders-desk",
     "title": "Trader's Desk",
-    "description": "The discipline layer — session clocks, position sizing, and a decision journal. Almost nothing here is market data; it is the trader's own process, laid out as a board.",
+    "description": "The discipline layer \u2014 session clocks, position sizing, and a decision journal. Almost nothing here is market data; it is the trader's own process, laid out as a board.",
     "tags": ["tools", "journal", "workflow"],
     "landingOrder": null,
     "spec": {
@@ -4115,7 +4377,7 @@
           },
           "config": {
             "title": "The Session",
-            "subtitle": "Where the trading day actually is — computed client-side, no data provider"
+            "subtitle": "Where the trading day actually is \u2014 computed client-side, no data provider"
           }
         },
         {
@@ -4221,7 +4483,7 @@
           },
           "config": {
             "title": "Sizing & Risk",
-            "subtitle": "One setup, sized before it is taken — pure client-side math"
+            "subtitle": "One setup, sized before it is taken \u2014 pure client-side math"
           }
         },
         {
@@ -4273,7 +4535,7 @@
                 "stop": 174.8,
                 "target": 205.2,
                 "direction": "long",
-                "label": "NVDA · 3R"
+                "label": "NVDA \u00b7 3R"
               }
             },
             {
@@ -4438,7 +4700,7 @@
             "h": 3
           },
           "config": {
-            "text": "**Nothing on this board is live market data.** The clocks are computed from bundled exchange hours, the sizing cards are arithmetic over numbers you typed, and the journal is your own log — the only feed anywhere here is the quote the journal marks your open calls against.\n\nThat is deliberate. The other boards tell you what the market did; this one is the part you control. Edit every value on it — the fills, the rules, the checklist, the countdown — because the defaults are somebody else's trade.",
+            "text": "**Nothing on this board is live market data.** The clocks are computed from bundled exchange hours, the sizing cards are arithmetic over numbers you typed, and the journal is your own log \u2014 the only feed anywhere here is the quote the journal marks your open calls against.\n\nThat is deliberate. The other boards tell you what the market did; this one is the part you control. Edit every value on it \u2014 the fills, the rules, the checklist, the countdown \u2014 because the defaults are somebody else's trade.",
             "align": "left"
           }
         }
@@ -4448,7 +4710,7 @@
   {
     "id": "crowd-signal",
     "title": "Crowd Signal",
-    "description": "What the crowd believes, priced — live Polymarket odds, the fear & greed mood, the news tape, and the return distribution that eventually settles the argument.",
+    "description": "What the crowd believes, priced \u2014 live Polymarket odds, the fear & greed mood, the news tape, and the return distribution that eventually settles the argument.",
     "tags": ["sentiment", "prediction-markets", "crypto"],
     "landingOrder": null,
     "spec": {
@@ -4491,7 +4753,7 @@
           },
           "config": {
             "title": "The Odds",
-            "subtitle": "Live Polymarket — real money, staked on what happens next"
+            "subtitle": "Live Polymarket \u2014 real money, staked on what happens next"
           }
         },
         {
@@ -4570,7 +4832,7 @@
           },
           "config": {
             "title": "Mood",
-            "subtitle": "A year of fear and greed — the swing, and how long it stuck"
+            "subtitle": "A year of fear and greed \u2014 the swing, and how long it stuck"
           }
         },
         {
@@ -4695,7 +4957,7 @@
             "h": 3
           },
           "config": {
-            "text": "**How to read this board.** A prediction-market price is a *price*, not a promise. \"68%\" means someone was willing to pay 68 cents for a dollar that pays out if the event happens — a number shaped by who showed up, how much capital they had, and what it costs them to hold the position until settlement. Thin markets drift, and a resolution months away carries a funding cost that pulls the quote away from anyone's honest estimate. Read the volume beside the odds; the scatter above is there for exactly that reason.\n\nSentiment is the same trap in a different shape. Fear & greed measures *how the crowd feels*, which is most useful when it disagrees with what the crowd is doing — extreme readings have historically marked turns more often than continuations, so treat it as a contrarian input rather than a signal to follow. Nothing here is a forecast. It is a record of what people currently believe, worth exactly as much as the money standing behind it."
+            "text": "**How to read this board.** A prediction-market price is a *price*, not a promise. \"68%\" means someone was willing to pay 68 cents for a dollar that pays out if the event happens \u2014 a number shaped by who showed up, how much capital they had, and what it costs them to hold the position until settlement. Thin markets drift, and a resolution months away carries a funding cost that pulls the quote away from anyone's honest estimate. Read the volume beside the odds; the scatter above is there for exactly that reason.\n\nSentiment is the same trap in a different shape. Fear & greed measures *how the crowd feels*, which is most useful when it disagrees with what the crowd is doing \u2014 extreme readings have historically marked turns more often than continuations, so treat it as a contrarian input rather than a signal to follow. Nothing here is a forecast. It is a record of what people currently believe, worth exactly as much as the money standing behind it."
           }
         }
       ]
