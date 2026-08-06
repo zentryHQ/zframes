@@ -17,7 +17,7 @@ import { fetchText } from "@zframes/data-primitives/fetch";
  * which is what keeps it inside the keyless fleet.
  *
  * One provider, parameterised by series id (the same shape as provider-metals'
- * multi-metal design) rather than one package per series. It covers four
+ * multi-metal design) rather than one package per series. It covers five
  * capabilities that differ in meaning but not in shape:
  *
  *  - `index-level` — S&P 500, VIX, Nasdaq Composite levels
@@ -25,18 +25,39 @@ import { fetchText } from "@zframes/data-primitives/fetch";
  *  - `housing-price` — the Case-Shiller US national home-price index
  *  - `mortgage-rate` — the Freddie Mac 30-year fixed benchmark, which FRED
  *    mirrors (so no separate PMMS provider is needed for the same numbers)
+ *  - `macro-reference-series` — the macro backdrop a commodity is read against:
+ *    CPI (to deflate a nominal price into a real one), the 10-year TIPS real
+ *    yield, the broad dollar index, the 10-year inflation breakeven. A metal has
+ *    no earnings, so "is gold expensive" is answered by the real price and this
+ *    backdrop rather than by a multiple.
+ *
+ * **CPI comes from here, not from provider-bls, and that is deliberate.** BLS's
+ * keyless tier caps one request at 10 years and keeps the *first* ten, so
+ * `startyear=1968&endyear=2026` answers 1968–1977 with a `REQUEST_SUCCEEDED`
+ * status — a silent truncation that looks like success. Deflating the LBMA gold
+ * fix (daily back to 1968) needs the whole CPI history in one piece, so FRED is
+ * the only viable deflator source in the fleet.
+ *
+ * That is also why the capability is spelled `macro-reference-series` rather than
+ * the shorter `macro-series`: the short name is already BLS's, for a differently
+ * shaped (period-labelled) series, and BLS sits earlier in the keyless routing
+ * order — sharing the name would let it swallow every id below.
  *
  * **CORS:** `fred.stlouisfed.org` sends no `Access-Control-Allow-Origin`, so the
  * browser path goes through the runtime's same-origin proxy (the host is on the
  * serve allowlist) and Node fetches direct. On a static host with no runtime
  * these frames degrade to empty, like every other proxied provider.
  *
- * **Rolling licence windows — not a bug.** Several FRED series are
- * redistributed under licence and only publish a trailing window, so the
- * history is much shorter than the underlying index: `SP500` carries ~10 years
- * and the two BAML spread series ~3, while `NASDAQCOM` (1971), `MORTGAGE30US`
- * (1971) and `CSUSHPINSA` (1987) are deep. A frame asking for 20 years of the
- * S&P 500 gets the 10 that exist rather than an error.
+ * **Rolling licence windows — not a bug, and only the licensed series.** Several
+ * FRED series are redistributed under licence and only publish a trailing
+ * window, so the history is much shorter than the underlying index: `SP500`
+ * carries ~10 years and the two BAML spread series ~3. A frame asking for 20
+ * years of the S&P 500 gets the 10 that exist rather than an error.
+ *
+ * The rest are Fed- or agency-published and unwalled, reaching as far back as
+ * the statistic itself: `CPIAUCSL` to 1947, `REAINTRATREARAT10Y` to 1982,
+ * `CSUSHPINSA` to 1987, `NASDAQCOM`/`MORTGAGE30US` to 1971. Do not "fix" a short
+ * window on one of those by adding a date range — there is nothing to widen.
  */
 
 const FREDGRAPH_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv";
@@ -85,10 +106,70 @@ const SERIES: Record<string, SeriesDef> = {
     unit: "percent",
     frequency: "weekly",
   },
+  CPIAUCSL: {
+    label: "CPI (All Urban Consumers, SA)",
+    unit: "index",
+    frequency: "monthly",
+  },
+  DFII10: {
+    label: "10Y TIPS Real Yield",
+    unit: "percent",
+    frequency: "daily",
+  },
+  DTWEXBGS: {
+    label: "Broad Dollar Index",
+    unit: "index",
+    frequency: "daily",
+  },
+  T10YIE: {
+    label: "10Y Inflation Breakeven",
+    unit: "percent",
+    frequency: "daily",
+  },
+  REAINTRATREARAT10Y: {
+    label: "10Y Real Interest Rate",
+    unit: "percent",
+    frequency: "monthly",
+  },
 };
 
 /** Ids the `index-level` capability accepts — the market-index subset. */
 export const FRED_INDEX_SERIES = ["SP500", "VIXCLS", "NASDAQCOM"] as const;
+
+/**
+ * Ids the `macro-reference-series` capability accepts — the macro *backdrop*
+ * subset, kept separate from {@link FRED_INDEX_SERIES} so the two capabilities
+ * cannot answer for each other's meaning. Routing is first-match per capability:
+ * without the split, a card asking for "the index" and a card asking for "the
+ * macro series" would reach the same door and each could be handed the other's
+ * series.
+ *
+ * **Do not rename this to `macro-series`, and do not fold these ids into
+ * `index-level`.** Both look like tidy-ups and both break at runtime:
+ *  - `macro-series` is provider-bls's capability, for its period-labelled
+ *    `MacroSeries` shape, and BLS is constructed EARLIER than FRED in
+ *    `packages/providers-keyless` — first-match would hand every id below to
+ *    BLS, which doesn't publish them, so each card would render an error. Nor
+ *    can it be fixed by reordering the two: six live frames (`inflation-pulse`,
+ *    `labor-force-flow`, `labor-market`, `misery-index`, `payrolls-bars`,
+ *    `real-wages`) depend on BLS winning `macro-series`, so putting FRED first
+ *    just moves the breakage onto them. There is no order that serves both —
+ *    which is the whole reason for the longer name.
+ *  - `index-level` is this same provider's market-index door (S&P, VIX,
+ *    Nasdaq), so sharing it would compile and then let a request for "the
+ *    index" be answered with CPI.
+ *
+ * `REAINTRATREARAT10Y` is here alongside `DFII10` because it reaches 21 years
+ * deeper (1982 vs 2003) — a real-yield-vs-gold overlay has nothing to plot
+ * before 2003 on the TIPS series, which only begins when TIPS started trading.
+ */
+export const FRED_MACRO_REFERENCE_SERIES = [
+  "CPIAUCSL",
+  "DFII10",
+  "DTWEXBGS",
+  "T10YIE",
+  "REAINTRATREARAT10Y",
+] as const;
 
 /** The credit-spread pair, high-yield first (the order frames chart them in). */
 const CREDIT_SPREAD_SERIES = ["BAMLH0A0HYM2", "BAMLC0A0CM"] as const;
@@ -213,6 +294,21 @@ function knownSeries(seriesId: string): string {
   return id;
 }
 
+/**
+ * Narrow a known id to the macro-reference subset. A *known but wrong* id —
+ * asking for `SP500` through the macro door — is refused with the accepted ids
+ * named, because the alternative is a chart quietly plotting an equity index on
+ * an inflation axis, which reads as plausible data rather than as a mistake.
+ */
+function knownMacroReferenceSeries(seriesId: string): string {
+  const id = knownSeries(seriesId);
+  if (!(FRED_MACRO_REFERENCE_SERIES as readonly string[]).includes(id))
+    throw new Error(
+      `fred: series "${seriesId}" is not a macro reference series (accepted: ${FRED_MACRO_REFERENCE_SERIES.join(", ")})`,
+    );
+  return id;
+}
+
 export class FredProvider implements MarketDataProvider {
   readonly name = "fred";
   readonly capabilities: readonly Capability[] = [
@@ -220,6 +316,7 @@ export class FredProvider implements MarketDataProvider {
     "credit-spread",
     "housing-price",
     "mortgage-rate",
+    "macro-reference-series",
   ];
 
   /**
@@ -247,6 +344,18 @@ export class FredProvider implements MarketDataProvider {
 
   async getIndexSeries(seriesId: string): Promise<OfficialSeries> {
     return this.loadOne(seriesId);
+  }
+
+  /**
+   * One macro reference series, restricted to
+   * {@link FRED_MACRO_REFERENCE_SERIES}.
+   *
+   * Same `loadOne` path (and so the same cache slot) as every other series here:
+   * a board carrying both a real-gold-price card and a CPI card downloads
+   * `CPIAUCSL` once, not twice.
+   */
+  async getMacroReferenceSeries(seriesId: string): Promise<OfficialSeries> {
+    return this.loadOne(knownMacroReferenceSeries(seriesId));
   }
 
   /** Both OAS series in ONE call, so their date grids are identical by construction. */
