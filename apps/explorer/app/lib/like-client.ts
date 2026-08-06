@@ -52,6 +52,36 @@ function safeSet(key: string, value: string): void {
  * localhost and https both are — the fallback covers anything else rather than
  * throwing on a page that would otherwise work.
  */
+/**
+ * Drop spent-mirror keys from previous days.
+ *
+ * The keys are namespaced by UTC day so yesterday's allowance can't gate today's, but
+ * that means every (day, kind, id) tuple left a key behind and nothing removed it —
+ * unbounded growth against an origin quota this repo has already hit once (the
+ * provider caches filled localStorage until `setItem` threw and persistence silently
+ * stopped). Runs once per session, on first read.
+ */
+let swept = false;
+function sweepStaleSpendKeys(): void {
+  if (swept) return;
+  swept = true;
+  const today = `${SPENT_PREFIX}${utcDay()}.`;
+  try {
+    const doomed: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(SPENT_PREFIX) && !key.startsWith(today)) {
+        doomed.push(key);
+      }
+    }
+    // Collected first, then removed — removing during the scan reindexes the store
+    // and would skip keys.
+    for (const key of doomed) localStorage.removeItem(key);
+  } catch {
+    /* storage unavailable — nothing to sweep, and the cap is server-side anyway */
+  }
+}
+
 export function browserId(): string {
   const existing = safeGet(ID_KEY);
   if (existing) return existing;
@@ -77,6 +107,7 @@ function spentKey(kind: string, id: string): string {
 }
 
 export function spentToday(kind: string, id: string): number {
+  sweepStaleSpendKeys();
   const raw = safeGet(spentKey(kind, id));
   const n = raw ? Number.parseInt(raw, 10) : 0;
   return Number.isFinite(n) && n > 0 ? n : 0;
@@ -105,6 +136,11 @@ export async function sendLike(
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ kind, id, browserId: browserId() }),
+      // A STALLED CONNECTION MUST NOT WEDGE THE BUTTON. Without this the fetch can
+      // hang indefinitely: the caller's `pending` flag never clears, so every later
+      // click is dropped, and the optimistic "+1" stays on screen until a reload.
+      // The abort surfaces as a throw and lands in the retryable `error` path below.
+      signal: AbortSignal.timeout(8000),
     });
     if (res.ok) {
       const { total, remaining } = await res.json();
