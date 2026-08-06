@@ -59,3 +59,9 @@ dashboard-validity-report.json
 # root instead drops ~1.5 MB of duplicate icons here; the repo has no legitimate
 # root public/, so make that accident uncommittable.
 /public/
+
+# Pre-PR review gate artifacts (diff snapshot, raw reviews, verdict). Local evidence
+# for one revision — regenerated per round, never committed.
+.magi-review/
+.magi-review.lock
+.magi-review-history.jsonl

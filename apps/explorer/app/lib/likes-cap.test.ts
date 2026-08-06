@@ -16,12 +16,6 @@ import { clientIp, utcDay, visitorKeys } from "./likes-cap";
 const headers = (h: Record<string, string>) => new Headers(h);
 
 describe("clientIp", () => {
-  it("prefers x-real-ip, which the platform sets directly", () => {
-    expect(clientIp(headers({ "x-real-ip": "203.0.113.7" }))).toBe(
-      "203.0.113.7",
-    );
-  });
-
   it("takes the LAST x-forwarded-for hop, not the first", () => {
     // THE WHOLE POINT. x-forwarded-for is appended to by each hop, so a client
     // sending its own header produces "<forged>, <real>". Reading [0] would hand
@@ -30,6 +24,29 @@ describe("clientIp", () => {
     expect(
       clientIp(headers({ "x-forwarded-for": "1.2.3.4, 203.0.113.7" })),
     ).toBe("203.0.113.7");
+  });
+
+  it("uses x-forwarded-for IN PREFERENCE TO x-real-ip", () => {
+    // Ordering is a security property, not a style choice, so it is pinned. XFF's
+    // last hop is correct whether the platform appends or replaces; `x-real-ip` is
+    // only correct if the platform sets it, and forgeable if a client-supplied one
+    // passes through. Trusting x-real-ip first would rest the whole cap on an
+    // assumption about one platform's header handling — a client sending
+    // `x-real-ip: <random>` per request would mint an unlimited supply of keys.
+    expect(
+      clientIp(
+        headers({
+          "x-real-ip": "1.2.3.4",
+          "x-forwarded-for": "9.9.9.9, 203.0.113.7",
+        }),
+      ),
+    ).toBe("203.0.113.7");
+  });
+
+  it("falls back to x-real-ip only when there is no x-forwarded-for", () => {
+    expect(clientIp(headers({ "x-real-ip": "203.0.113.7" }))).toBe(
+      "203.0.113.7",
+    );
   });
 
   it("handles a single-hop x-forwarded-for", () => {
@@ -48,10 +65,10 @@ describe("clientIp", () => {
     expect(clientIp(headers({}))).toBeNull();
   });
 
-  it("ignores an empty x-real-ip rather than treating it as an address", () => {
-    expect(
-      clientIp(headers({ "x-real-ip": "  ", "x-forwarded-for": "9.9.9.9" })),
-    ).toBe("9.9.9.9");
+  it("ignores a whitespace-only x-real-ip rather than treating it as an address", () => {
+    // No x-forwarded-for at all, so the fallback is reached and must reject a blank
+    // value — otherwise every such caller shares the key hash("  ").
+    expect(clientIp(headers({ "x-real-ip": "  " }))).toBeNull();
   });
 });
 
