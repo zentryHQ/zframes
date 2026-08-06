@@ -65,12 +65,19 @@ const CONVERTS: Record<string, string> = {
   "analyst-ratings": "the consensus price target beside the live price",
   "bitcoin-dominance": "total crypto market cap",
   "company-profile": "last sale, market cap and the 52-week range",
+  "crypto-dilution":
+    "market cap and FDV (published or derived) are market money",
+  "crypto-profile":
+    "price, market cap, FDV, volume, ATH and ATL are market money",
   "equity-options-greeks": "spot and the strike ladder",
   "equity-options-max-pain": "the max-pain strike and spot",
   "equity-options-oi": "spot and the strike axis",
   "equity-options-smile": "spot and the strike axis",
   "valuation-multiples": "market cap; the ratios themselves are unit-less",
   "defi-revenue": "24h protocol fees and revenue",
+  "options-chain-table": "strikes, bids, asks and the underlying price",
+  "protocol-multiples": "the market cap and revenue behind the multiple",
+  "protocol-revenue": "daily fees and revenue in dollars",
   "dex-hot-pools": "pool price, liquidity and 24h volume",
   "journal-log": "the ticker picker's live mid",
   "journal-open": "an open call's entry, live now, and target",
@@ -312,6 +319,7 @@ const NO_MONEY: Record<string, string> = {
   "metal-volatility": "realised volatility %",
   "metals-correlation": "daily-return correlations",
   "mining-pools": "pool block counts",
+  "token-unlock-schedule": "token counts and insider-share percentages",
   "mining-pools-share": "pool share %",
   "misery-index": "unemployment + inflation, in points",
   "movers-bars": "24h change %",
@@ -869,7 +877,13 @@ describe("the currency classification covers the whole registry", () => {
     // ratings, the four options frames) or USD_ONLY (the statement, earnings
     // and 13F frames, all figures as reported) — the split is what keeps this
     // ratchet meaningful.
-    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(158);
+    //
+    // Then 158 → 167 for the cross-asset deep dive. Nine of its fifteen frames
+    // genuinely show no money: contracts, percentages, ratios, correlations, a
+    // volatility index and token counts. The money-bearing six went to CONVERTS
+    // (real price, vs-macro, spec notional, both crypto profile cards, the two
+    // protocol cards and the chain table), so the split holds here too.
+    expect(Object.keys(NO_MONEY).length).toBeLessThanOrEqual(167);
     expect(Object.keys(CONVERTS).length).toBeGreaterThanOrEqual(70);
   });
 
