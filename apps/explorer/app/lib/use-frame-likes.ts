@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * Every frame's like count, fetched ONCE for the whole catalogue.
@@ -15,14 +15,18 @@ import { useCallback, useEffect, useState } from "react";
  */
 export function useFrameLikes(): {
   likes: Record<string, number>;
-  /** Optimistic local bump, so a click moves the badge without a refetch. */
-  bump: (name: string) => void;
+  /** Record a CONFIRMED like — the server's own total, not a local increment, so
+   *  the strip and the card badge cannot disagree about the same frame. */
+  bump: (name: string, total: number) => void;
   /** False until the first response — the most-liked strip waits on it, so it
    *  can't flash in showing nothing and then reorder. */
   loaded: boolean;
 } {
   const [likes, setLikes] = useState<Record<string, number>>({});
   const [loaded, setLoaded] = useState(false);
+  // Frames the user has confirmed a like on. Their local value outranks the fetch,
+  // which is what stops a slow GET from erasing a like that already landed.
+  const owned = useRef<Record<string, number>>({});
 
   useEffect(() => {
     let alive = true;
@@ -30,7 +34,11 @@ export function useFrameLikes(): {
       .then((r) => (r.ok ? r.json() : { frames: {} }))
       .then((d: { frames?: Record<string, number> }) => {
         if (!alive) return;
-        setLikes(d.frames ?? {});
+        // MERGE, don't replace. A wholesale replace discarded any like confirmed
+        // while the request was in flight: like at t=400ms, response lands at
+        // t=600ms carrying the pre-click snapshot, and the strip drops back below
+        // the card badge showing the same frame.
+        setLikes({ ...(d.frames ?? {}), ...owned.current });
         setLoaded(true);
       })
       .catch(() => {
@@ -41,8 +49,11 @@ export function useFrameLikes(): {
     };
   }, []);
 
-  const bump = useCallback((name: string) => {
-    setLikes((prev) => ({ ...prev, [name]: (prev[name] ?? 0) + 1 }));
+  const bump = useCallback((name: string, total: number) => {
+    // The server's total, so this cannot drift from what the button shows — a local
+    // `+1` on a possibly-stale base could.
+    owned.current = { ...owned.current, [name]: total };
+    setLikes((prev) => ({ ...prev, [name]: total }));
   }, []);
 
   return { likes, bump, loaded };

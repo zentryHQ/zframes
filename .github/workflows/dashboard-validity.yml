@@ -58,12 +58,16 @@ jobs:
 
       # Piggybacks this cron because it is the nightly job that already holds a
       # database connection — a second workflow to run one DELETE would be more
-      # moving parts than the work. `continue-on-error` and its position AFTER the
-      # validation step are both deliberate: retention housekeeping must never
-      # decide whether a dashboard-validity regression gets reported.
+      # moving parts than the work. Its position AFTER the validation step is
+      # deliberate, and the reporting step below is `if: always()`, so a failure here
+      # still cannot suppress a dashboard-validity regression.
+      #
+      # NOT `continue-on-error`. It was, and that made a persistent failure invisible:
+      # the job stayed green while salted visitor-fingerprint rows accumulated past
+      # the stated 2-day window, and nothing else watches `like_grants` growth. A
+      # failing sweep should be a red run somebody sees.
       - name: Sweep expired like allowances
         if: env.DATABASE_URL != ''
-        continue-on-error: true
         run: pnpm --dir apps/explorer sweep:likes
 
       - name: File / update / close issue

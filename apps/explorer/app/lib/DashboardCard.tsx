@@ -27,9 +27,12 @@ export function DashboardCard({
   frameCount: number;
   frames: ThumbFrame[];
   thumbSrc?: string;
-  /** Read-only — the button itself lives on the board's own page. Optional so the
-   *  landing card stack, which has no popularity story, can omit it entirely. */
-  likes?: number;
+  /** Read-only — the button itself lives on the board's own page. Required: both call
+   *  sites are the gallery's two grids and both have the number, so an optional prop
+   *  only bought a way to render a card with no count by accident. (The landing card
+   *  stack does NOT use this component — it renders its own boards through
+   *  `/embed/[id]` iframes.) */
+  likes: number;
 }) {
   return (
     <Link
@@ -84,9 +87,7 @@ export function DashboardCard({
           <h3 className="font-semibold text-white transition-colors group-hover:text-indigo-200">
             {title}
           </h3>
-          {likes !== undefined && (
-            <LikeCount total={likes} className="mt-1 shrink-0" />
-          )}
+          <LikeCount total={likes} className="mt-1 shrink-0" />
         </div>
         {tags.length > 0 && (
           <div className="mt-auto flex flex-wrap gap-1.5 pt-4">

@@ -120,7 +120,7 @@ function FrameCard({
 }: {
   def: AnyFrameDefinition;
   likes: number;
-  onLiked: (name: string) => void;
+  onLiked: (name: string, total: number) => void;
 }) {
   const w = Math.min(def.layout?.w ?? 4, 12);
   const h = Math.min(def.layout?.h ?? 3, 4);

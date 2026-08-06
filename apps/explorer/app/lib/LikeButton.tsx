@@ -46,9 +46,10 @@ export function LikeButton({
   /** Borderless and tighter — for the catalogue's 255 card footers, where a
    *  bordered control per card turns the grid into a wall of buttons. */
   compact?: boolean;
-  /** Fired on a confirmed like, so a parent holding many counts (the catalogue's
-   *  shared map) can stay in step without refetching. */
-  onLiked?: (name: string) => void;
+  /** Fired on a confirmed like with the SERVER's new total, so a parent holding many
+   *  counts (the catalogue's shared map) stays in step without refetching — and
+   *  cannot drift from what this button shows, which a local `+1` could. */
+  onLiked?: (name: string, total: number) => void;
 }) {
   // THE COUNT HAS TWO SOURCES and the split matters. `initialTotal` is the parent's
   // number, which on the catalogue arrives AFTER mount (the counts fetch resolves
@@ -66,6 +67,9 @@ export function LikeButton({
   const [spent, setSpent] = useState(0);
   const [pending, setPending] = useState(false);
   const [wall, setWall] = useState<"item-cap" | "ip-cap" | null>(null);
+  // A request that failed for a NON-cap reason (offline, 5xx). Distinct from `wall`
+  // because it is retryable — the button stays enabled and says so.
+  const [failed, setFailed] = useState(false);
   // One key per click so each "+1" is its own element and a fast second click
   // doesn't restart the first one's animation mid-flight.
   const [pops, setPops] = useState<number[]>([]);
@@ -82,11 +86,13 @@ export function LikeButton({
   async function like() {
     if (exhausted || pending) return;
     setPending(true);
+    setFailed(false);
     // Optimistic: the count moves now. The charter chose optimism over accuracy
     // here because a like that takes a round trip to appear feels broken.
+    const click = Date.now();
     setInFlight((n) => n + 1);
     setSpent((s) => s + 1);
-    setPops((p) => [...p, Date.now()]);
+    setPops((p) => [...p, click]);
     const outcome: LikeOutcome = await sendLike(kind, id);
     setPending(false);
     // Always clear this click's optimistic unit — `confirmed` carries it on success,
@@ -97,20 +103,29 @@ export function LikeButton({
       // The server's total, not our guess — it may have moved further if someone
       // else liked between our render and our click.
       setConfirmed(outcome.total);
-      onLiked?.(id);
+      onLiked?.(id, outcome.total);
       return;
     }
     setSpent((s) => Math.max(0, s - 1));
+    // Pull this click's "+1" back, and SAY something. Left alone, a 5xx played the
+    // +1, ticked the count up, dropped it back, and left the button enabled — a
+    // failure that looks exactly like a success, and the motion that was supposed
+    // to prove the click landed proving the opposite.
+    setPops((p) => p.filter((k) => k !== click));
     if (outcome.reason === "item-cap" || outcome.reason === "ip-cap") {
       setWall(outcome.reason);
+      return;
     }
+    setFailed(true);
   }
 
   const label = exhausted
     ? wall === "ip-cap"
       ? `${total} likes — your network's daily likes are used up`
       : `${total} likes — you've used today's likes, back tomorrow`
-    : `Like this ${kind} — ${total} likes so far`;
+    : failed
+      ? `${total} likes — that like didn't save, try again`
+      : `Like this ${kind} — ${total} likes so far`;
 
   return (
     <button
@@ -123,7 +138,9 @@ export function LikeButton({
           ? "Your network has used today's likes — back tomorrow"
           : exhausted
             ? "Back tomorrow for more"
-            : "Like this — up to 5 a day"
+            : failed
+              ? "That like didn't save — click to try again"
+              : "Like this — up to 5 a day"
       }
       className={cn(
         "zf-press group/like relative inline-flex cursor-pointer items-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60",
@@ -135,11 +152,18 @@ export function LikeButton({
               "cursor-default text-white/45",
               !compact && "border-white/10 bg-white/[0.03]",
             )
-          : cn(
-              "text-white/75 hover:text-indigo-100",
-              !compact &&
-                "border-white/15 hover:border-indigo-300/45 hover:bg-indigo-500/10",
-            ),
+          : failed
+            ? // Still enabled — the failure is retryable, so the colour says
+              // "something went wrong" without taking the action away.
+              cn(
+                "text-down hover:text-down",
+                !compact && "border-down/40 bg-down/10",
+              )
+            : cn(
+                "text-white/75 hover:text-indigo-100",
+                !compact &&
+                  "border-white/15 hover:border-indigo-300/45 hover:bg-indigo-500/10",
+              ),
         className,
       )}
     >
