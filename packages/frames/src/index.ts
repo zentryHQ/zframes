@@ -236,6 +236,11 @@ export { btcInGoldFrame } from "./btc-in-gold";
 export { metalCotNetFrame } from "./metal-cot-net";
 export { metalCotBreakdownFrame } from "./metal-cot-breakdown";
 export { metalCotGaugeFrame } from "./metal-cot-gauge";
+export { metalRealPriceFrame } from "./metal-real-price";
+export { metalVsMacroFrame } from "./metal-vs-macro";
+export { commodityVolRegimeFrame } from "./commodity-vol-regime";
+export { metalCotDisaggregatedFrame } from "./metal-cot-disaggregated";
+export { metalCotConcentrationFrame } from "./metal-cot-concentration";
 export { metalOpenInterestFrame } from "./metal-open-interest";
 export { metalCotPercentileFrame } from "./metal-cot-percentile";
 export { metalSpecNotionalFrame } from "./metal-spec-notional";
@@ -497,6 +502,11 @@ import { btcInGoldFrame } from "./btc-in-gold";
 import { metalCotNetFrame } from "./metal-cot-net";
 import { metalCotBreakdownFrame } from "./metal-cot-breakdown";
 import { metalCotGaugeFrame } from "./metal-cot-gauge";
+import { metalRealPriceFrame } from "./metal-real-price";
+import { metalVsMacroFrame } from "./metal-vs-macro";
+import { commodityVolRegimeFrame } from "./commodity-vol-regime";
+import { metalCotDisaggregatedFrame } from "./metal-cot-disaggregated";
+import { metalCotConcentrationFrame } from "./metal-cot-concentration";
 import { metalOpenInterestFrame } from "./metal-open-interest";
 import { metalCotPercentileFrame } from "./metal-cot-percentile";
 import { metalSpecNotionalFrame } from "./metal-spec-notional";
@@ -788,10 +798,15 @@ export const allFrames: AnyFrameDefinition[] = [
   metalCotNetFrame,
   metalCotBreakdownFrame,
   metalCotGaugeFrame,
+  metalCotDisaggregatedFrame,
+  metalCotConcentrationFrame,
   metalOpenInterestFrame,
   metalCotPercentileFrame,
   metalSpecNotionalFrame,
   metalPositioningVsPriceFrame,
+  metalRealPriceFrame,
+  metalVsMacroFrame,
+  commodityVolRegimeFrame,
   usGoldReserveFrame,
   usGoldVaultsFrame,
   tokenizedGoldFrame,

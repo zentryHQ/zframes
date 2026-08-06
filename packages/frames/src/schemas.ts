@@ -98,6 +98,10 @@ const SOURCES = withSourceIds({
     name: "CFTC",
     url: "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
   },
+  cboe: {
+    name: "Cboe",
+    url: "https://www.cboe.com/tradable_products/vix/volatility_indexes/",
+  },
   fred: { name: "FRED", url: "https://fred.stlouisfed.org" },
   zillow: {
     name: "Zillow Research",
@@ -5961,6 +5965,170 @@ export const metalOpenInterestMeta = defineFrameMeta({
   }),
 });
 
+export const metalRealPriceMeta = defineFrameMeta({
+  name: "metal-real-price",
+  annotatable: true,
+  label: "Real Price",
+  category: "metals",
+  iconUrl: widgetIcon("metal-real-price"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "The daily London fix deflated by US CPI into TODAY's dollars, drawn beside the price as published. A commodity has no earnings, so its inflation-adjusted price IS its valuation history — this is the card that answers whether a nominal record is a real record, and gold's January 1980 peak restated in today's money is the reference every all-time-high headline leaves out. The headline names the real record and how far below it the metal sits. Always reads the USD fix series (US CPI can only deflate dollars), and carries each monthly CPI print forward across its days rather than interpolating one.",
+  capabilities: ["metal-history", "macro-reference-series"],
+  source: [SOURCES.lbma, SOURCES.fred],
+  schema: z.object({
+    symbol: z
+      .enum(FIXED_METALS)
+      .default("XAU")
+      .describe(`Metal to deflate. ${FIXED_METAL_NAMES}`),
+    years: yearsField(
+      58,
+      "How many years of the two lines to chart. The real all-time high in the headline is always measured over the FULL history whatever this says, so a short window still names the real record rather than the window's own high.",
+    ),
+    showNominal: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Also draw the price exactly as published, unadjusted. The gap between the two lines IS the inflation, so turning this off leaves a real-terms line with nothing to read it against.",
+      ),
+  }),
+});
+
+export const metalVsMacroMeta = defineFrameMeta({
+  name: "metal-vs-macro",
+  annotatable: true,
+  label: "Metal vs Macro",
+  category: "metals",
+  iconUrl: widgetIcon("metal-vs-macro"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "A metal against the macro variable it is supposed to answer to — the 10-year real yield, the broad dollar, or the inflation breakeven — plus the trailing correlation of their daily CHANGES, which is the number that says whether the textbook relationship still holds (levels would correlate near ±1 for any two trending series and say nothing). The chart layer has a single y-axis and the legs are in different units, so each is scaled to its own window range (0 = window low, 100 = window high) while the header keeps both legs' real values.",
+  capabilities: ["metal-history", "macro-reference-series"],
+  source: [SOURCES.lbma, SOURCES.fred],
+  schema: z.object({
+    symbol: z
+      .enum(FIXED_METALS)
+      .default("XAU")
+      .describe(
+        `Metal to compare. ${FIXED_METAL_NAMES} (the price leg needs an LBMA fix, so copper isn't available here).`,
+      ),
+    series: z
+      .enum(["DFII10", "REAINTRATREARAT10Y", "DTWEXBGS", "T10YIE"])
+      .default("DFII10")
+      .describe(
+        "Macro series to plot against the metal. DFII10 = the 10-year TIPS real yield (daily, from 2003) — gold's classic inverse. REAINTRATREARAT10Y = the 10-year real interest rate (monthly, from 1982) — the same idea 21 years deeper, for windows TIPS cannot reach. DTWEXBGS = the Fed's broad trade-weighted dollar index (daily, from 2006). T10YIE = the 10-year inflation breakeven (daily, from 2003) — what the bond market prices for inflation, the thing bullion is bought as a hedge against.",
+      ),
+    years: yearsField(
+      10,
+      "How many years both legs cover. A window deeper than the chosen series reaches simply starts where the series does — DFII10, DTWEXBGS and T10YIE all begin in the 2000s, only REAINTRATREARAT10Y reaches the 1980s.",
+    ),
+  }),
+});
+
+export const commodityVolRegimeMeta = defineFrameMeta({
+  name: "commodity-vol-regime",
+  annotatable: true,
+  label: "Commodity Vol Regime",
+  category: "metals",
+  iconUrl: widgetIcon("commodity-vol-regime"),
+  // Two stacked plots (history 140px + distribution 92px) plus a header and a
+  // caption, so the minimum is 5 rows, not the family's usual 3 — at 4 the
+  // distribution strip is what clips.
+  layout: { w: 5, h: 5, minW: 4, minH: 5 },
+  description:
+    "Cboe's implied-volatility index for gold, silver, gold miners or crude — the level, where it ranks inside its own history, and the distribution it is ranked against. A volatility number alone answers nothing: 23% is cheap for miners and dear for gold, so the percentile is the reading, and the histogram shows what today's level is being compared with. The metals counterpart of a VIX card. These are volatility percentages, not money.",
+  capabilities: ["commodity-vol-index"],
+  source: SOURCES.cboe,
+  schema: z.object({
+    index: z
+      .enum(["GVZ", "VXSLV", "VXGDX", "OVX"])
+      .default("GVZ")
+      .describe(
+        "Which published index to read. GVZ = 30-day implied vol on SPDR Gold Shares (GLD) options, history from 2009. VXSLV = iShares Silver Trust (SLV), from 2011. VXGDX = VanEck Gold Miners (GDX), from 2011 — miner vol runs well above metal vol, and that gap is the leverage the equity carries. OVX = United States Oil Fund (USO), from 2009. Each measures options on the ETF named, not on the metal's own futures, because the ETF chain is where the liquid listed vol actually trades.",
+      ),
+    window: z
+      .enum(["all", "10y", "5y", "1y"])
+      .default("all")
+      .describe(
+        'History the percentile and the distribution are measured over. "all" uses the whole published file (2009 for GVZ/OVX, 2011 for VXSLV/VXGDX); the shorter windows ask whether today is expensive against the recent regime rather than against 2020.',
+      ),
+  }),
+});
+
+export const metalCotDisaggregatedMeta = defineFrameMeta({
+  name: "metal-cot-disaggregated",
+  annotatable: true,
+  label: "COT Disaggregated",
+  category: "metals",
+  iconUrl: widgetIcon("metal-cot-disaggregated"),
+  layout: { w: 5, h: 6, minW: 4, minH: 4 },
+  description:
+    "The CFTC's disaggregated Commitments of Traders — the five real trader classes (producers and merchants, swap dealers, managed money, other reportables, small traders) as opposing long and short bars, each with the agency's own week-over-week change and its share of open interest. Pick this over COT Trader Breakdown whenever the question is WHO holds the position: the legacy report's single \"commercial\" bucket adds miner hedging to swap-dealer bank shorts, which are opposite stories in metals, and conflating them is the most common misreading of gold positioning. A history view charts each class's net across the weekly reports instead.",
+  capabilities: ["metal-positioning"],
+  source: SOURCES.cftc,
+  schema: z.object({
+    symbol: z
+      .enum(METAL_SYMBOLS)
+      .default("XAU")
+      .describe(`Metal futures market to read. ${METAL_NAMES}.`),
+    view: z
+      .enum(["latest", "history"])
+      .default("latest")
+      .describe(
+        '"latest" shows the newest published week: the five classes as opposing long/short bars, then each class\'s contracts with the CFTC\'s own week-over-week change and its share of open interest. "history" charts every class\'s net (long − short) across the window instead, which is where a rotation from hedgers to funds becomes visible.',
+      ),
+    weeks: z
+      .number()
+      .int()
+      .min(8)
+      .max(520)
+      .default(104)
+      .describe(
+        "How many weekly reports the history view charts (8–520; 52 ≈ one year, 520 is the provider's ceiling). Unused by the latest view. The disaggregated report only starts in June 2006, so a window reaching further back simply shows the weeks that exist.",
+      ),
+  }),
+});
+
+export const metalCotConcentrationMeta = defineFrameMeta({
+  name: "metal-cot-concentration",
+  annotatable: true,
+  label: "COT Concentration",
+  category: "metals",
+  iconUrl: widgetIcon("metal-cot-concentration"),
+  layout: { w: 5, h: 6, minW: 4, minH: 4 },
+  description:
+    "How few hands hold the market — the CFTC's concentration columns: the share of the market's longs and shorts sitting in the largest 4 and 8 traders, each drawn against the whole market, plus how many distinct traders hold each side of each class. Gold routinely runs above half of its gross shorts in four traders. The commodity analogue of equity ownership concentration, and only the disaggregated report (June 2006 onward) publishes it at all.",
+  capabilities: ["metal-positioning"],
+  source: SOURCES.cftc,
+  schema: z.object({
+    symbol: z
+      .enum(METAL_SYMBOLS)
+      .default("XAU")
+      .describe(`Metal futures market to read. ${METAL_NAMES}.`),
+    basis: z
+      .enum(["gross", "net"])
+      .default("gross")
+      .describe(
+        '"gross" counts each trader\'s long and short book separately — what "four traders hold 51% of the shorts" means in the wild, and the pair the CFTC always publishes. "net" nets each trader\'s books first, so it always reads lower and is not reported for every market; when it is missing the card says so and names the fix rather than drawing an empty chart.',
+      ),
+    weeks: z
+      .number()
+      .int()
+      .min(8)
+      .max(520)
+      .default(104)
+      .describe(
+        "How many weekly reports the concentration history charts (8–520; 52 ≈ one year, 520 is the provider's ceiling). Only read when showHistory is on.",
+      ),
+    showHistory: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Chart the concentration readings over the window underneath the latest week's shares. Turn it off on a short card, where the four shares plus the trader counts fit better on their own.",
+      ),
+  }),
+});
+
 export const metalCotPercentileMeta = defineFrameMeta({
   name: "metal-cot-percentile",
   label: "COT Percentile",
@@ -7123,10 +7291,15 @@ export const frameMetas: FrameMeta[] = [
   metalCotNetMeta,
   metalCotBreakdownMeta,
   metalCotGaugeMeta,
+  metalCotDisaggregatedMeta,
+  metalCotConcentrationMeta,
   metalOpenInterestMeta,
   metalCotPercentileMeta,
   metalSpecNotionalMeta,
   metalPositioningVsPriceMeta,
+  metalRealPriceMeta,
+  metalVsMacroMeta,
+  commodityVolRegimeMeta,
   usGoldReserveMeta,
   usGoldVaultsMeta,
   tokenizedGoldMeta,
