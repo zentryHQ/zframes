@@ -383,32 +383,53 @@ type Highlight = {
 };
 
 /**
- * The display names of the sources this batch introduced, spelled exactly as
- * their frame metas credit them (`SOURCES` in @zframes/frames/schemas). The
- * headline's frame count is filtered off this rather than typed, so it tracks
- * every later frame built over the same providers.
+ * The capabilities this batch introduced. The headline's frame count is filtered
+ * off these rather than typed, so it tracks every later frame built over them.
+ *
+ * Keyed on CAPABILITY, not on source name as the previous batch was: this batch
+ * added no provider package at all — it asked new questions of publishers the
+ * fleet already read (CoinGecko, DeFiLlama, Deribit, the CFTC), so a
+ * source-name filter would have counted the whole back catalogue. Only Cboe is
+ * genuinely new, and it accounts for one frame.
  */
-const SPOTLIGHT_SOURCES = ["Nasdaq", "Cboe"];
+/**
+ * The capabilities the deep-dive batches introduced — the equity half and the
+ * cross-asset half, which shipped together and read as one release.
+ *
+ * Keyed on CAPABILITY, not on source name. Sources over-count badly here: the
+ * equity work added Nasdaq as an `ohlcv` venue, which credits it on five
+ * pre-existing price frames (price-chart, price-events, return-calendar,
+ * return-distribution, rsi-momentum) that merely gained it as a pinnable option
+ * and are not new. A capability is only ever added by the batch that built it,
+ * so this needs no primary-credit workaround.
+ */
+const SPOTLIGHT_CAPABILITIES = [
+  // the equity research surface
+  "fundamentals-history",
+  "equity-profile",
+  "equity-financials",
+  "earnings-history",
+  "earnings-calendar",
+  "analyst-ratings",
+  "institutional-ownership",
+  // asset-class-agnostic, filled by a crypto venue, an equity feed and metal ETFs
+  "options-chain",
+  // the cross-asset half
+  "crypto-profile",
+  "protocol-fundamentals",
+  "token-unlocks",
+  "commodity-vol-index",
+  "macro-reference-series",
+];
 
-// Counts the frames BUILT on the new sources, by matching only a frame's
-// PRIMARY credit. The looser "any credit" test over-counted this batch: adding
-// Nasdaq as an `ohlcv` venue also credited it on five pre-existing price frames
-// (price-chart, price-events, return-calendar, return-distribution,
-// rsi-momentum), which merely gained it as a pinnable option and are not new.
-// `source` is still one credit OR several (rates-board genuinely reads NY Fed
-// AND Treasury), so normalise before reading the first.
-const spotlightFrameCount = allFrameMetas.filter((meta) => {
-  const credits = meta.source
-    ? Array.isArray(meta.source)
-      ? meta.source
-      : [meta.source]
-    : [];
-  return credits.length > 0 && SPOTLIGHT_SOURCES.includes(credits[0].name);
-}).length;
+const spotlightFrameCount = allFrameMetas.filter((meta) =>
+  meta.capabilities.some((c) => SPOTLIGHT_CAPABILITIES.includes(c)),
+).length;
 
-// The lead. A decade of reported revenue, stitched across the XBRL tag NVIDIA
-// switched to mid-history — the card that shows why reading filings properly is
-// a framework problem, not a chart problem.
+// The lead, unchanged from the equity cast: a decade of reported revenue
+// stitched across the XBRL tag NVIDIA switched to mid-history — still the
+// clearest case that reading filings properly is a framework problem, not a
+// chart problem.
 const SPOTLIGHT_LEAD: Highlight = {
   frame: "financials-trend",
   config: { symbol: "NVDA", metric: "revenue", cadence: "annual" },
@@ -419,30 +440,27 @@ const SPOTLIGHT_LEAD: Highlight = {
 
 const SPOTLIGHT: Highlight[] = [
   {
-    frame: "equity-options-smile",
-    config: { symbol: "NVDA" },
-    note: "Implied volatility across strikes at one expiry, calls against puts. The downside wing sitting higher is the market paying up for crash protection — and it is a free, delayed Cboe chain, not a terminal subscription.",
+    frame: "metal-cot-disaggregated",
+    note: "Who actually holds the gold position. The familiar report lumps miner hedging in with swap-dealer bank shorts — opposite stories — so this splits all five trader classes out. Gold's dealers run ~56% of open-interest shorts.",
     span: "lg:col-span-7",
     height: "h-[26rem]",
   },
   {
-    frame: "valuation-multiples",
-    config: { symbol: "NVDA" },
-    note: "P/E, P/S and P/B derived in front of you, each labelled with the inputs it came from. Nothing keyless publishes these — and a multiple with a missing or negative denominator says so instead of printing a number.",
+    frame: "crypto-dilution",
+    config: { symbol: "ARB" },
+    note: "How much of a token's supply is not circulating yet. A price chart cannot show the gap between market cap and fully diluted value, and for a recent listing that gap is the investment case.",
     span: "lg:col-span-4",
     height: "h-[22rem]",
   },
   {
-    frame: "earnings-surprise",
-    config: { symbol: "NVDA" },
-    note: "Reported EPS against the consensus that preceded it, quarter by quarter. A steady beat rate is a different signal from one blowout, and this is the chart that tells them apart.",
+    frame: "protocol-revenue",
+    note: "Fees versus revenue — what users paid, against what the protocol kept. Uniswap took ~845M in fees last year and kept ~30M of it; a multiple built on the first number flatters it by 28×.",
     span: "lg:col-span-4",
     height: "h-[22rem]",
   },
   {
-    frame: "margin-trend",
-    config: { symbol: "NVDA" },
-    note: "Gross, operating and net margin across the reported years — the quickest read on whether a growth story is also a business.",
+    frame: "commodity-vol-regime",
+    note: "Gold's own implied-volatility index against its 15-year distribution. A commodity has no earnings, so “expensive” is answered by where its vol sits, not by a P/E.",
     span: "lg:col-span-4",
     height: "h-[22rem]",
   },
@@ -490,20 +508,22 @@ function SpotlightBand() {
         <Reveal>
           <span className="zf-label mb-4">Just landed</span>
           <h3 className="text-balance text-2xl font-bold tracking-tight text-white sm:text-3xl">
-            The business behind the ticker.
+            The deep dive — for every asset class.
           </h3>
           <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
-            Two more keyless sources — Nasdaq and Cboe — and{" "}
+            A stock gets researched: what it earns, what it&rsquo;s worth, who
+            owns it.{" "}
             {/* The whole clause lives in ONE expression, ending on a comma. A
                 JSX text node that spans lines has its LEADING whitespace
-                trimmed, so `{count} frames` renders "thirteenframes" and
-                `{...} built` renders "framesbuilt" — the space has to sit
-                inside the expression or in an explicit {" "}. */}
-            {`${numberWord(spotlightFrameCount)} frames built over them`}, plus
-            a decade of reported financials read straight out of SEC XBRL.
-            Valuation multiples, margins, earnings against consensus, and real
-            listed option chains with the greeks. Still no key, still no signup:
-            a company&rsquo;s own numbers were always public.
+                trimmed, so `{count} frames` renders "thirteenframes" — the
+                space has to sit inside the expression or in an explicit {" "}. */}
+            {`${numberWord(spotlightFrameCount)} new frames`} do that for
+            equities out of SEC XBRL and Nasdaq — a decade of financials,
+            margins, earnings against consensus — and then ask the same of
+            everything else: gold&rsquo;s price in real terms and who holds the
+            futures, a token&rsquo;s supply overhang and what its protocol
+            actually keeps, and one option chain that reads a crypto venue, a
+            stock and a metal ETF alike. Still no key, still no signup.
           </p>
         </Reveal>
 
