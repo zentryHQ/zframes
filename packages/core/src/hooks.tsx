@@ -1216,14 +1216,15 @@ export function useProtocolFundamentals(
   refreshMs = 30 * 60_000,
 ): { fundamentals: ProtocolFundamentals | null; isLoading: boolean } {
   const provider = useProviderFor("protocol-fundamentals");
-  const { data: fundamentals, isLoading } = usePolled<ProtocolFundamentals | null>(
-    provider?.getProtocolFundamentals && protocol
-      ? () => provider.getProtocolFundamentals!(protocol)
-      : null,
-    null,
-    [provider, protocol, refreshMs],
-    refreshMs,
-  );
+  const { data: fundamentals, isLoading } =
+    usePolled<ProtocolFundamentals | null>(
+      provider?.getProtocolFundamentals && protocol
+        ? () => provider.getProtocolFundamentals!(protocol)
+        : null,
+      null,
+      [provider, protocol, refreshMs],
+      refreshMs,
+    );
   return { fundamentals, isLoading };
 }
 

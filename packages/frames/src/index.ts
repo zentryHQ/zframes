@@ -93,6 +93,12 @@ export { cycleSignalsFrame } from "./cycle-signals";
 export { stablecoinSupplyFrame } from "./stablecoin-supply";
 export { yieldScannerFrame } from "./yield-scanner";
 export { defiRevenueFrame } from "./defi-revenue";
+export { optionsChainTableFrame } from "./options-chain-table";
+export { tokenUnlockScheduleFrame } from "./token-unlock-schedule";
+export { cryptoProfileFrame } from "./crypto-profile";
+export { cryptoDilutionFrame } from "./crypto-dilution";
+export { protocolRevenueFrame } from "./protocol-revenue";
+export { protocolMultiplesFrame } from "./protocol-multiples";
 export { fundingComparisonFrame } from "./funding-comparison";
 export { ethSupplyFrame } from "./eth-supply";
 export { ethStakingFrame } from "./eth-staking";
@@ -360,6 +366,12 @@ import { cycleSignalsFrame } from "./cycle-signals";
 import { stablecoinSupplyFrame } from "./stablecoin-supply";
 import { yieldScannerFrame } from "./yield-scanner";
 import { defiRevenueFrame } from "./defi-revenue";
+import { optionsChainTableFrame } from "./options-chain-table";
+import { tokenUnlockScheduleFrame } from "./token-unlock-schedule";
+import { cryptoProfileFrame } from "./crypto-profile";
+import { cryptoDilutionFrame } from "./crypto-dilution";
+import { protocolRevenueFrame } from "./protocol-revenue";
+import { protocolMultiplesFrame } from "./protocol-multiples";
 import { fundingComparisonFrame } from "./funding-comparison";
 import { ethSupplyFrame } from "./eth-supply";
 import { ethStakingFrame } from "./eth-staking";
@@ -656,6 +668,12 @@ export const allFrames: AnyFrameDefinition[] = [
   stablecoinSupplyFrame,
   yieldScannerFrame,
   defiRevenueFrame,
+  optionsChainTableFrame,
+  tokenUnlockScheduleFrame,
+  cryptoProfileFrame,
+  cryptoDilutionFrame,
+  protocolRevenueFrame,
+  protocolMultiplesFrame,
   fundingComparisonFrame,
   ethSupplyFrame,
   ethStakingFrame,

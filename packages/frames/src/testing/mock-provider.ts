@@ -6,6 +6,10 @@ import type {
   CoinMarketEntry,
   CoinMover,
   CompanyFacts,
+  CotDisaggregated,
+  CotTraderClass,
+  CryptoAssetProfile,
+  CryptoDeveloperActivity,
   DayStats,
   DexVolumeEntry,
   DifficultyAdjustment,
@@ -31,6 +35,8 @@ import type {
   OnchainExtras,
   OnchainValuation,
   OpenInterestEntry,
+  OptionContract,
+  OptionsChain,
   OptionsSummary,
   OrderBook,
   OrderBookLevel,
@@ -42,6 +48,9 @@ import type {
   PortfolioSource,
   PortfolioSourceKind,
   ProtocolFeesEntry,
+  TokenUnlockEvent,
+  TokenUnlocks,
+  ProtocolFundamentals,
   ProtocolTvlEntry,
   ReferenceRate,
   SecCompanyFilings,
@@ -78,8 +87,6 @@ import type {
   EarningsCalendarEntry,
   AnalystRatings,
   InstitutionalOwnership,
-  OptionContract,
-  OptionsChain,
 } from "@zframes/core";
 
 /**
@@ -180,6 +187,22 @@ const FIXED_PRICE: Record<string, number> = {
   // FX & ETF
   "xyz:EUR": 1.1402,
   "xyz:SMH": 644.14,
+  // Not on the dex, but the crypto-profile capability asks for an uncapped
+  // mid-cap by ticker and a hashed [40,600) price would put ATOM near NVDA.
+  ATOM: 4.15,
+};
+
+/**
+ * Listed metal/miner ETFs an options chain names but the perp tape doesn't
+ * carry. Calibrated off the dex commodity marks so a GLD chain and a
+ * `xyz:GOLD` card can't disagree: GLD tracks ~1/10 oz of gold, SLV ~1 oz of
+ * silver.
+ */
+const ETF_QUOTES: Record<string, number> = {
+  GLD: 372.4,
+  IAU: 76.1,
+  SLV: 53.6,
+  GDX: 88.2,
 };
 
 const NAMES: Record<string, string> = {
@@ -548,6 +571,14 @@ function modelFinancials(
 
 // ── option-chain maths ──────────────────────────────────────────────────────
 
+/** Publication cadence → milliseconds between prints. */
+const STEP_MS: Record<OfficialSeries["frequency"], number> = {
+  daily: DAY,
+  weekly: 7 * DAY,
+  monthly: 30 * DAY,
+  quarterly: 91 * DAY,
+};
+
 /** Standard normal CDF (Abramowitz & Stegun 26.2.17). Black-Scholes below runs
  *  on it so the mock's greeks are internally consistent — a call delta that
  *  really does fall 1→0 across the ladder, a gamma that really does peak at the
@@ -626,6 +657,129 @@ function occSymbol(
   return `${root}${yy}${mm}${dd}${side === "call" ? "C" : "P"}${strikeField}`;
 }
 
+/** "hyperliquid-perps" → "Hyperliquid Perps", for an unlisted protocol slug. */
+function prettyName(slug: string): string {
+  return slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+// ── disaggregated COT ───────────────────────────────────────────────────────
+/** First week the CFTC published the disaggregated report. */
+const DISAGG_START_MS = Date.UTC(2006, 5, 13);
+
+type CotClassKey =
+  | "producerMerchant"
+  | "swapDealer"
+  | "managedMoney"
+  | "otherReportable"
+  | "nonReportable";
+
+/** One week's full five-class split; the legacy buckets roll up out of it. */
+type CotSplit = Record<
+  CotClassKey,
+  { long: number; short: number; spread: number }
+>;
+
+const COT_CLASSES: readonly CotClassKey[] = [
+  "producerMerchant",
+  "swapDealer",
+  "managedMoney",
+  "otherReportable",
+  "nonReportable",
+];
+
+/**
+ * Relative weights within each side, re-normalised per week so that
+ * long + spread === short + spread === open interest.
+ *
+ * Metals positioning has a characteristic shape — producers and swap dealers
+ * net SHORT against managed money net LONG — and a symmetric random split would
+ * erase the one thing the disaggregated frames exist to show.
+ */
+const COT_LONG_WEIGHTS: Record<CotClassKey, number> = {
+  producerMerchant: 0.07,
+  swapDealer: 0.09,
+  managedMoney: 0.55,
+  otherReportable: 0.17,
+  nonReportable: 0.12,
+};
+const COT_SHORT_WEIGHTS: Record<CotClassKey, number> = {
+  producerMerchant: 0.36,
+  swapDealer: 0.34,
+  managedMoney: 0.13,
+  otherReportable: 0.1,
+  nonReportable: 0.07,
+};
+/**
+ * Spreading as a share of open interest. Producers and small traders have no
+ * spreading column in the report at all, so those classes are absent here.
+ */
+const COT_SPREAD_SHARES: Partial<Record<CotClassKey, number>> = {
+  swapDealer: 0.045,
+  managedMoney: 0.022,
+  otherReportable: 0.085,
+};
+
+// ── macro reference series ──────────────────────────────────────────────────
+/**
+ * How one macro reference series is generated. CPI is the odd one out: it is a
+ * steadily compounding index, so it comes off the exponential glide with a tiny
+ * wobble — a real monthly print moves ~0.3%, and a frame deflating a gold price
+ * by a jumpy CPI would show fake swings in the real price. The yields and the
+ * dollar index instead mean-revert around a level with a slow regime swing, and
+ * a real yield crosses zero, which the glide cannot express at all.
+ */
+type MacroRefDef =
+  | {
+      shape: "glide";
+      label: string;
+      unit: OfficialSeries["unit"];
+      frequency: OfficialSeries["frequency"];
+      count: number;
+      start: number;
+      end: number;
+      wobble: number;
+    }
+  | {
+      shape: "revert";
+      label: string;
+      unit: OfficialSeries["unit"];
+      frequency: OfficialSeries["frequency"];
+      count: number;
+      mean: number;
+      revert: number;
+      vol: number;
+      min: number;
+      max: number;
+      dp: number;
+      cycle: { amp: number; count: number };
+    };
+
+/** Per-asset identity and supply behind {@link CryptoAssetProfile}. */
+type CryptoProfileSeed = {
+  id: string;
+  name: string;
+  rank: number;
+  categories: string[];
+  circulating: number;
+  total: number;
+  /**
+   * Hard cap — **absent** for an uncapped asset, never 0. A 0 cap renders as
+   * "fully diluted", the exact opposite of the truth, and the dilution maths a
+   * tokenomics frame does keys off the distinction.
+   */
+  max?: number;
+  ath: number;
+  athDate: string;
+  atl: number;
+  atlDate: string;
+  description: string;
+  links: NonNullable<CryptoAssetProfile["links"]>;
+  developer: CryptoDeveloperActivity;
+};
+
 export class MockMarketDataProvider implements MarketDataProvider {
   readonly name = "mock";
   readonly capabilities: readonly Capability[] = [
@@ -643,6 +797,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "national-debt",
     "financial-stress",
     "macro-series",
+    "token-unlocks",
     "news",
     "fundamentals",
     "fundamentals-history",
@@ -658,6 +813,8 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "dex-volume",
     "protocol-tvl",
     "protocol-fees",
+    "crypto-profile",
+    "protocol-fundamentals",
     "coin-markets",
     "open-interest",
     "btc-fees",
@@ -668,6 +825,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "mining-pools",
     "lightning-stats",
     "options-summary",
+    "options-chain",
     "volatility-index",
     "coin-movers",
     "fx-rates",
@@ -693,6 +851,8 @@ export class MockMarketDataProvider implements MarketDataProvider {
     "metal-positioning",
     "gold-reserve",
     "tokenized-gold",
+    "commodity-vol-index",
+    "macro-reference-series",
     "index-level",
     "credit-spread",
     "housing-price",
@@ -1525,6 +1685,489 @@ export class MockMarketDataProvider implements MarketDataProvider {
       });
     }
     return out;
+  }
+
+  // ── crypto deep dive ────────────────────────────────────────────────────
+  /**
+   * Identity and supply per asset. Note which assets carry `max` and which
+   * don't: BTC's 21 M cap and HYPE's 1 B cap are real, while ETH, SOL, DOGE and
+   * ATOM are genuinely uncapped and so omit the field entirely rather than
+   * carrying 0 — see {@link CryptoProfileSeed.max}.
+   */
+  private static readonly CRYPTO_PROFILES: Record<string, CryptoProfileSeed> = {
+    BTC: {
+      id: "bitcoin",
+      name: "Bitcoin",
+      rank: 1,
+      categories: ["Cryptocurrency", "Layer 1", "Proof of Work"],
+      circulating: 19_912_500,
+      total: 19_912_500,
+      max: 21_000_000,
+      ath: 126_198,
+      athDate: "2025-10-06",
+      atl: 0.04865,
+      atlDate: "2013-07-05",
+      description:
+        "The first decentralised digital currency, secured by proof of work and capped at 21 million coins.",
+      links: {
+        homepage: "https://bitcoin.org",
+        sourceCode: "https://github.com/bitcoin/bitcoin",
+        twitter: "bitcoin",
+        subreddit: "https://reddit.com/r/bitcoin",
+        whitepaper: "https://bitcoin.org/bitcoin.pdf",
+      },
+      developer: {
+        stars: 84_100,
+        forks: 37_400,
+        subscribers: 4_020,
+        totalIssues: 8_640,
+        closedIssues: 7_910,
+        pullRequestsMerged: 12_480,
+        pullRequestContributors: 1_090,
+        commits4Weeks: 132,
+      },
+    },
+    ETH: {
+      id: "ethereum",
+      name: "Ethereum",
+      rank: 2,
+      categories: ["Layer 1", "Smart Contract Platform", "Proof of Stake"],
+      circulating: 120_710_000,
+      total: 120_710_000,
+      ath: 4_953.73,
+      athDate: "2025-08-24",
+      atl: 0.432979,
+      atlDate: "2015-10-20",
+      description:
+        "A programmable settlement layer whose issuance nets against a fee burn, so its supply can shrink.",
+      links: {
+        homepage: "https://ethereum.org",
+        sourceCode: "https://github.com/ethereum/go-ethereum",
+        twitter: "ethereum",
+        subreddit: "https://reddit.com/r/ethereum",
+        whitepaper: "https://ethereum.org/en/whitepaper/",
+      },
+      developer: {
+        stars: 48_900,
+        forks: 20_800,
+        subscribers: 2_210,
+        totalIssues: 27_300,
+        closedIssues: 25_900,
+        pullRequestsMerged: 22_100,
+        pullRequestContributors: 1_460,
+        commits4Weeks: 214,
+      },
+    },
+    SOL: {
+      id: "solana",
+      name: "Solana",
+      rank: 6,
+      categories: ["Layer 1", "Smart Contract Platform", "Solana Ecosystem"],
+      circulating: 545_800_000,
+      total: 606_400_000,
+      ath: 294.33,
+      athDate: "2024-11-23",
+      atl: 0.500801,
+      atlDate: "2020-05-11",
+      description:
+        "A single-shard high-throughput chain with an inflationary, uncapped supply schedule.",
+      links: {
+        homepage: "https://solana.com",
+        sourceCode: "https://github.com/anza-xyz/agave",
+        twitter: "solana",
+        subreddit: "https://reddit.com/r/solana",
+      },
+      developer: {
+        stars: 14_200,
+        forks: 4_780,
+        subscribers: 396,
+        totalIssues: 6_140,
+        closedIssues: 5_320,
+        pullRequestsMerged: 9_870,
+        pullRequestContributors: 604,
+        commits4Weeks: 288,
+      },
+    },
+    HYPE: {
+      id: "hyperliquid",
+      name: "Hyperliquid",
+      rank: 22,
+      categories: ["Layer 1", "Perpetuals", "Hyperliquid Ecosystem"],
+      circulating: 333_928_180,
+      total: 1_000_000_000,
+      max: 1_000_000_000,
+      ath: 59.39,
+      athDate: "2025-09-18",
+      atl: 3.81,
+      atlDate: "2024-11-29",
+      description:
+        "An order-book perp exchange on its own L1; a third of the capped supply circulates, so the FDV gap is the story.",
+      links: {
+        homepage: "https://hyperliquid.xyz",
+        twitter: "HyperliquidX",
+      },
+      developer: {
+        stars: 620,
+        forks: 214,
+        commits4Weeks: 41,
+      },
+    },
+    DOGE: {
+      id: "dogecoin",
+      name: "Dogecoin",
+      rank: 9,
+      categories: ["Meme", "Proof of Work", "Payments"],
+      circulating: 149_560_000_000,
+      total: 149_560_000_000,
+      ath: 0.731578,
+      athDate: "2021-05-08",
+      atl: 0.0000869,
+      atlDate: "2015-05-06",
+      description:
+        "A proof-of-work payments coin with a fixed 10,000-per-block reward and no supply cap at all.",
+      links: {
+        homepage: "https://dogecoin.com",
+        sourceCode: "https://github.com/dogecoin/dogecoin",
+        twitter: "dogecoin",
+        subreddit: "https://reddit.com/r/dogecoin",
+      },
+      developer: {
+        stars: 15_100,
+        forks: 2_880,
+        subscribers: 649,
+        totalIssues: 2_390,
+        closedIssues: 2_180,
+        pullRequestsMerged: 1_640,
+        pullRequestContributors: 258,
+        commits4Weeks: 9,
+      },
+    },
+    LINK: {
+      id: "chainlink",
+      name: "Chainlink",
+      rank: 18,
+      categories: ["Oracle", "Infrastructure", "Smart Contract Platform"],
+      circulating: 678_099_970,
+      total: 1_000_000_000,
+      max: 1_000_000_000,
+      ath: 52.7,
+      athDate: "2021-05-10",
+      atl: 0.148183,
+      atlDate: "2017-11-29",
+      description:
+        "The dominant oracle network; roughly a third of the capped token supply is still undistributed.",
+      links: {
+        homepage: "https://chain.link",
+        sourceCode: "https://github.com/smartcontractkit/chainlink",
+        twitter: "chainlink",
+        whitepaper: "https://chain.link/whitepaper",
+      },
+      developer: {
+        stars: 7_320,
+        forks: 4_610,
+        subscribers: 291,
+        totalIssues: 1_180,
+        closedIssues: 990,
+        pullRequestsMerged: 14_900,
+        pullRequestContributors: 372,
+        commits4Weeks: 176,
+      },
+    },
+    ATOM: {
+      id: "cosmos",
+      name: "Cosmos Hub",
+      rank: 48,
+      categories: ["Layer 1", "Cosmos Ecosystem", "Interoperability"],
+      circulating: 470_500_000,
+      total: 470_500_000,
+      ath: 44.7,
+      athDate: "2021-09-20",
+      atl: 1.16,
+      atlDate: "2020-03-13",
+      description:
+        "An uncapped mid-cap: the IBC hub's staking issuance runs indefinitely, so market cap and FDV coincide.",
+      links: {
+        homepage: "https://cosmos.network",
+        sourceCode: "https://github.com/cosmos/gaia",
+        twitter: "cosmoshub",
+        subreddit: "https://reddit.com/r/cosmosnetwork",
+      },
+      developer: {
+        stars: 1_320,
+        forks: 830,
+        subscribers: 112,
+        totalIssues: 1_960,
+        closedIssues: 1_790,
+        pullRequestsMerged: 2_410,
+        pullRequestContributors: 214,
+        commits4Weeks: 27,
+      },
+    },
+  };
+
+  getCryptoProfile(asset: string): Promise<CryptoAssetProfile> {
+    // Callers pass either a ticker ("BTC") or the publisher's id ("bitcoin").
+    const ticker = tickerOf(asset);
+    const profiles = MockMarketDataProvider.CRYPTO_PROFILES;
+    const byId = Object.keys(profiles).find(
+      (key) => profiles[key].id === asset.toLowerCase(),
+    );
+    const symbol = profiles[ticker] ? ticker : (byId ?? ticker);
+    const known = profiles[symbol];
+    const empty: CryptoAssetProfile = {
+      id: known?.id ?? symbol.toLowerCase(),
+      symbol,
+      name: known?.name ?? NAMES[symbol] ?? symbol,
+      categories: [],
+    };
+    return this.gate<CryptoAssetProfile>(empty, () => {
+      const r = rng(`profile:${symbol}`);
+      const raw = priceFor(symbol);
+      const price = round(raw, raw < 1 ? 5 : 2);
+      const def: CryptoProfileSeed = known ?? {
+        id: symbol.toLowerCase(),
+        name: NAMES[symbol] ?? symbol,
+        rank: 25 + Math.round(r() * 90),
+        categories: ["Smart Contract Platform"],
+        circulating: round(2e8 + r() * 8e8, 0),
+        total: round(2e8 + r() * 1.4e9, 0),
+        // Uncapped, like most assets — hence no `max` key at all.
+        ath: round(price * (1.8 + r() * 3), 4),
+        athDate: "2025-01-19",
+        atl: round(price * (0.03 + r() * 0.05), 6),
+        atlDate: "2020-03-13",
+        description: `${symbol} has no curated profile in the mock provider, so its supply and history are seeded.`,
+        links: { homepage: `https://example.com/${symbol.toLowerCase()}` },
+        developer: { stars: 940, forks: 318, commits4Weeks: 46 },
+      };
+      const total = Math.max(def.total, def.circulating);
+      // Market cap and FDV are COMPUTED off `price`, never quoted independently:
+      // a card showing the mcap-vs-FDV gap next to the price would otherwise
+      // read as a frame bug the moment the two disagreed.
+      return {
+        id: def.id,
+        symbol,
+        name: def.name,
+        description: def.description,
+        categories: def.categories,
+        marketCapRank: def.rank,
+        links: def.links,
+        price,
+        marketCap: round(price * def.circulating, 0),
+        fullyDilutedValuation: round(price * (def.max ?? total), 0),
+        volume24h: round(price * def.circulating * (0.012 + r() * 0.05), 0),
+        circulatingSupply: def.circulating,
+        totalSupply: total,
+        // Spread rather than assigned, so an uncapped asset has NO key.
+        ...(def.max != null ? { maxSupply: def.max } : {}),
+        ath: def.ath,
+        athDate: def.athDate,
+        athChangePct: round((price / def.ath - 1) * 100, 2),
+        atl: def.atl,
+        atlDate: def.atlDate,
+        atlChangePct: round((price / def.atl - 1) * 100, 2),
+        changePct24h: round((r() * 2 - 1) * 6, 2),
+        changePct7d: round((r() * 2 - 1) * 14, 2),
+        changePct30d: round((r() * 2 - 1) * 28, 2),
+        changePct1y: round((r() * 2 - 0.7) * 90, 2),
+        developer: def.developer,
+      };
+    });
+  }
+
+  /**
+   * Per-protocol fee scale and take rate. The take rate is the whole point:
+   * `revenue` is only the slice the protocol keeps, so a pass-through DEX runs a
+   * few percent while a chain keeps nearly all of its gas.
+   */
+  private static readonly PROTOCOL_FUNDAMENTALS: Record<
+    string,
+    { name: string; feesPerDay: number; takeRate: number; tvl: number }
+  > = {
+    uniswap: {
+      name: "Uniswap",
+      feesPerDay: 2_450_000,
+      takeRate: 0.045,
+      tvl: 4_620_000_000,
+    },
+    aave: {
+      name: "Aave",
+      feesPerDay: 1_680_000,
+      takeRate: 0.14,
+      tvl: 24_300_000_000,
+    },
+    lido: {
+      name: "Lido",
+      feesPerDay: 3_120_000,
+      takeRate: 0.1,
+      tvl: 29_100_000_000,
+    },
+    ethereum: {
+      name: "Ethereum",
+      feesPerDay: 3_450_000,
+      takeRate: 0.86,
+      tvl: 65_400_000_000,
+    },
+    hyperliquid: {
+      name: "Hyperliquid",
+      feesPerDay: 1_930_000,
+      takeRate: 0.93,
+      tvl: 2_140_000_000,
+    },
+  };
+
+  getProtocolFundamentals(protocol: string): Promise<ProtocolFundamentals> {
+    const slug = protocol.toLowerCase();
+    const known = MockMarketDataProvider.PROTOCOL_FUNDAMENTALS[slug];
+    const name = known?.name ?? prettyName(slug);
+    const empty: ProtocolFundamentals = {
+      protocol: slug,
+      name,
+      fees: [],
+      revenue: [],
+    };
+    return this.gate<ProtocolFundamentals>(empty, () => {
+      const r = rng(`fundamentals:${slug}`);
+      const scale = known?.feesPerDay ?? round(200_000 + r() * 2_000_000, 0);
+      const takeRate = known?.takeRate ?? round(0.08 + r() * 0.5, 3);
+      // Comfortably over a year, so a 365-day trailing window is exercised
+      // rather than silently truncated to whatever history exists.
+      const n = 480;
+      const fees: SeriesPoint[] = [];
+      const revenue: SeriesPoint[] = [];
+      let level = scale;
+      let burst = 1;
+      for (let i = 0; i < n; i++) {
+        const time = BASELINE_NOW - (n - 1 - i) * DAY;
+        level *= 1 + (r() - 0.5) * 0.14;
+        level = Math.min(scale * 2.6, Math.max(scale * 0.32, level));
+        // Fee days are spiky: a liquidation cascade or a mint doubles one.
+        if (r() < 0.03) burst += 0.9;
+        burst = 1 + (burst - 1) * 0.55;
+        const fee = round(level * burst, 0);
+        // STRICTLY below fees, every day: the remainder accrues to LPs,
+        // suppliers or stakers, and a P/S analogue is nonsense the moment
+        // revenue can equal fees. The floor makes that a guarantee, not a
+        // property of the jitter range.
+        const rev = Math.min(
+          round(fee * takeRate * (0.94 + r() * 0.12), 0),
+          fee - 1,
+        );
+        fees.push({ time, value: fee });
+        revenue.push({ time, value: rev });
+      }
+      const sum = (s: SeriesPoint[], days: number) =>
+        s.slice(-days).reduce((a, p) => a + p.value, 0);
+      return {
+        protocol: slug,
+        name,
+        fees,
+        revenue,
+        // The published aggregates ARE the sums of the series, so a frame that
+        // divides market cap by revenue365d gets exactly the multiple it would
+        // get by summing the chart itself.
+        fees30d: sum(fees, 30),
+        fees365d: sum(fees, 365),
+        revenue30d: sum(revenue, 30),
+        revenue365d: sum(revenue, 365),
+        tvl: known?.tvl ?? round(3e8 + r() * 5e9, 0),
+      };
+    });
+  }
+
+  /**
+   * Emission schedules. `finalInsiderPct` above `insiderPct` means still
+   * vesting; `progress: 100` with no remaining tranches is the fully-vested
+   * fixture, which the frame renders with different copy — without one here
+   * that branch is never exercised.
+   */
+  private static readonly UNLOCKS: Record<
+    string,
+    {
+      maxSupply: number;
+      insiderPct: number;
+      finalInsiderPct: number;
+      progress: number;
+    }
+  > = {
+    arbitrum: {
+      maxSupply: 10_000_000_000,
+      insiderPct: 36.5,
+      finalInsiderPct: 39.4,
+      progress: 81.3,
+    },
+    uniswap: {
+      maxSupply: 1_000_000_000,
+      insiderPct: 21.3,
+      finalInsiderPct: 21.3,
+      progress: 100,
+    },
+    lido: {
+      maxSupply: 1_000_000_000,
+      insiderPct: 28.1,
+      finalInsiderPct: 32.7,
+      progress: 74.5,
+    },
+    hyperliquid: {
+      maxSupply: 1_000_000_000,
+      insiderPct: 23.8,
+      finalInsiderPct: 38.9,
+      progress: 41.2,
+    },
+  };
+
+  getTokenUnlocks(protocol: string): Promise<TokenUnlocks> {
+    const slug = protocol.toLowerCase();
+    const known = MockMarketDataProvider.UNLOCKS[slug];
+    const empty: TokenUnlocks = { protocol: slug, schedule: [], upcoming: [] };
+    if (!known) return this.gate<TokenUnlocks>(empty, () => empty);
+    return this.gate<TokenUnlocks>(empty, () => {
+      const r = rng(`unlocks:${slug}`);
+      // ~80% history, ~20% schedule: the future half is the whole point, and a
+      // fixture that stopped at today would never exercise the frame's
+      // observed-vs-projected split.
+      const past = 320;
+      const future = 80;
+      const step = 7 * DAY;
+      const observedThrough = BASELINE_NOW;
+      const schedule: SeriesPoint[] = [];
+      // Cumulative unlocked supply, so it MUST be non-decreasing — a dip would
+      // render as tokens un-unlocking. Each step adds a non-negative amount.
+      let unlocked = known.maxSupply * (known.progress / 100) * 0.55;
+      for (let i = -past; i <= future; i++) {
+        const remaining = known.maxSupply - unlocked;
+        const add =
+          i <= 0 ? remaining * 0.004 : remaining * (0.004 + r() * 0.01);
+        unlocked = Math.min(known.maxSupply, unlocked + add);
+        schedule.push({
+          time: observedThrough + i * step,
+          value: round(unlocked, 0),
+        });
+      }
+
+      const CATEGORIES = ["Team", "Investors", "Ecosystem", "Airdrop"];
+      const upcoming: TokenUnlockEvent[] =
+        known.progress >= 100
+          ? []
+          : Array.from({ length: 5 }, (_, i) => ({
+              time: observedThrough + (i + 1) * 34 * DAY,
+              category: CATEGORIES[i % CATEGORIES.length],
+              description: `${CATEGORIES[i % CATEGORIES.length]} tranche ${i + 1}`,
+              tokens: round(known.maxSupply * (0.004 + r() * 0.012), 0),
+              unlockType: i % 3 === 0 ? "cliff" : "linear",
+            }));
+
+      return {
+        protocol: slug,
+        schedule,
+        observedThrough,
+        maxSupply: known.maxSupply,
+        insiderPctNow: known.insiderPct,
+        insiderPctFinal: known.finalInsiderPct,
+        progressPct: known.progress,
+        upcoming,
+      };
+    });
   }
 
   getCoinMarkets(): Promise<CoinMarketEntry[]> {
@@ -2979,35 +3622,55 @@ export class MockMarketDataProvider implements MarketDataProvider {
     HG: { name: "Copper", price: 6.2, start: 1.1, startYear: 1990 },
   };
 
-  /** Contract sizes for the US futures contracts (copper is per pound). */
+  /**
+   * Contract sizes for the US futures contracts (copper is per pound), plus the
+   * reporting-trader count and the contract-unit string the disaggregated report
+   * publishes verbatim.
+   */
   private static readonly METAL_CONTRACTS: Record<
     string,
-    { market: string; size: number; baseOi: number }
+    {
+      market: string;
+      size: number;
+      baseOi: number;
+      baseTraders: number;
+      units: string;
+    }
   > = {
     XAU: {
       market: "GOLD - COMMODITY EXCHANGE INC.",
       size: 100,
       baseOi: 383_000,
+      baseTraders: 286,
+      units: "(CONTRACTS OF 100 TROY OUNCES)",
     },
     XAG: {
       market: "SILVER - COMMODITY EXCHANGE INC.",
       size: 5_000,
       baseOi: 145_000,
+      baseTraders: 232,
+      units: "(CONTRACTS OF 5,000 TROY OUNCES)",
     },
     XPT: {
       market: "PLATINUM - NEW YORK MERCANTILE EXCHANGE",
       size: 50,
       baseOi: 78_000,
+      baseTraders: 108,
+      units: "(CONTRACTS OF 50 TROY OUNCES)",
     },
     XPD: {
       market: "PALLADIUM - NEW YORK MERCANTILE EXCHANGE",
       size: 100,
       baseOi: 19_000,
+      baseTraders: 64,
+      units: "(CONTRACTS OF 100 TROY OUNCES)",
     },
     HG: {
       market: "COPPER- #1 - COMMODITY EXCHANGE INC.",
       size: 25_000,
       baseOi: 210_000,
+      baseTraders: 244,
+      units: "(CONTRACTS OF 25,000 POUNDS)",
     },
   };
 
@@ -3070,31 +3733,128 @@ export class MockMarketDataProvider implements MarketDataProvider {
     };
     return this.gate<MetalPositioning>(empty, () => {
       const r = rng(`cot:${key}`);
-      const weeks: CotWeek[] = [];
-      let oi = contract.baseOi;
-      let specLong = contract.baseOi * 0.55;
-      let specShort = contract.baseOi * 0.12;
-      for (let i = 519; i >= 0; i--) {
-        oi *= 1 + (r() - 0.5) * 0.05;
-        specLong *= 1 + (r() - 0.5) * 0.09;
-        specShort *= 1 + (r() - 0.5) * 0.14;
-        const spread = specLong * 0.15;
-        const commLong = oi * 0.2 * (0.8 + r() * 0.4);
-        // Producers hedge, so commercials sit structurally short in metals.
-        const commShort = specLong + specShort * 0.3;
-        weeks.push({
-          // COT reports for a Tuesday; weekly cadence is what matters here.
-          time: BASELINE_NOW - i * 7 * DAY,
-          openInterest: Math.round(oi),
-          noncommercialLong: Math.round(specLong),
-          noncommercialShort: Math.round(specShort),
-          noncommercialSpread: Math.round(spread),
-          commercialLong: Math.round(commLong),
-          commercialShort: Math.round(commShort),
-          nonreportableLong: Math.round(oi * 0.12),
-          nonreportableShort: Math.round(oi * 0.045),
+      // ~30 years of Tuesdays, so the window genuinely straddles 2006-06-13 and
+      // the oldest weeks carry legacy fields ONLY — the mixed series a frame
+      // reading `disaggregated` has to cope with.
+      const n = 1560;
+      const growth = Math.pow(1 / 0.45, 1 / (n - 1));
+      let level = contract.baseOi * 0.45;
+      let wob = 1;
+      const splits: { time: number; oi: number; split: CotSplit }[] = [];
+      for (let i = 0; i < n; i++) {
+        // COT reports for a Tuesday; the weekly cadence is what matters here.
+        const time = BASELINE_NOW - (n - 1 - i) * 7 * DAY;
+        level *= growth;
+        wob += (1 - wob) * 0.08 + (r() - 0.5) * 0.06;
+        const oi = Math.round(level * wob);
+        // Spreading comes off the top, because it counts on BOTH sides: the long
+        // and short pools are what is left of open interest once it is set aside.
+        let spreadTotal = 0;
+        const spread: Record<CotClassKey, number> = {
+          producerMerchant: 0,
+          swapDealer: 0,
+          managedMoney: 0,
+          otherReportable: 0,
+          nonReportable: 0,
+        };
+        for (const cls of COT_CLASSES) {
+          const share = COT_SPREAD_SHARES[cls];
+          if (share == null) continue;
+          spread[cls] = Math.round(oi * share * (0.85 + r() * 0.3));
+          spreadTotal += spread[cls];
+        }
+        const pool = Math.max(0, oi - spreadTotal);
+        // Tilt each class week to week, then re-normalise so a side's
+        // non-spreading positions total exactly `pool` — which is what makes
+        // long + spread === short + spread === open interest, on both the
+        // disaggregated classes and the legacy buckets rolled up from them.
+        const draw = (weights: Record<CotClassKey, number>) => {
+          const raw: Record<CotClassKey, number> = { ...weights };
+          let total = 0;
+          for (const cls of COT_CLASSES) {
+            raw[cls] = weights[cls] * (0.8 + r() * 0.4);
+            total += raw[cls];
+          }
+          const out: Record<CotClassKey, number> = { ...raw };
+          let assigned = 0;
+          COT_CLASSES.forEach((cls, idx) => {
+            // The last class absorbs the rounding remainder, so the side is exact.
+            out[cls] =
+              idx === COT_CLASSES.length - 1
+                ? pool - assigned
+                : Math.round((raw[cls] / total) * pool);
+            assigned += out[cls];
+          });
+          return out;
+        };
+        const longs = draw(COT_LONG_WEIGHTS);
+        const shorts = draw(COT_SHORT_WEIGHTS);
+        splits.push({
+          time,
+          oi,
+          split: {
+            producerMerchant: {
+              long: longs.producerMerchant,
+              short: shorts.producerMerchant,
+              spread: spread.producerMerchant,
+            },
+            swapDealer: {
+              long: longs.swapDealer,
+              short: shorts.swapDealer,
+              spread: spread.swapDealer,
+            },
+            managedMoney: {
+              long: longs.managedMoney,
+              short: shorts.managedMoney,
+              spread: spread.managedMoney,
+            },
+            otherReportable: {
+              long: longs.otherReportable,
+              short: shorts.otherReportable,
+              spread: spread.otherReportable,
+            },
+            nonReportable: {
+              long: longs.nonReportable,
+              short: shorts.nonReportable,
+              spread: spread.nonReportable,
+            },
+          },
         });
       }
+      const weeks: CotWeek[] = splits.map(({ time, oi, split }, i) => {
+        const week: CotWeek = {
+          time,
+          openInterest: oi,
+          // The legacy buckets ARE the disaggregated classes rolled up, so a
+          // card showing both cannot contradict itself: legacy "commercial" is
+          // producer/merchant + swap dealer, "non-commercial" is managed money +
+          // other reportables, and spreading is every class's spreading.
+          noncommercialLong:
+            split.managedMoney.long + split.otherReportable.long,
+          noncommercialShort:
+            split.managedMoney.short + split.otherReportable.short,
+          noncommercialSpread:
+            split.swapDealer.spread +
+            split.managedMoney.spread +
+            split.otherReportable.spread,
+          commercialLong: split.producerMerchant.long + split.swapDealer.long,
+          commercialShort:
+            split.producerMerchant.short + split.swapDealer.short,
+          nonreportableLong: split.nonReportable.long,
+          nonreportableShort: split.nonReportable.short,
+        };
+        if (time < DISAGG_START_MS) return week;
+        const prev = splits[i - 1];
+        return {
+          ...week,
+          disaggregated: this.disaggregated(
+            contract,
+            oi,
+            split,
+            prev && prev.time >= DISAGG_START_MS ? prev.split : undefined,
+          ),
+        };
+      });
       return {
         symbol: key,
         market: contract.market,
@@ -3102,6 +3862,89 @@ export class MockMarketDataProvider implements MarketDataProvider {
         weeks,
       };
     });
+  }
+
+  /**
+   * One week of the disaggregated report, derived from the same split the legacy
+   * fields roll up from — so the two halves of a card can never disagree.
+   *
+   * `changeLong`/`changeShort`/`changeSpread` are the ACTUAL week-over-week
+   * differences (the frames prefer the published change over differencing the
+   * series, and a mismatch would show), and they are absent on the first
+   * published week: the CFTC had nothing to difference against on 2006-06-13
+   * either. Trader counts and concentration are derived from the split rather
+   * than reseeded, so they move WITH the series instead of flickering — real
+   * concentration drifts, it doesn't jump every Tuesday.
+   */
+  private disaggregated(
+    contract: { baseOi: number; baseTraders: number; units: string },
+    oi: number,
+    split: CotSplit,
+    prev: CotSplit | undefined,
+  ): CotDisaggregated {
+    // A bigger book has more reporting traders in it.
+    const size = 0.7 + 0.5 * (oi / contract.baseOi);
+    const scale = (size * contract.baseTraders) / 286;
+    const traders = (n: number) => Math.max(1, Math.round(n * scale));
+    const cls = (
+      key: CotClassKey,
+      tradersLong?: number,
+      tradersShort?: number,
+    ): CotTraderClass => {
+      const cur = split[key];
+      const before = prev?.[key];
+      return {
+        long: cur.long,
+        short: cur.short,
+        ...(cur.spread > 0 ? { spread: cur.spread } : {}),
+        ...(before
+          ? {
+              changeLong: cur.long - before.long,
+              changeShort: cur.short - before.short,
+              ...(cur.spread > 0 || before.spread > 0
+                ? { changeSpread: cur.spread - before.spread }
+                : {}),
+            }
+          : {}),
+        pctOfOiLong: round((cur.long / oi) * 100, 1),
+        pctOfOiShort: round((cur.short / oi) * 100, 1),
+        ...(tradersLong != null ? { tradersLong } : {}),
+        ...(tradersShort != null ? { tradersShort } : {}),
+      };
+    };
+    // Concentration tracks how lopsided each side is, which puts gold's 4-trader
+    // gross short in its real 30–55% band without a second random series.
+    const shortShare =
+      (split.producerMerchant.short + split.swapDealer.short) / oi;
+    const grossShort4 = round(Math.min(62, Math.max(18, shortShare * 62)), 1);
+    const grossLong4 = round(
+      Math.min(45, Math.max(12, (split.managedMoney.long / oi) * 52)),
+      1,
+    );
+    const grossShort8 = round(Math.min(88, grossShort4 * 1.45), 1);
+    const grossLong8 = round(Math.min(88, grossLong4 * 1.55), 1);
+    return {
+      producerMerchant: cls("producerMerchant", traders(26), traders(48)),
+      swapDealer: cls("swapDealer", traders(9), traders(15)),
+      managedMoney: cls("managedMoney", traders(118), traders(58)),
+      otherReportable: cls("otherReportable", traders(82), traders(52)),
+      // Below the reporting threshold, so the CFTC publishes neither a trader
+      // count nor a spreading column for this class — a frame must handle that.
+      nonReportable: cls("nonReportable"),
+      totalTraders: Math.round(contract.baseTraders * size),
+      concentration: {
+        grossLong4,
+        grossShort4,
+        grossLong8,
+        grossShort8,
+        // Netting can only ever reduce a concentration, never raise it.
+        netLong4: round(grossLong4 * 0.84, 1),
+        netShort4: round(grossShort4 * 0.86, 1),
+        netLong8: round(grossLong8 * 0.87, 1),
+        netShort8: round(grossShort8 * 0.89, 1),
+      },
+      contractUnits: contract.units,
+    };
   }
 
   getGoldReserve(): Promise<GoldReserve> {
@@ -3223,24 +4066,19 @@ export class MockMarketDataProvider implements MarketDataProvider {
     count: number,
     start: number,
     end: number,
+    // Default ±2% around the glide gives a level series texture. A series whose
+    // own drift is smaller than that — monthly CPI compounds ~0.3% — must pass a
+    // smaller one or the noise swamps the trend and the line stops rising.
+    wobble = 0.04,
   ): SeriesPoint[] {
     const r = rng(`official:${seed}`);
-    const step =
-      frequency === "daily"
-        ? DAY
-        : frequency === "weekly"
-          ? 7 * DAY
-          : frequency === "monthly"
-            ? 30 * DAY
-            : 91 * DAY;
+    const step = STEP_MS[frequency];
     const growth = count > 1 ? Math.pow(end / start, 1 / (count - 1)) : 1;
     const out: SeriesPoint[] = [];
     for (let i = 0; i < count; i++) {
       const time = BASELINE_NOW - (count - 1 - i) * step;
       const trend = start * Math.pow(growth, i);
-      // ±2% wobble around the glide so the line has texture but still lands on
-      // `end` — the same shape the metals fix mock uses.
-      out.push({ time, value: round(trend * (1 + (r() - 0.5) * 0.04), 3) });
+      out.push({ time, value: round(trend * (1 + (r() - 0.5) * wobble), 3) });
       if (frequency !== "daily") continue;
       const weekday = new Date(time).getUTCDay();
       if (weekday === 0 || weekday === 6) out.pop();
@@ -3250,17 +4088,85 @@ export class MockMarketDataProvider implements MarketDataProvider {
     return out;
   }
 
-  /** Assemble one mock {@link OfficialSeries}, change included. */
-  private officialSeries(
+  /**
+   * A seeded mean-reverting series with a slow regime swing and occasional
+   * spikes — the shape a vol index or a yield actually has.
+   *
+   * Deliberately not {@link officialPoints}: that generator's exponential glide
+   * needs both ends positive and only ever travels one way, so it would render
+   * a vol index (which goes nowhere on average, in bursts) as a diagonal line
+   * and cannot express a real yield crossing zero at all.
+   */
+  private meanRevertPoints(
+    seed: string,
+    frequency: OfficialSeries["frequency"],
+    count: number,
+    opts: {
+      /** Level the walk is pulled back toward. */
+      mean: number;
+      /** Fraction of the gap to the mean closed each step. */
+      revert: number;
+      /** Per-step shock, in the series' own units. */
+      vol: number;
+      min: number;
+      max: number;
+      /** Slow multi-year swing: amplitude in the series' units, cycles across the window. */
+      cycle?: { amp: number; count: number };
+      /** Chance per step of a spike, and its size in `vol` units. */
+      spikeProb?: number;
+      spikeSize?: number;
+      /** Decimal places (2 for a vol index or a yield in percent). */
+      dp?: number;
+    },
+  ): SeriesPoint[] {
+    const r = rng(`revert:${seed}`);
+    const step = STEP_MS[frequency];
+    const dp = opts.dp ?? 2;
+    const spikeProb = opts.spikeProb ?? 0;
+    const spikeSize = opts.spikeSize ?? 0;
+    const phase = r() * Math.PI * 2;
+    let base = opts.mean;
+    // A spike is a separate additive component decaying back over ~a week, so a
+    // shock leaves an elevated tail behind it instead of a one-print blip.
+    let spike = 0;
+    const out: SeriesPoint[] = [];
+    for (let i = 0; i < count; i++) {
+      const time = BASELINE_NOW - (count - 1 - i) * step;
+      base += (opts.mean - base) * opts.revert + (r() - 0.5) * 2 * opts.vol;
+      if (r() < spikeProb) spike += opts.vol * spikeSize;
+      spike *= 0.9;
+      const swing = opts.cycle
+        ? opts.cycle.amp *
+          Math.sin(phase + (2 * Math.PI * opts.cycle.count * i) / count)
+        : 0;
+      if (frequency === "daily") {
+        const weekday = new Date(time).getUTCDay();
+        if (weekday === 0 || weekday === 6) continue;
+      }
+      out.push({
+        time,
+        value: round(
+          Math.min(opts.max, Math.max(opts.min, base + spike + swing)),
+          dp,
+        ),
+      });
+    }
+    return out;
+  }
+
+  /**
+   * Wrap an already-generated point set as an {@link OfficialSeries}. Split out
+   * of {@link officialSeries} because the vol and yield series come off
+   * {@link meanRevertPoints} instead of the glide.
+   */
+  private seriesFromPoints(
     seriesId: string,
     label: string,
     unit: OfficialSeries["unit"],
     frequency: OfficialSeries["frequency"],
-    count: number,
-    start: number,
-    end: number,
+    points: SeriesPoint[],
+    source = "FRED",
   ): OfficialSeries {
-    const points = this.officialPoints(seriesId, frequency, count, start, end);
     const latest = points[points.length - 1];
     const previous = points[points.length - 2]?.value ?? latest.value;
     return {
@@ -3270,15 +4176,36 @@ export class MockMarketDataProvider implements MarketDataProvider {
       frequency,
       latest: latest.value,
       date: new Date(latest.time).toISOString().slice(0, 10),
-      // Percentage POINTS for a rate/spread, percent for a level — matching the
-      // real providers, so a frame's formatting is exercised the same way.
+      // Percentage POINTS for a rate/spread/vol index, percent for a level —
+      // matching the real providers, so a frame's formatting is exercised the
+      // same way.
       change:
         unit === "percent"
           ? round(latest.value - previous, 3)
           : round(((latest.value - previous) / previous) * 100, 2),
       points,
-      source: "FRED",
+      source,
     };
+  }
+
+  /** Assemble one mock {@link OfficialSeries} off the glide generator. */
+  private officialSeries(
+    seriesId: string,
+    label: string,
+    unit: OfficialSeries["unit"],
+    frequency: OfficialSeries["frequency"],
+    count: number,
+    start: number,
+    end: number,
+    wobble?: number,
+  ): OfficialSeries {
+    return this.seriesFromPoints(
+      seriesId,
+      label,
+      unit,
+      frequency,
+      this.officialPoints(seriesId, frequency, count, start, end, wobble),
+    );
   }
 
   /**
@@ -3292,6 +4219,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
     label: string,
     unit: OfficialSeries["unit"],
     frequency: OfficialSeries["frequency"],
+    source = "FRED",
   ): OfficialSeries {
     return {
       seriesId,
@@ -3302,7 +4230,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
       date: "",
       change: 0,
       points: [],
-      source: "FRED",
+      source,
     };
   }
 
@@ -3331,6 +4259,185 @@ export class MockMarketDataProvider implements MarketDataProvider {
           2600,
           def.start,
           def.end,
+        ),
+    );
+  }
+
+  /**
+   * The listed commodity vol indices and the regime each one actually sits in.
+   * A vol index needs mean reversion plus bursts: a random walk drifts off its
+   * plausible band, and a glide draws a diagonal — neither looks like vol.
+   */
+  private static readonly VOL_INDICES: Record<
+    string,
+    { label: string; mean: number; vol: number; min: number; max: number }
+  > = {
+    GVZ: {
+      label: "Cboe Gold ETF Volatility Index",
+      mean: 20.5,
+      vol: 0.5,
+      min: 10.5,
+      max: 62,
+    },
+    VXSLV: {
+      label: "Cboe Silver ETF Volatility Index",
+      mean: 35,
+      vol: 0.85,
+      min: 19,
+      max: 95,
+    },
+    VXGDX: {
+      label: "Cboe Gold Miners ETF Volatility Index",
+      mean: 41,
+      vol: 0.9,
+      min: 24,
+      max: 110,
+    },
+    OVX: {
+      label: "Cboe Crude Oil ETF Volatility Index",
+      mean: 37,
+      vol: 1.1,
+      min: 15,
+      max: 130,
+    },
+  };
+
+  getCommodityVolIndex(indexId: string): Promise<OfficialSeries> {
+    const key = MockMarketDataProvider.VOL_INDICES[indexId] ? indexId : "GVZ";
+    const def = MockMarketDataProvider.VOL_INDICES[key];
+    return this.gate<OfficialSeries>(
+      this.emptySeries(key, def.label, "percent", "daily", "Cboe"),
+      () =>
+        this.seriesFromPoints(
+          key,
+          def.label,
+          // Annualised vol in percent, like the VIX — so `change` is a move in
+          // percentage POINTS, not a percent change.
+          "percent",
+          "daily",
+          this.meanRevertPoints(`vol:${key}`, "daily", 3900, {
+            mean: def.mean,
+            revert: 0.035,
+            vol: def.vol,
+            min: def.min,
+            max: def.max,
+            spikeProb: 0.012,
+            spikeSize: 13,
+          }),
+          "Cboe",
+        ),
+    );
+  }
+
+  /** The macro reference series a commodity price gets measured against. */
+  private static readonly MACRO_REFERENCE: Record<string, MacroRefDef> = {
+    CPIAUCSL: {
+      shape: "glide",
+      label: "CPI (All Urban Consumers)",
+      unit: "index",
+      frequency: "monthly",
+      // ~79 years of monthly prints: 21.5 in 1947 to ~332 today. The wobble is
+      // an order of magnitude under the ~0.29%/month drift, so the series rises
+      // monotonically and a real (deflated) price series stays meaningful.
+      count: 948,
+      start: 21.48,
+      end: 332.4,
+      wobble: 0.0012,
+    },
+    DFII10: {
+      shape: "revert",
+      label: "10Y TIPS Real Yield",
+      unit: "percent",
+      frequency: "daily",
+      count: 3900,
+      mean: 0.72,
+      revert: 0.01,
+      vol: 0.035,
+      min: -1.05,
+      max: 2.55,
+      dp: 2,
+      cycle: { amp: 1.2, count: 1.5 },
+    },
+    DTWEXBGS: {
+      shape: "revert",
+      label: "Nominal Broad Dollar Index",
+      unit: "index",
+      frequency: "daily",
+      count: 3900,
+      mean: 112,
+      revert: 0.01,
+      vol: 0.3,
+      min: 95,
+      max: 126,
+      dp: 4,
+      cycle: { amp: 9, count: 1.5 },
+    },
+    T10YIE: {
+      shape: "revert",
+      label: "10Y Inflation Breakeven",
+      unit: "percent",
+      frequency: "daily",
+      count: 3900,
+      mean: 2.25,
+      revert: 0.01,
+      vol: 0.024,
+      min: 1.45,
+      max: 3.05,
+      dp: 2,
+      cycle: { amp: 0.45, count: 2 },
+    },
+    REAINTRATREARAT10Y: {
+      shape: "revert",
+      label: "10Y Real Interest Rate",
+      unit: "percent",
+      frequency: "monthly",
+      count: 520,
+      mean: 1.7,
+      revert: 0.05,
+      vol: 0.14,
+      min: -0.4,
+      max: 4.2,
+      dp: 2,
+      cycle: { amp: 1.5, count: 2.5 },
+    },
+  };
+
+  getMacroReferenceSeries(seriesId: string): Promise<OfficialSeries> {
+    const key = MockMarketDataProvider.MACRO_REFERENCE[seriesId]
+      ? seriesId
+      : "CPIAUCSL";
+    const def = MockMarketDataProvider.MACRO_REFERENCE[key];
+    return this.gate<OfficialSeries>(
+      this.emptySeries(key, def.label, def.unit, def.frequency),
+      () =>
+        this.seriesFromPoints(
+          key,
+          def.label,
+          def.unit,
+          def.frequency,
+          def.shape === "glide"
+            ? this.officialPoints(
+                `macroref:${key}`,
+                def.frequency,
+                def.count,
+                def.start,
+                def.end,
+                def.wobble,
+              )
+            : this.meanRevertPoints(
+                `macroref:${key}`,
+                def.frequency,
+                def.count,
+                {
+                  mean: def.mean,
+                  revert: def.revert,
+                  vol: def.vol,
+                  min: def.min,
+                  max: def.max,
+                  dp: def.dp,
+                  cycle: def.cycle,
+                },
+              ),
         ),
     );
   }

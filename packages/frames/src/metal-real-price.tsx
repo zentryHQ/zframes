@@ -129,7 +129,7 @@ function MetalRealPrice({ config }: { config: z.output<typeof schema> }) {
     const series: MultiSeriesData[] = [
       {
         id: "real",
-        name: `${metalName(config.symbol)} · today's $`,
+        name: `${metalName(config.symbol)} · today's money`,
         color: CHART_COLORS_MULTI_SERIES[0],
         data: toChartData(
           windowed.map((p) => ({ time: p.time, value: p.real })),
@@ -181,7 +181,7 @@ function MetalRealPrice({ config }: { config: z.output<typeof schema> }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="caption text-soft truncate uppercase">
-            {metalName(config.symbol)} in today's dollars
+            {metalName(config.symbol)} in today's money
           </div>
           <div className="metric-lg text-strong leading-none tabular-nums">
             {money.price(latest.real)}

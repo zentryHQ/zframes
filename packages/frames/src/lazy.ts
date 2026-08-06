@@ -303,6 +303,28 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "yield-scanner": {
     load: () => import("./yield-scanner").then((m) => m.yieldScannerFrame),
   },
+  "options-chain-table": {
+    load: () =>
+      import("./options-chain-table").then((m) => m.optionsChainTableFrame),
+  },
+  "token-unlock-schedule": {
+    load: () =>
+      import("./token-unlock-schedule").then((m) => m.tokenUnlockScheduleFrame),
+  },
+  "crypto-profile": {
+    load: () => import("./crypto-profile").then((m) => m.cryptoProfileFrame),
+  },
+  "crypto-dilution": {
+    load: () => import("./crypto-dilution").then((m) => m.cryptoDilutionFrame),
+  },
+  "protocol-revenue": {
+    load: () =>
+      import("./protocol-revenue").then((m) => m.protocolRevenueFrame),
+  },
+  "protocol-multiples": {
+    load: () =>
+      import("./protocol-multiples").then((m) => m.protocolMultiplesFrame),
+  },
   "defi-revenue": {
     load: () => import("./defi-revenue").then((m) => m.defiRevenueFrame),
   },
