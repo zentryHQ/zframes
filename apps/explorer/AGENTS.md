@@ -15,6 +15,7 @@ pnpm --dir apps/explorer seed:curated         # upsert the curated showcase into
 pnpm --dir apps/explorer seed:curated --dry-run   # validate the seed, write nothing (no DB needed)
 pnpm --dir apps/explorer validate:dashboards  # re-validate every STORED board
 pnpm --dir apps/explorer thumbs:capture       # nightly screenshot job, run by cron
+pnpm --dir apps/explorer sweep:likes          # drop expired like allowances (nightly cron)
 pnpm --dir apps/explorer migrate              # apply pending drizzle/*.sql (fresh DB or existing)
 pnpm --dir apps/explorer migrate --dry-run    # list pending migrations, apply nothing
 pnpm --dir apps/explorer check:schema         # do the migrations match schema.ts? (CI gate)

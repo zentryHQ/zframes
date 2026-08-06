@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DashboardThumb, type ThumbFrame } from "@/app/lib/DashboardThumb";
-import { LikeCount } from "@/app/lib/LikeButton";
+import { LikeCount } from "@/app/lib/LikeCount";
 import { ThumbImage } from "@/app/lib/ThumbImage";
 
 // Shared gallery card — a live-preview link with a mini-map of the board, its

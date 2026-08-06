@@ -1,5 +1,5 @@
 import { allFrameMetas } from "@zframes/frames/schemas";
-import { and, eq, lt, ne, sql } from "drizzle-orm";
+import { and, eq, lte, ne, sql } from "drizzle-orm";
 import { db } from "@/app/lib/db";
 import { dashboards, frameLikes, likeGrants } from "@/app/lib/db/schema";
 import {
@@ -215,7 +215,10 @@ export async function sweepLikeGrants(now: Date): Promise<number> {
   cutoff.setUTCDate(cutoff.getUTCDate() - GRANT_RETENTION_DAYS);
   const rows = await db
     .delete(likeGrants)
-    .where(lt(likeGrants.day, utcDay(cutoff)))
+    // `lte`, not `lt`. With `lt` the cutoff bucket itself survived, so the sweep kept
+    // THREE day-buckets while the constant and the migration comment both said two —
+    // visitor-fingerprint rows living ~72h against a stated 48h window.
+    .where(lte(likeGrants.day, utcDay(cutoff)))
     .returning({ day: likeGrants.day });
   return rows.length;
 }

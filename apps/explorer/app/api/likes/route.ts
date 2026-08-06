@@ -16,11 +16,17 @@ export const runtime = "nodejs";
 // for both, and frames are not a REST resource here (they have no row until someone
 // likes them — see ticket 006). A `kind` discriminator keeps that logic in one place.
 //
-// THIS IS THE APP'S FIRST UNAUTHENTICATED WRITE PATH. Everything else that mutates
-// is auth-gated, so the guards below are the whole story:
-//   • same-origin — CSRF defence-in-depth, same as publish/delete
-//   • the per-visitor and per-IP day caps inside claimLike()
-// There is deliberately no coarse rate-limit in front: the per-IP ceiling already
+// THIS IS THE APP'S FIRST UNAUTHENTICATED WRITE PATH, and what actually bounds abuse
+// here is ONLY the per-visitor and per-IP day caps inside claimLike().
+//
+// The same-origin check below is NOT a second bound, and it would be wrong to count it
+// as one: `sameOrigin()` returns true when there is no Origin header at all — a
+// carve-out written for curl/CLI callers on routes where a session cookie still had to
+// pass. This route has no session, so a scripted client that simply sends no Origin
+// skips it entirely. It stays because it costs nothing and does stop a browser-driven
+// CSRF post from a hostile page; it is not what makes the counter defensible.
+//
+// There is deliberately no coarse rate-limit in front either: the per-IP ceiling
 // bounds one address, and Vercel's automatic DDoS mitigation covers the distributed
 // case (ticket 008).
 

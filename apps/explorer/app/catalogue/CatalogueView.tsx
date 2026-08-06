@@ -21,7 +21,8 @@ import {
   type ReactNode,
 } from "react";
 import { PUBLIC_DEMO_ADDRESS, providers, registry } from "@/app/lib/frames";
-import { LikeButton, LikeCount } from "@/app/lib/LikeButton";
+import { LikeButton } from "@/app/lib/LikeButton";
+import { LikeCount } from "@/app/lib/LikeCount";
 import { useFrameLikes } from "@/app/lib/use-frame-likes";
 import { Input } from "@/app/components/ui/input";
 import FramePlayground from "./FramePlayground";
