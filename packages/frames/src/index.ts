@@ -230,11 +230,15 @@ export { metalsCorrelationFrame } from "./metals-correlation";
 export { metalVolatilityFrame } from "./metal-volatility";
 export { goldSilverRatioFrame } from "./gold-silver-ratio";
 export { metalRatioChartFrame } from "./metal-ratio-chart";
+export { metalRatioPercentileFrame } from "./metal-ratio-percentile";
+export { metalRollingCorrelationFrame } from "./metal-rolling-correlation";
 export { btcInGoldFrame } from "./btc-in-gold";
 export { metalCotNetFrame } from "./metal-cot-net";
 export { metalCotBreakdownFrame } from "./metal-cot-breakdown";
 export { metalCotGaugeFrame } from "./metal-cot-gauge";
 export { metalOpenInterestFrame } from "./metal-open-interest";
+export { metalCotPercentileFrame } from "./metal-cot-percentile";
+export { metalSpecNotionalFrame } from "./metal-spec-notional";
 export { metalPositioningVsPriceFrame } from "./metal-positioning-vs-price";
 export { usGoldReserveFrame } from "./us-gold-reserve";
 export { usGoldVaultsFrame } from "./us-gold-vaults";
@@ -487,11 +491,15 @@ import { metalsCorrelationFrame } from "./metals-correlation";
 import { metalVolatilityFrame } from "./metal-volatility";
 import { goldSilverRatioFrame } from "./gold-silver-ratio";
 import { metalRatioChartFrame } from "./metal-ratio-chart";
+import { metalRatioPercentileFrame } from "./metal-ratio-percentile";
+import { metalRollingCorrelationFrame } from "./metal-rolling-correlation";
 import { btcInGoldFrame } from "./btc-in-gold";
 import { metalCotNetFrame } from "./metal-cot-net";
 import { metalCotBreakdownFrame } from "./metal-cot-breakdown";
 import { metalCotGaugeFrame } from "./metal-cot-gauge";
 import { metalOpenInterestFrame } from "./metal-open-interest";
+import { metalCotPercentileFrame } from "./metal-cot-percentile";
+import { metalSpecNotionalFrame } from "./metal-spec-notional";
 import { metalPositioningVsPriceFrame } from "./metal-positioning-vs-price";
 import { usGoldReserveFrame } from "./us-gold-reserve";
 import { usGoldVaultsFrame } from "./us-gold-vaults";
@@ -774,11 +782,15 @@ export const allFrames: AnyFrameDefinition[] = [
   metalVolatilityFrame,
   goldSilverRatioFrame,
   metalRatioChartFrame,
+  metalRatioPercentileFrame,
+  metalRollingCorrelationFrame,
   btcInGoldFrame,
   metalCotNetFrame,
   metalCotBreakdownFrame,
   metalCotGaugeFrame,
   metalOpenInterestFrame,
+  metalCotPercentileFrame,
+  metalSpecNotionalFrame,
   metalPositioningVsPriceFrame,
   usGoldReserveFrame,
   usGoldVaultsFrame,

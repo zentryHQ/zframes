@@ -5753,6 +5753,82 @@ export const metalsCorrelationMeta = defineFrameMeta({
   }),
 });
 
+export const metalRatioPercentileMeta = defineFrameMeta({
+  name: "metal-ratio-percentile",
+  label: "Metal Ratio Percentile",
+  category: "metals",
+  iconUrl: widgetIcon("metal-ratio-percentile"),
+  layout: { w: 5, h: 5, minW: 4, minH: 4 },
+  description:
+    "Where one metal's price against another sits in its OWN history: the live ratio as the headline, its percentile inside the chosen window, and a histogram of every daily fix in that window with today marked. The question a ratio line chart can't answer — an 84 gold/silver only means something next to the distribution it came from. Also reports the window's low, median and high.",
+  capabilities: ["metal-history"],
+  source: SOURCES.lbma,
+  schema: z.object({
+    numerator: z
+      .enum(FIXED_METALS)
+      .default("XAU")
+      .describe(
+        `Metal on top of the ratio — the leg that is expensive when the ratio is high. ${FIXED_METAL_NAMES}`,
+      ),
+    denominator: z
+      .enum(FIXED_METALS)
+      .default("XAG")
+      .describe(
+        "Metal on the bottom of the ratio, and the cheap leg when the ratio is high. Must differ from the numerator — a same-metal pair renders an instruction to change it rather than a flat 1.0.",
+      ),
+    years: yearsField(
+      20,
+      "Window the distribution is built from and the percentile is ranked inside. 5 asks 'extreme for this cycle', 58 asks 'extreme ever' — though 58 only exists for gold and silver, since the platinum and palladium fixes start in 1990 and a pair including one of them is capped by the overlap.",
+    ),
+  }),
+});
+
+export const metalRollingCorrelationMeta = defineFrameMeta({
+  name: "metal-rolling-correlation",
+  annotatable: true,
+  label: "Metal Rolling Correlation",
+  category: "metals",
+  iconUrl: widgetIcon("metal-rolling-correlation"),
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  description:
+    "Rolling correlation of two metals' daily log returns, charted through time — whether silver is still tracking gold, or the relationship has broken. The regime view the static correlation matrix can't give, since that reports one number for one window. Switch the metric to beta to read how much the quote leg amplifies or damps the base's moves instead.",
+  capabilities: ["metal-history"],
+  source: SOURCES.lbma,
+  schema: z.object({
+    base: z
+      .enum(FIXED_METALS)
+      .default("XAU")
+      .describe(
+        `The reference leg. Correlation is symmetric so the order doesn't matter for it, but beta is measured TO this metal — a 1% move in it is the unit. ${FIXED_METAL_NAMES}`,
+      ),
+    quote: z
+      .enum(FIXED_METALS)
+      .default("XAG")
+      .describe(
+        "The metal measured against the base; under the beta metric it is the responding leg, so the reading is its sensitivity to a 1% base move. Must differ from the base — a metal against itself correlates 1.00 forever.",
+      ),
+    metric: z
+      .enum(["correlation", "beta"])
+      .default("correlation")
+      .describe(
+        "correlation = how tightly the two move together, -1 to +1, on a fixed axis so cards are comparable; beta = how FAR the quote moves per 1% of base move (1.00 is one-for-one, 1.40 means it amplifies by 40%). Correlation answers 'is the link intact', beta answers 'how much leverage does it give'.",
+      ),
+    window: z
+      .number()
+      .int()
+      .min(20)
+      .max(365)
+      .default(90)
+      .describe(
+        "Rolling window in trading days. 30 is twitchy and catches a break early, 90 is the common standard, 252 is a year and only shows structural regime change.",
+      ),
+    years: yearsField(
+      10,
+      "How many years of the rolling series to chart. The window's warm-up is taken from history before this span, so the line starts filled rather than climbing out of nothing.",
+    ),
+  }),
+});
+
 export const btcInGoldMeta = defineFrameMeta({
   name: "btc-in-gold",
   annotatable: true,
@@ -5881,6 +5957,69 @@ export const metalOpenInterestMeta = defineFrameMeta({
       .default("contracts")
       .describe(
         "contracts = as CFTC reports it; ounces = contracts × contract size; notional = ounces × live spot (needs a spot quote).",
+      ),
+  }),
+});
+
+export const metalCotPercentileMeta = defineFrameMeta({
+  name: "metal-cot-percentile",
+  label: "COT Percentile",
+  category: "metals",
+  iconUrl: widgetIcon("metal-cot-percentile"),
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  description:
+    "Scores this week's COT net position against its own history: the percentile and z-score of the chosen trader class's net, drawn over a histogram of every week in the window with today marked. Pick it when the question is whether a positioning level is crowded rather than what it is — 180k contracts net long is either ordinary or a record, and only the distribution says which.",
+  capabilities: ["metal-positioning"],
+  source: SOURCES.cftc,
+  schema: z.object({
+    symbol: z
+      .enum(METAL_SYMBOLS)
+      .default("XAU")
+      .describe(`Metal futures market to read. ${METAL_NAMES}.`),
+    traderClass: z
+      .enum(["noncommercial", "commercial", "nonreportable"])
+      .default("noncommercial")
+      .describe(
+        'Which trader class to score. "noncommercial" = large speculators, the crowd a "positioning extreme" normally refers to. "commercial" = hedgers (miners, refiners, fabricators), who are structurally net SHORT in metals, so for them the LOW end of the range is the crowded one, not the high end. "nonreportable" = small traders below the CFTC reporting threshold.',
+      ),
+    years: z
+      .number()
+      .int()
+      .min(1)
+      .max(10)
+      .default(5)
+      .describe(
+        "Window the percentile and z-score are measured over, in years. The CFTC feed carries about 10 years of weekly reports, so 10 is effectively the full history; a shorter window scores today against the current regime instead of a decade of them.",
+      ),
+  }),
+});
+
+export const metalSpecNotionalMeta = defineFrameMeta({
+  name: "metal-spec-notional",
+  annotatable: true,
+  label: "Spec Net Notional",
+  category: "metals",
+  iconUrl: widgetIcon("metal-spec-notional"),
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  description:
+    "How much money the futures crowd actually has riding on the metal: net speculative contracts × contract size × live spot, as a dollar headline with its weekly history. Every week in the series is valued at TODAY's spot, so the line isolates the change in positioning — it is deliberately NOT a mark-to-market of what the position was worth at the time.",
+  capabilities: ["metal-positioning", "metal-spot"],
+  source: [SOURCES.cftc, SOURCES.goldApi],
+  schema: z.object({
+    symbol: z
+      .enum(METAL_SYMBOLS)
+      .default("XAU")
+      .describe(
+        `Metal futures market to read. ${METAL_NAMES}. Contract sizes are quoted in each metal's own unit (gold 100 oz, silver 5,000 oz, platinum 50 oz, palladium 100 oz, copper 25,000 lb) and spot is quoted in that same unit, so the dollar figure is sound for all five.`,
+      ),
+    years: z
+      .number()
+      .int()
+      .min(1)
+      .max(10)
+      .default(5)
+      .describe(
+        "How many years of weekly reports to chart. The CFTC feed carries about 10 years, so 10 is effectively the full history.",
       ),
   }),
 });
@@ -6978,11 +7117,15 @@ export const frameMetas: FrameMeta[] = [
   metalMilestonesMeta,
   metalReturnDistributionMeta,
   metalsCorrelationMeta,
+  metalRatioPercentileMeta,
+  metalRollingCorrelationMeta,
   btcInGoldMeta,
   metalCotNetMeta,
   metalCotBreakdownMeta,
   metalCotGaugeMeta,
   metalOpenInterestMeta,
+  metalCotPercentileMeta,
+  metalSpecNotionalMeta,
   metalPositioningVsPriceMeta,
   usGoldReserveMeta,
   usGoldVaultsMeta,
