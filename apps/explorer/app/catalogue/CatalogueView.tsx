@@ -21,6 +21,8 @@ import {
   type ReactNode,
 } from "react";
 import { PUBLIC_DEMO_ADDRESS, providers, registry } from "@/app/lib/frames";
+import { LikeButton, LikeCount } from "@/app/lib/LikeButton";
+import { useFrameLikes } from "@/app/lib/use-frame-likes";
 import { Input } from "@/app/components/ui/input";
 import FramePlayground from "./FramePlayground";
 
@@ -110,7 +112,15 @@ function LazyMount({
   );
 }
 
-function FrameCard({ def }: { def: AnyFrameDefinition }) {
+function FrameCard({
+  def,
+  likes,
+  onLiked,
+}: {
+  def: AnyFrameDefinition;
+  likes: number;
+  onLiked: (name: string) => void;
+}) {
   const w = Math.min(def.layout?.w ?? 4, 12);
   const h = Math.min(def.layout?.h ?? 3, 4);
   const boxHeight = h * ROW + (h - 1) * GAP;
@@ -168,23 +178,93 @@ function FrameCard({ def }: { def: AnyFrameDefinition }) {
           <DashboardRenderer spec={spec} registry={registry} />
         </div>
       </LazyMount>
-      <div className="flex items-center justify-between border-t border-white/[0.07] px-3 py-2">
-        <code className="font-mono text-xs text-white/70 transition-colors group-hover:text-indigo-200">
+      {/* The like button lives in the footer, not overlaid on the preview: the
+          preview IS a live frame and a floating control would sit on top of real
+          data. Capabilities truncate to make room — at four columns the card is
+          narrow, and the name plus an affordance matter more than the full
+          capability list, which is already only a hint. */}
+      <div className="flex items-center justify-between gap-2 border-t border-white/[0.07] px-3 py-2">
+        <code className="truncate font-mono text-xs text-white/70 transition-colors group-hover:text-indigo-200">
           {def.name}
         </code>
-        {def.capabilities?.length ? (
-          <span className="font-mono text-[10px] text-white/55">
-            {def.capabilities.join(" · ")}
-          </span>
-        ) : (
-          <span className="font-mono text-[10px] text-white/50">static</span>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {def.capabilities?.length ? (
+            <span className="hidden truncate font-mono text-[10px] text-white/55 sm:inline">
+              {def.capabilities.join(" · ")}
+            </span>
+          ) : (
+            <span className="hidden font-mono text-[10px] text-white/50 sm:inline">
+              static
+            </span>
+          )}
+          <LikeButton
+            kind="frame"
+            id={def.name}
+            initialTotal={likes}
+            compact
+            onLiked={onLiked}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
+/**
+ * The most-liked strip. Charter: it sits BESIDE the category grouping (which stays
+ * the default browse order, untouched) and appears **only once at least one frame
+ * has a like**.
+ *
+ * That condition is the point. A `0` badge on a card is a true statement about that
+ * frame; a list *labelled* "most liked" showing six frames tied at 0 is not. So the
+ * strip stays absent on day one rather than launching as a lie.
+ *
+ * Compact rows, not live frames — the page already mounts 255 of those, and the
+ * strip's job is legible ranking, not another preview. This is a deliberate
+ * exception to "show the live thing".
+ */
+function MostLikedStrip({ likes }: { likes: Record<string, number> }) {
+  const top = useMemo(() => {
+    return Object.entries(likes)
+      .filter(([, n]) => n > 0)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, 6);
+  }, [likes]);
+
+  if (top.length === 0) return null;
+
+  return (
+    <section className="mb-12">
+      <div className="mb-4 flex items-baseline gap-3">
+        <span className="h-4 w-1 rounded-full bg-brand" />
+        <h2 className="text-lg font-semibold text-white">Most liked</h2>
+        <span className="font-mono text-xs text-white/55">
+          what people are actually into
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2 pl-4">
+        {top.map(([name, n], i) => (
+          <a
+            key={name}
+            href={`?q=${encodeURIComponent(name)}`}
+            className="zf-press hairline group inline-flex items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-1.5 transition-colors hover:bg-indigo-500/10"
+          >
+            <span className="font-mono text-[10px] text-white/40 tabular-nums">
+              {i + 1}
+            </span>
+            <code className="font-mono text-xs text-white/75 group-hover:text-indigo-100">
+              {name}
+            </code>
+            <LikeCount total={n} />
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function CatalogueView() {
+  const { likes, bump, loaded } = useFrameLikes();
   const byCategory = useMemo(() => {
     const map = new Map<string, AnyFrameDefinition[]>();
     for (const def of allFrames) {
@@ -280,6 +360,10 @@ export default function CatalogueView() {
             grid. Hidden while searching so results stay the focus. */}
         {!searching && <FramePlayground />}
 
+        {/* Hidden while searching (results stay the focus) and until the counts
+            have landed, so it can't flash in empty and then reorder. */}
+        {!searching && loaded && <MostLikedStrip likes={likes} />}
+
         {sections.length === 0 ? (
           <p className="text-sm text-white/55">
             No frames match “{query.trim()}”.
@@ -303,7 +387,12 @@ export default function CatalogueView() {
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {frames.map((def) => (
-                  <FrameCard key={def.name} def={def} />
+                  <FrameCard
+                    key={def.name}
+                    def={def}
+                    likes={likes[def.name] ?? 0}
+                    onLiked={bump}
+                  />
                 ))}
               </div>
             </section>
