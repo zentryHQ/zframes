@@ -20,8 +20,17 @@ import { providers, registry } from "@/app/lib/frames";
 //   • data cost — the frame only MOUNTS once it nears the viewport
 //     (IntersectionObserver, one-shot), so below-the-fold frames open no
 //     socket subscriptions and start no polls until they're almost visible.
-//   • interaction — display-only by default (pointer-events:none): these are
-//     specimens in a showcase, not widgets to fiddle with mid-scroll.
+//
+// Interactive by DEFAULT (changed 2026-08-06). These are D3 charts whose
+// tooltips, crosshairs and hover highlights are most of what makes them worth
+// showing; rendering them behind `pointer-events: none` sold the catalogue as
+// static pictures. Two things keep that from fighting the scroll narrative:
+//   • `pointer-events-auto` here, so a frame works inside a decorative
+//     `pointer-events-none` cluster (the hero) while the GAPS between cards
+//     stay click-through and never swallow a CTA behind them.
+//   • `touch-pan-y`, so a vertical drag on a frame with an internal scroller
+//     (filings/news lists) still scrolls the PAGE on touch rather than being
+//     trapped by the list.
 
 const byName = new Map(allFrames.map((def) => [def.name, def]));
 
@@ -36,7 +45,7 @@ export function LiveFrame({
   config,
   title,
   className,
-  interactive = false,
+  interactive = true,
   rootMargin = "480px 0px",
 }: {
   frame: string;
@@ -45,7 +54,7 @@ export function LiveFrame({
   /** Optional card title override (defaults to the frame's own chrome). */
   title?: string;
   className?: string;
-  /** Allow hover/scroll inside the frame (default: display-only). */
+  /** Allow hover/tooltips inside the frame. Pass `false` for display-only. */
   interactive?: boolean;
   rootMargin?: string;
 }) {
@@ -92,7 +101,9 @@ export function LiveFrame({
       // h-full so the frame stretches to the caller's sized wrapper even when
       // its content has no intrinsic height (clock, gauges).
       className={`h-full w-full ${
-        interactive ? "" : "pointer-events-none select-none "
+        interactive
+          ? "pointer-events-auto touch-pan-y "
+          : "pointer-events-none select-none "
       }${className ?? ""}`}
     >
       {mounted ? (

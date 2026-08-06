@@ -11,7 +11,7 @@ import Link from "next/link";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import type { BoardSummary } from "@/app/lib/board-summary";
 import { CopyCommand } from "@/app/lib/CopyCommand";
-import { KEYLESS_PROVIDER_COUNT, PUBLIC_DEMO_ADDRESS } from "@/app/lib/frames";
+import { KEYLESS_PROVIDER_COUNT } from "@/app/lib/frames";
 import { FramesShowcase } from "@/app/lib/FramesShowcase";
 import { LiveBoardFrame } from "@/app/lib/LiveBoardFrame";
 import { LiveFrame, LiveFrameStyles } from "@/app/lib/LiveFrame";
@@ -50,10 +50,16 @@ const FOCUS_SLOT_VH = 300;
 // whileInView reveals); hover/press micro-interactions stay CSS (globals.css).
 // Client, but copy still SSRs (client components render on the server first).
 
-// The hero's floating specimens — cast for silhouette variety (line chart,
-// gauge, stat, clock) and instant keyless data. Desktop-mostly; each gets its
-// own parallax depth (mouse strength + scroll drift) and idle-bob phase so the
-// cluster reads as a suspended volume, not a wallpaper.
+// The hero's floating specimens — cast for silhouette variety (streaming line,
+// gauge, curve, stacked area, stat) and instant keyless data. Desktop-mostly;
+// each gets its own parallax depth (mouse strength + scroll drift) and idle-bob
+// phase so the cluster reads as a suspended volume, not a wallpaper.
+//
+// Casting is TRADITIONAL FINANCE first: equity perps streaming live, the
+// Treasury curve, corporate credit spreads, the VIX, the debt stack, gold. One
+// crypto card (the BTC/ETH ticker) keeps both asset classes visibly present —
+// the promise is "stocks and crypto", and the crypto families get three whole
+// chapters of their own further down the page.
 const HERO_FLOATERS: {
   frame: string;
   config?: Record<string, unknown>;
@@ -68,9 +74,10 @@ const HERO_FLOATERS: {
 }[] = [
   {
     frame: "price-liveline",
-    // The signature frame gets the biggest slot — a three-way race (two HIP-3
-    // equities vs BTC) so the normalized compare view reads at a glance.
-    config: { symbols: ["xyz:TSLA", "xyz:NVDA", "BTC"] },
+    // The signature frame gets the biggest slot — three HIP-3 equity perps
+    // racing on one normalized axis, ticking off a single streamed socket. This
+    // is the "live market" half of the promise, in one card.
+    config: { symbols: ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"] },
     className: "w-[26rem] h-60",
     pos: "left-[1%] top-[13%] hidden lg:block",
     mouse: 18,
@@ -79,7 +86,9 @@ const HERO_FLOATERS: {
     delay: "0s",
   },
   {
-    frame: "btc-fees",
+    // The VIX as a regime band rather than a bare number — the one gauge
+    // silhouette in the cluster, and instantly legible as a markets card.
+    frame: "vix-gauge",
     className: "w-56 h-52",
     pos: "right-[20%] top-[3%] hidden xl:block",
     mouse: -20,
@@ -88,8 +97,10 @@ const HERO_FLOATERS: {
     delay: "-5s",
   },
   {
+    // The crypto presence: both asset classes on screen at once, without the
+    // hero turning into a crypto board.
     frame: "price-ticker",
-    config: { symbols: ["xyz:AAPL", "ETH"] },
+    config: { symbols: ["BTC", "ETH"] },
     className: "w-72 h-28",
     pos: "right-[2%] top-[47%] hidden xl:block",
     mouse: 16,
@@ -98,7 +109,9 @@ const HERO_FLOATERS: {
     delay: "-2.8s",
   },
   {
-    frame: "fear-greed",
+    // Visible earliest (md), so the smallest desktop still gets a real chart:
+    // the gold/silver ratio off the LBMA's own London fix series.
+    frame: "gold-silver-ratio",
     className: "w-56 h-52",
     pos: "right-[3%] top-[13%] hidden md:block",
     mouse: -14,
@@ -107,8 +120,7 @@ const HERO_FLOATERS: {
     delay: "-2.2s",
   },
   {
-    frame: "clock",
-    config: { timezone: "America/New_York", label: "New York", showDate: true },
+    frame: "index-level",
     className: "w-52 h-32",
     pos: "left-[7%] bottom-[17%] hidden lg:block",
     mouse: -22,
@@ -117,12 +129,9 @@ const HERO_FLOATERS: {
     delay: "-4.1s",
   },
   {
-    // The value TREND for the same public wallet — total USD equity as a live
-    // liveline, ticking each heartbeat off streamed mids. Paired with the
-    // holdings breakdown so the hero shows both "how much" and "made of what".
-    frame: "portfolio-value",
-    config: { source: "wallet", address: PUBLIC_DEMO_ADDRESS },
-    title: "Binance · cold wallet",
+    // High-yield vs investment-grade OAS on one grid — two FRED series fetched
+    // in a single call, so the pair is aligned by construction.
+    frame: "credit-spread-chart",
     className: "w-80 h-44",
     pos: "right-[4%] bottom-[14%] hidden lg:block",
     mouse: 12,
@@ -131,7 +140,7 @@ const HERO_FLOATERS: {
     delay: "-1.4s",
   },
   {
-    frame: "bitcoin-dominance",
+    frame: "yield-curve",
     className: "w-64 h-44",
     pos: "left-[20%] top-[4%] hidden xl:block",
     mouse: 26,
@@ -140,12 +149,9 @@ const HERO_FLOATERS: {
     delay: "-3.2s",
   },
   {
-    // A famous public wallet, live on-chain — the product's `portfolio`
-    // capability reading a huge exchange cold wallet straight from the browser
-    // (keyless: public RPC + CoinGecko, no key, no relay). Big, real numbers.
-    frame: "portfolio-holdings",
-    config: { source: "wallet", address: PUBLIC_DEMO_ADDRESS },
-    title: "Binance · cold wallet",
+    // The debt stack as a stacked area — the densest silhouette in the cluster,
+    // and a shape no crypto card produces.
+    frame: "treasury-debt-composition-area",
     className: "w-80 h-56",
     pos: "left-[2%] top-[44%] hidden lg:block",
     mouse: 20,
@@ -211,7 +217,11 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
         </Parallax>
 
         {/* The floating live-frame cluster — the product itself, orbiting the
-            promise. Display-only; behind the copy. */}
+            promise. Sits behind the copy (z-0 vs z-10), so it can never block a
+            CTA. The container stays `pointer-events-none` on purpose and each
+            frame re-enables its own hitbox (LiveFrame), which is what keeps the
+            EMPTY space between cards click-through while the charts themselves
+            respond to the mouse. */}
         <div
           className="pointer-events-none absolute inset-0 z-0"
           aria-hidden="true"
@@ -247,7 +257,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             the hand-off to Act II reads as one camera move. */}
         <ScrollExit className="relative z-10 mx-auto max-w-3xl text-center">
           <span className="animate-fade-up zf-label justify-center">
-            Live market terminals, agent-built
+            Live market terminals · agent-built · free &amp; open source
           </span>
           <h1 className="animate-fade-up mt-5 text-balance text-5xl font-bold leading-[1.04] tracking-tight text-white [animation-delay:60ms] sm:text-7xl">
             Describe your dashboard.
@@ -263,8 +273,8 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             <code className="rounded bg-white/[0.08] px-1 py-0.5 font-mono text-[0.85em] text-indigo-200">
               dashboard.json
             </code>{" "}
-            and serves it with real data — keyless, stocks first, sharper every
-            day.
+            and serves it with real data — stocks and crypto, free and open
+            source, sharper every day.
           </p>
 
           <div className="animate-fade-up mt-9 flex flex-wrap items-center justify-center gap-3 [animation-delay:180ms]">
@@ -280,6 +290,31 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             >
               Explore {frameCount} frames →
             </Link>
+          </div>
+
+          {/* Licence + price, stated plainly right under the CTAs — the two
+              things a visitor most often has to go hunting for. The repo link
+              is the proof, so the claim is one click from being checked. */}
+          <div className="animate-fade-up mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-white/55 [animation-delay:210ms]">
+            <a
+              href="https://github.com/zentryhq/zframes"
+              target="_blank"
+              rel="noreferrer"
+              className="zf-press inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] px-3 py-1 transition-colors hover:border-white/30 hover:text-white"
+            >
+              <svg
+                viewBox="0 0 16 16"
+                className="h-3.5 w-3.5"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+              </svg>
+              Open source · Apache-2.0
+            </a>
+            <span className="rounded-full border border-white/[0.12] px-3 py-1">
+              Free — no account, no API keys
+            </span>
           </div>
 
           {/* The real entry point (README §Quickstart). */}
@@ -424,13 +459,26 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
         <Reveal>
           <SectionHeading
             eyebrow="Why zframes"
-            title="Let your AI agent build it for you"
-            description="No repo to clone, no builder UI to learn. Install a skill, tell your agent what you want to watch, and it builds your dashboard — yours to own."
+            title="Free, open source, built by your agent"
+            description="No repo to clone, no builder UI to learn, no bill. Install a skill, tell your agent what you want to watch, and it builds your dashboard — yours to own."
           />
         </Reveal>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <ValueCard
             index={0}
+            title="Free and open source"
+            body="Apache-2.0 on GitHub — the framework, the CLI and every frame. Read it, fork it, run it. No paid tier, no account, nothing held back behind one."
+            icon={
+              <>
+                <circle cx="6" cy="5" r="2.5" />
+                <circle cx="18" cy="5" r="2.5" />
+                <circle cx="12" cy="19" r="2.5" />
+                <path d="M6 7.5v2a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-2M12 12.5v4" />
+              </>
+            }
+          />
+          <ValueCard
+            index={1}
             title="Agent-generated"
             body="You talk; an agent writes the spec and runs it. It only ever emits JSON — the framework owns all rendering, so it never writes a line of React."
             icon={
@@ -438,7 +486,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             }
           />
           <ValueCard
-            index={1}
+            index={2}
             title="Keyless"
             body={`${KEYLESS_PROVIDER_COUNT} free public sources — Hyperliquid, CoinGecko and DeFiLlama alongside the Fed's FRED, the Treasury, the SEC, Zillow and the FHFA. No signup, no API keys, no .env to preview or run.`}
             icon={
@@ -449,7 +497,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             }
           />
           <ValueCard
-            index={2}
+            index={3}
             title="Yours to own"
             body="Your dashboard is one git-trackable dashboard.json; the CLI serves it locally, editable in the browser. No hosted service, no lock-in."
             icon={
@@ -471,8 +519,8 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             </h2>
             <p className="max-w-xl text-pretty text-sm leading-relaxed text-white/65">
               Install the skill, tell your agent what you want to watch, and own
-              a live keyless terminal in minutes — no repo, no keys, no builder
-              UI.
+              a live terminal in minutes — free and open source, stocks and
+              crypto, no keys, no account.
             </p>
             <Link
               href="#build"

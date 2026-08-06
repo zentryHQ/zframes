@@ -3,9 +3,9 @@ import { AppShell } from "@/app/lib/AppShell";
 import "./globals.css";
 
 export const metadata = {
-  title: "zframes — describe your dashboard, an agent builds it",
+  title: "zframes — free, open-source market terminals your agent builds",
   description:
-    "AI agents generate personal market terminals. Install a skill into your coding agent, describe the dashboard you want, and it writes a live, keyless dashboard.json — stocks first, yours to own.",
+    "AI agents generate personal market terminals. Install a skill into your coding agent, describe the dashboard you want, and it writes a live, keyless dashboard.json — stocks and crypto, free and open source (Apache-2.0), yours to own.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
