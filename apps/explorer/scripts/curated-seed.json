@@ -265,6 +265,346 @@
     }
   },
   {
+    "id": "equity-deepdive",
+    "title": "Equity Deep Dive",
+    "description": "Everything a company is, on one board: what the market pays for it, what it actually reported, what the street expects, and what the options market is pricing — SEC EDGAR, Nasdaq and Cboe, all keyless.",
+    "tags": ["equities", "fundamentals", "options"],
+    "landingOrder": 3,
+    "spec": {
+      "version": "1.0.0",
+      "title": "Equity Deep Dive",
+      "author": "zframes",
+      "background": {
+        "type": "unicorn",
+        "projectId": "K42KSY4FXeXhjVOj9RgT",
+        "opacity": 0.5,
+        "scale": 0.9,
+        "dpi": 1.25
+      },
+      "theme": {
+        "accentHue": 130,
+        "accentSat": 58,
+        "baseHue": 138,
+        "baseSat": 14
+      },
+      "typography": {
+        "fontFamily": "sans",
+        "numericStyle": "tabular"
+      },
+      "appearance": {
+        "radius": 22,
+        "borderStrength": 0.14,
+        "surfaceOpacity": 1,
+        "density": 1.2,
+        "elevation": 0.5
+      },
+      "frames": [
+        {
+          "id": "hd",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "Equity Deep Dive",
+            "subtitle": "NVIDIA — the business behind the ticker, from SEC, Nasdaq and Cboe"
+          }
+        },
+        {
+          "id": "profile",
+          "frame": "company-profile",
+          "position": {
+            "x": 0,
+            "y": 1,
+            "w": 4,
+            "h": 3
+          },
+          "config": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "id": "valuation",
+          "frame": "valuation-multiples",
+          "position": {
+            "x": 4,
+            "y": 1,
+            "w": 4,
+            "h": 3
+          },
+          "config": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "id": "ratings",
+          "frame": "analyst-ratings",
+          "position": {
+            "x": 8,
+            "y": 1,
+            "w": 4,
+            "h": 3
+          },
+          "config": {
+            "symbol": "NVDA",
+            "showBrokers": true
+          }
+        },
+        {
+          "id": "tape",
+          "frame": "price-chart",
+          "position": {
+            "x": 0,
+            "y": 4,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA",
+            "source": "nasdaq",
+            "interval": "1d",
+            "mode": "candle"
+          },
+          "title": "NVDA — the real tape"
+        },
+        {
+          "id": "revenue",
+          "frame": "financials-trend",
+          "position": {
+            "x": 5,
+            "y": 4,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA",
+            "metric": "revenue",
+            "cadence": "annual"
+          },
+          "events": [
+            {
+              "date": "2022-11-30",
+              "label": "ChatGPT",
+              "note": "The generative-AI demand inflection, on the revenue line it actually moved."
+            }
+          ]
+        },
+        {
+          "id": "margins",
+          "frame": "margin-trend",
+          "position": {
+            "x": 9,
+            "y": 4,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA",
+            "margins": ["gross", "operating", "net"]
+          }
+        },
+        {
+          "id": "cash",
+          "frame": "cashflow-trend",
+          "position": {
+            "x": 0,
+            "y": 8,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "id": "surprise",
+          "frame": "earnings-surprise",
+          "position": {
+            "x": 5,
+            "y": 8,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA",
+            "count": 6
+          }
+        },
+        {
+          "id": "next-print",
+          "frame": "earnings-countdown",
+          "position": {
+            "x": 9,
+            "y": 8,
+            "w": 3,
+            "h": 2
+          },
+          "config": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "id": "rsi",
+          "frame": "rsi-momentum",
+          "position": {
+            "x": 9,
+            "y": 10,
+            "w": 3,
+            "h": 2
+          },
+          "config": {
+            "symbol": "NVDA",
+            "source": "nasdaq",
+            "period": 14
+          }
+        },
+        {
+          "id": "hd-options",
+          "frame": "heading",
+          "position": {
+            "x": 0,
+            "y": 12,
+            "w": 12,
+            "h": 1
+          },
+          "config": {
+            "title": "What the options market is pricing",
+            "subtitle": "Cboe delayed chains — implied vol, positioning and the greeks"
+          }
+        },
+        {
+          "id": "oi",
+          "frame": "equity-options-oi",
+          "position": {
+            "x": 0,
+            "y": 13,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA",
+            "strikes": 16
+          }
+        },
+        {
+          "id": "smile",
+          "frame": "equity-options-smile",
+          "position": {
+            "x": 5,
+            "y": 13,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA",
+            "moneyness": 0.3
+          }
+        },
+        {
+          "id": "maxpain",
+          "frame": "equity-options-max-pain",
+          "position": {
+            "x": 9,
+            "y": 13,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "id": "greeks",
+          "frame": "equity-options-greeks",
+          "position": {
+            "x": 0,
+            "y": 17,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA",
+            "greek": "gamma",
+            "strikes": 20
+          }
+        },
+        {
+          "id": "holders",
+          "frame": "institutional-ownership",
+          "position": {
+            "x": 5,
+            "y": 17,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA"
+          }
+        },
+        {
+          "id": "shorts",
+          "frame": "short-volume",
+          "position": {
+            "x": 9,
+            "y": 17,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "symbols": ["NVDA", "AMD", "AVGO", "MU"],
+            "sort": "shortPct"
+          }
+        },
+        {
+          "id": "filings",
+          "frame": "filings-feed",
+          "position": {
+            "x": 0,
+            "y": 21,
+            "w": 5,
+            "h": 4
+          },
+          "config": {
+            "symbol": "NVDA",
+            "forms": "important",
+            "count": 8
+          }
+        },
+        {
+          "id": "news",
+          "frame": "news-feed",
+          "position": {
+            "x": 5,
+            "y": 21,
+            "w": 4,
+            "h": 4
+          },
+          "config": {
+            "source": "stocks",
+            "symbols": ["NVDA"],
+            "count": 8
+          }
+        },
+        {
+          "id": "calendar",
+          "frame": "earnings-calendar",
+          "position": {
+            "x": 9,
+            "y": 21,
+            "w": 3,
+            "h": 4
+          },
+          "config": {
+            "count": 10
+          }
+        }
+      ]
+    }
+  },
+  {
     "id": "crypto-desk",
     "title": "Crypto Desk",
     "description": "A crypto-first board — BTC/ETH charts, a majors watchlist, sentiment, and the market-cap + TVL landscape.",
