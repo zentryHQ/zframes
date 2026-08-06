@@ -16,6 +16,12 @@ const WS_URL = "wss://api.hyperliquid.xyz/ws";
 const INFO_URL = "https://api.hyperliquid.xyz/info";
 /** Window the allMids merge + listener fan-out is throttled to. */
 const MIDS_FLUSH_MS = 150;
+/**
+ * How long the tab must stay hidden before the mids socket is closed. Long
+ * enough to absorb a glance at another tab, short enough that a genuinely
+ * backgrounded dashboard stops streaming within seconds.
+ */
+const HIDDEN_GRACE_MS = 20_000;
 
 interface AllMidsMessage {
   channel: string;
@@ -233,18 +239,102 @@ export class HyperliquidProvider implements MarketDataProvider {
   private pendingMids: Record<string, number> | null = null;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** Set while the socket is closed only because the tab went away. */
+  private suspended = false;
+  private hiddenGraceTimer: ReturnType<typeof setTimeout> | null = null;
+  private unbindVisibility: (() => void) | null = null;
+
   subscribeMids(
     onMids: (mids: Record<string, number>) => void,
     symbols?: readonly string[],
   ): Unsubscribe {
     this.listeners.add(onMids);
     for (const symbol of symbols ?? []) this.wantedDexes.add(dexOf(symbol));
+    this.bindVisibility();
     this.ensureSocket();
     this.subscribeMissingDexes();
     return () => {
       this.listeners.delete(onMids);
       if (this.listeners.size === 0) this.teardown();
     };
+  }
+
+  /**
+   * Close the stream while the tab is hidden, reopen when it comes back.
+   *
+   * This is the one idle loop a browser does NOT throttle: hidden-tab timers get
+   * clamped and rAF suspends, but socket messages keep arriving, and allMids
+   * pushes the whole perp universe continuously. Left open, a backgrounded
+   * dashboard wakes the CPU several times a second forever to merge prices into
+   * a map nobody is rendering — the single largest background drain in the app.
+   *
+   * The listener lives here rather than in `@zframes/core`'s shared
+   * `onPageVisibilityChange` because the layer DAG keeps providers off the
+   * presentation layer (spec + data-primitives only), and because the semantics
+   * differ: a socket needs the grace delay below, not an instant flip.
+   */
+  private bindVisibility() {
+    if (this.unbindVisibility || typeof document === "undefined") return;
+    const handler = () => {
+      if (document.hidden) {
+        // Grace period, not an instant close: alt-tabbing away for a few
+        // seconds and back is common, and a handshake plus a full-universe
+        // resend on every flick would cost more than it saves.
+        this.hiddenGraceTimer ??= setTimeout(() => {
+          this.hiddenGraceTimer = null;
+          if (!document.hidden || this.listeners.size === 0) return;
+          this.suspended = true;
+          this.closeSocket();
+        }, HIDDEN_GRACE_MS);
+        return;
+      }
+      if (this.hiddenGraceTimer) {
+        clearTimeout(this.hiddenGraceTimer);
+        this.hiddenGraceTimer = null;
+      }
+      if (this.suspended) {
+        this.suspended = false;
+        if (this.listeners.size > 0) {
+          this.ensureSocket();
+          this.subscribeMissingDexes();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handler);
+    this.unbindVisibility = () =>
+      document.removeEventListener("visibilitychange", handler);
+  }
+
+  /**
+   * Drop the socket but KEEP `mergedMids`. A suspended stream must still be able
+   * to answer with the last known prices, so cards show their final quote (going
+   * stale) instead of blanking to zero the moment the tab is backgrounded — and
+   * so the tab is already populated on return, before the first new message.
+   */
+  private closeSocket() {
+    this.closedByUser = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    const ws = this.ws;
+    this.ws = null;
+    if (ws) {
+      // Detach the handlers BEFORE closing. `close()` is asynchronous in a real
+      // browser, so `onclose` lands a tick or more later — by which time a
+      // resume may already have opened a fresh socket, and the stale handler
+      // would clear the NEW socket's pending buffer and arm a redundant
+      // reconnect against it. The cleanup it would have done happens here.
+      ws.onopen = null;
+      ws.onmessage = null;
+      ws.onclose = null;
+      ws.close();
+    }
+    // Hand listeners whatever was buffered, as `onclose` would have, so the
+    // final pre-suspend prices reach the cards instead of being dropped.
+    if (this.pendingMids) this.flushMids();
+    this.clearFlush();
+    this.subscribedDexes = new Set();
   }
 
   getDayStats(symbols?: string[]): Promise<Record<string, DayStats>> {
@@ -513,15 +603,14 @@ export class HyperliquidProvider implements MarketDataProvider {
   }
 
   private teardown() {
-    this.closedByUser = true;
-    this.clearFlush();
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
+    this.closeSocket();
+    if (this.hiddenGraceTimer) {
+      clearTimeout(this.hiddenGraceTimer);
+      this.hiddenGraceTimer = null;
     }
-    this.ws?.close();
-    this.ws = null;
-    this.subscribedDexes = new Set();
+    this.unbindVisibility?.();
+    this.unbindVisibility = null;
+    this.suspended = false;
     this.mergedMids = {};
   }
 }
