@@ -28,6 +28,12 @@ import type { FredProvider as FredProviderType } from "./index";
 //     browser path must go through the runtime's same-origin proxy while Node
 //     fetches direct; the per-id cache slot dedups concurrent loads and reuses
 //     within the TTL.
+//  8. **The two doors stay separate.** `macro-reference-series` accepts only the
+//     macro-backdrop ids, so a *known* id from the wrong family (`SP500` through
+//     the macro door) is refused rather than plotted on an inflation axis. The
+//     capability is deliberately NOT the shorter `macro-series` — that name is
+//     BLS's, for a period-labelled shape, from a provider earlier in the routing
+//     order that would swallow these ids.
 //
 // `seriesCache` is a module-level singleton, so each test takes a genuinely
 // fresh module (and empty cache) via `vi.resetModules()` + a dynamic import.
@@ -76,12 +82,13 @@ afterEach(() => {
 });
 
 describe("FredProvider", () => {
-  it("advertises the four capabilities it serves, and no others", async () => {
+  it("advertises the five capabilities it serves, and no others", async () => {
     const Provider = await loadProvider();
     expect([...new Provider().capabilities].sort()).toEqual([
       "credit-spread",
       "housing-price",
       "index-level",
+      "macro-reference-series",
       "mortgage-rate",
     ]);
   });
@@ -283,6 +290,125 @@ describe("FredProvider", () => {
       expect(series.frequency).toBe("weekly");
       // +8bps week over week, in points.
       expect(series.change).toBeCloseTo(0.08, 6);
+    });
+  });
+
+  describe("macro reference series", () => {
+    // The point of this capability: a commodity has no earnings, so a real
+    // (inflation-adjusted) price is how "is gold expensive" gets answered. That
+    // needs CPI back to 1947 in one piece — which is why it comes from FRED and
+    // not from provider-bls, whose keyless tier caps a request at 10 years and
+    // keeps the FIRST ten (a 1968→2026 request answers 1968–1977 and still
+    // reports REQUEST_SUCCEEDED).
+    it("reads CPI as a monthly index, with a percent change", async () => {
+      const Provider = await loadProvider();
+      const fetchMock = stubCsv(
+        csv("CPIAUCSL", ["2026-05-01,333.979", "2026-06-01,332.568"]),
+      );
+      const series = await new Provider().getMacroReferenceSeries("CPIAUCSL");
+      expect(fetchMock.mock.calls[0][0]).toBe(`${FREDGRAPH}?id=CPIAUCSL`);
+      expect(series.label).toBe("CPI (All Urban Consumers, SA)");
+      expect(series.unit).toBe("index");
+      expect(series.frequency).toBe("monthly");
+      expect(series.latest).toBe(332.568);
+      expect(series.date).toBe("2026-06-01");
+      // A level, so the move is a percent — and it can be negative.
+      expect(series.change).toBeCloseTo(
+        ((332.568 - 333.979) / 333.979) * 100,
+        6,
+      );
+    });
+
+    it("reports a real yield's change in percentage POINTS, not percent", async () => {
+      const Provider = await loadProvider();
+      // The live prints on 2026-08-03 → 2026-08-04.
+      stubCsv(csv("DFII10", ["2026-08-03,2.43", "2026-08-04,2.40"]));
+      const series = await new Provider().getMacroReferenceSeries("DFII10");
+      expect(series.unit).toBe("percent");
+      // 2.43 → 2.40 is −3bps = −0.03 points. As a percent it would read −1.23%,
+      // a different quantity that renders as an equally plausible small number.
+      expect(series.change).toBeCloseTo(-0.03, 6);
+    });
+
+    it("treats the dollar index as a level and the breakeven as a rate", async () => {
+      const Provider = await loadProvider();
+      stubCsv(csv("DTWEXBGS", ["2026-07-30,119.6753", "2026-07-31,119.7034"]));
+      const dollar = await new Provider().getMacroReferenceSeries("DTWEXBGS");
+      expect(dollar.unit).toBe("index");
+      expect(dollar.change).toBeCloseTo(
+        ((119.7034 - 119.6753) / 119.6753) * 100,
+        6,
+      );
+
+      const Fresh = await loadProvider();
+      stubCsv(csv("T10YIE", ["2026-08-04,2.23", "2026-08-05,2.22"]));
+      const breakeven = await new Fresh().getMacroReferenceSeries("T10YIE");
+      expect(breakeven.unit).toBe("percent");
+      expect(breakeven.change).toBeCloseTo(-0.01, 6);
+    });
+
+    it("serves the monthly real rate that reaches deeper than TIPS", async () => {
+      const Provider = await loadProvider();
+      // REAINTRATREARAT10Y starts 1982; DFII10 only starts 2003, when TIPS
+      // began trading. A long real-yield-vs-gold overlay needs the former.
+      const fetchMock = stubCsv(
+        csv("REAINTRATREARAT10Y", [
+          "1982-01-01,7.62374231",
+          "2026-07-01,2.07685732",
+        ]),
+      );
+      const series = await new Provider().getMacroReferenceSeries(
+        "REAINTRATREARAT10Y",
+      );
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        `${FREDGRAPH}?id=REAINTRATREARAT10Y`,
+      );
+      expect(series.frequency).toBe("monthly");
+      expect(series.points[0].time).toBe(Date.UTC(1982, 0, 1));
+    });
+
+    it("refuses a known-but-non-macro id, before touching the network", async () => {
+      const Provider = await loadProvider();
+      const fetchMock = stubCsv(csv("SP500", ["2026-07-31,7489.72"]));
+      // SP500 is a series this provider publishes — just not through THIS door.
+      // Letting it through would plot an equity index on an inflation axis,
+      // which reads as data rather than as a mistake.
+      await expect(
+        new Provider().getMacroReferenceSeries("SP500"),
+      ).rejects.toThrow(/not a macro reference series/);
+      // The accepted ids are named, so the fix is obvious from the message.
+      await expect(
+        new Provider().getMacroReferenceSeries("SP500"),
+      ).rejects.toThrow(/CPIAUCSL/);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("still rejects an id the provider doesn't publish at all", async () => {
+      const Provider = await loadProvider();
+      await expect(
+        new Provider().getMacroReferenceSeries("NOTASERIES"),
+      ).rejects.toThrow(/unknown series "NOTASERIES"/);
+    });
+
+    it("accepts a lower-case macro id, like every other id here", async () => {
+      const Provider = await loadProvider();
+      const fetchMock = stubCsv(csv("CPIAUCSL", ["2026-06-01,332.568"]));
+      const series = await new Provider().getMacroReferenceSeries("cpiaucsl");
+      expect(fetchMock.mock.calls[0][0]).toBe(`${FREDGRAPH}?id=CPIAUCSL`);
+      expect(series.seriesId).toBe("CPIAUCSL");
+    });
+
+    it("shares one download between two cards on the same macro series", async () => {
+      const Provider = await loadProvider();
+      const fetchMock = stubCsv(csv("CPIAUCSL", ["2026-06-01,332.568"]));
+      const provider = new Provider();
+      // A board carrying a real-gold-price card and a CPI card must not
+      // download the 1947-deep series twice.
+      await Promise.all([
+        provider.getMacroReferenceSeries("CPIAUCSL"),
+        provider.getMacroReferenceSeries("CPIAUCSL"),
+      ]);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
 
