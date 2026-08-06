@@ -202,15 +202,23 @@ function OptionsChainTable({ config }: { config: z.output<typeof schema> }) {
   const { expiries, expiry, greeks, atm, strikeCount, rows } = view;
   const sideSpan = greeks.length + SIDE_TRACKS.length;
   const greekTracks = greeks.map(() => "2.25rem");
+  // Each quote/greek column is a floor width that may grow; the strike column in
+  // the middle is its own track and is NOT wrapped again.
+  //
+  // ⚠️ `minmax()` DOES NOT NEST. Wrapping an already-built `minmax(3.5rem, auto)`
+  // in another `minmax(…, 1fr)` is invalid CSS, and an invalid track list makes
+  // the browser drop the WHOLE `grid-template-columns` declaration — so the grid
+  // silently falls back to one implicit column and every cell stacks vertically.
+  // It looks like a data outage rather than a CSS error, which is why it survived
+  // a passing render test.
+  const track = (width: string) => `minmax(${width}, 1fr)`;
   const template = [
-    ...greekTracks,
-    ...SIDE_TRACKS,
+    ...greekTracks.map(track),
+    ...SIDE_TRACKS.map(track),
     "minmax(3.5rem, auto)",
-    ...[...SIDE_TRACKS].reverse(),
-    ...greekTracks,
-  ]
-    .map((track) => `minmax(${track}, 1fr)`)
-    .join(" ");
+    ...[...SIDE_TRACKS].reverse().map(track),
+    ...greekTracks.map(track),
+  ].join(" ");
   const gridStyle = { gridTemplateColumns: template };
 
   return (
