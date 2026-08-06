@@ -860,6 +860,28 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "metal-cot-gauge": {
     load: () => import("./metal-cot-gauge").then((m) => m.metalCotGaugeFrame),
   },
+  "metal-real-price": {
+    load: () => import("./metal-real-price").then((m) => m.metalRealPriceFrame),
+  },
+  "metal-vs-macro": {
+    load: () => import("./metal-vs-macro").then((m) => m.metalVsMacroFrame),
+  },
+  "commodity-vol-regime": {
+    load: () =>
+      import("./commodity-vol-regime").then((m) => m.commodityVolRegimeFrame),
+  },
+  "metal-cot-disaggregated": {
+    load: () =>
+      import("./metal-cot-disaggregated").then(
+        (m) => m.metalCotDisaggregatedFrame,
+      ),
+  },
+  "metal-cot-concentration": {
+    load: () =>
+      import("./metal-cot-concentration").then(
+        (m) => m.metalCotConcentrationFrame,
+      ),
+  },
   "metal-open-interest": {
     load: () =>
       import("./metal-open-interest").then((m) => m.metalOpenInterestFrame),
