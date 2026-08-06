@@ -142,13 +142,42 @@ function pinJitter() {
   vi.spyOn(Math, "random").mockReturnValue(0.5); // 0.85 + 0.5 * 0.3 = 1.0
 }
 
+/**
+ * Drive `document.hidden` + fire `visibilitychange`, as a tab switch would.
+ * jsdom's `hidden` is a read-only getter, so it is redefined rather than
+ * assigned; `setVisibility(false)` in afterEach restores the default so a test
+ * that hides the page can't leak that state into the next one.
+ */
+function setVisibility(hidden: boolean) {
+  Object.defineProperty(document, "hidden", {
+    configurable: true,
+    get: () => hidden,
+  });
+}
+
+function hide() {
+  setVisibility(true);
+  act(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+}
+
+function show() {
+  setVisibility(false);
+  act(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+}
+
 beforeEach(() => {
   latest = null;
+  setVisibility(false);
   vi.useFakeTimers();
 });
 
 afterEach(() => {
   cleanup();
+  setVisibility(false);
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
@@ -239,6 +268,122 @@ describe("usePolled viewport gate (via useDayStatsState)", () => {
       await advance(10_000);
       expect(getDayStats).toHaveBeenCalledTimes(expected);
     }
+  });
+});
+
+describe("usePolled page-visibility gate", () => {
+  // The second, coarser axis: the viewport gate above pauses ONE card, this
+  // stands the whole board down when the tab goes away. It is a battery
+  // guarantee, so the assertions are about what does NOT happen — a laptop with
+  // a dashboard open in a background tab must hold no polling timer at all.
+  it("holds no timer while hidden, and refetches immediately on return", async () => {
+    pinJitter();
+    const getDayStats = vi.fn<GetDayStats>().mockResolvedValue(STATS_A);
+    render(
+      tree(
+        { symbols: ["BTC"], refreshMs: 10_000 },
+        makeProvider(getDayStats),
+        null,
+      ),
+    );
+    await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(1);
+
+    hide();
+    // Ten intervals' worth of wall clock. Not merely "fewer fetches" — the loop
+    // must be fully stopped, so the count cannot move at all.
+    await advance(100_000);
+    expect(getDayStats).toHaveBeenCalledTimes(1);
+    expect(state().stats).toEqual(STATS_A); // last good value still on the card
+    expect(state().isLoading).toBe(false);
+
+    // Coming back refreshes at once rather than waiting out the interval — the
+    // whole point of stopping the loop is that returning must not show a
+    // minutes-stale price while a timer runs down.
+    getDayStats.mockResolvedValue(STATS_B);
+    show();
+    await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(2);
+    expect(state().stats).toEqual(STATS_B);
+  });
+
+  it("cancels the in-flight interval on hide, so no tick leaks through", async () => {
+    pinJitter();
+    const getDayStats = vi.fn<GetDayStats>().mockResolvedValue(STATS_A);
+    render(
+      tree(
+        { symbols: ["BTC"], refreshMs: 10_000 },
+        makeProvider(getDayStats),
+        null,
+      ),
+    );
+    await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(1);
+
+    // Hide PART-WAY through an interval. The already-scheduled timer is the
+    // regression risk here: without clearing it on the way out it still fires
+    // once in the background before any guard can stand it down.
+    await advance(6_000);
+    hide();
+    await advance(60_000);
+    expect(getDayStats).toHaveBeenCalledTimes(1);
+  });
+
+  it("resumes the normal cadence after returning, not a doubled-up loop", async () => {
+    pinJitter();
+    const getDayStats = vi.fn<GetDayStats>().mockResolvedValue(STATS_A);
+    render(
+      tree(
+        { symbols: ["BTC"], refreshMs: 10_000 },
+        makeProvider(getDayStats),
+        null,
+      ),
+    );
+    await flush();
+    hide();
+    await advance(30_000);
+    show();
+    await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(2); // the immediate catch-up fetch
+
+    // One loop, not two: a hide/show cycle must not leave an extra timer behind,
+    // which would double the poll rate on every subsequent visit.
+    for (const expected of [3, 4, 5]) {
+      await advance(10_000);
+      expect(getDayStats).toHaveBeenCalledTimes(expected);
+    }
+  });
+
+  it("stays paused across repeated hide/show while off-screen too", async () => {
+    pinJitter();
+    const getDayStats = vi.fn<GetDayStats>().mockResolvedValue(STATS_A);
+    const view = makeVisibility(true);
+    render(
+      tree(
+        { symbols: ["BTC"], refreshMs: 10_000 },
+        makeProvider(getDayStats),
+        view.visibility,
+      ),
+    );
+    await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(1);
+
+    // Both gates engaged at once. Returning to the tab must NOT wake a card that
+    // is still scrolled out of view — the two gates compose, and the coarser one
+    // lifting doesn't override the finer one.
+    view.set(false);
+    hide();
+    await advance(30_000);
+    show();
+    await flush();
+    await advance(30_000);
+    expect(getDayStats).toHaveBeenCalledTimes(1);
+
+    // Only when both say "visible" does it fetch again.
+    view.set(true);
+    view.publish(true);
+    await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(2);
   });
 });
 

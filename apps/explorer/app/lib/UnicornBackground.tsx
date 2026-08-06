@@ -66,6 +66,11 @@ export function UnicornBackground({
           sdkUrl={SDK_URL}
           width="100vw"
           height="100vh"
+          // 30fps, matching DashboardBackground: this is the chrome backdrop
+          // behind EVERY page of the site, so it is the one scene a visitor
+          // always pays for. A slow drift at low opacity reads the same at half
+          // the frames.
+          fps={30}
           onLoad={() => setReady(true)}
         />
       </div>

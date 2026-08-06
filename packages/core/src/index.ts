@@ -99,3 +99,7 @@ export {
   useFramePatch,
   type FramePatcher,
 } from "./frame-content";
+// Page-level (whole tab/window) visibility — the one home for "is anyone
+// looking at this", so every idle loop in the app stands down on the same
+// signal instead of each host hand-rolling a `visibilitychange` listener.
+export { isPageHidden, onPageVisibilityChange } from "./visibility";

@@ -10,6 +10,27 @@ import { formatCountdownCs, useCountdown } from "./use-countdown";
 // exact. These tests exercise the real exported primitives — not a reimplementation
 // — so each fails if the fan-out, the single-timer lifecycle, or the math regresses.
 
+/**
+ * Drive `document.hidden` + fire `visibilitychange`, as a tab switch would.
+ * jsdom's `hidden` is a read-only getter, so it is redefined rather than assigned.
+ */
+function setVisibility(hidden: boolean) {
+  Object.defineProperty(document, "hidden", {
+    configurable: true,
+    get: () => hidden,
+  });
+}
+
+function hide() {
+  setVisibility(true);
+  document.dispatchEvent(new Event("visibilitychange"));
+}
+
+function show() {
+  setVisibility(false);
+  document.dispatchEvent(new Event("visibilitychange"));
+}
+
 // ── onHeartbeat: one shared 1 Hz timer fans out to every appender ────────────
 describe("onHeartbeat", () => {
   // The unregister fns for everything a test registers, drained in afterEach so
@@ -23,10 +44,12 @@ describe("onHeartbeat", () => {
   };
 
   beforeEach(() => {
+    setVisibility(false);
     vi.useFakeTimers();
   });
   afterEach(() => {
     while (cleanups.length) cleanups.pop()!();
+    setVisibility(false);
     vi.clearAllTimers();
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -101,6 +124,57 @@ describe("onHeartbeat", () => {
     expect(setInterval).toHaveBeenCalledTimes(2); // a fresh interval, not a dead one
     vi.advanceTimersByTime(1_000);
     expect(b).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops the interval while the tab is hidden and restarts it on return", () => {
+    const setInterval = vi.spyOn(globalThis, "setInterval");
+    const clearInterval = vi.spyOn(globalThis, "clearInterval");
+    const a = vi.fn();
+    track(a);
+    expect(setInterval).toHaveBeenCalledTimes(1);
+
+    vi.advanceTimersByTime(1_000);
+    expect(a).toHaveBeenCalledTimes(1);
+
+    // A browser only CLAMPS background timers (to roughly once a minute), so
+    // what survives without this is a pointless minutely wake of every live
+    // frame, appending to a chart nobody can see. The timer must be gone.
+    hide();
+    expect(clearInterval).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(60_000);
+    expect(a).toHaveBeenCalledTimes(1);
+
+    show();
+    vi.advanceTimersByTime(1_000);
+    expect(a).toHaveBeenCalledTimes(2);
+  });
+
+  it("registering while already hidden starts no timer at all", () => {
+    const setInterval = vi.spyOn(globalThis, "setInterval");
+    setVisibility(true); // e.g. a board restored into a background tab
+    const a = vi.fn();
+    track(a);
+    // The listener fires only on CHANGE, so a frame mounting into an
+    // already-hidden tab has to read the current state to get this right.
+    expect(setInterval).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(60_000);
+    expect(a).not.toHaveBeenCalled();
+
+    show();
+    vi.advanceTimersByTime(1_000);
+    expect(a).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not resurrect the timer on show after the last callback left", () => {
+    const a = vi.fn();
+    const unA = track(a);
+    unA();
+    hide();
+    show();
+    // The visibility listener must be detached with the last appender, or the
+    // shared timer comes back for a Set nobody is in.
+    vi.advanceTimersByTime(5_000);
+    expect(a).not.toHaveBeenCalled();
   });
 
   it("snapshots the callback set so unregistering mid-tick is safe", () => {

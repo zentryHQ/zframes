@@ -18,7 +18,14 @@ export function OrbCanvas({
   className,
   dpi = 2,
   scale = 1,
-  fps = 60,
+  // 30, not the engine's 60: this scene runs from first paint for the whole
+  // session whether or not the orb is ever opened, so it is a permanent idle
+  // cost paid by every dashboard. The orb is a slow swirl inside a ~56px
+  // circle — there is no motion in it that reads differently at 30fps, and
+  // halving the frames halves the wakeups. dpi stays at 2 so it keeps its
+  // crispness on a Retina display; the pixel count is trivial at this size,
+  // it's the per-frame loop that costs.
+  fps = 30,
   onScene,
   onError,
 }: {
@@ -41,6 +48,15 @@ export function OrbCanvas({
     // its scene down instead (standard StrictMode-safe pattern).
     let cancelled = false;
     let scenePromise: Promise<UnicornSceneType> | null = null;
+    let live: UnicornSceneType | null = null;
+
+    // Stop drawing while the tab is hidden — same reasoning as the dashboard
+    // backdrop (see @zframes/unicorn's scene.tsx), and it matters a little more
+    // here because this is the SECOND WebGL engine on the page: the orb runs on
+    // the isolated legacy build, so nothing the backdrop does covers it.
+    const syncPaused = () => {
+      if (live) live.paused = document.hidden;
+    };
 
     void (async () => {
       try {
@@ -59,14 +75,22 @@ export function OrbCanvas({
           scene.destroy();
           return;
         }
+        live = scene;
+        // The tab can go hidden while the engine loads, with no further
+        // visibilitychange to follow — apply the current state on arrival.
+        syncPaused();
         onScene(scene);
       } catch {
         if (!cancelled) onError();
       }
     })();
 
+    document.addEventListener("visibilitychange", syncPaused);
+
     return () => {
       cancelled = true;
+      live = null;
+      document.removeEventListener("visibilitychange", syncPaused);
       onScene(null);
       scenePromise?.then((scene) => scene.destroy()).catch(() => {});
     };

@@ -71,7 +71,11 @@ import type {
   RegionalHousingPrice,
 } from "@zframes/spec/types";
 
-import { FrameVisibilityContext } from "./visibility";
+import {
+  FrameVisibilityContext,
+  isPageHidden,
+  onPageVisibilityChange,
+} from "./visibility";
 
 const ProvidersContext = createContext<MarketDataProvider[]>([]);
 
@@ -212,6 +216,12 @@ function usePolled<T>(
       timer = setTimeout(tick, delay * jitter());
     };
     function tick() {
+      // Hidden tab/window: stop the loop OUTRIGHT rather than rescheduling it.
+      // Unlike the off-screen case below there is no cadence worth keeping —
+      // nothing can be seen, and a background tab that holds no timer at all is
+      // the whole point. The onPageVisibilityChange subscription restarts it
+      // with an immediate fetch on return, so the card is fresh when looked at.
+      if (isPageHidden()) return;
       // Off-screen: skip the network round-trip + state update, keeping the last
       // good value on the card. Keep the loop alive on the normal cadence; the
       // subscribe() below fires an immediate tick the moment the frame scrolls
@@ -249,10 +259,20 @@ function usePolled<T>(
     const unsubscribe = visibility?.subscribe((visible) => {
       if (visible && !cancelled) tick();
     });
+    // Restart the (now-stopped) loop when the tab comes back. Also clear the
+    // pending timer on the way OUT: the tab can be hidden mid-interval, and
+    // without this the already-scheduled tick still fires once behind the
+    // scenes before the `isPageHidden()` guard above can stand it down.
+    const unsubscribePage = onPageVisibilityChange((hidden) => {
+      if (cancelled) return;
+      if (hidden) clearTimeout(timer);
+      else tick();
+    });
     return () => {
       cancelled = true;
       clearTimeout(timer);
       unsubscribe?.();
+      unsubscribePage();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
