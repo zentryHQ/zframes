@@ -159,7 +159,13 @@ export async function allFrameLikes(): Promise<Record<string, number>> {
     .select({ name: frameLikes.name, likes: frameLikes.likes })
     .from(frameLikes);
   const out: Record<string, number> = {};
-  for (const r of rows) if (r.likes > 0) out[r.name] = r.likes;
+  // Filtered against the registry on the way OUT too, not just on write. A row
+  // outlives its frame: rename or remove a frame and its counts stay, so an
+  // unfiltered map put a retired name in the catalogue's most-liked strip, whose
+  // chip links to `?q=<old-name>` and lands on "No frames match".
+  for (const r of rows) {
+    if (r.likes > 0 && FRAME_NAMES.has(r.name)) out[r.name] = r.likes;
+  }
   return out;
 }
 

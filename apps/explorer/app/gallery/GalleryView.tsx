@@ -19,10 +19,17 @@ type SortKey = "newest" | "liked";
 /**
  * Sorting happens CLIENT-SIDE and WITHIN a section, never across the two.
  *
- * Client-side because the view already holds every row in state for the search
- * box, so ordering is free and needs no API change or round trip per toggle. At
- * gallery scale that is plainly the right trade; a server `ORDER BY likes` becomes
- * right only once the list is paginated, which it isn't.
+ * Client-side because the view already holds every row THE API RETURNED, so ordering
+ * is free and needs no round trip per toggle.
+ *
+ * ⚠️ AND THAT WINDOW IS CAPPED. `listCommunity()` takes `limit = 48` ordered by
+ * `createdAt desc` (app/lib/dashboards.ts), so "Most liked" ranks the newest 48
+ * community boards, NOT all of them. Below 48 published boards the two are the same
+ * list and this is exactly right; past it, an older well-liked board silently cannot
+ * appear above a newer zero-like one. The fix at that point is a server-side
+ * `ORDER BY likes` for this mode, not a bigger client fetch — tracked in the map's
+ * fog rather than pre-built here. Curated is unaffected (`listCurated()` is
+ * unlimited).
  *
  * Within a section because curated boards get landing-page exposure community
  * publishes never see. Ranked together they would hold the top of the grid

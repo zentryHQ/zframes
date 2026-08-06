@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { allFrameLikes, claimLike } from "@/app/lib/likes";
 import {
   type LikeKind,
+  PER_IP_DAILY_CAP,
   PER_ITEM_DAILY_CAP,
   visitorKeys,
 } from "@/app/lib/likes-cap";
@@ -99,11 +100,13 @@ export async function POST(request: Request) {
   if (result.reason === "missing") {
     return NextResponse.json({ error: "no such item" }, { status: 404 });
   }
+  // `cap` must match the ceiling that ACTUALLY fired. Reporting the per-item 5 for
+  // an ip-cap denial told a visitor on NAT their network limit was 5 when it is 500.
   return NextResponse.json(
     {
       error: result.reason === "item-cap" ? "daily limit" : "network limit",
       reason: result.reason,
-      cap: PER_ITEM_DAILY_CAP,
+      cap: result.reason === "item-cap" ? PER_ITEM_DAILY_CAP : PER_IP_DAILY_CAP,
     },
     { status: 429 },
   );
