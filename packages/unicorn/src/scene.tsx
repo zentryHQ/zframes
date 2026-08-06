@@ -32,6 +32,8 @@ interface UnicornSceneConfig {
 interface UnicornSceneHandle {
   destroy?: () => void;
   resize?: () => void;
+  /** Engine-owned render-loop switch — set true to stop the scene drawing. */
+  paused?: boolean;
 }
 
 declare global {
@@ -161,6 +163,16 @@ export default function UnicornScene({
     if (!el.id) el.id = `zf-unicorn-${(sceneSeq += 1)}`;
     let scene: UnicornSceneHandle | null = null;
     let ignore = false;
+    // Stand the render loop down whenever the tab/window is hidden. A browser
+    // suspends `requestAnimationFrame` in a fully-hidden tab on its own, but
+    // that guarantee thins out exactly where a laptop pays for it — an occluded
+    // or fully-covered window is throttled by some engines and not others, and
+    // engines differ on what counts as hidden. A full-viewport WebGL scene is
+    // the most expensive thing either host draws, so it is worth saying so
+    // explicitly rather than inheriting whichever policy the browser applies.
+    const syncPaused = () => {
+      if (scene) scene.paused = document.hidden;
+    };
     window.UnicornStudio.addScene({
       elementId: el.id,
       projectId,
@@ -176,13 +188,18 @@ export default function UnicornScene({
           return;
         }
         scene = s;
+        // The tab can go hidden during the engine load + addScene round-trip,
+        // in which case no `visibilitychange` will fire to pause it later.
+        syncPaused();
         onSceneReadyRef.current?.();
       })
       .catch(() => {
         // addScene failed (bad projectId, WebGL unsupported) — degrade silently.
       });
+    document.addEventListener("visibilitychange", syncPaused);
     return () => {
       ignore = true;
+      document.removeEventListener("visibilitychange", syncPaused);
       scene?.destroy?.();
     };
   }, [loaded, projectId, scale, dpi, fps]);

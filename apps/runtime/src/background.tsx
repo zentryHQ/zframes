@@ -269,6 +269,13 @@ export const DashboardBackground = memo(function DashboardBackground({
                 height="100vh"
                 scale={background.scale}
                 dpi={background.dpi}
+                // A slow-drifting backdrop at 16% opacity behind opaque cards
+                // reads identically at 30fps and costs half the GPU — and this
+                // is the single most expensive thing the dashboard draws
+                // (full-viewport, every frame, for the whole session). The
+                // explorer already renders the same scene this way; the runtime
+                // was left on the engine's 60fps default.
+                fps={30}
                 sdkUrl={SDK_URL}
               />
             </Suspense>

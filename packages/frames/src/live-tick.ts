@@ -1,4 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
+import { isPageHidden, onPageVisibilityChange } from "@zframes/core";
 
 /**
  * Shared infrastructure for the live-accumulating liveline frames (price-liveline,
@@ -20,25 +21,47 @@ import { useEffect, useRef, type RefObject } from "react";
 
 const heartbeatCbs = new Set<() => void>();
 let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+let heartbeatUnsubscribePage: (() => void) | undefined;
+
+function startHeartbeatTimer(): void {
+  if (heartbeatTimer !== undefined || typeof window === "undefined") return;
+  heartbeatTimer = setInterval(() => {
+    // Snapshot so a callback that unregisters mid-tick can't perturb iteration.
+    for (const fn of [...heartbeatCbs]) fn();
+  }, 1_000);
+}
+
+function stopHeartbeatTimer(): void {
+  if (heartbeatTimer === undefined) return;
+  clearInterval(heartbeatTimer);
+  heartbeatTimer = undefined;
+}
 
 /**
  * Register `cb` to run on the shared 1 Hz heartbeat; returns an unregister fn.
  * The single underlying interval starts on the first registration and stops when
  * the last one unregisters, so an idle dashboard holds no timer.
+ *
+ * It also stops while the TAB is hidden. A browser clamps background timers to
+ * roughly once a minute rather than stopping them, so what survives is a
+ * pointless minutely wake of every live frame — appending a point to a chart
+ * nobody can see. Dropping the timer entirely costs nothing on return: the
+ * appenders are time-based, so the first tick after the tab comes back picks up
+ * from the current clock rather than replaying the gap.
  */
 export function onHeartbeat(cb: () => void): () => void {
   heartbeatCbs.add(cb);
-  if (heartbeatTimer === undefined && typeof window !== "undefined") {
-    heartbeatTimer = setInterval(() => {
-      // Snapshot so a callback that unregisters mid-tick can't perturb iteration.
-      for (const fn of [...heartbeatCbs]) fn();
-    }, 1_000);
-  }
+  if (!isPageHidden()) startHeartbeatTimer();
+  heartbeatUnsubscribePage ??= onPageVisibilityChange((hidden) => {
+    if (hidden) stopHeartbeatTimer();
+    else if (heartbeatCbs.size > 0) startHeartbeatTimer();
+  });
   return () => {
     heartbeatCbs.delete(cb);
-    if (heartbeatCbs.size === 0 && heartbeatTimer !== undefined) {
-      clearInterval(heartbeatTimer);
-      heartbeatTimer = undefined;
+    if (heartbeatCbs.size === 0) {
+      stopHeartbeatTimer();
+      heartbeatUnsubscribePage?.();
+      heartbeatUnsubscribePage = undefined;
     }
   };
 }

@@ -42,6 +42,8 @@ exports[`root @zframes/core barrel surface is pinned 1`] = `
   "formatMoneyCompact",
   "frameMatchesSearch",
   "frameSearchTokens",
+  "isPageHidden",
+  "onPageVisibilityChange",
   "sceneBaseHue",
   "useBtcBlocks",
   "useBtcFees",

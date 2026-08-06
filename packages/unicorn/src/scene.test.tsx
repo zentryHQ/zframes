@@ -41,7 +41,11 @@ interface SceneConfig {
   production: boolean;
 }
 
-type SceneHandle = { destroy?: () => void; resize?: () => void };
+type SceneHandle = {
+  destroy?: () => void;
+  resize?: () => void;
+  paused?: boolean;
+};
 type AddScene = (config: SceneConfig) => Promise<SceneHandle>;
 
 const SDK = "/unicornStudio.umd.mjs";
@@ -99,16 +103,40 @@ async function fire(url: string, type: "load" | "error") {
   await flush();
 }
 
+/** jsdom's `document.hidden` is a read-only getter — redefine, don't assign. */
+function setVisibility(hidden: boolean) {
+  Object.defineProperty(document, "hidden", {
+    configurable: true,
+    get: () => hidden,
+  });
+}
+
+function hide() {
+  setVisibility(true);
+  act(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+}
+
+function show() {
+  setVisibility(false);
+  act(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+}
+
 let UnicornScene: SceneComponent;
 
 beforeEach(async () => {
   UnicornScene = await loadScene();
+  setVisibility(false);
   for (const script of document.head.querySelectorAll("script"))
     script.remove();
 });
 
 afterEach(() => {
   cleanup();
+  setVisibility(false);
   delete window.UnicornStudio;
   for (const script of document.head.querySelectorAll("script"))
     script.remove();
@@ -501,5 +529,60 @@ describe("host element", () => {
 
     rerender(<UnicornScene projectId="p" sdkUrl={SDK} width="50vw" />);
     expect(el.style.width).toBe("50vw");
+  });
+});
+
+// A full-viewport WebGL scene is the most expensive thing either host draws, and
+// it draws every frame for the whole session. Standing it down when nobody can
+// see it is a battery guarantee, so it gets pinned here rather than left to
+// whichever throttling policy the browser happens to apply to a hidden or
+// occluded window.
+describe("hidden-tab pausing", () => {
+  it("pauses on hide and resumes on show", async () => {
+    const scene: SceneHandle = { destroy: vi.fn() };
+    installEngine(vi.fn<AddScene>(async () => scene));
+    render(<UnicornScene projectId="p" sdkUrl={SDK} />);
+    await flush();
+    // Explicitly unpaused on arrival rather than left undefined — the same
+    // write is what catches a scene that resolved while already hidden.
+    expect(scene.paused).toBe(false);
+
+    hide();
+    expect(scene.paused).toBe(true);
+
+    show();
+    expect(scene.paused).toBe(false);
+  });
+
+  it("pauses a scene that arrived while the tab was already hidden", async () => {
+    const scene: SceneHandle = { destroy: vi.fn() };
+    const pending = deferred<SceneHandle>();
+    installEngine(vi.fn<AddScene>(() => pending.promise));
+    render(<UnicornScene projectId="p" sdkUrl={SDK} />);
+    await flush();
+
+    // Hidden mid-load: no further `visibilitychange` will fire, so applying the
+    // current state when the scene resolves is the only thing that catches this.
+    // Without it a backgrounded tab renders at full rate until the user returns.
+    setVisibility(true);
+    await act(async () => {
+      pending.resolve(scene);
+    });
+    await flush();
+    expect(scene.paused).toBe(true);
+  });
+
+  it("stops tracking visibility once unmounted", async () => {
+    const scene: SceneHandle = { destroy: vi.fn() };
+    installEngine(vi.fn<AddScene>(async () => scene));
+    const { unmount } = render(<UnicornScene projectId="p" sdkUrl={SDK} />);
+    await flush();
+
+    unmount();
+    scene.paused = undefined;
+    hide();
+    // The listener must come off with the component, or a destroyed scene keeps
+    // being written to for the rest of the session.
+    expect(scene.paused).toBeUndefined();
   });
 });
