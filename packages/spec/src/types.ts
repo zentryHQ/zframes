@@ -21,6 +21,12 @@ export type Capability =
   | "dex-volume"
   | "protocol-tvl"
   | "protocol-fees"
+  // Crypto deep-dive: the per-asset research half of a crypto board. A token has
+  // no filings, so "what is this, what does it earn, how diluted is it" is
+  // answered by supply, protocol revenue and public dev activity instead.
+  | "crypto-profile"
+  | "protocol-fundamentals"
+  | "token-unlocks"
   | "coin-markets"
   | "open-interest"
   | "btc-fees"
@@ -56,6 +62,11 @@ export type Capability =
   | "metal-positioning"
   | "gold-reserve"
   | "tokenized-gold"
+  // Commodity deep-dive: a metal has no earnings, so "is this expensive" is
+  // answered by its own implied-vol regime and by the real (inflation-adjusted)
+  // price and macro backdrop — the commodity analogue of a valuation snapshot.
+  | "commodity-vol-index"
+  | "macro-reference-series"
   | "index-level"
   | "credit-spread"
   | "housing-price"
@@ -260,6 +271,96 @@ export interface MetalHistory {
   points: SeriesPoint[];
 }
 
+/**
+ * One trader class in the CFTC's *disaggregated* Commitments-of-Traders report.
+ *
+ * Every field beyond `long`/`short` is published by the CFTC rather than
+ * derived, so a frame reads the agency's own arithmetic instead of recomputing
+ * it from a window that may be shorter than the one the agency used.
+ */
+export interface CotTraderClass {
+  /** Long contracts held by this class. */
+  long: number;
+  /** Short contracts held by this class. */
+  short: number;
+  /** Spreading contracts (long and short in different months); some classes never spread. */
+  spread?: number;
+  /** Week-over-week change in longs, as published. */
+  changeLong?: number;
+  /** Week-over-week change in shorts, as published. */
+  changeShort?: number;
+  /** Week-over-week change in spreads, as published. */
+  changeSpread?: number;
+  /** Longs as a percent of total open interest (0–100), as published. */
+  pctOfOiLong?: number;
+  /** Shorts as a percent of total open interest (0–100), as published. */
+  pctOfOiShort?: number;
+  /** How many distinct reporting traders hold the long side. */
+  tradersLong?: number;
+  /** How many distinct reporting traders hold the short side. */
+  tradersShort?: number;
+}
+
+/**
+ * Position concentration in the largest reporting traders, percent (0–100).
+ *
+ * "Gross" counts a trader's long and short books separately; "net" nets them
+ * first, so net is always ≤ gross. The gold market routinely runs above 50% of
+ * gross shorts in four hands — a fact the legacy report cannot show at all.
+ */
+export interface CotConcentration {
+  /** Percent of gross longs held by the largest 4 traders. */
+  grossLong4: number;
+  /** Percent of gross shorts held by the largest 4 traders. */
+  grossShort4: number;
+  /** Percent of gross longs held by the largest 8 traders. */
+  grossLong8: number;
+  /** Percent of gross shorts held by the largest 8 traders. */
+  grossShort8: number;
+  /** Percent of net longs held by the largest 4 traders. */
+  netLong4?: number;
+  /** Percent of net shorts held by the largest 4 traders. */
+  netShort4?: number;
+  /** Percent of net longs held by the largest 8 traders. */
+  netLong8?: number;
+  /** Percent of net shorts held by the largest 8 traders. */
+  netShort8?: number;
+}
+
+/**
+ * One week of the CFTC's *disaggregated* futures-only report — who holds the
+ * position, not just the net.
+ *
+ * **Why this exists alongside the legacy fields on {@link CotWeek}:** the legacy
+ * report's single `commercial` bucket lumps producer/merchant *hedging* together
+ * with swap-dealer *bank* shorts. In metals those are opposite stories — a miner
+ * selling forward is supply reaching the market, a dealer short is the other
+ * side of an index long — and conflating them is the most common misreading of
+ * gold positioning. The disaggregated report separates them, and additionally
+ * publishes trader counts and concentration, which the legacy report omits.
+ *
+ * Published weekly from 2006-06-13 (the legacy series runs decades further
+ * back), so the oldest weeks of a long window carry legacy fields only.
+ */
+export interface CotDisaggregated {
+  /** Producer / merchant / processor / user — physical-market hedgers. */
+  producerMerchant: CotTraderClass;
+  /** Swap dealers — banks intermediating index and OTC exposure. */
+  swapDealer: CotTraderClass;
+  /** Managed money — CTAs, hedge funds and other registered money managers. */
+  managedMoney: CotTraderClass;
+  /** Other reportables — large traders fitting none of the above. */
+  otherReportable: CotTraderClass;
+  /** Non-reportable — positions below the reporting threshold ("small traders"). */
+  nonReportable: CotTraderClass;
+  /** Total distinct reporting traders in the market. */
+  totalTraders?: number;
+  /** Concentration in the largest 4 and 8 traders. */
+  concentration?: CotConcentration;
+  /** Contract unit exactly as published, e.g. "(CONTRACTS OF 100 TROY OUNCES)". */
+  contractUnits?: string;
+}
+
 /** One weekly CFTC Commitments-of-Traders observation (legacy futures-only report). */
 export interface CotWeek {
   /** Epoch milliseconds of the Tuesday the positions were reported for. */
@@ -280,6 +381,12 @@ export interface CotWeek {
   nonreportableLong: number;
   /** Non-reportable short contracts. */
   nonreportableShort: number;
+  /**
+   * The same week from the disaggregated report, when the CFTC published one.
+   * Absent for weeks before 2006-06-13, so a frame that needs it must handle a
+   * mixed series rather than assuming every week carries it.
+   */
+  disaggregated?: CotDisaggregated;
 }
 
 /** Weekly CFTC positioning for one metal's US futures market. */
@@ -861,7 +968,14 @@ export interface InstitutionalOwnership {
   decreasedShares?: number;
 }
 
-/** One listed option contract in a chain. */
+/**
+ * One listed option contract in a chain.
+ *
+ * ⚠️ `iv` here is a DECIMAL (0.42 = 42%), unlike {@link OptionsSummary.avgIv}
+ * and {@link OptionsStrikeOi.callIv}, which carry the venue's unscaled percent.
+ * The two shapes coexist because the aggregate summary predates the chain; a
+ * provider filling both must scale, and a frame must not mix them on one axis.
+ */
 export interface OptionContract {
   /** OCC-style contract id, e.g. "NVDA260821C00220000". */
   contract: string;
@@ -885,9 +999,15 @@ export interface OptionContract {
 }
 
 /**
- * A listed-equity option chain. Shaped so the existing crypto options frames
- * can serve equities too — the same expiry/strike/side/IV/OI fields the
- * Deribit-backed frames already reason about.
+ * A listed option chain, per underlying — deliberately asset-class-agnostic.
+ * The same expiry/strike/side/IV/OI fields describe a crypto venue's book, a
+ * listed equity and a metal ETF (GLD/SLV chains come off the same Cboe feed),
+ * so one frame reads all three and the card picks its feed with `source`.
+ *
+ * Greeks are present only where the feed publishes them: the delayed exchange
+ * feed does, a crypto book-summary call does NOT (they exist there only
+ * per-instrument, i.e. one request per contract), so a frame must hide those
+ * columns rather than render an empty grid.
  */
 export interface OptionsChain {
   /** Underlying ticker, e.g. "NVDA". */
@@ -1003,6 +1123,178 @@ export interface CoinMarketEntry {
   marketCapUsd: number;
   /** 24h price change, percent (when the source reports it). */
   changePct24h?: number;
+}
+
+/**
+ * Public development activity behind a crypto asset.
+ *
+ * A token has no filings, so this is the nearest available read on whether
+ * anything is still being built — the crypto stand-in for the qualitative half
+ * of a company profile. It is a weak signal on purpose: it measures one public
+ * repository, so a monorepo, a rename or a private fork all distort it.
+ */
+export interface CryptoDeveloperActivity {
+  stars?: number;
+  forks?: number;
+  /** Repository watchers/subscribers. */
+  subscribers?: number;
+  totalIssues?: number;
+  closedIssues?: number;
+  pullRequestsMerged?: number;
+  pullRequestContributors?: number;
+  /** Commits in the trailing four weeks. */
+  commits4Weeks?: number;
+}
+
+/**
+ * Identity, supply and valuation snapshot for ONE crypto asset — the crypto
+ * analogue of an equity profile.
+ *
+ * The supply fields are the point of it. An equity's share count is in its
+ * filings; a token's is the whole investment case, and the gap between
+ * `circulatingSupply` and `totalSupply`/`maxSupply` (and so between
+ * `marketCap` and `fullyDilutedValuation`) is the dilution a price chart alone
+ * never shows. Everything past identity is optional because coverage thins
+ * fast below the majors — a frame must render what it has.
+ */
+export interface CryptoAssetProfile {
+  /** Provider-native asset id, e.g. "bitcoin" — NOT the ticker. */
+  id: string;
+  /** Upper-case ticker, e.g. "BTC". */
+  symbol: string;
+  /** Display name, e.g. "Bitcoin". */
+  name: string;
+  /** Plain-text description as published (markup stripped). */
+  description?: string;
+  /** Publisher's taxonomy, e.g. ["Layer 1", "Smart Contract Platform"]. */
+  categories: string[];
+  /** Market-cap rank, 1 = largest. */
+  marketCapRank?: number;
+  /** Canonical links, when published. */
+  links?: {
+    homepage?: string;
+    sourceCode?: string;
+    twitter?: string;
+    subreddit?: string;
+    whitepaper?: string;
+  };
+  /** Last price, USD. */
+  price?: number;
+  /** Market capitalisation (circulating supply × price), USD. */
+  marketCap?: number;
+  /** Fully diluted valuation (total/max supply × price), USD. */
+  fullyDilutedValuation?: number;
+  /** 24h traded volume, USD. */
+  volume24h?: number;
+  /** Tokens in circulation. */
+  circulatingSupply?: number;
+  /** Tokens issued, including locked/vesting. */
+  totalSupply?: number;
+  /** Hard supply cap; absent when the asset is uncapped (most are). */
+  maxSupply?: number;
+  /** All-time high, USD. */
+  ath?: number;
+  /** ISO date of the all-time high. */
+  athDate?: string;
+  /** Percent below the all-time high now (negative). */
+  athChangePct?: number;
+  /** All-time low, USD. */
+  atl?: number;
+  /** ISO date of the all-time low. */
+  atlDate?: string;
+  /** Percent above the all-time low now. */
+  atlChangePct?: number;
+  changePct24h?: number;
+  changePct7d?: number;
+  changePct30d?: number;
+  changePct1y?: number;
+  /** Public repository activity, when the publisher tracks one. */
+  developer?: CryptoDeveloperActivity;
+}
+
+/**
+ * A protocol's fee and revenue history — the crypto analogue of an income
+ * statement, and the only keyless basis for a real valuation multiple.
+ *
+ * **`fees` and `revenue` are different lines and the distinction decides the
+ * multiple.** `fees` is everything users paid to use the protocol; `revenue` is
+ * only the part the protocol itself kept — the rest accrues to liquidity
+ * providers, suppliers or stakers. Dividing market cap by *fees* flatters a
+ * protocol that passes almost everything through, so a price-to-sales analogue
+ * must use `revenue`.
+ *
+ * Distinct from {@link ProtocolFeesEntry}, which is a cross-protocol 24h
+ * snapshot list (a leaderboard). This is one protocol, in depth, over time.
+ */
+export interface ProtocolFundamentals {
+  /** Publisher's protocol slug, e.g. "uniswap". */
+  protocol: string;
+  /** Display name, e.g. "Uniswap". */
+  name: string;
+  /** Daily total fees paid by users, USD, oldest → newest. */
+  fees: SeriesPoint[];
+  /** Daily protocol revenue, USD, oldest → newest. Empty when unpublished. */
+  revenue: SeriesPoint[];
+  /** Trailing 30-day total fees, USD. */
+  fees30d?: number;
+  /** Trailing 365-day total fees, USD. */
+  fees365d?: number;
+  /** Trailing 30-day total revenue, USD. */
+  revenue30d?: number;
+  /** Trailing 365-day total revenue, USD — the denominator of a P/S analogue. */
+  revenue365d?: number;
+  /** Current total value locked, USD, when the publisher reports it. */
+  tvl?: number;
+}
+
+/** One scheduled or already-passed token-unlock event. */
+export interface TokenUnlockEvent {
+  /** Epoch ms the tokens unlock. Can be in the FUTURE — that is the point. */
+  time: number;
+  /** Who it unlocks to, as published: "Team", "Investors", "Ecosystem", … */
+  category: string;
+  /** Publisher's description of the event. */
+  description?: string;
+  /** Tokens unlocking in this event. */
+  tokens: number;
+  /** How it releases — a cliff, or a linear stream — as published. */
+  unlockType?: string;
+}
+
+/**
+ * A token's emission and unlock schedule.
+ *
+ * **The only forward-looking supply information in the fleet**, and the crypto
+ * analogue of a share-lockup expiry: every other supply number here describes
+ * what has already been issued, while this says what is *about* to be. For a
+ * token whose insiders hold a third of the supply on a vesting cliff, it is the
+ * single most decision-relevant fact on a research card, and a price chart
+ * cannot express it.
+ *
+ * `schedule` deliberately runs past today — a frame should draw the boundary
+ * between observed and scheduled rather than plotting one continuous line, or
+ * the projection reads as history.
+ */
+export interface TokenUnlocks {
+  /** Publisher's protocol slug, e.g. "arbitrum". */
+  protocol: string;
+  /**
+   * Cumulative unlocked/circulating supply over time, oldest → newest,
+   * INCLUDING scheduled future points.
+   */
+  schedule: SeriesPoint[];
+  /** Epoch ms of the last OBSERVED point — everything after it is projection. */
+  observedThrough?: number;
+  /** Max supply as the publisher models it. */
+  maxSupply?: number;
+  /** Share of supply held by insiders today, percent (0–100). */
+  insiderPctNow?: number;
+  /** Share of supply insiders hold once fully vested, percent (0–100). */
+  insiderPctFinal?: number;
+  /** How far through the documented schedule the token is, percent (0–100). */
+  progressPct?: number;
+  /** Upcoming unlock events, soonest first. */
+  upcoming: TokenUnlockEvent[];
 }
 
 /** Live open interest for one perp symbol (single venue). */
@@ -1628,6 +1920,28 @@ export interface MarketDataProvider {
   getGoldReserve?(): Promise<GoldReserve>;
   /** Gold-backed tokens (PAXG, XAUT) with their premium/discount to spot. */
   getTokenizedGold?(): Promise<TokenizedGold[]>;
+  /**
+   * Daily history of a listed commodity implied-volatility index (GVZ for gold,
+   * VXSLV for silver, VXGDX for gold miners, OVX for oil) — the metals
+   * counterpart of the VIX that the equity side reads through `index-level`.
+   * Keyed by the publisher's index symbol.
+   */
+  getCommodityVolIndex?(indexId: string): Promise<OfficialSeries>;
+  /**
+   * A macro reference series to sit a commodity against — CPI (to deflate a
+   * nominal price into a real one), the 10-year TIPS real yield, the broad
+   * dollar index, the 10-year inflation breakeven.
+   *
+   * Deliberately three-ways separate from its neighbours, because routing is
+   * first-match per capability and each pairing would mis-route:
+   *  - from {@link getIndexSeries} (`index-level`), the *market index* subset —
+   *    S&P, VIX, Nasdaq — served by the same provider;
+   *  - from {@link getMacroSeries} (`macro-series`), which is BLS's published
+   *    CPI/unemployment series in a period-labelled shape, served by a provider
+   *    that sits EARLIER in the routing order and would swallow these ids;
+   *  - from the credit/housing/mortgage getters, which are fixed single series.
+   */
+  getMacroReferenceSeries?(seriesId: string): Promise<OfficialSeries>;
   /** Treasury average interest rates by security class. */
   getTreasuryAverageRates?(): Promise<TreasuryAverageRate[]>;
   /** US Treasury daily par yield curve (latest available date). */
@@ -1727,6 +2041,25 @@ export interface MarketDataProvider {
   ): Promise<Record<string, SeriesPoint[]>>;
   /** Trailing-24h protocol fees per protocol, descending. */
   getProtocolFees?(): Promise<ProtocolFeesEntry[]>;
+  /**
+   * Identity, supply and valuation snapshot for one crypto asset.
+   *
+   * `asset` is a ticker ("BTC") or the publisher's own id ("bitcoin"); a
+   * provider whose API is keyed by id must resolve the ticker itself, since a
+   * frame's symbol field holds tickers.
+   */
+  getCryptoProfile?(asset: string): Promise<CryptoAssetProfile>;
+  /**
+   * One protocol's fee and revenue history — the crypto income statement.
+   * Keyed by the publisher's protocol slug ("uniswap"), not a token ticker.
+   */
+  getProtocolFundamentals?(protocol: string): Promise<ProtocolFundamentals>;
+  /**
+   * One token's emission and unlock schedule, including scheduled FUTURE
+   * unlocks. Keyed by the publisher's protocol slug, like
+   * {@link getProtocolFundamentals}.
+   */
+  getTokenUnlocks?(protocol: string): Promise<TokenUnlocks>;
   /** Coin market-cap snapshots, descending by market cap. */
   getCoinMarkets?(): Promise<CoinMarketEntry[]>;
   /**

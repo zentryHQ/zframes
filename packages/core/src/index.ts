@@ -35,6 +35,10 @@ export {
   useOnchainValuation,
   useOpenInterest,
   useOptionsSummary,
+  useOptionsChain,
+  useCryptoProfile,
+  useProtocolFundamentals,
+  useTokenUnlocks,
   usePortfolio,
   useVolatilityIndex,
   useReferenceRates,
@@ -69,6 +73,8 @@ export {
   useMetalPositioning,
   useGoldReserve,
   useTokenizedGold,
+  useCommodityVolIndex,
+  useMacroReferenceSeries,
   useIndexSeries,
   useCreditSpreads,
   useHousingPriceIndex,
@@ -82,7 +88,6 @@ export {
   useEarningsCalendar,
   useAnalystRatings,
   useInstitutionalOwnership,
-  useOptionsChain,
 } from "./hooks";
 export {
   DashboardCurrencyProvider,
