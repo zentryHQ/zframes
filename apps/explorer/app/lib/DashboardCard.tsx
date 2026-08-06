@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DashboardThumb, type ThumbFrame } from "@/app/lib/DashboardThumb";
+import { LikeCount } from "@/app/lib/LikeButton";
 import { ThumbImage } from "@/app/lib/ThumbImage";
 
 // Shared gallery card — a live-preview link with a mini-map of the board, its
@@ -17,6 +18,7 @@ export function DashboardCard({
   frameCount,
   frames,
   thumbSrc,
+  likes,
 }: {
   href: string;
   title: string;
@@ -25,6 +27,9 @@ export function DashboardCard({
   frameCount: number;
   frames: ThumbFrame[];
   thumbSrc?: string;
+  /** Read-only — the button itself lives on the board's own page. Optional so the
+   *  landing card stack, which has no popularity story, can omit it entirely. */
+  likes?: number;
 }) {
   return (
     <Link
@@ -70,9 +75,19 @@ export function DashboardCard({
       {/* Body — title + tags stay at rest; the description lives in the poster
           caption reveal above. */}
       <div className="flex flex-1 flex-col p-5">
-        <h3 className="font-semibold text-white transition-colors group-hover:text-indigo-200">
-          {title}
-        </h3>
+        {/* The count sits on the title row, not as another pill over the poster:
+            the poster already carries the frame-count chip, and two chips in one
+            corner turn the card's quietest area into a scoreboard. Mono + 10px +
+            white/60 keeps a `0` — which most boards show on day one — reading as
+            "no likes yet" rather than as a verdict. */}
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-semibold text-white transition-colors group-hover:text-indigo-200">
+            {title}
+          </h3>
+          {likes !== undefined && (
+            <LikeCount total={likes} className="mt-1 shrink-0" />
+          )}
+        </div>
         {tags.length > 0 && (
           <div className="mt-auto flex flex-wrap gap-1.5 pt-4">
             {tags.map((t) => (

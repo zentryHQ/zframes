@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { AgentForkButton } from "@/app/lib/AgentForkButton";
+import { LikeButton } from "@/app/lib/LikeButton";
 import { Button } from "@/app/components/ui/button";
 
 // DashboardView is client-only (shared WS + browser APIs) → dynamic ssr:false.
@@ -18,10 +19,12 @@ export function DashboardPreview({
   id,
   title,
   spec,
+  likes,
 }: {
   id: string;
   title: string;
   spec: unknown;
+  likes: number;
 }) {
   const router = useRouter();
 
@@ -47,7 +50,11 @@ export function DashboardPreview({
           </div>
           <h1 className="text-xl font-semibold text-white">{title}</h1>
         </div>
+        {/* Like sits LEFT of the fork pair and stays outline-quiet: this page's
+            conversion goal is "fork it onto your machine", and a like button that
+            competes with that CTA would trade the thing we want for a cheap tap. */}
         <div className="flex items-center gap-2">
+          <LikeButton kind="dashboard" id={id} initialTotal={likes} />
           <AgentForkButton id={id} />
           <Button variant="accent" size="sm" onClick={fork}>
             Tinker here →

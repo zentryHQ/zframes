@@ -56,6 +56,16 @@ jobs:
         env:
           DASHBOARD_VALIDITY_REPORT: dashboard-validity-report.json
 
+      # Piggybacks this cron because it is the nightly job that already holds a
+      # database connection — a second workflow to run one DELETE would be more
+      # moving parts than the work. `continue-on-error` and its position AFTER the
+      # validation step are both deliberate: retention housekeeping must never
+      # decide whether a dashboard-validity regression gets reported.
+      - name: Sweep expired like allowances
+        if: env.DATABASE_URL != ''
+        continue-on-error: true
+        run: pnpm --dir apps/explorer sweep:likes
+
       - name: File / update / close issue
         if: always() && env.DATABASE_URL != ''
         env:

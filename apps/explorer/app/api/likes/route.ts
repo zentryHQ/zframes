@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { claimLike } from "@/app/lib/likes";
+import { allFrameLikes, claimLike } from "@/app/lib/likes";
 import {
   type LikeKind,
   PER_ITEM_DAILY_CAP,
@@ -25,6 +25,27 @@ export const runtime = "nodejs";
 // case (ticket 008).
 
 const KINDS = new Set<LikeKind>(["dashboard", "frame"]);
+
+// GET /api/likes — every frame's count, as one {name: likes} map.
+//
+// Frames only. Board counts ride the gallery's existing /api/dashboards fetch, so
+// there is nothing to serve here for them; /catalogue fetches nothing at all today,
+// which is why this route exists. One call for 255 cards, not one per card.
+//
+// Cached briefly at the edge: the charter chose no polling and freshness barely
+// matters for a popularity badge, but the window has to stay short enough that your
+// own like shows up on reload rather than looking lost.
+export async function GET() {
+  const likes = await allFrameLikes();
+  return NextResponse.json(
+    { frames: likes },
+    {
+      headers: {
+        "cache-control": "public, s-maxage=30, stale-while-revalidate=120",
+      },
+    },
+  );
+}
 
 export async function POST(request: Request) {
   if (!sameOrigin(request)) {

@@ -17,6 +17,12 @@ export type BoardSummary = {
   description: string;
   tags: string[];
   frameCount: number;
+  // Public like count. Lives HERE rather than being bolted onto the gallery route
+  // (which is how `views`/`forks` are exposed, community-side only) BECAUSE both
+  // gallery sections need it: curated boards are likeable too, and a card that
+  // silently omitted the number would make the popularity sort look arbitrary on
+  // half the grid. One integer, so no payload argument against it.
+  likes: number;
 };
 
 export function toBoardSummary(row: DashboardRow): BoardSummary {
@@ -28,6 +34,7 @@ export function toBoardSummary(row: DashboardRow): BoardSummary {
     description: row.description ?? "",
     tags: row.tags,
     frameCount: framesOf(row.spec).length,
+    likes: row.likes,
   };
 }
 

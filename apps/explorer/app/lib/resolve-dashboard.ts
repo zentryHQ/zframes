@@ -17,6 +17,12 @@ export type ResolvedDashboard = {
   /** True for the editorial showcase. Surfaced because a curated board has no
    *  owner, so anything owner-scoped has to be able to tell the two apart. */
   curated: boolean;
+  /** The like count as of this render. NOTE the page is ISR (`revalidate = 300`),
+   *  so this is up to 5 minutes stale and identical for every visitor — it seeds
+   *  the button's optimistic state, and the POST response is what reconciles it.
+   *  Fetching a fresh count client-side on mount was the alternative; it costs a
+   *  request on every board view to correct a number nobody is watching. */
+  likes: number;
 };
 
 export async function resolveDashboard(
@@ -30,5 +36,6 @@ export async function resolveDashboard(
     tags: row.tags,
     spec: row.spec,
     curated: row.curated,
+    likes: row.likes,
   };
 }
