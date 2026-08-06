@@ -98,10 +98,6 @@ const SOURCES = withSourceIds({
     name: "CFTC",
     url: "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
   },
-  cboe: {
-    name: "Cboe",
-    url: "https://www.cboe.com/tradable_products/vix/volatility_indexes/",
-  },
   fred: { name: "FRED", url: "https://fred.stlouisfed.org" },
   zillow: {
     name: "Zillow Research",
@@ -2792,6 +2788,226 @@ export const yieldDistributionMeta = defineFrameMeta({
       .default(200)
       .describe(
         "Drop pools quoting more than this APY before binning. Unlike the tail fold, this removes them from the sample entirely — a 900,000% incentive quote is a data artefact, not a yield.",
+      ),
+  }),
+});
+
+export const optionsChainTableMeta = defineFrameMeta({
+  name: "options-chain-table",
+  label: "Options Chain",
+  category: "derivatives",
+  iconUrl: widgetIcon("options-chain-table"),
+  layout: { w: 8, h: 5, minW: 5, minH: 3 },
+  description:
+    "The full option chain for one underlying as the conventional strike ladder — calls and puts side by side for a chosen expiry, with implied volatility, open interest, volume, bid/ask and optional greeks. Deliberately asset-class-agnostic: the same card reads a crypto venue's book, a listed equity and a metal ETF, so it is the one options surface that works whatever the board is about. Greeks depend on the feed — a delayed exchange chain publishes them, a crypto book-summary call does not, and the greek columns hide themselves when the chain carries none. The header states the quote delay, because reading a 15-minute-old chain as live is the real hazard here. Absent quotes render as a dash, never as zero: a zero bid is a different and real statement.",
+  capabilities: ["options-chain"],
+  source: SOURCES.deribit,
+  schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .default("BTC")
+      .describe(
+        "Underlying to read the chain for. Source-native: the crypto venue lists only 'BTC' and 'ETH' (every other currency returns an empty book, which renders as 'no listed options' rather than an error), while an exchange feed takes an equity or ETF ticker like 'NVDA' or 'GLD'.",
+      ),
+    expiry: z
+      .string()
+      .default("")
+      .describe(
+        "Which expiry to ladder, as an ISO date ('2026-08-28'). Leave empty for the nearest expiry, which is what a chain is normally read at. An expiry the feed does not list falls back to the nearest rather than emptying the card.",
+      ),
+    strikes: z
+      .number()
+      .int()
+      .min(4)
+      .max(40)
+      .default(12)
+      .describe(
+        "How many strikes to show around the money, split either side of the underlying. A real chain runs to thousands of contracts (7,600 on a liquid ETF), so this is a window, not a filter — raise it to see the wings, lower it for a compact card.",
+      ),
+    greeks: z
+      .array(z.enum(["delta", "gamma", "vega", "theta", "rho"]))
+      .max(3)
+      .default(["delta", "gamma"])
+      .describe(
+        "Which greek columns to show, at most three so the ladder stays readable. Ignored entirely when the feed publishes no greeks — the crypto book-summary endpoint does not, and fetching them per contract would cost one request per strike.",
+      ),
+    source: z
+      .enum(["deribit"])
+      .optional()
+      .describe(
+        "Which feed to read the chain from. Capability routing is first-match, so this pins the card when more than one provider serves option chains; omit for the default. An unrecognised value falls back to first-match rather than emptying the card.",
+      ),
+  }),
+});
+
+export const tokenUnlockScheduleMeta = defineFrameMeta({
+  name: "token-unlock-schedule",
+  annotatable: true,
+  label: "Unlock Schedule",
+  category: "crypto",
+  iconUrl: widgetIcon("token-unlock-schedule"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "How much supply is about to hit the market, and who gets it — the crypto equivalent of a share-lockup expiry, and the only forward-looking supply data available keylessly. Charts cumulative unlocked supply with the observed history and the SCHEDULED future drawn as separate lines, so a projection can never be misread as history, and lists the next unlock events with their dates, categories and token amounts. Also states the insider share now against its fully-vested end state, and how far through the documented schedule the token is. A fully-vested token legitimately has no upcoming events, which the card says rather than rendering empty. Keyless (DeFiLlama's published emissions dataset). Keyed by protocol SLUG, and only around 366 protocols publish a schedule at all.",
+  capabilities: ["token-unlocks"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    protocol: z
+      .string()
+      .min(1)
+      .default("arbitrum")
+      .describe(
+        "DeFiLlama protocol slug — 'arbitrum', 'optimism', 'celestia'. NOT a token ticker, and only about 366 protocols publish an emissions schedule; one that does not gets a clean 'no published schedule' state, distinct from loading. Most informative on a recent listing whose team and investor tranches are still vesting.",
+      ),
+    events: z
+      .number()
+      .int()
+      .min(1)
+      .max(12)
+      .default(4)
+      .describe(
+        "How many upcoming unlock events to list under the chart. Past events are never listed — the point of the card is what has not happened yet.",
+      ),
+    showChart: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Draw the cumulative supply curve. Turn it off for a compact card showing only the insider shares, schedule progress and the next unlocks.",
+      ),
+  }),
+});
+
+export const cryptoProfileMeta = defineFrameMeta({
+  name: "crypto-profile",
+  label: "Crypto Profile",
+  category: "crypto",
+  iconUrl: widgetIcon("crypto-profile"),
+  layout: { w: 5, h: 5, minW: 3, minH: 4 },
+  description:
+    "One crypto asset's research card — the token equivalent of a company profile, since a token has no filings. Shows name, ticker and market-cap rank; live price with the 24h/7d/30d/1y returns the publisher covers; market cap, fully diluted valuation and 24h volume; the supply triple (circulating / total / max, where an absent max reads as 'uncapped' and never as zero); all-time high and low with their dates and how far price now sits from each; the publisher's category tags; a compact public-repository activity readout; and optional links to site, source and whitepaper. Coverage thins fast below the majors — a mid-cap legitimately publishes no FDV, no whitepaper and a near-empty repo block — so the card renders what exists rather than erroring. Keyless (CoinGecko free tier). Resolve by ticker ('BTC', 'SOL', 'HYPE').",
+  capabilities: ["crypto-profile"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .default("BTC")
+      .describe(
+        "Crypto asset to profile, by ticker — 'BTC', 'ETH', 'SOL'. Crypto only: this reads a token's identity and supply, so a HIP-3 equity symbol ('xyz:TSLA') has no profile and renders the empty state.",
+      ),
+    showDescription: z
+      .boolean()
+      .default(false)
+      .describe(
+        "Append the publisher's prose description, clamped to three lines. Off by default because the published text runs to ~2,000 characters for a major and turns the card into a wall of prose; turn it on for a card given enough height to carry it.",
+      ),
+    showLinks: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Show the outbound link pills (site, source code, whitepaper) for the links the publisher lists. Only links that exist are rendered, so this is a no-op on an asset that publishes none.",
+      ),
+    showDeveloper: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Show the public-repository activity line (stars, forks, commits in the last four weeks, merged PRs, contributors). It measures ONE public repo, so a monorepo or a rename distorts it, and below the majors it is often empty — only non-zero counts render, and an empty block collapses to a single quiet line.",
+      ),
+  }),
+});
+
+export const cryptoDilutionMeta = defineFrameMeta({
+  name: "crypto-dilution",
+  label: "Supply & Dilution",
+  category: "crypto",
+  iconUrl: widgetIcon("crypto-dilution"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "How much of a token's supply is not circulating yet — the question a price chart cannot answer. Shows the share of supply already circulating, market cap against fully diluted valuation (the gap in money, as a percentage of FDV, and as an FDV/mcap multiple), and the supply composition as a horizontal bar: circulating, minted-but-locked (team, investors, vesting, treasury), and any unminted headroom left under a hard cap. Handles the three genuinely different supply regimes with different copy rather than collapsing them: a CAPPED asset, where FDV is a real ceiling; an UNCAPPED asset with a known total, where FDV is only a floor because more can always be minted; and an asset that publishes neither, where the card says dilution cannot be measured instead of inventing a denominator. FDV is derived from price × supply when the publisher omits it, and labelled 'derived' when it is. Keyless (CoinGecko free tier).",
+  capabilities: ["crypto-profile"],
+  source: SOURCES.coingecko,
+  schema: z.object({
+    symbol: z
+      .string()
+      .min(1)
+      .default("BTC")
+      .describe(
+        "Crypto asset to measure, by ticker — 'BTC', 'ETH', 'ARB'. Crypto only: a HIP-3 equity symbol ('xyz:TSLA') has no token supply and renders the empty state. Most interesting on a recent listing with a long unlock schedule ahead of it.",
+      ),
+    basis: z
+      .enum(["auto", "max", "total"])
+      .default("auto")
+      .describe(
+        "Which supply figure dilution is measured against. 'auto' prefers the hard cap and falls back to total supply; 'max' pins to the hard cap (the true fully-diluted end state); 'total' pins to tokens already issued, which measures only the locked/vesting overhang and ignores future minting. Each falls back to the other when its figure is unpublished, and the card's wording follows the figure actually used.",
+      ),
+    showChart: z
+      .boolean()
+      .default(true)
+      .describe(
+        "Draw the supply-composition bar under the figures. Turn it off for a compact tile that shows only the circulating share and the mcap-vs-FDV gap. The bar is skipped automatically when there is nothing to compare — a fully-circulating asset, or one whose supply is unpublished.",
+      ),
+  }),
+});
+
+export const protocolRevenueMeta = defineFrameMeta({
+  name: "protocol-revenue",
+  annotatable: true,
+  label: "Protocol Fees & Revenue",
+  category: "crypto",
+  iconUrl: widgetIcon("protocol-revenue"),
+  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  description:
+    "One protocol's income statement — daily fees paid by users against the revenue the protocol itself kept, charted together, with trailing 30-day and 365-day totals and the implied take rate. The distinction is the point: fees are what users paid, revenue is only the share not passed through to liquidity providers, suppliers or stakers, so Uniswap's ~845M of trailing fees became ~30M of revenue. A valuation multiple built on fees flatters a pass-through protocol; this is the card that shows which kind you are looking at. Keyless (DeFiLlama). Keyed by DeFiLlama protocol SLUG, not a token ticker.",
+  capabilities: ["protocol-fundamentals"],
+  source: SOURCES.defillama,
+  schema: z.object({
+    protocol: z
+      .string()
+      .min(1)
+      .default("uniswap")
+      .describe(
+        "DeFiLlama protocol slug — 'uniswap', 'aave', 'lido', 'hyperliquid', 'ethereum', 'solana'. NOT a token ticker: the publisher keys fees by its own slug, and the two genuinely differ ('lido', not 'lido-dao'). Some assets have several valid slugs that report different numbers — 'arbitrum' (the chain) and 'arbitrum-foundation' (the app) both resolve and their revenue differs by more than half — so pick deliberately.",
+      ),
+    show: z
+      .enum(["both", "fees", "revenue"])
+      .default("both")
+      .describe(
+        "Which lines to draw. 'both' is the useful default because the gap between them IS the take rate; 'fees' alone reads gross user spend; 'revenue' alone reads what the protocol kept, and is the line a price-to-sales multiple should use.",
+      ),
+    lookback: z
+      .enum(["3M", "1Y", "3Y", "MAX"])
+      .default("1Y")
+      .describe(
+        "How much daily history to chart. MAX uses the whole published series, which reaches 2015 for Ethereum but only a few hundred days for a recent protocol — the card charts what exists rather than padding.",
+      ),
+  }),
+});
+
+export const protocolMultiplesMeta = defineFrameMeta({
+  name: "protocol-multiples",
+  label: "Protocol Multiples",
+  category: "crypto",
+  iconUrl: widgetIcon("protocol-multiples"),
+  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  description:
+    "Is the token expensive relative to what the protocol actually earns? Divides market cap by trailing-year revenue and fees to give a token's price-to-sales and price-to-fees, and repeats both against fully diluted valuation — the FDV multiple being the honest one for a token with a large locked supply. The crypto answer to a P/E, and the only keyless one available. Reads two publishers that key differently, so it takes BOTH a DeFiLlama protocol slug and the token's ticker; a mismatched pair produces a silently wrong multiple, so the two fields are deliberately separate. A zero or unpublished revenue line reads as 'not meaningful' rather than infinity.",
+  capabilities: ["protocol-fundamentals", "crypto-profile"],
+  source: [SOURCES.defillama, SOURCES.coingecko],
+  schema: z.object({
+    protocol: z
+      .string()
+      .min(1)
+      .default("uniswap")
+      .describe(
+        "DeFiLlama protocol slug supplying the fees and revenue denominator — 'uniswap', 'aave', 'lido', 'hyperliquid'. NOT a ticker, and not automatically derivable from one: 'lido-dao' (the CoinGecko id) is not a valid slug, while 'arbitrum' and 'arbitrum-foundation' are both valid and report different revenue.",
+      ),
+    symbol: z
+      .string()
+      .min(1)
+      .default("UNI")
+      .describe(
+        "Ticker of the token supplying the market cap and FDV numerator — 'UNI', 'AAVE', 'LDO', 'HYPE'. Must be the token of the SAME protocol named above; pairing one protocol's revenue with another token's market cap yields a plausible-looking multiple that means nothing.",
       ),
   }),
 });
@@ -7405,6 +7621,12 @@ export const frameMetas: FrameMeta[] = [
   stablecoinSupplyMeta,
   yieldScannerMeta,
   defiRevenueMeta,
+  optionsChainTableMeta,
+  tokenUnlockScheduleMeta,
+  cryptoProfileMeta,
+  cryptoDilutionMeta,
+  protocolRevenueMeta,
+  protocolMultiplesMeta,
   fundingComparisonMeta,
   ethSupplyMeta,
   ethStakingMeta,
