@@ -363,7 +363,7 @@ const sentenceCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 // providers lands, someone has to say WHICH of the new frames is worth a look.
 //
 // Re-cast it when the next batch ships. A stale "just landed" is worse than
-// none. Current batch: FRED, Zillow Research and the FHFA.
+// none. Current batch: Nasdaq and Cboe — the equity deep-dive family.
 type Highlight = {
   frame: string;
   /** Extra config merged over schema defaults. */
@@ -388,53 +388,61 @@ type Highlight = {
  * headline's frame count is filtered off this rather than typed, so it tracks
  * every later frame built over the same providers.
  */
-const SPOTLIGHT_SOURCES = ["FRED", "Zillow Research", "FHFA"];
+const SPOTLIGHT_SOURCES = ["Nasdaq", "Cboe"];
 
-// `source` is one credit OR several (rates-board genuinely reads NY Fed AND
-// Treasury), so normalise before matching — a cross-provider frame must count
-// once, not zero times.
+// Counts the frames BUILT on the new sources, by matching only a frame's
+// PRIMARY credit. The looser "any credit" test over-counted this batch: adding
+// Nasdaq as an `ohlcv` venue also credited it on five pre-existing price frames
+// (price-chart, price-events, return-calendar, return-distribution,
+// rsi-momentum), which merely gained it as a pinnable option and are not new.
+// `source` is still one credit OR several (rates-board genuinely reads NY Fed
+// AND Treasury), so normalise before reading the first.
 const spotlightFrameCount = allFrameMetas.filter((meta) => {
   const credits = meta.source
     ? Array.isArray(meta.source)
       ? meta.source
       : [meta.source]
     : [];
-  return credits.some((c) => SPOTLIGHT_SOURCES.includes(c.name));
+  return credits.length > 0 && SPOTLIGHT_SOURCES.includes(credits[0].name);
 }).length;
 
-// The lead. Mortgage Payment is the only frame in the catalogue that needs TWO
-// providers to say anything at all, which is the whole argument for a frame
-// framework over one more chart widget.
+// The lead. A decade of reported revenue, stitched across the XBRL tag NVIDIA
+// switched to mid-history — the card that shows why reading filings properly is
+// a framework problem, not a chart problem.
 const SPOTLIGHT_LEAD: Highlight = {
-  frame: "mortgage-payment",
-  config: { region: "Austin, TX" },
-  note: "Zillow's typical home value priced at FRED's live 30-year rate. Two providers, one card: the index only says prices rose, the rate only says borrowing got dearer, and neither one answers whether a buyer can actually pay.",
+  frame: "financials-trend",
+  config: { symbol: "NVDA", metric: "revenue", cadence: "annual" },
+  note: "Eighteen years of reported revenue, straight from SEC XBRL. Issuers quietly change the tag they file a line under — NVIDIA's revenue moves tag after FY2022 — so a naive series just stops in 2022 and looks like an outage. This one merges the whole chain and tells you it did.",
   span: "lg:col-span-5",
   height: "h-[26rem]",
 };
 
 const SPOTLIGHT: Highlight[] = [
   {
-    frame: "index-drawdown",
-    note: "How far an index sits below its own record, over time. Every trough is a bear market; on the Nasdaq's full history the dot-com bottom reads −78%.",
+    frame: "equity-options-smile",
+    config: { symbol: "NVDA" },
+    note: "Implied volatility across strikes at one expiry, calls against puts. The downside wing sitting higher is the market paying up for crash protection — and it is a free, delayed Cboe chain, not a terminal subscription.",
     span: "lg:col-span-7",
     height: "h-[26rem]",
   },
   {
-    frame: "vix-gauge",
-    note: "The VIX as a regime — calm, elevated, panic — rather than a number you have to remember the scale for.",
+    frame: "valuation-multiples",
+    config: { symbol: "NVDA" },
+    note: "P/E, P/S and P/B derived in front of you, each labelled with the inputs it came from. Nothing keyless publishes these — and a multiple with a missing or negative denominator says so instead of printing a number.",
     span: "lg:col-span-4",
     height: "h-[22rem]",
   },
   {
-    frame: "regional-home-price-bars",
-    note: "The FHFA's own repeat-sales index, state by state: which housing markets are still rising, and which have turned.",
+    frame: "earnings-surprise",
+    config: { symbol: "NVDA" },
+    note: "Reported EPS against the consensus that preceded it, quarter by quarter. A steady beat rate is a different signal from one blowout, and this is the chart that tells them apart.",
     span: "lg:col-span-4",
     height: "h-[22rem]",
   },
   {
-    frame: "home-value-scatter",
-    note: "Every metro plotted by price against pace, so expensive-and-cooling separates from cheap-and-heating.",
+    frame: "margin-trend",
+    config: { symbol: "NVDA" },
+    note: "Gross, operating and net margin across the reported years — the quickest read on whether a growth story is also a business.",
     span: "lg:col-span-4",
     height: "h-[22rem]",
   },
@@ -482,14 +490,20 @@ function SpotlightBand() {
         <Reveal>
           <span className="zf-label mb-4">Just landed</span>
           <h3 className="text-balance text-2xl font-bold tracking-tight text-white sm:text-3xl">
-            Housing, credit, and the long index tape.
+            The business behind the ticker.
           </h3>
           <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
-            Three more keyless sources — the St.&nbsp;Louis Fed&rsquo;s FRED,
-            Zillow Research and the FHFA — and {numberWord(spotlightFrameCount)}{" "}
-            frames built over them. House prices in dollars rather than index
-            points, credit spreads, mortgage rates back to 1971. Still no key,
-            still no signup: the official numbers were always public.
+            Two more keyless sources — Nasdaq and Cboe — and{" "}
+            {/* The whole clause lives in ONE expression, ending on a comma. A
+                JSX text node that spans lines has its LEADING whitespace
+                trimmed, so `{count} frames` renders "thirteenframes" and
+                `{...} built` renders "framesbuilt" — the space has to sit
+                inside the expression or in an explicit {" "}. */}
+            {`${numberWord(spotlightFrameCount)} frames built over them`}, plus
+            a decade of reported financials read straight out of SEC XBRL.
+            Valuation multiples, margins, earnings against consensus, and real
+            listed option chains with the greeks. Still no key, still no signup:
+            a company&rsquo;s own numbers were always public.
           </p>
         </Reveal>
 

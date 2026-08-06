@@ -60,7 +60,7 @@ export const FRAME_CATEGORIES = [
     key: "derivatives",
     label: "Derivatives & Options",
     description:
-      "Perp funding, open interest, and options positioning and volatility.",
+      "Perp funding and open interest, plus options positioning and volatility — crypto venues and listed equity chains with their greeks.",
   },
   {
     key: "macro",
@@ -78,7 +78,7 @@ export const FRAME_CATEGORIES = [
     key: "equities",
     label: "Equities & Filings",
     description:
-      "Single-company fundamentals, SEC filings, and short-sale volume.",
+      "One company at a time: profile and valuation multiples, reported financials and their history, earnings against consensus, analyst coverage, institutional ownership, SEC filings, and short-sale volume.",
   },
   {
     key: "sentiment",
