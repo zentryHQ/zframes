@@ -258,6 +258,29 @@ describe("handleProxy (SSRF allowlist)", () => {
     );
   });
 
+  it("keeps the browser UA for api.nasdaq.com even under --contact", async () => {
+    // Nasdaq's bot mitigation DROPS a non-browser User-Agent — no status, no
+    // body, just a hang. So an operator who passes --contact for the SEC's
+    // fair-access policy would silently lose every Nasdaq card, with nothing in
+    // the logs but timeouts. The courtesy UA is narrowed to hosts that asked.
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: { get: () => "application/json" },
+      text: async () => `{}`,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const res = makeRes();
+    await handleProxy(
+      makeProxyReq(proxyUrl("https://api.nasdaq.com/api/quote/NVDA/info")),
+      res,
+      { userAgent: "zframes (test@example.com)" },
+    );
+    await res.done;
+    expect(fetchMock.mock.calls[0][1].headers["User-Agent"]).toContain(
+      "Mozilla/5.0",
+    );
+  });
+
   it("returns 502 when the upstream body exceeds the size cap", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       status: 200,

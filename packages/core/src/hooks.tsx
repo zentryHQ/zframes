@@ -14,6 +14,14 @@ import type {
   CoinMarketEntry,
   CoinMover,
   CompanyFacts,
+  CompanyFactsHistory,
+  AnalystRatings,
+  EarningsCalendarEntry,
+  EarningsHistory,
+  EquityFinancials,
+  EquityProfile,
+  InstitutionalOwnership,
+  OptionsChain,
   DayStats,
   DexVolumeEntry,
   DifficultyAdjustment,
@@ -815,6 +823,180 @@ export function useCompanyFacts(
 }
 
 /**
+ * SEC EDGAR XBRL *reported history* — the full series behind the headline
+ * metrics, oldest→newest. Same source and cadence as {@link useCompanyFacts}
+ * (filings only), so it polls just as slowly.
+ *
+ * `cadence` picks which duration facts survive the filter: annual prints make
+ * the readable multi-year trend, quarterly ones the seasonal detail. Balance-
+ * sheet series are instant facts and ignore it.
+ */
+export function useCompanyFactsHistory(
+  tickerOrCik: string,
+  cadence: "annual" | "quarterly" = "annual",
+  refreshMs = 12 * 60 * 60_000,
+): { data: CompanyFactsHistory | null; isLoading: boolean } {
+  const provider = useProviderFor("fundamentals-history");
+  const { data, isLoading } = usePolled<CompanyFactsHistory | null>(
+    provider?.getCompanyFactsHistory && tickerOrCik
+      ? () => provider.getCompanyFactsHistory!(tickerOrCik, cadence)
+      : null,
+    null,
+    [provider, tickerOrCik, cadence, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/**
+ * Exchange profile + valuation snapshot for one listed company. Market cap and
+ * the analyst target move with the price, so this polls on a quote-ish cadence
+ * (5 min) rather than the filing cadence the statement hooks use.
+ */
+export function useEquityProfile(
+  symbol: string,
+  source?: string,
+  refreshMs = 5 * 60_000,
+): { data: EquityProfile | null; isLoading: boolean } {
+  const provider = useProviderFor("equity-profile", source);
+  const { data, isLoading } = usePolled<EquityProfile | null>(
+    provider?.getEquityProfile && symbol
+      ? () => provider.getEquityProfile!(symbol)
+      : null,
+    null,
+    [provider, symbol, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/**
+ * Published multi-period financial statements (income, balance sheet, cash
+ * flow, ratios). Changes only when the company reports, so it polls every 12 h.
+ */
+export function useEquityFinancials(
+  symbol: string,
+  frequency: "annual" | "quarterly" = "annual",
+  source?: string,
+  refreshMs = 12 * 60 * 60_000,
+): { data: EquityFinancials | null; isLoading: boolean } {
+  const provider = useProviderFor("equity-financials", source);
+  const { data, isLoading } = usePolled<EquityFinancials | null>(
+    provider?.getEquityFinancials && symbol
+      ? () => provider.getEquityFinancials!(symbol, frequency)
+      : null,
+    null,
+    [provider, symbol, frequency, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/**
+ * Reported-vs-consensus earnings track record plus the next scheduled date.
+ * Quarterly data, but the next-date field can move intraday around a
+ * confirmation, so this polls every 6 h rather than every 12.
+ */
+export function useEarningsHistory(
+  symbol: string,
+  source?: string,
+  refreshMs = 6 * 60 * 60_000,
+): { data: EarningsHistory | null; isLoading: boolean } {
+  const provider = useProviderFor("earnings-history", source);
+  const { data, isLoading } = usePolled<EarningsHistory | null>(
+    provider?.getEarningsHistory && symbol
+      ? () => provider.getEarningsHistory!(symbol)
+      : null,
+    null,
+    [provider, symbol, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/**
+ * Companies scheduled to report on `date` (ISO; omit for the next session).
+ * Market-wide, not per-symbol — the one earnings hook that takes no ticker.
+ */
+export function useEarningsCalendar(
+  date?: string,
+  source?: string,
+  refreshMs = 6 * 60 * 60_000,
+): { data: EarningsCalendarEntry[]; isLoading: boolean } {
+  const provider = useProviderFor("earnings-calendar", source);
+  const { data, isLoading } = usePolled<EarningsCalendarEntry[]>(
+    provider?.getEarningsCalendar
+      ? () => provider.getEarningsCalendar!(date)
+      : null,
+    [],
+    [provider, date, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/** Sell-side consensus and covering brokers. Ratings change rarely — 12 h. */
+export function useAnalystRatings(
+  symbol: string,
+  source?: string,
+  refreshMs = 12 * 60 * 60_000,
+): { data: AnalystRatings | null; isLoading: boolean } {
+  const provider = useProviderFor("analyst-ratings", source);
+  const { data, isLoading } = usePolled<AnalystRatings | null>(
+    provider?.getAnalystRatings && symbol
+      ? () => provider.getAnalystRatings!(symbol)
+      : null,
+    null,
+    [provider, symbol, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/** Institutional (13F) ownership aggregates. Quarterly data — polls every 12 h. */
+export function useInstitutionalOwnership(
+  symbol: string,
+  source?: string,
+  refreshMs = 12 * 60 * 60_000,
+): { data: InstitutionalOwnership | null; isLoading: boolean } {
+  const provider = useProviderFor("institutional-ownership", source);
+  const { data, isLoading } = usePolled<InstitutionalOwnership | null>(
+    provider?.getInstitutionalOwnership && symbol
+      ? () => provider.getInstitutionalOwnership!(symbol)
+      : null,
+    null,
+    [provider, symbol, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/**
+ * Listed option chain for one underlying — equities or crypto, whichever
+ * provider covers the asset (pin with `source`).
+ *
+ * A chain is a big payload (thousands of contracts), and the keyless equity
+ * feed is 15-minute delayed anyway, so polling faster than the delay only
+ * re-downloads the same quotes: the default cadence matches it.
+ */
+export function useOptionsChain(
+  symbol: string,
+  source?: string,
+  refreshMs = 5 * 60_000,
+): { data: OptionsChain | null; isLoading: boolean } {
+  const provider = useProviderFor("options-chain", source);
+  const { data, isLoading } = usePolled<OptionsChain | null>(
+    provider?.getOptionsChain && symbol
+      ? () => provider.getOptionsChain!(symbol)
+      : null,
+    null,
+    [provider, symbol, refreshMs],
+    refreshMs,
+  );
+  return { data, isLoading };
+}
+
+/**
  * FINRA daily reported short-sale volume per symbol. The report updates once a
  * day (next business day), so this polls slowly (every 6 h by default).
  */
@@ -1074,15 +1256,21 @@ export function useOnchainValuation(refreshMs = 3 * 60 * 60_000): {
 export function useDailyCloseHistory(
   asset = "btc",
   refreshMs = 6 * 60 * 60_000,
+  enabled = true,
 ): { history: SeriesPoint[]; isLoading: boolean } {
   const provider = useProviderFor("price-history-daily");
   const key = asset.toLowerCase();
+  // `enabled` exists for frames that can read EITHER this deep crypto series or
+  // a per-symbol candle feed: hooks can't be called conditionally, so the
+  // unused branch has to be switched off here rather than skipped at the call
+  // site — otherwise a stock card silently downloads years of BTC closes it
+  // never renders.
   const { data: history, isLoading } = usePolled<SeriesPoint[]>(
-    provider?.getDailyCloseHistory
+    enabled && provider?.getDailyCloseHistory
       ? () => provider.getDailyCloseHistory!(key)
       : null,
     [],
-    [provider, key, refreshMs],
+    [provider, key, refreshMs, enabled],
     refreshMs,
   );
   return { history, isLoading };

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * GOLDEN SPECS — the five dashboards a real user actually runs.
+ * GOLDEN SPECS — the six dashboards a real user actually runs.
  *
  * WHAT THIS PINS. Every other CLI/store test builds a throwaway 1–3 frame spec
  * in a tmpdir, so the suite has never once parsed, linted or rendered a *real*
@@ -87,6 +87,7 @@ import bitkubSpec from "./fixtures/bitkub.dashboard.json";
 import cryptoCommandSpec from "./fixtures/crypto-command.dashboard.json";
 import macroWatchSpec from "./fixtures/macro-watch.dashboard.json";
 import mickySpec from "./fixtures/micky.dashboard.json";
+import nvdaDeepDiveSpec from "./fixtures/nvda-deepdive.dashboard.json";
 import quantTerminalSpec from "./fixtures/quant-terminal.dashboard.json";
 
 interface Fixture {
@@ -169,6 +170,19 @@ const FIXTURES: Fixture[] = [
     knownInvalidConfigIds: [],
     lintSpuriousUnknownFrames: [],
     // Every card on this board reads through a provider.
+    outboundFetchTargets: [],
+  },
+  {
+    // The equity deep-dive board: the only fixture that exercises the
+    // company-research family (profile, valuation, statements, earnings,
+    // 13F, and the four Cboe options frames) end to end through the real
+    // renderer. Every other golden board is crypto- or macro-shaped, so
+    // without this one a regression in the equity frames would only surface
+    // on a live NVDA board.
+    name: "nvda-deepdive",
+    raw: nvdaDeepDiveSpec,
+    knownInvalidConfigIds: [],
+    lintSpuriousUnknownFrames: [],
     outboundFetchTargets: [],
   },
   {

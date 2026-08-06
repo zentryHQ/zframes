@@ -62,6 +62,17 @@ export type Capability =
   | "mortgage-rate"
   | "home-value-index"
   | "regional-housing-price"
+  // Equity deep-dive: the company-research half of a stocks-first board. These
+  // answer "what is this business worth / what did it report / what does the
+  // street think", which price and filings alone never do.
+  | "fundamentals-history"
+  | "equity-profile"
+  | "equity-financials"
+  | "earnings-history"
+  | "earnings-calendar"
+  | "analyst-ratings"
+  | "institutional-ownership"
+  | "options-chain"
   | "portfolio";
 
 export interface DayStats {
@@ -657,6 +668,237 @@ export interface CompanyFacts {
   entityName: string;
   /** Headline metrics, in display order. */
   metrics: FinancialMetric[];
+}
+
+/** One reported observation of a single XBRL concept, oldest→newest in a series. */
+export interface FinancialFact {
+  /** Fiscal period end, ISO date e.g. "2026-01-25". */
+  end: string;
+  /** Period start, ISO date — absent for instant (balance-sheet) facts. */
+  start?: string;
+  /** Reported value in the concept's unit. */
+  value: number;
+  /** Readable fiscal period, e.g. "FY2026" or "Q3 2026". */
+  fiscalPeriod: string;
+  /** SEC form the value was reported on, e.g. "10-K". */
+  form: string;
+}
+
+/**
+ * One XBRL concept's full reported history, oldest→newest.
+ *
+ * **Why the concept is a list upstream, not a single tag:** issuers change the
+ * tag they report a line under. NVIDIA's revenue runs on
+ * `RevenueFromContractWithCustomerExcludingAssessedTax` only through FY2022 and
+ * on a different tag after, so a series built from one tag ends mid-history and
+ * reads as a data outage. A provider MUST merge across the concept's whole
+ * alias chain (newest reporting wins on a tie) before returning this.
+ */
+export interface FinancialSeries {
+  /** Human label, e.g. "Revenue". */
+  label: string;
+  /** XBRL unit, e.g. "USD", "USD/shares", "shares". */
+  unit: string;
+  /** Whether the facts are durational (income/cash-flow) or instant (balance-sheet). */
+  kind: "duration" | "instant";
+  /** Which XBRL tags actually contributed, in the order they were merged. */
+  concepts: string[];
+  /** Observations, oldest→newest. */
+  facts: FinancialFact[];
+}
+
+/** A company's reported financial history from SEC EDGAR XBRL company facts. */
+export interface CompanyFactsHistory {
+  /** Zero-padded 10-digit CIK. */
+  cik: string;
+  /** Registrant name, e.g. "NVIDIA Corporation". */
+  entityName: string;
+  /** Which reporting cadence the duration series were filtered to. */
+  cadence: "annual" | "quarterly";
+  /** One series per headline metric, in display order. */
+  series: FinancialSeries[];
+}
+
+/**
+ * Exchange-published profile and valuation snapshot for one listed company —
+ * the numbers a quote page shows beside the price. Market cap and the analyst
+ * target come from the exchange; ratios that need earnings (P/E, P/S) are
+ * derived by the frame, because no keyless source publishes them.
+ */
+export interface EquityProfile {
+  /** Ticker as the exchange spells it, e.g. "NVDA". */
+  symbol: string;
+  /** Registrant name, e.g. "NVIDIA Corporation Common Stock". */
+  companyName: string;
+  /** Listing exchange, e.g. "NASDAQ-GS". */
+  exchange?: string;
+  /** Sector, e.g. "Technology". */
+  sector?: string;
+  /** Industry, e.g. "Semiconductors". */
+  industry?: string;
+  /** Last sale price, USD. */
+  price?: number;
+  /** Previous session's close, USD. */
+  previousClose?: number;
+  /** Market capitalisation, USD. */
+  marketCap?: number;
+  /** 52-week high, USD. */
+  fiftyTwoWeekHigh?: number;
+  /** 52-week low, USD. */
+  fiftyTwoWeekLow?: number;
+  /** Average daily share volume. */
+  averageVolume?: number;
+  /** Annualised dividend per share, USD. */
+  annualisedDividend?: number;
+  /** Indicated dividend yield as a percent (0–100). */
+  dividendYield?: number;
+  /** Consensus one-year price target, USD. */
+  oneYearTarget?: number;
+}
+
+/** One line item of a published financial statement, across fiscal periods. */
+export interface FinancialStatementRow {
+  /** Line label exactly as published, e.g. "Total Revenue". */
+  label: string;
+  /**
+   * Values aligned index-for-index with {@link EquityFinancials.periods}.
+   * `null` where the publisher left the cell blank — never coerced to 0, which
+   * would draw a real trough on a chart where there is only a missing print.
+   */
+  values: (number | null)[];
+}
+
+/**
+ * Multi-year published financial statements for one company, newest period
+ * first. Complements {@link CompanyFactsHistory}: the exchange's tables are
+ * pre-aligned and carry ratios, while SEC XBRL is deeper and authoritative.
+ */
+export interface EquityFinancials {
+  symbol: string;
+  /** Period-end labels, newest first, e.g. ["1/25/2026", "1/26/2025"]. */
+  periods: string[];
+  /** "annual" or "quarterly" — which cadence these periods are. */
+  frequency: "annual" | "quarterly";
+  incomeStatement: FinancialStatementRow[];
+  balanceSheet: FinancialStatementRow[];
+  cashFlow: FinancialStatementRow[];
+  /** Published ratios (margins, ROE, liquidity) as percentages or multiples. */
+  ratios: FinancialStatementRow[];
+}
+
+/** One quarter's reported EPS against the consensus estimate that preceded it. */
+export interface EarningsResult {
+  /** Fiscal quarter end label, e.g. "Apr 2026". */
+  fiscalQuarterEnd: string;
+  /** ISO date the result was reported, e.g. "2026-05-20". */
+  dateReported: string;
+  /** Actual reported EPS. */
+  eps: number;
+  /** Consensus EPS forecast going into the print. */
+  consensusEps?: number;
+  /** Surprise as a percent of consensus; positive = beat. */
+  surprisePct?: number;
+}
+
+/** A company's earnings track record plus its next scheduled report. */
+export interface EarningsHistory {
+  symbol: string;
+  /** Past results, newest first. */
+  results: EarningsResult[];
+  /** ISO date of the next scheduled report, when the exchange publishes one. */
+  nextReportDate?: string;
+  /** Whether the next report lands before the open or after the close. */
+  nextReportTime?: "pre-market" | "after-hours" | "unknown";
+}
+
+/** One company scheduled to report on a given session. */
+export interface EarningsCalendarEntry {
+  symbol: string;
+  companyName: string;
+  /** ISO date of the scheduled report. */
+  date: string;
+  time: "pre-market" | "after-hours" | "unknown";
+  /** Consensus EPS forecast, when published. */
+  consensusEps?: number;
+  /** Number of estimates behind the consensus. */
+  estimateCount?: number;
+  /** Market capitalisation, USD — lets a frame rank the session's heavyweights. */
+  marketCap?: number;
+}
+
+/** Sell-side coverage summary for one company. */
+export interface AnalystRatings {
+  symbol: string;
+  /** Headline consensus, e.g. "Buy". */
+  consensus?: string;
+  /**
+   * Consensus mapped to 1–5 (1 = strong buy, 5 = strong sell) when the
+   * publisher gives a numeric mean; absent when only a label is published.
+   */
+  meanRating?: number;
+  /** How many analysts contribute to the consensus. */
+  analystCount?: number;
+  /** Covering broker names, as published. */
+  brokers: string[];
+}
+
+/** Institutional ownership summary for one company (13F aggregates). */
+export interface InstitutionalOwnership {
+  symbol: string;
+  /** Share of shares outstanding held by institutions, percent (0–100). */
+  institutionalOwnershipPct?: number;
+  /** Total shares outstanding. */
+  sharesOutstanding?: number;
+  /** Total reported value of institutional holdings, USD. */
+  totalHoldingsValue?: number;
+  /** Holders that increased their position last quarter. */
+  increasedHolders?: number;
+  /** Shares added by those holders. */
+  increasedShares?: number;
+  /** Holders that decreased their position last quarter. */
+  decreasedHolders?: number;
+  /** Shares sold by those holders. */
+  decreasedShares?: number;
+}
+
+/** One listed option contract in a chain. */
+export interface OptionContract {
+  /** OCC-style contract id, e.g. "NVDA260821C00220000". */
+  contract: string;
+  /** Expiry, ISO date e.g. "2026-08-21". */
+  expiry: string;
+  /** Strike price, USD. */
+  strike: number;
+  side: "call" | "put";
+  /** Implied volatility as a decimal (0.42 = 42%); 0 upstream means "no quote". */
+  iv?: number;
+  openInterest: number;
+  volume: number;
+  bid?: number;
+  ask?: number;
+  lastPrice?: number;
+  delta?: number;
+  gamma?: number;
+  vega?: number;
+  theta?: number;
+  rho?: number;
+}
+
+/**
+ * A listed-equity option chain. Shaped so the existing crypto options frames
+ * can serve equities too — the same expiry/strike/side/IV/OI fields the
+ * Deribit-backed frames already reason about.
+ */
+export interface OptionsChain {
+  /** Underlying ticker, e.g. "NVDA". */
+  symbol: string;
+  /** Underlying last price, USD. */
+  underlyingPrice?: number;
+  /** 30-day implied volatility index for the underlying, decimal. */
+  iv30?: number;
+  /** Minutes the quotes lag real time (15 for a delayed feed, 0 for live). */
+  delayMinutes: number;
+  contracts: OptionContract[];
 }
 
 /**
@@ -1437,6 +1679,38 @@ export interface MarketDataProvider {
   getCompanyFilings?(tickerOrCik: string): Promise<SecCompanyFilings>;
   /** SEC EDGAR XBRL headline financials, by ticker or CIK. */
   getCompanyFacts?(tickerOrCik: string): Promise<CompanyFacts>;
+  /**
+   * SEC EDGAR XBRL reported history — every fact behind the headline metrics,
+   * oldest→newest, merged across each concept's tag aliases.
+   */
+  getCompanyFactsHistory?(
+    tickerOrCik: string,
+    cadence?: "annual" | "quarterly",
+  ): Promise<CompanyFactsHistory>;
+  /** Exchange profile + valuation snapshot for one listed company. */
+  getEquityProfile?(symbol: string): Promise<EquityProfile>;
+  /** Published multi-period financial statements for one listed company. */
+  getEquityFinancials?(
+    symbol: string,
+    frequency?: "annual" | "quarterly",
+  ): Promise<EquityFinancials>;
+  /** Reported-vs-consensus earnings track record plus the next scheduled date. */
+  getEarningsHistory?(symbol: string): Promise<EarningsHistory>;
+  /**
+   * Companies scheduled to report on `date` (ISO, default the next session).
+   * Market-wide, not per-symbol.
+   */
+  getEarningsCalendar?(date?: string): Promise<EarningsCalendarEntry[]>;
+  /** Sell-side consensus and covering brokers for one company. */
+  getAnalystRatings?(symbol: string): Promise<AnalystRatings>;
+  /** Institutional (13F) ownership aggregates for one company. */
+  getInstitutionalOwnership?(symbol: string): Promise<InstitutionalOwnership>;
+  /**
+   * Listed option chain for one underlying. Serves both crypto venues and
+   * listed-equity feeds, so frames read strikes/expiries/IV/OI the same way
+   * whatever the asset class.
+   */
+  getOptionsChain?(symbol: string): Promise<OptionsChain>;
   /** FINRA daily reported short-sale volume, keyed by the requested symbol. */
   getShortVolume?(symbols: string[]): Promise<Record<string, ShortVolumeEntry>>;
   /** Latest headlines from a named outlet feed (RSS), newest first. */

@@ -1,0 +1,310 @@
+{
+  "version": "1.0.0",
+  "title": "NVDA Deep Dive",
+  "author": "zframes",
+  "grid": {
+    "columns": 12,
+    "rowHeight": 96,
+    "gap": 12
+  },
+  "background": {
+    "type": "unicorn",
+    "opacity": 0.15
+  },
+  "theme": {
+    "accentHue": 118,
+    "accentSat": 60
+  },
+  "appearance": {
+    "radius": 12,
+    "surfaceOpacity": 0.9
+  },
+  "frames": [
+    {
+      "id": "heading",
+      "frame": "heading",
+      "position": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 1
+      },
+      "config": {
+        "title": "NVIDIA — company deep dive",
+        "subtitle": "profile · valuation · statements · earnings · options"
+      }
+    },
+    {
+      "id": "company-profile",
+      "frame": "company-profile",
+      "position": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "symbol": "NVDA"
+      }
+    },
+    {
+      "id": "valuation-multiples",
+      "frame": "valuation-multiples",
+      "position": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "symbol": "NVDA"
+      }
+    },
+    {
+      "id": "analyst-ratings",
+      "frame": "analyst-ratings",
+      "position": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "symbol": "NVDA",
+        "showBrokers": true
+      }
+    },
+    {
+      "id": "price-chart",
+      "frame": "price-chart",
+      "position": {
+        "x": 0,
+        "y": 4,
+        "w": 5,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA",
+        "source": "nasdaq"
+      },
+      "title": "NVDA — real tape (Nasdaq daily)"
+    },
+    {
+      "id": "financials-trend",
+      "frame": "financials-trend",
+      "position": {
+        "x": 5,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA",
+        "metric": "revenue",
+        "cadence": "annual"
+      },
+      "events": [
+        {
+          "date": "2022-11-30",
+          "label": "ChatGPT",
+          "note": "generative-AI demand inflection"
+        }
+      ]
+    },
+    {
+      "id": "margin-trend",
+      "frame": "margin-trend",
+      "position": {
+        "x": 9,
+        "y": 4,
+        "w": 3,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA",
+        "margins": ["gross", "operating", "net"]
+      }
+    },
+    {
+      "id": "cashflow-trend",
+      "frame": "cashflow-trend",
+      "position": {
+        "x": 0,
+        "y": 8,
+        "w": 5,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA"
+      }
+    },
+    {
+      "id": "earnings-surprise",
+      "frame": "earnings-surprise",
+      "position": {
+        "x": 5,
+        "y": 8,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA",
+        "count": 6
+      }
+    },
+    {
+      "id": "earnings-countdown",
+      "frame": "earnings-countdown",
+      "position": {
+        "x": 9,
+        "y": 8,
+        "w": 3,
+        "h": 2
+      },
+      "config": {
+        "symbol": "NVDA"
+      }
+    },
+    {
+      "id": "rsi-momentum",
+      "frame": "rsi-momentum",
+      "position": {
+        "x": 9,
+        "y": 10,
+        "w": 3,
+        "h": 2
+      },
+      "config": {
+        "symbol": "NVDA",
+        "source": "nasdaq",
+        "period": 14
+      }
+    },
+    {
+      "id": "equity-options-oi",
+      "frame": "equity-options-oi",
+      "position": {
+        "x": 0,
+        "y": 12,
+        "w": 5,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA",
+        "strikes": 16
+      }
+    },
+    {
+      "id": "equity-options-smile",
+      "frame": "equity-options-smile",
+      "position": {
+        "x": 5,
+        "y": 12,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA",
+        "moneyness": 0.3
+      }
+    },
+    {
+      "id": "equity-options-max-pain",
+      "frame": "equity-options-max-pain",
+      "position": {
+        "x": 9,
+        "y": 12,
+        "w": 3,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA"
+      }
+    },
+    {
+      "id": "equity-options-greeks",
+      "frame": "equity-options-greeks",
+      "position": {
+        "x": 0,
+        "y": 16,
+        "w": 5,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA",
+        "greek": "gamma",
+        "strikes": 20
+      }
+    },
+    {
+      "id": "institutional-ownership",
+      "frame": "institutional-ownership",
+      "position": {
+        "x": 5,
+        "y": 16,
+        "w": 4,
+        "h": 3
+      },
+      "config": {
+        "symbol": "NVDA"
+      }
+    },
+    {
+      "id": "short-volume",
+      "frame": "short-volume",
+      "position": {
+        "x": 9,
+        "y": 16,
+        "w": 3,
+        "h": 4
+      },
+      "config": {
+        "symbols": ["NVDA", "AMD", "AVGO"],
+        "sort": "shortPct"
+      }
+    },
+    {
+      "id": "filings-feed",
+      "frame": "filings-feed",
+      "position": {
+        "x": 0,
+        "y": 20,
+        "w": 5,
+        "h": 4
+      },
+      "config": {
+        "symbol": "NVDA",
+        "forms": "important",
+        "count": 8
+      }
+    },
+    {
+      "id": "news-feed",
+      "frame": "news-feed",
+      "position": {
+        "x": 5,
+        "y": 20,
+        "w": 4,
+        "h": 4
+      },
+      "config": {
+        "source": "stocks",
+        "symbols": ["NVDA"],
+        "count": 8
+      }
+    },
+    {
+      "id": "earnings-calendar",
+      "frame": "earnings-calendar",
+      "position": {
+        "x": 9,
+        "y": 20,
+        "w": 3,
+        "h": 4
+      },
+      "config": {
+        "count": 10
+      }
+    }
+  ]
+}
