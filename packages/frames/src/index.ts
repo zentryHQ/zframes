@@ -513,9 +513,37 @@ import { homeValueBarsFrame } from "./home-value-bars";
 import { homeValueMomentumFrame } from "./home-value-momentum";
 import { homeValueScatterFrame } from "./home-value-scatter";
 import { regionalHomePriceBarsFrame } from "./regional-home-price-bars";
+import { companyProfileFrame } from "./company-profile";
+import { valuationMultiplesFrame } from "./valuation-multiples";
+import { financialsTrendFrame } from "./financials-trend";
+import { marginTrendFrame } from "./margin-trend";
+import { cashflowTrendFrame } from "./cashflow-trend";
+import { earningsSurpriseFrame } from "./earnings-surprise";
+import { earningsCountdownFrame } from "./earnings-countdown";
+import { earningsCalendarFrame } from "./earnings-calendar";
+import { analystRatingsFrame } from "./analyst-ratings";
+import { institutionalOwnershipFrame } from "./institutional-ownership";
+import { equityOptionsOiFrame } from "./equity-options-oi";
+import { equityOptionsSmileFrame } from "./equity-options-smile";
+import { equityOptionsMaxPainFrame } from "./equity-options-max-pain";
+import { equityOptionsGreeksFrame } from "./equity-options-greeks";
 
 /** Every built-in frame — hosts can register all of them in one call. */
 export const allFrames: AnyFrameDefinition[] = [
+  companyProfileFrame,
+  valuationMultiplesFrame,
+  financialsTrendFrame,
+  marginTrendFrame,
+  cashflowTrendFrame,
+  earningsSurpriseFrame,
+  earningsCountdownFrame,
+  earningsCalendarFrame,
+  analystRatingsFrame,
+  institutionalOwnershipFrame,
+  equityOptionsOiFrame,
+  equityOptionsSmileFrame,
+  equityOptionsMaxPainFrame,
+  equityOptionsGreeksFrame,
   portfolioValueFrame,
   portfolioAllocationFrame,
   portfolioHoldingsFrame,

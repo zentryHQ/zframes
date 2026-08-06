@@ -931,4 +931,60 @@ export const frameLoaders: Record<string, FrameLoader> = {
         (m) => m.regionalHomePriceBarsFrame,
       ),
   },
+  "company-profile": {
+    load: () => import("./company-profile").then((m) => m.companyProfileFrame),
+  },
+  "valuation-multiples": {
+    load: () =>
+      import("./valuation-multiples").then((m) => m.valuationMultiplesFrame),
+  },
+  "financials-trend": {
+    load: () =>
+      import("./financials-trend").then((m) => m.financialsTrendFrame),
+  },
+  "margin-trend": {
+    load: () => import("./margin-trend").then((m) => m.marginTrendFrame),
+  },
+  "cashflow-trend": {
+    load: () => import("./cashflow-trend").then((m) => m.cashflowTrendFrame),
+  },
+  "earnings-surprise": {
+    load: () =>
+      import("./earnings-surprise").then((m) => m.earningsSurpriseFrame),
+  },
+  "earnings-countdown": {
+    load: () =>
+      import("./earnings-countdown").then((m) => m.earningsCountdownFrame),
+  },
+  "earnings-calendar": {
+    load: () =>
+      import("./earnings-calendar").then((m) => m.earningsCalendarFrame),
+  },
+  "analyst-ratings": {
+    load: () => import("./analyst-ratings").then((m) => m.analystRatingsFrame),
+  },
+  "institutional-ownership": {
+    load: () =>
+      import("./institutional-ownership").then(
+        (m) => m.institutionalOwnershipFrame,
+      ),
+  },
+  "equity-options-oi": {
+    load: () =>
+      import("./equity-options-oi").then((m) => m.equityOptionsOiFrame),
+  },
+  "equity-options-smile": {
+    load: () =>
+      import("./equity-options-smile").then((m) => m.equityOptionsSmileFrame),
+  },
+  "equity-options-max-pain": {
+    load: () =>
+      import("./equity-options-max-pain").then(
+        (m) => m.equityOptionsMaxPainFrame,
+      ),
+  },
+  "equity-options-greeks": {
+    load: () =>
+      import("./equity-options-greeks").then((m) => m.equityOptionsGreeksFrame),
+  },
 };

@@ -75,6 +75,14 @@ export {
   useMortgageRates,
   useHomeValueIndex,
   useRegionalHousingPrice,
+  useCompanyFactsHistory,
+  useEquityProfile,
+  useEquityFinancials,
+  useEarningsHistory,
+  useEarningsCalendar,
+  useAnalystRatings,
+  useInstitutionalOwnership,
+  useOptionsChain,
 } from "./hooks";
 export {
   DashboardCurrencyProvider,

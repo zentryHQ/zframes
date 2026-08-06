@@ -1,4 +1,4 @@
-// The keyless market-data provider set — the 27 free, no-key providers, as ONE
+// The keyless market-data provider set — the 29 free, no-key providers, as ONE
 // factory both apps share. Runtime and explorer used to each keep an identical
 // copy of this list (apps/runtime/src/App.tsx, apps/explorer/app/lib/frames.ts);
 // adding a provider meant editing both and they drifted. Centralising it here
@@ -42,6 +42,8 @@ import { NewsProvider } from "@zframes/provider-news";
 import { NyFedProvider } from "@zframes/provider-nyfed";
 import { OfrProvider } from "@zframes/provider-ofr";
 import { SecProvider } from "@zframes/provider-sec";
+import { NasdaqProvider } from "@zframes/provider-nasdaq";
+import { CboeProvider } from "@zframes/provider-cboe";
 import { TreasuryProvider } from "@zframes/provider-treasury";
 
 /** The keyless market-data provider set, in capability-routing order. */
@@ -64,6 +66,14 @@ export function createKeylessProviders(): MarketDataProvider[] {
     new BlsProvider(),
     new SecProvider(),
     new FinraProvider(),
+    // Nasdaq sits with the equity cluster and DELIBERATELY after Hyperliquid:
+    // it also fulfils `day-stats` and `ohlcv`, so placing it earlier would
+    // silently repoint every existing price card at the exchange's daily bars
+    // (no intraday, no crypto). Here it stays reachable only by pinning
+    // `source: "nasdaq"`, which is exactly what a card wanting the real
+    // consolidated tape instead of the HIP-3 perp asks for.
+    new NasdaqProvider(),
+    new CboeProvider(),
     new OfrProvider(),
     new FredProvider(),
     new ZillowProvider(),
