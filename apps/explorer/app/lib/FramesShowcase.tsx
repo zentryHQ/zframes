@@ -9,8 +9,10 @@ import { LiveFrame } from "@/app/lib/LiveFrame";
 import { Parallax, Reveal, useViewportProgress } from "@/app/lib/motion";
 
 // ── The frames chapter ──────────────────────────────────────────────────────
-// The landing's second act: the vocabulary the agent composes from. Six frame
-// families, each staged as a parallax collage of REAL live frames (LiveFrame →
+// The landing's second act: the vocabulary the agent composes from. The biggest
+// frame families — traditional finance first (markets, macro & rates, filings,
+// metals), then the crypto-native ones — each staged as a parallax collage of
+// REAL live frames (LiveFrame →
 // the runtime's own FrameContent on shared providers) drifting at different
 // rates around the family's copy, with a ghosted chapter numeral moving
 // counter-scroll behind. Every specimen is streaming real data — the section
@@ -56,9 +58,9 @@ const CHAPTERS: Chapter[] = [
   {
     key: "markets",
     label: "Prices & Markets",
-    headline: "Stocks first. Crypto alongside.",
+    headline: "Equities and crypto on one tape.",
     blurb:
-      "Live equity perps over Hyperliquid HIP-3 — TSLA and NVDA candles streaming next to the entire crypto universe, over one free socket. Charts, tickers, movers: the pulse of the tape.",
+      "TSLA and NVDA candles streaming as equity perps over Hyperliquid HIP-3, the session clock beside them, and the whole crypto universe on the same free socket. Charts, volume profiles, tickers: the pulse of the tape, live.",
     specimens: [
       {
         frame: "price-chart",
@@ -67,7 +69,7 @@ const CHAPTERS: Chapter[] = [
         tilt: -1.2,
       },
       {
-        frame: "top-movers",
+        frame: "volume-profile",
         className: "w-60 h-72 hidden sm:block",
         drift: 64,
         tilt: 1.6,
@@ -83,6 +85,113 @@ const CHAPTERS: Chapter[] = [
         className: "w-[min(26rem,80vw)] h-24 hidden md:block",
         drift: 44,
         tilt: -0.8,
+      },
+    ],
+  },
+  {
+    key: "macro",
+    label: "Macro & Rates",
+    headline: "The official numbers, unofficial speed.",
+    blurb:
+      "The Treasury yield curve, corporate credit spreads, the composition of the federal debt, the FX cross grid, and who actually showed up to the last auction. Primary sources — Treasury, FRED, the New York Fed — rendered like a terminal, not a press release.",
+    specimens: [
+      {
+        frame: "yield-curve",
+        className: "w-[min(28rem,80vw)] h-64",
+        drift: 22,
+        tilt: -1.2,
+      },
+      {
+        frame: "credit-spread-chart",
+        className: "w-80 h-56 hidden sm:block",
+        drift: 64,
+        tilt: 1.4,
+      },
+      {
+        frame: "treasury-debt-composition-area",
+        className: "w-72 h-64 hidden sm:block",
+        drift: 96,
+        tilt: 1.8,
+      },
+      {
+        frame: "fx-cross-heatmap",
+        className: "w-72 h-56 hidden md:block",
+        drift: 46,
+        tilt: -1.2,
+      },
+      {
+        frame: "treasury-auction-demand-scatter",
+        className: "w-64 h-56 hidden lg:block",
+        drift: 78,
+        tilt: 1,
+      },
+    ],
+  },
+  {
+    key: "equities",
+    label: "Equities & Filings",
+    headline: "Straight out of EDGAR.",
+    blurb:
+      "What a company actually filed and how the street is positioned against it — the SEC's own submissions feed, the mix of forms behind it, and FINRA's daily reported short-sale volume. Public records, read at terminal speed.",
+    // Cast off the CHEAP SEC endpoint on purpose. `filings-feed`/`filings-mix`
+    // read EDGAR's submissions JSON (CORS-open, small); `fundamentals` and
+    // `capital-structure-bars` read the companyfacts XBRL blob, which is tens of
+    // megabytes for a large-cap and has to cross the proxy's 16 MB cap. Fine on
+    // a board someone chose to build; not fine on the front page.
+    specimens: [
+      {
+        frame: "filings-feed",
+        className: "w-[min(26rem,80vw)] h-72",
+        drift: 24,
+        tilt: 1.2,
+      },
+      {
+        frame: "short-volume-bars",
+        className: "w-80 h-56 hidden sm:block",
+        drift: 68,
+        tilt: -1.4,
+      },
+      {
+        frame: "filings-mix",
+        className: "w-60 h-56 hidden sm:block",
+        drift: 98,
+        tilt: -1.8,
+      },
+    ],
+  },
+  {
+    key: "metals",
+    label: "Metals & Commodities",
+    headline: "Gold, back to 1968.",
+    blurb:
+      "The LBMA's own London fix files — the deepest price history in the fleet — plus live spot, month-by-year seasonality, and the CFTC's weekly futures positioning. Half a century of prints, no key, no signup.",
+    // Two of these pull LBMA fix history (~150 KB gzipped per metal, 6 h TTL and
+    // deliberately not persisted), so the chapter costs about one image. Keep it
+    // to two history-backed cards.
+    specimens: [
+      {
+        frame: "metal-price-chart",
+        className: "w-[min(28rem,80vw)] h-64",
+        drift: 22,
+        tilt: -1.4,
+      },
+      {
+        frame: "metal-cot-net",
+        className: "w-80 h-56 hidden sm:block",
+        drift: 66,
+        tilt: 1.4,
+      },
+      {
+        frame: "metal-seasonality",
+        className: "w-72 h-56 hidden sm:block",
+        drift: 98,
+        tilt: 1.8,
+      },
+      {
+        frame: "metals-board",
+        className: "w-64 h-48 hidden md:block",
+        drift: 44,
+        tilt: -1,
       },
     ],
   },
@@ -182,39 +291,6 @@ const CHAPTERS: Chapter[] = [
         className: "w-64 h-28 hidden md:block",
         drift: 44,
         tilt: 1.6,
-      },
-    ],
-  },
-  {
-    key: "macro",
-    label: "Macro & Rates",
-    headline: "The official numbers, unofficial speed.",
-    blurb:
-      "The Treasury yield curve, corporate credit spreads, FX crosses — and what a home actually costs, in dollars. The Fed's own series, Zillow's and the FHFA's, straight from the primary sources and rendered like a terminal, not a press release.",
-    specimens: [
-      {
-        frame: "yield-curve",
-        className: "w-[min(28rem,80vw)] h-64",
-        drift: 22,
-        tilt: -1.2,
-      },
-      {
-        frame: "credit-spread-chart",
-        className: "w-80 h-56 hidden sm:block",
-        drift: 64,
-        tilt: 1.4,
-      },
-      {
-        frame: "metro-home-values",
-        className: "w-72 h-64 hidden sm:block",
-        drift: 96,
-        tilt: 1.8,
-      },
-      {
-        frame: "fx-board",
-        className: "w-64 h-52 hidden md:block",
-        drift: 46,
-        tilt: -1.2,
       },
     ],
   },
@@ -545,7 +621,9 @@ export function FramesShowcase() {
         <Reveal>
           <p className="text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
             Every frame below is the real component, rendering live data right
-            now — not a screenshot, not a mock.{" "}
+            now — not a screenshot, not a mock. Hover one: treemaps, heatmaps,
+            scatters, radial gauges and stacked areas, all on an in-house D3
+            chart layer with real tooltips.{" "}
             {sentenceCase(numberWord(FRAME_CATEGORIES.length))} families; here
             are {numberWord(CHAPTERS.length)}.
           </p>
@@ -567,9 +645,9 @@ export function FramesShowcase() {
       <div className="mx-auto max-w-3xl px-6 pb-8 pt-8 text-center sm:pt-12">
         <Reveal>
           <p className="text-pretty text-base leading-relaxed text-white/70 sm:text-lg">
-            …plus metals and the London fix, on-chain cycle ratios, portfolios,
-            decision journals, countdowns, calculators, headings, video — even
-            idle games for when the market sleeps.
+            …plus on-chain cycle ratios, portfolios, decision journals,
+            countdowns, calculators, headings, video — even idle games for when
+            the market sleeps.
           </p>
           <Link
             href="/catalogue"
