@@ -4,6 +4,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
@@ -103,11 +104,52 @@ export const dashboards = pgTable("dashboards", {
   tags: text("tags").array().notNull().default([]),
   views: integer("views").notNull().default(0),
   forks: integer("forks").notNull().default(0),
+  // Public likes. Unlike `views`/`forks` above — which were declared and never
+  // wired — this one is live: `/api/likes` increments it, the gallery sorts on it.
+  // A column rather than a separate table BECAUSE the gallery already selects full
+  // rows, so ordering by popularity costs no join.
+  likes: integer("likes").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export type DashboardRow = typeof dashboards.$inferSelect;
+
+// ── like allowances ──────────────────────────────────────────────────────────
+// The cap behind the public like button: N per item per day, enforced server-side.
+// One row per (visitor, item, UTC day) — so rows are spread across visitors and
+// items rather than contending on a single hot counter, which is what rules out
+// the "one global counter row" shape (it serialises every request under exactly
+// the flood it exists to absorb).
+//
+// TWO KINDS OF ROW share this table, distinguished by `scope`:
+//   • scope "item" — key = hash(ip:browserId), 5/day. The product rule: how much
+//     one person can like one thing.
+//   • scope "ip"   — key = hash(ip), itemKind/itemId = "", 500/day across ALL
+//     items. The anti-rotation backstop, and it is load-bearing: `browserId` comes
+//     from localStorage, so clearing it mints a fresh per-item allowance. Without
+//     this row the cap has no ceiling at all.
+//
+// `visitorKey` is a SALTED HASH, never a raw address — same enforcement, smaller
+// privacy object. Rows are swept after 2 days (nothing reads an older bucket), so
+// this is a short-lived counter, not a visitor log.
+export const likeGrants = pgTable(
+  "like_grants",
+  {
+    visitorKey: text("visitor_key").notNull(),
+    scope: text("scope").notNull(), // item | ip
+    itemKind: text("item_kind").notNull(), // dashboard | frame · "" for scope=ip
+    itemId: text("item_id").notNull(), // "" for scope=ip
+    day: text("day").notNull(), // UTC YYYY-MM-DD
+    n: integer("n").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({
+      columns: [t.visitorKey, t.scope, t.itemKind, t.itemId, t.day],
+    }),
+  ],
+);
 
 // ── nightly dashboard screenshots ────────────────────────────────────────────
 // Real browser captures of /dashboard/[id], refreshed by scripts/capture-thumbs.ts on a
