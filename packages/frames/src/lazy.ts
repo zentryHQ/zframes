@@ -835,6 +835,18 @@ export const frameLoaders: Record<string, FrameLoader> = {
     load: () =>
       import("./metal-ratio-chart").then((m) => m.metalRatioChartFrame),
   },
+  "metal-ratio-percentile": {
+    load: () =>
+      import("./metal-ratio-percentile").then(
+        (m) => m.metalRatioPercentileFrame,
+      ),
+  },
+  "metal-rolling-correlation": {
+    load: () =>
+      import("./metal-rolling-correlation").then(
+        (m) => m.metalRollingCorrelationFrame,
+      ),
+  },
   "btc-in-gold": {
     load: () => import("./btc-in-gold").then((m) => m.btcInGoldFrame),
   },
@@ -851,6 +863,14 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "metal-open-interest": {
     load: () =>
       import("./metal-open-interest").then((m) => m.metalOpenInterestFrame),
+  },
+  "metal-cot-percentile": {
+    load: () =>
+      import("./metal-cot-percentile").then((m) => m.metalCotPercentileFrame),
+  },
+  "metal-spec-notional": {
+    load: () =>
+      import("./metal-spec-notional").then((m) => m.metalSpecNotionalFrame),
   },
   "metal-positioning-vs-price": {
     load: () =>
