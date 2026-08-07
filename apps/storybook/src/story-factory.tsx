@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
-import type { AnyFrameDefinition } from "@zframes/core";
+import type { AnyFrameDefinition, FrameLayout } from "@zframes/core";
 import type { StoryGlobals } from "../.storybook/preview";
 import { FrameCanvas } from "./frame-canvas";
 import { curated } from "./curated";
@@ -13,6 +13,23 @@ type Render = (
 type Variant = { label: string; config: Record<string, unknown> };
 
 const VARIANT_CAP = 12;
+
+/**
+ * The board geometry every size is measured against: `DashboardSpecSchema`'s
+ * default `grid.columns`. A frame can never be resized past it, so it's the
+ * hard ceiling on width regardless of what the frame's own `layout.maxW` says.
+ */
+const BOARD_COLUMNS = 12;
+/** Default span for a frame that declares no `layout` (mirrors FrameCanvas). */
+const FALLBACK_LAYOUT: FrameLayout = { w: 4, h: 3 };
+/**
+ * Height ceiling for a frame that declares no `maxH`. GridStack imposes none
+ * (a board grows downward forever), so the story picks a readable stopping
+ * point rather than enumerating to infinity.
+ */
+const OPEN_MAX_H = 6;
+/** Upper bound on rendered cells — the full cross product can be large. */
+const SIZE_CAP = 72;
 
 function baseConfig(frame: AnyFrameDefinition): Record<string, unknown> {
   return curated[frame.name]?.base ?? buildDefaultConfig(frame);
@@ -160,6 +177,79 @@ export function variantsRender(frame: AnyFrameDefinition): Render {
         </Cell>
       ))}
     </Grid>
+  );
+}
+
+/**
+ * Every grid span the frame can legally occupy, as GridStack would allow it:
+ * width from `layout.minW` to `layout.maxW` (clamped to the board's columns),
+ * height from `layout.minH` to `layout.maxH`. Those four are exactly the
+ * attributes the editor writes as `gs-min-w`/`gs-max-w`/`gs-min-h`/`gs-max-h`,
+ * so this enumerates the real resize envelope, not an invented sample of it.
+ *
+ * Ordered by height then width, so the grid reads as one row per row-count.
+ */
+function sizesFor(frame: AnyFrameDefinition): { w: number; h: number }[] {
+  const l = frame.layout ?? FALLBACK_LAYOUT;
+  const minW = Math.max(1, l.minW ?? 1);
+  const maxW = Math.min(l.maxW ?? BOARD_COLUMNS, BOARD_COLUMNS);
+  const minH = Math.max(1, l.minH ?? 1);
+  const maxH = l.maxH ?? Math.max(l.h, OPEN_MAX_H);
+
+  const out: { w: number; h: number }[] = [];
+  for (let h = minH; h <= maxH; h++) {
+    for (let w = minW; w <= maxW; w++) out.push({ w, h });
+  }
+  // A frame whose min exceeds its max (or which sits outside the board) would
+  // otherwise render nothing at all; fall back to its declared default span.
+  if (out.length === 0) out.push({ w: l.w, h: l.h });
+  return out.slice(0, SIZE_CAP);
+}
+
+/**
+ * A board of the frame at every size it can be resized to. Cells are laid out
+ * with flex rather than the fixed-column `.sb-grid`, because each canvas has an
+ * intrinsic pixel width (`w` columns) and must not be squeezed out of it — a
+ * story about sizing that resizes its own cells would prove nothing.
+ */
+export function sizesRender(frame: AnyFrameDefinition): Render {
+  const base = baseConfig(frame);
+  return (_args, context) => {
+    const sizes = sizesFor(frame);
+    return (
+      <div className="sb-sizes">
+        {sizes.map((s) => (
+          <div className="sb-cell sb-size-cell" key={`${s.w}x${s.h}`}>
+            <div className="sb-cell-label">
+              {s.w}&times;{s.h}
+            </div>
+            <FrameCanvas
+              frame={frame}
+              config={base}
+              mode="normal"
+              size={s}
+              globals={context.globals}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+}
+
+/**
+ * The frame against the REAL keyless providers — the one story that leaves the
+ * mock behind. Non-deterministic by definition: it's for eyeballing how the
+ * frame copes with real upstream data, never for visual regression.
+ */
+export function liveRender(frame: AnyFrameDefinition): Render {
+  return (args, context) => (
+    <FrameCanvas
+      frame={frame}
+      config={args}
+      mode="live"
+      globals={context.globals}
+    />
   );
 }
 

@@ -41,7 +41,9 @@ import {
   baseArgs,
   canvasRender,
   variantsRender,
+  sizesRender,
   statesRender,
+  liveRender,
 } from "../story-factory";
 
 const frame = allFrames.find((f) => f.name === ${JSON.stringify(name)})!;
@@ -61,10 +63,19 @@ export const AllVariants: S = {
   render: variantsRender(frame),
 };
 
+export const AllSizes: S = {
+  parameters: { controls: { disable: true } },
+  render: sizesRender(frame),
+};
+
 export const States: S = {
   parameters: { controls: { disable: true } },
   render: statesRender(frame),
 };
+
+// Real keyless providers, not the mock — see src/live-providers.ts. Excluded
+// from the frame-render smoke test, which pins RENDER_STORY to Default.
+export const Live: S = { args: baseArgs(frame), render: liveRender(frame) };
 `;
 }
 
