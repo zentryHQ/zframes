@@ -17,14 +17,11 @@ packages/catalogue/
 # (a vite build of apps/runtime that `zframes serve` ships)
 packages/cli/runtime/
 
-# Local dev dogfood data — `pnpm dev` reads/writes these (the dashboard spec is
-# the in-browser editor's Save target; the analysis log is what /zframes-brief
-# writes), but they're local working files, not published artifacts. The shipped
-# CLI never uses them. Create your own to run dev (e.g.
-# `zframes init apps/runtime/src/dashboard.json`); the brief frame degrades to an
-# empty "no brief yet" state when its log is absent.
+# Local dev dogfood data — `pnpm dev` reads/writes this (it's the in-browser
+# editor's Save target), but it's a local working file, not a published
+# artifact. The shipped CLI never uses it. Create your own to run dev (e.g.
+# `zframes init apps/runtime/src/dashboard.json`).
 apps/runtime/src/dashboard.json
-apps/runtime/public/daily-analysis.json
 
 # Local-only docs — kept on disk, never committed to the public repo.
 # Everything under docs/ is local working material (the six-slot taxonomy:

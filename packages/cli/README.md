@@ -4,9 +4,9 @@ AI-personalizable, **keyless** market dashboards — served live from a single `
 
 An agent reads the frame catalogue, emits a `dashboard.json` spec, and `zframes`
 validates it and serves it as a live, in-browser-editable market terminal. All
-data comes from free public APIs — Hyperliquid, CoinGecko, DeFiLlama, Deribit,
-mempool.space, the U.S. Treasury, the NY Fed, BLS, SEC EDGAR, and more —
-**no API keys, ever.**
+data comes from free public APIs — Hyperliquid, Nasdaq, CoinGecko, DeFiLlama,
+Deribit, Cboe, mempool.space, the U.S. Treasury, the NY Fed, BLS, SEC EDGAR,
+FRED, and more — **no API keys, ever.**
 
 ## Quick start
 
@@ -37,7 +37,7 @@ fetches the CLI (which bundles the dashboard runtime) on each run.
 | `zframes use <name>` | Set the default store dashboard. |
 | `zframes catalogue` | Print every available frame as JSON Schema — this is what a generating agent reads. |
 | `zframes lint <name\|file>` | Validate a dashboard; exits non-zero with readable, per-frame errors. |
-| `zframes snapshot [name\|file]` | Gather a keyless market snapshot for the dashboard's symbols (feeds the daily-brief loop). |
+| `zframes snapshot [name\|file]` | Print a keyless market snapshot for the dashboard's symbols as JSON (for scripting and analysis). |
 
 Any argument with a `/` or a `.json` suffix is a **file path**; a bare token is a
 **store name**. Where the target is optional (`serve`, `snapshot`), it resolves
@@ -53,10 +53,12 @@ never a crashed dashboard — so a generating agent gets a tight feedback loop v
 
 ## Scope
 
-- **Keyless only** — 15 free public sources: Hyperliquid (crypto + HIP-3 stock
-  perps), CoinGecko, Coinpaprika, alternative.me, DeFiLlama, mempool.space,
-  Deribit, the U.S. Treasury, the NY Fed, OFR, BLS, FINRA, SEC EDGAR, news RSS,
-  and ECB FX rates. No keys anywhere.
+- **Keyless only** — 29 free public sources: Hyperliquid (crypto + HIP-3 stock
+  perps), Nasdaq, CoinGecko, Coinpaprika, alternative.me, DeFiLlama,
+  GeckoTerminal, Blockchair, Coin Metrics, bitcoin-data.com, ultrasound.money,
+  Polymarket, SoSoValue, mempool.space, Deribit, Cboe, Bitkub, the U.S.
+  Treasury, the NY Fed, OFR, BLS, FINRA, SEC EDGAR, FRED, Zillow, FHFA, LBMA
+  metals, news RSS, and a four-source FX chain. No keys anywhere.
 - **Stocks-first** — equity perps via Hyperliquid HIP-3 builder dexes, with
   crypto, DeFi, derivatives, and official US macro data alongside.
 

@@ -45,9 +45,6 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "custom-data": {
     load: () => import("./custom-data").then((m) => m.customDataFrame),
   },
-  "daily-analysis": {
-    load: () => import("./daily-analysis").then((m) => m.dailyAnalysisFrame),
-  },
   "journal-log": {
     load: () => import("./journal-log").then((m) => m.journalLogFrame),
   },

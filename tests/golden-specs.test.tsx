@@ -36,8 +36,8 @@
  *
  * HERMETIC. `fetch` is stubbed to reject for the whole file. Several frames
  * fetch on mount *without* a provider — `custom-data` hits the URL in its own
- * config, `daily-analysis` reads its log, the portfolio frames poll the
- * credential route — so `MockMarketDataProvider` cannot intercept them and an
+ * config, the portfolio frames poll the credential route — so
+ * `MockMarketDataProvider` cannot intercept them and an
  * unstubbed run made 14 real requests (CoinGecko, Bitkub, open-meteo, plus
  * whatever answers on the jsdom-implied :3000). That put CoinGecko/Bitkub
  * uptime and rate-limit headroom on the PR gate and let live responses mutate
@@ -149,12 +149,9 @@ const FIXTURES: Fixture[] = [
       "spotify-embed",
       "stopwatch",
     ],
-    // `daily-analysis` reads its brief log; the portfolio cards whose source is
-    // a keyed account poll the loopback credential route.
-    outboundFetchTargets: [
-      "/__zframes/account/credentials",
-      "/daily-analysis.json",
-    ],
+    // The portfolio cards whose source is a keyed account poll the loopback
+    // credential route.
+    outboundFetchTargets: ["/__zframes/account/credentials"],
   },
   {
     name: "crypto-command",
@@ -300,8 +297,8 @@ beforeAll(() => {
   // HERMETIC (see the file header): a handful of frames fetch on mount without
   // a provider in the way, so with the real `fetch` in place this file talked
   // to CoinGecko, Bitkub, open-meteo and :3000 on every run and settled its
-  // cards from live responses mid-assertion. Reject instead — `custom-data`,
-  // `daily-analysis` and the portfolio cards all catch their own rejection and
+  // cards from live responses mid-assertion. Reject instead — `custom-data`
+  // and the portfolio cards all catch their own rejection and
   // render a body-level "fetch failed"/empty state, which is exactly the
   // non-error state the render assertion already expects.
   vi.stubGlobal(

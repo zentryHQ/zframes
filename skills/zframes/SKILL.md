@@ -82,7 +82,7 @@ global text size), the card-surface `appearance`
 display `currency` (`{ code: "USD" }` by default) — with an
 **empty `frames` array**. You never author that boilerplate or its geometry by
 hand; you only fill in `frames` (step 4). That single file is everything the
-user owns; sibling files it references (a `daily-analysis.json` brief, a local
+user owns; sibling files it references (a local
 image) live next to it in the dashboard's own `dashboards/<name>/` folder, so
 each dashboard's assets stay isolated. `init` refuses to clobber an existing
 file unless you pass `--force`.
@@ -222,10 +222,10 @@ numbers jumping" → `typography.numericStyle: "tabular"`, "bigger/smaller text"
 `typography.scale`, "colourblind / custom gain-loss colours" →
 `theme.upColor`/`theme.downColor`, "glassy cards" → lower
 `appearance.surfaceOpacity`, "no animation" → `background.type: "gradient"`,
-"show it in baht / euros / yen" → `currency.code: "THB"|"EUR"|"JPY"` — 19
-ECB-quoted codes; every market figure converts from USD at the live reference
-rate, and one card can opt out with its own `"currency": "USD"` beside
-`position`).
+"show it in baht / euros / yen" → `currency.code: "THB"|"EUR"|"JPY"` — 146
+codes (the catalogue's enum is the valid list); every market figure converts from
+USD at the live reference rate, and one card can opt out with its own
+`"currency": "USD"` beside `position`).
 
 **Denominating a board in another currency.** `currency.code` is the whole job —
 you do NOT convert anything yourself, and you never touch a frame's numbers.
@@ -298,15 +298,21 @@ out in one group. The group itself draws no card by default (the children's own
 cards carry the look); add `"panel": true` to its config for a surrounding
 surface. Catalogue entries carry `"container": true` for frames that work this way.
 
-**Sourcing a frame from a second exchange.** Data routing is first-match by
+**Sourcing a frame from a second venue.** Data routing is first-match by
 capability, so a frame only reads another venue if you say so: set
-`"venue": "bitkub"` in the frame's `config` (supported on `price-chart`,
-`top-movers`, `order-book-depth`). Symbols are venue-native — Bitkub lists bare
-tickers (`KUB`, `BTC`) and has **no** HIP-3 stock perps, so never send it an
-`xyz:` symbol. Bitkub is also the only venue with an order book, which is what
-the `order-book-depth` frame renders (bid/ask ladder + spread). A Bitkub
-`price-chart` has no live tick (only Hyperliquid streams quotes) — it polls
-candles, which is expected.
+`"source": "bitkub"` (or `"nasdaq"`) in the frame's `config` — supported on
+`price-chart`, `top-movers`, `price-events`, `rsi-momentum`, `return-calendar`,
+`return-distribution` and `order-book-depth`; the catalogue's enum per frame is
+the authority. The field is **`source`**, not `venue`. Symbols are source-native:
+Bitkub lists bare tickers (`KUB`, `BTC`) and has **no** HIP-3 stock perps, so
+never send it an `xyz:` symbol; Nasdaq wants a plain US ticker (`NVDA`, not
+`xyz:NVDA`). Bitkub is the only venue with an order book, which is what the
+`order-book-depth` frame renders (bid/ask ladder + spread). Pin `nasdaq` when a
+stock card should show the real listing rather than its perp — its volume and
+open interest are the listing's, not Hyperliquid's book — but note it serves
+**daily bars only** and can't back a card that scans a whole universe
+(`top-movers`). A Bitkub or Nasdaq `price-chart` has no live tick (only
+Hyperliquid streams quotes) — it polls candles, which is expected.
 
 **Show the full frame set — every dashboard gets all the market frames.** You
 don't cherry-pick frames by interest; build the whole comprehensive set and
@@ -420,6 +426,8 @@ taken.
   names as options, and never make the user assemble the dashboard.
 - dashboard.json is the only artifact. No React, no CSS, no new frames.
   If the user wants a frame that doesn't exist, say so and list what does.
-- Free data only: Hyperliquid (crypto + HIP-3 stock perps), DeFiLlama,
-  alternative.me, CoinGecko. There are no API keys to configure — never ask for one.
+- Free data only: 29 keyless sources — Hyperliquid (crypto + HIP-3 stock perps),
+  Nasdaq, CoinGecko, DeFiLlama, Deribit, Cboe, mempool.space, the U.S. Treasury,
+  the NY Fed, BLS, SEC EDGAR, FRED, LBMA metals, and more. There are no API keys
+  to configure — never ask for one.
 - Re-read the catalogue every session; never trust remembered frame names.
