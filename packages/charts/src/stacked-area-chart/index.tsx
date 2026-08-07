@@ -9,6 +9,8 @@ import React, {
 } from "react";
 import * as d3 from "d3";
 import { cn } from "../lib/utils";
+import { useChartIntro } from "../lib/use-chart-intro";
+import { useIsomorphicLayoutEffect } from "../lib/use-isomorphic-layout-effect";
 
 import type {
   StackedAreaSeries,
@@ -33,6 +35,19 @@ import { createScales } from "./d3-rendering/create-scales";
 import { createGrid } from "./d3-rendering/create-grid";
 import { createAxes } from "./d3-rendering/create-axes";
 import { drawAreas, updateAreaOpacities } from "./d3-rendering/draw-areas";
+
+/**
+ * First-draw entrance: the stacked bands fade + rise into place, bottom band
+ * first, so the chart visibly builds itself when the card appears. Marks only —
+ * grid, axes and tick labels paint instantly, as everywhere else in this repo.
+ */
+const INTRO_DURATION_MS = 550;
+/** Whatever the series count, the last band still lands inside this budget. */
+const INTRO_TOTAL_BUDGET_MS = 900;
+const INTRO_STAGGER_MAX_MS = 70;
+const INTRO_RISE_PX = 12;
+/** ≈ d3.easeCubicOut — arriving, not sweeping. */
+const INTRO_EASING = "cubic-bezier(0.215, 0.61, 0.355, 1)";
 
 /**
  * Default area component - renders a simple filled area
@@ -84,7 +99,10 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
 }: StackedAreaChartProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const areasGroupRef = useRef<SVGGElement>(null);
+  const introAnimationsRef = useRef<Animation[]>([]);
   const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
+  const shouldIntro = useChartIntro();
 
   const dimensions = useChartDimensions({
     height,
@@ -249,6 +267,76 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
     formatYAxis,
   ]);
 
+  // Intro animation. This effect re-runs on data polls, resizes, prop and theme
+  // changes; `shouldIntro()` only answers true inside the grace window that
+  // opens at the first real draw, so a 15-minute poll never re-grows the card
+  // from zero — while the re-render burst right after first paint may restart
+  // the entrance, which is what makes it survive StrictMode's double-invoke.
+  useIsomorphicLayoutEffect(() => {
+    const group = areasGroupRef.current;
+    if (!group || dimensions.width === 0 || !scales || areaPaths.length === 0) {
+      // Nothing painted yet (dimensions unmeasured / no scales / no bands) —
+      // return before consulting the gate, so the window opens on the draw that
+      // actually has bands to animate.
+      return;
+    }
+
+    if (!shouldIntro()) return;
+
+    const bands = Array.from(
+      group.querySelectorAll<SVGGElement>("g[data-series-id]"),
+    );
+    // No Web Animations API (jsdom): the chart just keeps its final state.
+    if (bands.length === 0 || typeof bands[0].animate !== "function") return;
+
+    // Per-band delay derived from the band count, so the last one still lands
+    // inside the budget instead of a fixed step stretching the show.
+    const stagger =
+      bands.length > 1
+        ? Math.min(
+            INTRO_STAGGER_MAX_MS,
+            (INTRO_TOTAL_BUDGET_MS - INTRO_DURATION_MS) / (bands.length - 1),
+          )
+        : 0;
+
+    // A restart inside the window re-arms the same elements, so drop the
+    // previous batch first: one tracked batch, no two entrances stacked on one
+    // band. Cancelling is invisible here — the replacement is armed in this same
+    // synchronous block, before the browser paints.
+    for (const animation of introAnimationsRef.current) animation.cancel();
+
+    introAnimationsRef.current = bands.map((band, index) =>
+      band.animate(
+        [
+          { opacity: 0, transform: `translateY(${INTRO_RISE_PX}px)` },
+          { opacity: 1, transform: "translateY(0px)" },
+        ],
+        {
+          duration: INTRO_DURATION_MS,
+          delay: index * stagger,
+          easing: INTRO_EASING,
+          // `backwards` keeps a band invisible through its stagger delay; once
+          // it finishes the element reverts to its own styles, so the group
+          // opacity/transform are left untouched for the hover layer.
+          fill: "backwards",
+        },
+      ),
+    );
+    // Deliberately no cleanup return here: a later resize or poll re-runs this
+    // effect, and cancelling from cleanup would snap a mid-flight entrance —
+    // outside the window that run stops at the gate and touches nothing.
+    // Unmount cleanup lives in the mount-scoped effect below.
+  }, [dimensions.width, scales, areaPaths.length]);
+
+  // Cancel any in-flight entrance on unmount only.
+  useEffect(
+    () => () => {
+      for (const animation of introAnimationsRef.current) animation.cancel();
+      introAnimationsRef.current = [];
+    },
+    [],
+  );
+
   // Handle hover effects
   const handleAreaMouseEnter = useCallback((seriesId: string) => {
     setHoveredSeriesId(seriesId);
@@ -303,25 +391,30 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
           <g
             transform={`translate(${dimensions.marginLeft},${dimensions.marginTop})`}
           >
-            {areaPaths.map(
-              ({ seriesId, pathD, color, index, series: seriesData }) => (
-                <g
-                  key={seriesId}
-                  onMouseEnter={() => handleAreaMouseEnter(seriesId)}
-                  onMouseLeave={handleAreaMouseLeave}
-                  style={{ cursor: "pointer" }}
-                >
-                  <AreaComponent
-                    series={seriesData}
-                    pathD={pathD}
-                    color={color}
-                    index={index}
-                    isHovered={hoveredSeriesId === seriesId}
-                    hasHover={hoveredSeriesId !== null}
-                  />
-                </g>
-              ),
-            )}
+            {/* Bands live in their own group: the intro animates these only,
+                never the hover rule or the mouse overlay below. */}
+            <g ref={areasGroupRef} className="areas">
+              {areaPaths.map(
+                ({ seriesId, pathD, color, index, series: seriesData }) => (
+                  <g
+                    key={seriesId}
+                    data-series-id={seriesId}
+                    onMouseEnter={() => handleAreaMouseEnter(seriesId)}
+                    onMouseLeave={handleAreaMouseLeave}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <AreaComponent
+                      series={seriesData}
+                      pathD={pathD}
+                      color={color}
+                      index={index}
+                      isHovered={hoveredSeriesId === seriesId}
+                      hasHover={hoveredSeriesId !== null}
+                    />
+                  </g>
+                ),
+              )}
+            </g>
 
             {/* Vertical hover line */}
             {tooltipState.visible && (
