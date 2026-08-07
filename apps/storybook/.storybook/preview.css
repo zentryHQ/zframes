@@ -74,6 +74,21 @@ html {
   padding: 20px;
   align-items: start;
 }
+/* The AllSizes board. Flex, not the fixed-column grid above: each canvas has an
+ * intrinsic width (its column span in px) and must keep it, so cells size to
+ * their content and wrap. Ordered by height, so rows group by row-count. */
+.sb-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 20px;
+  align-items: flex-start;
+}
+.sb-size-cell {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
 .sb-cell {
   border: 1px solid hsla(0, 0%, 100%, 0.08);
   border-radius: 14px;

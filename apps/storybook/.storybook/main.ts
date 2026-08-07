@@ -2,10 +2,38 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import type { StorybookConfig } from "@storybook/react-vite";
+import type { Plugin } from "vite";
+// Imported by package subpath, never a relative path: this file runs through
+// Vite's Node config loader, where an extensionless relative import fails (the
+// same contract packages/vite/src/vite.ts documents).
+import { DASHBOARD_PROXY_ROUTE, handleProxy } from "@zframes/serve/serve";
 
 const here = dirname(fileURLToPath(import.meta.url));
 // .storybook → apps/storybook → apps → repo root
 const repoRoot = resolve(here, "../../..");
+
+/**
+ * The same-origin official-data proxy, mirroring the dev plugin and the CLI's
+ * `serve`. The `Live` story needs it: roughly a third of the keyless providers
+ * (SEC, Treasury, FRED, FINRA, OFR, BLS, FHFA, parts of metals) read hosts that
+ * are CORS-blocked in the browser, and pass `proxied: true` — without this
+ * route those frames render *empty*, which looks like a frame bug rather than a
+ * missing server.
+ *
+ * Dev-server only. `storybook build` output is static, so a Live story served
+ * from `storybook-static` degrades to empty for exactly those providers.
+ */
+function officialDataProxy(): Plugin {
+  return {
+    name: "zframes-storybook-proxy",
+    configureServer(server) {
+      server.middlewares.use(DASHBOARD_PROXY_ROUTE, (req, res, next) => {
+        if (req.method !== "GET" && req.method !== "HEAD") return next();
+        void handleProxy(req, res);
+      });
+    },
+  };
+}
 
 const config: StorybookConfig = {
   stories: ["../src/stories/**/*.stories.tsx"],
@@ -17,7 +45,7 @@ const config: StorybookConfig = {
   async viteFinal(viteConfig) {
     const { mergeConfig } = await import("vite");
     return mergeConfig(viteConfig, {
-      plugins: [tailwindcss()],
+      plugins: [tailwindcss(), officialDataProxy()],
       // workspace packages ship TypeScript source; let Vite transform them
       optimizeDeps: {
         exclude: [
@@ -26,6 +54,7 @@ const config: StorybookConfig = {
           "@zframes/editor",
           "@zframes/frames",
           "@zframes/charts",
+          "@zframes/providers-keyless",
         ],
       },
       // symlinked workspace deps can double-load React → invalid hook calls
