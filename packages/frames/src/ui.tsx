@@ -71,7 +71,19 @@ export function FrameStatus({
   }
 
   return (
-    <div className="body-sm text-soft flex h-full min-h-0 items-center justify-center text-center">
+    <div
+      className="body-sm text-soft flex h-full min-h-0 items-center justify-center text-center"
+      // MACHINE-READABLE EMPTY STATE. A frame that has resolved with no data is
+      // NOT `aria-busy` — it looks finished to anything watching the DOM. The
+      // nightly thumbnail capture waited only for busy states to clear and so
+      // photographed boards mid-warm-up, publishing a shot full of "no history
+      // yet" cards; `apps/explorer/scripts/capture-thumbs.ts` now waits on this
+      // attribute and refuses to overwrite a good thumb with such a shot.
+      //
+      // It is deliberately NOT `role="status"`/`aria-busy` — those would lie to
+      // a screen reader about work still being in progress.
+      data-zf-empty="true"
+    >
       {children}
     </div>
   );
