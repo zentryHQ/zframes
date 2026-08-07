@@ -311,8 +311,8 @@ export function createRequestHandler(
     }
 
     // 2. Bundle assets ("/" → index.html, hashed /assets/*) → 3. sibling
-    //    files next to the dashboard (e.g. /daily-analysis.json, local
-    //    images) → 4. SPA fallback to the bundle's index.html.
+    //    files next to the dashboard (local images, any JSON a frame reads)
+    //    → 4. SPA fallback to the bundle's index.html.
     serveBundle(req, res, () =>
       serveSiblings(req, res, () =>
         serveSpa(req, res, () => {

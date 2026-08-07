@@ -40,7 +40,7 @@ import { createRequestHandler } from "./serve";
 //    pinned once, at its own layer: packages/serve/src/serve-body-proxy.test.ts.)
 //  * the four STATIC tiers in order (bundle → the current dashboard's own
 //    sibling folder → SPA fallback → 404), because tier 2 is how a dashboard's
-//    `daily-analysis.json` and local images load, and the ordering is what stops
+//    local images and any JSON a frame reads load, and the ordering is what stops
 //    a dashboard folder from shadowing the runtime's own JS.
 //  * `/__zframes/*` must never fall through to the SPA: an unknown reserved
 //    route returning `index.html` hands the browser HTML where it expects JSON,
@@ -472,10 +472,10 @@ describe("serve — the writeback PUT (the only path that can destroy work)", ()
 describe("serve — the static tiers, in order", () => {
   it("serves the bundle, then the dashboard's siblings, then the SPA, then 404", async () => {
     const { target, file } = pathTarget();
-    // Tier 2 is how a dashboard's own brief and local images load.
+    // Tier 2 is how a dashboard's own local images and data files load.
     writeFileSync(
-      join(dirname(file), "daily-analysis.json"),
-      '{"brief":"today"}',
+      join(dirname(file), "sidecar.json"),
+      '{"note":"today"}',
       "utf8",
     );
     const base = await start({ target });
@@ -489,9 +489,9 @@ describe("serve — the static tiers, in order", () => {
     expect(await index.text()).toContain("zframes-bundle");
 
     // 2. siblings of the current dashboard
-    const brief = await httpFetch(`${base}/daily-analysis.json`);
-    expect(brief.status).toBe(200);
-    expect(await brief.text()).toBe('{"brief":"today"}');
+    const sidecar = await httpFetch(`${base}/sidecar.json`);
+    expect(sidecar.status).toBe(200);
+    expect(await sidecar.text()).toBe('{"note":"today"}');
 
     // 3. SPA fallback for an extension-less client route
     const spa = await httpFetch(`${base}/some/deep/route`);

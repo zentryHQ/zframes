@@ -10,8 +10,8 @@ import { dirname, join } from "node:path";
 import { dashboardPath, setDefault } from "@zframes/store/store";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// `zframes snapshot` is the deterministic data-gatherer the /zframes-brief loop
-// runs: it prints ONE JSON object to stdout, and the brief agent JSON.parses that
+// `zframes snapshot` is the deterministic data-gatherer a brief-writing agent
+// runs: it prints ONE JSON object to stdout, and that agent JSON.parses it
 // and follows it. Nothing in PR CI executed it before this file, yet two of its
 // contracts are quietly load-bearing:
 //
@@ -49,7 +49,7 @@ interface Mover {
   markPx: number;
 }
 
-/** The one JSON object snapshot prints — the brief runner's whole input. */
+/** The one JSON object snapshot prints — a caller's whole input. */
 interface Brief {
   date: string;
   run: {
@@ -312,7 +312,7 @@ afterEach(() => {
 
 describe("snapshot — target resolution and flag stepping", () => {
   it("exports only the command entry point", async () => {
-    // Every helper is module-private on purpose (the brief loop's only contract
+    // Every helper is module-private on purpose (the command's only contract
     // is the CLI surface), which is why every test here goes through snapshot().
     vi.resetModules();
     const mod = await import("./snapshot");
@@ -378,7 +378,7 @@ describe("snapshot — target resolution and flag stepping", () => {
   });
 });
 
-describe("snapshot — the log path the brief agent writes to", () => {
+describe("snapshot — the log path it reports to a caller", () => {
   it("keeps a store dashboard's brief inside its own folder", async () => {
     seedStore("mydash");
     seedStore("other");
@@ -390,7 +390,7 @@ describe("snapshot — the log path the brief agent writes to", () => {
     expect(mine.logPath).toBe(
       join(xdg, "zframes", "dashboards", "mydash", "daily-analysis.json"),
     );
-    // A sibling of the spec — served at the frame's default /daily-analysis.json.
+    // A sibling of the spec — served from the dashboard's own folder.
     expect(dirname(mine.logPath)).toBe(dirname(mine.file));
     // …and per-folder, so two dashboards never share one brief.
     expect(theirs.logPath).not.toBe(mine.logPath);
@@ -439,7 +439,7 @@ describe("snapshot — the log path the brief agent writes to", () => {
 
     expect(code).toBe(0);
     // KNOWN BUG: flagValue uses indexOf, so `--log=brief.json` never matches and
-    // the flag is dropped without a word — the brief lands in the default log
+    // the flag is dropped without a word — the log path stays the default
     // instead of the requested file — should accept the `--flag=value` form (or
     // reject it loudly), the way serve.ts (`--port=`, `--contact=`) and init.ts
     // (`--title=`, `--author=`) both do. Pinned so the suite stays green; fixing
@@ -753,7 +753,7 @@ describe("snapshot — market aggregates", () => {
 
     const { code, out, err } = await runSnapshot(["mydash"]);
 
-    // A source being down must never fail the run — the brief is still usable.
+    // A source being down must never fail the run — the snapshot is still usable.
     expect(code).toBe(0);
     const brief = parseBrief(out);
     expect(brief.market.global).toBeNull();

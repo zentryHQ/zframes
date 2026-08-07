@@ -113,9 +113,9 @@ function positionalArg(args: string[]): string | undefined {
 }
 
 /**
- * Engine stamp for the entry — which model/effort/config produced this run, and
- * when. The agent reasoning over the brief is a swappable, stateless engine, so
- * recording it makes a changing model *detectable and separable* in the log
+ * Engine stamp for the run — which model/effort/config produced it, and when.
+ * An agent reasoning over a snapshot is a swappable, stateless engine, so
+ * recording it makes a changing model *detectable and separable* in a log
  * (segment performance by model; spot a regime-shift caused by a swap) instead
  * of silently polluting the self-grading signal. Model/effort/config come from
  * the runner (flags or ZFRAMES_* env); the timestamp is objective (Node Date).
@@ -141,13 +141,13 @@ function runMeta(args: string[]) {
 }
 
 /**
- * Where this dashboard's analysis log lives by default. A store dashboard is its
- * own folder (`dashboards/<name>/`), so its brief is just a sibling of the spec —
- * `dashboards/<name>/daily-analysis.json`, served at the frame's default
- * `/daily-analysis.json` (serve's sibling root is that folder). Per-folder, so
- * dashboards never collide on one shared brief; no per-name filename needed. A
- * bare path target keeps the pre-store convention: the log in the app's
- * `public/` dir, also at `/daily-analysis.json`.
+ * Where an analysis log for this dashboard lives by default — a convention this
+ * command only *reports* and reads; nothing here writes it. A store dashboard is
+ * its own folder (`dashboards/<name>/`), so the log is just a sibling of the
+ * spec, and `serve` hands it out from that folder like any other sidecar file.
+ * Per-folder, so two dashboards never collide on one shared log; no per-name
+ * filename needed. A bare path target keeps the pre-store convention: the log in
+ * the app's `public/` dir. Override either with `--log`.
  */
 function defaultLogPath(target: ResolvedTarget): string {
   return target.kind === "store"
@@ -170,10 +170,16 @@ function loadPriorEntry(logPath: string): unknown {
 }
 
 /**
- * `zframes snapshot <dashboard.json>` — the deterministic data-gatherer for the
- * /zframes-brief loop. Derives the symbol universe from the dashboard, pulls a
- * keyless market snapshot, loads the prior log entry (for grading), and prints
- * one JSON object to stdout. Writes nothing — the agent owns the file write.
+ * `zframes snapshot [name|dashboard.json]` — a deterministic, keyless market
+ * snapshot of whatever a dashboard is watching, as one JSON object on stdout.
+ * Derives the symbol universe from the spec, pulls day stats / candles /
+ * funding / fear-greed / global / TVL, and prints it. Writes nothing.
+ *
+ * Meant for scripting: pipe it into an analysis agent, a report generator, or
+ * `jq`. For callers that keep a running log across runs it also resolves a
+ * per-dashboard `logPath` and replays that log's newest entry as `priorEntry`,
+ * so a caller can grade its own prior output without re-deriving where its file
+ * lives. Both are inert if you ignore them.
  */
 const USAGE =
   "usage: zframes snapshot [name|dashboard.json] [--log <file>] [--date YYYY-MM-DD]\n" +
@@ -232,10 +238,10 @@ export async function snapshot(args: string[]): Promise<number> {
   const out = {
     date: dateFlag ?? new Date().toISOString().slice(0, 10),
     run: runMeta(args),
-    // Which dashboard this snapshot is for, and where its brief lives — so the
-    // /zframes-brief agent writes the new entry to the RIGHT per-dashboard log
-    // (`logPath`, a sibling of this dashboard inside its folder). The frame reads
-    // it at its default `/daily-analysis.json` — no per-name `src` needed.
+    // Which dashboard this snapshot is for, and where a running analysis log
+    // for it would live — so a caller keeping one appends to the RIGHT
+    // per-dashboard file (`logPath`, a sibling of this dashboard inside its
+    // folder) instead of one shared log. Reported, never written.
     dashboard: {
       kind: resolved.kind,
       name: resolved.kind === "store" ? resolved.name : null,

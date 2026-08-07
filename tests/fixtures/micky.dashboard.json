@@ -326,30 +326,6 @@
       }
     },
     {
-      "id": "daily-analysis",
-      "frame": "daily-analysis",
-      "title": "Daily Analysis",
-      "position": {
-        "x": 0,
-        "y": 16,
-        "w": 12,
-        "h": 3
-      },
-      "layouts": {
-        "flow-horizontal": {
-          "x": 24,
-          "y": 0,
-          "w": 7,
-          "h": 3
-        }
-      },
-      "config": {
-        "src": "/daily-analysis.json",
-        "entries": 1,
-        "refreshSec": 300
-      }
-    },
-    {
       "id": "filings-feed",
       "frame": "filings-feed",
       "title": "Filings Feed",

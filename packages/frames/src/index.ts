@@ -5,7 +5,6 @@ export { portfolioHoldingsFrame } from "./portfolio-holdings";
 export { bitcoinDominanceFrame } from "./bitcoin-dominance";
 export { clockFrame } from "./clock";
 export { customDataFrame } from "./custom-data";
-export { dailyAnalysisFrame } from "./daily-analysis";
 export { journalLogFrame } from "./journal-log";
 export { journalOpenFrame } from "./journal-open";
 export { journalResultsFrame } from "./journal-results";
@@ -278,7 +277,6 @@ import { portfolioHoldingsFrame } from "./portfolio-holdings";
 import { bitcoinDominanceFrame } from "./bitcoin-dominance";
 import { clockFrame } from "./clock";
 import { customDataFrame } from "./custom-data";
-import { dailyAnalysisFrame } from "./daily-analysis";
 import { journalLogFrame } from "./journal-log";
 import { journalOpenFrame } from "./journal-open";
 import { journalResultsFrame } from "./journal-results";
@@ -580,7 +578,6 @@ export const allFrames: AnyFrameDefinition[] = [
   bitcoinDominanceFrame,
   clockFrame,
   customDataFrame,
-  dailyAnalysisFrame,
   journalLogFrame,
   journalOpenFrame,
   journalResultsFrame,

@@ -938,8 +938,8 @@ export const groupMeta = defineFrameMeta({
   description:
     "A container that holds OTHER frames as its own little grid, so a cluster of related cards occupies one board slot and moves/resizes as a single unit. Use it to build a composite panel — a 2x2 of sparklines, a chart with its own stat strip beneath, a side-by-side split — that stays together when the board is rearranged. The nested frames go in the instance's `children` array (not in `config`), each with a `position` in this group's own `columns` x `rows` units. Groups cannot contain other groups. Needs no data provider of its own; each child declares its own.",
   capabilities: [],
-  // No card and no auto-title: the children's own cards carry the chrome, and a
-  // group that wants a surrounding surface sets `panel` instead.
+  // No card and no auto-title of its own: the children carry the titles, while
+  // the group's surrounding surface comes from `panel` (on by default).
   chrome: "bare",
   container: true,
   schema: z.object({
@@ -971,9 +971,9 @@ export const groupMeta = defineFrameMeta({
       ),
     panel: z
       .boolean()
-      .default(false)
+      .default(true)
       .describe(
-        "Draw a surrounding surface (tinted panel + border) around the whole group. Off by default — the children's own cards usually carry enough weight, and a card-inside-a-card reads as clutter. Turn it on for a group meant to read as one composite object.",
+        "Draw a surrounding surface (tinted panel + border) around the whole group. On by default — a group is one composite object and the surface is what says so; without it a cluster reads as loose cards that happen to sit near each other. Set it to false for a group used purely as invisible scaffolding, where the children's own cards should be the only surfaces.",
       ),
   }),
 });
@@ -1007,42 +1007,6 @@ export const headingMeta = defineFrameMeta({
       .default("left")
       .describe(
         "Left aligns the label with a trailing rule (default); center places the label between rules on both sides.",
-      ),
-  }),
-});
-
-export const dailyAnalysisMeta = defineFrameMeta({
-  name: "daily-analysis",
-  label: "Daily Analysis",
-  category: "tools",
-  iconUrl: widgetIcon("daily-analysis"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
-  description:
-    "Daily market brief written by the /zframes-brief loop — a dated analysis of the symbols on your dashboard, the calls it is making today, and how yesterday's calls scored (with a running hit-rate). Reads a local log file the loop appends to; needs no market data provider. Add one per dashboard.",
-  capabilities: [],
-  schema: z.object({
-    src: z
-      .string()
-      .default("/daily-analysis.json")
-      .describe(
-        "URL of the analysis log the loop writes, served from the app's public/ dir. Leave as the default unless you renamed the file.",
-      ),
-    entries: z
-      .number()
-      .int()
-      .min(1)
-      .max(5)
-      .default(1)
-      .describe(
-        "How many of the most recent daily entries to show (newest first).",
-      ),
-    refreshSec: z
-      .number()
-      .int()
-      .min(30)
-      .default(300)
-      .describe(
-        "How often (seconds) to re-fetch the log so a fresh brief appears without a manual reload.",
       ),
   }),
 });
@@ -7543,7 +7507,6 @@ export const frameMetas: FrameMeta[] = [
   portfolioHoldingsMeta,
   bitcoinDominanceMeta,
   clockMeta,
-  dailyAnalysisMeta,
   dinoGameMeta,
   fearGreedMeta,
   filingsFeedMeta,

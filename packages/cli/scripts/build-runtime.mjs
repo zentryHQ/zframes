@@ -32,10 +32,4 @@ if (!existsSync(join(appDist, "index.html"))) {
 rmSync(runtimeDir, { recursive: true, force: true });
 cpSync(appDist, runtimeDir, { recursive: true });
 
-// Dev-only dogfood data lives in the runtime app's public/ for `pnpm dev`, but it
-// must NOT ship in the runtime bundle: there it would shadow the daily-brief the
-// user keeps next to their own dashboard.json (bundle assets win over the user
-// dir in `zframes serve`).
-rmSync(join(runtimeDir, "daily-analysis.json"), { force: true });
-
 console.log(`✓ vendored runtime bundle into ${runtimeDir}`);

@@ -232,7 +232,6 @@ const NO_MONEY: Record<string, string> = {
     "user-declared JSON values and a user-declared unit — the escape hatch is outside the currency contract by design",
   "cycle-signals": "cycle-indicator thresholds (ratios)",
   "cycle-valuation-composite": "a composite cycle score",
-  "daily-analysis": "the agent's brief prose; any figure is text it wrote",
   "day-meter": "weekday progress",
   dice: "a coin flip / die roll (random — its two renders need not match)",
   "dino-game": "a canvas game",
