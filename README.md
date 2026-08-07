@@ -2,7 +2,7 @@
   <img src="docs/assets/zframes-banner.png" alt="zframes" width="100%">
 </p>
 
-<p align="center"><b>Describe your dashboard. An agent builds it. It gets sharper every day.</b></p>
+<p align="center"><b>Describe your dashboard. An agent builds it. Live market data, no API keys.</b></p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache-2.0"></a>
@@ -23,10 +23,9 @@ zframes is a framework where **AI agents generate personal market terminals**. Y
 ### Why it's different
 
 - 🗣️ **Agent-generated** — you talk; an agent writes the spec and runs it. No dashboard builder UI to learn.
-- 🔑 **Keyless** — fifteen free public data sources (Hyperliquid, CoinGecko, DeFiLlama, Deribit, mempool.space, the U.S. Treasury, the NY Fed, BLS, SEC EDGAR, and more). No signup, no keys, no `.env`.
+- 🔑 **Keyless** — twenty-nine free public data sources (Hyperliquid, Nasdaq, CoinGecko, DeFiLlama, Deribit, Cboe, mempool.space, the U.S. Treasury, the NY Fed, BLS, SEC EDGAR, FRED, and more). No signup, no keys, no `.env`.
 - 📈 **Stocks first** — live equity perps stream via Hyperliquid HIP-3 (`xyz:TSLA`, `xyz:NVDA`), with crypto, DeFi, derivatives, and official US macro data alongside.
 - 🧩 **Yours to own** — your dashboard is one git-trackable `dashboard.json`; the CLI serves it locally. No hosted service, no lock-in.
-- 🧠 **Self-improving** — a daily loop grades yesterday's market calls against what actually happened and writes a fresh brief into your dashboard.
 
 ---
 
@@ -40,7 +39,7 @@ You drive zframes from your coding agent, not from a Node project you build by h
 npx skills add zentryhq/zframes
 ```
 
-That pulls the [`zframes`](skills/zframes/SKILL.md) and [`zframes-brief`](skills/zframes-brief/SKILL.md) skills from this repo into your agent's skills directory (for Claude Code, `~/.claude/skills/`). One command, no clone, no per-package install — it works with any agent that supports the open skills standard.
+That pulls the [`zframes`](skills/zframes/SKILL.md) skill from this repo into your agent's skills directory (for Claude Code, `~/.claude/skills/`). One command, no clone, no per-package install — it works with any agent that supports the open skills standard.
 
 ### Supported agents
 
@@ -68,14 +67,13 @@ The skills are plain Markdown following the [skills standard](https://github.com
 
 The contract the agent works against is the **catalogue** (frame names + config schemas) and the **linter** (per-frame validation feedback). It only ever emits JSON — the framework owns all rendering.
 
-### What the two skills do
+### What the skill does
 
 | Skill | What it does | You say |
 |---|---|---|
 | [**`zframes`**](skills/zframes/SKILL.md) | Builds & edits your dashboard — reads the catalogue, writes `dashboard.json`, lints it, serves it live in your browser. | *"build me a TSLA + NVDA terminal"* |
-| [**`zframes-brief`**](skills/zframes-brief/SKILL.md) | Daily analyst loop — analyzes the symbols on your dashboard, grades yesterday's calls, writes today's brief into the `daily-analysis` frame. | *"run my daily brief"* |
 
-> `npx skills add zentryhq/zframes` installs the skills into any skills-aware agent. The [`zframes`](https://www.npmjs.com/package/zframes) **CLI** they drive is published on npm and bundles the dashboard runtime, so `npx zframes serve` fetches the whole runtime on each run — no clone, no install.
+> `npx skills add zentryhq/zframes` installs the skill into any skills-aware agent. The [`zframes`](https://www.npmjs.com/package/zframes) **CLI** it drives is published on npm and bundles the dashboard runtime, so `npx zframes serve` fetches the whole runtime on each run — no clone, no install.
 
 ---
 
@@ -83,8 +81,8 @@ The contract the agent works against is the **catalogue** (frame names + config 
 
 - **Frame** — `defineFrame({ name, description, capabilities, schema, component })`. The Zod schema (every field `.describe()`d) doubles as the AI-facing API: `catalogueForAI(registry)` exports it as JSON Schema for generating agents. Frame *metadata* ([`packages/frames/src/schemas.ts`](packages/frames/src/schemas.ts)) is React-free, so tooling reads it without pulling in charts or CSS.
 - **Dashboard spec** — `dashboard.json`: version, title, author, `grid` geometry, `background`, `theme` colours, `typography`, card-surface `appearance`, display `currency`, and frame instances with positions and configs. Diffable, git-friendly, agent-writable, human-editable.
-- **Display currency** — the board declares `currency` (19 ECB-quoted codes) and every market figure follows it, converted from USD at the live reference rate; a single card can override it. Providers always report USD, so conversion happens once, at display time. US-macro series (Treasury yields, CPI, the national debt) deliberately stay in dollars.
-- **Multiple venues** — capability routing is first-match, so a frame pins a second exchange explicitly with `venue` (e.g. `venue: "bitkub"` on a `price-chart`). Symbols stay venue-native.
+- **Display currency** — the board declares `currency` (146 codes, each quoted by at least two of the FX provider's four keyless upstreams so every one inherits a fallback) and every market figure follows it, converted from USD at the live reference rate; a single card can override it. Providers always report USD, so conversion happens once, at display time. US-macro series (Treasury yields, CPI, the national debt) deliberately stay in dollars.
+- **Multiple venues** — capability routing is first-match, so a frame pins a second source explicitly with `source` (e.g. `source: "bitkub"` on a `price-chart`). Symbols stay source-native.
 - **Provider** — fulfills frame *capabilities* (`quote-stream`, `day-stats`, `ohlcv`, `tvl`, `sentiment`, `global-market`, …). The host registers providers; the runtime routes each frame's data needs to the first provider that covers them. A frame whose capability no provider covers renders as an error card — never a silently-empty widget.
 - **Background** — the spec *declares* the background (`gradient` | `unicorn` | `none`); the host *renders* it. Same split as providers, keeping the heavy animated engine out of the spec and the React-free tooling path.
 
@@ -92,7 +90,7 @@ The contract the agent works against is the **catalogue** (frame names + config 
 
 ## Frame catalogue
 
-Over 200 built-in frames ([`packages/frames`](packages/frames)), grouped into 14 categories. Each frame's Zod schema is the AI-facing API, so the live, authoritative list is whatever `zframes catalogue` prints — never a hand-kept table. The families:
+284 built-in frames ([`packages/frames`](packages/frames)), grouped into 14 categories. Each frame's Zod schema is the AI-facing API, so the live, authoritative list is whatever `zframes catalogue` prints — never a hand-kept table. The families:
 
 | Category | Frames include |
 |---|---|
@@ -106,7 +104,7 @@ Over 200 built-in frames ([`packages/frames`](packages/frames)), grouped into 14
 | **Sentiment & News** | `fear-greed`, `news-feed` |
 | **Portfolio** | `portfolio-value`, `portfolio-allocation`, `portfolio-holdings` |
 | **Decision Journal** | `journal-log`, `journal-open`, `journal-results`, `journal-score` |
-| **Tools & Utility** | `daily-analysis` (the daily brief), `clock`, `countdown`, `calculator`, `link-grid`, `market-hours`, `checklist` |
+| **Tools & Utility** | `clock`, `countdown`, `calculator`, `link-grid`, `market-hours`, `checklist` |
 | **Layout & Media** | `heading`, `divider`, `note`, `image`, `video`, `quote` |
 | **Games** | `dino-game`, `snake`, `flappy-bird`, `drawdy`, `dice` |
 
@@ -116,17 +114,19 @@ Stocks are the lead use case — equity perps via Hyperliquid HIP-3 builder dexe
 
 ## Providers
 
-Twenty-seven free, keyless providers ([`packages/provider-*`](packages)) fulfil frame capabilities:
+Twenty-nine free, keyless providers ([`packages/provider-*`](packages)) fulfil frame capabilities:
 
 | Provider | Covers |
 |---|---|
 | **Hyperliquid** | `quote-stream`, `day-stats`, `funding-history`, `ohlcv`, `open-interest` — crypto + HIP-3 stock perps |
-| **CoinGecko** (free tier) | `global-market` (marketcap + dominance), `coin-markets` |
+| **Nasdaq** | `day-stats`, `ohlcv` (daily bars), `equity-profile`, `equity-financials`, `earnings-calendar`, `earnings-history`, `analyst-ratings`, `institutional-ownership` — the real consolidated tape for US listings (pin with `source: "nasdaq"`) |
+| **CoinGecko** (free tier) | `global-market` (marketcap + dominance), `coin-markets`, `trending-coins`, `sector-performance`, `nft-market`, `crypto-profile` (supply triple, FDV, dev activity) |
 | **Coinpaprika** | `coin-movers` across ~2000 coins |
 | **alternative.me** | `sentiment` (Fear & Greed) |
-| **DeFiLlama** | `tvl`, `dex-volume`, `protocol-tvl`, `protocol-fees` |
+| **DeFiLlama** | `tvl`, `dex-volume`, `protocol-tvl`, `protocol-fees`, `protocol-fundamentals` (fees vs revenue), `token-unlocks` |
 | **mempool.space** | Bitcoin fees, mempool, blocks, hashrate, difficulty, mining pools, Lightning |
-| **Deribit** | put-call ratio, OI-by-strike, DVOL volatility index |
+| **Deribit** | put-call ratio, OI-by-strike, DVOL volatility index, `options-chain` (per-contract, crypto) |
+| **Cboe** | `options-chain` for US-listed equities and metal ETFs (GLD, SLV, IAU, …), with greeks |
 | **U.S. Treasury** | average interest rates, debt-to-penny, auctions, daily yield curve |
 | **NY Fed** | SOFR, EFFR, repo reference rates |
 | **OFR** | `financial-stress` index |
@@ -134,7 +134,7 @@ Twenty-seven free, keyless providers ([`packages/provider-*`](packages)) fulfil 
 | **FINRA** | `short-volume` (daily reported short-sale volume) |
 | **SEC EDGAR** | company filings + XBRL fundamentals |
 | **News (RSS)** | `news` headlines from public outlet feeds |
-| **Frankfurter / ECB** | `fx-rates` (daily reference FX rates) |
+| **FX chain** (Frankfurter/ECB → FXRatesAPI → currency-api → ECB Data Portal) | `fx-rates`, `dollar-index` — four keyless upstreams behind one capability, so a dead source falls through instead of breaking the board |
 | **GeckoTerminal** | `dex-pools` — trending/hot DEX pools per network |
 | **Blockchair** | `chain-activity` — 24h transactions, blocks, mempool per major L1 |
 | **Coin Metrics** (community) | `onchain-valuation` — MVRV, MVRV-Z, NUPL, realized price |
@@ -142,28 +142,15 @@ Twenty-seven free, keyless providers ([`packages/provider-*`](packages)) fulfil 
 | **ultrasound.money** | `eth-supply` — EIP-1559 burn vs PoS issuance |
 | **Polymarket** | `prediction-markets` — live odds on open markets |
 | **SoSoValue** | `etf-flows` — spot BTC/ETH ETF daily net flows |
-| **LBMA / gold-api / CFTC / fiscaldata** | metals: `metal-spot`, `metal-history` (fixes back to 1968), `metal-positioning`, `gold-reserve`, `tokenized-gold` |
-| **Bitkub** | `day-stats`, `ohlcv`, `order-book` — Thailand's largest exchange, where KUB trades (pin a frame to it with `venue: "bitkub"`) |
-| **FRED** (St. Louis Fed) | `index-level` (S&P 500, VIX, Nasdaq), `credit-spread` (ICE BofA HY + IG OAS), `housing-price` (Case-Shiller), `mortgage-rate` (30y fixed) — via the keyless `fredgraph.csv` endpoint, not the key-gated API |
+| **LBMA / gold-api / CFTC / fiscaldata / Cboe** | metals: `metal-spot`, `metal-history` (fixes back to 1968), `metal-positioning`, `gold-reserve`, `tokenized-gold`, `commodity-vol-index` (GVZ / VXSLV / VXGDX / OVX) |
+| **Bitkub** | `day-stats`, `ohlcv`, `order-book` — Thailand's largest exchange, where KUB trades (pin a frame to it with `source: "bitkub"`) |
+| **FRED** (St. Louis Fed) | `index-level` (S&P 500, VIX, Nasdaq), `credit-spread` (ICE BofA HY + IG OAS), `housing-price` (Case-Shiller), `mortgage-rate` (30y fixed), `macro-reference-series` (CPI back to 1947, TIPS real yield, broad dollar, breakevens) — via the keyless `fredgraph.csv` endpoint, not the key-gated API |
 | **Zillow Research** | `home-value-index` — the typical home value per US metro, in dollars, monthly back to 2000 |
 | **FHFA** | `regional-housing-price` — the House Price Index per state and metro, quarterly back to 1975 |
 
-Official US sources (Treasury, NY Fed, OFR, BLS, FINRA, SEC, FRED, FHFA) are keyless but CORS-blocked in the browser, so the runtime relays them through a same-origin allowlisted proxy. Zillow is the exception among the research sources — it sends `Access-Control-Allow-Origin: *`, so it is fetched direct and keeps working on a static host.
+Official US sources (Treasury, NY Fed, OFR, BLS, FINRA, SEC, FRED, FHFA, Cboe) are keyless but CORS-blocked in the browser, so the runtime relays them through a same-origin allowlisted proxy. Zillow is the exception among the research sources — it sends `Access-Control-Allow-Origin: *`, so it is fetched direct and keeps working on a static host.
 
 An **opt-in keyed tier** (a connected **Binance** account and a public on-chain **wallet** address, both `portfolio`) also exists, but it's separate from the keyless set and **not wired into the published CLI**.
-
----
-
-## The daily brief loop
-
-The `zframes-brief` skill turns the terminal into something that learns. On each run (manually or on a schedule) it:
-
-1. reads the symbols already on your `dashboard.json`,
-2. pulls a keyless market snapshot for them (`zframes snapshot`, the deterministic half),
-3. **grades yesterday's calls** against what the market actually did, tracking a running hit-rate,
-4. writes today's analysis + a few fresh, checkable calls, and appends it to one log file.
-
-The `daily-analysis` frame renders that log on the dashboard. The loop **only** writes the analysis log — it never edits `dashboard.json`. See [`docs/specs/daily-brief-flow.html`](docs/specs/daily-brief-flow.html).
 
 ---
 
@@ -192,7 +179,7 @@ pnpm build:cli                      # build the bin (also builds the prebuilt ru
 pnpm zframes init [name|dir]        # write a bare, valid dashboard.json envelope for the agent to fill
 pnpm zframes catalogue              # frame catalogue as JSON Schema (what the agent reads)
 pnpm zframes lint <name|file>       # validate a spec; exit 1 with readable, per-frame errors
-pnpm zframes snapshot [name|file]   # keyless market snapshot of the spec's symbols (feeds the brief)
+pnpm zframes snapshot [name|file]   # keyless market snapshot of the spec's symbols, as JSON
 pnpm zframes serve [name|file]      # serve a dashboard as a live, editable terminal (:37263)
 pnpm zframes list                   # list dashboards in the global store
 pnpm zframes use <name>             # set the default store dashboard
@@ -213,17 +200,16 @@ packages/
   frames                   the built-in frames + their AI-facing schemas
   data-primitives          the shared fetch + TTL-cache + CSV-parsing transport every
                            provider uses
-  provider-*               27 keyless data providers (Hyperliquid, CoinGecko, DeFiLlama,
-                           Deribit, mempool, Treasury, NY Fed, OFR, BLS, FINRA, SEC, LBMA
-                           metals, FRED, Zillow, FHFA, Bitkub, …) + 2 opt-in keyed
-                           providers (binance, wallet)
+  provider-*               29 keyless data providers (Hyperliquid, Nasdaq, CoinGecko,
+                           DeFiLlama, Deribit, Cboe, mempool, Treasury, NY Fed, OFR, BLS,
+                           FINRA, SEC, LBMA metals, FRED, Zillow, FHFA, Bitkub, …) + 2
+                           opt-in keyed providers (binance, wallet)
   providers-keyless        one factory assembling the keyless set, shared by both apps
   serve · store · vite     Node infra — spec read/write + proxy, the XDG dashboard store,
                            the dev plugin
   cli                      zframes init | serve | list | use | catalogue | lint | snapshot
 apps/runtime               Vite app that renders a dashboard.json (editable in-browser)
 skills/zframes             the build-my-dashboard skill
-skills/zframes-brief       the daily-analyst loop skill
 ```
 
 Packages ship TypeScript source (`main: src/index.ts`); the runtime's Vite consumes them directly. pnpm only.

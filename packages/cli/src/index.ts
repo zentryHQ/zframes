@@ -37,8 +37,7 @@ usage:
                                 (the agent's self-correction feedback)
   zframes snapshot [name|file]  gather a keyless market snapshot for the symbols
                                 on the dashboard + the prior brief, as JSON on
-                                stdout (the deterministic half of /zframes-brief;
-                                no target → the default store dashboard)
+                                stdout (no target → the default store dashboard)
   zframes help                  this text
 `;
 
