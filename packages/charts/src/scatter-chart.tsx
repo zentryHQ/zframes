@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef, useState } from "react";
 import { observeResize } from "./lib/observe-resize";
-import { prefersReducedMotion } from "./lib/utils";
+import { useChartIntro } from "./lib/use-chart-intro";
 
 export interface ScatterDatum {
   id: string;
@@ -59,6 +59,13 @@ const ScatterChart = ({
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState<number | null>(null);
+  /**
+   * Opens a short grace window at the first real draw, so the entrance survives
+   * the re-render burst around first paint and then settles: a later redraw
+   * (data poll, resize, theme change) paints the final state with no
+   * transition, and a 15-minute poll never re-grows the whole cloud from zero.
+   */
+  const shouldIntro = useChartIntro();
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -76,6 +83,8 @@ const ScatterChart = ({
   useEffect(() => {
     const svgEl = svgRef.current;
     if (!svgEl || !width || width <= 0 || !data.length) return;
+
+    const animate = shouldIntro();
 
     d3.select(svgEl).selectAll("*").remove();
     const svg = d3.select(svgEl);
@@ -163,6 +172,8 @@ const ScatterChart = ({
       .style("font", FONT)
       .text((t) => formatX(t));
 
+    // Deliberately not animated: like the gridlines it is the frame the points
+    // arrive against, so it is already in place when they land.
     if (zeroXLine)
       g.append("line")
         .attr("x1", x(0))
@@ -172,6 +183,15 @@ const ScatterChart = ({
         .attr("stroke", "currentColor")
         .attr("stroke-opacity", 0.22)
         .attr("stroke-dasharray", "3,3");
+
+    const radius = (d: ScatterDatum) => r(d.weight ?? 1);
+    // Intro stagger: bubbles pop in left→right so the cloud reads as arriving
+    // rather than blinking on. The span is bounded (never `i * 30`), so 12
+    // points and 300 points both finish inside the same budget — the last
+    // bubble lands by ~800ms.
+    const staggerSpan = Math.min(300, data.length * 12);
+    const introDelay = (d: ScatterDatum) =>
+      Math.max(0, Math.min(1, x(d.x) / innerWidth)) * staggerSpan;
 
     const dots = g
       .selectAll("circle.dot")
@@ -184,10 +204,14 @@ const ScatterChart = ({
       .attr("fill-opacity", 0.55)
       .attr("stroke", (d) => d.color ?? color)
       .attr("stroke-opacity", 0.9)
-      .attr("r", 0);
-    const radius = (d: ScatterDatum) => r(d.weight ?? 1);
-    if (prefersReducedMotion()) dots.attr("r", radius);
-    else dots.transition().duration(400).attr("r", radius);
+      .attr("r", (d) => (animate ? 0 : radius(d)));
+    if (animate)
+      dots
+        .transition("intro")
+        .delay(introDelay)
+        .duration(500)
+        .ease(d3.easeCubicOut)
+        .attr("r", radius);
 
     dots
       .append("title")
@@ -240,7 +264,8 @@ const ScatterChart = ({
         placed.push({ x1: c.x1, x2: c.x2, y1: c.cy - LABEL_H, y2: c.cy + 2 });
         return true;
       });
-    g.selectAll("text.dot-label")
+    const labels = g
+      .selectAll("text.dot-label")
       .data(labeled)
       .enter()
       .append("text")
@@ -253,6 +278,17 @@ const ScatterChart = ({
       .style("font-weight", "600")
       .style("pointer-events", "none")
       .text((c) => c.d.label);
+    // Each ticker fades in just behind its own bubble — a label sitting above a
+    // dot that hasn't grown yet reads as a stray caption. Positions are already
+    // computed from the FINAL radius, so nothing moves; only opacity changes.
+    if (animate)
+      labels
+        .attr("fill-opacity", 0)
+        .transition("intro")
+        .delay((c) => introDelay(c.d) + 250)
+        .duration(300)
+        .ease(d3.easeCubicOut)
+        .attr("fill-opacity", 0.75);
   }, [
     data,
     width,
@@ -264,6 +300,7 @@ const ScatterChart = ({
     zeroXLine,
     radiusRange,
     maxLabels,
+    shouldIntro,
   ]);
 
   return (

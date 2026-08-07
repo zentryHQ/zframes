@@ -9,7 +9,8 @@ import React, {
 } from "react";
 import * as d3 from "d3-hierarchy";
 import { observeResize } from "../lib/observe-resize";
-import { cn } from "../lib/utils";
+import { useIsomorphicLayoutEffect } from "../lib/use-isomorphic-layout-effect";
+import { cn, prefersReducedMotion } from "../lib/utils";
 
 export interface LeafComponentProps<T> {
   width: number;
@@ -29,6 +30,39 @@ const BORDER_RADIUS = "4px";
 const CORNER_BORDER_RADIUS = "4px";
 
 const TARGET_ASPECT_RATIO = 2.5;
+
+/**
+ * Intro entrance. The tiles are React-DOM nodes, not d3-appended SVG, so the
+ * first-draw animation is a CSS one applied to the live nodes (see the
+ * `hasAnimatedRef` layout effect below) instead of a d3 transition. Because
+ * those inline `animation` styles stay on the nodes across re-renders, a
+ * one-shot ref is enough here — nothing wipes and redraws the marks, so the
+ * intro cannot be destroyed mid-flight by a second effect run.
+ */
+const INTRO_ANIMATION_NAME = "zf-tree-tile-in";
+const INTRO_DURATION_MS = 520;
+/** However many tiles there are, the last one has finished inside this. */
+const INTRO_BUDGET_MS = 880;
+const INTRO_MAX_STAGGER_MS = 24;
+/** easeCubicOut — the tiles are arriving, not sweeping. */
+const INTRO_EASING = "cubic-bezier(0.215, 0.61, 0.355, 1)";
+/**
+ * The keyframes are redefined under `prefers-reduced-motion: reduce` so the
+ * animation is inert there even if a node somehow gets it applied; the JS gate
+ * in the effect is what stops one being scheduled at all.
+ */
+const INTRO_KEYFRAMES = `
+@keyframes ${INTRO_ANIMATION_NAME} {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes ${INTRO_ANIMATION_NAME} {
+    from { opacity: 1; transform: none; }
+    to { opacity: 1; transform: none; }
+  }
+}
+`;
 
 const treemapVerticalSquarify = <T,>(
   parent: d3.HierarchyRectangularNode<T>,
@@ -178,6 +212,7 @@ function TreeChartInner<T extends TreeNode>({
   const bottomLeftChildRef = useRef<HTMLDivElement | null>(null);
   const topRightChildRef = useRef<HTMLDivElement | null>(null);
   const bottomRightChildRef = useRef<HTMLDivElement | null>(null);
+  const hasAnimatedRef = useRef(false);
   const [, startTransition] = useTransition();
   const [dimension, setDimension] = useState<{
     width: number;
@@ -379,8 +414,72 @@ function TreeChartInner<T extends TreeNode>({
     });
   }, [root, LeafComponent, getColorValue]);
 
+  // Intro entrance: on the first draw that actually has geometry, the tiles
+  // fade and scale up from their own centres, so the treemap visibly builds
+  // itself instead of blinking into place. Applied imperatively exactly once
+  // per mount — `memoizedLeaves` is rebuilt by every data poll, resize
+  // re-measure and prop change, and re-growing the whole card on a 15-minute
+  // poll would be worse than no entrance at all.
+  //
+  // A *layout* effect, for two reasons. It must beat the paint: a passive
+  // effect runs after the browser has already shown the tiles at their final
+  // opacity, so setting an animation whose `from` keyframe is `opacity: 0`
+  // blinks them out and back in — the longer the tile's stagger delay, the
+  // longer the blink. And it reads `offsetLeft`/`offsetTop` to order the
+  // stagger, which is a layout read that belongs before paint anyway. Every
+  // guard below still holds this early: `dimension` is committed state, and the
+  // container ref and its tile children are attached before any effect runs.
+  useIsomorphicLayoutEffect(() => {
+    if (hasAnimatedRef.current) return;
+    const container = innerContainerRef.current;
+    if (!container) return;
+    // The first render measures 0×0 (and jsdom never measures at all), so the
+    // leaves exist with no geometry — not a draw worth animating.
+    if (dimension.width === 0 || dimension.height === 0) return;
+    const tiles = Array.from(container.children).filter(
+      (el): el is HTMLElement => el instanceof HTMLElement,
+    );
+    if (tiles.length === 0) return;
+
+    // Past every guard with real tiles on screen: this is the one draw that
+    // animates. Flag it before scheduling, so a reduced-motion return below
+    // still counts as the intro having happened.
+    hasAnimatedRef.current = true;
+
+    if (prefersReducedMotion()) return;
+
+    // The stagger reads top-left → bottom-right and is derived from the tile
+    // count, so a 300-tile treemap lands in the same budget as a 12-tile one.
+    const stagger = Math.min(
+      INTRO_MAX_STAGGER_MS,
+      (INTRO_BUDGET_MS - INTRO_DURATION_MS) / Math.max(tiles.length - 1, 1),
+    );
+    const ordered = tiles
+      .map((el) => ({ el, distance: el.offsetLeft + el.offsetTop }))
+      .sort((a, b) => a.distance - b.distance);
+
+    ordered.forEach(({ el }, rank) => {
+      const delay = Math.round(rank * stagger);
+      el.style.animation = `${INTRO_ANIMATION_NAME} ${INTRO_DURATION_MS}ms ${INTRO_EASING} ${delay}ms both`;
+      // `both` holds the final keyframe, which is identical to the tile's base
+      // style, so clearing the property afterwards is only housekeeping — it
+      // avoids leaving inline animation state on a node React does not own.
+      // `once` lets an unmount mid-intro drop the listener with the node.
+      el.addEventListener(
+        "animationend",
+        () => {
+          el.style.animation = "";
+        },
+        { once: true },
+      );
+    });
+  }, [dimension, memoizedLeaves]);
+
   return (
     <div className={cn("h-full w-full", className)} ref={outerContainerRef}>
+      {/* Keyframes for the tile entrance. Kept out of the measured inner
+          container, whose children are treated as tiles by two effects. */}
+      <style>{INTRO_KEYFRAMES}</style>
       <div
         className="relative overflow-hidden rounded-lg"
         style={{ height: dimension.height, width: dimension.width }}

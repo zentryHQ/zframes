@@ -8,7 +8,7 @@ import React, {
   useTransition,
 } from "react";
 import { observeResize } from "../lib/observe-resize";
-import { cn } from "../lib/utils";
+import { cn, prefersReducedMotion } from "../lib/utils";
 
 /**
  * Base interface for heatmap cells.
@@ -51,10 +51,78 @@ const DEFAULT_ROW_LABEL_WIDTH = 80;
 const DEFAULT_COLUMN_LABEL_HEIGHT = 24;
 
 /**
+ * Intro (entrance) animation. On the FIRST draw only, cells fade + scale in on a
+ * diagonal stagger from the top-left corner, so the grid visibly assembles when
+ * the card first appears. This is a React/CSS transition, not d3 — the grid is
+ * plain absolutely-positioned divs. Labels never animate (this repo animates
+ * data marks only).
+ *
+ * The stagger is normalised over the grid's OWN diagonal rather than applied as a
+ * fixed per-cell increment, so a 300-cell heatmap finishes in the same ~800ms a
+ * 16-cell one does instead of turning into a multi-second show.
+ */
+const INTRO_CELL_MS = 420;
+const INTRO_STAGGER_MS = 380;
+/** Time from the flip-to-final until the last (most-delayed) cell has landed. */
+const INTRO_SETTLE_MS = INTRO_CELL_MS + INTRO_STAGGER_MS + 80;
+const INTRO_EASE = "cubic-bezier(0.33, 1, 0.68, 1)"; // easeCubicOut
+const INTRO_START_SCALE = 0.92;
+
+/**
+ * `pending` = cells mounted at their start values, `running` = transitioning to
+ * the final state, `done` = no intro styles emitted at all. The stage only ever
+ * moves forward, which is what makes every later redraw (data poll, resize, prop
+ * or theme change) an instant no-op.
+ */
+type IntroStage = "pending" | "running" | "done";
+
+const EMPTY_STYLE: React.CSSProperties = {};
+
+/**
+ * The intro half of a cell's inline style, by stage. `diagonal` is
+ * `rowIndex + columnIndex`; `maxDiagonal` normalises it so the whole grid's
+ * stagger always spans exactly INTRO_STAGGER_MS.
+ *
+ * Only `opacity` and `transform` move — never `left`/`top`/`width`/`height`, so a
+ * resize mid-intro repositions cells instantly instead of sliding them.
+ */
+function introCellStyle(
+  stage: IntroStage,
+  diagonal: number,
+  maxDiagonal: number,
+): React.CSSProperties {
+  if (stage === "done") return EMPTY_STYLE;
+  if (stage === "pending") {
+    return {
+      opacity: 0,
+      transform: `scale(${INTRO_START_SCALE})`,
+      willChange: "opacity, transform",
+    };
+  }
+  const delay =
+    maxDiagonal > 0
+      ? Math.round((diagonal / maxDiagonal) * INTRO_STAGGER_MS)
+      : 0;
+  return {
+    opacity: 1,
+    // scale(1), not `none` — an explicit identity scale interpolates from
+    // scale(0.92) everywhere, and reads the same as the `done` stage's absent key.
+    transform: "scale(1)",
+    willChange: "opacity, transform",
+    transition:
+      `opacity ${INTRO_CELL_MS}ms ${INTRO_EASE} ${delay}ms, ` +
+      `transform ${INTRO_CELL_MS}ms ${INTRO_EASE} ${delay}ms`,
+  };
+}
+
+/**
  * HeatmapChart - A generic, implementation-agnostic heatmap visualization.
  *
  * Uses the composition pattern with a CellComponent render prop for custom cell rendering.
  * The component handles layout, color scaling, and responsive sizing.
+ *
+ * Cells play a one-shot intro on the first draw (see INTRO_* above); later
+ * redraws — data polls, resizes, prop/theme changes — paint instantly.
  *
  * @example
  * ```tsx
@@ -90,6 +158,17 @@ function HeatmapChartInner<T extends HeatmapCell>({
     width: number;
     height: number;
   }>({ width: 0, height: 0 });
+
+  // Under reduce the stage starts at "done", so the grid paints its final state
+  // instantly and no transition is ever scheduled. `prefers-reduced-motion` is
+  // read once here, in the initialiser — unlike the d3 charts, which re-read it
+  // per draw via `useChartIntro`. The difference only shows if the OS setting is
+  // toggled mid-session: those charts pick it up on their next redraw, this grid
+  // keeps the stage it started with. Its intro is a one-shot React state machine
+  // rather than a per-draw gate, so there is nowhere later to re-read it.
+  const [introStage, setIntroStage] = useState<IntroStage>(() =>
+    prefersReducedMotion() ? "done" : "pending",
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -231,6 +310,13 @@ function HeatmapChartInner<T extends HeatmapCell>({
     return `hsl(350 ${s}% ${l}%)`;
   };
 
+  // Longest diagonal in the grid — the divisor that keeps the stagger's total
+  // span fixed however many cells there are.
+  const introMaxDiagonal = Math.max(
+    0,
+    uniqueRows.length - 1 + (uniqueColumns.length - 1),
+  );
+
   // Render cells
   const memoizedCells = useMemo(() => {
     const { cellWidth, cellHeight, columnX, rowY } = layout;
@@ -242,6 +328,11 @@ function HeatmapChartInner<T extends HeatmapCell>({
       if (rowIndex === undefined || columnIndex === undefined) return null;
 
       const baseColor = getCellColor(intensity, isPositive);
+      const introStyle = introCellStyle(
+        introStage,
+        rowIndex + columnIndex,
+        introMaxDiagonal,
+      );
 
       return (
         <div
@@ -254,6 +345,9 @@ function HeatmapChartInner<T extends HeatmapCell>({
             height: cellHeight,
             borderRadius: CELL_BORDER_RADIUS,
             backgroundColor: baseColor,
+            // Empty once the intro is done, so a redraw renders exactly the
+            // markup this chart rendered before the intro existed.
+            ...introStyle,
           }}
         >
           <CellComponent
@@ -275,7 +369,38 @@ function HeatmapChartInner<T extends HeatmapCell>({
     rowToIndex,
     columnToIndex,
     CellComponent,
+    introStage,
+    introMaxDiagonal,
   ]);
+
+  // Did this render actually paint cells? Mirrors the memo's own guard: the first
+  // effect runs almost always bail (dimensions are 0 until observeResize reports,
+  // and data can still be loading), and the one-shot intro must not be burned by
+  // a pass that painted nothing.
+  const hasDrawnCells = memoizedCells !== null && memoizedCells.length > 0;
+
+  // pending → running, one frame after the first real draw, so the browser has a
+  // start value to transition FROM.
+  useEffect(() => {
+    if (introStage !== "pending" || !hasDrawnCells) return;
+    const start = () => setIntroStage("running");
+    // jsdom (and any host without rAF) falls back to a macrotask.
+    if (typeof requestAnimationFrame !== "function") {
+      const id = setTimeout(start, 0);
+      return () => clearTimeout(id);
+    }
+    const id = requestAnimationFrame(start);
+    return () => cancelAnimationFrame(id);
+  }, [introStage, hasDrawnCells]);
+
+  // running → done, once the last (most-delayed) cell has landed. Kept as its own
+  // effect: folding it into the one above would let that effect's own cleanup
+  // (fired when it flips the stage) cancel this timer and strand the intro styles.
+  useEffect(() => {
+    if (introStage !== "running") return;
+    const id = setTimeout(() => setIntroStage("done"), INTRO_SETTLE_MS);
+    return () => clearTimeout(id);
+  }, [introStage]);
 
   // Render row labels
   const rowLabels = useMemo(() => {

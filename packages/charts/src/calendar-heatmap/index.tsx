@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef, useState } from "react";
 import { observeResize } from "../lib/observe-resize";
-import { prefersReducedMotion } from "../lib/utils";
+import { useChartIntro } from "../lib/use-chart-intro";
 import {
   type CalendarDatum,
   type WeekStart,
@@ -107,6 +107,7 @@ const CalendarHeatmap = ({
 }: CalendarHeatmapProps) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const shouldIntro = useChartIntro();
   const [box, setBox] = useState<{ width: number; height: number } | null>(
     null,
   );
@@ -204,7 +205,11 @@ const CalendarHeatmap = ({
       day.inWindow ? 0.07 : 0.03;
 
     const radius = cell >= 8 ? 2 : cell >= 4 ? 1 : 0;
-    const animate = !prefersReducedMotion();
+    // Asked here, past the guards: the grace window opens on the first draw
+    // that actually paints cells, so the fade survives the re-render burst
+    // after first paint, while a later redraw — data poll, resize, prop or
+    // theme change — paints the finished grid instantly.
+    const animate = shouldIntro();
 
     const cells = svg
       .selectAll("rect.day")
@@ -225,11 +230,18 @@ const CalendarHeatmap = ({
         d.value === null ? blankOpacity(d) : animate ? 0 : opacityOf(d.value),
       );
 
+    // Intro: the grid fills in left to right, so it reads as the series
+    // arriving week by week. The delay is a *fraction* of the window, never
+    // `i * ms` — a three-year grid is 156 columns, and a per-column constant
+    // would turn the entrance into a slideshow. Total stays ≈540ms whatever
+    // the window's length. Named so a later update transition on the same
+    // cells can't silently cancel it and strand a square at opacity 0.
     if (animate)
       cells
-        .transition()
+        .transition("intro")
         .duration(320)
         .delay((d) => (d.week / Math.max(1, weeks)) * 220)
+        .ease(d3.easeCubicOut)
         .style("fill-opacity", (d) =>
           d.value === null ? blankOpacity(d) : opacityOf(d.value),
         );
@@ -374,6 +386,7 @@ const CalendarHeatmap = ({
     showLegend,
     legendLowLabel,
     legendHighLabel,
+    shouldIntro,
   ]);
 
   return (

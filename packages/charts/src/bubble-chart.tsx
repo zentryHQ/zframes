@@ -1,6 +1,7 @@
 import * as d3 from "d3";
 import { memo, useEffect, useId, useRef, useState } from "react";
 import { observeResize } from "./lib/observe-resize";
+import { useChartIntro } from "./lib/use-chart-intro";
 import { prefersReducedMotion } from "./lib/utils";
 
 export interface BubbleNode {
@@ -36,6 +37,13 @@ interface SimNode extends d3.SimulationNodeDatum {
 
 const FONT_FAMILY = "'DM Sans', sans-serif";
 const DEFAULT_COLOR = "var(--color-highlight, #8b8bff)";
+
+/** First-draw entrance: each bubble scales up from nothing. */
+const INTRO_DURATION_MS = 520;
+/** Whatever the bubble count, the LAST one still finishes inside this budget. */
+const INTRO_TOTAL_MS = 880;
+/** Per-bubble stagger ceiling, so a handful of bubbles still arrive briskly. */
+const INTRO_MAX_STAGGER_MS = 34;
 
 /** Packing efficiency drops as bubble count grows (circle-packing geometry). */
 function packingEfficiency(count: number): number {
@@ -78,6 +86,7 @@ const BubbleChart = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
   const clipPrefix = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const shouldIntro = useChartIntro();
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -148,8 +157,32 @@ const BubbleChart = ({
       .attr("class", "bubble")
       .attr("cursor", "grab");
 
+    const animateIntro = shouldIntro();
+    // Biggest bubbles land first and the small ones fill in behind them, which
+    // reads as the cloud packing itself. The delay is derived from the count
+    // (never a fixed `i * ms`), so a 60-bubble cloud finishes in the same budget
+    // as a 6-bubble one instead of turning into a slideshow.
+    const introRank = new Array<number>(simNodes.length).fill(0);
+    simNodes
+      .map((d, i) => ({ i, r: d.r }))
+      .sort((a, b) => b.r - a.r)
+      .forEach((entry, rank) => {
+        introRank[entry.i] = rank;
+      });
+    const introStagger =
+      simNodes.length > 1
+        ? Math.min(
+            INTRO_MAX_STAGGER_MS,
+            (INTRO_TOTAL_MS - INTRO_DURATION_MS) / (simNodes.length - 1),
+          )
+        : 0;
+
     item.each(function (d, i) {
-      const group = d3.select(this);
+      const outer = d3.select(this);
+      // The outer <g> carries the simulation's translate, rewritten on every
+      // tick — so the intro scale gets its own child <g>, or the tick handler
+      // would stomp the transition 60 times a second.
+      const group = outer.append("g").attr("class", "bubble-scale");
       const fill = d.node.color ?? color;
 
       group
@@ -207,9 +240,27 @@ const BubbleChart = ({
           .text(d.node.label);
       }
 
-      group
+      outer
         .append("title")
         .text(formatTitle ? formatTitle(d.node) : d.node.label);
+
+      if (animateIntro) {
+        group
+          .attr("transform", "scale(0)")
+          .transition("intro")
+          .delay(introRank[i] * introStagger)
+          .duration(INTRO_DURATION_MS)
+          .ease(d3.easeCubicOut)
+          // attrTween, not a plain `.attr("transform", "scale(1)")`: d3
+          // interpolates transform *strings* by parsing them through a live
+          // SVGGraphicsElement, which jsdom does not implement. Emitting the
+          // string ourselves keeps this a pure attribute write.
+          .attrTween("transform", () => (t: number) => `scale(${t})`)
+          .on("end", function () {
+            // Land on exactly the DOM a redraw produces: no leftover transform.
+            d3.select(this).attr("transform", null);
+          });
+      }
     });
 
     const position = () => {
@@ -246,7 +297,7 @@ const BubbleChart = ({
     return () => {
       simulation.stop();
     };
-  }, [nodes, box, showLabels, color, formatTitle, clipPrefix]);
+  }, [nodes, box, showLabels, color, formatTitle, clipPrefix, shouldIntro]);
 
   return (
     <div

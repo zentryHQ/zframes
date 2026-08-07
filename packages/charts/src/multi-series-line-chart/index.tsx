@@ -9,8 +9,9 @@ import React, {
   memo,
 } from "react";
 import * as d3 from "d3";
-import { cn, prefersReducedMotion } from "../lib/utils";
+import { cn } from "../lib/utils";
 import { observeResize } from "../lib/observe-resize";
+import { useChartIntro } from "../lib/use-chart-intro";
 import { Skeleton } from "../lib/skeleton";
 
 import type { MultiSeriesLineChartProps } from "./types";
@@ -61,7 +62,7 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
   // The legend row's own height, so `fill` can hand the plot only what's left.
   const [plotOffsetTop, setPlotOffsetTop] = useState(0);
   const plotObserverRef = useRef<(() => void) | null>(null);
-  const hasAnimatedRef = useRef(false);
+  const shouldIntro = useChartIntro();
 
   const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
 
@@ -214,15 +215,10 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
       innerWidth,
     );
 
-    drawLines(
-      g,
-      filteredSeries,
-      seriesColors,
-      xScale,
-      yScale,
-      !hasAnimatedRef.current && !prefersReducedMotion(),
-    );
-    hasAnimatedRef.current = true;
+    // Every run of this effect rebuilds the paths from scratch (the wipe above),
+    // so an intro that restarts inside the window draws a fresh line rather than
+    // resuming a half-erased one.
+    drawLines(g, filteredSeries, seriesColors, xScale, yScale, shouldIntro());
 
     const { onMouseMove, onMouseLeave, destroy } = createInteractions({
       g,

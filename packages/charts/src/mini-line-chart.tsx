@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useMemo, useId, memo } from "react";
 import * as d3 from "d3";
 import { cn } from "./lib/utils";
+import { useChartIntro } from "./lib/use-chart-intro";
 
 interface MiniLineChartProps {
   data: Array<{ date: string; value: number }>;
@@ -21,8 +22,10 @@ const MiniLineChartComponent: React.FC<MiniLineChartProps> = ({
   variant = "default",
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const shouldIntro = useChartIntro();
   const rawId = useId();
   const gradientId = `mini-chart-gradient-${rawId.replace(/:/g, "")}`;
+  const clipId = `mini-chart-clip-${rawId.replace(/:/g, "")}`;
 
   const { strokeColor, isPositive, variantType, customColor } = useMemo(() => {
     if (color) {
@@ -110,6 +113,11 @@ const MiniLineChartComponent: React.FC<MiniLineChartProps> = ({
 
   useEffect(() => {
     if (!svgRef.current || !processedData.length) return;
+
+    // The intro may replay while the grace window opened by the first real draw
+    // is still open (see useChartIntro); once it closes, redraws (data polls,
+    // resize, theme/variant changes) paint the final state with no transition.
+    const animate = shouldIntro();
 
     const svg = d3.select(svgRef.current);
     const margin = { top: 2, right: 0, bottom: 2, left: 0 };
@@ -258,6 +266,33 @@ const MiniLineChartComponent: React.FC<MiniLineChartProps> = ({
       .attr("stroke-linecap", "round")
       .attr("stroke-linejoin", "round")
       .attr("d", line);
+
+    if (animate) {
+      // Left-to-right wipe: one plain `width` tween on a clip rect reveals the
+      // line and its area fill together. Cheap enough for the dozens of
+      // sparklines a board can hold, and jsdom-safe (no getTotalLength/getBBox).
+      const revealTo = innerWidth + 2; // clear the round line cap at the end
+      const clipRect = defs
+        .append("clipPath")
+        .attr("id", clipId)
+        .append("rect")
+        .attr("x", 0)
+        .attr("y", -margin.top - 1)
+        .attr("width", 0)
+        .attr("height", height + 2);
+
+      g.attr("clip-path", `url(#${clipId})`);
+
+      clipRect
+        .transition("intro")
+        .duration(600)
+        .ease(d3.easeCubicOut)
+        .attr("width", revealTo)
+        .on("end interrupt", () => {
+          // Drop the clip once revealed so later redraws never inherit it.
+          g.attr("clip-path", null);
+        });
+    }
   }, [
     processedData,
     width,
@@ -266,6 +301,9 @@ const MiniLineChartComponent: React.FC<MiniLineChartProps> = ({
     isPositive,
     variantType,
     customColor,
+    clipId,
+    gradientId,
+    shouldIntro,
   ]);
 
   if (!data || data.length === 0) {
