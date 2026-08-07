@@ -57,18 +57,20 @@ export function containerGeometry(
  *
  * GridStack's nested grids need a **px** `cellHeight` (its own docs say `%`
  * values don't work), so the children only fill their group if we compute it from
- * the group's measured content box and re-apply it whenever the group is
- * resized. `margin` is `gap / 2` per side, so each of the `rows` tracks carries a
- * full `gap` of margin — subtract that before dividing, or the children overflow
- * their group by `gap * rows`.
+ * the group's measured box and re-apply it whenever the group is resized.
+ *
+ * `cellHeight` is the row **pitch**, and the gap is already inside it: GridStack
+ * spends `margin` by insetting each item's content box (`top`/`bottom` on
+ * `.grid-stack-item-content`, per its own stylesheet), not by growing the row. A
+ * child item measures exactly `cellHeight` tall — live-confirmed — so `rows`
+ * tracks occupy exactly `rows * cellHeight`. Subtracting a margin term here (as
+ * this did) double-counts it and leaves `rows * gap` of dead space under the last
+ * child. `heightPx` must therefore be the height of the box the children are
+ * actually laid out in — their containing block, which for GridStack's
+ * absolutely-positioned items is the host's PADDING box (see fitSubGrid).
  */
-export function subCellPx(
-  contentHeightPx: number,
-  rows: number,
-  gap: number,
-): number {
-  const usable = contentHeightPx - rows * gap;
-  return Math.max(24, Math.floor(usable / Math.max(1, rows)));
+export function subCellPx(heightPx: number, rows: number): number {
+  return Math.max(24, Math.floor(heightPx / Math.max(1, rows)));
 }
 
 // flow-horizontal runs GridStack as a wide, height-bounded grid: the column

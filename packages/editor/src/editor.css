@@ -261,9 +261,11 @@ body.zf-dragging * {
 /* The group's label, mirroring `.zf-group-title` in FRAME_CSS so the editor and
    the live dashboard read the same. Rendered from a data attribute rather than a
    real element because this box is a GridStack container: a non-item child in
-   there would sit in the absolutely-positioned item flow. The matching
-   padding-top insets the child grid, and fitSubGrid subtracts it again so the
-   bottom row still lands inside the group. */
+   there would sit in the absolutely-positioned item flow. The padding-top is a
+   reserve band, NOT a child inset — GridStack's items are absolutely positioned,
+   so they resolve against this element's padding box and ignore the padding
+   entirely. fitSubGrid must therefore not subtract it: doing so left exactly this
+   much dead space under the last child of every titled group. */
 .zf-group-host--titled {
   padding-top: 20px;
 }
