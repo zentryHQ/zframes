@@ -39,6 +39,26 @@ const SETTLE_MS = Number(process.env.THUMBS_SETTLE_MS ?? 9000);
 // the capture as failed rather than overwrite a good thumb with an empty one.
 const MIN_BYTES = 5_000;
 
+// How long to wait for frames to stop rendering their EMPTY state (see the
+// data-zf-empty note at the wait site). Generous, because the point is to
+// outlast a slow warm-up on a cold CI runner, and it costs nothing on a board
+// that is already populated — the wait resolves the moment the last one fills.
+const EMPTY_WAIT_MS = Number(process.env.THUMBS_EMPTY_WAIT_MS ?? 45_000);
+
+// A capture with this many empty frames is DEGRADED: it will not overwrite an
+// existing thumbnail, because a good picture of yesterday beats a bad picture of
+// today. MIN_BYTES already refuses a fully blank shot; this refuses a
+// half-loaded one, which is well over the byte floor and is what actually
+// shipped ("no fix history yet" across a board that renders fine on a real
+// visit).
+const MAX_EMPTY_FRAMES = Number(process.env.THUMBS_MAX_EMPTY ?? 1);
+
+// …but never let a thumbnail rot. If a board has a permanently empty frame (a
+// retired provider, a market with no prints) the gate above would freeze its
+// image forever, so a stale-enough thumb is replaced regardless and the run says
+// so. Staleness is the worse failure past this point.
+const STALE_THUMB_DAYS = Number(process.env.THUMBS_STALE_DAYS ?? 3);
+
 // Margin of page backdrop kept around the grid in the capture.
 const CAPTURE_PAD = 24;
 
@@ -104,6 +124,10 @@ async function main() {
 
   const ok: string[] = [];
   const failed: string[] = [];
+  // Captured with empty frames — either kept back, or published because the
+  // existing thumb was stale. Reported at the end so a board that quietly
+  // degrades every night is visible rather than just looking a bit wrong.
+  const degraded: string[] = [];
 
   for (const id of targets) {
     const page = await context.newPage();
@@ -133,9 +157,41 @@ async function main() {
           ),
         );
 
+      // THEN wait for frames to actually HAVE data, which is a different
+      // question from the one above. A frame that resolved with nothing to show
+      // is not `aria-busy` — it renders FrameStatus's empty branch and looks
+      // finished. Boards whose deepest series warm up lazily (the LBMA London
+      // fix history is fire-and-forget behind the spot price) therefore passed
+      // the busy check while still empty, and the nightly job published a
+      // gold-desk thumbnail reading "no fix history yet" across half its cards.
+      //
+      // Soft-fail, like the busy wait: some frames are legitimately empty (a
+      // dead provider, a market with no data today), and one of those must not
+      // stall every capture behind it.
+      await page
+        .waitForFunction(
+          () => !document.querySelector(".zf-grid [data-zf-empty]"),
+          { timeout: EMPTY_WAIT_MS },
+        )
+        .catch(() => {});
+
       // Then a settle tail: charts draw/animate after data lands (canvas paints
       // aren't observable from the DOM), and live prices tick in over the WS.
       await page.waitForTimeout(SETTLE_MS);
+
+      // Re-read AFTER the settle — the number that matters is what the camera
+      // will actually see, not what was true before the tail.
+      const emptyTitles: string[] = await page.evaluate(() =>
+        [...document.querySelectorAll(".zf-grid [data-zf-empty]")].map(
+          (el) =>
+            el
+              .closest(".zf-frame")
+              ?.querySelector(".zf-frame-title")
+              ?.textContent?.trim() ||
+            el.textContent?.trim().slice(0, 40) ||
+            "?",
+        ),
+      );
 
       // Hide the page chrome around the board: the sticky site nav would smear
       // into a scroll-stitched shot, and the preview page's title row (main's
@@ -242,6 +298,31 @@ async function main() {
       if (image.length < MIN_BYTES)
         throw new Error(`capture too small (${image.length}B)`);
 
+      // THE QUALITY GATE. A half-loaded board is far above MIN_BYTES, so the
+      // byte floor never caught it — this does. Refuse to publish over a usable
+      // existing thumb, unless that thumb is stale enough that freezing it is
+      // the bigger problem.
+      if (emptyTitles.length > MAX_EMPTY_FRAMES) {
+        const [existing] = await sql`
+          select captured_at from dashboard_thumbs where id = ${id}
+        `;
+        const ageDays = existing
+          ? (Date.now() - new Date(existing.captured_at).getTime()) / 86_400_000
+          : Infinity;
+        if (ageDays < STALE_THUMB_DAYS) {
+          degraded.push(id);
+          console.warn(
+            `  ⚠ ${id}: ${emptyTitles.length} empty frame(s) — KEPT the existing thumb (${ageDays.toFixed(1)}d old): ${emptyTitles.join(", ")}`,
+          );
+          continue;
+        }
+        // No thumb at all, or one old enough that stale beats imperfect.
+        degraded.push(id);
+        console.warn(
+          `  ⚠ ${id}: ${emptyTitles.length} empty frame(s) but the existing thumb is ${ageDays === Infinity ? "absent" : `${ageDays.toFixed(1)}d old`} — publishing anyway: ${emptyTitles.join(", ")}`,
+        );
+      }
+
       await sql`
         insert into dashboard_thumbs (id, image, content_type, captured_at)
         values (${id}, ${image}, 'image/jpeg', now())
@@ -251,7 +332,9 @@ async function main() {
               captured_at = now()
       `;
       ok.push(id);
-      console.log(`  ✓ ${id} (${Math.round(image.length / 1024)} KB)`);
+      console.log(
+        `  ✓ ${id} (${Math.round(image.length / 1024)} KB)${emptyTitles.length ? ` · ${emptyTitles.length} empty: ${emptyTitles.join(", ")}` : ""}`,
+      );
     } catch (err) {
       failed.push(id);
       console.error(`  ✗ ${id}: ${err instanceof Error ? err.message : err}`);
@@ -270,8 +353,16 @@ async function main() {
   await sql.end();
 
   console.log(
-    `done: ${ok.length} captured, ${failed.length} failed, ${pruned.count} pruned`,
+    `done: ${ok.length} captured, ${failed.length} failed, ${degraded.length} degraded, ${pruned.count} pruned`,
   );
+  // Named, not just counted. A board that degrades every night is a real
+  // regression (a provider that stopped answering) and it would otherwise show
+  // up only as a thumbnail nobody looks at closely.
+  if (degraded.length > 0) {
+    console.warn(
+      `degraded (frames still empty at capture time): ${degraded.join(", ")}`,
+    );
+  }
   if (ok.length === 0) {
     console.error("every capture failed — is the site up and rendering?");
     process.exit(1);

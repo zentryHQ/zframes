@@ -1,0 +1,53 @@
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, render } from "@testing-library/react";
+import { FrameStatus } from "./ui";
+
+afterEach(cleanup);
+
+/**
+ * `FrameStatus`'s two branches are a CROSS-PACKAGE CONTRACT, not just styling.
+ *
+ * `apps/explorer/scripts/capture-thumbs.ts` decides when a board is photographable
+ * by querying the DOM for both of them:
+ *   • `[aria-busy="true"]`  — still loading, wait
+ *   • `[data-zf-empty]`     — resolved with no data, wait then refuse to publish
+ *
+ * Neither is visible in this package, so nothing here would fail if a well-meaning
+ * refactor dropped one — the nightly job would simply go back to photographing
+ * half-loaded boards, which is exactly the bug this attribute was added to fix
+ * (gold-desk shipped a thumbnail reading "no fix history yet" across half its
+ * cards). These tests are the tripwire.
+ */
+describe("FrameStatus — the capture contract", () => {
+  it("marks the EMPTY branch with data-zf-empty", () => {
+    const { container } = render(<FrameStatus>no fix history yet</FrameStatus>);
+    expect(container.querySelector("[data-zf-empty]")).not.toBeNull();
+  });
+
+  it("does NOT mark the empty branch as busy", () => {
+    // An empty frame has finished. Claiming aria-busy would both lie to a screen
+    // reader and make the capture wait out its full timeout on every such board.
+    const { container } = render(<FrameStatus>no data</FrameStatus>);
+    expect(container.querySelector('[aria-busy="true"]')).toBeNull();
+  });
+
+  it("marks the LOADING branch busy", () => {
+    const { container } = render(<FrameStatus loading>loading…</FrameStatus>);
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
+  });
+
+  it("does NOT mark the loading branch as empty", () => {
+    // The two states must stay distinguishable: the capture waits on both but
+    // treats them differently — loading is patience, empty is a quality signal.
+    const { container } = render(<FrameStatus loading>loading…</FrameStatus>);
+    expect(container.querySelector("[data-zf-empty]")).toBeNull();
+  });
+
+  it("still renders the caller's message in the empty branch", () => {
+    const { getByText } = render(
+      <FrameStatus>no London fix history yet</FrameStatus>,
+    );
+    expect(getByText("no London fix history yet")).toBeTruthy();
+  });
+});
