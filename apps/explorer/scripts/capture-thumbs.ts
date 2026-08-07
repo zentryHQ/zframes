@@ -39,6 +39,11 @@ const SETTLE_MS = Number(process.env.THUMBS_SETTLE_MS ?? 9000);
 // the capture as failed rather than overwrite a good thumb with an empty one.
 const MIN_BYTES = 5_000;
 
+// Ceiling for the grow-to-fit viewport (see the resize at the capture site).
+// Viewport height multiplies the page's GPU surface, so an unbounded board would
+// OOM the runner; 6000px covers every curated board with room to spare.
+const MAX_VIEWPORT_HEIGHT = Number(process.env.THUMBS_MAX_VIEWPORT_H ?? 6000);
+
 // How long to wait for frames to stop rendering their EMPTY state (see the
 // data-zf-empty note at the wait site). Generous, because the point is to
 // outlast a slow warm-up on a cold CI runner, and it costs nothing on a board
@@ -137,6 +142,28 @@ async function main() {
         timeout: 60_000,
       });
       await page.waitForSelector(".zf-frame", { timeout: 45_000 });
+
+      // GROW THE VIEWPORT TO THE WHOLE BOARD BEFORE WAITING FOR DATA.
+      //
+      // Frames are viewport-gated for battery: `content-visibility` skips
+      // rendering off-screen bodies and FrameVisibilityContext pauses `usePolled`
+      // for anything not on screen. `fullPage: true` photographs past the
+      // viewport, but it does NOT make those frames think they are visible — so
+      // on a 3000px board shot through an 810px window, everything below the fold
+      // never fetched at all and was captured as an empty card. That is a
+      // different failure from the empty-state one above: those frames aren't
+      // "empty", they never started.
+      //
+      // Resizing first makes every frame on-screen, so the gates open and the
+      // waits below actually cover the whole board. Capped because the height
+      // multiplies GPU memory per page and a runaway board would OOM the runner.
+      const fullHeight: number = await page.evaluate(
+        () => document.documentElement.scrollHeight,
+      );
+      await page.setViewportSize({
+        width: 1440,
+        height: Math.min(Math.max(fullHeight, 810), MAX_VIEWPORT_HEIGHT),
+      });
 
       // Wait for every frame to leave its loading state: data loading renders
       // the shared FrameStatus skeleton (role="status" aria-busy), lazy chunk
