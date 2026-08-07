@@ -11,6 +11,7 @@ import Link from "next/link";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import type { BoardSummary } from "@/app/lib/board-summary";
 import { CopyCommand } from "@/app/lib/CopyCommand";
+import { FAQ } from "@/app/lib/faq";
 import { KEYLESS_PROVIDER_COUNT } from "@/app/lib/frames";
 import { FramesShowcase } from "@/app/lib/FramesShowcase";
 import { LiveBoardFrame } from "@/app/lib/LiveBoardFrame";
@@ -510,6 +511,9 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
         </div>
       </section>
 
+      {/* ── Act VI · Questions — the objections, answered in words ───────── */}
+      <Faq />
+
       {/* ── Final CTA — build your own ───────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-6 pb-24 pt-20">
         <Reveal>
@@ -532,6 +536,59 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
         </Reveal>
       </section>
     </main>
+  );
+}
+
+/**
+ * The FAQ. Rendered from the shared `FAQ` array in `app/lib/faq.ts` — the same
+ * one `page.tsx` emits as `FAQPage` structured data and `/llms.txt` prints.
+ * One list, three renderings: Google's structured-data policy requires marked-up
+ * answers to be visible on the page, and an answer engine quoting words we never
+ * showed a human is worse than not being quoted.
+ *
+ * Native `<details>` rather than a JS accordion: the answers are in the document
+ * either way (crawlers read collapsed content, and Google's guidance explicitly
+ * allows FAQ answers behind an accordion), and this costs no state, no
+ * dependency, and works before hydration.
+ */
+function Faq() {
+  return (
+    <section id="faq" className="mx-auto max-w-3xl px-6 pt-24">
+      <Reveal>
+        <SectionHeading
+          eyebrow="Questions"
+          title="Common questions"
+          description="The things people ask before installing — price, keys, agents, and where your dashboard actually lives."
+        />
+      </Reveal>
+      <div className="flex flex-col gap-2.5">
+        {FAQ.map((item, i) => (
+          <Reveal key={item.question} delay={Math.min(i, 4) * 0.05}>
+            <details className="zf-surface group px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="zf-press flex cursor-pointer list-none items-center justify-between gap-4 text-left font-semibold text-white">
+                <h3 className="text-[15px]">{item.question}</h3>
+                {/* Rotates to a minus when open — the only motion here, and
+                    CSS-only so it works with JS off. */}
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-4 w-4 shrink-0 text-indigo-300 transition-transform duration-200 group-open:rotate-45"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </summary>
+              <p className="mt-3 text-pretty text-sm leading-relaxed text-white/70">
+                {item.answer}
+              </p>
+            </details>
+          </Reveal>
+        ))}
+      </div>
+    </section>
   );
 }
 
