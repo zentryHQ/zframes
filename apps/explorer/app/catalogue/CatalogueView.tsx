@@ -8,7 +8,6 @@ import {
   frameMatchesSearch,
   frameSearchTokens,
   type AnyFrameDefinition,
-  type FrameCategory,
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
 import { allFrames } from "@zframes/frames";
@@ -20,6 +19,10 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+// The stocks-first section order + its "every family is ranked" typecheck guard
+// moved to ./order so the server-rendered FrameIndex can share them — a Server
+// Component cannot import this file (it is `ssr: false`) or @zframes/core.
+import { ORDERED_CATEGORIES } from "@/app/catalogue/order";
 import { PUBLIC_DEMO_ADDRESS, providers, registry } from "@/app/lib/frames";
 import { LikeButton } from "@/app/lib/LikeButton";
 import { LikeCount } from "@/app/lib/LikeCount";
@@ -29,54 +32,6 @@ import FramePlayground from "./FramePlayground";
 
 const ROW = 96;
 const GAP = 12;
-
-// Stocks-first DISPLAY order for the public catalogue: lead with the
-// equity-relevant families (live prices, single-company fundamentals & filings,
-// macro context and the commodity complex), then the crypto families, then
-// everything else. This reorders the catalogue's sections only — the global
-// FRAME_CATEGORIES order (which drives the editor palette and the AI catalogue)
-// is deliberately left untouched.
-const CATALOGUE_CATEGORY_ORDER = [
-  "markets", // Prices & Markets — equity perps lead
-  "equities", // Equities & Filings
-  "macro", // Macro & Rates — market context
-  "metals", // Metals & Commodities — the same macro context, in hard assets
-  "crypto", // Crypto & On-chain
-  "bitcoin", // Bitcoin Network
-  "onchain", // On-chain & Cycle — reads the chain the two above price
-  "derivatives", // Derivatives & Options
-  "sentiment", // Sentiment & News
-  "portfolio",
-  "journal",
-  "tools",
-  "layout",
-  "games",
-] as const satisfies readonly FrameCategory[];
-
-// A family added to FRAME_CATEGORIES but never ranked above still *renders* —
-// it just silently sorts below Games, which is how `metals` (26 frames) and
-// `onchain` (23) ended up beneath three idle games for a month. Make the
-// omission a typecheck failure instead: if any FrameCategory is unranked, the
-// annotation below resolves to `never` and `pnpm typecheck` fails naming it.
-// `as const satisfies` above is load-bearing — a plain `FrameCategory[]`
-// annotation widens the element type and collapses this Exclude to `never`.
-type UnrankedCategory = Exclude<
-  FrameCategory,
-  (typeof CATALOGUE_CATEGORY_ORDER)[number]
->;
-const _everyCategoryRanked: [UnrankedCategory] extends [never] ? true : never =
-  true;
-void _everyCategoryRanked;
-
-// Rank by the list above. The -1 fallback is unreachable given the guard, but
-// kept so an unranked family degrades to "last" rather than "first".
-const categoryRank = (key: FrameCategory) => {
-  const i = (CATALOGUE_CATEGORY_ORDER as readonly FrameCategory[]).indexOf(key);
-  return i === -1 ? Number.MAX_SAFE_INTEGER : i;
-};
-const ORDERED_CATEGORIES = [...FRAME_CATEGORIES].sort(
-  (a, b) => categoryRank(a.key) - categoryRank(b.key),
-);
 
 // Mount a frame's live renderer only when it scrolls near the viewport — the
 // whole catalogue rendering + fetching at once would jank the page and hammer
@@ -317,17 +272,16 @@ export default function CatalogueView() {
 
   return (
     <FramesProvider providers={providers}>
-      <main className="mx-auto max-w-7xl px-6 py-12">
+      {/* No <main> and no <h1> here. This whole tree is loaded with `ssr: false`
+          (it renders live frames against browser-only APIs), so anything inside
+          it is invisible to a crawler that does not run JavaScript — which is
+          most answer-engine crawlers. The page's heading, intro and the
+          full-text frame index therefore live in the SERVER component that
+          renders this one (`page.tsx` + `FrameIndex.tsx`), and it owns the
+          <main> landmark and the page padding too. */}
+      <div>
         <header className="mb-12 max-w-3xl">
-          <h1 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            The frame <span className="text-indigo-200">catalogue</span>
-          </h1>
-          <p className="mt-3 text-base leading-relaxed text-white/75">
-            Every built-in frame, live and grouped by family. Each renders with
-            a schema-default config — the same set an agent picks from when
-            generating a dashboard.
-          </p>
-          <div className="relative mt-6 max-w-md">
+          <div className="relative max-w-md">
             <svg
               className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
               viewBox="0 0 24 24"
@@ -399,7 +353,7 @@ export default function CatalogueView() {
             </section>
           ))
         )}
-      </main>
+      </div>
     </FramesProvider>
   );
 }

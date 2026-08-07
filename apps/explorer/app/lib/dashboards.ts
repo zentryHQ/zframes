@@ -63,6 +63,42 @@ export async function listCommunity(limit = 48): Promise<DashboardRow[]> {
     .limit(limit);
 }
 
+/**
+ * Every board that may appear in `sitemap.xml` — curated AND community, in one
+ * query, projected down to the four columns a sitemap entry needs.
+ *
+ * Separate from `listCurated`/`listCommunity` rather than a union of them for one
+ * reason: **`visibility` is filtered here explicitly**. `listCurated` never
+ * mentions it, relying on the fact that `upsertCurated` always writes `"listed"`
+ * — true today, and an implicit invariant that a sitemap must not inherit. An
+ * unlisted board is a private link, and submitting one to Google is how a link
+ * that was only ever handed to a colleague ends up in search results.
+ *
+ * No `limit`. A sitemap that silently stops at the newest 48 boards is worse than
+ * no sitemap, because it reads as a complete inventory. The 50,000-URL / 50 MB
+ * sitemap ceiling is far above any plausible board count here; `sitemap.ts` logs
+ * if it is ever approached.
+ */
+export async function listIndexableBoards(): Promise<
+  { id: string; updatedAt: Date; createdAt: Date; curated: boolean }[]
+> {
+  return db
+    .select({
+      id: dashboards.id,
+      updatedAt: dashboards.updatedAt,
+      createdAt: dashboards.createdAt,
+      curated: dashboards.curated,
+    })
+    .from(dashboards)
+    .where(
+      and(
+        eq(dashboards.visibility, "listed"),
+        eq(dashboards.status, "approved"),
+      ),
+    )
+    .orderBy(desc(dashboards.updatedAt));
+}
+
 // ── the curated showcase ─────────────────────────────────────────────────────
 // These rows were TypeScript literals until 2026-08-05 (`curated-dashboards.ts`).
 // They are now ordinary rows distinguished by `curated: true`, seeded/updated by
