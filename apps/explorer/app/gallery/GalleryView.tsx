@@ -50,20 +50,33 @@ function sortBoards(rows: BoardListing[], sort: SortKey): BoardListing[] {
 }
 
 // The gallery: Curated + Community dashboards behind ONE free-text search box.
-// Client-only so the search stays interactive and the community grid can be
-// fetched at runtime (no build-time DB dependency). Search is seeded from and
-// synced to the URL (?q=…) — shareable, refresh-persistent — and reuses the
-// frame tokenizer from @zframes/spec so the whole explorer filters consistently.
-export function GalleryView() {
-  const [data, setData] = useState<GalleryResponse | null>(null);
+// A client component so the search stays interactive, but it renders on the
+// server first like any other — and since 2026-08-07 it is HANDED its rows by
+// the server page rather than starting empty. Search is seeded from and synced
+// to the URL (?q=…) — shareable, refresh-persistent — and reuses the frame
+// tokenizer from @zframes/spec so the whole explorer filters consistently.
+export function GalleryView({ initial }: { initial?: GalleryResponse }) {
+  // Seeded from the server render. Before that this always started `null`, so
+  // the server HTML for the gallery was three pulsing skeletons and the board
+  // titles, descriptions and links existed only after a client fetch — invisible
+  // to any crawler that does not run JavaScript, which is most answer engines.
+  const [data, setData] = useState<GalleryResponse | null>(initial ?? null);
+  // Still refetches on mount even when seeded. The page is ISR (see page.tsx),
+  // so the server copy can be a few minutes old; this reconciles it to live
+  // without costing the first paint. Same value in, same value out — no
+  // hydration mismatch, because the client's initial state is the server's.
   useEffect(() => {
     fetch("/api/dashboards")
-      .then((r) => (r.ok ? r.json() : { curated: [], community: [] }))
-      .then((d: GalleryResponse) =>
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: GalleryResponse | null) => {
+        if (!d) return; // a failed refresh keeps the server-rendered rows
         // Defensive: an older cached response was a bare array (community only).
-        setData(Array.isArray(d) ? { curated: [], community: d } : d),
-      )
-      .catch(() => setData({ curated: [], community: [] }));
+        setData(Array.isArray(d) ? { curated: [], community: d } : d);
+      })
+      .catch(() => {
+        // Likewise: only fall back to empty if we never had anything to show.
+        setData((prev) => prev ?? { curated: [], community: [] });
+      });
   }, []);
 
   const [query, setQuery] = useState(() => {

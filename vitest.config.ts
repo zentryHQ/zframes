@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 // Default environment is Node (serve handlers, spec schema, lintSpec, …);
@@ -11,6 +12,17 @@ import { defineConfig } from "vitest/config";
 // runtime exclude is scoped to `packages/cli/runtime/**` — the gitignored
 // vendored copy of `apps/runtime/dist` — so it can't swallow `apps/runtime`.
 export default defineConfig({
+  // The explorer's own tsconfig maps `@/*` to the app root, and its modules
+  // import each other that way. Tests under apps/explorer therefore need the
+  // same alias here — without it a suite that touches `app/robots.ts` or
+  // `app/sitemap.ts` fails on an unresolved `@/app/lib/site` rather than on
+  // anything it meant to assert. Scoped to the explorer path; no other package
+  // uses this prefix.
+  resolve: {
+    alias: {
+      "@/": `${fileURLToPath(new URL("./apps/explorer", import.meta.url))}/`,
+    },
+  },
   test: {
     environment: "node",
     include: [

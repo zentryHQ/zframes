@@ -54,6 +54,15 @@ const nextConfig: NextConfig = {
       "./assets/DMSans-Bold.ttf",
       "./assets/zframes-icon-512.png",
     ],
+    // The site-wide share card (app/opengraph-image.tsx) reads the same three.
+    // It renders statically at build time today, so tracing is belt-and-braces —
+    // but the cost of being wrong is every non-board page unfurling with a broken
+    // image, and the cost of the entry is one line.
+    "/opengraph-image": [
+      "./assets/DMSans-Regular.ttf",
+      "./assets/DMSans-Bold.ttf",
+      "./assets/zframes-icon-512.png",
+    ],
   },
   // The browser's fetch layer hard-rewrites proxied provider calls to the shared
   // constant `/__zframes/proxy?url=…`. That path can't be an App Router folder
@@ -81,9 +90,25 @@ const nextConfig: NextConfig = {
       // The chrome-less board embeds (iframed by the landing showcase) must be
       // frameable BY THIS SAME ORIGIN only — SAMEORIGIN, never DENY (which blocks
       // even same-origin) and never a wildcard (no cross-site framing).
+      //
+      // They are also a chrome-less DUPLICATE of /dashboard/<id>: same board,
+      // same data, no navigation. `X-Robots-Tag` is the third layer keeping them
+      // out of the index, after robots.txt (a crawl directive, which a crawler
+      // may ignore) and the route's own `robots: noindex` metadata (which a
+      // crawler only reads if it fetches the page). A header applies to both.
       {
         source: "/embed/:path*",
-        headers: [...base, { key: "X-Frame-Options", value: "SAMEORIGIN" }],
+        headers: [
+          ...base,
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
+      // JSON endpoints. Nothing here renders a page, so nothing here should ever
+      // appear as a result — and a route handler has no <head> to say so in.
+      {
+        source: "/api/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
     ];
   },

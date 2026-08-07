@@ -140,6 +140,46 @@ edit a board in SQL and want it to survive, export it back into the seed file.
 Secret: `PRODUCTION_DATABASE_URL`, falling back to `THUMBS_DATABASE_URL` (same Neon
 string, already set). The workflow skips cleanly when neither exists.
 
+## Discoverability (SEO + answer engines)
+
+`app/lib/site.ts` is the single source of truth: the canonical origin, the shared
+copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
+
+- **The canonical origin is hard-coded to production** (`https://frames.zentry.com`,
+  override with `NEXT_PUBLIC_SITE_URL`) — deliberately *not* `BETTER_AUTH_URL`,
+  which is the auth callback origin and is localhost in dev. A preview deployment
+  therefore canonicalises to production and `robots.txt` disallows it wholesale
+  (`isProductionDeployment()`).
+- **`metadataBase` lives in the root layout.** It used to be on `/dashboard/[id]`
+  alone, so every other page shipped no usable OG image. The root layout also owns
+  the `%s · zframes` title template — **pages set a BARE title** (`"Gallery"`), never
+  one ending in the brand.
+- **Adding a public page means adding it to `STATIC_ROUTES`.** `app/lib/seo.test.ts`
+  enumerates `app/`'s route directories and fails if one is neither listed nor in
+  the test's `NON_INDEXABLE` set — otherwise a working page never reaches
+  `sitemap.xml` and nothing anywhere errors.
+- **Unlisted boards are noindex in two places, both required.**
+  `listIndexableBoards()` filters `visibility` explicitly so `sitemap.xml` can't
+  submit them, and `/dashboard/[id]` emits `robots: noindex` for them. `robots.txt`
+  alone is a *crawl* directive — a linked URL can still be listed unfetched.
+- **`/catalogue` is a Server Component.** It was a `"use client"` page whose whole
+  body was a `ssr: false` import, so the most content-dense page on the site served
+  the words "Loading catalogue…" and had no `<h1>` and no metadata. The heading,
+  metadata and `FrameIndex` (all 285 frames as text) now render on the server;
+  only the live grid stays client-only, behind `CatalogueClient`. `CatalogueView`
+  must therefore **not** render `<main>` or an `<h1>` — the page owns both.
+- **`/gallery` fetches its rows server-side** and passes them as `initial`. The
+  client still refetches on mount to reconcile the ISR window.
+- **`/llms.txt`** (`app/llms.txt/route.ts`) is fully derived — frames from the
+  registry, boards from the table, Q&A from `app/lib/faq.ts`. It cannot go stale
+  on its own.
+- **`app/lib/faq.ts` is rendered three ways** — the visible landing FAQ, `FAQPage`
+  JSON-LD, and `/llms.txt`. Google requires FAQ markup to mirror visible content,
+  so never hand-write a second list; a test pins that the three agree.
+- JSON-LD helpers live in `app/lib/structured-data.tsx` and are emitted
+  **server-side** — answer-engine crawlers largely do not run JS, so anything
+  injected after hydration is invisible to the audience it is for.
+
 ## Footguns
 
 - **The dev PGlite socket takes ONE connection.** `app/lib/db` pins `max: 1`

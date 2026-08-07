@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { toBoardSummary } from "@/app/lib/board-summary";
 import { listLandingBoards } from "@/app/lib/dashboards";
+import { faqJsonLd } from "@/app/lib/faq";
+import {
+  howToJsonLd,
+  JsonLd,
+  softwareApplicationJsonLd,
+} from "@/app/lib/structured-data";
 import LandingView from "@/app/LandingView";
 
 /**
@@ -17,6 +24,11 @@ import LandingView from "@/app/LandingView";
  */
 export const revalidate = 300; // 5 minutes
 
+// Title, description, OG and canonical for `/` all come from the root layout's
+// defaults — this only pins the canonical explicitly so the homepage is immune to
+// a stray query string (?ref=, utm_*) minting a duplicate.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
+
 export default async function Home() {
   // A failed query renders the page WITHOUT the showcase rather than a 500: the
   // landing is also the install instructions, the frame catalogue and the pitch,
@@ -27,5 +39,19 @@ export default async function Home() {
   } catch (err) {
     console.error("[landing] could not load showcase boards:", err);
   }
-  return <LandingView boards={boards.map(toBoardSummary)} />;
+  return (
+    <>
+      {/* Three graphs, each answering a different question a search or answer
+          engine asks of a homepage: what is this product (SoftwareApplication,
+          including the price-0 offer that makes "is it free" answerable from
+          markup alone), how do I use it (HowTo, mirroring the visible Act IV
+          steps), and the direct Q&A (FAQPage, mirroring the visible FAQ below —
+          Google's policy requires that the marked-up answers appear on the page,
+          and both are rendered from the same array). */}
+      <JsonLd data={softwareApplicationJsonLd()} />
+      <JsonLd data={howToJsonLd()} />
+      <JsonLd data={faqJsonLd()} />
+      <LandingView boards={boards.map(toBoardSummary)} />
+    </>
+  );
 }
