@@ -16,6 +16,8 @@
     "@zframes/core": "workspace:*",
     "@zframes/editor": "workspace:*",
     "@zframes/frames": "workspace:*",
+    "@zframes/providers-keyless": "workspace:*",
+    "@zframes/serve": "workspace:*",
     "@zframes/spec": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

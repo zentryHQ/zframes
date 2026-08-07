@@ -11,6 +11,13 @@ import {
 import type { StoryGlobals } from "../.storybook/preview";
 import { registry } from "./registry";
 import { MockMarketDataProvider, type MockMode } from "@zframes/frames/testing";
+import { liveProviders } from "./live-providers";
+
+/**
+ * A story's data source: one of the mock provider's four deterministic modes,
+ * or `"live"` — the real keyless provider set (see `live-providers.ts`).
+ */
+export type CanvasMode = MockMode | "live";
 
 const ROW = 96;
 const GAP = 12;
@@ -34,7 +41,10 @@ const DEFAULT_LAYOUT: FrameLayout = { w: 4, h: 3 };
 const DAY = 86_400_000;
 const isoDaysAgo = (days: number): string => {
   const d = new Date(Date.now() - days * DAY);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+    2,
+    "0",
+  )}-${String(d.getDate()).padStart(2, "0")}`;
 };
 const DEMO_EVENTS = [
   {
@@ -73,22 +83,30 @@ function sizeFor(
  * Renders ONE frame in isolation by handing a single-frame DashboardSpec to the
  * real DashboardRenderer (which injects FRAME_CSS + all --zf-* theme vars and
  * routes chrome/error/loading exactly as production does). Cosmetics come from
- * the toolbar globals; data comes from the deterministic mock provider.
+ * the toolbar globals; data comes from the deterministic mock provider — or,
+ * when `mode` is "live", from the real keyless provider set.
  */
 export function FrameCanvas({
   frame,
   config,
   mode = "normal",
+  size,
   globals,
 }: {
   frame: AnyFrameDefinition;
   config: Record<string, unknown>;
-  mode?: MockMode;
+  mode?: CanvasMode;
+  /** Explicit grid span, overriding the toolbar's frame-size global. */
+  size?: { w: number; h: number };
   globals: StoryGlobals;
 }) {
   const { themePreset, frameSize, density, events } = globals;
-  const provider = useMemo(() => new MockMarketDataProvider(mode), [mode]);
-  const { w, h } = sizeFor(frame, frameSize);
+  const providers = useMemo(
+    () =>
+      mode === "live" ? liveProviders() : [new MockMarketDataProvider(mode)],
+    [mode],
+  );
+  const { w, h } = size ?? sizeFor(frame, frameSize);
   const configKey = JSON.stringify(config);
 
   const spec = useMemo<DashboardSpec>(() => {
@@ -136,7 +154,7 @@ export function FrameCanvas({
   const widthPx = w * ROW + (w - 1) * GAP;
 
   return (
-    <FramesProvider providers={[provider]}>
+    <FramesProvider providers={providers}>
       <div
         style={{
           width: widthPx,

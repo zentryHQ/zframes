@@ -276,6 +276,12 @@ importers:
       '@zframes/frames':
         specifier: workspace:*
         version: link:../../packages/frames
+      '@zframes/providers-keyless':
+        specifier: workspace:*
+        version: link:../../packages/providers-keyless
+      '@zframes/serve':
+        specifier: workspace:*
+        version: link:../../packages/serve
       '@zframes/spec':
         specifier: workspace:*
         version: link:../../packages/spec
