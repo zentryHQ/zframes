@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { useEffect, useRef, memo } from "react";
+import { useChartIntro } from "./lib/use-chart-intro";
 import { prefersReducedMotion } from "./lib/utils";
 
 const COLORS = ["#FF1F5F", "#81FE90"];
@@ -30,6 +31,7 @@ const PieChart = ({
   children,
 }: PieChartProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const shouldIntro = useChartIntro();
 
   useEffect(() => {
     if (!svgRef.current || !data.length) return;
@@ -98,27 +100,79 @@ const PieChart = ({
       .append("g")
       .attr("transform", `translate(${centerX}, ${centerY})`);
 
+    const arcs = pie(data);
+
     const sliceGroups = pieGroup
       .selectAll("g")
-      .data(pie(data))
+      .data(arcs)
       .enter()
       .append("g");
 
-    sliceGroups
-      .append("path")
-      .attr("class", "glow-layer")
-      .attr("d", glowArc)
-      .attr("fill", (_, i) => colorScale(i.toString()) as string)
-      .attr("filter", "url(#glow-layer)")
-      .style("opacity", 0)
-      .style("pointer-events", "none");
+    // True only inside the grace window that opens at the first real draw, so
+    // the sweep survives the re-render burst after first paint (every caller but
+    // one passes a fresh `colors` array, which is in the dep array below) while
+    // a later redraw — data poll, resize, prop or theme change — paints the
+    // finished ring instantly.
+    const animate = shouldIntro();
+    const sweepFrom = d3.min(arcs, (d) => d.startAngle) ?? 0;
+    const sweepTo = d3.max(arcs, (d) => d.endAngle) ?? 2 * Math.PI;
 
-    sliceGroups
-      .append("path")
-      .attr("class", "main-slice")
-      .attr("d", arc)
-      .attr("fill", (_, i) => colorScale(i.toString()) as string)
-      .attr("stroke", "none");
+    /**
+     * Paints a slice-path selection — instantly at its final geometry, or swept
+     * open by one leading edge travelling around the ring, so the donut reads as
+     * a single arc drawing itself rather than N slices inflating at once. Only
+     * the arc generator's math is touched (no rendered-geometry measurement),
+     * so it is safe under jsdom.
+     */
+    const paintSlices = <PElement extends d3.BaseType, PDatum>(
+      selection: d3.Selection<
+        SVGPathElement,
+        d3.PieArcDatum<PieChartData>,
+        PElement,
+        PDatum
+      >,
+      shape: typeof arc,
+    ) => {
+      if (!animate) {
+        selection.attr("d", (d) => shape(d) ?? "");
+        return;
+      }
+      selection
+        .attr("d", (d) => shape({ ...d, endAngle: d.startAngle }) ?? "")
+        // Named, so a hover landing mid-intro (which transitions the glow
+        // layer) cannot cancel the sweep and strand a slice collapsed.
+        .transition("intro")
+        .duration(700)
+        .ease(d3.easeCubicInOut)
+        .attrTween("d", (d) => {
+          const edge = d3.interpolate(sweepFrom, sweepTo);
+          return (t) =>
+            shape({
+              ...d,
+              endAngle: Math.min(Math.max(edge(t), d.startAngle), d.endAngle),
+            }) ?? "";
+        });
+    };
+
+    paintSlices(
+      sliceGroups
+        .append("path")
+        .attr("class", "glow-layer")
+        .attr("fill", (_, i) => colorScale(i.toString()) as string)
+        .attr("filter", "url(#glow-layer)")
+        .style("opacity", 0)
+        .style("pointer-events", "none"),
+      glowArc,
+    );
+
+    paintSlices(
+      sliceGroups
+        .append("path")
+        .attr("class", "main-slice")
+        .attr("fill", (_, i) => colorScale(i.toString()) as string)
+        .attr("stroke", "none"),
+      arc,
+    );
 
     sliceGroups
       .on("mouseenter", function () {
@@ -135,7 +189,7 @@ const PieChart = ({
           .duration(prefersReducedMotion() ? 0 : 300)
           .style("opacity", 0);
       });
-  }, [data, width, height, innerRadius, outerRadius, colors]);
+  }, [data, width, height, innerRadius, outerRadius, colors, shouldIntro]);
 
   return (
     <div

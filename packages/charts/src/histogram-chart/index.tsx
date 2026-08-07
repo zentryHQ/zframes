@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { observeResize } from "../lib/observe-resize";
-import { prefersReducedMotion } from "../lib/utils";
+import { useChartIntro } from "../lib/use-chart-intro";
 import { type BinOptions, binSample, normalCurve } from "./utils";
 
 // The binning helpers are re-exported by the package barrel (`@zframes/charts`)
@@ -60,6 +60,19 @@ const DEFAULT_FORMAT = (v: number) => String(v);
 const NO_MARKERS: HistogramMarker[] = [];
 
 /**
+ * Intro (first-draw) timings. The bars grow from the axis with a short
+ * left-to-right stagger, and the derived overlays (fitted normal, markers) fade
+ * in over the tail of that growth. The stagger is a *total* budget divided by
+ * the bin count rather than a fixed per-bar delay: a 60-bin distribution would
+ * otherwise take seconds to finish arriving.
+ */
+const BAR_DURATION = 480;
+const BAR_STAGGER_TOTAL = 220;
+const BAR_STAGGER_MAX = 22;
+const OVERLAY_DELAY = 200;
+const OVERLAY_DURATION = 320;
+
+/**
  * Distribution histogram — how a sample is *shaped*, rather than where it sits
  * or how it moved.
  *
@@ -93,6 +106,12 @@ const HistogramChart = ({
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState<number | null>(null);
+  /**
+   * The intro plays only inside a short window that opens at the first real
+   * draw — so it survives the re-render burst around first paint, but a data
+   * poll or resize minutes later never re-grows the card from zero.
+   */
+  const shouldIntro = useChartIntro();
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -119,6 +138,10 @@ const HistogramChart = ({
     d3.select(svgEl).selectAll("*").remove();
     const svg = d3.select(svgEl);
     const { bins, width: binWidth, count, mean, stdev } = binned;
+    // Asked here, past the guards above: the first run of this effect usually
+    // bails on a null width, and opening the window before that would spend it
+    // on a draw that never happened.
+    const animate = shouldIntro();
 
     const marginLeft = showYAxis ? Y_AXIS_WIDTH : 4;
     const innerWidth = Math.max(width - marginLeft - MARGIN_RIGHT, 10);
@@ -180,14 +203,33 @@ const HistogramChart = ({
       .attr("rx", 1)
       // `style`, not `attr`: a CSS var in a presentation attribute doesn't
       // resolve, so `var(--zf-up)` would silently fall back to black.
-      .style("fill", (b) => fillOf(b.x0))
-      .attr("y", innerHeight)
-      .attr("height", 0);
+      .style("fill", (b) => fillOf(b.x0));
 
     const barY = (b: { count: number }) => y(b.count);
     const barH = (b: { count: number }) => innerHeight - y(b.count);
-    if (prefersReducedMotion()) bars.attr("y", barY).attr("height", barH);
-    else bars.transition().duration(400).attr("y", barY).attr("height", barH);
+    if (!animate) {
+      // Redraw, or reduced motion: paint the final bars with no transition
+      // scheduled, so nothing re-grows and nothing is left mid-flight.
+      bars.attr("y", barY).attr("height", barH);
+    } else {
+      // Grow out of the count axis — a bar rising from zero reads as "this many
+      // observations landed here", where a fade or a slide would just decorate.
+      bars.attr("y", innerHeight).attr("height", 0);
+      const step =
+        bins.length > 1
+          ? Math.min(BAR_STAGGER_TOTAL / (bins.length - 1), BAR_STAGGER_MAX)
+          : 0;
+      bars
+        // Named so a hover (the per-bar <title> aside, frames layer their own
+        // interactions over these rects) can't cancel the wrong transition or
+        // leave a bar stranded at height 0.
+        .transition("intro")
+        .delay((_, i) => i * step)
+        .duration(BAR_DURATION)
+        .ease(d3.easeCubicOut)
+        .attr("y", barY)
+        .attr("height", barH);
+    }
 
     bars.append("title").text((b) => {
       const range = b.openLow
@@ -210,8 +252,9 @@ const HistogramChart = ({
         domain[0],
         domain[1],
       );
-      if (curve.length)
-        g.append("path")
+      if (curve.length) {
+        const path = g
+          .append("path")
           .attr(
             "d",
             d3
@@ -227,6 +270,21 @@ const HistogramChart = ({
           .attr("stroke-opacity", 0.45)
           .attr("stroke-width", 1.25)
           .attr("stroke-dasharray", "4,3");
+        // The fitted normal is computed from this very sample, so it belongs to
+        // the intro rather than to the chrome — it fades in over the tail of the
+        // bars' growth, once there is a shape for it to be read against. A
+        // dash-offset draw-in is deliberately out: the curve is already dashed
+        // for legibility, and measuring it needs `getTotalLength`, which jsdom
+        // doesn't implement.
+        if (animate)
+          path
+            .attr("opacity", 0)
+            .transition("intro")
+            .delay(OVERLAY_DELAY)
+            .duration(OVERLAY_DURATION)
+            .ease(d3.easeCubicOut)
+            .attr("opacity", 1);
+      }
     }
 
     // Zero rule, when the sample straddles it: the reference the sign split is
@@ -290,6 +348,17 @@ const HistogramChart = ({
       line
         .append("title")
         .text(`${marker.label}: ${formatValue(marker.value)}`);
+      // Markers are readings off this sample (mean, ±σ, the latest observation),
+      // not chrome like the zero rule or the gridlines — so they arrive with the
+      // curve, on the group so the rule and its label fade as one.
+      if (animate)
+        line
+          .attr("opacity", 0)
+          .transition("intro")
+          .delay(OVERLAY_DELAY)
+          .duration(OVERLAY_DURATION)
+          .ease(d3.easeCubicOut)
+          .attr("opacity", 1);
     }
 
     // Round ticks off the linear axis rather than one label per bin edge: bin
@@ -390,6 +459,7 @@ const HistogramChart = ({
     showNormalCurve,
     showYAxis,
     maxTickLabels,
+    shouldIntro,
   ]);
 
   return (

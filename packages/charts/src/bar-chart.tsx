@@ -1,7 +1,7 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef, useState } from "react";
 import { observeResize } from "./lib/observe-resize";
-import { prefersReducedMotion } from "./lib/utils";
+import { useChartIntro } from "./lib/use-chart-intro";
 
 export interface BarDatum {
   /** Category label (or a date label for bar-over-time). */
@@ -45,6 +45,16 @@ const LABEL_INSET = 4;
  */
 const DEFAULT_FORMAT_VALUE = (v: number) => String(Math.round(v));
 
+/** Intro grow-in duration per bar. */
+const INTRO_MS = 400;
+/**
+ * Budget for the whole stagger: the LAST bar starts this late, so a dense
+ * series still finishes inside ~640ms instead of turning into a slideshow.
+ */
+const INTRO_STAGGER_BUDGET_MS = 240;
+/** Cap on the per-bar step, so a 2-bar chart doesn't wait 240ms for bar two. */
+const INTRO_STAGGER_STEP_CAP_MS = 24;
+
 /**
  * Truncate a label with a trailing ellipsis so its rendered width never
  * exceeds `maxPx` — keeps long category names from overflowing the label
@@ -76,6 +86,13 @@ const BarChart = ({
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState<number | null>(null);
+  /**
+   * The intro belongs to the chart's arrival only. This redraw also runs on
+   * every data poll, resize, theme change and prop change, and re-growing the
+   * bars from the baseline each time would make a 15-minute poll look like a
+   * reload — so the grace window closes shortly after the first real draw.
+   */
+  const shouldIntro = useChartIntro();
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -98,7 +115,18 @@ const BarChart = ({
     const svg = d3.select(svgEl);
     const barFill = (d: BarDatum) =>
       d.color ?? (negativeColor && d.value < 0 ? negativeColor : color);
-    const animate = !prefersReducedMotion();
+    // Computed once, up front, so the horizontal and vertical branches below
+    // can never disagree about whether this draw is an intro.
+    const animate = shouldIntro();
+    // Short positional stagger so the bars read as arriving in order; the step
+    // shrinks with the bar count and the last bar starts inside the budget.
+    const introStep = animate
+      ? Math.min(
+          INTRO_STAGGER_BUDGET_MS / Math.max(data.length - 1, 1),
+          INTRO_STAGGER_STEP_CAP_MS,
+        )
+      : 0;
+    const introDelay = (_d: BarDatum, i: number) => i * introStep;
 
     if (orientation === "horizontal") {
       const labelWidth = Math.min(
@@ -168,9 +196,19 @@ const BarChart = ({
         .attr("width", 0);
       const barX = (d: BarDatum) => Math.min(zeroX, x(d.value));
       const barW = (d: BarDatum) => Math.abs(x(d.value) - zeroX);
-      if (animate)
-        bars.transition().duration(400).attr("x", barX).attr("width", barW);
-      else bars.attr("x", barX).attr("width", barW);
+      if (animate) {
+        // Named so a hover/update transition on the same rect can never cancel
+        // the intro and leave a bar stuck at width 0.
+        bars
+          .transition("intro")
+          .delay(introDelay)
+          .duration(INTRO_MS)
+          .ease(d3.easeCubicOut)
+          .attr("x", barX)
+          .attr("width", barW);
+      } else {
+        bars.attr("x", barX).attr("width", barW);
+      }
 
       svg
         .selectAll("text.bar-label")
@@ -189,8 +227,8 @@ const BarChart = ({
       // Value labels sit on the empty side of the row: positive bars grow
       // right, so the label rides the bar tip; negative bars grow left toward
       // the category-label column, so their label goes just right of zero.
-      if (showValues)
-        rows
+      if (showValues) {
+        const valueLabels = rows
           .append("text")
           .attr("x", (d) => (d.value >= 0 ? x(d.value) + 6 : zeroX + 6))
           .attr("text-anchor", "start")
@@ -199,6 +237,18 @@ const BarChart = ({
           .style("font", FONT)
           .style("font-weight", "600")
           .text((d) => formatValue(d.value));
+        // The value sits at the bar's TIP, so on the intro it would otherwise
+        // hang in empty space ahead of a bar still at zero — fade it in with
+        // the bar instead of moving it (a moving number is unreadable).
+        if (animate)
+          valueLabels
+            .attr("fill-opacity", 0)
+            .transition("intro")
+            .delay(introDelay)
+            .duration(INTRO_MS)
+            .ease(d3.easeCubicOut)
+            .attr("fill-opacity", 1);
+      }
 
       rows.append("title").text((d) => `${d.label}: ${formatValue(d.value)}`);
       return;
@@ -246,9 +296,19 @@ const BarChart = ({
       .attr("height", 0);
     const barY = (d: BarDatum) => Math.min(zeroY, y(d.value));
     const barH = (d: BarDatum) => Math.abs(y(d.value) - zeroY);
-    if (animate)
-      bars.transition().duration(400).attr("y", barY).attr("height", barH);
-    else bars.attr("y", barY).attr("height", barH);
+    if (animate) {
+      // Named so a hover/update transition on the same rect can never cancel
+      // the intro and leave a bar stuck at height 0.
+      bars
+        .transition("intro")
+        .delay(introDelay)
+        .duration(INTRO_MS)
+        .ease(d3.easeCubicOut)
+        .attr("y", barY)
+        .attr("height", barH);
+    } else {
+      bars.attr("y", barY).attr("height", barH);
+    }
 
     g.selectAll("rect.bar-hit")
       .data(data)
@@ -262,8 +322,9 @@ const BarChart = ({
       .append("title")
       .text((d) => `${d.label}: ${formatValue(d.value)}`);
 
-    if (showValues && band.bandwidth() >= 26)
-      g.selectAll("text.bar-value")
+    if (showValues && band.bandwidth() >= 26) {
+      const valueLabels = g
+        .selectAll("text.bar-value")
         .data(data)
         .enter()
         .append("text")
@@ -274,6 +335,17 @@ const BarChart = ({
         .style("font", FONT)
         .style("font-weight", "600")
         .text((d) => formatValue(d.value));
+      // Sits above the bar's tip, so it fades in with the bar rather than
+      // floating over a bar that hasn't grown there yet.
+      if (animate)
+        valueLabels
+          .attr("fill-opacity", 0)
+          .transition("intro")
+          .delay(introDelay)
+          .duration(INTRO_MS)
+          .ease(d3.easeCubicOut)
+          .attr("fill-opacity", 1);
+    }
 
     // Thin category labels when bars outnumber the cap.
     const step = Math.max(1, Math.ceil(data.length / maxTickLabels));
@@ -304,6 +376,7 @@ const BarChart = ({
     formatValue,
     showValues,
     maxTickLabels,
+    shouldIntro,
   ]);
 
   return (

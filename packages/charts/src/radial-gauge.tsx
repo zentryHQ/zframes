@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef } from "react";
+import { useChartIntro } from "./lib/use-chart-intro";
 import { prefersReducedMotion } from "./lib/utils";
 
 export interface RadialGaugeProps {
@@ -39,6 +40,11 @@ const RadialGauge = ({
   children,
 }: RadialGaugeProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const shouldIntro = useChartIntro();
+  // The angle currently painted — kept live by `applyAngle` so an effect that
+  // re-runs mid-sweep continues from the visible angle, not the interrupted
+  // transition's target.
+  const drawnAngleRef = useRef(START_ANGLE);
 
   useEffect(() => {
     const svgEl = svgRef.current;
@@ -75,33 +81,65 @@ const RadialGauge = ({
       .outerRadius(outer)
       .cornerRadius(thickness)
       .startAngle(START_ANGLE);
-    const path = g
-      .append("path")
-      .attr("fill", color)
-      .attr("d", fillArc({ endAngle: START_ANGLE } as never) ?? "");
+    const path = g.append("path").attr("fill", color);
 
-    if (prefersReducedMotion()) {
-      path.attr("d", fillArc({ endAngle: valueAngle } as never) ?? "");
-    } else {
-      path
-        .transition()
-        .duration(600)
-        .attrTween("d", () => {
-          const interp = d3.interpolate(START_ANGLE, valueAngle);
-          return (t) => fillArc({ endAngle: interp(t) } as never) ?? "";
-        });
-    }
-
-    // Reading tick at the value angle.
+    // Reading tick — rides the sweep with the fill instead of jumping ahead.
     const tickR = (inner + outer) / 2;
-    g.append("circle")
-      .attr("cx", Math.sin(valueAngle) * tickR)
-      .attr("cy", -Math.cos(valueAngle) * tickR)
+    const tick = g
+      .append("circle")
       .attr("r", thickness / 2 + 2)
       .attr("fill", color)
       .attr("stroke", "var(--color-card, #101014)")
       .attr("stroke-width", 2);
-  }, [value, min, max, color, trackColor, size, thickness]);
+
+    // One writer for both marks, so fill and tick can never disagree.
+    const applyAngle = (angle: number) => {
+      drawnAngleRef.current = angle;
+      path.attr("d", fillArc({ endAngle: angle } as never) ?? "");
+      tick
+        .attr("cx", Math.sin(angle) * tickR)
+        .attr("cy", -Math.cos(angle) * tickR);
+    };
+
+    // Intro: sweep from the track's start. Update: continue from the angle
+    // already on screen — this gauge is the one chart that keeps animating after
+    // its intro, because a live needle that teleports reads worse than one that
+    // travels.
+    //
+    // The intro is gated on `useChartIntro`'s grace window rather than a
+    // first-draw flag: a flag is burned by StrictMode's immediate second effect
+    // run, which would silently downgrade the very first sweep to the shorter
+    // update one. The window's cost here is that a value arriving in the first
+    // second still counts as intro and sweeps from START_ANGLE — a reading that
+    // moves that early has nothing meaningful to travel from anyway.
+    const isIntro = shouldIntro();
+    const fromAngle = isIntro ? START_ANGLE : drawnAngleRef.current;
+
+    // Not folded into `shouldIntro()` (which already honours reduce): the update
+    // sweep runs outside the window, so it needs its own check.
+    if (prefersReducedMotion() || fromAngle === valueAngle) {
+      // Reduced motion, or an incidental redraw (resize / theme / color) that
+      // did not move the reading: paint the final state, schedule nothing.
+      applyAngle(valueAngle);
+      return;
+    }
+
+    applyAngle(fromAngle);
+    const interp = d3.interpolate(fromAngle, valueAngle);
+    g.transition("gauge")
+      .duration(isIntro ? 600 : 400)
+      .ease(isIntro ? d3.easeCubicInOut : d3.easeCubicOut)
+      .tween("gauge-angle", () => (t: number) => applyAngle(interp(t)));
+
+    // Stop this run's sweep before the next one begins. A d3 transition keeps
+    // ticking on the timer after `selectAll("*").remove()` detaches its node,
+    // and its tween still calls this run's `applyAngle` — so an uninterrupted
+    // predecessor could outlive its successor and finish by writing its own
+    // target into `drawnAngleRef`, i.e. an angle that is not on screen.
+    return () => {
+      g.interrupt("gauge");
+    };
+  }, [value, min, max, color, trackColor, size, thickness, shouldIntro]);
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
