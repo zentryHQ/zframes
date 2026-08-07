@@ -163,10 +163,19 @@ function domOrder(container: HTMLElement): (string | null)[] {
   );
 }
 
+/**
+ * Whether the board reads as having unsaved changes. There is no status text to
+ * assert on any more — the standalone "No changes / Unsaved changes" tag was
+ * removed, and the dot on the Save button is now the whole signal.
+ */
+function isDirty(container: HTMLElement): boolean {
+  return container.querySelector(".zf-dirty-dot") !== null;
+}
+
 /** Enter customise mode, then Save — the only reachable route to collectSpec. */
 async function clickSave(view: ReturnType<typeof mount>) {
   await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Customise" }));
+    fireEvent.click(view.getByRole("button", { name: "Customize" }));
   });
   await act(async () => {
     fireEvent.click(view.getByRole("button", { name: "Save" }));
@@ -392,7 +401,7 @@ describe("Save in flow-vertical mode", () => {
     gridEl(board.container).append(stray, ghost);
 
     await act(async () => {
-      fireEvent.click(board.getByRole("button", { name: "Customise" }));
+      fireEvent.click(board.getByRole("button", { name: "Customize" }));
     });
     // Both strays ARE grid items as far as GridStack is concerned — customise
     // mode decorated them — so the skip below is a real branch, not a vacuous
@@ -597,7 +606,7 @@ function mountWith(
 
 async function enterCustomise(view: Pick<RenderResult, "getByRole">) {
   await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Customise" }));
+    fireEvent.click(view.getByRole("button", { name: "Customize" }));
   });
 }
 
@@ -720,7 +729,7 @@ describe("undo / redo", () => {
     expect(
       view.getByRole("button", { name: "Redo" }).hasAttribute("disabled"),
     ).toBe(true);
-    expect(view.container.textContent).toContain("No changes");
+    expect(isDirty(view.container)).toBe(false);
   });
 
   it("walks a delete back and forward again", async () => {
@@ -744,13 +753,13 @@ describe("undo / redo", () => {
       fireEvent.click(view.getByRole("button", { name: "Undo" }));
     });
     expect(itemIds(view.container).sort()).toEqual(["a", "b"]);
-    expect(view.container.textContent).toContain("No changes");
+    expect(isDirty(view.container)).toBe(false);
 
     await act(async () => {
       fireEvent.click(view.getByRole("button", { name: "Redo" }));
     });
     expect(itemIds(view.container)).toEqual(["b"]);
-    expect(view.container.textContent).toContain("Unsaved changes");
+    expect(isDirty(view.container)).toBe(true);
   });
 
   it("undoes via ⌘Z, and leaves undo inside a text field to the browser", async () => {
@@ -849,7 +858,7 @@ describe("undo / redo", () => {
     });
     expect(itemIds(view.container).sort()).toEqual(["a", "b"]);
     // Cancel left customise mode, so the collapsed entry point is back.
-    expect(view.getByRole("button", { name: "Customise" })).toBeTruthy();
+    expect(view.getByRole("button", { name: "Customize" })).toBeTruthy();
   });
 });
 
@@ -872,7 +881,7 @@ describe("honest save", () => {
     expect(onSave).toHaveBeenCalledTimes(1);
     // Still editing, and saying so — the write hasn't landed yet.
     expect(view.container.textContent).toContain("Saving…");
-    expect(view.queryByRole("button", { name: "Customise" })).toBeNull();
+    expect(view.queryByRole("button", { name: "Customize" })).toBeNull();
     // The same spec can't be submitted twice mid-flight.
     expect(
       view.getByRole("button", { name: "Saving…" }).hasAttribute("disabled"),
@@ -882,7 +891,7 @@ describe("honest save", () => {
       release();
       await pending;
     });
-    expect(view.getByRole("button", { name: "Customise" })).toBeTruthy();
+    expect(view.getByRole("button", { name: "Customize" })).toBeTruthy();
   });
 
   it("keeps the edits and shows why when the host rejects the write", async () => {
@@ -911,7 +920,7 @@ describe("honest save", () => {
     });
     // And the work survives: still in customise mode, still one frame deleted,
     // still undoable.
-    expect(view.queryByRole("button", { name: "Customise" })).toBeNull();
+    expect(view.queryByRole("button", { name: "Customize" })).toBeNull();
     expect(itemIds(view.container)).toEqual(["b"]);
     expect(
       view.getByRole("button", { name: "Undo" }).hasAttribute("disabled"),
@@ -936,7 +945,7 @@ describe("honest save", () => {
     });
     await enterCustomise(view);
 
-    expect(view.container.textContent).toContain("No changes");
+    expect(isDirty(view.container)).toBe(false);
     expect(
       view.getByRole("button", { name: "Undo" }).hasAttribute("disabled"),
     ).toBe(true);
@@ -1439,7 +1448,7 @@ describe("currency controls", () => {
   /** Open the Cosmetics rail's Currency section by searching for it. */
   async function openCurrencySection(view: ReturnType<typeof mount>) {
     await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Customise" }));
+      fireEvent.click(view.getByRole("button", { name: "Customize" }));
     });
     await act(async () => {
       fireEvent.click(view.getByRole("tab", { name: "Cosmetics" }));
@@ -1489,7 +1498,7 @@ describe("currency controls", () => {
     );
 
     await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Customise" }));
+      fireEvent.click(view.getByRole("button", { name: "Customize" }));
     });
     // The gear is injected imperatively, so it has to be found in the DOM.
     const gear = container.querySelector<HTMLElement>(
@@ -1555,7 +1564,7 @@ describe("currency controls", () => {
     expect(probeOf(container, "a").dataset.code).toBe("USD");
 
     await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Customise" }));
+      fireEvent.click(view.getByRole("button", { name: "Customize" }));
     });
     await act(async () => {
       fireEvent.click(

@@ -569,6 +569,35 @@ body:has(.ui-draggable-dragging) * {
   gap: 8px;
   margin-bottom: 14px;
 }
+/* In customise mode the toolbar follows the scroll. Collapsed, the Customize
+   pill is portaled into fixed host chrome and never leaves the viewport; on
+   entering customise the actions move in here, and an in-flow bar would scroll
+   away — so Save/Cancel/Undo become unreachable exactly on the long boards where
+   editing takes the most scrolling. Sticky rather than fixed so it stays inside
+   the editor's own padding and can't collide with the host header.
+   z-index clears the per-card delete/config buttons (100) and stays under the
+   undo toast (120) and the config dialog (1000). */
+.zf-editor.zf-customise .zf-editor-bar {
+  position: sticky;
+  top: 8px;
+  z-index: 110;
+}
+/* Every control in the bar carries its own frosted surface, so the bar itself
+   needs no plate — except the save-error text, which would otherwise read
+   straight over whatever card is scrolling beneath it. Give it the same
+   treatment so the bar is self-contained over content. */
+.zf-editor.zf-customise .zf-editor-error {
+  padding: 6px 11px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    180deg,
+    rgba(30, 31, 44, 0.72),
+    rgba(16, 17, 26, 0.78)
+  );
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(150%);
+}
 .zf-editor-bar-spacer {
   flex: 1;
 }
@@ -653,24 +682,17 @@ body:has(.ui-draggable-dragging) * {
 }
 
 /* ── Toolbar state: unsaved changes / save failure ─────────────────────────
-   Both sit at the toolbar's left, before the actions they describe. */
-.zf-editor-state {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin: 0;
-  padding-left: 2px;
-  color: rgba(255, 255, 255, 0.55);
-}
+   The standalone status tag is gone; the unsaved-changes dot now rides the Save
+   button, and the failure text sits beside it. */
 .zf-dirty-dot {
   width: 7px;
   height: 7px;
+  flex: none;
   border-radius: 50%;
-  background: hsl(var(--zf-accent-hue, 242) 90% 72%);
-  box-shadow: 0 0 0 3px hsl(var(--zf-accent-hue, 242) 90% 72% / 0.22);
+  /* Dark on the accent-filled Save button — an accent dot on an accent fill is
+     invisible, which is the one state it exists to make visible. */
+  background: rgba(11, 12, 19, 0.72);
+  box-shadow: 0 0 0 3px rgba(11, 12, 19, 0.16);
 }
 .zf-editor-error {
   font-size: 12px;
@@ -841,53 +863,88 @@ body:has(.ui-draggable-dragging) * {
 
 /* Collapsed "Customize" affordance. Portaled into fixed host chrome outside
    .zf-editor, so it derives its accent from --zf-accent-hue directly, never the
-   editor-scoped --zf-accent. */
+   editor-scoped --zf-accent.
+
+   This is the ONE control on an otherwise read-only board, so it's built to be
+   found rather than to recede: an accent halo carries it over whatever the
+   background is doing, and the icon lives in its own chip so the accent has a
+   solid home instead of a 1px glyph nobody can see. */
 .zf-btn--customise {
   pointer-events: auto;
-  min-height: 40px;
-  padding: 0 14px 0 12px;
+  min-height: 44px;
+  padding: 0 16px 0 5px;
   border-radius: 9999px;
-  gap: 8px;
-  border-color: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.38);
+  gap: 9px;
+  border-color: hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% /
+        0.5);
   background:
-    linear-gradient(
-      180deg,
-      hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.16),
-      transparent 52%
+    radial-gradient(
+      120% 160% at 12% 50%,
+      hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 72% / 0.28),
+      transparent 62%
     ),
-    linear-gradient(180deg, rgba(29, 31, 44, 0.86), rgba(10, 11, 18, 0.88));
-  color: rgba(255, 255, 255, 0.94);
+    linear-gradient(180deg, rgba(32, 34, 49, 0.9), rgba(11, 12, 20, 0.92));
+  color: rgba(255, 255, 255, 0.96);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    0 10px 28px -18px rgba(0, 0, 0, 0.9),
-    0 0 0 1px
-      hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    /* The halo — an accent bloom, not a drop shadow, so the pill separates
+       from a busy scene without stamping a dark rectangle onto it. */
+      0 8px 32px -12px hsl(var(--zf-accent-hue, 242)
+          var(--zf-accent-sat, 90%) 62% / 0.55);
 }
 .zf-btn--customise:hover {
-  border-color: hsl(var(--zf-accent-hue, 242) 94% 80% / 0.72);
+  border-color: hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 82% /
+        0.85);
   color: #fff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 14px 34px -18px rgba(0, 0, 0, 0.92),
-    0 0 0 1px
-      hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.24);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 3px 10px rgba(0, 0, 0, 0.42),
+    0 12px 44px -12px hsl(var(--zf-accent-hue, 242)
+        var(--zf-accent-sat, 90%) 64% / 0.8);
 }
-.zf-btn--customise > svg {
+
+/* The icon chip: a filled accent disc, sized to the pill's inner height so the
+   lockup reads as one object rather than an icon parked next to a word. */
+.zf-customise-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    180deg,
+    hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 80%),
+    hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 68%)
+  );
+  color: #0b0c13;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: filter 0.18s var(--zf-ease-out);
+}
+.zf-btn--customise:hover .zf-customise-chip {
+  filter: brightness(1.12);
+}
+.zf-customise-chip > svg {
   display: block;
-  color: hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 78%);
 }
-.zf-btn--customise > span {
+.zf-customise-label {
   font-family: var(--font-dmsans, "DM Sans", system-ui, sans-serif);
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 800;
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
 }
+/* Phone: collapse to the chip alone. The pill's padding goes with the label,
+   so what's left is a round accent button sized to the chip + its ring. */
 @media (max-width: 520px) {
   .zf-btn--customise {
-    width: 40px;
+    width: 44px;
     padding: 0;
   }
-  .zf-btn--customise > span {
+  .zf-customise-label {
     display: none;
   }
 }
@@ -928,6 +985,11 @@ body:has(.ui-draggable-dragging) * {
 .zf-editor.zf-customise .zf-rail {
   width: 320px;
   margin-left: 16px;
+  /* Clear the sticky toolbar. Both stick, and the bar (top 8px, 38px tall) would
+     otherwise park on top of the rail's own tab row — 8 + 38 + 8 of breathing
+     room. Only affects the stuck state; unscrolled, the bar's margin already
+     separates them. */
+  top: 54px;
 }
 /* flow-horizontal runs full-bleed (host main is px-0), so give the cosmetics
    rail breathing room from the viewport's right edge. */
