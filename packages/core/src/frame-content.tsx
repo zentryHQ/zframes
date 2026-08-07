@@ -493,9 +493,9 @@ export const FRAME_CSS = `
 }
 /* Container (group) frames. A group takes a normal board slot but holds its own
    little grid of child frames, so a cluster drags and resizes as ONE unit. It
-   has no card of its own by default — the children's cards already carry the
-   visual weight, and a card-inside-a-card reads as clutter; \`config.panel\`
-   opts into a surrounding surface for a group meant to read as one object.
+   carries a surrounding surface by default (\`config.panel\`, on) — that surface
+   is what says the cluster is one object rather than loose neighbouring cards;
+   set \`panel: false\` for a group used as invisible scaffolding.
    Cosmetic overrides set on the group (frameStyleVars) cascade to its children,
    which is how a whole zone gets one accent in a single edit. */
 .zf-group {
@@ -508,7 +508,8 @@ export const FRAME_CSS = `
   animation: zf-enter 0.45s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) backwards;
   animation-delay: min(calc((var(--zf-enter-i, 0) + 1) * 35ms), 350ms);
 }
-/* Opt-in surrounding surface. Deliberately quieter than .zf-frame — no hover
+/* The group's surrounding surface (default-on, opt-out via \`panel: false\`).
+   Deliberately quieter than .zf-frame — no hover
    lift, no accent glow, no top sheen: the group is furniture holding cards, and
    giving it the full card treatment made every child look recessed. */
 .zf-group--panel {

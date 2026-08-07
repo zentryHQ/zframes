@@ -130,7 +130,7 @@ function childItems(container: HTMLElement, id: string): HTMLElement[] {
 
 async function clickSave(view: ReturnType<typeof mount>) {
   await act(async () => {
-    fireEvent.click(view.getByRole("button", { name: "Customise" }));
+    fireEvent.click(view.getByRole("button", { name: "Customize" }));
   });
   await act(async () => {
     fireEvent.click(view.getByRole("button", { name: "Save" }));
@@ -162,7 +162,19 @@ describe("a container item becomes a live nested grid", () => {
     // makes the box we measure for row height the box the children sit in.
     expect(host.classList.contains("grid-stack")).toBe(true);
     expect(host.dataset.subRows).toBe("2");
-    expect(host.dataset.subGap).toBe("6");
+    // The gap is NOT stashed on the element: it's passed as the nested grid's own
+    // margin, which GridStack spends inside each row's pitch (hence it is
+    // deliberately not a term in the row height — subtracting it there too
+    // stranded `rows * gap` of dead space under the last child).
+    //
+    // This is the group's OWN gap (6 / 2 = 3px per side), which is the regression
+    // worth guarding: passing only `margin` left it inert, because makeSubGrid
+    // seeds the nested grid with the parent's already-normalized opts and
+    // `_initMargin` expands `margin` into the per-side keys it finds `undefined`.
+    // The board's gutter therefore won, and every group rendered at 6px whatever
+    // its config said — a wrong-but-plausible spacing nobody would spot by eye.
+    expect(host.style.getPropertyValue("--gs-item-margin-top")).toBe("3px");
+    expect(host.style.getPropertyValue("--gs-item-margin-left")).toBe("3px");
     // The group itself takes exactly one slot on the board.
     expect(
       container.querySelectorAll(
@@ -380,7 +392,7 @@ describe("deleting a group", () => {
       ]),
     );
     await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Customise" }));
+      fireEvent.click(view.getByRole("button", { name: "Customize" }));
     });
     // The delete × is injected into GridStack-owned DOM, so reach it by item.
     const del = view.container.querySelector<HTMLElement>(
@@ -409,7 +421,7 @@ describe("deleting a group", () => {
       ]),
     );
     await act(async () => {
-      fireEvent.click(view.getByRole("button", { name: "Customise" }));
+      fireEvent.click(view.getByRole("button", { name: "Customize" }));
     });
     // A nested frame is configurable and removable on its own — without this the
     // only way to change one would be to delete the whole cluster.

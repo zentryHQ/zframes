@@ -992,26 +992,40 @@ export function DashboardEditor({
   const fitSubGrid = useCallback(
     (item: HTMLElement, host: HTMLElement, sub: GridStack) => {
       const rows = Number(host.dataset.subRows) || 2;
-      const gap = Number(host.dataset.subGap) || 0;
       // Measured off the ITEM, not the grid host — deliberately. `sub.cellHeight`
       // drives the host's own height, so measuring the host makes this a feedback
       // loop: each fit shrinks the box the next fit measures, converging a few
       // percent short. (That was visible in the browser as dead space under a
       // panel group's last child.) The item's height comes from the BOARD grid
       // and is unaffected by the nested row height, so it's a stable input.
+      //
+      // What we need is the height of the children's CONTAINING BLOCK. GridStack's
+      // items are absolutely positioned, so that is the host's **padding box** —
+      // which has two consequences, both live-measured and both previously wrong
+      // here:
+      //
+      //  * The host's own padding does NOT inset them (an abs-positioned child
+      //    resolves `top: 0` to the border's inner edge, padding included). So
+      //    padding must NOT come off the height: `.zf-group-host--titled`'s 20px
+      //    label band was subtracted and then not used by anything, landing as
+      //    20px of dead space beneath the last child of every titled group.
+      //  * The host IS inset from the item by the grid's `margin`, but GridStack
+      //    spends that as `top`/`bottom` offsets on the absolutely-positioned
+      //    content box, leaving `margin-*` at 0 — so the old marginTop/Bottom
+      //    read contributed nothing and the inset went unsubtracted.
+      //
+      // Hence: item height, less the host's inset on each side, less its border.
       const cs = getComputedStyle(host);
-      const pad =
-        (parseFloat(cs.paddingTop) || 0) +
-        (parseFloat(cs.paddingBottom) || 0) +
-        // The item's own inter-frame gutter, which GridStack applies as margin on
-        // the content box rather than as item padding.
-        (parseFloat(cs.marginTop) || 0) +
-        (parseFloat(cs.marginBottom) || 0);
-      const h = item.clientHeight - pad;
+      const outside =
+        (parseFloat(cs.top) || 0) +
+        (parseFloat(cs.bottom) || 0) +
+        (parseFloat(cs.borderTopWidth) || 0) +
+        (parseFloat(cs.borderBottomWidth) || 0);
+      const h = item.clientHeight - outside;
       // Pre-layout (height 0) there is nothing to fit yet — the ResizeObserver in
       // mountSubGrid calls back once the browser has sized the item.
       if (h <= 0) return;
-      const cell = subCellPx(h, rows, gap);
+      const cell = subCellPx(h, rows);
       // The observer fires continuously through GridStack's resize animation, and
       // most of those frames land on the same row height. cellHeight() rewrites
       // the nested grid's stylesheet, so re-applying an unchanged value is pure
@@ -1065,16 +1079,30 @@ export function DashboardEditor({
       // whole job is to look like the result.
       host.classList.toggle("zf-group-host--panel", geo.panel);
       // Stashed on the element so fitSubGrid (called from resize handlers that
-      // have only the DOM) doesn't need to re-resolve the instance's config.
+      // have only the DOM) doesn't need to re-resolve the instance's config. Only
+      // `rows` is needed: the gap lives in the grid's own `margin` option, inside
+      // each row's pitch, so the row height doesn't depend on it (see subCellPx).
       host.dataset.subRows = String(geo.rows);
-      host.dataset.subGap = String(geo.gap);
 
       const sub = parent.makeSubGrid(
         el,
         {
           column: geo.columns,
           maxRow: geo.rows,
+          // The gap goes in as all FOUR per-side values, not just `margin` — that
+          // alone was silently ignored. makeSubGrid seeds the nested grid with
+          // `{...parentGrid.opts}`, which by then carries the BOARD's normalized
+          // marginTop/Right/Bottom/Left, and GridStack's _initMargin only expands
+          // `margin` into the sides it finds `undefined`. So the inherited board
+          // gutter won every time and a group's own `gap` did nothing: groups
+          // configured `gap: 8` and `gap: 6` both rendered the board's 6px inset
+          // (live-measured). Setting the sides explicitly is what makes the config
+          // real; `margin` stays so `sub.opts.margin` still reports the right base.
           margin: geo.gap / 2,
+          marginTop: geo.gap / 2,
+          marginRight: geo.gap / 2,
+          marginBottom: geo.gap / 2,
+          marginLeft: geo.gap / 2,
           // Same reasoning as the board grid: explicit placements are preserved
           // rather than gravity-packed, so a child stays where it was dropped.
           float: true,
@@ -1086,6 +1114,21 @@ export function DashboardEditor({
         undefined,
         false,
       );
+      // Pin the group's OWN gutter back to the board's, because this element wears
+      // two hats: it is the board item's content box *and* the nested grid's root.
+      // GridStack positions a content box with `top: var(--gs-item-margin-top)`,
+      // and the var it reads is the one computed on this very element — which
+      // makeSubGrid has just overwritten with the group's inner gap. So setting the
+      // inner gap silently re-gutters the group against its board neighbours: a
+      // `gap: 8` group pulled itself to 4px while every ordinary card sat at 6px
+      // (live-measured). Inline offsets outrank the stylesheet rule, which puts the
+      // outer gutter back under the board's control and leaves the var free to mean
+      // what it should inside the group.
+      const outer = `${parent.opts.marginTop ?? 0}${parent.opts.marginUnit ?? "px"}`;
+      host.style.top = outer;
+      host.style.right = outer;
+      host.style.bottom = outer;
+      host.style.left = outer;
       subGridsRef.current.set(instance.id, sub);
 
       for (const child of instance.children ?? []) {
