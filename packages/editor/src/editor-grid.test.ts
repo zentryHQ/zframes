@@ -446,34 +446,40 @@ describe("containerGeometry", () => {
 });
 
 describe("subCellPx", () => {
-  it("divides the measured height into rows, net of each row's margin", () => {
-    // GridStack's margin is gap/2 per side, so every row carries a full `gap`.
-    // 200px, 2 rows, gap 8 → (200 - 16) / 2 = 92.
-    expect(subCellPx(200, 2, 8)).toBe(92);
-    // No gap → a clean division.
-    expect(subCellPx(200, 4, 0)).toBe(50);
+  it("divides the containing block into rows and spends all of it", () => {
+    // `cellHeight` is the row PITCH and GridStack's margin lives inside it (spent
+    // as top/bottom insets on each item's content box, per its own stylesheet), so
+    // the gap is not a term here at all.
+    expect(subCellPx(200, 2)).toBe(100);
+    expect(subCellPx(200, 4)).toBe(50);
   });
 
-  it("forgetting the margin term would overflow the group", () => {
-    // The regression this exists to catch: a plain `height / rows` (100 instead of
-    // 88 at 4 rows) puts the bottom row `gap * rows` past the group's own box.
-    const rows = 4;
-    const gap = 12;
-    const height = 400;
-    const cell = subCellPx(height, rows, gap);
-    expect(cell * rows + gap * rows).toBeLessThanOrEqual(height);
-    // …and it isn't merely conservative — it uses the room it has.
-    expect((cell + 1) * rows + gap * rows).toBeGreaterThan(height);
+  it("leaves no dead space under the last child", () => {
+    // The regression this exists to catch, live-measured: subtracting a `rows *
+    // gap` margin term double-counts the inset and strands that much empty panel
+    // beneath the bottom row (22-26px on a real board). `rows` tracks occupy
+    // exactly `rows * cellHeight`, so the only slack allowed is the sub-pixel
+    // remainder of the floor.
+    for (const [height, rows] of [
+      [466, 2],
+      [466, 3],
+      [400, 4],
+      [199, 3],
+    ] as const) {
+      const slack = height - subCellPx(height, rows) * rows;
+      expect(slack).toBeGreaterThanOrEqual(0);
+      expect(slack).toBeLessThan(rows);
+    }
   });
 
   it("returns whole pixels, never a fraction", () => {
-    expect(Number.isInteger(subCellPx(199, 3, 7))).toBe(true);
+    expect(Number.isInteger(subCellPx(199, 3))).toBe(true);
   });
 
   it("floors at a visible size for a group too small to divide", () => {
     // A group dragged down to a few pixels would otherwise compute a zero or
     // negative cell height, which GridStack turns into items of no height at all.
-    expect(subCellPx(10, 6, 12)).toBe(24);
-    expect(subCellPx(0, 2, 8)).toBe(24);
+    expect(subCellPx(10, 6)).toBe(24);
+    expect(subCellPx(0, 2)).toBe(24);
   });
 });
