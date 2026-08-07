@@ -2173,11 +2173,17 @@ export function DashboardEditor({
       type="button"
       className="zf-btn zf-btn--customise"
       onClick={startCustomise}
-      aria-label="Customise"
-      title="Customise"
+      aria-label="Customize"
+      title="Customize"
     >
-      <SlidersHorizontal size={18} aria-hidden="true" />
-      <span>Customize</span>
+      {/* The icon sits in its own accent chip rather than loose beside the
+          label: at 18px a sliders glyph reads as noise next to bold text, and
+          the chip gives the accent somewhere to live that survives any
+          background the board happens to have behind it. */}
+      <span className="zf-customise-chip" aria-hidden="true">
+        <SlidersHorizontal size={15} />
+      </span>
+      <span className="zf-customise-label">Customize</span>
     </button>
   );
 
@@ -2242,22 +2248,6 @@ export function DashboardEditor({
       >
         {(editing || !customiseButtonTarget) && (
           <div className="zf-editor-bar">
-            {/* Unsaved-changes state, stated rather than implied. Sits at the far
-                left so it reads before the actions it applies to. */}
-            {editing && (
-              <p className="zf-editor-state" aria-live="polite">
-                {saving ? (
-                  "Saving…"
-                ) : historyState.dirty ? (
-                  <>
-                    <span className="zf-dirty-dot" aria-hidden="true" />
-                    Unsaved changes
-                  </>
-                ) : (
-                  "No changes"
-                )}
-              </p>
-            )}
             <div className="zf-editor-bar-spacer" />
             {!editing ? (
               renderCustomiseButton()
@@ -2322,7 +2312,16 @@ export function DashboardEditor({
                       : "Download dashboard.json (no host to save to)"
                   }
                 >
-                  {saving ? "Saving…" : onSave ? "Save" : "Download"}
+                  {/* The standalone "No changes / Unsaved changes" tag is gone;
+                      the dirty state rides the Save button instead, where the
+                      action it applies to already is. aria-live keeps it
+                      announced now that there's no separate live region. */}
+                  {!saving && historyState.dirty && (
+                    <span className="zf-dirty-dot" aria-hidden="true" />
+                  )}
+                  <span aria-live="polite">
+                    {saving ? "Saving…" : onSave ? "Save" : "Download"}
+                  </span>
                 </button>
               </>
             )}
