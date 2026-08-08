@@ -9,6 +9,7 @@
     "dev": "storybook dev -p 6006 --no-open",
     "prebuild": "pnpm gen",
     "build": "storybook build",
+    "thumbs": "tsx scripts/capture-thumbs.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
