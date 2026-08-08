@@ -1286,8 +1286,9 @@ export const dexVolumeChartMeta = defineFrameMeta({
       .array(z.string())
       .min(1)
       .max(6)
+      .default(["uniswap", "pancakeswap", "aerodrome-slipstream"])
       .describe(
-        'DeFiLlama DEX protocol slugs (lowercase, hyphenated), e.g. ["uniswap", "pancakeswap", "aerodrome-slipstream"]. 1 to 6.',
+        'DeFiLlama DEX protocol slugs (lowercase, hyphenated), e.g. ["uniswap", "pancakeswap", "aerodrome-slipstream"]. 1 to 6. Defaults to those three — a slug is an upstream identifier no generic seeder can invent, so the field carries its own default rather than letting an added-from-the-palette card fetch a 400.',
       ),
     lookback: z
       .enum(["7D", "1M", "3M"])
@@ -1333,8 +1334,9 @@ export const protocolTvlChartMeta = defineFrameMeta({
       .array(z.string())
       .min(1)
       .max(6)
+      .default(["lido", "aave", "eigenlayer"])
       .describe(
-        'DeFiLlama protocol slugs (lowercase, hyphenated), e.g. ["lido", "aave", "eigenlayer"]. 1 to 6.',
+        'DeFiLlama protocol slugs (lowercase, hyphenated), e.g. ["lido", "aave", "eigenlayer"]. 1 to 6. Defaults to those three — a slug is an upstream identifier no generic seeder can invent, so the field carries its own default rather than letting an added-from-the-palette card fetch a 400.',
       ),
     lookback: z
       .enum(["7D", "1M", "3M"])
@@ -4398,8 +4400,9 @@ export const protocolTvlShareAreaMeta = defineFrameMeta({
       .array(z.string())
       .min(1)
       .max(6)
+      .default(["lido", "aave", "eigenlayer"])
       .describe(
-        'DeFiLlama protocol slugs (lowercase, hyphenated), e.g. ["lido", "aave", "eigenlayer"]. 1 to 6.',
+        'DeFiLlama protocol slugs (lowercase, hyphenated), e.g. ["lido", "aave", "eigenlayer"]. 1 to 6. Defaults to those three — a slug is an upstream identifier no generic seeder can invent, so the field carries its own default rather than letting an added-from-the-palette card fetch a 400.',
       ),
     lookback: z
       .enum(["7D", "1M", "3M"])
@@ -4423,8 +4426,9 @@ export const dexVolumeShareAreaMeta = defineFrameMeta({
       .array(z.string())
       .min(1)
       .max(6)
+      .default(["uniswap", "pancakeswap", "aerodrome-slipstream"])
       .describe(
-        'DeFiLlama DEX protocol slugs (lowercase, hyphenated), e.g. ["uniswap", "pancakeswap", "aerodrome-slipstream"]. 1 to 6.',
+        'DeFiLlama DEX protocol slugs (lowercase, hyphenated), e.g. ["uniswap", "pancakeswap", "aerodrome-slipstream"]. 1 to 6. Defaults to those three — a slug is an upstream identifier no generic seeder can invent, so the field carries its own default rather than letting an added-from-the-palette card fetch a 400.',
       ),
     lookback: z
       .enum(["7D", "1M", "3M"])
