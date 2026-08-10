@@ -54,7 +54,10 @@ jobs:
         continue-on-error: true
         run: pnpm --dir apps/explorer validate:dashboards
         env:
-          DASHBOARD_VALIDITY_REPORT: dashboard-validity-report.json
+          # Absolute: the script's cwd is apps/explorer (pnpm --dir), but the
+          # report step below reads from the repo root — a relative path here
+          # strands the report and ENOENTs a PASSING run.
+          DASHBOARD_VALIDITY_REPORT: ${{ github.workspace }}/dashboard-validity-report.json
 
       # Piggybacks this cron because it is the nightly job that already holds a
       # database connection — a second workflow to run one DELETE would be more
