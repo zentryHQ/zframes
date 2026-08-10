@@ -1,6 +1,6 @@
 {
   "name": "zframes-monorepo",
-  "description": "AI-personalizable market dashboard framework \u2014 an agent reads the frame catalogue, emits a dashboard.json spec, and the runtime validates and renders it as a live dashboard.",
+  "description": "AI-personalizable market dashboard framework — an agent reads the frame catalogue, emits a dashboard.json spec, and the runtime validates and renders it as a live dashboard.",
   "license": "MIT",
   "author": "Zentry",
   "repository": {
@@ -15,8 +15,9 @@
     "typecheck": "pnpm -r typecheck",
     "zframes": "node packages/cli/dist/index.js",
     "build:cli": "pnpm --filter zframes build",
-    "format": "pnpm dlx prettier@3 --write .",
-    "format:check": "pnpm dlx prettier@3 --check .",
+    "prepare": "node .githooks/install.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "eslint .",
     "test": "vitest run",
     "test:providers": "tsx .github/scripts/provider-smoke.ts",
@@ -40,6 +41,7 @@
     "globals": "^17.6.0",
     "jsdom": "^29.1.1",
     "playwright-core": "^1.53.0",
+    "prettier": "^3.9.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tsx": "^4.23.1",
