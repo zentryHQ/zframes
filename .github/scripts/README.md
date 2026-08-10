@@ -124,7 +124,8 @@ and went stale when the registry moved under it: a renamed frame, a dropped
 case, and this is the net under it.
 
 Needs `THUMBS_DATABASE_URL` (the prod Neon URL, reused rather than duplicated);
-skips cleanly when unset. Locally it defaults to the PGlite dev socket, so a bare
+skips cleanly when unset. Locally it defaults to the Docker dev database, so with
+`pnpm --dir apps/explorer db:up` running, a bare
 `pnpm --dir apps/explorer validate:dashboards` just works.
 
 An **empty table is a finding**, not a pass — it means the showcase is missing and

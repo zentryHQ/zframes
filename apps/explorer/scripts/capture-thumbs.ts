@@ -79,11 +79,10 @@ const MARK_DATA_URI = `data:image/png;base64,${readFileSync(
 ).toString("base64")}`;
 
 async function main() {
-  // max 1: sequential anyway, and the dev PGlite socket handles one wire
-  // connection at a time (same serialization as app/lib/db). idle_timeout
-  // releases the socket between upserts so the app can query the DB while a
-  // capture is in flight — without it, script and app deadlock each other on
-  // the single-connection dev socket (Neon just reconnects, harmless).
+  // max 1 + a short idle_timeout: captures are sequential, so one connection is
+  // all this needs and it holds nothing open between upserts. (It used to be
+  // mandatory — the retired PGlite dev socket served one wire connection, so a
+  // capture in flight would deadlock the dev server. See docker-compose.yml.)
   const sql = postgres(DATABASE_URL, {
     prepare: false,
     max: 1,

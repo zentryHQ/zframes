@@ -16,7 +16,8 @@
 const LOCAL_DEV_URL = "postgres://postgres:postgres@127.0.0.1:5433/postgres";
 
 /**
- * The connection string, trimmed, defaulting to the local PGlite socket.
+ * The connection string, trimmed, defaulting to the local Docker Postgres
+ * (`pnpm db:up`, apps/explorer/docker-compose.yml).
  *
  * `.trim()` is load-bearing: a secret set from a paste routinely carries a leading
  * space or a trailing newline, and the driver hands the raw string to `new URL()`.

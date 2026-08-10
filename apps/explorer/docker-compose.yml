@@ -1,0 +1,47 @@
+# The local dev database.
+#
+# This replaces the PGlite socket server that used to hold this port
+# (scripts/pglite-server.mjs, retired 2026-08-10). PGlite accepted exactly ONE
+# wire connection, and that single fact produced most of this app's dev-only
+# footguns: every client pinned `max: 1`, concurrent renders raced the socket and
+# surfaced as random `read ECONNRESET` "Failed query" errors, a capture script and
+# the dev server could deadlock each other, and `next build` could not prerender
+# with its 11 workers. A real Postgres has none of those problems.
+#
+# Pinned to 18 to match PGlite 0.5.3, which reports PostgreSQL 18.3 and is still
+# what `pnpm check:schema` uses for its two throwaway drift databases. One engine
+# major across the dev database and the CI gate means a difference between them is
+# real drift rather than a version gap.
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: zframes-explorer-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    # Loopback only, on purpose. A bare "5433:5432" binds 0.0.0.0 and publishes a
+    # trust-adjacent dev database to every machine on the network.
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      # `/var/lib/postgresql`, NOT the `/var/lib/postgresql/data` every pre-18
+      # tutorial shows. The 18+ images store data under a major-version-specific
+      # subdirectory so `pg_upgrade --link` can work across a single mount point,
+      # and they REFUSE TO START if they find data at the old path — the container
+      # exits, the healthcheck never passes, and `db:up` fails with a bare
+      # "container for service db is unhealthy" that says nothing about mounts.
+      - pgdata:/var/lib/postgresql
+    # `docker compose up -d --wait` (see `pnpm db:up`) blocks on this, so the
+    # migrate/seed that follow can never race an unready server.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  # Named, so `docker compose down` keeps your boards and only `db:reset`
+  # (down -v) throws them away.
+  pgdata:

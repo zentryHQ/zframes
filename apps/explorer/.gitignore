@@ -7,10 +7,9 @@ next-env.d.ts
 # deps (also covered by the root .gitignore)
 /node_modules
 
-# env + local dev database (PGlite)
+# env (the dev database lives in a Docker volume — see docker-compose.yml)
 .env*
 !.env.example
-/.pglite
 
 # vendored on predev/prebuild from apps/runtime/public (single source of truth)
 /public/widget-icons/

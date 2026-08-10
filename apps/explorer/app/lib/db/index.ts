@@ -3,16 +3,15 @@ import postgres from "postgres";
 import * as schema from "./schema";
 
 // One driver everywhere: the plain `postgres` client over DATABASE_URL.
-//  • dev  → the local PGlite socket server (scripts/pglite-server.mjs on :5433)
+//  • dev  → Postgres in Docker on :5433 (apps/explorer/docker-compose.yml)
 //  • prod → Neon
-// PGlite never enters the Next bundle (it lives only in the dev socket process),
-// so there's no WASM-in-Next to fight, and dev mirrors prod exactly.
+// Both are a real Postgres of the same major, so dev mirrors prod exactly.
 // Trimmed: a platform env var pasted with a stray space or newline otherwise
 // fails deep inside the driver as ERR_INVALID_URL with the value masked.
 const url = process.env.DATABASE_URL?.trim();
 if (!url) {
   throw new Error(
-    "DATABASE_URL is not set. Dev: start `node scripts/pglite-server.mjs` and set DATABASE_URL in .env.local.",
+    "DATABASE_URL is not set. Dev: run `pnpm db:up` and set DATABASE_URL in .env.local.",
   );
 }
 
@@ -22,19 +21,15 @@ const globalForDb = globalThis as unknown as {
   __zfDb?: PostgresJsDatabase<typeof schema>;
 };
 
-// The dev PGlite socket server handles ONE wire connection at a time — a
-// default 10-connection pool makes concurrent renders race it and surface as
-// random `read ECONNRESET` "Failed query" errors. Serialize through a single
-// connection against the local socket; Neon (prod) keeps the normal pool.
-const isPgliteSocket = /127\.0\.0\.1:5433|localhost:5433/.test(url);
+// The default pool, in dev as in prod. This used to clamp to `max: 1` against
+// :5433, because the PGlite socket server that lived there accepted ONE wire
+// connection and a normal pool raced it into random `read ECONNRESET` "Failed
+// query" errors. Docker Postgres replaced it (2026-08-10) and the clamp went with
+// it — note it could not simply have been left in place, since the Docker
+// database answers on the same host:port and would have inherited it.
 const client =
   globalForDb.__zfSql ??
-  (globalForDb.__zfSql = postgres(url, {
-    prepare: false,
-    // idle_timeout releases the one dev connection between requests so
-    // drizzle-kit push / ad-hoc scripts can share the socket.
-    ...(isPgliteSocket ? { max: 1, idle_timeout: 3 } : {}),
-  }));
+  (globalForDb.__zfSql = postgres(url, { prepare: false }));
 export const db =
   globalForDb.__zfDb ?? (globalForDb.__zfDb = drizzle(client, { schema }));
 export { schema };
