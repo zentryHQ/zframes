@@ -2,7 +2,7 @@
   "name": "@zframes/frames",
   "version": "0.0.0",
   "description": "Built-in zframes frames (price-chart, ticker, top-movers, funding chart/heatmap, TVL treemap, sentiment, and more) plus their AI-facing Zod schemas.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

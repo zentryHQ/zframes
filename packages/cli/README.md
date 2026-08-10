@@ -64,6 +64,6 @@ never a crashed dashboard — so a generating agent gets a tight feedback loop v
 
 ## License
 
-Apache-2.0 — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
+MIT — see [LICENSE](./LICENSE) and [NOTICE](./NOTICE).
 
 Repository: <https://github.com/zentryHQ/zframes>

@@ -39,7 +39,7 @@ export default function robots(): MetadataRoute.Robots {
       // AI/answer-engine crawlers, named explicitly. They inherit the `*` rules
       // anyway — this block exists so that allowing them is a recorded decision
       // with a place to revoke it, rather than an accident of omission. zframes
-      // is Apache-2.0 and its whole pitch is "ask your agent for it", so being
+      // is MIT and its whole pitch is "ask your agent for it", so being
       // legible to the agents is the point.
       {
         userAgent: [

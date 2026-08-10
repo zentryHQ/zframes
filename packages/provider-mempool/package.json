@@ -2,7 +2,7 @@
   "name": "@zframes/provider-mempool",
   "version": "0.0.0",
   "description": "Keyless zframes data provider for mempool.space: Bitcoin fees, mempool, blocks, hashrate, difficulty, mining pools, and Lightning stats.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

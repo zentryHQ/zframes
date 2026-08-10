@@ -2,7 +2,7 @@
   "name": "@zframes/store",
   "version": "0.0.0",
   "description": "zframes XDG global dashboard store (Node-only, zero deps): config-home resolver, path-vs-name target classification, global-default resolution, and the machine-scoped credentials path.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

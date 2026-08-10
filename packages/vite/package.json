@@ -2,7 +2,7 @@
   "name": "@zframes/vite",
   "version": "0.0.0",
   "description": "zframes dev Vite plugin (Node-only): dashboardWriteback() composes the serve/proxy, zAI, and account handlers and serves the global-default dashboard for the app to fetch.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

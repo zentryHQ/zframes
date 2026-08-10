@@ -2,7 +2,7 @@
   "name": "@zframes/account",
   "version": "0.0.0",
   "description": "zframes keyed-account tier (Node-only): local credential storage and a server-side HMAC-signed read relay for connected CEX accounts. The user's secret never reaches the browser.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

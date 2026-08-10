@@ -2,7 +2,7 @@
   "name": "@zframes/provider-geckoterminal",
   "version": "0.0.0",
   "description": "Free, no-key zframes data provider for GeckoTerminal: trending/hot DEX pools per network with base-token price, 24h volume/change, liquidity and trade count (dex-pools capability).",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

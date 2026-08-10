@@ -2,7 +2,7 @@
   "name": "@zframes/provider-deribit",
   "version": "0.0.0",
   "description": "Keyless zframes provider for Deribit public options market data (BTC/ETH put-call ratio, OI-by-strike, DVOL volatility index).",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

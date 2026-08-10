@@ -2,7 +2,7 @@
   "name": "@zframes/serve",
   "version": "0.0.0",
   "description": "zframes serve infra (Node-only): the dashboard spec read/write contract and the host-allowlisted same-origin official-data proxy. Shared by the dev Vite plugin and the CLI server.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

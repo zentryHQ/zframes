@@ -33,7 +33,7 @@ export const SITE_TITLE_SUFFIX = SITE_NAME;
 
 /** The one-line pitch. Kept under ~160 chars so it survives as a SERP snippet. */
 export const SITE_DESCRIPTION =
-  "Describe the market dashboard you want and your AI coding agent builds it — live stocks and crypto, no API keys, no account. Free and open source (Apache-2.0).";
+  "Describe the market dashboard you want and your AI coding agent builds it — live stocks and crypto, no API keys, no account. Free and open source (MIT).";
 
 /**
  * The longer pitch, for surfaces with room: the OG card body, `llms.txt`, and
@@ -47,7 +47,7 @@ export const SITE_LONG_DESCRIPTION =
 export const REPO_URL = "https://github.com/zentryhq/zframes";
 export const NPM_URL = "https://www.npmjs.com/package/zframes";
 export const ORG_NAME = "Zentry";
-export const LICENSE_URL = "https://www.apache.org/licenses/LICENSE-2.0";
+export const LICENSE_URL = "https://opensource.org/license/mit";
 
 /** The install command the whole site leads with. */
 export const INSTALL_COMMAND = "npx skills add zentryhq/zframes";

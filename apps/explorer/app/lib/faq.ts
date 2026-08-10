@@ -15,8 +15,8 @@ import { INSTALL_COMMAND, REPO_URL, SITE_NAME } from "@/app/lib/site";
  * Answers are written to be **extractable**: each one opens with a
  * self-contained sentence that answers the question without needing the question
  * as context, because that sentence is what gets lifted into an AI summary or a
- * featured snippet. "Yes. zframes is free and open source under Apache-2.0."
- * survives being quoted alone; "It is, under Apache-2.0" does not.
+ * featured snippet. "Yes. zframes is free and open source under MIT."
+ * survives being quoted alone; "It is, under MIT" does not.
  */
 export type FaqItem = { question: string; answer: string };
 
@@ -27,7 +27,7 @@ export const FAQ: FaqItem[] = [
   },
   {
     question: `Is ${SITE_NAME} free?`,
-    answer: `Yes. ${SITE_NAME} is free and open source under the Apache-2.0 licence — the framework, the CLI and all of the frames. There is no paid tier, no account and nothing withheld behind one. The source is at ${REPO_URL}.`,
+    answer: `Yes. ${SITE_NAME} is free and open source under the MIT licence — the framework, the CLI and all of the frames. There is no paid tier, no account and nothing withheld behind one. The source is at ${REPO_URL}.`,
   },
   {
     question: "Do I need an API key to use it?",

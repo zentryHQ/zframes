@@ -2,7 +2,7 @@
   "name": "@zframes/provider-fred",
   "version": "0.0.0",
   "description": "Free, no-API-key zframes data provider for FRED (St. Louis Fed) published series — market index levels, corporate credit spreads, the national house-price index, and the benchmark mortgage rate (index-level, credit-spread, housing-price, mortgage-rate capabilities).",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

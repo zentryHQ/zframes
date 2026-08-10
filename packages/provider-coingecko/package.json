@@ -2,7 +2,7 @@
   "name": "@zframes/provider-coingecko",
   "version": "0.0.0",
   "description": "Free-tier zframes data provider for CoinGecko global market data: total marketcap and per-asset dominance (global-market capability).",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",
