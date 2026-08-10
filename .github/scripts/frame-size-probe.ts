@@ -255,7 +255,14 @@ const MEASURE = `(() => {
       noteInk(rect);
       continue;
     }
-    if (tag === 'img' || tag === 'video') { noteInk(rect); continue; }
+    // Embedded documents count as ink even though nothing of theirs is in this
+    // DOM. Leaving iframes out made every embed frame measure as an empty card
+    // — a Spotify player, a YouTube video, a whiteboard — and the "mostly empty
+    // at this size" ceiling then capped them at a fraction of their real size.
+    if (tag === 'img' || tag === 'video' || tag === 'iframe' || tag === 'embed' || tag === 'object') {
+      noteInk(rect);
+      continue;
+    }
 
     // ── too-big symptom: how much of the card actually paints ───────────────
     // "Ink" = leaf elements with text, plus media. A stretched flex wrapper is

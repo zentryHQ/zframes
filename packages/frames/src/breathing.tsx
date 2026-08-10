@@ -38,10 +38,21 @@ function Breathing({ config }: { config: Config }) {
   const transition = Math.max(0.3, phases[idx].dur);
 
   return (
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
+    <div
+      className="relative flex h-full w-full items-center justify-center overflow-hidden"
+      // A query container, so the circle below can size itself off the SMALLER
+      // of the two axes. `container-type: size` is what makes `cqmin` resolve.
+      style={{ containerType: "size" }}
+    >
       <div
-        className="aspect-square w-[55%] rounded-full"
+        // 55% of the smaller side, not of the width. Sizing a square off width
+        // alone meant a wide, short card grew the circle past the card's own
+        // height — a full-width breathing band overflowed by 242px, clipped top
+        // and bottom. `cqmin` makes the circle fit whichever way the card is
+        // stretched, which is also why this frame needs no width ceiling.
+        className="aspect-square rounded-full"
         style={{
+          width: "55cqmin",
           background: "var(--color-highlight)",
           opacity: 0.25,
           transform: `scale(${scale})`,
