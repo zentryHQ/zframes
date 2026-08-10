@@ -424,6 +424,14 @@ taken.
   categories → specific tickers — exists only to choose which symbols fill them.
   Never ask which frames or widgets to include, never show or read back frame
   names as options, and never make the user assemble the dashboard.
+- **Size every card from its `layout`.** Each catalogue entry carries
+  `layout: { w, h, minW, minH, maxW?, maxH? }` — the span the frame reads well
+  at, and the floor and ceiling its UI can survive. Use `w`/`h` unless the user
+  asked for something specific, and never place a card outside `minW`/`minH` →
+  `maxW`/`maxH`. Nothing errors when you do: an undersized chart renders with its
+  axis squeezed away and an oversized stat renders one number in an empty card,
+  so this is the one mistake that only shows up as "the dashboard looks wrong".
+  A missing `maxW`/`maxH` means the frame scales to whatever the board is.
 - dashboard.json is the only artifact. No React, no CSS, no new frames.
   If the user wants a frame that doesn't exist, say so and list what does.
 - Free data only: 29 keyless sources — Hyperliquid (crypto + HIP-3 stock perps),

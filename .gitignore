@@ -51,6 +51,16 @@ frame-render-report.json
 fx-coverage-report.json
 dashboard-validity-report.json
 
+# frame size-envelope audit artifacts (.github/scripts/frame-size-*.ts). The raw
+# 12x8 measurement matrix, the derived bounds and the contact sheets are evidence
+# for one run — regenerated on demand; the bounds they justify live in schemas.ts.
+frame-size-probe.json
+frame-size-bounds.json
+frame-size-bounds.merged.json
+frame-bounds-review.json
+frame-meta.json
+frame-size-sheets/
+
 # copy-widget-icons.mjs resolves its destination from the CWD (each app vendors
 # the PNGs on predev/prebuild, run with cwd=apps/<app>). Running it from the repo
 # root instead drops ~1.5 MB of duplicate icons here; the repo has no legitimate

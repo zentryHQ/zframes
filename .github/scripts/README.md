@@ -66,6 +66,44 @@ removed: it needs a metered API key — a subscription OAuth token 429s the batc
 Messages-API path. A pixel-diff for subtle layout regressions is a possible
 future add-on.)
 
+## Frame size envelope · `frame-size-*.ts` · `pnpm frames:size:*`
+
+On-demand, not scheduled — this is the toolchain behind every frame's
+`layout: { w, h, minW, minH, maxW?, maxH? }`, run when frames or their bounds
+change rather than nightly.
+
+```bash
+pnpm --filter @zframes/storybook build   # all five stages read storybook-static/
+pnpm frames:meta                         # frame-meta.json — identity + current layout
+pnpm frames:size:probe                   # frame-size-probe.json — the 12x8 measurement matrix
+pnpm frames:size:derive                  # frame-size-bounds.json — recommended bounds + evidence
+EXPLAIN=<frame> pnpm frames:size:explain # one frame's matrix, metric by metric
+pnpm frames:size:sheet                   # frame-size-sheets/<frame>.png — the envelope's corners
+APPLY_DRY=1 pnpm frames:size:apply       # rewrite schemas.ts layout lines (drop APPLY_DRY to write)
+```
+
+**probe** mounts each frame's `Default` story ONCE and resizes it through all 96
+spans by rewriting `--zf-col-span`/`--zf-row-span` — the same vars the renderer
+places cards with, so a chart re-measures through its ResizeObserver exactly as
+it does when a user drags a handle. Per span it records content clipped by an
+`overflow:hidden` ancestor, labels actually hitting their ellipsis, the main
+chart's box, how many rows a scroll list shows, and `inkN`/`inkW`/`inkH` — how
+much the frame chose to render and what fraction of the card paints.
+
+**derive** reads that as: the floor is the largest rectangle of spans that is
+clean throughout (faults present even at 12×8 are frame bugs, not sizing, so
+they are excluded and reported as `inherent:*`); the ceiling is where ink stops
+covering the card. Bounds are never allowed to invalidate a shipped board.
+
+**sheet** exists because the ceiling is an aesthetic judgement no metric settles
+— nothing breaks when a card grows, it just stops being worth its space.
+
+Env: `PROBE_FRAMES` / `SHEET_FRAMES` (comma list, one frame or a few),
+`PROBE_RESUME=1` (keep prior results; with `PROBE_FRAMES` it becomes a targeted
+re-measure merged into the existing matrix), `PROBE_CONCURRENCY` (default 4 —
+each worker owns a browser and replaces it on a crash, which does happen over a
+sweep this long).
+
 ## FX coverage · `fx-coverage.mjs`
 
 `CURRENCY_CODES` (`packages/spec/src/spec.ts`) is **derived data**: a code is a

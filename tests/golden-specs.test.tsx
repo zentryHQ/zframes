@@ -437,10 +437,18 @@ describe.each(FIXTURES)(
       const isUnknownFrame = (message: string) =>
         /^unknown frame/.test(message);
 
+      // Size-envelope findings are genuine — these boards really do carry cards
+      // below their frame's measured floor — but they are tracked card-by-card
+      // in `tests/frame-layout-bounds.test.ts`, which asserts the exact set. Two
+      // tests asserting the same debt in two shapes would just mean fixing one
+      // card takes two edits, so this one stays about config and geometry.
+      const isSizeEnvelope = (message: string) =>
+        /is (below|above) its .* (minimum|maximum)$/.test(message);
+
       // Real lint findings: geometry overflow, overlap, duplicate id, invalid
       // config. Everything here is a genuine defect in the saved board.
       const real = issues
-        .filter((i) => !isUnknownFrame(i.message))
+        .filter((i) => !isUnknownFrame(i.message) && !isSizeEnvelope(i.message))
         .map((i) => `${i.frameId}: ${i.message}`)
         .sort();
       const expectedReal = knownInvalidConfigIds
