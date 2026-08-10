@@ -2,7 +2,7 @@
   "name": "@zframes/core",
   "version": "0.0.0",
   "description": "zframes presentation layer: DashboardRenderer, the shared frame chrome (FrameContent/FRAME_CSS), capability-routed provider hooks, and visibility gating. Re-exports the @zframes/spec kernel, so the root barrel stays the stable public surface.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

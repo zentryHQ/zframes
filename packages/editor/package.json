@@ -2,7 +2,7 @@
   "name": "@zframes/editor",
   "version": "0.0.0",
   "description": "zframes dashboard authoring layer (React + GridStack): the DashboardEditor customise mode, per-frame config rail, grid geometry helpers, and the symbol-universe / buildDefaultConfig seed.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

@@ -32,7 +32,7 @@ Confident, technical, and alive. Three words: **precise, agent-native, living.**
 2. **Show the live thing.** Prefer real frames rendering real data over screenshots and prose. The proof is the product running.
 3. **Terminal calm, not casino.** Dark and data-forward; motion and glow are disciplined accents that signal "alive," never decoration for its own sake.
 4. **One cohesive material system.** A single surface, border, radius, and accent language shared across landing, gallery, viewer, and editor — no per-page reinvention.
-5. **Confidence through specificity.** Plain, exact claims (Apache-2.0, keyless, free, one `dashboard.json`) beat adjectives.
+5. **Confidence through specificity.** Plain, exact claims (MIT, keyless, free, one `dashboard.json`) beat adjectives.
 
 ## Accessibility & Inclusion
 

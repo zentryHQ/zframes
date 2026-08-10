@@ -2,7 +2,7 @@
   "name": "@zframes/zai",
   "version": "0.0.0",
   "description": "zframes zAI agent harness (Node-only, React-free): the keyless bridge that shells out to a local claude/codex/kimi CLI as the dashboard's grounded market-analyst orb.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

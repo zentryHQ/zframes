@@ -2,7 +2,7 @@
   "name": "@zframes/spec",
   "version": "0.0.0",
   "description": "zframes domain kernel: the dashboard spec schema, frame/registry primitives, route constants, theme presets, and the AI catalogue. React- and Node-free.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

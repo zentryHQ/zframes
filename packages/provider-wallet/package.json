@@ -2,7 +2,7 @@
   "name": "@zframes/provider-wallet",
   "version": "0.0.0",
   "description": "Keyless zframes data provider for a public on-chain wallet address (portfolio capability) \u2014 Ethereum balances via a public RPC + bundled token list, priced through CoinGecko. No keys, no relay.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",

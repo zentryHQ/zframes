@@ -2,7 +2,7 @@
   "name": "@zframes/unicorn",
   "version": "0.0.0",
   "description": "Shared Unicorn Studio scene loader for zframes hosts: injects the self-hosted engine once, mounts/destroys scenes, and exposes the low-end-device / reduced-motion gates hosts use to skip the WebGL backdrop.",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",
