@@ -120,11 +120,7 @@ const PieChart = ({
     const shareOf = (d: d3.PieArcDatum<PieChartData>) =>
       total > 0 ? `${((d.data.value / total) * 100).toFixed(1)}% of total` : "";
 
-    const sliceGroups = pieGroup
-      .selectAll("g")
-      .data(arcs)
-      .enter()
-      .append("g");
+    const sliceGroups = pieGroup.selectAll("g").data(arcs).enter().append("g");
 
     // True only inside the grace window that opens at the first real draw, so
     // the sweep survives the re-render burst after first paint (every caller but
