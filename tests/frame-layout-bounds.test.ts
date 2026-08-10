@@ -68,7 +68,6 @@ const KNOWN_UNDERSIZED = [
   "crypto-command: funding-rate-chart h=3 < minH 4",
   "crypto-command: funding-heatmap w=4 < minW 5",
   "macro-watch: rates-board h=3 < minH 4",
-  "macro-watch: fx-board h=3 < minH 4",
   "macro-watch: news-feed w=3 < minW 4",
   "micky: clock w=2 < minW 3",
   "micky: calculator h=3 < minH 4",
