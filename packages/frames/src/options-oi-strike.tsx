@@ -1,7 +1,13 @@
 import { defineFrame, useMoney, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { DOWN_COLOR, UP_COLOR } from "./format";
+import {
+  type ChartTooltipContent,
+  chartTooltipLabel,
+  hoverTip,
+  useHideTipOnUnmount,
+} from "./chart-hover";
+import { DOWN_COLOR, UP_COLOR, formatCompact, formatPct } from "./format";
 import { optionsOiStrikeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -13,6 +19,7 @@ const PUT = DOWN_COLOR;
 function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
   const { summary, isLoading } = useOptionsSummary(config.currency);
   const money = useMoney();
+  useHideTipOnUnmount();
 
   const view = useMemo(() => {
     if (!summary) return null;
@@ -115,6 +122,41 @@ function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
             strokeDasharray="4 3"
           />
         )}
+        {/* Hover targets, last so they sit above the bars: one invisible
+            full-height rect per STRIKE, spanning that strike's whole band. The
+            hover is a strike column rather than a single bar, because a strike
+            with almost no open interest draws a ~1px bar nobody can point at —
+            and that near-empty strike is exactly the reading. */}
+        {near.map((s, i) => {
+          const awayPct = ((s.strike - spot) / spot) * 100;
+          const content: ChartTooltipContent = {
+            title: money.magnitude(s.strike),
+            rows: [
+              { label: "calls", value: formatCompact(s.callOi), color: CALL },
+              { label: "puts", value: formatCompact(s.putOi), color: PUT },
+            ],
+            // Below the precision formatPct prints, "0.00% above spot" would be
+            // a distinction without a difference.
+            footer:
+              Math.abs(awayPct) < 0.005
+                ? "at spot"
+                : `${formatPct(Math.abs(awayPct))} ${
+                    awayPct > 0 ? "above" : "below"
+                  } spot`,
+          };
+          return (
+            <rect
+              key={s.strike}
+              x={i * bandW}
+              y={0}
+              width={bandW}
+              height={H}
+              fill="transparent"
+              aria-label={chartTooltipLabel(content)}
+              {...hoverTip(content)}
+            />
+          );
+        })}
       </svg>
 
       <div className="caption text-soft mt-1 flex justify-between tabular-nums">

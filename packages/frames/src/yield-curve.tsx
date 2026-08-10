@@ -1,5 +1,11 @@
 import { defineFrame, useYieldCurve } from "@zframes/core";
 import type { z } from "zod";
+import {
+  type ChartTooltipContent,
+  chartTooltipLabel,
+  hoverTip,
+  useHideTipOnUnmount,
+} from "./chart-hover";
 import { changeColor, formatPct } from "./format";
 import { yieldCurveMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -8,7 +14,8 @@ const schema = yieldCurveMeta.schema;
 const accent = (a = 1) => `hsl(var(--zf-accent-hue, 242) 85% 72% / ${a})`;
 
 /** The curve shape — stretched to fill width; non-scaling stroke keeps it crisp. */
-function CurveSvg({ rates }: { rates: number[] }) {
+function CurveSvg({ points }: { points: { label: string; rate: number }[] }) {
+  const rates = points.map((p) => p.rate);
   const min = Math.min(...rates);
   const max = Math.max(...rates);
   const range = Math.max(0.01, max - min);
@@ -18,13 +25,11 @@ function CurveSvg({ rates }: { rates: number[] }) {
   const line = rates
     .map((r, i) => `${i ? "L" : "M"}${x(i).toFixed(2)},${y(r).toFixed(2)}`)
     .join(" ");
+  // Half the gap between neighbouring tenors — each hit column is centred on its
+  // own point, so the end points get a half-width column.
+  const halfGap = 50 / (n - 1);
   return (
-    <svg
-      viewBox="0 0 100 40"
-      preserveAspectRatio="none"
-      className="h-20 w-full"
-      aria-hidden
-    >
+    <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-20 w-full">
       <path d={`${line} L100,40 L0,40 Z`} fill={accent(0.14)} />
       <path
         d={line}
@@ -34,12 +39,39 @@ function CurveSvg({ rates }: { rates: number[] }) {
         vectorEffect="non-scaling-stroke"
         strokeLinejoin="round"
       />
+      {/* The curve draws EVERY tenor the Treasury publishes, while the pill row
+          below shows only the maturities the config asks for — so most plotted
+          points have their yield printed nowhere on the card. These invisible
+          full-height columns (last, so they sit above the marks, and sharing the
+          curve's own x()/y() mapping) are the only readout those tenors get, in
+          the tooltip and in the aria-label. */}
+      {points.map((p, i) => {
+        const left = Math.max(0, x(i) - halfGap);
+        const right = Math.min(100, x(i) + halfGap);
+        const content: ChartTooltipContent = {
+          title: p.label,
+          rows: [{ value: formatPct(p.rate) }],
+        };
+        return (
+          <rect
+            key={p.label}
+            x={left}
+            y={0}
+            width={right - left}
+            height={40}
+            fill="transparent"
+            aria-label={chartTooltipLabel(content)}
+            {...hoverTip(content)}
+          />
+        );
+      })}
     </svg>
   );
 }
 
 function YieldCurve({ config }: { config: z.output<typeof schema> }) {
   const { curve, isLoading } = useYieldCurve();
+  useHideTipOnUnmount();
 
   if (isLoading) return <FrameStatus loading>loading yield curve…</FrameStatus>;
   if (!curve || curve.points.length < 2)
@@ -87,7 +119,7 @@ function YieldCurve({ config }: { config: z.output<typeof schema> }) {
         </div>
       )}
 
-      <CurveSvg rates={curve.points.map((p) => p.rate)} />
+      <CurveSvg points={curve.points} />
 
       <div
         className="grid gap-1"

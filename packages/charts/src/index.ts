@@ -73,10 +73,12 @@ export { parseMarketData } from "./lib/format";
 export { CHART_COLORS_MULTI_SERIES } from "./chart-utils";
 
 // The shared hover tooltip. Every chart above wires itself up internally, so a
-// frame gets tooltips for free; these are exported for the rare frame that
-// draws its own marks over a chart and wants the same surface.
+// frame gets tooltips for free; these are exported for the frames that draw
+// their own SVG marks instead of using a chart above, so those get the same
+// surface rather than a second look (see `@zframes/frames`' `hoverTip`).
 export {
   attachChartTooltip,
+  chartTooltipLabel,
   delegateChartTooltip,
   hideChartTooltip,
   moveChartTooltip,
