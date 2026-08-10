@@ -164,12 +164,14 @@ function MetalOpenInterest({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={170}
-        formatValue={unit === "notional" ? money.compact : formatCompact}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={unit === "notional" ? money.compact : formatCompact}
+        />
+      </div>
 
       {fellBack && (
         // Name the input that's actually missing: a "notional" request can fall

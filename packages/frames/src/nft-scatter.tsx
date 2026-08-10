@@ -40,16 +40,18 @@ function NftScatter({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no NFT data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <ScatterChart
-        data={data}
-        yScale="log"
-        height={210}
-        zeroXLine
-        formatX={formatChangePct}
-        formatY={money.compact}
-        maxLabels={10}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <ScatterChart
+          data={data}
+          yScale="log"
+          fill
+          zeroXLine
+          formatX={formatChangePct}
+          formatY={money.compact}
+          maxLabels={10}
+        />
+      </div>
       <div className="caption text-soft text-center">
         24h floor change (x) vs 24h volume (y, log)
       </div>

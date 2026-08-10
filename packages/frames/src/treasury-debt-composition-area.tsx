@@ -81,13 +81,15 @@ function TreasuryDebtCompositionArea({
           {debt ? `as of ${debt.date}` : ""}
         </div>
       </div>
-      <StackedAreaChart
-        series={series}
-        height={210}
-        formatXAxis={dayLabel}
-        formatYAxis={formatCompactUsd}
-        formatValue={formatCompactUsd}
-      />
+      <div className="min-h-0 flex-1">
+        <StackedAreaChart
+          series={series}
+          fill
+          formatXAxis={dayLabel}
+          formatYAxis={formatCompactUsd}
+          formatValue={formatCompactUsd}
+        />
+      </div>
       <SeriesLegend series={series} />
     </div>
   );

@@ -4,7 +4,7 @@ import type { z } from "zod";
 import { MoverRow } from "./mover-row";
 import { coinMoversMeta } from "./schemas";
 import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = coinMoversMeta.schema;
 
@@ -34,8 +34,11 @@ function CoinMovers({ config }: { config: z.output<typeof schema> }) {
   if (gainers.length === 0) return <FrameStatus>no mover data yet</FrameStatus>;
 
   return (
-    <div className="grid h-full grid-cols-2 gap-x-4 overflow-hidden">
-      <div className="flex flex-col gap-1.5">
+    // `grid-rows-1` is minmax(0,1fr), not the implicit auto row: an auto row is
+    // sized by its tallest item, so the columns below would grow the grid past
+    // the card instead of scrolling inside it.
+    <div className="grid h-full min-h-0 grid-cols-2 grid-rows-1 gap-x-4">
+      <div className="flex min-h-0 flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2">
           <span className="caption text-soft uppercase tracking-wide">
             gainers
@@ -47,30 +50,38 @@ function CoinMovers({ config }: { config: z.output<typeof schema> }) {
             label="movers window"
           />
         </div>
-        {gainers.map((row) => (
-          <MoverRow
-            key={row.symbol}
-            symbol={row.symbol}
-            label={row.symbol}
-            price={row.price}
-            changePct={row.chg}
-          />
-        ))}
+        {/* Scrolls rather than clips, as in `rates-board`/`fx-board`: `count`
+            decides how many rows each column holds, so on a card too short for
+            them the ones that don't fit stay reachable instead of the last one
+            being sliced through the middle. The heading stays pinned. */}
+        <div className={`${scrollAreaClass} flex flex-col gap-1.5`}>
+          {gainers.map((row) => (
+            <MoverRow
+              key={row.symbol}
+              symbol={row.symbol}
+              label={row.symbol}
+              price={row.price}
+              changePct={row.chg}
+            />
+          ))}
+        </div>
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-h-0 flex-col gap-1.5">
         {/* Just "losers" — the toggle beside "gainers" already shows which
             window both columns are on, so repeating it here (and only here)
             read lopsided. */}
         <div className="caption text-soft uppercase tracking-wide">losers</div>
-        {losers.map((row) => (
-          <MoverRow
-            key={row.symbol}
-            symbol={row.symbol}
-            label={row.symbol}
-            price={row.price}
-            changePct={row.chg}
-          />
-        ))}
+        <div className={`${scrollAreaClass} flex flex-col gap-1.5`}>
+          {losers.map((row) => (
+            <MoverRow
+              key={row.symbol}
+              symbol={row.symbol}
+              label={row.symbol}
+              price={row.price}
+              changePct={row.chg}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -61,7 +61,9 @@ function MetalRatioChart({ config }: { config: z.output<typeof schema> }) {
     const series: MultiSeriesData[] = [
       {
         id: "ratio",
-        name: `${metalName(config.numerator)} / ${metalName(config.denominator)}`,
+        name: `${metalName(config.numerator)} / ${metalName(
+          config.denominator,
+        )}`,
         color: CHART_COLORS_MULTI_SERIES[0],
         data: toChartData(thinned),
       },
@@ -108,12 +110,14 @@ function MetalRatioChart({ config }: { config: z.output<typeof schema> }) {
         </span>
       </div>
 
-      <TimeSeriesChart
-        series={view.series}
-        timeframe={timeframeFor(config.years)}
-        height={200}
-        formatValue={formatRatio}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={view.series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={formatRatio}
+        />
+      </div>
     </div>
   );
 }

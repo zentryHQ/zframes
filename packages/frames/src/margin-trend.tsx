@@ -153,20 +153,20 @@ function MarginTrend({ config }: { config: z.output<typeof schema> }) {
         ))}
       </div>
 
-      {built.series.length > 0 ? (
-        <TimeSeriesChart
-          series={built.series}
-          timeframe={timeframeFor(built.spanYears)}
-          height={200}
-          formatValue={formatMargin}
-        />
-      ) : (
-        <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1">
+        {built.series.length > 0 ? (
+          <TimeSeriesChart
+            series={built.series}
+            timeframe={timeframeFor(built.spanYears)}
+            fill
+            formatValue={formatMargin}
+          />
+        ) : (
           <FrameStatus>
             one reported period so far — no trend to chart yet
           </FrameStatus>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="caption text-soft text-center">
         {ticker} · published margins, latest {data.periods[0]}

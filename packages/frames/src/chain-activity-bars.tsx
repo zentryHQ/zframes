@@ -25,13 +25,15 @@ function ChainActivityBars({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no chain data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        height={Math.max(data.length * 26, 96)}
-        formatValue={formatCompact}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          fill
+          formatValue={formatCompact}
+        />
+      </div>
       <div className="caption text-soft text-center">
         transactions · last 24h
       </div>

@@ -41,15 +41,17 @@ function DexPoolLiquidityScatter({
   if (data.length === 0) return <FrameStatus>no pool data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <ScatterChart
-        data={data}
-        yScale="log"
-        height={210}
-        formatX={formatX}
-        formatY={money.compact}
-        maxLabels={8}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <ScatterChart
+          data={data}
+          yScale="log"
+          fill
+          formatX={formatX}
+          formatY={money.compact}
+          maxLabels={8}
+        />
+      </div>
       <div className="caption text-soft text-center">
         {config.network} · liquidity (x, log) vs 24h volume (y, log) · bubble =
         trades

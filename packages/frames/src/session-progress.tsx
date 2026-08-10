@@ -52,19 +52,30 @@ function SessionProgress({ config }: { config: Config }) {
       : null;
 
   return (
-    <div className="flex h-full w-full flex-col justify-center gap-2">
+    // `container-type` so the readout scales to the CARD (cqmin — the smaller of
+    // its two sides) instead of sitting at a fixed size that a short or narrow
+    // card can't hold.
+    <div className="flex h-full w-full flex-col justify-center gap-2 [container-type:size]">
       <div className="caption text-soft flex items-center gap-1.5 uppercase tracking-[0.14em]">
-        <span className="text-normal font-semibold">{ex.mark}</span>
-        <span>{ex.code}</span>
+        <span className="shrink-0 text-normal font-semibold">{ex.mark}</span>
+        <span className="shrink-0">{ex.code}</span>
+        {/* `min-w-0` is what lets the ellipsis actually happen: a flex item won't
+            shrink below its content without it, so a long label pushed the row
+            past the card instead of truncating. */}
         {label && (
-          <span className="text-disabled truncate tracking-normal normal-case">
+          <span className="text-disabled min-w-0 truncate tracking-normal normal-case">
             · {label}
           </span>
         )}
       </div>
 
       <div
-        className={`metric-md leading-none ${open ? "text-strong" : "text-soft"}`}
+        className={`metric-md leading-none ${
+          open ? "text-strong" : "text-soft"
+        }`}
+        // Ceiling is `metric-md`'s own 1.5rem, so a card at its declared size
+        // reads exactly as before and only a smaller one scales down.
+        style={{ fontSize: "clamp(0.85rem, 16cqmin, 1.5rem)" }}
       >
         {statusLabel}
       </div>

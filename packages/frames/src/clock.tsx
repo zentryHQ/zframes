@@ -153,13 +153,31 @@ function Clock({ config }: { config: z.output<typeof schema> }) {
   const accent = "var(--color-highlight)";
   const accentGlow = "0 0 18px hsl(var(--zf-accent-hue, 242) 92% 70% / 0.45)";
 
+  // The readout is a single nowrap line whose WIDTH grows with each segment the
+  // config turns on, while `cqmin` only ever knows the box's shorter side — so
+  // on a card taller than it is wide the type scaled off the height and the time
+  // ran out the sides. Estimate the line's width in `em` from the segments
+  // actually rendered (a DM Sans tabular digit ≈ 0.615em, a colon ≈ 0.33em, and
+  // each tail segment draws at its own smaller em) and cap the size at the width
+  // that keeps it inside the card. Both terms below stay under the old 37cqmin,
+  // so this only ever shrinks the readout — never grows it.
+  const lineEm =
+    2.79 + // HH:MM
+    (withSeconds ? 0.72 : 0) + // ":SS" at 0.46em
+    (config.showMillis ? 0.65 : 0) + // ".mmm" at 0.3em
+    (config.hour12 ? 0.67 : 0); // "AM" at 0.3em, plus its 0.3em margin
+
   return (
-    // container-type lets the readout scale to the card (cqmin), not the
+    // container-type lets the readout scale to the card's own box, not the
     // viewport — a 2×1 clock and a 6×3 one both fill their space sensibly.
     <div className="flex h-full flex-col items-center justify-center gap-2 text-center [container-type:size]">
       <div
         className="text-strong inline-flex max-w-full items-baseline justify-center whitespace-nowrap font-dmsans font-extrabold leading-none tracking-[-0.01em] tabular-nums"
-        style={{ fontSize: "clamp(1.6rem, 37cqmin, 5.5rem)" }}
+        style={{
+          fontSize: `clamp(1.6rem, min(${(100 / lineEm).toFixed(
+            1,
+          )}cqw, 37cqh), 5.5rem)`,
+        }}
       >
         <span ref={mainRef} suppressHydrationWarning>
           {`${seed.hour}:${seed.minute}`}

@@ -35,12 +35,14 @@ function HomeValueBars({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="text-normal flex h-full min-h-0 flex-col justify-center gap-1">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        height={Math.max(data.length * 24, 96)}
-        formatValue={formatValue}
-      />
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          fill
+          formatValue={formatValue}
+        />
+      </div>
       <div className="caption text-soft text-center">
         typical home value ({money.code}) · Zillow ZHVI
         {index?.asOf ? ` · ${index.asOf}` : ""}

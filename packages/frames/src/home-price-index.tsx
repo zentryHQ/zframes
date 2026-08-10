@@ -66,12 +66,14 @@ function HomePriceIndex({ config }: { config: z.output<typeof schema> }) {
             : undefined
         }
       />
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={200}
-        formatValue={formatIndex}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={formatIndex}
+        />
+      </div>
       <div className="caption text-soft text-center">
         Case-Shiller national index · January 2000 = 100
       </div>

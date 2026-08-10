@@ -43,15 +43,17 @@ function YieldScatter({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no yield data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <ScatterChart
-        data={data}
-        yScale="log"
-        height={210}
-        formatX={formatApy}
-        formatY={money.compact}
-        maxLabels={8}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <ScatterChart
+          data={data}
+          yScale="log"
+          fill
+          formatX={formatApy}
+          formatY={money.compact}
+          maxLabels={8}
+        />
+      </div>
       <div className="caption text-soft text-center">
         DeFi yields · APY (x) vs TVL (y, log) · top {data.length}
       </div>

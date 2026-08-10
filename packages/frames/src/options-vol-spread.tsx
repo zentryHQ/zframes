@@ -70,7 +70,7 @@ function OptionsVolSpread({ config }: { config: z.output<typeof schema> }) {
     <TimeSeriesChart
       series={series}
       timeframe={timeframe}
-      height={250}
+      fill
       formatValue={formatVol}
       control={
         <TimeframeToggle

@@ -27,15 +27,17 @@ function EtfIssuerBars({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>ETF flows unavailable</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        height={Math.max(data.length * 24, 96)}
-        formatValue={money.compact}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          fill
+          formatValue={money.compact}
+        />
+      </div>
       <div className="caption text-soft text-center">
         {config.asset.toUpperCase()} spot-ETF issuers · today's net flow
       </div>

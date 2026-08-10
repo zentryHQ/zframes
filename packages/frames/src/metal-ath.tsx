@@ -10,7 +10,7 @@ import {
   pctChange,
 } from "./metals-shared";
 import { metalAthMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = metalAthMeta.schema;
 
@@ -57,7 +57,10 @@ function MetalAth({ config }: { config: z.output<typeof schema> }) {
         <div className="caption text-soft">{formatDay(ath.time)}</div>
       </div>
 
-      <div className="min-w-0">
+      {/* The record itself is pinned; the three rows under it scroll rather than
+          clip, so a card shorter than the stack loses reach to a row instead of
+          slicing "Since record" through the middle. */}
+      <div className={`min-w-0 ${scrollAreaClass}`}>
         <MetricRow
           label="Latest fix"
           meta={formatDay(latest.time)}

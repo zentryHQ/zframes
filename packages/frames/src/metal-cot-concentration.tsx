@@ -358,13 +358,19 @@ function MetalCotConcentration({
       </div>
 
       {history && (
-        <TimeSeriesChart
-          series={history.series}
-          timeframe={timeframeFor(history.years)}
-          height={150}
-          yDomain={history.yDomain}
-          formatValue={formatSharePct}
-        />
+        // `fill`, not a pixel height: a pinned height is a floor the card can't
+        // shrink below, so the plot spills out of the body. Here it shares the
+        // leftover with the trader-count list below (`scrollAreaClass` is itself
+        // `flex-1`), which is what keeps both readable on a short card.
+        <div className="min-h-0 flex-1">
+          <TimeSeriesChart
+            series={history.series}
+            timeframe={timeframeFor(history.years)}
+            fill
+            yDomain={history.yDomain}
+            formatValue={formatSharePct}
+          />
+        </div>
       )}
 
       {counts.length > 0 && (

@@ -9,7 +9,7 @@ import type { z } from "zod";
 import { formatPct } from "./format";
 import { MetricRow } from "./metric-row";
 import { mortgagePaymentMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = mortgagePaymentMeta.schema;
 
@@ -67,7 +67,10 @@ function MortgagePayment({ config }: { config: z.output<typeof schema> }) {
           {money.price(payment)}
         </div>
       </div>
-      <div>
+      {/* The payment and the taxes/insurance caveat stay pinned; the four inputs
+          behind the number scroll, so a card a row short of the stack hides a
+          row you can scroll back to instead of cutting "Term" in half. */}
+      <div className={scrollAreaClass}>
         <MetricRow
           label="Typical home value"
           value={money.price(entry.value)}

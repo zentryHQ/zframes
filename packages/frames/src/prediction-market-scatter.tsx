@@ -47,15 +47,17 @@ function PredictionMarketScatter({
   if (data.length === 0) return <FrameStatus>no markets yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <ScatterChart
-        data={data}
-        yScale="log"
-        height={210}
-        formatX={formatProbPct}
-        formatY={money.compact}
-        maxLabels={10}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <ScatterChart
+          data={data}
+          yScale="log"
+          fill
+          formatX={formatProbPct}
+          formatY={money.compact}
+          maxLabels={10}
+        />
+      </div>
       <div className="caption text-soft text-center">
         top-outcome probability (x) vs 24h volume (y, log) · top {data.length}
       </div>

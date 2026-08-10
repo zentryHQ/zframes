@@ -38,7 +38,7 @@ function DxyChart() {
     <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe["1M"]}
-      height={220}
+      fill
       formatValue={formatDxyValue}
     />
   );

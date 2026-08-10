@@ -64,7 +64,11 @@ function Stopwatch({ config }: { config: Config }) {
   const reset = () => commit({ startedAt: 0, accumulatedMs: 0 });
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-center">
+    // `container-type` so the readout scales to the CARD (cqmin — the smaller of
+    // its two sides), like the clock and countdown. A fixed `metric-lg` is sized
+    // off neither: it overflowed a short card vertically and a narrow one
+    // horizontally, and an elapsed span only grows (`0:00` → `12:34:56`).
+    <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-center [container-type:size]">
       {config.label && (
         <div className="caption text-soft inline-flex items-center gap-1.5 uppercase tracking-[0.18em]">
           <span
@@ -80,8 +84,13 @@ function Stopwatch({ config }: { config: Config }) {
       )}
 
       <div
-        className="metric-lg text-strong leading-none"
-        style={running ? { color: accent, textShadow: accentGlow } : undefined}
+        className="metric-lg text-strong max-w-full whitespace-nowrap leading-none"
+        // The ceiling is `metric-lg`'s own 2.25rem, so a card at its declared
+        // size reads exactly as before and only a smaller one scales down.
+        style={{
+          fontSize: "clamp(0.9rem, 24cqmin, 2.25rem)",
+          ...(running ? { color: accent, textShadow: accentGlow } : null),
+        }}
       >
         {formatElapsed(elapsed)}
       </div>

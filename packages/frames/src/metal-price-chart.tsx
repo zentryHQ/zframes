@@ -77,7 +77,11 @@ function MetalPriceChart({ config }: { config: z.output<typeof schema> }) {
     <TimeSeriesChart
       series={series}
       timeframe={timeframeFor(config.years)}
-      height={250}
+      // `fill`, not a pixel height: without it the chart sets `minHeight`, which
+      // a card shorter than that number cannot shrink below, so the plot spills
+      // out of the card body and is clipped. As the frame's root it inherits the
+      // body's `flex: 1; min-height: 0`, so there is nothing else to size.
+      fill
       formatValue={formatValue}
     />
   );

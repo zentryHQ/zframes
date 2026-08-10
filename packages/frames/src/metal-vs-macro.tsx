@@ -256,12 +256,14 @@ function MetalVsMacro({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <TimeSeriesChart
-        series={view.series}
-        timeframe={timeframeFor(config.years)}
-        height={175}
-        formatValue={formatWindowRange}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={view.series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={formatWindowRange}
+        />
+      </div>
 
       <div className="caption text-soft text-center leading-snug">
         corr {view.corr.toFixed(2)} of {view.observations} {view.cadence}{" "}

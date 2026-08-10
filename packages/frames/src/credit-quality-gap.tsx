@@ -106,12 +106,14 @@ function CreditQualityGap({ config }: { config: z.output<typeof schema> }) {
           </div>
         </div>
       </div>
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={185}
-        formatValue={formatGap}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={formatGap}
+        />
+      </div>
       <div className="caption text-soft text-center tabular-nums">
         window range {formatPct(stats.low)}–{formatPct(stats.high)} · wider =
         less risk appetite

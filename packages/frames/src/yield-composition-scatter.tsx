@@ -45,14 +45,16 @@ function YieldCompositionScatter({
   if (data.length === 0) return <FrameStatus>no yield data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <ScatterChart
-        data={data}
-        height={210}
-        formatX={formatAxisPct}
-        formatY={formatAxisPct}
-        maxLabels={8}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <ScatterChart
+          data={data}
+          fill
+          formatX={formatAxisPct}
+          formatY={formatAxisPct}
+          maxLabels={8}
+        />
+      </div>
       <div className="caption text-soft text-center">
         base APY (x) vs reward APY (y) · bubble = TVL · top {data.length}
       </div>

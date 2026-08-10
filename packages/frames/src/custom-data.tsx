@@ -281,12 +281,19 @@ function CustomData({ config }: { config: Config }) {
     }));
     return (
       <div className="flex h-full min-h-0 flex-col justify-center gap-1">
-        <BarChart
-          data={data.slice(0, 40)}
-          orientation={data.length > 12 ? "vertical" : "horizontal"}
-          height={Math.max(Math.min(data.length, 12) * 24, 96)}
-          formatValue={formatBarValue}
-        />
+        <div className="min-h-0 flex-1">
+          <BarChart
+            data={data.slice(0, 40)}
+            orientation={data.length > 12 ? "vertical" : "horizontal"}
+            // `fill`, not a row-count height: that pinned the wrapper at up to
+            // 288px, a floor the card cannot shrink below, so a dozen values on
+            // a short card pushed the bars (and the caption under them) out of
+            // the body to be clipped. Filling makes the chart the card's
+            // dependent rather than its floor.
+            fill
+            formatValue={formatBarValue}
+          />
+        </div>
         <Caption config={config} />
       </div>
     );

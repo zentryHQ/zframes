@@ -119,9 +119,15 @@ function VolumeProfile({ config }: { config: z.output<typeof schema> }) {
               ? "rgba(148,163,184,0.55)"
               : "rgba(148,163,184,0.22)";
           return (
+            // A 1px floor, not 3px: it only exists so a near-zero bucket still
+            // paints a hairline, but at 3px × up to 48 buckets it also made the
+            // histogram taller than a short card — and column-reverse puts that
+            // overflow off the TOP, clipped away with no scrollbar to reach it.
+            // A compressed profile still reads as a shape; a beheaded one
+            // doesn't.
             <div
               key={i}
-              className="flex min-h-[3px] flex-1 items-center"
+              className="flex min-h-[1px] flex-1 items-center"
               title={money.price(b.mid)}
             >
               <div

@@ -8,7 +8,7 @@ import type { z } from "zod";
 import { changeColor, formatCompact } from "./format";
 import { MetricRow } from "./metric-row";
 import { usGoldReserveMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = usGoldReserveMeta.schema;
 
@@ -58,7 +58,7 @@ function UsGoldReserve({ config }: { config: z.output<typeof schema> }) {
     market !== null && bookValue > 0 ? market.value - bookValue : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-2">
       <div>
         <div className="caption text-soft uppercase">US official gold</div>
         <div className="metric-xl text-strong leading-none">
@@ -67,7 +67,12 @@ function UsGoldReserve({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <div className="flex flex-col">
+      {/* The tonnage headline and the report date are pinned; the valuation rows
+          scroll rather than clip, so a short card slices none of them. Taking
+          the slack here is also what replaces the stack's `justify-center` —
+          inside a scroll container that centring would leave the overflow
+          unreachable. */}
+      <div className={`${scrollAreaClass} flex flex-col`}>
         {bookPerOz !== null && (
           <MetricRow
             label="Book value"

@@ -46,7 +46,7 @@ function MvrvZscoreChart({ config }: { config: z.output<typeof schema> }) {
     <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe.YTD}
-      height={220}
+      fill
       formatValue={formatZscore}
       control={
         <TimeframeToggle

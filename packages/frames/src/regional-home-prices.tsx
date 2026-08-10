@@ -65,12 +65,14 @@ function RegionalHomePrices({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={220}
-        formatValue={config.rebase ? formatRebased : formatIndex}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={config.rebase ? formatRebased : formatIndex}
+        />
+      </div>
       <div className="caption text-soft text-center">
         FHFA HPI · {config.level} · {config.years}y
         {latest ? ` · through ${latest}` : ""}

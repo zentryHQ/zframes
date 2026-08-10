@@ -22,6 +22,15 @@ export interface BarChartProps {
   /** When set, bars with negative values use this fill (diverging chart). */
   negativeColor?: string;
   height?: number;
+  /**
+   * Size the chart to its CONTAINER's height instead of `height`.
+   *
+   * `height` pins the wrapper, so a card body shorter than it can't shrink the
+   * chart and the plot spills out clipped. With `fill` the wrapper takes the
+   * card's height and the plot is drawn to whatever that measures. Opt-in —
+   * existing callers keep their fixed height and pixel-identical output.
+   */
+  fill?: boolean;
   formatValue?: (value: number) => string;
   /** Show the formatted value at the end of each bar. Default true. */
   showValues?: boolean;
@@ -81,6 +90,7 @@ const BarChart = ({
   color = DEFAULT_COLOR,
   negativeColor,
   height = 200,
+  fill = false,
   formatValue = DEFAULT_FORMAT_VALUE,
   showValues = true,
   maxTickLabels = 8,
@@ -88,6 +98,7 @@ const BarChart = ({
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState<number | null>(null);
+  const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   /**
    * The intro belongs to the chart's arrival only. This redraw also runs on
    * every data poll, resize, theme change and prop change, and re-growing the
@@ -100,14 +111,26 @@ const BarChart = ({
     const el = wrapRef.current;
     if (!el) return;
     const update = () => {
-      const w = el.getBoundingClientRect().width;
+      const rect = el.getBoundingClientRect();
       setWidth((prev) =>
-        prev !== null && Math.abs(prev - w) < 0.5 ? prev : w,
+        prev !== null && Math.abs(prev - rect.width) < 0.5 ? prev : rect.width,
       );
+      // Only tracked when filling — a pinned wrapper is `height` by
+      // construction, so measuring it would re-render for nothing.
+      if (fill)
+        setMeasuredHeight((prev) =>
+          prev !== null && Math.abs(prev - rect.height) < 0.5
+            ? prev
+            : rect.height,
+        );
     };
     update();
     return observeResize(el, update);
-  }, []);
+  }, [fill]);
+
+  // The wrapper can measure 0 before layout settles, so the prop stays the
+  // fallback — a collapsed chart is worse than a slightly-too-tall one.
+  const plotHeight = fill && measuredHeight ? measuredHeight : height;
 
   useEffect(() => {
     const svgEl = svgRef.current;
@@ -161,7 +184,7 @@ const BarChart = ({
           )
         : 8;
       const innerWidth = Math.max(width - labelWidth - valuePad, 10);
-      const rowHeight = height / data.length;
+      const rowHeight = plotHeight / data.length;
       const barHeight = Math.min(Math.max(rowHeight * 0.55, 3), 18);
 
       const hasNeg =
@@ -182,7 +205,7 @@ const BarChart = ({
           .attr("x1", zeroX)
           .attr("x2", zeroX)
           .attr("y1", 0)
-          .attr("y2", height)
+          .attr("y2", plotHeight)
           .attr("stroke", "currentColor")
           .attr("stroke-opacity", 0.18);
 
@@ -283,7 +306,7 @@ const BarChart = ({
     // vertical
     const bottomPad = 18;
     const topPad = showValues ? 16 : 6;
-    const innerHeight = Math.max(height - bottomPad - topPad, 10);
+    const innerHeight = Math.max(plotHeight - bottomPad - topPad, 10);
     const min = Math.min(0, ...data.map((d) => d.value));
     const max = Math.max(0, ...data.map((d) => d.value), 1e-9);
     const y = d3
@@ -390,7 +413,7 @@ const BarChart = ({
         // Clamp so edge labels don't clip outside the svg.
         return Math.min(Math.max(cx, 16), width - 16);
       })
-      .attr("y", height - 4)
+      .attr("y", plotHeight - 4)
       .attr("text-anchor", "middle")
       .attr("fill", "currentColor")
       .attr("fill-opacity", 0.55)
@@ -404,7 +427,7 @@ const BarChart = ({
   }, [
     data,
     width,
-    height,
+    plotHeight,
     orientation,
     color,
     negativeColor,
@@ -415,9 +438,13 @@ const BarChart = ({
   ]);
 
   return (
-    <div ref={wrapRef} className="w-full" style={{ height }}>
+    <div
+      ref={wrapRef}
+      className="w-full"
+      style={fill ? { height: "100%", minHeight: 0 } : { height }}
+    >
       {width !== null && width > 0 && (
-        <svg ref={svgRef} width={width} height={height} />
+        <svg ref={svgRef} width={width} height={plotHeight} />
       )}
     </div>
   );

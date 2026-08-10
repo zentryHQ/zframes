@@ -56,7 +56,7 @@ function FearGreedChart({ config }: { config: z.output<typeof schema> }) {
     <TimeSeriesChart
       series={series}
       timeframe={timeframeFor(config.days)}
-      height={220}
+      fill
       formatValue={formatIndexValue}
     />
   );
