@@ -144,8 +144,10 @@ migrations, or the seed:
 Postgres, so a seed on every push would silently undo that — hence the gate. If you
 edit a board in SQL and want it to survive, export it back into the seed file.
 
-Secret: `PRODUCTION_DATABASE_URL`, falling back to `THUMBS_DATABASE_URL` (same Neon
-string, already set). The workflow skips cleanly when neither exists.
+Secret: `DATABASE_URL_UNPOOLED` — Neon's **direct** endpoint. The read-only crons
+(thumbnails, dashboard-validity) share the pooled `DATABASE_URL`; this job runs DDL,
+and a migration's advisory lock inside a multi-statement transaction belongs off
+the pgbouncer pool. The workflow skips cleanly when it is unset.
 
 ## Discoverability (SEO + answer engines)
 

@@ -123,7 +123,7 @@ and went stale when the registry moved under it: a renamed frame, a dropped
 `lazy.ts` loader, a renamed config field, a tightened enum. That is the common
 case, and this is the net under it.
 
-Needs `THUMBS_DATABASE_URL` (the prod Neon URL, reused rather than duplicated);
+Needs `DATABASE_URL` (the prod Neon pooled URL, shared with the thumbnail cron);
 skips cleanly when unset. Locally it defaults to the Docker dev database, so with
 `pnpm --dir apps/explorer db:up` running, a bare
 `pnpm --dir apps/explorer validate:dashboards` just works.
@@ -171,7 +171,9 @@ parallel and cannot be sequenced from here:
 Re-seeding **overwrites** DB edits to the boards in the seed file, which is why it
 is gated rather than run on every push — see `apps/explorer/AGENTS.md`.
 
-Secret: `PRODUCTION_DATABASE_URL` (falls back to `THUMBS_DATABASE_URL`).
+Secret: `DATABASE_URL_UNPOOLED` — Neon's direct endpoint, not the pooled
+`DATABASE_URL` the read-only crons use. This job runs DDL, and migrations take an
+advisory lock inside a multi-statement transaction, which belongs off the pooler.
 
 ## Enabling in a fork
 

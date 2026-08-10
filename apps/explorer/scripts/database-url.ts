@@ -71,7 +71,8 @@ export function assertDatabaseUrl(url: string): string {
       `    inner whitespace .. ${/\s/.test(url) ? "YES — this is the problem" : "no"}\n` +
       `    quoted ............ ${/^["']|["']$/.test(url) ? "YES — this is the problem" : "no"}\n\n` +
       `  Re-set it interactively, which avoids shell quoting and history entirely:\n` +
-      `    gh secret set PRODUCTION_DATABASE_URL\n` +
+      `    gh secret set DATABASE_URL           # pooled — the read-only crons\n` +
+      `    gh secret set DATABASE_URL_UNPOOLED  # direct — db-deploy's migrations\n` +
       `    (paste the Neon connection string at the prompt, then press Enter)\n`,
   );
 }

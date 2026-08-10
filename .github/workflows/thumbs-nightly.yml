@@ -6,8 +6,10 @@ name: Nightly dashboard thumbnails
 # their SVG mini-map fallback.
 #
 # Requires (skips gracefully until both are configured):
-#   secret THUMBS_DATABASE_URL — the prod (Neon) DATABASE_URL
-#   var    EXPLORER_BASE_URL   — the deployed explorer origin (e.g. https://…)
+#   secret DATABASE_URL     — the prod (Neon) POOLED connection string, shared with
+#                             dashboard-validity. DDL jobs use DATABASE_URL_UNPOOLED
+#                             instead; this one only reads and upserts rows.
+#   var    EXPLORER_BASE_URL — the deployed explorer origin (e.g. https://…)
 
 on:
   schedule:
@@ -19,12 +21,12 @@ jobs:
     runs-on: ubuntu-latest # ships a system Chrome — the script uses channel "chrome"
     timeout-minutes: 30
     env:
-      DATABASE_URL: ${{ secrets.THUMBS_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
       EXPLORER_BASE_URL: ${{ vars.EXPLORER_BASE_URL }}
     steps:
       - name: Skip — not configured
         if: env.DATABASE_URL == '' || env.EXPLORER_BASE_URL == ''
-        run: echo "THUMBS_DATABASE_URL secret / EXPLORER_BASE_URL var not set — skipping."
+        run: echo "DATABASE_URL secret / EXPLORER_BASE_URL var not set — skipping."
 
       - uses: actions/checkout@v7
         if: env.DATABASE_URL != '' && env.EXPLORER_BASE_URL != ''
