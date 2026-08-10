@@ -12,9 +12,9 @@ name: Dashboard validity
 # it (renamed frame, dropped lazy loader, renamed config field, tightened enum).
 # That is the common case, and this is where it gets caught.
 #
-# Setup: secret THUMBS_DATABASE_URL (the prod Neon DATABASE_URL — reused rather
-# than adding a second copy of the same connection string). Skips cleanly when
-# unset, like the thumbnail cron.
+# Setup: secret DATABASE_URL (the prod Neon POOLED connection string, shared with
+# the thumbnail cron — this job only reads). Skips cleanly when unset, like that
+# cron. DDL belongs on DATABASE_URL_UNPOOLED, which db-deploy uses.
 #
 # Opens/updates one `dashboard-validity` issue; auto-closes when clean.
 
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      DATABASE_URL: ${{ secrets.THUMBS_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -44,7 +44,7 @@ jobs:
 
       - name: Skip when no database is configured
         if: env.DATABASE_URL == ''
-        run: echo "THUMBS_DATABASE_URL secret not set — skipping."
+        run: echo "DATABASE_URL secret not set — skipping."
 
       - run: pnpm install --frozen-lockfile
         if: env.DATABASE_URL != ''
