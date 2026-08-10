@@ -1,5 +1,6 @@
 import type { DashboardSpec } from "@zframes/spec/spec";
 import { describe, expect, it } from "vitest";
+import { frameMetas } from "@zframes/frames/schemas";
 import { lintSpec } from "./lint";
 
 type Pos = { x: number; y: number; w: number; h: number };
@@ -30,10 +31,15 @@ describe("lintSpec", () => {
   });
 
   it("returns no issues for valid, non-overlapping, in-bounds frames", () => {
+    // The span comes from clock's own `layout` rather than a literal: this
+    // asserts a CLEAN result, so any hard-coded size would start failing the day
+    // clock's measured floor moved past it — which is a fact about clock, not a
+    // regression in the linter.
+    const { w, h } = frameMetas.find((m) => m.name === "clock")!.layout!;
     const issues = lintSpec(
       makeSpec([
-        clock("a", { x: 0, y: 0, w: 2, h: 2 }),
-        clock("b", { x: 4, y: 0, w: 2, h: 2 }),
+        clock("a", { x: 0, y: 0, w, h }),
+        clock("b", { x: w + 1, y: 0, w, h }),
       ]),
     );
     expect(issues).toEqual([]);
@@ -117,6 +123,96 @@ describe("lintSpec", () => {
     expect(
       wideButInBand.some((i) => /horizontal layout overflows/.test(i.message)),
     ).toBe(false);
+  });
+
+  /**
+   * The frames are picked from the registry by the property under test rather
+   * than named, so these keep testing the rule when the bounds themselves move —
+   * they are derived by measurement (`.github/scripts/frame-size-probe.ts`) and
+   * are expected to change as frames do. A hard-coded `clock` at 1×1 would go
+   * green the day clock's floor dropped to 1, testing nothing.
+   */
+  const withMinimum = frameMetas.find(
+    (m) => (m.layout?.minW ?? 1) > 1 && (m.layout?.minH ?? 1) > 1,
+  );
+  const withCeiling = frameMetas.find(
+    (m) => m.layout?.maxW != null || m.layout?.maxH != null,
+  );
+
+  it("flags a frame placed below its declared minimum size", () => {
+    expect(withMinimum, "no frame declares a floor above 1×1").toBeDefined();
+    const layout = withMinimum!.layout!;
+    const issues = lintSpec(
+      makeSpec([
+        {
+          id: "tiny",
+          frame: withMinimum!.name,
+          position: { x: 0, y: 0, w: layout.minW! - 1, h: layout.minH! - 1 },
+          // Config is irrelevant to the geometry check; an invalid one just adds
+          // its own issues alongside the one under test.
+          config: {},
+        },
+      ]),
+    );
+    expect(issues.some((i) => /is below its .* minimum/.test(i.message))).toBe(
+      true,
+    );
+  });
+
+  it("flags a frame stretched past its declared maximum size", () => {
+    expect(withCeiling, "no frame declares a ceiling").toBeDefined();
+    const layout = withCeiling!.layout!;
+    const issues = lintSpec(
+      makeSpec(
+        [
+          {
+            id: "huge",
+            frame: withCeiling!.name,
+            position: {
+              x: 0,
+              y: 0,
+              w: layout.maxW != null ? layout.maxW + 1 : layout.w,
+              h: layout.maxH != null ? layout.maxH + 1 : layout.h,
+            },
+            config: {},
+          },
+        ],
+        // Widen the board so an over-wide frame trips the SIZE check rather than
+        // the grid-overflow one.
+        24,
+      ),
+    );
+    expect(issues.some((i) => /is above its .* maximum/.test(i.message))).toBe(
+      true,
+    );
+  });
+
+  it("accepts a frame placed at exactly its declared bounds", () => {
+    const meta = withMinimum!;
+    const layout = meta.layout!;
+    for (const [w, h] of [
+      [layout.minW!, layout.minH!],
+      [layout.w, layout.h],
+      [layout.maxW ?? layout.w, layout.maxH ?? layout.h],
+    ]) {
+      const issues = lintSpec(
+        makeSpec(
+          [
+            {
+              id: "ok",
+              frame: meta.name,
+              position: { x: 0, y: 0, w, h },
+              config: {},
+            },
+          ],
+          24,
+        ),
+      );
+      expect(
+        issues.filter((i) => /minimum|maximum/.test(i.message)),
+        `${meta.name} at ${w}×${h}`,
+      ).toEqual([]);
+    }
   });
 
   it("flags overlapping frames but not merely touching ones", () => {

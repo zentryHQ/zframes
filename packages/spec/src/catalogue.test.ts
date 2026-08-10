@@ -82,6 +82,7 @@ const ENTRY_KEYS = [
   "description",
   "iconUrl",
   "label",
+  "layout",
   "name",
   "usdOnly",
 ];

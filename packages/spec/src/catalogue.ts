@@ -41,6 +41,15 @@ export function catalogueForAI(input: FrameRegistry | Iterable<FrameMeta>) {
     // correctly-configured empty box. Always emitted, like the two flags above,
     // so the entry shape stays fixed.
     container: meta.container === true,
+    // The grid span this frame reads well at: `w`/`h` is the size to use unless
+    // there is a reason not to, and minW/minH/maxW/maxH bound `position` in the
+    // emitted spec. Surfaced because the agent chooses every card's `position`
+    // and nothing else tells it that a chart below 3 columns loses its axis or
+    // that a one-number card at 12 columns is a number in a void — both parse
+    // cleanly and simply look wrong. A missing max means the frame scales to
+    // whatever the board is. Always emitted, like the flags above, so the entry
+    // shape stays fixed.
+    layout: meta.layout ?? null,
     // io: "input" — the agent writes the *input* shape, where .default()
     // fields are optional. The output shape would wrongly mark them required.
     configSchema: z.toJSONSchema(meta.schema, { io: "input" }),

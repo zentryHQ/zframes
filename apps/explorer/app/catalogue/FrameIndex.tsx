@@ -1,6 +1,7 @@
 import { FRAME_CATEGORIES } from "@zframes/spec/frame";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import { CATALOGUE_CATEGORY_ORDER } from "@/app/catalogue/order";
+import { describeSize } from "@/app/catalogue/min-size";
 
 /**
  * The catalogue as plain server-rendered text: every frame's name, display label
@@ -90,7 +91,10 @@ export function FrameIndex() {
                   </span>{" "}
                   <code className="font-mono text-xs text-indigo-200/80">
                     {frame.name}
-                  </code>
+                  </code>{" "}
+                  <span className="font-mono text-xs text-white/45">
+                    {describeSize(frame.layout)}
+                  </span>
                   <span className="text-white/55"> — {frame.description}</span>
                 </li>
               ))}
