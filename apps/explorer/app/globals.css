@@ -505,6 +505,28 @@ body::before {
   animation: float-bob 6.5s ease-in-out infinite alternate;
 }
 
+/* Scroll-driven hue drift for the Aurora chrome backdrop — the scene's authored
+ * indigo spins as the page scrolls. hue-rotate moves no pixels, so supporting
+ * browsers run this entirely on the compositor (zero main-thread work per scroll
+ * frame); browsers without scroll timelines get the same filter from
+ * UnicornBackground's rAF fallback. Keep the end angle in sync with
+ * SCROLL_HUE_DEG in UnicornBackground.tsx. */
+@keyframes unicorn-scroll-hue {
+  from {
+    filter: hue-rotate(0deg);
+  }
+  to {
+    filter: hue-rotate(90deg);
+  }
+}
+@supports (animation-timeline: scroll()) {
+  .animate-unicorn-scroll-hue {
+    animation: unicorn-scroll-hue linear both;
+    /* Must follow the shorthand — `animation:` resets animation-timeline. */
+    animation-timeline: scroll(root);
+  }
+}
+
 /* Scroll cue — a falling spark inside a hairline track at the hero's foot. */
 @keyframes scroll-cue {
   0% {

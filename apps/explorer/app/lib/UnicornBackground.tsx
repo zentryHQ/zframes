@@ -6,7 +6,7 @@ import {
   useLowEndDevice,
   useReducedMotion,
 } from "@zframes/unicorn";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * The living Aurora backdrop — the explorer renders the SAME canvas a generated
@@ -28,8 +28,14 @@ import { useState } from "react";
 
 // The dashboard default scene: Aurora, authored at the zframes indigo (hue 242).
 // The explorer's accent is the same 242, so the scene renders exactly as authored
-// — no hue-rotate needed to keep the backdrop in lockstep with the card accents.
+// at the top of the page — the scroll-driven hue drift below starts from 0deg.
 const SDK_URL = "/unicornStudio.umd.mjs";
+
+// How far the scene's hue spins over a full page scroll (242 indigo → ~332
+// magenta). Keep in sync with the `unicorn-scroll-hue` keyframes in globals.css
+// — the CSS scroll-timeline path and this JS fallback must land on the same
+// angle or the two paths would look different per browser.
+const SCROLL_HUE_DEG = 90;
 
 export function UnicornBackground({
   projectId = SCENE_DEFAULT_PROJECT_ID,
@@ -47,6 +53,45 @@ export function UnicornBackground({
   const lowEnd = useLowEndDevice();
   const reducedMotion = useReducedMotion();
   const [ready, setReady] = useState(false);
+  const sceneRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-hue fallback for browsers without CSS scroll timelines (Firefox):
+  // rAF-throttled scroll → the same hue-rotate on the same element the CSS
+  // path animates. Supporting browsers bail here — the compositor-driven
+  // `.animate-unicorn-scroll-hue` animation owns the filter (and would beat an
+  // inline style anyway). hue-rotate never causes layout or content repaint, so
+  // the per-frame cost is one style recalc on this element.
+  useEffect(() => {
+    if (lowEnd || reducedMotion) return;
+    if (
+      typeof CSS !== "undefined" &&
+      CSS.supports("animation-timeline: scroll()")
+    )
+      return;
+    const el = sceneRef.current;
+    if (!el) return;
+    let raf = 0;
+    const apply = () => {
+      raf = 0;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
+      el.style.filter =
+        progress > 0
+          ? `hue-rotate(${(progress * SCROLL_HUE_DEG).toFixed(1)}deg)`
+          : "";
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
+    apply();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [lowEnd, reducedMotion]);
 
   if (lowEnd || reducedMotion) return null;
 
@@ -58,7 +103,8 @@ export function UnicornBackground({
       {/* The WebGL scene. Fades in once the engine is ready so there's no hard pop.
           Opacity stays inline — it's a runtime prop, not a static utility. */}
       <div
-        className="absolute inset-0 transition-opacity duration-[900ms] ease-[var(--zf-ease-out,cubic-bezier(0.23,1,0.32,1))]"
+        ref={sceneRef}
+        className="animate-unicorn-scroll-hue absolute inset-0 transition-opacity duration-[900ms] ease-[var(--zf-ease-out,cubic-bezier(0.23,1,0.32,1))]"
         style={{ opacity: ready ? opacity : 0 }}
       >
         <UnicornScene
