@@ -185,24 +185,36 @@ export function variantsRender(frame: AnyFrameDefinition): Render {
  * width from `layout.minW` to `layout.maxW` (clamped to the board's columns),
  * height from `layout.minH` to `layout.maxH`. Those four are exactly the
  * attributes the editor writes as `gs-min-w`/`gs-max-w`/`gs-min-h`/`gs-max-h`,
- * so this enumerates the real resize envelope, not an invented sample of it.
+ * so this enumerates the real resize envelope — plus one step below each floor,
+ * marked "below min", which is where the frame is expected to misbehave.
  *
  * Ordered by height then width, so the grid reads as one row per row-count.
  */
-function sizesFor(frame: AnyFrameDefinition): { w: number; h: number }[] {
+function sizesFor(
+  frame: AnyFrameDefinition,
+): { w: number; h: number; below: boolean }[] {
   const l = frame.layout ?? FALLBACK_LAYOUT;
   const minW = Math.max(1, l.minW ?? 1);
   const maxW = Math.min(l.maxW ?? BOARD_COLUMNS, BOARD_COLUMNS);
   const minH = Math.max(1, l.minH ?? 1);
   const maxH = l.maxH ?? Math.max(l.h, OPEN_MAX_H);
 
-  const out: { w: number; h: number }[] = [];
-  for (let h = minH; h <= maxH; h++) {
-    for (let w = minW; w <= maxW; w++) out.push({ w, h });
+  // One step below each floor as well. The bounds exist BECAUSE the frame
+  // misbehaves just under them — content clipped, a chart squeezed past its
+  // axis — and a story that starts exactly at the floor is the one view that
+  // can never show you that. These cells are what you look at while fixing the
+  // frame, and what tells you the floor can come down once you have.
+  const fromW = Math.max(1, minW - 1);
+  const fromH = Math.max(1, minH - 1);
+
+  const out: { w: number; h: number; below: boolean }[] = [];
+  for (let h = fromH; h <= maxH; h++) {
+    for (let w = fromW; w <= maxW; w++)
+      out.push({ w, h, below: w < minW || h < minH });
   }
   // A frame whose min exceeds its max (or which sits outside the board) would
   // otherwise render nothing at all; fall back to its declared default span.
-  if (out.length === 0) out.push({ w: l.w, h: l.h });
+  if (out.length === 0) out.push({ w: l.w, h: l.h, below: false });
   return out.slice(0, SIZE_CAP);
 }
 
@@ -220,8 +232,12 @@ export function sizesRender(frame: AnyFrameDefinition): Render {
       <div className="sb-sizes">
         {sizes.map((s) => (
           <div className="sb-cell sb-size-cell" key={`${s.w}x${s.h}`}>
-            <div className="sb-cell-label">
+            <div
+              className="sb-cell-label"
+              style={s.below ? { color: "#f5a524" } : undefined}
+            >
               {s.w}&times;{s.h}
+              {s.below ? " · below min" : ""}
             </div>
             <FrameCanvas
               frame={frame}
