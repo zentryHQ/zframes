@@ -123,7 +123,7 @@ export default async function Image() {
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Pill>Free &amp; open source</Pill>
-          <Pill>Apache-2.0</Pill>
+          <Pill>MIT</Pill>
           <Pill>No API keys</Pill>
           <Pill>No account</Pill>
         </div>

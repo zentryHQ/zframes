@@ -60,7 +60,7 @@ export async function GET(): Promise<Response> {
     "",
     "## Facts",
     "",
-    "- Licence: Apache-2.0 (free and open source, no paid tier, no account)",
+    "- Licence: MIT (free and open source, no paid tier, no account)",
     `- Source: ${REPO_URL}`,
     `- CLI on npm: ${NPM_URL}`,
     `- Install into a coding agent: \`${INSTALL_COMMAND}\``,

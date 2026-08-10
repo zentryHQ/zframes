@@ -2,7 +2,7 @@
   "name": "@zframes/provider-coinpaprika",
   "version": "0.0.0",
   "description": "Free-tier zframes data provider for Coinpaprika: broad multi-window coin movers across ~2000 coins (coin-movers capability).",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zentry",
   "repository": {
     "type": "git",
