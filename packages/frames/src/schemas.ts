@@ -2799,10 +2799,10 @@ export const optionsChainTableMeta = defineFrameMeta({
         "Which greek columns to show, at most three so the ladder stays readable. Ignored entirely when the feed publishes no greeks — the crypto book-summary endpoint does not, and fetching them per contract would cost one request per strike.",
       ),
     source: z
-      .enum(["deribit"])
-      .optional()
+      .enum(["deribit", "cboe"])
+      .default("deribit")
       .describe(
-        "Which feed to read the chain from. Capability routing is first-match, so this pins the card when more than one provider serves option chains; omit for the default. An unrecognised value falls back to first-match rather than emptying the card.",
+        "Which feed to read the chain from — 'deribit' for the crypto book (BTC and ETH only, live, no greeks), 'cboe' for a listed equity or ETF chain (delayed ~15 minutes, full greeks). Capability routing is first-match and the equity feed registers first, so this is what actually decides the venue, not the symbol: an equity or ETF ticker needs 'cboe' pinned here or the chain comes back empty. Defaults to the crypto book to match the default symbol.",
       ),
   }),
 });
@@ -6705,7 +6705,9 @@ export const regionalHomePricesMeta = defineFrameMeta({
       .max(6)
       .default(["CA", "TX", "FL", "NY"])
       .describe(
-        `Regions to chart, matched to the level. At state level use two-letter codes: ${US_STATES.join(", ")}. At metro level use FHFA's own metro name, which is a full CBSA title — a leading fragment is enough and is matched case-insensitively, so "Austin" resolves to "Austin-Round Rock-San Marcos, TX". A region that matches nothing is skipped rather than failing the card.`,
+        `Regions to chart, matched to the level. At state level use two-letter codes: ${US_STATES.join(
+          ", ",
+        )}. At metro level use FHFA's own metro name, which is a full CBSA title — a leading fragment is enough and is matched case-insensitively, so "Austin" resolves to "Austin-Round Rock-San Marcos, TX". A region that matches nothing is skipped rather than failing the card.`,
       ),
     years: z
       .number()
@@ -7102,7 +7104,9 @@ export const regionalHomePriceBarsMeta = defineFrameMeta({
         "OH",
       ])
       .describe(
-        `Regions to compare, matched to the level. At state level use two-letter codes: ${US_STATES.join(", ")}. At metro level use a leading fragment of FHFA's CBSA title (case-insensitive), e.g. "Austin". A region that matches nothing is skipped rather than failing the card.`,
+        `Regions to compare, matched to the level. At state level use two-letter codes: ${US_STATES.join(
+          ", ",
+        )}. At metro level use a leading fragment of FHFA's CBSA title (case-insensitive), e.g. "Austin". A region that matches nothing is skipped rather than failing the card.`,
       ),
   }),
 });
