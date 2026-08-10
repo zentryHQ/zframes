@@ -52,8 +52,9 @@ async function main() {
     .sort();
   if (files.length === 0) throw new Error(`no .sql files in ${MIGRATIONS_DIR}`);
 
-  // max 1: the dev PGlite socket handles one wire connection at a time (see
-  // app/lib/db). Migrations are sequential anyway.
+  // max 1: migrations are strictly sequential, and one connection makes the
+  // advisory ordering obvious. (It is no longer a workaround for the dev
+  // database — that was the retired PGlite socket; see docker-compose.yml.)
   const sql = postgres(DATABASE_URL, {
     prepare: false,
     max: 1,

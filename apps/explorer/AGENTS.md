@@ -2,13 +2,14 @@
 
 The public front door — landing page, dashboard gallery, frame catalogue, live
 board previews, browser editor (`/tinker`), and the moderation surfaces. Next 16
-(App Router) + Postgres (Neon in prod, PGlite over a local socket in dev) +
-Better Auth. `CLAUDE.md` is a symlink to this file.
+(App Router) + Postgres (Neon in prod, Postgres 18 in Docker in dev) + Better
+Auth. `CLAUDE.md` is a symlink to this file.
 
 ## Commands
 
 ```bash
-pnpm --dir apps/explorer dev                  # :37264 (needs the PGlite socket, below)
+pnpm --dir apps/explorer db:up                # the dev database — START THIS FIRST
+pnpm --dir apps/explorer dev                  # :37264 (needs db:up)
 pnpm --dir apps/explorer build                # next build — NOT run in CI, run it before landing
 pnpm --dir apps/explorer typecheck
 pnpm --dir apps/explorer seed:curated         # upsert the curated showcase into the DB
@@ -19,8 +20,14 @@ pnpm --dir apps/explorer sweep:likes          # drop expired like allowances (ni
 pnpm --dir apps/explorer migrate              # apply pending drizzle/*.sql (fresh DB or existing)
 pnpm --dir apps/explorer migrate --dry-run    # list pending migrations, apply nothing
 pnpm --dir apps/explorer check:schema         # do the migrations match schema.ts? (CI gate)
-node scripts/pglite-server.mjs                # the dev database (from apps/explorer)
+pnpm --dir apps/explorer db:down              # stop the dev database, KEEP its data
+pnpm --dir apps/explorer db:reset             # DESTROY the volume and start clean
+pnpm --dir apps/explorer db:psql              # a psql shell in the container
 ```
+
+**First run on a machine:** `db:up` → `migrate` → `seed:curated`. That is also the
+recovery path after `db:reset`, and the only way to get boards into a fresh
+database — an empty gallery on a new checkout means one of the three was skipped.
 
 **Do not run `drizzle-kit push`.** It was retired on 2026-08-05 in favour of
 versioned migrations — see below. `drizzle-kit generate` is still useful for
@@ -182,12 +189,21 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
 
 ## Footguns
 
-- **The dev PGlite socket takes ONE connection.** `app/lib/db` pins `max: 1`
-  against it for exactly this reason. It is also why `/dashboard/[id]` and
-  `/embed/[id]` are **not** prerendered — `next build` prerenders with 11 workers,
-  which raced the socket and died on `ECONNRESET`. (Prerendering mutable rows was
-  wrong anyway: an edited board wouldn't appear until the next deploy.) Both routes
-  and `/` use `revalidate` instead.
+- **The dev database volume mounts at `/var/lib/postgresql`, not `.../data`.**
+  Every pre-18 tutorial says `data`; the 18+ images keep their files in a
+  major-version subdirectory and **refuse to boot** if they find data at the old
+  path. The container exits, the healthcheck never goes green, and `db:up` fails
+  with a bare `container for service "db" is unhealthy` that never mentions mounts.
+- **`.env` changes need a dev-server restart.** `next dev` reads `.env.local` once
+  at boot, and `app/lib/db` caches its pool on `globalThis` across hot reloads — so
+  after changing `DATABASE_URL` the app keeps dialling the old one and every board
+  query fails (`password authentication failed`) while the page still renders 200
+  with an empty gallery.
+- **`/dashboard/[id]` and `/embed/[id]` are not prerendered, on purpose.**
+  Prerendering mutable rows is wrong here — an edited board wouldn't appear until
+  the next deploy. Both routes and `/` use `revalidate`. (This *also* used to be
+  forced by the single-connection PGlite dev socket, retired 2026-08-10; the
+  reason above is the one that still stands.)
 - **Never import `@zframes/frames/lazy` into a Server Component or route
   handler.** Its values are `() => import("./frame")` thunks — lazy at runtime, but
   Next's bundler follows every one into the server graph and the build dies on the
