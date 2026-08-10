@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct, formatRate } from "./format";
 import { fxBoardMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = fxBoardMeta.schema;
 
@@ -47,7 +47,10 @@ function FxBoard({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden">
+      {/* Scrolls rather than clips — same reason as `rates-board`: the currency
+          rows are the card, so a short card should let you reach the ones that
+          don't fit instead of slicing the last one in half. */}
+      <div className={scrollAreaClass}>
         {rows.map(({ fx, color, spark }) => {
           return (
             <div
