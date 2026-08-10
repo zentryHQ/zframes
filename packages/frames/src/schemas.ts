@@ -129,7 +129,7 @@ export const clockMeta = defineFrameMeta({
   label: "Clock",
   category: "tools",
   iconUrl: widgetIcon("clock"),
-  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  layout: { w: 3, h: 2, minW: 3, minH: 2, maxW: 4, maxH: 3 },
   description:
     "Digital clock showing the current time, ticking every second. Configurable IANA timezone (defaults to the viewer's local zone), 12/24-hour format, optional seconds and date, the timezone abbreviation, and a caption label. Drop several with different timezones for a trading-desk world clock. Needs no data provider.",
   capabilities: [],
@@ -178,7 +178,7 @@ export const marketHoursMeta = defineFrameMeta({
   label: "Market Hours",
   category: "tools",
   iconUrl: widgetIcon("market-hours"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 4, minH: 3 },
   description:
     "Which world stock exchanges are open right now — each row shows an open / closed / holiday status dot and a live countdown to the next open or close. Computed entirely client-side from each exchange's timezone and regular trading hours (no API); a bundled 2026 holiday list keeps the major Western exchanges accurate on market holidays. Intraday lunch breaks and half-day early closes are not modelled. Needs no data provider.",
   capabilities: [],
@@ -203,7 +203,7 @@ export const fearGreedMeta = defineFrameMeta({
   label: "Fear & Greed",
   category: "sentiment",
   iconUrl: widgetIcon("fear-greed"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 3, maxW: 4, maxH: 3 },
   description:
     "Crypto Fear & Greed index (0 = extreme fear, 100 = extreme greed) with a recent-history sparkline. A one-number market mood gauge from alternative.me.",
   capabilities: ["sentiment"],
@@ -225,7 +225,7 @@ export const fundingRateChartMeta = defineFrameMeta({
   label: "Funding Rate Chart",
   category: "derivatives",
   iconUrl: widgetIcon("funding-rate-chart"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "Multi-series line chart comparing hourly perp funding rates across symbols over a configurable lookback window. Positive funding = longs pay shorts. Useful for spotting crowded trades.",
   capabilities: ["funding-history"],
@@ -250,7 +250,7 @@ export const fundingCalendarMeta = defineFrameMeta({
   label: "Funding Calendar",
   category: "derivatives",
   iconUrl: widgetIcon("funding-calendar"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Each day's total perp funding as a calendar heatmap — one square per day, green where longs paid shorts and red where shorts paid longs, so a carry position's income reads as a pattern instead of a squiggle. Surfaces what the funding line chart hides: whether the carry is a steady drip or a few violent days, and how long the flips last. Intensity is ranked within the window, so one funding spike can't wash out every ordinary day. Keyless (Hyperliquid), summed from the hourly prints.",
   capabilities: ["funding-history"],
@@ -278,7 +278,7 @@ export const fundingDistributionMeta = defineFrameMeta({
   label: "Funding Histogram",
   category: "derivatives",
   iconUrl: widgetIcon("funding-distribution"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Histogram of every hourly funding print over the window — how often longs pay versus get paid, and how extreme it gets. The question a funding line chart can't answer: a carry trade is priced off the whole distribution, not the current rate. Reports the share of hours funding was positive and the annualised carry implied by the mean, plus markers at the mean and the latest print. Keyless (Hyperliquid).",
   capabilities: ["funding-history"],
@@ -304,7 +304,7 @@ export const noteMeta = defineFrameMeta({
   label: "Note",
   category: "layout",
   iconUrl: widgetIcon("note"),
-  layout: { w: 4, h: 3, minW: 2, minH: 2 },
+  layout: { w: 4, h: 3, minW: 1, minH: 1, maxH: 4 },
   description:
     "Free-form text note pinned to the dashboard — trading plans, reminders, watch levels. Renders a safe Markdown subset: **bold**, *italic*, `inline code`, [links](https://…), #/##/### headings, and - / 1. lists. Plain text still renders as written. Needs no data provider.",
   capabilities: [],
@@ -366,7 +366,7 @@ export const priceLivelineMeta = defineFrameMeta({
   label: "Price Liveline",
   category: "markets",
   iconUrl: widgetIcon("price-liveline"),
-  layout: { w: 6, h: 3, minW: 4, minH: 2 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3 },
   description:
     "Multi-asset live price liveline — several Hyperliquid symbols streaming in one canvas chart. Defaults to normalized % movement so stocks and crypto can share one axis, while the legend still shows each asset's live raw price. Use when the dashboard needs one compact live race view instead of several single-symbol charts.",
   capabilities: ["quote-stream", "day-stats"],
@@ -402,7 +402,7 @@ export const priceTickerMeta = defineFrameMeta({
   label: "Price Ticker",
   category: "markets",
   iconUrl: widgetIcon("price-ticker"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 1, minH: 1, maxH: 4 },
   description:
     "Live watchlist streaming mid prices over the Hyperliquid WebSocket with 24h change per symbol. The bread-and-butter frame for any dashboard.",
   capabilities: ["quote-stream", "day-stats"],
@@ -422,7 +422,7 @@ export const topMoversMeta = defineFrameMeta({
   label: "Top Movers",
   category: "markets",
   iconUrl: widgetIcon("top-movers"),
-  layout: { w: 5, h: 3, minW: 3, minH: 3 },
+  layout: { w: 5, h: 3, minW: 4, minH: 2, maxH: 3 },
   description:
     "Today's biggest stock and commodity HIP-3 gainers and losers (no bare crypto), side by side with current price and 24h change.",
   capabilities: ["day-stats"],
@@ -445,7 +445,7 @@ export const tvlTreemapMeta = defineFrameMeta({
   label: "TVL Treemap",
   category: "crypto",
   iconUrl: widgetIcon("tvl-treemap"),
-  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 2, minH: 2 },
   description:
     "Treemap of total value locked (TVL) across the largest blockchain ecosystems, sized by TVL. Data from DeFiLlama. Good single-glance answer to 'where does on-chain capital live right now'.",
   capabilities: ["tvl"],
@@ -466,7 +466,7 @@ export const bitcoinDominanceMeta = defineFrameMeta({
   label: "Bitcoin Dominance",
   category: "crypto",
   iconUrl: widgetIcon("bitcoin-dominance"),
-  layout: { w: 4, h: 2, minW: 3, minH: 2 },
+  layout: { w: 4, h: 2, minW: 3, minH: 2, maxW: 7, maxH: 3 },
   description:
     "BTC / ETH / Others market-cap dominance as a segmented bar, with optional total marketcap line. Shifts in BTC dominance hint at where the market rotates next.",
   capabilities: ["global-market"],
@@ -488,7 +488,7 @@ export const ratesBoardMeta = defineFrameMeta({
   label: "Rates Board",
   category: "macro",
   iconUrl: widgetIcon("rates-board"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 4 },
   description:
     "Official US rates board from free public APIs: New York Fed reference rates (SOFR, effective fed funds, repo rates) plus Treasury average interest rates by security class. Daily/reference data, not a real-time stock quote feed.",
   capabilities: ["reference-rates", "treasury-rates"],
@@ -522,7 +522,7 @@ export const fxBoardMeta = defineFrameMeta({
   label: "FX Board",
   category: "macro",
   iconUrl: widgetIcon("fx-board"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "Foreign-exchange board from the ECB's free daily reference rates (via Frankfurter, no key): each currency's latest rate vs a base, its day-over-day change, and a short trend sparkline. Daily reference data with broader currency coverage than the handful of FX perps — not a live intraday quote feed.",
   capabilities: ["fx-rates"],
@@ -555,7 +555,7 @@ export const inflationPulseMeta = defineFrameMeta({
   label: "Inflation Pulse",
   category: "macro",
   iconUrl: widgetIcon("inflation-pulse"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 3, maxH: 4 },
   description:
     "BLS CPI pulse from the public no-key API: latest CPI-U all-items index with month-over-month and year-over-year changes plus a small trend sparkline. Monthly macro context for stock dashboards; not a live price feed.",
   capabilities: ["macro-series"],
@@ -576,7 +576,7 @@ export const financialStressMeta = defineFrameMeta({
   label: "Financial Stress",
   category: "macro",
   iconUrl: widgetIcon("financial-stress"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 3, maxH: 5 },
   description:
     "The OFR Financial Stress Index — a daily, market-based gauge of systemic financial stress from the U.S. Office of Financial Research. One headline value where 0 is the long-run average (positive = elevated stress, negative = calmer than normal), an optional breakdown of the five contributing categories (credit, equity valuation, safe assets, funding, volatility), and a trend line. Keyless official data, updated each business day; needs the zframes runtime's data proxy (ships with `zframes serve` / `vite dev`). Not a price feed.",
   capabilities: ["financial-stress"],
@@ -605,7 +605,7 @@ export const nationalDebtMeta = defineFrameMeta({
   label: "National Debt",
   category: "macro",
   iconUrl: widgetIcon("national-debt"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 3, maxH: 4 },
   description:
     "U.S. total public debt outstanding from the Treasury's keyless 'Debt to the Penny' dataset — the headline total in trillions, the change over the chosen window, an optional split into debt held by the public vs intragovernmental holdings, and a trend line. Official data updated each business day; CORS-safe (no proxy needed). Macro context, not a live price feed.",
   capabilities: ["national-debt"],
@@ -634,7 +634,7 @@ export const laborMarketMeta = defineFrameMeta({
   label: "Labor Market",
   category: "macro",
   iconUrl: widgetIcon("labor-market"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 3, maxH: 4 },
   description:
     "U.S. labor-market snapshot from the BLS keyless public API: the headline unemployment rate, the latest monthly change in nonfarm payrolls (jobs added or lost), the total payroll level, and an unemployment-rate trend line. Monthly macro context for stock dashboards; updates on the BLS jobs-report schedule, not a live feed.",
   capabilities: ["macro-series"],
@@ -655,7 +655,7 @@ export const treasuryAuctionsMeta = defineFrameMeta({
   label: "Treasury Auctions",
   category: "macro",
   iconUrl: widgetIcon("treasury-auctions"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 2 },
   description:
     "Recent completed U.S. Treasury auctions from the keyless Fiscal Data API — each row shows the security (bill/note/bond + term), the high awarded yield, and the bid-to-cover ratio (demand: total bids ÷ amount accepted; higher = stronger). Newest first. Official market-plumbing data, CORS-safe; updates as auctions settle, not a live price feed.",
   capabilities: ["treasury-auctions"],
@@ -676,7 +676,7 @@ export const filingsFeedMeta = defineFrameMeta({
   label: "Filings Feed",
   category: "equities",
   iconUrl: widgetIcon("filings-feed"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3, maxH: 7 },
   description:
     "Recent SEC EDGAR filings for one US-listed company — each row shows the form type (10-K, 10-Q, 8-K, Form 4…), a plain-English label, the filing date, and a click-through to the document on sec.gov, under a header with the company name, exchange, and filer category. Official data from SEC's free, CORS-safe submissions endpoint; event-driven (updates when the company files), not a price feed. Resolve by ticker (a bundled snapshot of the ~500 largest US issuers) or by raw SEC CIK for anything else.",
   capabilities: ["filings"],
@@ -709,7 +709,7 @@ export const yieldCurveMeta = defineFrameMeta({
   label: "Yield Curve",
   category: "macro",
   iconUrl: widgetIcon("yield-curve"),
-  layout: { w: 4, h: 3, minW: 3, minH: 3 },
+  layout: { w: 4, h: 3, minW: 3, minH: 2, maxH: 4 },
   description:
     "The U.S. Treasury daily par yield curve — a line from 1-month to 30-year yields, the headline 2s10s spread (10Y minus 2Y; negative = inverted, the classic recession signal), and a configurable row of key maturities. Keyless official data from the U.S. Treasury, updated each business day; not a live intraday feed.",
   capabilities: ["yield-curve"],
@@ -749,7 +749,7 @@ export const fundamentalsMeta = defineFrameMeta({
   label: "Fundamentals",
   category: "equities",
   iconUrl: widgetIcon("fundamentals"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "Headline financials for one US-listed company from SEC EDGAR XBRL company facts — revenue, net income, total assets, shareholders' equity, diluted EPS, and shares outstanding, each labelled with its fiscal period. Income-statement figures are the latest full fiscal year; balance-sheet figures are the latest reported quarter. Keyless official data that updates only when the company files (annual/quarterly), not a live feed. Requires the zframes runtime's data proxy (it ships with `zframes serve` / `vite dev`); resolve by ticker (bundled top-500 map) or raw SEC CIK.",
   capabilities: ["fundamentals"],
@@ -769,7 +769,7 @@ export const shortVolumeMeta = defineFrameMeta({
   label: "Short Volume",
   category: "equities",
   iconUrl: widgetIcon("short-volume"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 2, minH: 2, maxH: 4 },
   description:
     "Daily reported short-sale volume for a watchlist of US-listed stocks, from FINRA's free consolidated file — each row shows the % of the day's reported volume that was sold short, with a bar and the raw short/total share counts. IMPORTANT: this is reported short volume (sell-side short flow, which includes market-maker hedging), NOT short interest (outstanding short positions), and is not a directional signal on its own. Daily data published the next business day; not a live feed. US equities only.",
   capabilities: ["short-volume"],
@@ -796,7 +796,7 @@ export const fundingHeatmapMeta = defineFrameMeta({
   label: "Funding Heatmap",
   category: "derivatives",
   iconUrl: widgetIcon("funding-heatmap"),
-  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  layout: { w: 6, h: 3, minW: 5, minH: 2 },
   description:
     "Heatmap of perp funding rates — symbols as rows, daily average over the last 7 days as columns, green positive / red negative. Spots persistent funding regimes at a glance.",
   capabilities: ["funding-history"],
@@ -817,7 +817,7 @@ export const dinoGameMeta = defineFrameMeta({
   label: "Dino Game",
   category: "games",
   iconUrl: widgetIcon("dino-game"),
-  layout: { w: 4, h: 3, minW: 3, minH: 3 },
+  layout: { w: 4, h: 3, minW: 3, minH: 2 },
   description:
     "Chrome-dino style runner game on canvas — jump cacti with SPACE or tap. High score persists locally. For when the market is boring. Needs no data provider.",
   capabilities: [],
@@ -851,7 +851,7 @@ export const heroNumberMeta = defineFrameMeta({
   label: "Hero Number",
   category: "layout",
   iconUrl: widgetIcon("hero-number"),
-  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  layout: { w: 3, h: 2, minW: 2, minH: 1, maxW: 4, maxH: 2 },
   description:
     "A big manual KPI card you fill in yourself — one headline number, a caption, and an optional signed change. Static text, not a live feed: use it to pin a figure that has no provider (a target, a personal goal, a fact from elsewhere), e.g. '$39.6T' national debt or '127 EH/s' hashrate. Needs no data provider.",
   capabilities: [],
@@ -895,7 +895,7 @@ export const imageGalleryMeta = defineFrameMeta({
   label: "Image Gallery",
   category: "layout",
   iconUrl: widgetIcon("image-gallery"),
-  layout: { w: 4, h: 3, minW: 2, minH: 2 },
+  layout: { w: 4, h: 3, minW: 2, minH: 1 },
   description:
     "A rotating gallery that cross-fades through a list of images on a timer — chart screenshots, memes, banners, a mood board. Needs no data provider.",
   capabilities: [],
@@ -934,7 +934,7 @@ export const groupMeta = defineFrameMeta({
   // No iconUrl yet — the palette renders the card text-only rather than a broken
   // <img>; drop a `group.png` into the runtime's widget-icons and add
   // `iconUrl: widgetIcon("group")` when one exists.
-  layout: { w: 6, h: 4, minW: 2, minH: 2 },
+  layout: { w: 6, h: 4, minW: 1, minH: 1, maxH: 5 },
   description:
     "A container that holds OTHER frames as its own little grid, so a cluster of related cards occupies one board slot and moves/resizes as a single unit. Use it to build a composite panel — a 2x2 of sparklines, a chart with its own stat strip beneath, a side-by-side split — that stays together when the board is rearranged. The nested frames go in the instance's `children` array (not in `config`), each with a `position` in this group's own `columns` x `rows` units. Groups cannot contain other groups. Needs no data provider of its own; each child declares its own.",
   capabilities: [],
@@ -983,7 +983,7 @@ export const headingMeta = defineFrameMeta({
   label: "Heading",
   category: "layout",
   iconUrl: widgetIcon("heading"),
-  layout: { w: 12, h: 1, minW: 2, minH: 1, maxH: 1 },
+  layout: { w: 12, h: 1, minW: 1, minH: 1, maxH: 1 },
   description:
     "Section divider that titles a region of the dashboard ('Markets', 'On-chain', 'Desk'). Renders as a label with a hairline rule — no card. Use to group frames into zones: place full-width (w: 12) and 1 row tall (h: 1) above each group. Needs no data provider.",
   capabilities: [],
@@ -1021,7 +1021,7 @@ export const journalLogMeta = defineFrameMeta({
   label: "Journal · Log",
   category: "journal",
   iconUrl: widgetIcon("journal-log"),
-  layout: { w: 4, h: 5, minW: 3, minH: 4 },
+  layout: { w: 4, h: 5, minW: 4, minH: 3 },
   source: SOURCES.hyperliquid,
   description:
     "Log a market read in seconds: pick a supported ticker (with its live Hyperliquid price), Long or Short, the reason (a quick pick + optional note), and how sure you are (a slider). That's it — a falsifiable call, captured at the live price, that the Open/Results frames then track and grade. The simple front door to your decision journal; pairs with the zAI orb for conversational capture. Add one alongside Journal · Open and Journal · Results.",
@@ -1034,7 +1034,7 @@ export const journalOpenMeta = defineFrameMeta({
   label: "Journal · Open",
   category: "journal",
   iconUrl: widgetIcon("journal-open"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 2, minH: 1 },
   description:
     "Your open calls from the decision journal, each marking to the live Hyperliquid price — direction, confidence, unrealized % return, a live entry→target track, and a countdown. Calls auto-grade at their horizon (or close one early). The 'watch it play out' frame. Reads the journal you write with Journal · Log.",
   source: SOURCES.hyperliquid,
@@ -1055,7 +1055,7 @@ export const journalResultsMeta = defineFrameMeta({
   label: "Journal · Results",
   category: "journal",
   iconUrl: widgetIcon("journal-results"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 2, minH: 3, maxH: 7 },
   description:
     "Your resolved calls from the decision journal, graded on TWO axes: did it hit, AND did the thesis actually play out — so a lucky hit reads differently from earned skill, and a near-miss from a clean miss. The reflection frame. Reads the journal you write with Journal · Log.",
   capabilities: [],
@@ -1075,7 +1075,7 @@ export const journalScoreMeta = defineFrameMeta({
   label: "Journal · Scoreboard",
   category: "journal",
   iconUrl: widgetIcon("journal-score"),
-  layout: { w: 4, h: 3, minW: 3, minH: 3 },
+  layout: { w: 4, h: 3, minW: 3, minH: 3, maxH: 3 },
   description:
     "The decision-journal scoreboard — a story, not a spreadsheet: where your judgment has an edge, where it leaks, and how calibrated your confidence is, plus a one-line read from zAI. Aggregates the calls logged via Journal · Log.",
   capabilities: [],
@@ -1120,7 +1120,7 @@ export const priceEventsMeta = defineFrameMeta({
   label: "Price & Events",
   category: "markets",
   iconUrl: widgetIcon("price-compare"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "Price history for one symbol with the dashboard's event markers drawn on the time axis — the card for reading cause and effect: where the rate cut, the hack, the earnings beat actually landed on the chart. Markers come from the dashboard-wide `events` list (and any this card adds via its own `events`); hovering a flag shows the date, label, note and source link. Longer windows than the live Price Chart, since the point is past events.",
   capabilities: ["ohlcv"],
@@ -1166,7 +1166,7 @@ export const portfolioValueMeta = defineFrameMeta({
   label: "Portfolio Value",
   category: "portfolio",
   iconUrl: widgetIcon("portfolio-value"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 2, minH: 3, maxH: 4 },
   description:
     "Your connected portfolio's total USD value as a live equity line, ticking with the market. Source is a connected Binance account (read-only key, entered in-app) or a public on-chain wallet address. Shows total value + session change. Renders a connect prompt until a source is set.",
   capabilities: ["portfolio", "quote-stream"],
@@ -1189,7 +1189,7 @@ export const portfolioAllocationMeta = defineFrameMeta({
   label: "Portfolio Allocation",
   category: "portfolio",
   iconUrl: widgetIcon("portfolio-allocation"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 2, minH: 3, maxH: 4 },
   description:
     "Donut of your connected portfolio's allocation — each slice sized by live USD value, total in the center. Source is a connected Binance account (read-only key, in-app) or a public on-chain wallet address. Renders a connect prompt until a source is set.",
   capabilities: ["portfolio", "quote-stream"],
@@ -1202,7 +1202,7 @@ export const portfolioHoldingsMeta = defineFrameMeta({
   label: "Portfolio Holdings",
   category: "portfolio",
   iconUrl: widgetIcon("portfolio-holdings"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 2, minH: 3, maxH: 4 },
   description:
     "Table of your connected portfolio's positions — asset, amount, live USD value, share of total, 24h change. Source is a connected Binance account (read-only key, in-app) or a public on-chain wallet address. Renders a connect prompt until a source is set.",
   capabilities: ["portfolio", "quote-stream"],
@@ -1215,7 +1215,7 @@ export const newsFeedMeta = defineFrameMeta({
   label: "News Feed",
   category: "sentiment",
   iconUrl: widgetIcon("news-feed"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 4, minH: 2 },
   description:
     'Scrolling feed of the latest news headlines from a chosen outlet — each row is a clickable headline with its publish time, newest first. Free, keyless RSS sources: crypto press (CoinDesk, Cointelegraph, Decrypt), broad markets/macro (CNBC, Nasdaq), or — source "stocks" — per-company headlines (via Google News) scoped to the specific tickers in `symbols`. IMPORTANT: news feeds are CORS-blocked, so this frame reads them through the zframes runtime\'s data proxy (it ships with `zframes serve` / `vite dev`); on a fully static host with no runtime it shows an empty state.',
   capabilities: ["news"],
@@ -1254,7 +1254,7 @@ export const dexVolumeTreemapMeta = defineFrameMeta({
   label: "DEX Volume Treemap",
   category: "crypto",
   iconUrl: widgetIcon("dex-volume-treemap"),
-  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 4, minH: 2 },
   description:
     "Treemap of decentralized-exchange (DEX) protocols sized by trailing-24h trading volume, tiles colored green/red by 1-day change. Data from DeFiLlama. One-glance read on where on-chain trading flow is concentrated right now.",
   capabilities: ["dex-volume"],
@@ -1276,7 +1276,7 @@ export const dexVolumeChartMeta = defineFrameMeta({
   label: "DEX Volume Chart",
   category: "crypto",
   iconUrl: widgetIcon("dex-volume-chart"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 4, minH: 2 },
   description:
     "Multi-series line chart of daily DEX trading volume for several protocols over a lookback window — compare how Uniswap, PancakeSwap, Aerodrome etc. trend against each other. Data from DeFiLlama (daily granularity).",
   capabilities: ["dex-volume"],
@@ -1302,7 +1302,7 @@ export const protocolTvlTreemapMeta = defineFrameMeta({
   label: "Protocol TVL Treemap",
   category: "crypto",
   iconUrl: widgetIcon("protocol-tvl-treemap"),
-  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 4, minH: 1, maxH: 4 },
   description:
     "Treemap of DeFi protocols sized by current total value locked (TVL), tiles colored green/red by 1-day change. Data from DeFiLlama. Unlike tvl-treemap (which groups by blockchain), this ranks individual protocols (Lido, Aave, EigenLayer…).",
   capabilities: ["protocol-tvl"],
@@ -1324,7 +1324,7 @@ export const protocolTvlChartMeta = defineFrameMeta({
   label: "Protocol TVL Chart",
   category: "crypto",
   iconUrl: widgetIcon("protocol-tvl-chart"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 4, minH: 2 },
   description:
     "Multi-series line chart of total value locked (TVL) for several DeFi protocols over a lookback window. Data from DeFiLlama (daily granularity).",
   capabilities: ["protocol-tvl"],
@@ -1350,7 +1350,7 @@ export const protocolFeesTreemapMeta = defineFrameMeta({
   label: "Protocol Fees Treemap",
   category: "crypto",
   iconUrl: widgetIcon("protocol-fees-treemap"),
-  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 2, minH: 2 },
   description:
     "Treemap of protocols sized by the fees they generated in the last 24h, tiles colored green/red by 1-day change. Data from DeFiLlama. Shows where on-chain users are actually paying for blockspace and services right now.",
   capabilities: ["protocol-fees"],
@@ -1371,7 +1371,7 @@ export const marketCapTreemapMeta = defineFrameMeta({
   label: "Market Cap Treemap",
   category: "crypto",
   iconUrl: widgetIcon("market-cap-treemap"),
-  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 1, minH: 1, maxH: 4 },
   description:
     "Treemap of the largest cryptocurrencies sized by market capitalisation, tiles colored green/red by 24h price change. Data from CoinGecko (free tier). A heat-map of the whole crypto market at a glance.",
   capabilities: ["coin-markets"],
@@ -1394,7 +1394,7 @@ export const openInterestMeta = defineFrameMeta({
   label: "Open Interest",
   category: "derivatives",
   iconUrl: widgetIcon("open-interest"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 2, minH: 1, maxH: 4 },
   description:
     'Live open interest across a watchlist of Hyperliquid perps — each symbol is a horizontal bar sized by USD notional, largest first, refreshed on a ~30s poll. Single-venue (Hyperliquid only), so read it as a relative gauge across your symbols, not a market-wide total. Stocks (HIP-3, e.g. "xyz:TSLA") and crypto both work.',
   capabilities: ["open-interest"],
@@ -1415,7 +1415,7 @@ export const snakeMeta = defineFrameMeta({
   label: "Snake",
   category: "games",
   iconUrl: widgetIcon("snake"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2 },
   description:
     "Classic snake game on canvas — steer with the arrow keys (or swipe), eat dots to grow, avoid the walls and your own tail. High score persists locally. For when the market is flat. Needs no data provider.",
   capabilities: [],
@@ -1427,7 +1427,7 @@ export const flappyBirdMeta = defineFrameMeta({
   label: "Flappy Bird",
   category: "games",
   iconUrl: widgetIcon("flappy-bird"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2 },
   description:
     "Flappy-bird style game on canvas — tap or press SPACE to flap through the gaps between pipes. High score persists locally. Needs no data provider.",
   capabilities: [],
@@ -1439,7 +1439,7 @@ export const videoMeta = defineFrameMeta({
   label: "Video",
   category: "layout",
   iconUrl: widgetIcon("video"),
-  layout: { w: 4, h: 3, minW: 2, minH: 2 },
+  layout: { w: 4, h: 3, minW: 1, minH: 1, maxW: 8, maxH: 5 },
   description:
     "Embeds a video from a YouTube or Vimeo link (or any direct embed URL) as an iframe — a livestream, a market-news clip, a focus playlist. Needs no data provider.",
   capabilities: [],
@@ -1463,7 +1463,7 @@ export const drawdyMeta = defineFrameMeta({
   label: "Drawdy",
   category: "layout",
   iconUrl: widgetIcon("drawdy"),
-  layout: { w: 8, h: 6, minW: 2, minH: 2 },
+  layout: { w: 8, h: 6, minW: 1, minH: 2, maxH: 6 },
   description:
     "Embeds drawdy.io as an interactive whiteboard canvas. No configuration needed.",
   capabilities: [],
@@ -1475,7 +1475,7 @@ export const countdownMeta = defineFrameMeta({
   label: "Countdown",
   category: "tools",
   iconUrl: widgetIcon("countdown"),
-  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  layout: { w: 3, h: 2, minW: 3, minH: 2, maxW: 4, maxH: 3 },
   description:
     "Live countdown to a target date and time — FOMC decisions, CPI prints, options expiry, earnings, a token unlock, the next market open. Counts down in days / hours / minutes / seconds, ticking every second, and flips to a 'reached' state once the moment passes. Needs no data provider.",
   capabilities: [],
@@ -1504,7 +1504,7 @@ export const linkGridMeta = defineFrameMeta({
   label: "Quick Links",
   category: "tools",
   iconUrl: widgetIcon("link-grid"),
-  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  layout: { w: 3, h: 2, minW: 2, minH: 1, maxH: 3 },
   description:
     "A grid of quick-launch tiles linking to your favourite sites — TradingView, exchanges, news, docs, your own dashboards. Each tile opens in a new tab and shows the destination site's favicon by default (fetched keyless from a public favicon service), with an optional per-link icon override and a first-letter fallback. Needs no data provider.",
   capabilities: [],
@@ -1558,7 +1558,7 @@ export const calculatorMeta = defineFrameMeta({
   label: "Position Calculator",
   category: "tools",
   iconUrl: widgetIcon("calculator"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 4, minW: 2, minH: 4, maxH: 5 },
   description:
     "Position-size & risk calculator. Enter account size, risk-per-trade %, entry and stop price; it computes the dollars at risk, the per-unit risk, the position size (units) that respects that risk budget, the resulting position value, and whether the setup is long or short. All math runs client-side — no data provider. Inputs are editable live; the configured values are the starting point.",
   capabilities: [],
@@ -1594,7 +1594,7 @@ export const quoteMeta = defineFrameMeta({
   label: "Quote",
   category: "layout",
   iconUrl: widgetIcon("quote"),
-  layout: { w: 4, h: 2, minW: 2, minH: 1 },
+  layout: { w: 4, h: 2, minW: 1, minH: 1, maxW: 11, maxH: 3 },
   description:
     'Displays a market or trading quote, centered — set one or rotate through several. A calm bit of wall-art for the dashboard: trading maxims, reminders of your own rules, mantras. Write any attribution into the text itself (e.g. "… — Buffett"). Needs no data provider.',
   capabilities: [],
@@ -1627,7 +1627,7 @@ export const dividerMeta = defineFrameMeta({
   label: "Divider",
   category: "layout",
   iconUrl: widgetIcon("divider"),
-  layout: { w: 12, h: 1, minW: 1, minH: 1 },
+  layout: { w: 12, h: 1, minW: 1, minH: 1, maxH: 1 },
   description:
     "A plain rule that separates regions of the dashboard, with an optional centered label. Renders chrome-less (no card) — lighter than a heading. Use a horizontal divider full-width between stacked zones, or set orientation to vertical for a 1-column-wide column separator. Needs no data provider.",
   capabilities: [],
@@ -1672,7 +1672,7 @@ export const diceMeta = defineFrameMeta({
   label: "Dice",
   category: "tools",
   iconUrl: widgetIcon("dice"),
-  layout: { w: 2, h: 2, minW: 1, minH: 1 },
+  layout: { w: 2, h: 2, minW: 2, minH: 2, maxW: 2, maxH: 2 },
   description:
     "A click-to-decide widget — a random decision-maker with no data provider. Flip a coin (heads/tails), roll a die (1–6), or pick at random from your own list of options. Click the surface to re-roll. Use it to break a tie, pick what to trade, or settle any small decision.",
   capabilities: [],
@@ -1701,7 +1701,7 @@ export const riskRewardMeta = defineFrameMeta({
   label: "Risk / Reward",
   category: "tools",
   iconUrl: widgetIcon("risk-reward"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 2, maxH: 5 },
   description:
     "Risk:reward planner. Enter entry, stop-loss and profit-target prices; it computes the per-unit risk and reward, their percentages of entry, and the resulting R:R ratio, shown large above a two-segment bar (red risk leg vs green reward leg, sized to scale). Pure client-side math — no data provider. Complements the calculator frame by adding the target/reward leg the position sizer leaves out.",
   capabilities: [],
@@ -1724,7 +1724,7 @@ export const marqueeMeta = defineFrameMeta({
   label: "Marquee",
   category: "layout",
   iconUrl: widgetIcon("marquee"),
-  layout: { w: 6, h: 1, minW: 2, minH: 1 },
+  layout: { w: 6, h: 1, minW: 3, minH: 1, maxH: 1 },
   description:
     "A chrome-less scrolling banner that glides custom text continuously right-to-left across the frame (think stadium ticker / news crawl). Renders with no card — it fills the whole frame. Use for a slogan, a reminder, or a hype line. Needs no data provider.",
   capabilities: [],
@@ -1748,7 +1748,7 @@ export const marqueeMeta = defineFrameMeta({
 export const stopwatchMeta = defineFrameMeta({
   name: "stopwatch",
   label: "Stopwatch",
-  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  layout: { w: 3, h: 2, minW: 2, minH: 2, maxW: 3, maxH: 2 },
   category: "tools",
   iconUrl: widgetIcon("stopwatch"),
   description:
@@ -1776,7 +1776,7 @@ export const sessionProgressMeta = defineFrameMeta({
   label: "Session Progress",
   category: "tools",
   iconUrl: widgetIcon("session-progress"),
-  layout: { w: 3, h: 2, minW: 2, minH: 1 },
+  layout: { w: 3, h: 2, minW: 2, minH: 2, maxH: 2 },
   description:
     "A horizontal progress bar showing how far through today's trading session an exchange is — fills from open to close with a percent readout, and a 'closes in …' / 'opens in …' countdown. Pick any exchange code (NYSE, NASDAQ, LSE, TSX, B3, …); sessions are computed client-side from the exchange's timezone and hours, so it needs no data provider.",
   capabilities: [],
@@ -1801,7 +1801,7 @@ export const holidayCalendarMeta = defineFrameMeta({
   label: "Holiday Calendar",
   category: "tools",
   iconUrl: widgetIcon("holiday-calendar"),
-  layout: { w: 3, h: 4, minW: 2, minH: 2 },
+  layout: { w: 3, h: 4, minW: 2, minH: 2, maxH: 4 },
   description:
     "Upcoming market holidays (full closures) for a chosen exchange — the next few dates with their weekday and a countdown ('in 9d'). Pick any exchange code (NYSE, NASDAQ, LSE, TSX, B3, …); dates come from a bundled holiday table and are computed client-side, so it needs no data provider. Note: the bundled table currently covers 2026.",
   capabilities: [],
@@ -1829,7 +1829,7 @@ export const dayMeterMeta = defineFrameMeta({
   label: "Day Meter",
   category: "tools",
   iconUrl: widgetIcon("day-meter"),
-  layout: { w: 4, h: 2, minW: 2, minH: 1 },
+  layout: { w: 4, h: 2, minW: 3, minH: 2, maxH: 2 },
   description:
     "A strip of the current week's days for a chosen exchange — today highlighted, market holidays flagged in amber, and (optionally) non-trading days greyed. Computed client-side from the exchange's trading days + a bundled holiday table; needs no data provider.",
   capabilities: [],
@@ -1858,7 +1858,7 @@ export const returnsProjectorMeta = defineFrameMeta({
   label: "Returns Projector",
   category: "tools",
   iconUrl: widgetIcon("returns-projector"),
-  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  layout: { w: 3, h: 4, minW: 3, minH: 3 },
   description:
     "A compound-growth projector — enter a starting principal, a percent return per period, the number of periods, and an optional per-period contribution; it charts the projected balance curve and shows the ending value and total gain. Pure client-side math, no data provider; complements the position-size/risk `calculator`.",
   capabilities: [],
@@ -1890,7 +1890,7 @@ export const breakevenMeta = defineFrameMeta({
   label: "Break-even",
   category: "tools",
   iconUrl: widgetIcon("breakeven"),
-  layout: { w: 3, h: 4, minW: 2, minH: 2 },
+  layout: { w: 3, h: 4, minW: 2, minH: 3 },
   description:
     "A break-even / average-cost calculator — add your fills (price + size) and it computes the size-weighted average entry; set an optional current price to see the unrealized P&L %. Pure client-side math, no data provider.",
   capabilities: [],
@@ -1921,7 +1921,7 @@ export const checklistMeta = defineFrameMeta({
   label: "Checklist",
   category: "tools",
   iconUrl: widgetIcon("checklist"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 1, minH: 2, maxH: 4 },
   description:
     "A tickable checklist — a pre-trade routine, a daily ritual, anything. Tap items to check them off; the checked state persists across reloads (saved into the dashboard). Client-side only, no data provider.",
   capabilities: [],
@@ -1952,7 +1952,7 @@ export const pomodoroMeta = defineFrameMeta({
   label: "Pomodoro",
   category: "tools",
   iconUrl: widgetIcon("pomodoro"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 2, maxW: 3, maxH: 4 },
   description:
     "A Pomodoro focus timer — alternating work and break intervals with Start / Pause / Reset and a cycle counter, counting down in MM:SS. Runs entirely client-side with no data provider; timer state is in-session (not persisted).",
   capabilities: [],
@@ -1985,7 +1985,7 @@ export const rulesCardMeta = defineFrameMeta({
   label: "Rules",
   category: "layout",
   iconUrl: widgetIcon("rules-card"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 2, maxH: 4 },
   description:
     "A pinned, auto-numbered list of your trading rules (or any principles) — always fully visible, unlike the rotating `quote` frame. Static text, client-side, no data provider.",
   capabilities: [],
@@ -2011,7 +2011,7 @@ export const breathingMeta = defineFrameMeta({
   category: "layout",
   iconUrl: widgetIcon("breathing"),
   chrome: "bare",
-  layout: { w: 2, h: 2, minW: 1, minH: 1 },
+  layout: { w: 2, h: 3, minW: 2, minH: 3, maxW: 5, maxH: 5 },
   description:
     "A chrome-less breathing pacer — a circle that expands and contracts through configurable inhale / hold / exhale / hold phases to steady your breathing between trades. Renders with no card; client-side only, no data provider.",
   capabilities: [],
@@ -2038,7 +2038,7 @@ export const spotifyEmbedMeta = defineFrameMeta({
   label: "Spotify",
   category: "layout",
   iconUrl: widgetIcon("spotify-embed"),
-  layout: { w: 3, h: 4, minW: 2, minH: 2 },
+  layout: { w: 3, h: 4, minW: 1, minH: 1, maxW: 3, maxH: 4 },
   description:
     "Embeds a Spotify track, album, playlist, artist, or show from its public open.spotify.com share link (same embed approach as the `video` frame), using Spotify's official keyless iframe player. Needs an internet connection to play.",
   capabilities: [],
@@ -2061,7 +2061,7 @@ export const btcFeesMeta = defineFrameMeta({
   label: "BTC Fees",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-fees"),
-  layout: { w: 3, h: 3, minW: 2, minH: 3 },
+  layout: { w: 3, h: 3, minW: 2, minH: 3, maxH: 3 },
   description:
     "Recommended Bitcoin on-chain fee rates (sat/vB) from mempool.space — the next-block ('fastest'), ~30-minute, ~1-hour, economy, and minimum tiers, as a compact gauge. Live mempool data, keyless; updates every ~30s.",
   capabilities: ["btc-fees"],
@@ -2083,7 +2083,7 @@ export const btcMempoolMeta = defineFrameMeta({
   label: "BTC Mempool",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-mempool"),
-  layout: { w: 5, h: 3, minW: 3, minH: 2 },
+  layout: { w: 5, h: 3, minW: 2, minH: 2, maxH: 3 },
   description:
     "Bitcoin mempool congestion at a glance — unconfirmed transaction count, total pending vsize, and a row of projected ('template') blocks the network will likely mine next, each labelled with its median fee rate (sat/vB) and tx count. Live mempool data from mempool.space, keyless.",
   capabilities: ["btc-mempool"],
@@ -2106,7 +2106,7 @@ export const btcBlocksMeta = defineFrameMeta({
   label: "BTC Blocks",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-blocks"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 2 },
   description:
     "Feed of the most recently mined Bitcoin blocks — each row shows the height, how long ago it was mined, transaction count, the mining pool that found it, total fees (BTC), and size. Live data from mempool.space, keyless; newest first.",
   capabilities: ["btc-blocks"],
@@ -2127,7 +2127,7 @@ export const btcHashrateMeta = defineFrameMeta({
   label: "BTC Hashrate",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-hashrate"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 3, minH: 2, maxH: 4 },
   description:
     "Bitcoin network hashrate over time as a line chart, with the current hashrate (EH/s) and difficulty as headline figures. Shows the long-run security trend of the network. Data from mempool.space (daily granularity), keyless.",
   capabilities: ["btc-hashrate"],
@@ -2145,7 +2145,7 @@ export const btcDifficultyMeta = defineFrameMeta({
   label: "BTC Difficulty",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-difficulty"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Countdown to the next Bitcoin difficulty adjustment — a progress bar through the current 2016-block epoch, the estimated change (+ = mining gets harder), blocks remaining, and the estimated retarget date. Also shows the previous adjustment. Data from mempool.space, keyless.",
   capabilities: ["btc-difficulty"],
@@ -2165,7 +2165,7 @@ export const miningPoolsMeta = defineFrameMeta({
   label: "Mining Pools",
   category: "bitcoin",
   iconUrl: widgetIcon("mining-pools"),
-  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 1, minH: 1 },
   description:
     "Treemap of Bitcoin mining-pool dominance over a window — each tile is a pool sized by the share of blocks it mined, so you can see how concentrated hashpower is right now (Foundry, AntPool, ViaBTC…). Data from mempool.space, keyless.",
   capabilities: ["mining-pools"],
@@ -2192,7 +2192,7 @@ export const lightningStatsMeta = defineFrameMeta({
   label: "Lightning Network",
   category: "bitcoin",
   iconUrl: widgetIcon("lightning-stats"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 2, minH: 2, maxH: 4 },
   description:
     "Bitcoin Lightning Network snapshot — public node count, channel count, and total network capacity (BTC), with a day-over-day delta and the Tor/clearnet node split. Data from mempool.space, keyless; updates roughly daily.",
   capabilities: ["lightning-stats"],
@@ -2212,7 +2212,7 @@ export const optionsPutCallMeta = defineFrameMeta({
   label: "Put / Call Ratio",
   category: "derivatives",
   iconUrl: widgetIcon("options-put-call"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 2, minH: 2, maxH: 3 },
   description:
     "Deribit options put/call ratio for BTC or ETH — the headline ratio (by open interest or 24h volume), a call-vs-put open-interest split bar, and the open-interest-weighted average implied volatility. A ratio above 1 means puts outweigh calls (defensive positioning). Keyless Deribit market data.",
   capabilities: ["options-summary"],
@@ -2238,7 +2238,7 @@ export const optionsIvMeta = defineFrameMeta({
   label: "Implied Volatility",
   category: "derivatives",
   iconUrl: widgetIcon("options-iv"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Deribit DVOL implied-volatility index for BTC or ETH over time — the crypto equivalent of the VIX, as a line chart with the current reading and its change over the window. Rising DVOL = the market is pricing bigger expected swings. Keyless Deribit market data.",
   capabilities: ["volatility-index"],
@@ -2260,7 +2260,7 @@ export const optionsOiStrikeMeta = defineFrameMeta({
   label: "OI by Strike",
   category: "derivatives",
   iconUrl: widgetIcon("options-oi-strike"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "Open interest by strike for the nearest Deribit options expiry (BTC or ETH) — a grouped histogram of call vs put open interest across strikes, with the current spot marked. Surfaces the strike 'walls' where positioning is concentrated. Keyless Deribit market data.",
   capabilities: ["options-summary"],
@@ -2287,7 +2287,7 @@ export const coinMoversMeta = defineFrameMeta({
   label: "Coin Movers",
   category: "markets",
   iconUrl: widgetIcon("coin-movers"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 4, minH: 3, maxH: 4 },
   description:
     "Broad-market crypto gainers and losers across the top ~300 coins by market cap, over a selectable window (1h / 24h / 7d / 30d) — the biggest movers side by side with price and % change. Unlike a top-coins heatmap, this surfaces mid- and small-caps that ripped or dumped, not just the megacaps. Keyless data from Coinpaprika. Crypto only.",
   capabilities: ["coin-movers"],
@@ -2325,7 +2325,7 @@ export const mvrvMeta = defineFrameMeta({
   label: "MVRV Ratio",
   category: "onchain",
   iconUrl: widgetIcon("mvrv"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Bitcoin MVRV ratio — market cap ÷ realized cap. Above ~3 historically marks cycle tops (overvalued); below ~1 marks deep value near bottoms. Shows the current ratio, its valuation zone, the MVRV Z-score, and a history sparkline. Keyless on-chain data from Coin Metrics.",
   capabilities: ["onchain-valuation"],
@@ -2343,7 +2343,7 @@ export const nuplMeta = defineFrameMeta({
   label: "NUPL",
   category: "onchain",
   iconUrl: widgetIcon("nupl"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Net Unrealized Profit/Loss — the share of Bitcoin's market cap held in unrealized profit. Maps to cycle sentiment phases: Capitulation (<0), Hope/Fear (0–25%), Optimism (25–50%), Belief (50–75%), Euphoria/Greed (>75%). Derived from MVRV; keyless Coin Metrics data.",
   capabilities: ["onchain-valuation"],
@@ -2361,7 +2361,7 @@ export const soprMeta = defineFrameMeta({
   label: "SOPR",
   category: "onchain",
   iconUrl: widgetIcon("sopr"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Spent Output Profit Ratio — whether coins moving on-chain are, on average, being sold in profit (>1) or loss (<1). Sustained dips below 1 mark capitulation; resets to ~1 in bull markets are healthy. Keyless full-history data from bitcoin-data.com (polled once daily).",
   capabilities: ["onchain-cycle-extras"],
@@ -2379,7 +2379,7 @@ export const puellMultipleMeta = defineFrameMeta({
   label: "Puell Multiple",
   category: "onchain",
   iconUrl: widgetIcon("puell-multiple"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Puell Multiple — daily miner issuance in USD ÷ its 365-day average. High values (>4) mark cycle tops where miner revenue is stretched; low values (≤0.5) mark miner capitulation near bottoms. Keyless data from bitcoin-data.com (polled once daily).",
   capabilities: ["onchain-cycle-extras"],
@@ -2397,7 +2397,7 @@ export const mayerMultipleMeta = defineFrameMeta({
   label: "Mayer Multiple",
   category: "onchain",
   iconUrl: widgetIcon("mayer-multiple"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Mayer Multiple — BTC price ÷ its 200-day moving average. Above ~2.4 has historically been overheated; below ~0.8 marks value zones. Computed in-browser from a keyless long daily price series (Coin Metrics).",
   capabilities: ["price-history-daily"],
@@ -2415,7 +2415,7 @@ export const piCycleMeta = defineFrameMeta({
   label: "Pi Cycle Top",
   category: "onchain",
   iconUrl: widgetIcon("pi-cycle"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Pi Cycle Top indicator — the ratio of the 111-day MA to 2× the 350-day MA. When it crosses 1 (the 111DMA overtakes 2×350DMA) it has historically pinpointed cycle tops within days. Computed in-browser from a keyless long daily price series (Coin Metrics).",
   capabilities: ["price-history-daily"],
@@ -2433,7 +2433,7 @@ export const maMultiplierMeta = defineFrameMeta({
   label: "MA Multiplier",
   category: "onchain",
   iconUrl: widgetIcon("ma-multiplier"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Long moving-average multiplier — BTC price ÷ its multi-year moving average (2-year or 4-year). The 2Y band flags a buy zone below ÷1.5 and sell tiers at ×2–×5; the 4Y multiple marks tops above ~3.5×. Computed in-browser from a keyless long daily price series (Coin Metrics).",
   capabilities: ["price-history-daily"],
@@ -2455,7 +2455,7 @@ export const breadthHistogramMeta = defineFrameMeta({
   label: "Market Breadth",
   category: "markets",
   iconUrl: widgetIcon("breadth-histogram"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "Histogram of how far every coin moved over the window — the whole market's dispersion in one shape, not just the top gainers and losers. Answers whether a green day was broad-based or a handful of megacaps carrying a flat field: a narrow spike straddling zero is a quiet tape, a wide left-skewed spread is a real risk-off day. Marks the median and Bitcoin's own move, so you can see at a glance whether BTC led or lagged the field, and reports the advancing share (the classic advance/decline read). Keyless (Coinpaprika), across the top coins by market cap.",
   capabilities: ["coin-movers"],
@@ -2490,7 +2490,7 @@ export const rsiMomentumMeta = defineFrameMeta({
   label: "RSI Momentum",
   category: "markets",
   iconUrl: widgetIcon("rsi-momentum"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     'Wilder RSI on daily closes with a 55/45 momentum regime: above 55 = risk-on, below 45 = risk-off, in between = neutral. Also flags classic overbought (≥80) / oversold (≤30) extremes. Computed in-browser. With no `symbol` it reads BTC\'s deep keyless daily series (Coin Metrics, years of history); set `symbol` to run the same indicator on any traded symbol\'s daily candles instead — a stock (`"NVDA"` with source "nasdaq" for the real tape, or `"xyz:NVDA"` for its HIP-3 perp) or a coin.',
   capabilities: ["price-history-daily", "ohlcv"],
@@ -2530,7 +2530,7 @@ export const volumeProfileMeta = defineFrameMeta({
   label: "Volume Profile",
   category: "markets",
   iconUrl: widgetIcon("volume-profile"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Volume-by-price histogram over a lookback window — the Point of Control (POC, highest-volume price) and the 70% Value Area (VAH/VAL) that frame support/resistance. Computed in-browser from OHLCV candles. Pass any tradable symbol (crypto or a HIP-3 equity like 'xyz:TSLA').",
   capabilities: ["ohlcv"],
@@ -2568,7 +2568,7 @@ export const returnCalendarMeta = defineFrameMeta({
   label: "Return Calendar",
   category: "markets",
   iconUrl: widgetIcon("return-calendar"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "A GitHub-contribution-style calendar heatmap of daily activity — one square per calendar day, weeks running left to right and weekdays top to bottom. Answers *when*, which a line chart cannot: seasonality, day-of-week rhythm, clustered volatility, and the holes where the market was shut (weekends stripe across an equity's grid; crypto's is solid). Daily returns are tinted green/red from zero; volume and range use a single-hue ramp. Intensity is ranked by quantile, so one crash day cannot wash out every other square. Computed in-browser from OHLCV candles — pass any tradable symbol (crypto or a HIP-3 equity like 'xyz:TSLA').",
   capabilities: ["ohlcv"],
@@ -2607,7 +2607,7 @@ export const returnDistributionMeta = defineFrameMeta({
   label: "Return Histogram",
   category: "markets",
   iconUrl: widgetIcon("return-distribution"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "Histogram of the symbol's periodic returns — how often a move of each size actually happens, rather than where the price is now. Optionally overlays the normal curve implied by the sample's own mean and standard deviation: the gap between the bars and that curve is the fat tail a risk model assuming normality would underprice. Marks the mean and the latest return so you can see where today sits in its own history, with a mean / σ / win-rate / last stat row underneath. The extreme tails are folded into the end bars (marked « ») so one outlier can't flatten the middle; the true best and worst are still reported. Computed in-browser from OHLCV candles — pass any tradable symbol (crypto or a HIP-3 equity like 'xyz:TSLA').",
   capabilities: ["ohlcv"],
@@ -2646,7 +2646,7 @@ export const dxyMeta = defineFrameMeta({
   label: "Dollar Index (DXY)",
   category: "macro",
   iconUrl: widgetIcon("dxy"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "US Dollar Index (DXY) — the dollar's strength vs a basket of six major currencies. A rising DXY is a macro headwind for risk assets (incl. BTC); a falling DXY a tailwind. Computed as the ICE-weighted geometric mean of keyless ECB reference rates (daily granularity).",
   capabilities: ["dollar-index"],
@@ -2659,7 +2659,7 @@ export const cycleSignalsMeta = defineFrameMeta({
   label: "Cycle Signals",
   category: "onchain",
   iconUrl: widgetIcon("cycle-signals"),
-  layout: { w: 4, h: 5, minW: 3, minH: 3 },
+  layout: { w: 4, h: 5, minW: 2, minH: 2, maxH: 7 },
   description:
     "A cycle top- or bottom-signal checklist — MVRV, MVRV Z-score, NUPL, Mayer Multiple, Puell, RSI, and Pi Cycle each checked against its historical extreme, with a live 'X of N firing' tally. A capstone that aggregates the on-chain and cycle metrics into one 'how late in the cycle are we' read. Keyless (Coin Metrics + bitcoin-data.com).",
   capabilities: [
@@ -2685,7 +2685,7 @@ export const stablecoinSupplyMeta = defineFrameMeta({
   label: "Stablecoin Supply",
   category: "crypto",
   iconUrl: widgetIcon("stablecoin-supply"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Total USD-stablecoin circulating supply — a market-wide liquidity gauge. Rising supply = fresh capital entering crypto (risk-on dry powder); contraction = risk-off. Shows the total, 1d/7d/30d change, and the largest chains. Keyless (DeFiLlama).",
   capabilities: ["stablecoins"],
@@ -2698,7 +2698,7 @@ export const yieldScannerMeta = defineFrameMeta({
   label: "Yield Scanner",
   category: "crypto",
   iconUrl: widgetIcon("yield-scanner"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 4, minH: 2, maxH: 7 },
   description:
     "Top DeFi yield pools ranked by APY, across every chain and protocol — the 'where's the yield' board. Filter to stablecoin pools or a TVL floor. Shows APY (base + reward), TVL, chain, and IL risk. Keyless (DeFiLlama yields).",
   capabilities: ["yields"],
@@ -2728,7 +2728,7 @@ export const yieldDistributionMeta = defineFrameMeta({
   label: "Yield Histogram",
   category: "crypto",
   iconUrl: widgetIcon("yield-distribution"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Histogram of APY across every DeFi pool that clears the TVL floor — what yield is actually on offer, rather than the ten headline pools. The yield scanner's top-8 list is by construction the extreme right tail; this shows the distribution it was drawn from, so a '40% APY' can be read as remarkable or ordinary. Marks the median, and the far tail is folded into the end bar so a handful of 5000% incentive pools can't flatten the rest. Keyless (DeFiLlama yields).",
   capabilities: ["yields"],
@@ -2763,7 +2763,7 @@ export const optionsChainTableMeta = defineFrameMeta({
   label: "Options Chain",
   category: "derivatives",
   iconUrl: widgetIcon("options-chain-table"),
-  layout: { w: 8, h: 5, minW: 5, minH: 3 },
+  layout: { w: 8, h: 5, minW: 2, minH: 3 },
   description:
     "The full option chain for one underlying as the conventional strike ladder — calls and puts side by side for a chosen expiry, with implied volatility, open interest, volume, bid/ask and optional greeks. Deliberately asset-class-agnostic: the same card reads a crypto venue's book, a listed equity and a metal ETF, so it is the one options surface that works whatever the board is about. Greeks depend on the feed — a delayed exchange chain publishes them, a crypto book-summary call does not, and the greek columns hide themselves when the chain carries none. The header states the quote delay, because reading a 15-minute-old chain as live is the real hazard here. Absent quotes render as a dash, never as zero: a zero bid is a different and real statement.",
   capabilities: ["options-chain"],
@@ -2813,7 +2813,7 @@ export const tokenUnlockScheduleMeta = defineFrameMeta({
   label: "Unlock Schedule",
   category: "crypto",
   iconUrl: widgetIcon("token-unlock-schedule"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 7 },
   description:
     "How much supply is about to hit the market, and who gets it — the crypto equivalent of a share-lockup expiry, and the only forward-looking supply data available keylessly. Charts cumulative unlocked supply with the observed history and the SCHEDULED future drawn as separate lines, so a projection can never be misread as history, and lists the next unlock events with their dates, categories and token amounts. Also states the insider share now against its fully-vested end state, and how far through the documented schedule the token is. A fully-vested token legitimately has no upcoming events, which the card says rather than rendering empty. Keyless (DeFiLlama's published emissions dataset). Keyed by protocol SLUG, and only around 366 protocols publish a schedule at all.",
   capabilities: ["token-unlocks"],
@@ -2849,7 +2849,7 @@ export const cryptoProfileMeta = defineFrameMeta({
   label: "Crypto Profile",
   category: "crypto",
   iconUrl: widgetIcon("crypto-profile"),
-  layout: { w: 5, h: 5, minW: 3, minH: 4 },
+  layout: { w: 5, h: 5, minW: 4, minH: 3 },
   description:
     "One crypto asset's research card — the token equivalent of a company profile, since a token has no filings. Shows name, ticker and market-cap rank; live price with the 24h/7d/30d/1y returns the publisher covers; market cap, fully diluted valuation and 24h volume; the supply triple (circulating / total / max, where an absent max reads as 'uncapped' and never as zero); all-time high and low with their dates and how far price now sits from each; the publisher's category tags; a compact public-repository activity readout; and optional links to site, source and whitepaper. Coverage thins fast below the majors — a mid-cap legitimately publishes no FDV, no whitepaper and a near-empty repo block — so the card renders what exists rather than erroring. Keyless (CoinGecko free tier). Resolve by ticker ('BTC', 'SOL', 'HYPE').",
   capabilities: ["crypto-profile"],
@@ -2888,7 +2888,7 @@ export const cryptoDilutionMeta = defineFrameMeta({
   label: "Supply & Dilution",
   category: "crypto",
   iconUrl: widgetIcon("crypto-dilution"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
   description:
     "How much of a token's supply is not circulating yet — the question a price chart cannot answer. Shows the share of supply already circulating, market cap against fully diluted valuation (the gap in money, as a percentage of FDV, and as an FDV/mcap multiple), and the supply composition as a horizontal bar: circulating, minted-but-locked (team, investors, vesting, treasury), and any unminted headroom left under a hard cap. Handles the three genuinely different supply regimes with different copy rather than collapsing them: a CAPPED asset, where FDV is a real ceiling; an UNCAPPED asset with a known total, where FDV is only a floor because more can always be minted; and an asset that publishes neither, where the card says dilution cannot be measured instead of inventing a denominator. FDV is derived from price × supply when the publisher omits it, and labelled 'derived' when it is. Keyless (CoinGecko free tier).",
   capabilities: ["crypto-profile"],
@@ -2955,7 +2955,7 @@ export const protocolMultiplesMeta = defineFrameMeta({
   label: "Protocol Multiples",
   category: "crypto",
   iconUrl: widgetIcon("protocol-multiples"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 4, minH: 3 },
   description:
     "Is the token expensive relative to what the protocol actually earns? Divides market cap by trailing-year revenue and fees to give a token's price-to-sales and price-to-fees, and repeats both against fully diluted valuation — the FDV multiple being the honest one for a token with a large locked supply. The crypto answer to a P/E, and the only keyless one available. Reads two publishers that key differently, so it takes BOTH a DeFiLlama protocol slug and the token's ticker; a mismatched pair produces a silently wrong multiple, so the two fields are deliberately separate. A zero or unpublished revenue line reads as 'not meaningful' rather than infinity.",
   capabilities: ["protocol-fundamentals", "crypto-profile"],
@@ -2983,7 +2983,7 @@ export const defiRevenueMeta = defineFrameMeta({
   label: "DeFi Fees & Revenue",
   category: "crypto",
   iconUrl: widgetIcon("defi-revenue"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 4 },
   description:
     "Aggregate DeFi protocol fees across all of crypto — trailing-24h total with a daily trend. A read on real on-chain economic activity. Keyless (DeFiLlama).",
   capabilities: ["fees-overview"],
@@ -2996,7 +2996,7 @@ export const fundingComparisonMeta = defineFrameMeta({
   label: "Cross-Venue Funding",
   category: "derivatives",
   iconUrl: widgetIcon("funding-comparison"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 4, minH: 2, maxH: 5 },
   description:
     "Predicted perpetual funding rates compared across venues (Hyperliquid vs Binance vs Bybit), annualized, per coin — ranked by the cross-venue spread. A large spread flags a funding-arbitrage or crowded-positioning signal. Keyless (Hyperliquid predicted fundings).",
   capabilities: ["funding-comparison"],
@@ -3017,7 +3017,7 @@ export const ethSupplyMeta = defineFrameMeta({
   label: "ETH Ultrasound",
   category: "crypto",
   iconUrl: widgetIcon("eth-supply"),
-  layout: { w: 4, h: 3, minW: 2, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Ethereum supply economics — EIP-1559 burn vs PoS issuance and the resulting net annual supply growth. Negative growth = deflationary ('ultrasound money'). Shows the net rate, burn/issuance, and vs the counterfactual PoW issuance. Keyless (ultrasound.money).",
   capabilities: ["eth-supply"],
@@ -3030,7 +3030,7 @@ export const ethStakingMeta = defineFrameMeta({
   label: "ETH Staking APR",
   category: "crypto",
   iconUrl: widgetIcon("eth-staking"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 2, maxH: 3 },
   description:
     "Ethereum staking yield — total validator APR broken into consensus issuance, MEV, and priority tips. The 'risk-free' ETH rate. Keyless (ultrasound.money).",
   capabilities: ["eth-supply"],
@@ -3043,7 +3043,7 @@ export const predictionMarketsMeta = defineFrameMeta({
   label: "Prediction Markets",
   category: "sentiment",
   iconUrl: widgetIcon("prediction-markets"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2, maxH: 5 },
   description:
     "Live Polymarket odds — the highest-volume open prediction markets with their market-implied probabilities (macro, rates, crypto, politics). A real-money sentiment gauge. Keyless (Polymarket Gamma API).",
   capabilities: ["prediction-markets"],
@@ -3064,7 +3064,7 @@ export const etfFlowsMeta = defineFrameMeta({
   label: "Spot ETF Flows",
   category: "crypto",
   iconUrl: widgetIcon("etf-flows"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "Spot Bitcoin or Ethereum ETF daily net flows — per-issuer (IBIT, FBTC, GBTC, …) plus the total, with a recent trend. The biggest institutional-demand signal. Keyless (SoSoValue); best-effort, may show empty if the source is unavailable.",
   capabilities: ["etf-flows"],
@@ -3089,7 +3089,7 @@ export const trendingCoinsMeta = defineFrameMeta({
   label: "Trending Coins",
   category: "crypto",
   iconUrl: widgetIcon("trending-coins"),
-  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  layout: { w: 3, h: 4, minW: 2, minH: 2, maxH: 5 },
   description:
     "The coins with the most search interest right now on CoinGecko — a retail-attention gauge. Shows rank, price, and 24h change. Keyless (CoinGecko).",
   capabilities: ["trending-coins"],
@@ -3110,7 +3110,7 @@ export const sectorPerformanceMeta = defineFrameMeta({
   label: "Sector Performance",
   category: "crypto",
   iconUrl: widgetIcon("sector-performance"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 2, minH: 2 },
   description:
     "Crypto sector rotation — market categories (L1s, DeFi, AI, memes, RWA, …) ranked by 24h market-cap change. Shows where capital is rotating. Keyless (CoinGecko categories).",
   capabilities: ["sector-performance"],
@@ -3131,7 +3131,7 @@ export const macroCalendarMeta = defineFrameMeta({
   label: "Macro Calendar",
   category: "macro",
   iconUrl: widgetIcon("macro-calendar"),
-  layout: { w: 4, h: 4, minW: 3, minH: 2 },
+  layout: { w: 4, h: 4, minW: 2, minH: 2, maxH: 4 },
   description:
     "Countdown to upcoming scheduled macro events — defaults to the 2026 FOMC rate decisions, fully editable. No data feed; the dates are known in advance.",
   capabilities: [],
@@ -3170,7 +3170,7 @@ export const stablecoinChainsMeta = defineFrameMeta({
   label: "Stablecoin Chains",
   category: "crypto",
   iconUrl: widgetIcon("stablecoin-chains"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 1, minH: 1, maxH: 4 },
   description:
     "Where stablecoin liquidity sits — a treemap of the largest chains by stablecoin circulating supply. Complements the Stablecoin Supply total with the cross-chain distribution. Keyless (DeFiLlama).",
   capabilities: ["stablecoins"],
@@ -3191,7 +3191,7 @@ export const sectorTreemapMeta = defineFrameMeta({
   label: "Sector Treemap",
   category: "crypto",
   iconUrl: widgetIcon("sector-treemap"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 1, minH: 1, maxH: 4 },
   description:
     "Crypto sector rotation as a treemap — each category sized by market cap and colored by 24h change (green up / red down). The at-a-glance view of where capital is flowing. Keyless (CoinGecko categories).",
   capabilities: ["sector-performance"],
@@ -3213,7 +3213,7 @@ export const etfFlowsChartMeta = defineFrameMeta({
   label: "ETF Flows Chart",
   category: "crypto",
   iconUrl: widgetIcon("etf-flows-chart"),
-  layout: { w: 6, h: 3, minW: 3, minH: 3 },
+  layout: { w: 6, h: 3, minW: 4, minH: 2 },
   description:
     "Spot BTC or ETH ETF daily net flows over time — the inflow/outflow trend as a line, complementing the per-issuer snapshot. Keyless (SoSoValue); best-effort, may be empty if the source is unavailable.",
   capabilities: ["etf-flows"],
@@ -3236,7 +3236,7 @@ export const realizedPriceMeta = defineFrameMeta({
   label: "Realized Price",
   category: "onchain",
   iconUrl: widgetIcon("realized-price"),
-  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Bitcoin market price vs realized price — the on-chain cost basis of all coins. Market above realized = aggregate profit; crossing below realized has marked cycle bottoms. Keyless (Coin Metrics).",
   capabilities: ["onchain-valuation"],
@@ -3254,7 +3254,7 @@ export const reserveRiskMeta = defineFrameMeta({
   label: "Reserve Risk",
   category: "onchain",
   iconUrl: widgetIcon("reserve-risk"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "Reserve Risk — long-term-holder conviction relative to price. Low values = strong conviction at a low price (attractive risk/reward, cycle-bottom territory); high values = conviction spent into a high price. Keyless (bitcoin-data.com).",
   capabilities: ["onchain-cycle-extras"],
@@ -3272,7 +3272,7 @@ export const nftCollectionsMeta = defineFrameMeta({
   label: "NFT Collections",
   category: "crypto",
   iconUrl: widgetIcon("nft-collections"),
-  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  layout: { w: 3, h: 4, minW: 3, minH: 2, maxH: 7 },
   description:
     "Blue-chip NFT collections ranked by 24h trading volume — floor price (USD), 24h floor change, and volume, for a hand-picked set of majors (Bored Ape, Pudgy Penguins, CryptoPunks, Azuki, …). Keyless (CoinGecko free tier). A quick read on where the top NFT market is trading.",
   capabilities: ["nft-market"],
@@ -3293,7 +3293,7 @@ export const dexHotPoolsMeta = defineFrameMeta({
   label: "Hot DEX Pools",
   category: "onchain",
   iconUrl: widgetIcon("dex-hot-pools"),
-  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  layout: { w: 3, h: 4, minW: 3, minH: 2 },
   description:
     "Trending DEX liquidity pools on a chain, ranked by 24h volume — each pool's pair, base-token price, 24h price change, and 24h volume. Surfaces what's hot on-chain (new listings, momentum pairs) across Ethereum, Solana, Base and more. Keyless (GeckoTerminal free tier).",
   capabilities: ["dex-pools"],
@@ -3318,7 +3318,7 @@ export const chainActivityMeta = defineFrameMeta({
   label: "Chain Activity",
   category: "onchain",
   iconUrl: widgetIcon("chain-activity"),
-  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  layout: { w: 3, h: 4, minW: 3, minH: 2, maxH: 6 },
   description:
     "Cross-chain network activity for major layer-1s (Bitcoin, Ethereum, Litecoin, …), ranked by 24h transaction count — with blocks mined and mempool backlog per chain. A side-by-side pulse of which chains are busiest right now. Keyless (Blockchair).",
   capabilities: ["chain-activity"],
@@ -3331,7 +3331,7 @@ export const orderBookDepthMeta = defineFrameMeta({
   label: "Order Book",
   category: "markets",
   iconUrl: widgetIcon("order-book-depth"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 1, minH: 2 },
   description:
     "Live two-sided order book for one Bitkub market — bid and ask ladders with cumulative resting size, plus the mid price and spread. Shows where the resting liquidity actually sits, which a price feed alone can't. Prices in Thai baht. Keyless (Bitkub public API).",
   capabilities: ["order-book"],
@@ -3360,7 +3360,7 @@ export const nftTreemapMeta = defineFrameMeta({
   label: "NFT Treemap",
   category: "crypto",
   iconUrl: widgetIcon("nft-treemap"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 4, minH: 3 },
   description:
     "Treemap of blue-chip NFT collections sized by market capitalisation, tiles colored green/red by 24h floor-price change. A heat-map of the top NFT market at a glance. Keyless (CoinGecko free tier).",
   capabilities: ["nft-market"],
@@ -3381,7 +3381,7 @@ export const dexPoolTreemapMeta = defineFrameMeta({
   label: "DEX Pool Treemap",
   category: "onchain",
   iconUrl: widgetIcon("dex-pool-treemap"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 5, minH: 2 },
   description:
     "Treemap of trending DEX pools on a chain sized by 24h trading volume, tiles colored green/red by 24h price change. Shows at a glance which pairs are pulling the most on-chain volume. Keyless (GeckoTerminal free tier).",
   capabilities: ["dex-pools"],
@@ -3406,7 +3406,7 @@ export const sectorBarsMeta = defineFrameMeta({
   label: "Sector Bars",
   category: "crypto",
   iconUrl: widgetIcon("sector-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "Crypto sector rotation as a diverging bar chart — market categories (L1s, DeFi, AI, memes, RWA, …) ranked by 24h market-cap change, gains right in green, losses left in red. The chart-first sibling of the Sector Performance list. Keyless (CoinGecko categories).",
   capabilities: ["sector-performance"],
@@ -3427,7 +3427,7 @@ export const fundingBarsMeta = defineFrameMeta({
   label: "Funding by Venue",
   category: "derivatives",
   iconUrl: widgetIcon("funding-bars"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "One coin's predicted perpetual funding rate compared across venues (Hyperliquid vs Binance vs Bybit) as a diverging bar chart of annualized rates — positive funding (longs pay) in green, negative in red. Makes a funding-arb spread visible at a glance. Keyless (Hyperliquid predicted fundings).",
   capabilities: ["funding-comparison"],
@@ -3446,7 +3446,7 @@ export const etfFlowBarsMeta = defineFrameMeta({
   label: "ETF Flow Bars",
   category: "crypto",
   iconUrl: widgetIcon("etf-flow-bars"),
-  layout: { w: 6, h: 3, minW: 3, minH: 3 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 4 },
   description:
     "Spot BTC or ETH ETF daily net flows as diverging bars — one bar per day, inflows up in green, outflows down in red. The classic ETF-flow chart; complements the cumulative line and per-issuer snapshot. Keyless (SoSoValue); best-effort, may be empty if the source is unavailable.",
   capabilities: ["etf-flows"],
@@ -3468,7 +3468,7 @@ export const chainActivityBarsMeta = defineFrameMeta({
   label: "Chain Activity Bars",
   category: "onchain",
   iconUrl: widgetIcon("chain-activity-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "24h confirmed transactions per major L1 (Bitcoin, Ethereum, Litecoin, Dogecoin, …) as a horizontal bar chart, ranked busiest-first — cross-chain usage compared at a glance. The chart-first sibling of the Chain Activity table. Keyless (Blockchair).",
   capabilities: ["chain-activity"],
@@ -3489,7 +3489,7 @@ export const marketScatterMeta = defineFrameMeta({
   label: "Market Scatter",
   category: "crypto",
   iconUrl: widgetIcon("market-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Top coins as a bubble scatter — 24h price change on the x-axis, market cap on a log y-axis, bubble size by market cap. Shows in one view whether large caps or small caps are moving, and who's the outlier. Keyless (CoinGecko top-50 by market cap).",
   capabilities: ["coin-markets"],
@@ -3510,7 +3510,7 @@ export const marketBubblesMeta = defineFrameMeta({
   label: "Market Bubbles",
   category: "crypto",
   iconUrl: widgetIcon("market-bubbles"),
-  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  layout: { w: 6, h: 5, minW: 3, minH: 2 },
   description:
     "Top coins as a floating bubble cloud — one logo bubble per coin, area by market cap, ring tinted green/red by 24h change. A playful at-a-glance map of where the market's weight sits; bubbles are draggable. Keyless (CoinGecko top-50 by market cap).",
   capabilities: ["coin-markets"],
@@ -3546,7 +3546,7 @@ export const tvlBubblesMeta = defineFrameMeta({
   label: "TVL Bubbles",
   category: "crypto",
   iconUrl: widgetIcon("tvl-bubbles"),
-  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 2 },
   description:
     "Blockchain ecosystems as a floating bubble cloud, area by total value locked (TVL) — the bubble-chart sibling of the TVL treemap. Data from DeFiLlama. Draggable, playful answer to 'where does on-chain capital live'.",
   capabilities: ["tvl"],
@@ -3576,7 +3576,7 @@ export const dexVolumeBubblesMeta = defineFrameMeta({
   label: "DEX Volume Bubbles",
   category: "crypto",
   iconUrl: widgetIcon("dex-volume-bubbles"),
-  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 2 },
   description:
     "Decentralized exchanges as a bubble cloud — area by trailing-24h trading volume, ring tinted green/red by 1-day change. Data from DeFiLlama. Where on-chain trading flow is concentrated right now.",
   capabilities: ["dex-volume"],
@@ -3591,7 +3591,7 @@ export const protocolFeesBubblesMeta = defineFrameMeta({
   label: "Protocol Fees Bubbles",
   category: "crypto",
   iconUrl: widgetIcon("protocol-fees-bubbles"),
-  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 2 },
   description:
     "Protocols as a bubble cloud — area by fees generated in the last 24h, ring tinted green/red by 1-day change. Data from DeFiLlama. Where users are actually paying for blockspace and services.",
   capabilities: ["protocol-fees"],
@@ -3606,7 +3606,7 @@ export const sectorBubblesMeta = defineFrameMeta({
   label: "Sector Bubbles",
   category: "crypto",
   iconUrl: widgetIcon("sector-bubbles"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 2 },
   description:
     "Crypto sector rotation as a bubble cloud — each category's area by market cap, ring tinted green/red by 24h change. The bubble-chart sibling of the sector treemap. Keyless (CoinGecko categories).",
   capabilities: ["sector-performance"],
@@ -3627,7 +3627,7 @@ export const nftBubblesMeta = defineFrameMeta({
   label: "NFT Bubbles",
   category: "crypto",
   iconUrl: widgetIcon("nft-bubbles"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2 },
   description:
     "Blue-chip NFT collections as a bubble cloud — area by market capitalisation, ring tinted green/red by 24h floor-price change. Keyless (CoinGecko free tier).",
   capabilities: ["nft-market"],
@@ -3648,7 +3648,7 @@ export const dexPoolBubblesMeta = defineFrameMeta({
   label: "DEX Pool Bubbles",
   category: "onchain",
   iconUrl: widgetIcon("dex-pool-bubbles"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2 },
   description:
     "Trending DEX pools on a chain as a bubble cloud — area by 24h trading volume, ring tinted green/red by 24h price change. Which pairs are pulling the most on-chain volume. Keyless (GeckoTerminal free tier).",
   capabilities: ["dex-pools"],
@@ -3673,7 +3673,7 @@ export const moversBubblesMeta = defineFrameMeta({
   label: "Movers Bubbles",
   category: "crypto",
   iconUrl: widgetIcon("movers-bubbles"),
-  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  layout: { w: 6, h: 5, minW: 4, minH: 2 },
   description:
     "The broad market's biggest movers as a bubble cloud — logo bubbles sized by the magnitude of the move over a chosen window, green for gainers, red for losers. Today's action at a glance, regardless of coin size. Keyless (CoinPaprika, ~2000 coins).",
   capabilities: ["coin-movers"],
@@ -3698,7 +3698,7 @@ export const sentimentGaugeMeta = defineFrameMeta({
   label: "Sentiment Gauge",
   category: "crypto",
   iconUrl: widgetIcon("sentiment-gauge"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 3, maxW: 3, maxH: 5 },
   description:
     "Crypto fear & greed index as a radial gauge — the arc fills from extreme fear (0) to extreme greed (100) in the mood color, with the reading and classification in the center. A dial-style alternative to the Fear & Greed sparkline card. Keyless (alternative.me).",
   capabilities: ["sentiment"],
@@ -3711,7 +3711,7 @@ export const moversBarsMeta = defineFrameMeta({
   label: "Movers Bars",
   category: "crypto",
   iconUrl: widgetIcon("movers-bars"),
-  layout: { w: 4, h: 5, minW: 3, minH: 4 },
+  layout: { w: 4, h: 5, minW: 3, minH: 4, maxH: 5 },
   description:
     "Top gainers and losers across the broad crypto market as a diverging bar chart — the biggest movers over a chosen window, gains right in green, losses left in red, ranked by size. The chart-first sibling of the Coin Movers list. Keyless (CoinPaprika, ~2000 coins).",
   capabilities: ["coin-movers"],
@@ -3736,7 +3736,7 @@ export const tvlBarsMeta = defineFrameMeta({
   label: "TVL by Chain Bars",
   category: "crypto",
   iconUrl: widgetIcon("tvl-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "Total value locked (TVL) per blockchain as a horizontal bar chart, ranked largest-first — DeFi capital compared across chains at a glance. The chart-first sibling of the TVL treemap. Keyless (DeFiLlama).",
   capabilities: ["tvl"],
@@ -3757,7 +3757,7 @@ export const yieldScatterMeta = defineFrameMeta({
   label: "Yield Scatter",
   category: "crypto",
   iconUrl: widgetIcon("yield-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "DeFi yield pools as a risk/reward bubble scatter — total APY on the x-axis, pool TVL on a log y-axis, bubble size by TVL. Surfaces the deep, high-yield pools (top-right) versus thin outliers in one view. The chart-first sibling of the Yield Scanner list. Keyless (DeFiLlama).",
   capabilities: ["yields"],
@@ -3790,7 +3790,7 @@ export const nftScatterMeta = defineFrameMeta({
   label: "NFT Scatter",
   category: "crypto",
   iconUrl: widgetIcon("nft-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Blue-chip NFT collections as a bubble scatter — 24h floor change on the x-axis, 24h trading volume on a log y-axis, bubble size by market cap. Shows which collections are moving on real volume versus thin floors. The chart-first sibling of the NFT Collections list. Keyless (CoinGecko, curated slugs).",
   capabilities: ["nft-market"],
@@ -3811,7 +3811,7 @@ export const dominanceGaugeMeta = defineFrameMeta({
   label: "Dominance Gauge",
   category: "crypto",
   iconUrl: widgetIcon("dominance-gauge"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 3, maxW: 3, maxH: 4 },
   description:
     "One asset's share of total crypto market cap as a radial gauge — the arc fills from 0% to 100% dominance with the reading in the center. A dial-style alternative to the segmented Bitcoin Dominance bar. Keyless (CoinGecko global).",
   capabilities: ["global-market"],
@@ -3829,7 +3829,7 @@ export const putCallGaugeMeta = defineFrameMeta({
   label: "Put/Call Gauge",
   category: "derivatives",
   iconUrl: widgetIcon("put-call-gauge"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 3, maxW: 4, maxH: 4 },
   description:
     "Options put/call ratio as a radial gauge — the arc reads from 0 (all calls, bullish) through 1 (balanced) toward 2 (put-heavy, defensive), colored green below 1 and red above. A dial-style alternative to the Put/Call Ratio card. Keyless (Deribit).",
   capabilities: ["options-summary"],
@@ -3851,7 +3851,7 @@ export const customDataMeta = defineFrameMeta({
   label: "Custom Data",
   category: "tools",
   iconUrl: widgetIcon("custom-data"),
-  layout: { w: 4, h: 3, minW: 2, minH: 2 },
+  layout: { w: 4, h: 3, minW: 2, minH: 2, maxW: 5, maxH: 4 },
   description:
     "The escape hatch: renders ANY keyless HTTPS JSON API as a stat, line chart, bars, or label→value table — for data no built-in frame covers (weather, sports, public stats, niche feeds). Fetches browser-direct, so the API must be CORS-open, need no key, and be public https (localhost/private hosts are refused). Point `values` at the JSON with a dot/bracket path — e.g. 'hourly.temperature_2m', 'data[0].price', 'items[*].name'. A path resolving to an array charts as a series; a scalar shows as a stat. Verify the URL and path against a real response before emitting them.",
   capabilities: [],
@@ -3924,7 +3924,7 @@ export const oiTreemapMeta = defineFrameMeta({
   label: "OI Treemap",
   category: "derivatives",
   iconUrl: widgetIcon("oi-treemap"),
-  layout: { w: 6, h: 4, minW: 3, minH: 3 },
+  layout: { w: 6, h: 4, minW: 1, minH: 1, maxH: 4 },
   description:
     "Treemap of live Hyperliquid open interest, sized by USD notional — largest markets first, the long tail rolled into a single 'Other' tile. A single-glance map of where perp capital concentrates right now. Keyless (Hyperliquid).",
   capabilities: ["open-interest"],
@@ -3947,7 +3947,7 @@ export const ohlcvVolumeBarsMeta = defineFrameMeta({
   label: "OHLCV Volume Bars",
   category: "derivatives",
   iconUrl: widgetIcon("ohlcv-volume-bars"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 4 },
   description:
     "Per-candle trading volume for one Hyperliquid symbol as vertical bars over time, each bar tinted green when that candle closed up and red when it closed down. Works for any HIP-3 perp (stocks, indices, commodities) and crypto. Keyless (Hyperliquid).",
   capabilities: ["ohlcv"],
@@ -3971,7 +3971,7 @@ export const fundingSpreadBarsMeta = defineFrameMeta({
   label: "Funding Spread Bars",
   category: "derivatives",
   iconUrl: widgetIcon("funding-spread-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Cross-venue predicted funding-rate spread per coin (max − min annualized rate across Hyperliquid/Binance/Bybit) as a ranked horizontal bar chart — the widest spreads are the clearest funding-arbitrage or crowded-positioning candidates. The bars-first sibling of Cross-Venue Funding. Keyless (Hyperliquid predicted fundings).",
   capabilities: ["funding-comparison"],
@@ -3992,7 +3992,7 @@ export const fundingVenueHeatmapMeta = defineFrameMeta({
   label: "Funding Venue Heatmap",
   category: "derivatives",
   iconUrl: widgetIcon("funding-venue-heatmap"),
-  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  layout: { w: 6, h: 3, minW: 3, minH: 2 },
   description:
     "Heatmap of predicted annualized funding rates — coins as rows, venues (Hyperliquid/Binance/Bybit) as columns, green positive / red negative. Spots which venue is paying up (or charging) for a given coin at a glance. Keyless (Hyperliquid predicted fundings).",
   capabilities: ["funding-comparison"],
@@ -4015,7 +4015,7 @@ export const fundingCarryAreaMeta = defineFrameMeta({
   label: "Funding Carry",
   category: "derivatives",
   iconUrl: widgetIcon("funding-carry-area"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 5 },
   description:
     "Stacked area of each symbol's running cumulative funding cost or benefit over a configurable lookback — the running total a position would have paid or earned in funding, symbol by symbol. Shows whether carry has been a persistent drag or tailwind. Keyless (Hyperliquid).",
   capabilities: ["funding-history"],
@@ -4040,7 +4040,7 @@ export const volumeShareDonutMeta = defineFrameMeta({
   label: "Volume Share Donut",
   category: "derivatives",
   iconUrl: widgetIcon("volume-share-donut"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 2, minH: 1 },
   description:
     "Donut of 24h Hyperliquid trading volume share across the busiest symbols, top symbols as slices with the long tail rolled into 'Other'. Shows where perp trading activity concentrates right now. Keyless (Hyperliquid).",
   capabilities: ["day-stats"],
@@ -4063,7 +4063,7 @@ export const volumeMoversScatterMeta = defineFrameMeta({
   label: "Volume Movers Scatter",
   category: "derivatives",
   iconUrl: widgetIcon("volume-movers-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 2, minH: 1 },
   description:
     "Hyperliquid perps as a bubble scatter — 24h price change on the x-axis, 24h notional volume on a log y-axis, bubble size by volume. Shows whether the busiest markets are also the biggest movers, or diverging. Keyless (Hyperliquid).",
   capabilities: ["day-stats"],
@@ -4086,7 +4086,7 @@ export const fundingLeaderboardBarsMeta = defineFrameMeta({
   label: "Funding Leaderboard",
   category: "derivatives",
   iconUrl: widgetIcon("funding-leaderboard-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 2, minH: 1 },
   description:
     "Predicted hourly funding rate ranked across the whole Hyperliquid universe — crypto and HIP-3 equities together — as a diverging bar chart, largest absolute rates first. Surfaces the most expensive (or most rewarded) side to hold right now. Keyless (Hyperliquid).",
   capabilities: ["day-stats"],
@@ -4107,7 +4107,7 @@ export const fundingCrowdingScatterMeta = defineFrameMeta({
   label: "Funding Crowding Scatter",
   category: "derivatives",
   iconUrl: widgetIcon("funding-crowding-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 2, minH: 1 },
   description:
     "24h price change (x) vs predicted funding rate (y) across Hyperliquid perps, bubble size by open interest — the combination of a stretched funding rate and heavy open interest flags a crowded, squeeze-prone position. Keyless (Hyperliquid).",
   capabilities: ["day-stats", "open-interest"],
@@ -4128,7 +4128,7 @@ export const liquidityBasisBarsMeta = defineFrameMeta({
   label: "Liquidity & Basis Bars",
   category: "derivatives",
   iconUrl: widgetIcon("liquidity-basis-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 2, minH: 1 },
   description:
     "Ranked horizontal bars of a chosen liquidity/pricing metric across Hyperliquid perps — either the bid/ask impact-price spread (% of mark price) or the mark-vs-oracle basis (bps). Surfaces the least liquid or most stretched markets at a glance. Keyless (Hyperliquid).",
   capabilities: ["day-stats"],
@@ -4158,7 +4158,7 @@ export const coinMomentumHeatmapMeta = defineFrameMeta({
   label: "Coin Momentum Heatmap",
   category: "crypto",
   iconUrl: widgetIcon("coin-momentum-heatmap"),
-  layout: { w: 5, h: 5, minW: 4, minH: 3 },
+  layout: { w: 5, h: 5, minW: 3, minH: 2 },
   description:
     "Top coins by market-cap rank as a momentum heatmap — rows are coins, columns are 1h/24h/7d/30d change windows, colored diverging green/red by magnitude. Spot which coins are heating up (or cooling off) across every timeframe at a glance. Keyless (CoinPaprika, ~2000 coins).",
   capabilities: ["coin-movers"],
@@ -4179,7 +4179,7 @@ export const coinMomentumScatterMeta = defineFrameMeta({
   label: "Coin Momentum Scatter",
   category: "crypto",
   iconUrl: widgetIcon("coin-momentum-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "Broad-market coins as a momentum scatter — 24h change on the x-axis, 7d change on the y-axis, bubble size by market cap, colored by 24h direction. Reveals whether today's move is a continuation or a reversal of the week's trend. Keyless (CoinPaprika, ~2000 coins).",
   capabilities: ["coin-movers"],
@@ -4200,7 +4200,7 @@ export const trendingBarsMeta = defineFrameMeta({
   label: "Trending Bars",
   category: "crypto",
   iconUrl: widgetIcon("trending-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2, maxH: 5 },
   description:
     "The coins with the most search interest right now on CoinGecko as a diverging bar chart — 24h change per trending coin, gains right in green, losses left in red. The chart-first sibling of the Trending Coins list. Keyless (CoinGecko).",
   capabilities: ["trending-coins"],
@@ -4221,7 +4221,7 @@ export const nftActivityBarsMeta = defineFrameMeta({
   label: "NFT Activity Bars",
   category: "crypto",
   iconUrl: widgetIcon("nft-activity-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Blue-chip NFT collections ranked by 24h sales count as a horizontal bar chart — which collections are actually trading, not just holding a floor price. The chart-first sibling of the NFT Collections list. Keyless (CoinGecko, curated slugs).",
   capabilities: ["nft-market"],
@@ -4242,7 +4242,7 @@ export const dominanceBarsMeta = defineFrameMeta({
   label: "Dominance Bars",
   category: "markets",
   iconUrl: widgetIcon("dominance-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2, maxH: 4 },
   description:
     "Market-cap dominance for every asset in CoinGecko's global snapshot — not just BTC and ETH — as a horizontal bar chart, ranked largest-first. Surfaces the next tier (USDT, BNB, SOL, …) the segmented Bitcoin Dominance bar collapses into 'Others'. Keyless (CoinGecko).",
   capabilities: ["global-market"],
@@ -4263,7 +4263,7 @@ export const trendingBubblesMeta = defineFrameMeta({
   label: "Trending Bubbles",
   category: "crypto",
   iconUrl: widgetIcon("trending-bubbles"),
-  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  layout: { w: 6, h: 5, minW: 3, minH: 2 },
   description:
     "The coins with the most search interest right now on CoinGecko as a floating bubble cloud — bubble area by |24h change|, ring tinted green/red by direction. A movement-first alternative to the Trending Coins list. Keyless (CoinGecko).",
   capabilities: ["trending-coins"],
@@ -4285,7 +4285,7 @@ export const yieldRiskPieMeta = defineFrameMeta({
   label: "Yield Risk Pie",
   category: "crypto",
   iconUrl: widgetIcon("yield-risk-pie"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxW: 6, maxH: 5 },
   description:
     "DeFi yield pools grouped by impermanent-loss risk as a donut, sliced by total value locked (TVL) — no-IL-risk, IL-risk, and unknown, summed across every pool. A quick read on how much yield-seeking capital carries IL exposure. Keyless (DeFiLlama).",
   capabilities: ["yields"],
@@ -4298,7 +4298,7 @@ export const dexPoolLiquidityScatterMeta = defineFrameMeta({
   label: "DEX Pool Liquidity Scatter",
   category: "onchain",
   iconUrl: widgetIcon("dex-pool-liquidity-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Trending DEX pools on a chain as a liquidity-vs-volume bubble scatter — pool reserves on a log x-axis, 24h trading volume on a log y-axis, bubble size by 24h trade count, tinted green/red by 24h price change. Surfaces deep, active pools versus thin or quiet ones. Keyless (GeckoTerminal free tier).",
   capabilities: ["dex-pools"],
@@ -4323,7 +4323,7 @@ export const protocolFeesVsTvlScatterMeta = defineFrameMeta({
   label: "Protocol Fees vs TVL Scatter",
   category: "crypto",
   iconUrl: widgetIcon("protocol-fees-vs-tvl-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "DeFi protocols as a fees-vs-TVL bubble scatter — total value locked on a log x-axis, trailing-24h fees on a log y-axis, bubble size by fees. Surfaces capital-efficient protocols earning outsized fees on their TVL versus large-but-quiet ones. Only protocols DeFiLlama reports both a TVL and a fees figure for are plotted. Keyless (DeFiLlama).",
   capabilities: ["protocol-tvl", "protocol-fees"],
@@ -4344,7 +4344,7 @@ export const yieldCompositionScatterMeta = defineFrameMeta({
   label: "Yield Composition Scatter",
   category: "crypto",
   iconUrl: widgetIcon("yield-composition-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "DeFi yield pools as a base-vs-reward APY scatter — organic (base) APY on the x-axis, incentive (reward) APY on the y-axis, bubble size by TVL. Separates pools earning real organic yield from ones propped up by token incentives. Keyless (DeFiLlama).",
   capabilities: ["yields"],
@@ -4369,7 +4369,7 @@ export const protocolTvlByCategoryMeta = defineFrameMeta({
   label: "Protocol TVL by Category",
   category: "crypto",
   iconUrl: widgetIcon("protocol-tvl-by-category"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Total value locked (TVL) summed by DeFiLlama category — Dexes, Lending, Liquid Staking, and more — as a horizontal bar chart ranked largest-first. Shows which slice of DeFi actually holds the capital. Keyless (DeFiLlama).",
   capabilities: ["protocol-tvl"],
@@ -4390,7 +4390,7 @@ export const protocolTvlShareAreaMeta = defineFrameMeta({
   label: "Protocol TVL Share Area",
   category: "crypto",
   iconUrl: widgetIcon("protocol-tvl-share-area"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 5 },
   description:
     "Stacked area chart of total value locked (TVL) for several DeFi protocols over a lookback window, each protocol's slice stacked to show the combined total and how the mix shifts over time. The composition-focused sibling of the Protocol TVL Chart's overlaid lines. Data from DeFiLlama (daily granularity).",
   capabilities: ["protocol-tvl"],
@@ -4416,7 +4416,7 @@ export const dexVolumeShareAreaMeta = defineFrameMeta({
   label: "DEX Volume Share Area",
   category: "crypto",
   iconUrl: widgetIcon("dex-volume-share-area"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 5 },
   description:
     "Stacked area chart of daily DEX trading volume for several protocols over a lookback window, stacked to show combined volume and how each DEX's share shifts over time. The composition-focused sibling of the DEX Volume Chart's overlaid lines. Data from DeFiLlama (daily granularity).",
   capabilities: ["dex-volume"],
@@ -4442,7 +4442,7 @@ export const yieldMomentumBarsMeta = defineFrameMeta({
   label: "Yield Momentum Bars",
   category: "crypto",
   iconUrl: widgetIcon("yield-momentum-bars"),
-  layout: { w: 4, h: 5, minW: 3, minH: 4 },
+  layout: { w: 4, h: 5, minW: 3, minH: 4, maxH: 5 },
   description:
     "DeFi yield pools ranked by 7-day APY change as a diverging bar chart — the biggest APY gains and drops over the past week, filtered above a TVL floor to skip dust pools. Surfaces where yields are heating up or cooling off. Keyless (DeFiLlama).",
   capabilities: ["yields"],
@@ -4471,7 +4471,7 @@ export const btcDifficultyChartMeta = defineFrameMeta({
   label: "BTC Difficulty Chart",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-difficulty-chart"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 3, minH: 2, maxH: 4 },
   description:
     "Bitcoin network difficulty over time as a line chart, with the current difficulty and hashrate as headline figures — the long-run mining-cost trend, charted rather than a single retarget countdown. Keyless (mempool.space).",
   capabilities: ["btc-hashrate"],
@@ -4489,7 +4489,7 @@ export const btcBlockSizeBarsMeta = defineFrameMeta({
   label: "BTC Block Size Bars",
   category: "bitcoin",
   iconUrl: widgetIcon("btc-block-size-bars"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Recent Bitcoin block sizes as a vertical bar chart, oldest to newest — spot when blocks are running full (near the ~4MB weight limit) versus half-empty. The chart-first sibling of the BTC Blocks feed. Keyless (mempool.space).",
   capabilities: ["btc-blocks"],
@@ -4510,7 +4510,7 @@ export const chainPriceMoversMeta = defineFrameMeta({
   label: "Chain Price Movers",
   category: "onchain",
   iconUrl: widgetIcon("chain-price-movers"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "24h native-asset price change per major L1 (Bitcoin, Ethereum, Litecoin, Dogecoin, …) as a diverging bar chart, gains right in green, losses left in red. The price-led sibling of the Chain Activity Bars transaction chart. Keyless (Blockchair).",
   capabilities: ["chain-activity"],
@@ -4531,7 +4531,7 @@ export const chainActivityScatterMeta = defineFrameMeta({
   label: "Chain Activity Scatter",
   category: "onchain",
   iconUrl: widgetIcon("chain-activity-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Major L1s as a bubble scatter — 24h native-asset price change on the x-axis, 24h confirmed transactions on a log y-axis, bubble size by current mempool backlog. Shows which chains are both moving in price and busy on-chain. Keyless (Blockchair).",
   capabilities: ["chain-activity"],
@@ -4544,7 +4544,7 @@ export const mempoolFeeCurveMeta = defineFrameMeta({
   label: "Mempool Fee Curve",
   category: "bitcoin",
   iconUrl: widgetIcon("mempool-fee-curve"),
-  layout: { w: 5, h: 3, minW: 3, minH: 2 },
+  layout: { w: 5, h: 3, minW: 3, minH: 3, maxH: 4 },
   description:
     "Bitcoin mempool's projected next-to-mine blocks as a fee-decay bar chart — median sat/vB per block, tinted by urgency, showing how fast fees drop as you're willing to wait a block or two longer. The chart-first sibling of the BTC Mempool card. Keyless (mempool.space).",
   capabilities: ["btc-mempool"],
@@ -4595,7 +4595,7 @@ export const optionsMaxPainMeta = defineFrameMeta({
   label: "Max Pain by Strike",
   category: "derivatives",
   iconUrl: widgetIcon("options-max-pain"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 5, minH: 3, maxH: 4 },
   description:
     "Max pain for the nearest Deribit options expiry (BTC or ETH) — the aggregate payout option writers would owe at each candidate settlement strike, as a bar chart, with the strike that minimizes it (where the most contracts expire worthless) highlighted against the current spot. Keyless (Deribit).",
   capabilities: ["options-summary"],
@@ -4613,7 +4613,7 @@ export const optionsOiSkewMeta = defineFrameMeta({
   label: "OI Skew by Strike",
   category: "derivatives",
   iconUrl: widgetIcon("options-oi-skew"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 5, minH: 3, maxH: 4 },
   description:
     "Net call-minus-put open interest by strike for the nearest Deribit options expiry (BTC or ETH) — a single diverging bar per strike showing where positioning skews call-heavy (green, above zero) versus put-heavy (red, below zero) near spot. The netted sibling of OI by Strike. Keyless (Deribit).",
   capabilities: ["options-summary"],
@@ -4641,7 +4641,7 @@ export const optionsVolSpreadMeta = defineFrameMeta({
   label: "BTC/ETH Vol Spread",
   category: "derivatives",
   iconUrl: widgetIcon("options-vol-spread"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 4, minW: 4, minH: 4, maxH: 5 },
   description:
     "BTC DVOL and ETH DVOL implied-volatility indices plotted together over time — the spread between crypto's two most liquid vol benchmarks, and which one is pricing bigger expected swings. Keyless (Deribit).",
   capabilities: ["volatility-index"],
@@ -4659,7 +4659,7 @@ export const optionsFlowSkewMeta = defineFrameMeta({
   label: "Positioning vs Flow Skew",
   category: "derivatives",
   iconUrl: widgetIcon("options-flow-skew"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 2, maxH: 4 },
   description:
     "Call/put skew for BTC or ETH options across two bases at once — open interest (standing positioning) and 24h volume (today's flow) — as two diverging bars. Green = call-heavy, red = put-heavy; the two diverging signals fresh flow fighting stale positioning. Keyless (Deribit).",
   capabilities: ["options-summary"],
@@ -4677,7 +4677,7 @@ export const optionsVolSmileMeta = defineFrameMeta({
   label: "Vol Smile",
   category: "derivatives",
   iconUrl: widgetIcon("options-vol-smile"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 2, minH: 1 },
   description:
     "Implied volatility by strike for the nearest Deribit options expiry (BTC or ETH) — a call-IV line and a put-IV line across the strike range, the classic 'vol smile' shape that shows where the market prices tail risk richest. Keyless (Deribit).",
   capabilities: ["options-summary"],
@@ -4695,7 +4695,7 @@ export const optionsOiLadderHeatmapMeta = defineFrameMeta({
   label: "OI Ladder Heatmap",
   category: "derivatives",
   iconUrl: widgetIcon("options-oi-ladder-heatmap"),
-  layout: { w: 8, h: 5, minW: 5, minH: 4 },
+  layout: { w: 8, h: 5, minW: 2, minH: 1 },
   description:
     "Open interest across strike and expiry for BTC or ETH options, as a heatmap — expiries as rows (nearest first), strike bands as columns, cell shade by total call+put OI. Surfaces where positioning concentrates across the whole term structure, not just the nearest expiry. Keyless (Deribit).",
   capabilities: ["options-summary"],
@@ -4729,7 +4729,7 @@ export const optionsMaxPainMultiMeta = defineFrameMeta({
   label: "Max Pain by Expiry",
   category: "derivatives",
   iconUrl: widgetIcon("options-max-pain-multi"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 2, minH: 1 },
   description:
     "Max pain strike for each upcoming Deribit options expiry (BTC or ETH), plotted as % deviation from spot — one bar per expiry, showing which dated books are pinned above versus below the current price. The term-structure sibling of Max Pain by Strike. Keyless (Deribit).",
   capabilities: ["options-summary"],
@@ -4758,7 +4758,7 @@ export const mvrvZscoreChartMeta = defineFrameMeta({
   label: "MVRV Z-Score Chart",
   category: "onchain",
   iconUrl: widgetIcon("mvrv-zscore-chart"),
-  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 5 },
   description:
     "Bitcoin MVRV Z-Score plotted as a full daily time-series line, not just a sparkline — how many standard deviations market cap sits above realized cap across the whole available history. Historically, spikes above ~7 have marked cycle tops and dips below 0 mark deep-value bottoms. The chart-first sibling of the MVRV gauge. Keyless (Coin Metrics).",
   capabilities: ["onchain-valuation"],
@@ -4777,7 +4777,7 @@ export const nuplCycleChartMeta = defineFrameMeta({
   label: "NUPL Cycle Chart",
   category: "onchain",
   iconUrl: widgetIcon("nupl-cycle-chart"),
-  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 5 },
   description:
     "Net Unrealized Profit/Loss plotted as a full daily time-series line across Bitcoin's cycle sentiment bands — Capitulation, Hope/Fear, Optimism, Belief, Euphoria/Greed. The chart-first sibling of the NUPL gauge. Keyless (Coin Metrics).",
   capabilities: ["onchain-valuation"],
@@ -4796,7 +4796,7 @@ export const cycleValuationCompositeMeta = defineFrameMeta({
   label: "Cycle Valuation Composite",
   category: "onchain",
   iconUrl: widgetIcon("cycle-valuation-composite"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "Three cycle-valuation signals — MVRV Z-Score, NUPL, and BTC's 14-day RSI — overlaid on one chart, each independently min-max normalized to 0–100% over the selected window so their unrelated native scales become directly comparable. All three near the top together reads late-cycle euphoria; all three near the bottom reads capitulation. Keyless (Coin Metrics).",
   capabilities: ["onchain-valuation", "price-history-daily"],
@@ -4815,7 +4815,7 @@ export const onchainOscillatorOverlayMeta = defineFrameMeta({
   label: "On-Chain Oscillator Overlay",
   category: "onchain",
   iconUrl: widgetIcon("onchain-oscillator-overlay"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "SOPR, Puell Multiple, and Reserve Risk overlaid on one chart, each independently min-max normalized to 0–100% over the selected window — three on-chain cycle oscillators with unrelated native scales made directly comparable. Keyless (bitcoin-data.com; polled once daily, best-effort per metric).",
   capabilities: ["onchain-cycle-extras"],
@@ -4833,7 +4833,7 @@ export const ethIssuanceImpactMeta = defineFrameMeta({
   label: "ETH Issuance Impact",
   category: "onchain",
   iconUrl: widgetIcon("eth-issuance-impact"),
-  layout: { w: 4, h: 3, minW: 2, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 2, maxH: 4 },
   description:
     "Ethereum's actual net annual supply growth (post-Merge PoS issuance minus EIP-1559 burn) vs the counterfactual pre-Merge PoW issuance rate, as diverging bars — how much leaner ETH's inflation is under proof-of-stake. Negative (deflationary) growth in green, positive (inflationary) in red. Keyless (ultrasound.money).",
   capabilities: ["eth-supply"],
@@ -4847,7 +4847,7 @@ export const treasuryAvgRateBarsMeta = defineFrameMeta({
   label: "Treasury Avg Rate Bars",
   category: "macro",
   iconUrl: widgetIcon("treasury-avg-rate-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 1, maxH: 4 },
   description:
     "U.S. Treasury average interest rates across the full set of security classes as a horizontal bar chart, ranked highest-first. The chart-first sibling of the Rates Board's Treasury-rates section. Keyless (U.S. Treasury).",
   capabilities: ["treasury-rates"],
@@ -4870,7 +4870,7 @@ export const treasuryAuctionDemandScatterMeta = defineFrameMeta({
   label: "Treasury Auction Demand",
   category: "macro",
   iconUrl: widgetIcon("treasury-auction-demand-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "Recent completed U.S. Treasury auctions as a bubble scatter — awarded rate on the x-axis, bid-to-cover ratio (demand) on the y-axis, one dot per auction labelled by term. Reveals whether richer (lower-yield) auctions also draw stronger demand. Keyless (U.S. Treasury).",
   capabilities: ["treasury-auctions"],
@@ -4895,7 +4895,7 @@ export const treasuryAuctionSizeBarsMeta = defineFrameMeta({
   label: "Treasury Auction Size",
   category: "macro",
   iconUrl: widgetIcon("treasury-auction-size-bars"),
-  layout: { w: 6, h: 3, minW: 3, minH: 3 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 4 },
   description:
     "Recent completed U.S. Treasury auctions as paired bars — the offering amount beside the amount actually accepted, per auction, oldest to newest. Shows at a glance how close each auction came to being fully subscribed. Keyless (U.S. Treasury).",
   capabilities: ["treasury-auctions"],
@@ -4920,7 +4920,7 @@ export const nyfedReferenceRateBarsMeta = defineFrameMeta({
   label: "NY Fed Rate Bars",
   category: "macro",
   iconUrl: widgetIcon("nyfed-reference-rate-bars"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 2, maxH: 4 },
   description:
     "The six official New York Fed reference rates (effective fed funds, SOFR, tri-party and broad general collateral repo, overnight bank funding, and SOFR averages) as a horizontal bar chart — level or reported volume. The chart-first sibling of the Rates Board's NY Fed section. Keyless (NY Fed).",
   capabilities: ["reference-rates"],
@@ -4947,7 +4947,7 @@ export const nyfedSofrTermAveragesBarsMeta = defineFrameMeta({
   label: "SOFR Term Averages",
   category: "macro",
   iconUrl: widgetIcon("nyfed-sofr-term-averages-bars"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 1 },
   description:
     "SOFR compounded average rates over the trailing 30, 90, and 180 days as a simple bar comparison — a quick read on where short-term secured funding costs have been trending. Keyless (NY Fed).",
   capabilities: ["reference-rates"],
@@ -4960,7 +4960,7 @@ export const nyfedFedFundsBandGaugeMeta = defineFrameMeta({
   label: "Fed Funds Band Gauge",
   category: "macro",
   iconUrl: widgetIcon("nyfed-fed-funds-band-gauge"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 3, maxW: 4, maxH: 4 },
   description:
     "The effective fed funds rate as a radial gauge inside the FOMC's current target band — the arc fills from the band's lower bound to its upper bound, with the live EFFR reading in the center. Makes it visible at a glance whether the effective rate is trading near the top, bottom, or middle of the target range. Keyless (NY Fed).",
   capabilities: ["reference-rates"],
@@ -4975,7 +4975,7 @@ export const treasuryDebtCompositionAreaMeta = defineFrameMeta({
   label: "Debt Composition",
   category: "macro",
   iconUrl: widgetIcon("treasury-debt-composition-area"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 2, minH: 1 },
   description:
     "U.S. total public debt outstanding split into debt held by the public vs. intragovernmental holdings, as a stacked area chart over time — the two components that sum to the National Debt card's headline total. Keyless (U.S. Treasury).",
   capabilities: ["national-debt"],
@@ -4998,7 +4998,7 @@ export const ofrStressCategoryAreaMeta = defineFrameMeta({
   label: "FSI by Category",
   category: "macro",
   iconUrl: widgetIcon("ofr-stress-category-area"),
-  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  layout: { w: 6, h: 5, minW: 2, minH: 1 },
   description:
     "The OFR Financial Stress Index decomposed into its five contributing categories (credit, equity valuation, safe assets, funding, volatility) as a stacked area chart over time — each category can be positive or negative and they sum to the overall index shown on the Financial Stress card. Keyless (OFR).",
   capabilities: ["financial-stress"],
@@ -5020,7 +5020,7 @@ export const miseryIndexMeta = defineFrameMeta({
   label: "Misery Index",
   category: "macro",
   iconUrl: widgetIcon("misery-index"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 2, minH: 1 },
   description:
     "The classic 'Misery Index' — CPI year-over-year inflation stacked with the unemployment rate — as a two-series stacked area chart, month-aligned, plus the combined headline score. Monthly macro context for stock dashboards, not a live feed. Keyless (BLS).",
   capabilities: ["macro-series"],
@@ -5042,7 +5042,7 @@ export const realWagesMeta = defineFrameMeta({
   label: "Real Wages",
   category: "macro",
   iconUrl: widgetIcon("real-wages"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 3, minW: 1, minH: 1 },
   description:
     "Are paychecks outrunning inflation? A two-line chart comparing year-over-year average hourly earnings growth against year-over-year CPI inflation — when earnings run above CPI, real (inflation-adjusted) pay is rising. Monthly macro context, not a live feed. Keyless (BLS).",
   capabilities: ["macro-series"],
@@ -5066,7 +5066,7 @@ export const laborForceFlowMeta = defineFrameMeta({
   label: "Labor Force Flow",
   category: "macro",
   iconUrl: widgetIcon("labor-force-flow"),
-  layout: { w: 6, h: 3, minW: 3, minH: 2 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "The unemployment rate and the labor-force participation rate plotted together over time — a rising unemployment rate alongside a falling participation rate points to people leaving the workforce rather than finding jobs. Monthly macro context, not a live feed. Keyless (BLS).",
   capabilities: ["macro-series"],
@@ -5087,7 +5087,7 @@ export const payrollsBarsMeta = defineFrameMeta({
   label: "Payrolls Bars",
   category: "macro",
   iconUrl: widgetIcon("payrolls-bars"),
-  layout: { w: 6, h: 3, minW: 3, minH: 3 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 4 },
   description:
     "Monthly nonfarm payrolls net change as a diverging bar chart — jobs added up in green, jobs cut down in red. The chart-first sibling of the Labor Market frame's headline figure. Monthly macro data, not a live feed. Keyless (BLS).",
   capabilities: ["macro-series"],
@@ -5108,7 +5108,7 @@ export const shortVolumeBarsMeta = defineFrameMeta({
   label: "Short Volume Bars",
   category: "equities",
   iconUrl: widgetIcon("short-volume-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2, maxH: 4 },
   description:
     "Daily reported short-sale volume for a watchlist of US-listed stocks, ranked highest-first as a horizontal bar chart — the chart-first sibling of the Short Volume list. IMPORTANT: this is reported short volume (sell-side short flow, including market-maker hedging), NOT short interest, and is not a directional signal on its own. Daily data published the next business day; not a live feed. US equities only. (FINRA).",
   capabilities: ["short-volume"],
@@ -5131,7 +5131,7 @@ export const capitalStructureBarsMeta = defineFrameMeta({
   label: "Capital Structure Bars",
   category: "equities",
   iconUrl: widgetIcon("capital-structure-bars"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 2, minH: 1 },
   description:
     "One company's balance-sheet shape as a horizontal bar chart — total assets, shareholders' equity, and liabilities (derived as assets minus equity) — from SEC EDGAR XBRL company facts. Updates only when the company files (annual/quarterly), not a live feed. Requires the zframes runtime's data proxy (ships with `zframes serve` / `vite dev`); resolve by ticker (bundled top-500 map) or raw SEC CIK. (SEC EDGAR).",
   capabilities: ["fundamentals"],
@@ -5151,7 +5151,7 @@ export const filingsMixMeta = defineFrameMeta({
   label: "Filings Mix",
   category: "equities",
   iconUrl: widgetIcon("filings-mix"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxW: 4, maxH: 5 },
   description:
     "What kind of paper is one company actually filing? A donut of recent SEC EDGAR filings bucketed into periodic & material reports (10-K, 10-Q, 8-K, registrations, proxies, activist stakes…), insider ownership forms (3/4/5/144), and everything else — the chart-first sibling of the Filings Feed. Official data from SEC's free, CORS-safe submissions endpoint; event-driven, not a price feed. Resolve by ticker (bundled top-500 map) or raw SEC CIK. (SEC EDGAR).",
   capabilities: ["filings"],
@@ -5172,7 +5172,7 @@ export const fxCrossHeatmapMeta = defineFrameMeta({
   label: "FX Cross Heatmap",
   category: "macro",
   iconUrl: widgetIcon("fx-cross-heatmap"),
-  layout: { w: 6, h: 4, minW: 4, minH: 4 },
+  layout: { w: 6, h: 4, minW: 4, minH: 2 },
   description:
     "A full currency × currency cross-rate matrix as a heatmap — each cell is the day-over-day % change of that specific cross, derived from every listed currency's rate vs a common pivot, green up / red down. Spots which cross is moving hardest across an entire currency set, not just one pair at a time. Keyless (Frankfurter/ECB).",
   capabilities: ["fx-rates"],
@@ -5194,7 +5194,7 @@ export const etfIssuerTreemapMeta = defineFrameMeta({
   label: "ETF Issuer Treemap",
   category: "crypto",
   iconUrl: widgetIcon("etf-issuer-treemap"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 2, minH: 3 },
   description:
     "Spot BTC or ETH ETF issuers as a treemap — tile size by assets under management, tint green/red by that issuer's net flow today. Shows who holds the most AND who's gathering or losing assets right now, in one view. Best-effort; may be empty if the source is unavailable. Keyless (SoSoValue).",
   capabilities: ["etf-flows"],
@@ -5220,7 +5220,7 @@ export const fxTrendChartMeta = defineFrameMeta({
   label: "FX Trend Chart",
   category: "macro",
   iconUrl: widgetIcon("fx-trend-chart"),
-  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  layout: { w: 6, h: 3, minW: 5, minH: 3, maxH: 5 },
   description:
     "Several currencies' recent trend vs a base, each indexed to 0% at the start of the window so wildly different-magnitude pairs (JPY vs CHF) compare cleanly on one chart. The multi-line sibling of the FX Board. Keyless (Frankfurter/ECB).",
   capabilities: ["fx-rates"],
@@ -5250,7 +5250,7 @@ export const fearGreedChartMeta = defineFrameMeta({
   label: "Fear & Greed Chart",
   category: "sentiment",
   iconUrl: widgetIcon("fear-greed-chart"),
-  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 5 },
   description:
     "Crypto Fear & Greed index over time as a line chart — the mood swing from extreme fear to extreme greed across a wide window, the line tinted by the latest reading. The chart-first sibling of the Fear & Greed card. Keyless (alternative.me).",
   capabilities: ["sentiment"],
@@ -5271,7 +5271,7 @@ export const sentimentCalendarMeta = defineFrameMeta({
   label: "Sentiment Calendar",
   category: "sentiment",
   iconUrl: widgetIcon("sentiment-calendar"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3 },
   description:
     "The Fear & Greed index as a calendar heatmap — one square per day, red below the neutral 50 and green above, so a year of market mood reads as blocks of regime rather than a wandering line. Shows what the line chart makes hard: how long fear actually persisted, and whether greed arrived gradually or overnight. Intensity is ranked within the window, so the calmest and most extreme days in view are always distinguishable. Keyless (alternative.me).",
   capabilities: ["sentiment"],
@@ -5300,7 +5300,7 @@ export const predictionMarketBarsMeta = defineFrameMeta({
   label: "Prediction Market Bars",
   category: "sentiment",
   iconUrl: widgetIcon("prediction-market-bars"),
-  layout: { w: 5, h: 5, minW: 4, minH: 4 },
+  layout: { w: 5, h: 5, minW: 3, minH: 3, maxH: 5 },
   description:
     "Live Polymarket odds as a horizontal bar chart — the highest-volume open prediction markets ranked by trailing-24h volume. The chart-first sibling of the Prediction Markets list. Keyless (Polymarket).",
   capabilities: ["prediction-markets"],
@@ -5322,7 +5322,7 @@ export const dxyChartMeta = defineFrameMeta({
   label: "Dollar Index Chart",
   category: "macro",
   iconUrl: widgetIcon("dxy-chart"),
-  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  layout: { w: 6, h: 3, minW: 4, minH: 3, maxH: 5 },
   description:
     "US Dollar Index (DXY) as a line chart over time — the dollar's trend vs a basket of six major currencies, tinted green/red by its own direction. The chart-first sibling of the Dollar Index card. Keyless (Frankfurter/ECB).",
   capabilities: ["dollar-index"],
@@ -5335,7 +5335,7 @@ export const fxMoversBarsMeta = defineFrameMeta({
   label: "FX Movers Bars",
   category: "macro",
   iconUrl: widgetIcon("fx-movers-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "A currency set's day-over-day % change vs a base as a diverging bar chart — strengthening currencies right in green, weakening left in red, ranked by move. The chart-first sibling of the FX Board. Keyless (Frankfurter/ECB).",
   capabilities: ["fx-rates"],
@@ -5364,7 +5364,7 @@ export const predictionMarketScatterMeta = defineFrameMeta({
   label: "Prediction Market Scatter",
   category: "sentiment",
   iconUrl: widgetIcon("prediction-market-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "Live Polymarket odds as a bubble scatter — each market's top-outcome probability on the x-axis, trailing-24h volume on a log y-axis, bubble size by volume. Surfaces high-conviction, high-volume markets versus thin long shots. The chart-first sibling of the Prediction Markets list. Keyless (Polymarket).",
   capabilities: ["prediction-markets"],
@@ -5385,7 +5385,7 @@ export const etfIssuerBarsMeta = defineFrameMeta({
   label: "ETF Issuer Bars",
   category: "crypto",
   iconUrl: widgetIcon("etf-issuer-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2, maxH: 4 },
   description:
     "Spot BTC or ETH ETF issuers' daily net flow as a diverging bar chart — inflows right in green, outflows left in red, ranked by size. The chart-first sibling of the Spot ETF Flows list. Best-effort; may be empty if the source is unavailable. Keyless (SoSoValue).",
   capabilities: ["etf-flows"],
@@ -5411,7 +5411,7 @@ export const portfolioMoversMeta = defineFrameMeta({
   label: "Portfolio Movers",
   category: "portfolio",
   iconUrl: widgetIcon("portfolio-movers"),
-  layout: { w: 4, h: 5, minW: 3, minH: 4 },
+  layout: { w: 4, h: 5, minW: 2, minH: 3, maxH: 5 },
   description:
     "Your connected portfolio's holdings as a diverging bar chart of 24h price change — gainers right in green, losers left in red. Source is a connected Binance account (read-only key, in-app) or a public on-chain wallet address. Only holdings the source reports a 24h change for are shown — currently that's on-chain wallet holdings (priced via CoinGecko); a Binance-only portfolio will show its empty state until the account layer adds a price-change feed. Renders a connect prompt until a source is set.",
   capabilities: ["portfolio"],
@@ -5433,7 +5433,7 @@ export const portfolioValueBarsMeta = defineFrameMeta({
   label: "Portfolio Value Bars",
   category: "portfolio",
   iconUrl: widgetIcon("portfolio-value-bars"),
-  layout: { w: 4, h: 5, minW: 3, minH: 4 },
+  layout: { w: 4, h: 5, minW: 2, minH: 3, maxH: 5 },
   description:
     "Your connected portfolio's positions as a horizontal bar chart ranked by live USD value, largest first. The chart-first sibling of the Portfolio Holdings table. Source is a connected Binance account (read-only key, in-app) or a public on-chain wallet address. Renders a connect prompt until a source is set.",
   capabilities: ["portfolio", "quote-stream"],
@@ -5455,7 +5455,7 @@ export const etfFlowCalendarMeta = defineFrameMeta({
   label: "ETF Flow Calendar",
   category: "crypto",
   iconUrl: widgetIcon("etf-flow-calendar"),
-  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  layout: { w: 6, h: 5, minW: 3, minH: 3 },
   description:
     "Spot BTC or ETH ETF daily net flows as a GitHub-style calendar heatmap — one square per day, weeks running left to right, green for inflow days and red for outflow days (intensity ranked within the window, so one record day can't wash out the rest). Surfaces the weekly inflow/outflow rhythm the daily bar chart doesn't show at a glance, and the market holidays where there is simply no print. Keyless (SoSoValue); best-effort, may be empty if the source is unavailable.",
   capabilities: ["etf-flows"],
@@ -5477,7 +5477,7 @@ export const predictionMarketsBubbleMeta = defineFrameMeta({
   label: "Prediction Markets Bubbles",
   category: "sentiment",
   iconUrl: widgetIcon("prediction-markets-bubble"),
-  layout: { w: 6, h: 5, minW: 4, minH: 3 },
+  layout: { w: 6, h: 5, minW: 4, minH: 2 },
   description:
     "Live Polymarket odds as a floating bubble cloud — one bubble per open market, sized by 24h volume, tinted by how confident the leading outcome is (muted near a toss-up, vivid green near certain). The chart-first sibling of the Prediction Markets list. Keyless (Polymarket Gamma API).",
   capabilities: ["prediction-markets"],
@@ -5514,7 +5514,7 @@ export const metalsBoardMeta = defineFrameMeta({
   label: "Metals Board",
   category: "metals",
   iconUrl: widgetIcon("metals-board"),
-  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  layout: { w: 3, h: 4, minW: 2, minH: 2 },
   description:
     "Live spot board for the metals complex — gold, silver, platinum, palladium and copper — each with its current price and its move against the most recent London fix. Keyless spot quotes; the metals equivalent of a crypto ticker list.",
   capabilities: ["metal-spot"],
@@ -5540,7 +5540,7 @@ export const metalPriceMeta = defineFrameMeta({
   label: "Metal Price",
   category: "metals",
   iconUrl: widgetIcon("metal-price"),
-  layout: { w: 3, h: 2, minW: 2, minH: 2 },
+  layout: { w: 3, h: 2, minW: 2, minH: 2, maxW: 3, maxH: 2 },
   description:
     "One metal's live spot price as a headline number, in the weight unit you pick (troy ounce, gram, kilogram or tola). The single-asset hero card for a gold or silver dashboard.",
   capabilities: ["metal-spot"],
@@ -5570,7 +5570,7 @@ export const metalValueMeta = defineFrameMeta({
   label: "Metal Holding Value",
   category: "metals",
   iconUrl: widgetIcon("metal-value"),
-  layout: { w: 3, h: 2, minW: 2, minH: 2 },
+  layout: { w: 3, h: 2, minW: 2, minH: 2, maxW: 3, maxH: 2 },
   description:
     "What a physical holding is worth right now: a weight you own, multiplied by live spot. Set the weight and unit once and the card revalues itself as the metal moves.",
   capabilities: ["metal-spot"],
@@ -5600,7 +5600,7 @@ export const metalPriceChartMeta = defineFrameMeta({
   label: "Metal Price Chart",
   category: "metals",
   iconUrl: widgetIcon("metal-price-chart"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 4, minH: 4, maxH: 5 },
   description:
     "Daily London fix history for one or more metals — the benchmark price the physical market settles against, published by the LBMA and running back to 1968 for gold and silver. Set the window in years and switch to a log axis for multi-decade views.",
   capabilities: ["metal-history"],
@@ -5634,7 +5634,7 @@ export const metalDrawdownMeta = defineFrameMeta({
   label: "Metal Drawdown",
   category: "metals",
   iconUrl: widgetIcon("metal-drawdown"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "How far a metal sits below its running all-time high, charted through history. Gold's decades-long post-1980 underwater stretch is the clearest picture of what a real bear market in bullion looks like.",
   capabilities: ["metal-history"],
@@ -5653,7 +5653,7 @@ export const metalAnnualReturnsMeta = defineFrameMeta({
   label: "Metal Annual Returns",
   category: "metals",
   iconUrl: widgetIcon("metal-annual-returns"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 6, minH: 3, maxH: 4 },
   description:
     "Calendar-year percent return per year as diverging bars — green up years, red down years — from the LBMA fix history. The at-a-glance record of how often, and how hard, a metal actually delivers.",
   capabilities: ["metal-history"],
@@ -5680,7 +5680,7 @@ export const metalSeasonalityMeta = defineFrameMeta({
   label: "Metal Seasonality",
   category: "metals",
   iconUrl: widgetIcon("metal-seasonality"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 6, minH: 3 },
   description:
     "Month-by-year heatmap of monthly percent returns, with each month's long-run average underneath — the standard way to look for seasonal patterns in gold and silver without eyeballing a price chart.",
   capabilities: ["metal-history"],
@@ -5706,7 +5706,7 @@ export const metalVolatilityMeta = defineFrameMeta({
   label: "Metal Volatility",
   category: "metals",
   iconUrl: widgetIcon("metal-volatility"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "Rolling annualised realised volatility from daily fixes — how violent the metal has actually been, not what options imply. Quiet gold sits near 10%; a crisis takes it past 30%.",
   capabilities: ["metal-history"],
@@ -5734,7 +5734,7 @@ export const goldSilverRatioMeta = defineFrameMeta({
   label: "Gold/Silver Ratio",
   category: "metals",
   iconUrl: widgetIcon("gold-silver-ratio"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 3, maxH: 4 },
   description:
     "How many ounces of silver one ounce of gold buys — the oldest relative-value gauge in metals. Shows the live ratio, where it sits in its own historical range, and the trend.",
   capabilities: ["metal-history"],
@@ -5759,7 +5759,7 @@ export const metalRatioChartMeta = defineFrameMeta({
   label: "Metal Ratio Chart",
   category: "metals",
   iconUrl: widgetIcon("metal-ratio-chart"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "The price of any metal divided by any other, charted over time — gold/silver, gold/platinum, platinum/palladium. Relative value between two metals, free of the dollar's own trend.",
   capabilities: ["metal-history"],
@@ -5785,7 +5785,7 @@ export const metalCompareChartMeta = defineFrameMeta({
   label: "Metal Compare",
   category: "metals",
   iconUrl: widgetIcon("metal-compare-chart"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 5, minH: 4, maxH: 5 },
   description:
     "Several metals rebased to 0% at the start of the window so a $4,000 gold and a $58 silver compare on one axis. The relative-performance race across the complex.",
   capabilities: ["metal-history"],
@@ -5806,7 +5806,7 @@ export const metalPerformanceMeta = defineFrameMeta({
   label: "Metal Performance",
   category: "metals",
   iconUrl: widgetIcon("metal-performance"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "One metal's return across standard horizons — 1M, 3M, 6M, YTD, 1Y, 5Y, 10Y, 20Y — as diverging bars. Switch to annualised to compare long horizons honestly instead of letting a 20-year number dwarf everything.",
   capabilities: ["metal-history"],
@@ -5830,7 +5830,7 @@ export const metalAthMeta = defineFrameMeta({
   label: "Metal ATH Watch",
   category: "metals",
   iconUrl: widgetIcon("metal-ath"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 3, maxH: 4 },
   description:
     "All-time-high watch from the full fix history: the record price and when it was set, how far below it the metal trades now, and how long it has been since the last record.",
   capabilities: ["metal-history"],
@@ -5848,7 +5848,7 @@ export const metalFixTableMeta = defineFrameMeta({
   label: "London Fix Table",
   category: "metals",
   iconUrl: widgetIcon("metal-fix-table"),
-  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  layout: { w: 3, h: 4, minW: 3, minH: 2, maxH: 7 },
   description:
     "The most recent daily London fixes as a table — date, fix price and the day-over-day change. The settlement prints themselves, for anyone who prices contracts off the fix rather than off spot.",
   capabilities: ["metal-history"],
@@ -5879,7 +5879,7 @@ export const metalMilestonesMeta = defineFrameMeta({
   label: "Metal Milestones",
   category: "metals",
   iconUrl: widgetIcon("metal-milestones"),
-  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  layout: { w: 3, h: 4, minW: 2, minH: 2 },
   description:
     "When the metal first crossed each round-number price — $100, $500, $1,000, $2,000 — and how long each leg took. A timeline only decades of fix history can tell, and the most human way to read gold's long climb.",
   capabilities: ["metal-history"],
@@ -5903,7 +5903,7 @@ export const metalReturnDistributionMeta = defineFrameMeta({
   label: "Return Distribution",
   category: "metals",
   iconUrl: widgetIcon("metal-return-distribution"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Histogram of the metal's periodic returns over decades, with the mean marked — how fat the tails really are, rather than the tidy bell curve risk models assume.",
   capabilities: ["metal-history"],
@@ -5928,7 +5928,7 @@ export const metalsCorrelationMeta = defineFrameMeta({
   label: "Metals Correlation",
   category: "metals",
   iconUrl: widgetIcon("metals-correlation"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2 },
   description:
     "Correlation matrix of daily returns across gold, silver, platinum and palladium over a chosen window — which metals actually move together, and which only look like they do.",
   capabilities: ["metal-history"],
@@ -5946,7 +5946,7 @@ export const metalRatioPercentileMeta = defineFrameMeta({
   label: "Metal Ratio Percentile",
   category: "metals",
   iconUrl: widgetIcon("metal-ratio-percentile"),
-  layout: { w: 5, h: 5, minW: 4, minH: 4 },
+  layout: { w: 5, h: 5, minW: 3, minH: 3, maxH: 5 },
   description:
     "Where one metal's price against another sits in its OWN history: the live ratio as the headline, its percentile inside the chosen window, and a histogram of every daily fix in that window with today marked. The question a ratio line chart can't answer — an 84 gold/silver only means something next to the distribution it came from. Also reports the window's low, median and high.",
   capabilities: ["metal-history"],
@@ -5977,7 +5977,7 @@ export const metalRollingCorrelationMeta = defineFrameMeta({
   label: "Metal Rolling Correlation",
   category: "metals",
   iconUrl: widgetIcon("metal-rolling-correlation"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "Rolling correlation of two metals' daily log returns, charted through time — whether silver is still tracking gold, or the relationship has broken. The regime view the static correlation matrix can't give, since that reports one number for one window. Switch the metric to beta to read how much the quote leg amplifies or damps the base's moves instead.",
   capabilities: ["metal-history"],
@@ -6023,7 +6023,7 @@ export const btcInGoldMeta = defineFrameMeta({
   label: "BTC in Gold",
   category: "metals",
   iconUrl: widgetIcon("btc-in-gold"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "Bitcoin priced in ounces of gold instead of dollars — how many ounces one BTC buys, charted over time. The clean way to ask whether Bitcoin is beating the oldest hard asset or just the dollar.",
   capabilities: ["metal-history", "price-history-daily"],
@@ -6048,7 +6048,7 @@ export const metalCotNetMeta = defineFrameMeta({
   label: "COT Net Positioning",
   category: "metals",
   iconUrl: widgetIcon("metal-cot-net"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 4, maxH: 6 },
   description:
     "Net speculative positioning from the CFTC's weekly Commitments of Traders — non-commercial longs minus shorts, against a zero line. Crowded longs have marked local tops in gold for decades.",
   capabilities: ["metal-positioning"],
@@ -6079,7 +6079,7 @@ export const metalCotBreakdownMeta = defineFrameMeta({
   label: "COT Trader Breakdown",
   category: "metals",
   iconUrl: widgetIcon("metal-cot-breakdown"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 4, minW: 3, minH: 4 },
   description:
     "The latest COT week split by trader class — non-commercial speculators, commercial hedgers and small traders — as opposing long and short bars, plus each group's net and its week-over-week change.",
   capabilities: ["metal-positioning"],
@@ -6097,7 +6097,7 @@ export const metalCotGaugeMeta = defineFrameMeta({
   label: "COT Positioning Gauge",
   category: "metals",
   iconUrl: widgetIcon("metal-cot-gauge"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 2, minH: 3, maxW: 5, maxH: 5 },
   description:
     "Where speculative net positioning sits inside its own historical range, as a dial from washed-out short to crowded long — a contrarian sentiment gauge built from the CFTC's own weekly numbers.",
   capabilities: ["metal-positioning"],
@@ -6123,7 +6123,7 @@ export const metalOpenInterestMeta = defineFrameMeta({
   label: "Futures Open Interest",
   category: "metals",
   iconUrl: widgetIcon("metal-open-interest"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "Total open interest in the metal's US futures contract, weekly from the CFTC — in contracts, in ounces, or in dollar notional at today's spot. How much paper claim sits on top of the physical market.",
   capabilities: ["metal-positioning", "metal-spot"],
@@ -6155,7 +6155,7 @@ export const metalRealPriceMeta = defineFrameMeta({
   label: "Real Price",
   category: "metals",
   iconUrl: widgetIcon("metal-real-price"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 6 },
   description:
     "The daily London fix deflated by US CPI into TODAY's dollars, drawn beside the price as published. A commodity has no earnings, so its inflation-adjusted price IS its valuation history — this is the card that answers whether a nominal record is a real record, and gold's January 1980 peak restated in today's money is the reference every all-time-high headline leaves out. The headline names the real record and how far below it the metal sits. Always reads the USD fix series (US CPI can only deflate dollars), and carries each monthly CPI print forward across its days rather than interpolating one.",
   capabilities: ["metal-history", "macro-reference-series"],
@@ -6184,7 +6184,7 @@ export const metalVsMacroMeta = defineFrameMeta({
   label: "Metal vs Macro",
   category: "metals",
   iconUrl: widgetIcon("metal-vs-macro"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "A metal against the macro variable it is supposed to answer to — the 10-year real yield, the broad dollar, or the inflation breakeven — plus the trailing correlation of their daily CHANGES, which is the number that says whether the textbook relationship still holds (levels would correlate near ±1 for any two trending series and say nothing). The chart layer has a single y-axis and the legs are in different units, so each is scaled to its own window range (0 = window low, 100 = window high) while the header keeps both legs' real values.",
   capabilities: ["metal-history", "macro-reference-series"],
@@ -6218,7 +6218,7 @@ export const commodityVolRegimeMeta = defineFrameMeta({
   // Two stacked plots (history 140px + distribution 92px) plus a header and a
   // caption, so the minimum is 5 rows, not the family's usual 3 — at 4 the
   // distribution strip is what clips.
-  layout: { w: 5, h: 5, minW: 4, minH: 5 },
+  layout: { w: 5, h: 5, minW: 3, minH: 4, maxH: 6 },
   description:
     "Cboe's implied-volatility index for gold, silver, gold miners or crude — the level, where it ranks inside its own history, and the distribution it is ranked against. A volatility number alone answers nothing: 23% is cheap for miners and dear for gold, so the percentile is the reading, and the histogram shows what today's level is being compared with. The metals counterpart of a VIX card. These are volatility percentages, not money.",
   capabilities: ["commodity-vol-index"],
@@ -6245,7 +6245,7 @@ export const metalCotDisaggregatedMeta = defineFrameMeta({
   label: "COT Disaggregated",
   category: "metals",
   iconUrl: widgetIcon("metal-cot-disaggregated"),
-  layout: { w: 5, h: 6, minW: 4, minH: 4 },
+  layout: { w: 5, h: 6, minW: 4, minH: 5 },
   description:
     "The CFTC's disaggregated Commitments of Traders — the five real trader classes (producers and merchants, swap dealers, managed money, other reportables, small traders) as opposing long and short bars, each with the agency's own week-over-week change and its share of open interest. Pick this over COT Trader Breakdown whenever the question is WHO holds the position: the legacy report's single \"commercial\" bucket adds miner hedging to swap-dealer bank shorts, which are opposite stories in metals, and conflating them is the most common misreading of gold positioning. A history view charts each class's net across the weekly reports instead.",
   capabilities: ["metal-positioning"],
@@ -6279,7 +6279,7 @@ export const metalCotConcentrationMeta = defineFrameMeta({
   label: "COT Concentration",
   category: "metals",
   iconUrl: widgetIcon("metal-cot-concentration"),
-  layout: { w: 5, h: 6, minW: 4, minH: 4 },
+  layout: { w: 5, h: 6, minW: 5, minH: 6 },
   description:
     "How few hands hold the market — the CFTC's concentration columns: the share of the market's longs and shorts sitting in the largest 4 and 8 traders, each drawn against the whole market, plus how many distinct traders hold each side of each class. Gold routinely runs above half of its gross shorts in four traders. The commodity analogue of equity ownership concentration, and only the disaggregated report (June 2006 onward) publishes it at all.",
   capabilities: ["metal-positioning"],
@@ -6318,7 +6318,7 @@ export const metalCotPercentileMeta = defineFrameMeta({
   label: "COT Percentile",
   category: "metals",
   iconUrl: widgetIcon("metal-cot-percentile"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 4, minH: 3, maxH: 5 },
   description:
     "Scores this week's COT net position against its own history: the percentile and z-score of the chosen trader class's net, drawn over a histogram of every week in the window with today marked. Pick it when the question is whether a positioning level is crowded rather than what it is — 180k contracts net long is either ordinary or a record, and only the distribution says which.",
   capabilities: ["metal-positioning"],
@@ -6352,7 +6352,7 @@ export const metalSpecNotionalMeta = defineFrameMeta({
   label: "Spec Net Notional",
   category: "metals",
   iconUrl: widgetIcon("metal-spec-notional"),
-  layout: { w: 5, h: 4, minW: 4, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 4, maxH: 6 },
   description:
     "How much money the futures crowd actually has riding on the metal: net speculative contracts × contract size × live spot, as a dollar headline with its weekly history. Every week in the series is valued at TODAY's spot, so the line isolates the change in positioning — it is deliberately NOT a mark-to-market of what the position was worth at the time.",
   capabilities: ["metal-positioning", "metal-spot"],
@@ -6382,7 +6382,7 @@ export const metalPositioningVsPriceMeta = defineFrameMeta({
   label: "Positioning vs Price",
   category: "metals",
   iconUrl: widgetIcon("metal-positioning-vs-price"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 4, minH: 4, maxH: 5 },
   description:
     "Net speculative positioning and the metal's price on one rebased chart, so you can see whether a rally is being led by the futures crowd or happening in spite of them — and where the two have diverged.",
   capabilities: ["metal-positioning", "metal-history"],
@@ -6409,7 +6409,7 @@ export const usGoldReserveMeta = defineFrameMeta({
   label: "US Gold Reserve",
   category: "metals",
   iconUrl: widgetIcon("us-gold-reserve"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "The U.S. Treasury's official gold holding from its own monthly status report: total fine ounces, the statutory book value that still carries it at $42.22/oz, and what the same metal is worth at today's spot. The gap between the two is the headline.",
   capabilities: ["gold-reserve", "metal-spot"],
@@ -6429,7 +6429,7 @@ export const usGoldVaultsMeta = defineFrameMeta({
   label: "US Gold Vaults",
   category: "metals",
   iconUrl: widgetIcon("us-gold-vaults"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2, maxW: 11 },
   description:
     "Where the U.S. official gold physically sits — Fort Knox, West Point, Denver, the New York Fed vault and Mint working stock — sized by fine ounces, straight from the Treasury's monthly report.",
   capabilities: ["gold-reserve"],
@@ -6567,7 +6567,7 @@ export const indexLevelChartMeta = defineFrameMeta({
   label: "Index Level Chart",
   category: "markets",
   iconUrl: widgetIcon("index-level-chart"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "Daily level history for a major US market index — the S&P 500, the VIX, or the Nasdaq Composite — as a line chart with its latest print and move. Read from FRED's keyless public CSV, so it needs no market-data key; use it for the long-run index picture rather than a live intraday tick.",
   capabilities: ["index-level"],
@@ -6601,7 +6601,7 @@ export const creditSpreadChartMeta = defineFrameMeta({
   label: "Credit Spread Chart",
   category: "macro",
   iconUrl: widgetIcon("credit-spread-chart"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 6 },
   description:
     "US corporate credit spreads — the ICE BofA high-yield and investment-grade option-adjusted spreads over Treasuries, charted together in percentage points. The market's own price of default risk and one of the cleanest risk-on/risk-off reads there is: spreads widen before equities notice. Keyless (FRED).",
   capabilities: ["credit-spread"],
@@ -6633,7 +6633,7 @@ export const homePriceIndexMeta = defineFrameMeta({
   label: "Home Price Index",
   category: "macro",
   iconUrl: widgetIcon("home-price-index"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 6 },
   description:
     "The Case-Shiller US National Home Price Index — the benchmark measure of American house prices, monthly back to 1987, indexed to January 2000 = 100. Shows the latest print, the year-over-year change, and the full history including the 2006 peak and the 2012 trough. Keyless (FRED).",
   capabilities: ["housing-price"],
@@ -6663,7 +6663,7 @@ export const mortgageRateChartMeta = defineFrameMeta({
   label: "Mortgage Rate Chart",
   category: "macro",
   iconUrl: widgetIcon("mortgage-rate-chart"),
-  layout: { w: 6, h: 3, minW: 4, minH: 3 },
+  layout: { w: 6, h: 3, minW: 3, minH: 3, maxH: 5 },
   description:
     "The US 30-year fixed mortgage rate — the Freddie Mac weekly benchmark, back to 1971 — charted with its latest print and week-over-week move in basis points. The rate that actually sets housing affordability, and a cleaner read on long-end policy transmission than the 10-year yield. Keyless (FRED).",
   capabilities: ["mortgage-rate"],
@@ -6687,7 +6687,7 @@ export const regionalHomePricesMeta = defineFrameMeta({
   label: "Regional Home Prices",
   category: "macro",
   iconUrl: widgetIcon("regional-home-prices"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "The FHFA House Price Index per state or metro, quarterly back to 1975 — several regions charted together so divergence is visible, which a single national index averages away. The regulator's own repeat-sales index; keyless (FHFA).",
   capabilities: ["regional-housing-price"],
@@ -6730,7 +6730,7 @@ export const metroHomeValuesMeta = defineFrameMeta({
   label: "Metro Home Values",
   category: "macro",
   iconUrl: widgetIcon("metro-home-values"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2 },
   description:
     "What a typical home actually costs, metro by metro — the Zillow Home Value Index in dollars (not index points), each row with its latest value and year-over-year change, ranked. The one house-price source on the board denominated in money, so it answers 'what would a house cost me there' rather than 'how much have prices risen'. Keyless (Zillow), monthly.",
   capabilities: ["home-value-index"],
@@ -6768,7 +6768,7 @@ export const homeValueChartMeta = defineFrameMeta({
   label: "Home Value Chart",
   category: "macro",
   iconUrl: widgetIcon("home-value-chart"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 4, minH: 3, maxH: 5 },
   description:
     "Typical home value over time for one or more metros — the Zillow Home Value Index charted in dollars, monthly back to 2000. The chart-first sibling of Metro Home Values: use it to see the 2006 peak, the 2012 bottom and the post-2020 run in actual money rather than index points. Keyless (Zillow).",
   capabilities: ["home-value-index"],
@@ -6799,7 +6799,7 @@ export const indexLevelMeta = defineFrameMeta({
   label: "Index Level",
   category: "markets",
   iconUrl: widgetIcon("index-level"),
-  layout: { w: 3, h: 3, minW: 2, minH: 2 },
+  layout: { w: 3, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
     "One market index as a headline number — the S&P 500, VIX or Nasdaq Composite's latest level, its move, and a sparkline of recent history. The compact card sibling of the Index Level Chart, for a board that wants the number rather than the shape. Keyless (FRED).",
   capabilities: ["index-level"],
@@ -6825,7 +6825,7 @@ export const indexDrawdownMeta = defineFrameMeta({
   label: "Index Drawdown",
   category: "markets",
   iconUrl: widgetIcon("index-drawdown"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 5 },
   description:
     "How far a market index sits below its own record, charted over time — the underwater curve. Every trough is a bear market and the flat stretches at zero are the runs at new highs; on the Nasdaq's full history the dot-com drawdown bottoms near −78%. Reads honestly on any window because the peak is tracked as the series runs. Keyless (FRED).",
   capabilities: ["index-level"],
@@ -6854,7 +6854,7 @@ export const indexAnnualReturnsMeta = defineFrameMeta({
   label: "Index Annual Returns",
   category: "markets",
   iconUrl: widgetIcon("index-annual-returns"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Calendar-year percent returns for a market index as diverging bars — green up years, red down ones, one bar per year. Shows how lumpy equity returns actually are, and how rare the down years look next to the up ones. Keyless (FRED).",
   capabilities: ["index-level"],
@@ -6879,7 +6879,7 @@ export const vixGaugeMeta = defineFrameMeta({
   label: "VIX Gauge",
   category: "markets",
   iconUrl: widgetIcon("vix-gauge"),
-  layout: { w: 3, h: 4, minW: 2, minH: 3 },
+  layout: { w: 3, h: 4, minW: 2, minH: 3, maxW: 4, maxH: 4 },
   description:
     "The VIX as a volatility-regime dial — the index level on an arc with its regime named: calm (under 15), normal (15–20), elevated (20–30), stressed (30–40) or panic (above 40). The options market's price of the next 30 days of S&P movement, read as a state rather than a number. Keyless (FRED).",
   capabilities: ["index-level"],
@@ -6903,7 +6903,7 @@ export const creditQualityGapMeta = defineFrameMeta({
   label: "Credit Quality Gap",
   category: "macro",
   iconUrl: widgetIcon("credit-quality-gap"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 4, minH: 3, maxH: 5 },
   description:
     "The high-yield minus investment-grade spread — what the market charges for junk over quality, in percentage points. A single line that isolates credit RISK APPETITE from the level of rates: both spreads move together when Treasuries move, so the gap between them is the cleaner read, and it widens before equities notice. Shows where today sits in the charted window's range. Keyless (FRED).",
   capabilities: ["credit-spread"],
@@ -6926,7 +6926,7 @@ export const mortgagePaymentMeta = defineFrameMeta({
   label: "Mortgage Payment",
   category: "macro",
   iconUrl: widgetIcon("mortgage-payment"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "What buying a typical home in one metro actually costs per month — the Zillow home value and the live 30-year fixed rate combined into a principal-and-interest payment, with the loan size and rate shown. This is the affordability question neither source answers alone: the index says prices rose, the rate says borrowing got dearer, and only the payment says whether a buyer can pay. Keyless (Zillow + FRED).",
   capabilities: ["home-value-index", "mortgage-rate"],
@@ -6963,7 +6963,7 @@ export const homeValueBarsMeta = defineFrameMeta({
   label: "Home Value Bars",
   category: "macro",
   iconUrl: widgetIcon("home-value-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "Typical home value per metro as ranked horizontal bars — the price gap between coastal and inland America at a glance, in dollars rather than index points. The bar-chart sibling of Metro Home Values. Keyless (Zillow), monthly.",
   capabilities: ["home-value-index"],
@@ -6997,7 +6997,7 @@ export const homeValueMomentumMeta = defineFrameMeta({
   label: "Home Value Momentum",
   category: "macro",
   iconUrl: widgetIcon("home-value-momentum"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 4, maxH: 6 },
   description:
     "Year-over-year change in typical home value per metro as diverging bars — which housing markets are still appreciating and which have turned, ranked by move. The level tells you what a house costs; this tells you which direction the market is going. Keyless (Zillow), monthly.",
   capabilities: ["home-value-index"],
@@ -7032,7 +7032,7 @@ export const homeValueScatterMeta = defineFrameMeta({
   label: "Home Value Scatter",
   category: "macro",
   iconUrl: widgetIcon("home-value-scatter"),
-  layout: { w: 6, h: 4, minW: 4, minH: 3 },
+  layout: { w: 6, h: 4, minW: 3, minH: 3, maxH: 4 },
   description:
     "Every metro plotted by what a home costs (y) against how fast that price is changing (x) — the four quadrants separate expensive-and-cooling from cheap-and-heating, which neither a ranked list nor a single chart shows. Keyless (Zillow), monthly.",
   capabilities: ["home-value-index"],
@@ -7073,7 +7073,7 @@ export const regionalHomePriceBarsMeta = defineFrameMeta({
   label: "Regional Home Price Bars",
   category: "macro",
   iconUrl: widgetIcon("regional-home-price-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 3 },
+  layout: { w: 4, h: 4, minW: 3, minH: 4, maxH: 5 },
   description:
     "Year-over-year change in the FHFA House Price Index per state or metro, as diverging bars ranked by move — the regulator's repeat-sales index showing which regional housing markets are rising and which are falling. The bar-chart sibling of Regional Home Prices; quarterly, keyless (FHFA).",
   capabilities: ["regional-housing-price"],
@@ -7123,7 +7123,7 @@ export const companyProfileMeta = defineFrameMeta({
   label: "Company Profile",
   category: "equities",
   iconUrl: widgetIcon("company-profile"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 2, minH: 2 },
   description:
     "Identity card for one US-listed company — name, exchange, sector and industry, the last sale with its change, market capitalisation, the 52-week range with a marker showing where price sits inside it, average volume, and the dividend and yield when the company pays one. The header a company deep-dive board opens with. Keyless exchange data through the zframes runtime proxy; empty on a static host.",
   capabilities: ["equity-profile"],
@@ -7138,7 +7138,7 @@ export const valuationMultiplesMeta = defineFrameMeta({
   label: "Valuation Multiples",
   category: "equities",
   iconUrl: widgetIcon("valuation-multiples"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 4, minH: 3 },
   description:
     "What the market is paying for one company's earnings, sales and book value — market cap, trailing P/E, P/S, P/B, and the dividend yield, each with the inputs it was computed from. IMPORTANT: no keyless source publishes these ratios, so they are DERIVED here — market cap and price from the exchange, earnings/sales/equity from the latest published annual statements — which means a ratio can lag a fresh quarter and is trailing, never forward. A multiple whose inputs are missing or non-positive is shown as unavailable rather than as a misleading number.",
   capabilities: ["equity-profile", "equity-financials"],
@@ -7156,7 +7156,7 @@ export const financialsTrendMeta = defineFrameMeta({
   category: "equities",
   annotatable: true,
   iconUrl: widgetIcon("financials-trend"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 4, maxH: 6 },
   description:
     "One company's reported financial history as a multi-year line — pick revenue, net income, total assets or shareholders' equity and see the whole series as filed, not just the latest print. Built from SEC EDGAR XBRL company facts, stitched across the XBRL tag changes issuers make mid-history (a single-tag series would simply stop the year the company re-tagged the line). Annual or quarterly cadence. Updates only on filings. Requires the zframes runtime proxy.",
   capabilities: ["fundamentals-history"],
@@ -7184,7 +7184,7 @@ export const marginTrendMeta = defineFrameMeta({
   category: "equities",
   annotatable: true,
   iconUrl: widgetIcon("margin-trend"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 4, maxH: 6 },
   description:
     "How profitable one company is per dollar of sales, across the last four reported fiscal years — gross, operating and net margin as published percentage lines, so margin expansion or compression reads at a glance. The single most telling chart on whether a growth story is also a business. Published exchange figures; updates only when the company reports.",
   capabilities: ["equity-financials"],
@@ -7208,7 +7208,7 @@ export const cashflowTrendMeta = defineFrameMeta({
   // Deliberately NOT annotatable: this draws grouped bars, not a time axis, so
   // an event flag would have nowhere honest to land.
   iconUrl: widgetIcon("cashflow-trend"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 3, minH: 2 },
   description:
     "Where one company's cash actually goes, by fiscal year — operating cash flow, capital expenditure, and free cash flow (operating minus capex) as grouped bars. Cash flow is the line hardest to dress up, so it is the honest counterweight to a rising reported profit. Published exchange figures, in absolute dollars; updates only when the company reports.",
   capabilities: ["equity-financials"],
@@ -7224,7 +7224,7 @@ export const earningsSurpriseMeta = defineFrameMeta({
   label: "Earnings Surprise",
   category: "equities",
   iconUrl: widgetIcon("earnings-surprise"),
-  layout: { w: 5, h: 4, minW: 3, minH: 3 },
+  layout: { w: 5, h: 4, minW: 4, minH: 2 },
   description:
     "Whether one company beats its own guidance — reported EPS against the consensus estimate for each of the last several quarters, as paired bars with the surprise percentage, plus the average beat across the window. A consistent beat rate is a different signal from a single blowout quarter, and this shows which one you are looking at. Keyless exchange data; updates quarterly.",
   capabilities: ["earnings-history"],
@@ -7250,7 +7250,7 @@ export const earningsCountdownMeta = defineFrameMeta({
   label: "Earnings Countdown",
   category: "equities",
   iconUrl: widgetIcon("earnings-countdown"),
-  layout: { w: 3, h: 2, minW: 2, minH: 2 },
+  layout: { w: 3, h: 2, minW: 3, minH: 2, maxW: 4, maxH: 2 },
   description:
     "Days until one company's next scheduled earnings report, with the date, whether it lands before the open or after the close, and the last quarter's result for context. The date comes from the exchange's published calendar — when no date is confirmed yet the card says so rather than guessing one from the filing cadence.",
   capabilities: ["earnings-history"],
@@ -7296,7 +7296,7 @@ export const analystRatingsMeta = defineFrameMeta({
   label: "Analyst Ratings",
   category: "equities",
   iconUrl: widgetIcon("analyst-ratings"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 3 },
   description:
     "What sell-side coverage says about one company — the headline consensus (Buy / Hold / Sell), how many analysts contribute to it, the consensus one-year price target against the live price with the implied upside or downside, and the covering brokers. Sentiment, not fact: a consensus target is an average of opinions and is routinely wrong. Keyless exchange data.",
   capabilities: ["analyst-ratings"],
@@ -7316,7 +7316,7 @@ export const institutionalOwnershipMeta = defineFrameMeta({
   label: "Institutional Ownership",
   category: "equities",
   iconUrl: widgetIcon("institutional-ownership"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 2, maxH: 4 },
   description:
     "How much of one company the institutions hold, and which way they moved last quarter — percent of shares outstanding in institutional hands, the total value of those holdings, and the split between holders that increased versus decreased their position, with the share counts behind each. Aggregated 13F data, so it is a quarter behind by construction. Keyless exchange data.",
   capabilities: ["institutional-ownership"],
@@ -7390,7 +7390,7 @@ export const equityOptionsMaxPainMeta = defineFrameMeta({
   label: "Equity Max Pain",
   category: "derivatives",
   iconUrl: widgetIcon("equity-options-max-pain"),
-  layout: { w: 4, h: 3, minW: 3, minH: 2 },
+  layout: { w: 4, h: 3, minW: 3, minH: 3, maxH: 4 },
   description:
     "The strike at which the most option value expires worthless for holders on one listed stock — total in-the-money payout across the chain plotted per strike, with the minimum (max pain) and the spot price marked, plus the gap between them. A widely-watched folk indicator, not a prediction: it assumes open interest is static and ignores hedging. Keyless Cboe data, delayed ~15 minutes.",
   capabilities: ["options-chain"],

@@ -17,6 +17,19 @@ export default tseslint.config(
       "**/next-env.d.ts", // Next-generated (gitignored) — triple-slash refs
       "**/node_modules/**",
       "packages/cli/runtime/**", // vendored prebuilt bundle (gitignored)
+      // Storybook build output (gitignored). Only present once someone has run
+      // `pnpm --filter @zframes/storybook build` — which the frame-render smoke
+      // test and the frame size-envelope scripts both require — and linting a
+      // bundle fails outright: its `assets/` has no config above it, so ESLint
+      // stops at "couldn't find a configuration file" rather than reporting
+      // anything about the repo.
+      "apps/storybook/storybook-static/**",
+      // ...and the generated stories themselves (gitignored, written by
+      // scripts/gen-stories.ts on predev/prebuild). They are one template
+      // rendered 284 times, they are not in any tsconfig — so every one is a
+      // "not found by the project service" parse error — and typed linting all
+      // 284 exhausts the default heap.
+      "apps/storybook/src/stories/**",
       "apps/*/public/**", // vendored SDKs (e.g. unicornStudio.umd.mjs)
       ".claude/**", // session worktrees + agent config (gitignored)
       ".design-sync/**",

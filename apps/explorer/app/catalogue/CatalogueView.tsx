@@ -29,6 +29,7 @@ import { LikeCount } from "@/app/lib/LikeCount";
 import { useFrameLikes } from "@/app/lib/use-frame-likes";
 import { Input } from "@/app/components/ui/input";
 import FramePlayground from "./FramePlayground";
+import { MinSize } from "./min-size";
 
 const ROW = 96;
 const GAP = 12;
@@ -140,9 +141,17 @@ function FrameCard({
           narrow, and the name plus an affordance matter more than the full
           capability list, which is already only a hint. */}
       <div className="flex items-center justify-between gap-2 border-t border-white/[0.07] px-3 py-2">
-        <code className="truncate font-mono text-xs text-white/70 transition-colors group-hover:text-indigo-200">
-          {def.name}
-        </code>
+        <div className="flex min-w-0 items-center gap-2">
+          <code className="truncate font-mono text-xs text-white/70 transition-colors group-hover:text-indigo-200">
+            {def.name}
+          </code>
+          {/* The size floor sits in the ALWAYS-visible half of the footer, not
+              beside the capability list that hides below `sm`. It is planning
+              information — you need it while choosing frames for a board, not
+              after — and the preview above deliberately shows the frame at its
+              DEFAULT span, which says nothing about how far it can shrink. */}
+          <MinSize layout={def.layout} />
+        </div>
         <div className="flex shrink-0 items-center gap-2">
           {def.capabilities?.length ? (
             <span className="hidden truncate font-mono text-[10px] text-white/55 sm:inline">

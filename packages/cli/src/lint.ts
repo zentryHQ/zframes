@@ -53,6 +53,37 @@ export function lintSpec(spec: DashboardSpec): LintIssue[] {
         message: `overflows the grid: x(${instance.position.x}) + w(${instance.position.w}) > ${spec.grid.columns} columns`,
       });
 
+    // Below the frame's own floor / above its ceiling. Unlike every other check
+    // here this one has no runtime symptom at all — the CSS-grid renderer
+    // ignores `layout`, so an undersized card renders happily with its chart
+    // squeezed under its axis or its labels cut off mid-word, and an oversized
+    // one renders a single number in an acre of empty card. Both look like a
+    // design mistake rather than a spec mistake, which is exactly why the
+    // generating agent needs to be told here.
+    //
+    // Only board-level frames are checked. A container's children are placed in
+    // the GROUP's own column/row units, so a child's `w` is not a number of
+    // board columns and comparing it to one would be meaningless.
+    const { layout } = meta;
+    if (layout) {
+      const { w, h } = instance.position;
+      const minW = layout.minW ?? 1;
+      const minH = layout.minH ?? 1;
+      if (w < minW || h < minH)
+        issues.push({
+          frameId: instance.id,
+          message: `too small for "${instance.frame}": ${w}×${h} is below its ${minW}×${minH} minimum`,
+        });
+      if (
+        (layout.maxW != null && w > layout.maxW) ||
+        (layout.maxH != null && h > layout.maxH)
+      )
+        issues.push({
+          frameId: instance.id,
+          message: `too large for "${instance.frame}": ${w}×${h} is above its ${layout.maxW ?? "any"}×${layout.maxH ?? "any"} maximum`,
+        });
+    }
+
     // The horizontal layout (when present) is height-bounded to grid.rows bands;
     // x grows freely (the board scrolls sideways), so only y+h is constrained.
     const horizontal = instance.layouts?.["flow-horizontal"];

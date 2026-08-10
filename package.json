@@ -21,7 +21,13 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:providers": "tsx .github/scripts/provider-smoke.ts",
-    "test:frames:render": "tsx .github/scripts/frame-render-smoke.ts"
+    "test:frames:render": "tsx .github/scripts/frame-render-smoke.ts",
+    "frames:meta": "tsx .github/scripts/dump-frame-meta.mts",
+    "frames:size:probe": "tsx .github/scripts/frame-size-probe.ts",
+    "frames:size:derive": "tsx .github/scripts/derive-frame-bounds.ts",
+    "frames:size:explain": "tsx .github/scripts/explain-frame-bounds.ts",
+    "frames:size:apply": "tsx .github/scripts/apply-frame-bounds.ts",
+    "frames:size:sheet": "tsx .github/scripts/frame-size-sheet.ts"
   },
   "pnpm": {
     "patchedDependencies": {
