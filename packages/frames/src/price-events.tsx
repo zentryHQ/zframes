@@ -84,7 +84,11 @@ function PriceEvents({ config }: { config: z.output<typeof schema> }) {
     <TimeSeriesChart
       series={series}
       timeframe={timeframe}
-      height={240}
+      // `fill`, not a pixel height: without it the chart sets `minHeight`, which
+      // a card shorter than that number cannot shrink below, so the plot spills
+      // out of the card body and is clipped. Filling makes the chart the card's
+      // dependent rather than its floor.
+      fill
       formatValue={money.price}
       control={
         <TimeframeToggle
