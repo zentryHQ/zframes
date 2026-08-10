@@ -225,7 +225,11 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
       if (!xScale || dates.length === 0) return;
 
       const rect = event.currentTarget.getBoundingClientRect();
-      const closest = findClosestDataPoint(event.clientX - rect.left, xScale, dates);
+      const closest = findClosestDataPoint(
+        event.clientX - rect.left,
+        xScale,
+        dates,
+      );
       if (!closest) return;
 
       if (hoverLineRef.current) {
