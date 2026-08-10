@@ -295,6 +295,11 @@ export function createRequestHandler(
     if (path === DASHBOARD_PROXY_ROUTE) {
       void handleProxy(req, res, {
         userAgent: contact ? `zframes (${contact})` : undefined,
+        // FHFA serves its ~4 MB metro CSV at ~30 KB/s on bad days — far past
+        // the default 20s relay timeout. Loopback has no platform duration
+        // cap, so give that one host the headroom (the provider's own client
+        // timeout still governs what the frame waits for).
+        timeoutMsByHost: { "www.fhfa.gov": 120_000 },
       });
       return;
     }

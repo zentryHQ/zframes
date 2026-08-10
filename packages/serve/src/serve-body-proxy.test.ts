@@ -161,6 +161,8 @@ interface UpstreamOpts {
   body?: string;
   /** `Location` header, for the redirect hops. */
   location?: string | null;
+  /** `Content-Length` header, for the pre-buffer size check. */
+  contentLength?: string;
   /** Called if the handler reads this hop's `Location`. */
   onLocationRead?: () => void;
   /** Called if the handler reads this hop's BODY (`.text()`). */
@@ -181,6 +183,7 @@ function upstreamResponse(opts: UpstreamOpts = {}) {
           opts.onLocationRead?.();
           return opts.location ?? null;
         }
+        if (key === "content-length") return opts.contentLength ?? null;
         return null;
       },
     },
@@ -640,5 +643,134 @@ describe("handleProxy redirect handling", () => {
     expect(fetchMock.mock.calls[1][1].signal).toBe(
       fetchMock.mock.calls[0][1].signal,
     );
+  });
+});
+
+/**
+ * The size and time bounds are per-MOUNT, because the same relay runs in two
+ * places with different limits: the CLI on loopback (16 MB, whatever the user's
+ * memory allows) and the explorer's Next route on Vercel, where a response over
+ * ~4.5 MB is a platform error the frame can't read as a 502 and an invocation
+ * dies at `maxDuration`. Both defaults must stay put for the mounts that pass no
+ * options at all (`vite dev`, Storybook).
+ */
+describe("handleProxy per-mount size and timeout options", () => {
+  const SEC = "https://data.sec.gov/api/xbrl/companyfacts/CIK0001045810.json";
+  const FHFA = "https://www.fhfa.gov/hpi/download/quarterly_datasets/x.csv";
+
+  it("defaults to the 16 MB cap when no maxBytes is given", async () => {
+    stubFetch({ contentLength: "16000001" });
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(SEC)), res);
+    await res.done;
+    expect(res.statusCode).toBe(502);
+    expect(res.body).toContain("too large");
+
+    stubFetch({ contentLength: "15999999", body: `{"ok":1}` });
+    const under = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(SEC)), under);
+    await under.done;
+    expect(under.statusCode).toBe(200);
+  });
+
+  it("refuses a declared over-cap payload without downloading it", async () => {
+    const onBodyRead = vi.fn();
+    stubFetch({ contentLength: "5000000", onBodyRead });
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(SEC)), res, {
+      maxBytes: 4_400_000,
+    });
+    await res.done;
+    expect(res.statusCode).toBe(502);
+    // The point of checking the header first: the relay buffers the whole body,
+    // so without this it downloads megabytes from a rate-limited official host
+    // purely to throw them away.
+    expect(onBodyRead).not.toHaveBeenCalled();
+  });
+
+  it("still admits SEC's largest real payload under the explorer's cap", async () => {
+    // NVDA companyfacts measured 4,039,082 bytes and is the landing page's
+    // spotlight frame — the cap exists to sit above it, not to clip it.
+    stubFetch({ contentLength: "4039082", body: `{"cik":1045810}` });
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(SEC)), res, {
+      maxBytes: 4_400_000,
+    });
+    await res.done;
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toBe(`{"cik":1045810}`);
+  });
+
+  it("measures an undeclared body in UTF-8 bytes, not UTF-16 units", async () => {
+    // 400 Thai characters: 400 UTF-16 units but 1200 bytes. A `.length` check
+    // would relay this under a 1000-byte cap — and a hosted mount's cap exists
+    // to keep the response inside the platform's BYTE limit.
+    stubFetch({ body: "อ".repeat(400) });
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(SEC)), res, { maxBytes: 1000 });
+    await res.done;
+    expect(res.statusCode).toBe(502);
+    expect(res.body).toContain("too large");
+
+    // Control: the same 400 units of ASCII is 400 bytes and relays fine.
+    stubFetch({ body: "a".repeat(400) });
+    const ascii = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(SEC)), ascii, { maxBytes: 1000 });
+    await ascii.done;
+    expect(ascii.statusCode).toBe(200);
+  });
+
+  it("times out on the shared default with no per-host override", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    stubFetch();
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(SEC)), res);
+    await res.done;
+    expect(timeout).toHaveBeenCalledWith(20_000);
+    timeout.mockRestore();
+  });
+
+  it("gives a listed host its longer bound and leaves the rest alone", async () => {
+    // www.fhfa.gov serves the ~4 MB metro HPI file at ~31 KB/s (measured
+    // 2026-08-10), so the shared 20s bound aborts it every time.
+    const byHost = { "www.fhfa.gov": 50_000 };
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+
+    stubFetch();
+    const slow = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(FHFA)), slow, {
+      timeoutMsByHost: byHost,
+    });
+    await slow.done;
+    expect(timeout).toHaveBeenLastCalledWith(50_000);
+
+    stubFetch();
+    const normal = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(SEC)), normal, {
+      timeoutMsByHost: byHost,
+    });
+    await normal.done;
+    expect(timeout).toHaveBeenLastCalledWith(20_000);
+    timeout.mockRestore();
+  });
+
+  it("keys the override on the entry host, so a redirect can't widen it", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    stubFetchChain([
+      { status: 302, location: FHFA },
+      { status: 200, body: "csv" },
+    ]);
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl(SEC)), res, {
+      timeoutMsByHost: { "www.fhfa.gov": 50_000 },
+    });
+    await res.done;
+    expect(res.statusCode).toBe(200);
+    // Entered on data.sec.gov, so the whole chain is bounded at 20s even though
+    // it lands on the host with the generous override — one signal, created once
+    // before the first hop.
+    expect(timeout).toHaveBeenCalledTimes(1);
+    expect(timeout).toHaveBeenCalledWith(20_000);
+    timeout.mockRestore();
   });
 });
