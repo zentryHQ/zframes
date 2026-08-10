@@ -2,6 +2,7 @@ import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useMoney, useProtocolFees } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { changeColor, formatChangePct, formatPct } from "./format";
 import { protocolFeesTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -30,13 +31,13 @@ function Leaf({
       height={height}
       label={data.id}
       secondary={value}
-      title={`${data.id} · ${value} 24h fees`}
     />
   );
 }
 
 function ProtocolFeesTreemap({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useProtocolFees();
+  const money = useMoney();
 
   const data: FeesNode[] = useMemo(
     () =>
@@ -49,6 +50,11 @@ function ProtocolFeesTreemap({ config }: { config: z.output<typeof schema> }) {
     [entries, config.topN],
   );
 
+  const shown = useMemo(
+    () => data.reduce((sum, node) => sum + node.fees24h, 0),
+    [data],
+  );
+
   if (isLoading)
     return <FrameStatus loading>loading protocol fees…</FrameStatus>;
   if (data.length === 0) return <FrameStatus>no protocol fee data</FrameStatus>;
@@ -58,6 +64,21 @@ function ProtocolFeesTreemap({ config }: { config: z.output<typeof schema> }) {
       data={data}
       LeafComponent={Leaf}
       getColorValue={(node) => node.changePct}
+      formatTooltip={(node) => ({
+        title: node.id,
+        rows: [
+          { label: "24h fees", value: money.compact(node.fees24h) },
+          {
+            label: "1d",
+            value: formatChangePct(node.changePct),
+            color: changeColor(node.changePct),
+          },
+        ],
+        footer:
+          shown > 0
+            ? `${formatPct((node.fees24h / shown) * 100)} of shown fees`
+            : undefined,
+      })}
     />
   );
 }

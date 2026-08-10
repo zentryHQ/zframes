@@ -708,7 +708,7 @@ async function settle() {
 }
 
 interface Rendered {
-  /** Card text + every `title` tooltip, whitespace-collapsed. */
+  /** Card text + every `title`/`aria-label` reading, whitespace-collapsed. */
   text: string;
   /** True when the renderer showed its error card instead of the frame. */
   errored: boolean;
@@ -721,9 +721,19 @@ interface Rendered {
 /**
  * Renders one frame on a `code` board and captures what the user can read: the
  * CARD's text (not the container's, whose text would include the renderer's
- * injected `<style>` sheet) plus every `title` attribute — several frames put
- * their money in a tooltip (`sector-treemap`, `MoverRow`), and a leak hides
+ * injected `<style>` sheet) plus every `title` and `aria-label` — several frames
+ * put their money in a tooltip (`sector-treemap`, `MoverRow`), and a leak hides
  * there just as well as in the body.
+ *
+ * `aria-label` is in the sweep because the chart layer's marks carry their
+ * reading there. They used to use an SVG `<title>` element, which `textContent`
+ * picked up for free; that was replaced by the shared hover tooltip (a
+ * body-level node, deliberately outside this card) precisely so the browser's
+ * own 1-second tooltip would stop double-printing on top of it. For a bubble
+ * cloud or a calendar heatmap the mark's `aria-label` is now the ONLY place the
+ * figure is spelled out — the tiles themselves are too small to label — so
+ * dropping it from this sweep would blind the currency guard to exactly the
+ * frames it was written for.
  */
 async function renderOnce(
   frameName: string,
@@ -736,8 +746,13 @@ async function renderOnce(
   );
   await settle();
   const card = container.querySelector(".zf-frame, .zf-bare, .zf-group");
-  const titles = Array.from(card?.querySelectorAll("[title]") ?? [])
-    .map((el) => el.getAttribute("title") ?? "")
+  const titles = Array.from(
+    card?.querySelectorAll("[title], [aria-label]") ?? [],
+  )
+    .map(
+      (el) =>
+        `${el.getAttribute("title") ?? ""} ${el.getAttribute("aria-label") ?? ""}`,
+    )
     .join(" ");
   const out: Rendered = {
     text: `${card?.textContent ?? ""} ${titles}`.replace(/\s+/g, " ").trim(),

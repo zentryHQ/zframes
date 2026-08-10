@@ -2,7 +2,7 @@ import { HeatmapChart, type HeatmapCell } from "@zframes/charts";
 import { defineFrame, useFxRates } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatChangePct, formatRate } from "./format";
+import { changeColor, formatChangePct, formatRate } from "./format";
 import { fxCrossHeatmapMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -16,10 +16,7 @@ interface FxCrossCell extends HeatmapCell {
 function Cell({ data, width }: { data: FxCrossCell; width: number }) {
   if (width < 40) return null;
   return (
-    <div
-      className="flex h-full w-full items-center justify-center"
-      title={`${data.row} → ${data.column} · ${formatRate(data.rate)} · ${formatChangePct(data.value)}`}
-    >
+    <div className="flex h-full w-full items-center justify-center">
       <span className="caption text-normal tabular-nums">
         {formatChangePct(data.value)}
       </span>
@@ -78,6 +75,21 @@ function FxCrossHeatmap({ config }: { config: z.output<typeof schema> }) {
       showLabels
       rowLabelWidth={40}
       columnLabelHeight={20}
+      formatTooltip={(cell) => ({
+        title: `${cell.row} → ${cell.column}`,
+        rows: [
+          { label: "rate", value: formatRate(cell.rate) },
+          {
+            label: "24h",
+            value: formatChangePct(cell.value),
+            color: changeColor(cell.value),
+          },
+        ],
+        // The cross is quoted row-in-column units; the reciprocal is the same
+        // pair as the mirrored cell across the diagonal, so naming it keeps the
+        // matrix readable in one hover instead of two.
+        footer: `1 ${cell.column} = ${formatRate(1 / cell.rate)} ${cell.row}`,
+      })}
     />
   );
 }

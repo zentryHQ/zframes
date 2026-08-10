@@ -3,6 +3,12 @@ import React, { useEffect, useRef, useMemo, useId, memo } from "react";
 import * as d3 from "d3";
 import { cn } from "./lib/utils";
 import { useChartIntro } from "./lib/use-chart-intro";
+import { parseMarketData } from "./lib/format";
+import {
+  showChartTooltip,
+  moveChartTooltip,
+  hideChartTooltip,
+} from "./lib/chart-tooltip";
 
 interface MiniLineChartProps {
   data: Array<{ date: string; value: number }>;
@@ -11,7 +17,22 @@ interface MiniLineChartProps {
   color?: string;
   className?: string;
   variant?: "default" | "green" | "red" | "auto" | "blue";
+  /** Hover-tooltip value formatter. */
+  formatValue?: (value: number) => string;
+  /** Hover-tooltip date formatter. */
+  formatDate?: (date: Date) => string;
 }
+
+// Module-level so the defaults keep one identity across renders: they sit in the
+// draw effect's dependency array, and a fresh closure per render would rebuild
+// the whole sparkline on every parent render.
+const DEFAULT_FORMAT_VALUE = (value: number) => parseMarketData(value);
+const DEFAULT_FORMAT_DATE = d3.timeFormat("%b %d, %Y");
+
+/** Radius of the hover dot. */
+const HOVER_DOT_RADIUS = 2.5;
+/** The vertical rule is a locator, not a mark — it must not outweigh the line. */
+const HOVER_RULE_OPACITY = 0.28;
 
 const MiniLineChartComponent: React.FC<MiniLineChartProps> = ({
   data,
@@ -20,6 +41,8 @@ const MiniLineChartComponent: React.FC<MiniLineChartProps> = ({
   color,
   className,
   variant = "default",
+  formatValue = DEFAULT_FORMAT_VALUE,
+  formatDate = DEFAULT_FORMAT_DATE,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const shouldIntro = useChartIntro();
@@ -293,6 +316,107 @@ const MiniLineChartComponent: React.FC<MiniLineChartProps> = ({
           g.attr("clip-path", null);
         });
     }
+
+    // Hover chrome sits in its own layer rather than in `g`: the intro tween
+    // clips `g`, and a clipped hit target would be dead in the un-revealed part
+    // of the chart for the first frames.
+    const hover = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const hoverRule = hover
+      .append("line")
+      .attr("y1", 0)
+      .attr("y2", innerHeight)
+      .attr("stroke", strokeColor)
+      .attr("stroke-width", 1)
+      .attr("opacity", 0);
+    const hoverDot = hover
+      .append("circle")
+      .attr("r", HOVER_DOT_RADIUS)
+      .attr("fill", strokeColor)
+      .attr("opacity", 0);
+
+    // A 1px stroke and a 2.5px dot are not hoverable in practice, so the whole
+    // svg is the hit target and the hovered point is derived from the cursor's
+    // x. Appended last so it sits above the line, the area and the marker.
+    // It swallows pointer events but not clicks, which still bubble to whatever
+    // table row the frame renders this sparkline inside.
+    const overlay = hover
+      .append("rect")
+      .attr("x", -margin.left)
+      .attr("y", -margin.top)
+      .attr("width", width)
+      .attr("height", height)
+      .attr("fill", "transparent");
+
+    const bisectDate = d3.bisector((d: { date: Date }) => d.date).left;
+    const lastIndex = processedData.length - 1;
+    /** Index of the point nearest `mx`, clamped so the endpoints stay reachable. */
+    const nearestIndex = (mx: number): number => {
+      const date = xScale.invert(mx);
+      const i = bisectDate(processedData, date, 1);
+      const before = processedData[i - 1];
+      const after = processedData[i];
+      if (!after) return lastIndex;
+      if (!before) return 0;
+      return date.getTime() - before.date.getTime() >
+        after.date.getTime() - date.getTime()
+        ? i
+        : i - 1;
+    };
+
+    // Tracked locally so content is rebuilt only when the nearest point really
+    // changes — the tooltip diffs internally, but this keeps the pointermove
+    // path down to one transform write.
+    let activeIndex = -1;
+    const gNode = g.node();
+    const overlayNode = overlay.node();
+
+    const track = (event: PointerEvent) => {
+      if (!gNode || !overlayNode) return;
+      const [mx] = d3.pointer(event, gNode);
+      const index = nearestIndex(mx);
+      const point = processedData[index];
+      if (!point) return;
+      if (index !== activeIndex) {
+        activeIndex = index;
+        const x = xScale(point.date);
+        hoverRule
+          .attr("x1", x)
+          .attr("x2", x)
+          .attr("opacity", HOVER_RULE_OPACITY);
+        hoverDot
+          .attr("cx", x)
+          .attr("cy", yScale(point.value))
+          .attr("opacity", 1);
+        showChartTooltip(overlayNode, event.clientX, event.clientY, {
+          title: formatDate(point.date),
+          rows: [{ value: formatValue(point.value) }],
+        });
+      }
+      moveChartTooltip(event.clientX, event.clientY);
+    };
+
+    const release = () => {
+      activeIndex = -1;
+      hoverRule.attr("opacity", 0);
+      hoverDot.attr("opacity", 0);
+      hideChartTooltip();
+    };
+
+    overlay
+      .on("pointerenter", track)
+      .on("pointermove", track)
+      .on("pointerleave", release)
+      .on("pointercancel", release);
+
+    return () => {
+      // A redraw opens with selectAll("*").remove(), so a data poll or unmount
+      // destroys the hovered mark without ever firing pointerleave — which would
+      // strand a visible tooltip pointing at nothing.
+      hideChartTooltip();
+    };
   }, [
     processedData,
     width,
@@ -304,6 +428,8 @@ const MiniLineChartComponent: React.FC<MiniLineChartProps> = ({
     clipId,
     gradientId,
     shouldIntro,
+    formatValue,
+    formatDate,
   ]);
 
   if (!data || data.length === 0) {

@@ -73,7 +73,6 @@ function Leaf({
       height={height}
       label={data.id}
       secondary={`${ounces} · ${share}`}
-      title={`${data.id} · ${ounces} · ${share} of the reserve`}
     />
   );
 }
@@ -134,6 +133,14 @@ function UsGoldVaults({ config }: { config: z.output<typeof schema> }) {
             data={vaults}
             LeafComponent={Leaf}
             getColorValue={vaultSharePct}
+            formatTooltip={(vault) => ({
+              title: vault.id,
+              rows: [
+                { label: "holding", value: formatOunces(vault.ounces) },
+                { label: "share", value: formatPct(vault.sharePct, 1) },
+              ],
+              footer: `of ${formatOunces(totalOunces)} in the reserve`,
+            })}
           />
         </div>
       )}

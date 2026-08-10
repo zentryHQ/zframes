@@ -7,6 +7,12 @@ import React, {
   useState,
   useTransition,
 } from "react";
+import {
+  CHART_TOOLTIP_ATTR,
+  chartTooltipLabel,
+  delegateChartTooltip,
+  type ChartTooltipContent,
+} from "../lib/chart-tooltip";
 import { observeResize } from "../lib/observe-resize";
 import { cn, prefersReducedMotion } from "../lib/utils";
 
@@ -43,12 +49,32 @@ export interface HeatmapChartProps<T extends HeatmapCell> {
   showLabels?: boolean;
   rowLabelWidth?: number;
   columnLabelHeight?: number;
+  /**
+   * Hover-tooltip content for a cell. Return `null` to give that cell no
+   * tooltip. A frame should pass this: the default can only print the raw
+   * `value`, and a heatmap's numbers are almost always in units the frame knows
+   * and this chart does not (percent, $, bps, funding per 8h).
+   */
+  formatTooltip?: (data: T) => ChartTooltipContent | null;
 }
 
 const CELL_BORDER_RADIUS = "4px";
 const DEFAULT_GAP = 6;
 const DEFAULT_ROW_LABEL_WIDTH = 80;
 const DEFAULT_COLUMN_LABEL_HEIGHT = 24;
+
+/**
+ * Fallback tooltip content, built from the `HeatmapCell` fields every cell is
+ * guaranteed to carry.
+ *
+ * Row and column are joined with a middot, not a slash: these matrices routinely
+ * put an interval or a numeric bucket on one axis, and "BTC / 8h" reads as a rate
+ * rather than as a coordinate. A middot reads as a pairing either way round.
+ */
+const DEFAULT_FORMAT_TOOLTIP = (data: HeatmapCell): ChartTooltipContent => ({
+  title: `${data.row} · ${data.column}`,
+  rows: [{ value: String(data.value) }],
+});
 
 /**
  * Intro (entrance) animation. On the FIRST draw only, cells fade + scale in on a
@@ -124,6 +150,9 @@ function introCellStyle(
  * Cells play a one-shot intro on the first draw (see INTRO_* above); later
  * redraws — data polls, resizes, prop/theme changes — paint instantly.
  *
+ * Each cell hovers a shared tooltip through one delegated listener on the grid;
+ * pass `formatTooltip` to put the frame's own units in it.
+ *
  * @example
  * ```tsx
  * interface MyData extends HeatmapCell {
@@ -151,8 +180,10 @@ function HeatmapChartInner<T extends HeatmapCell>({
   showLabels = false,
   rowLabelWidth = DEFAULT_ROW_LABEL_WIDTH,
   columnLabelHeight = DEFAULT_COLUMN_LABEL_HEIGHT,
+  formatTooltip = DEFAULT_FORMAT_TOOLTIP,
 }: HeatmapChartProps<T>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const gridRef = useRef<HTMLDivElement | null>(null);
   const [, startTransition] = useTransition();
   const [dimension, setDimension] = useState<{
     width: number;
@@ -337,6 +368,14 @@ function HeatmapChartInner<T extends HeatmapCell>({
       return (
         <div
           key={cell.id}
+          // The cell's key for the delegated tooltip listener below — a plain
+          // string attribute, so a 300-cell grid re-renders without allocating a
+          // handler per cell.
+          {...{ [CHART_TOOLTIP_ATTR]: cell.id }}
+          // The hover tooltip is aria-hidden (one shared node for the whole
+          // page), so the cell's reading lives here — and for a dense matrix
+          // this is the only place the figure appears in the DOM at all.
+          aria-label={chartTooltipLabel(formatTooltip(cell))}
           className="group absolute cursor-pointer border border-transparent hover:bg-[radial-gradient(146.13%_118.42%_at_50%_-15.5%,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_99.59%)] hover:bg-gradient-to-t"
           style={{
             left: chartArea.x + columnX(columnIndex),
@@ -371,6 +410,13 @@ function HeatmapChartInner<T extends HeatmapCell>({
     CellComponent,
     introStage,
     introMaxDiagonal,
+    // In the deps even though frames pass an inline arrow, so this memo now
+    // rebuilds on every parent render. That is the cheaper mistake: the cells'
+    // `aria-label` is the ONLY place a dense grid spells its figures out, and
+    // `formatTooltip` closes over `useMoney()`, which resolves a poll AFTER
+    // first paint without changing `data` — omitting it would leave every label
+    // frozen at the pre-conversion USD string while the cells read correctly.
+    formatTooltip,
   ]);
 
   // Did this render actually paint cells? Mirrors the memo's own guard: the first
@@ -401,6 +447,38 @@ function HeatmapChartInner<T extends HeatmapCell>({
     const id = setTimeout(() => setIntroStage("done"), INTRO_SETTLE_MS);
     return () => clearTimeout(id);
   }, [introStage]);
+
+  // The delegated listener only knows the hovered cell's id, so it needs a way
+  // back to the datum.
+  const cellById = useMemo(() => {
+    const map = new Map<string, T>();
+    for (const cell of data) map.set(cell.id, cell);
+    return map;
+  }, [data]);
+
+  /**
+   * Reached through a ref rather than the effect's dep array: a frame's
+   * `formatTooltip` has to be an inline arrow (it closes over `useMoney()`,
+   * which only a component may call), so depending on its identity would
+   * detach and re-attach the listener on every render. Synced in a layout
+   * effect, before any pointer event can reach the grid.
+   */
+  const formatTooltipRef = useRef(formatTooltip);
+  useEffect(() => {
+    formatTooltipRef.current = formatTooltip;
+  }, [formatTooltip]);
+
+  // One listener on the grid box rather than handlers on every cell. Its detach
+  // also dismisses a tooltip left open by the cell under the cursor, which is
+  // what covers a data poll dropping that cell (no pointerout ever fires).
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    return delegateChartTooltip(grid, (id) => {
+      const cell = cellById.get(id);
+      return cell ? formatTooltipRef.current(cell) : null;
+    });
+  }, [cellById]);
 
   // Render row labels
   const rowLabels = useMemo(() => {
@@ -455,6 +533,7 @@ function HeatmapChartInner<T extends HeatmapCell>({
   return (
     <div className={cn("h-full w-full", className)} ref={containerRef}>
       <div
+        ref={gridRef}
         className="relative overflow-hidden"
         style={{ height: dimension.height, width: dimension.width }}
       >

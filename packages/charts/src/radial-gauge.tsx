@@ -1,5 +1,11 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef } from "react";
+import {
+  type ChartTooltipContent,
+  hideChartTooltip,
+  moveChartTooltip,
+  showChartTooltip,
+} from "./lib/chart-tooltip";
 import { useChartIntro } from "./lib/use-chart-intro";
 import { prefersReducedMotion } from "./lib/utils";
 
@@ -16,6 +22,8 @@ export interface RadialGaugeProps {
   size?: number;
   /** Arc thickness in px. Default 12. */
   thickness?: number;
+  /** Renders the reading and the bounds in the hover tooltip. */
+  formatValue?: (value: number) => string;
   /** Center slot — headline number / classification chip. */
   children?: React.ReactNode;
 }
@@ -23,6 +31,8 @@ export interface RadialGaugeProps {
 // 270° sweep, opening at the bottom.
 const START_ANGLE = (-3 * Math.PI) / 4;
 const END_ANGLE = (3 * Math.PI) / 4;
+
+const DEFAULT_FORMAT_VALUE = (v: number) => String(v);
 
 /**
  * Radial gauge — a bounded scalar (sentiment index, ratio, progress) as a
@@ -37,6 +47,7 @@ const RadialGauge = ({
   trackColor,
   size = 180,
   thickness = 12,
+  formatValue = DEFAULT_FORMAT_VALUE,
   children,
 }: RadialGaugeProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -70,7 +81,8 @@ const RadialGauge = ({
       .cornerRadius(thickness)
       .startAngle(START_ANGLE)
       .endAngle(END_ANGLE);
-    g.append("path")
+    const trackPath = g
+      .append("path")
       .attr("d", track as unknown as string)
       .attr("fill", trackColor ?? "currentColor")
       .attr("fill-opacity", trackColor ? 1 : 0.12);
@@ -82,6 +94,31 @@ const RadialGauge = ({
       .cornerRadius(thickness)
       .startAngle(START_ANGLE);
     const path = g.append("path").attr("fill", color);
+
+    // The reading itself already sits in the centre slot, so restating it would
+    // be noise; the scale it is bounded by is rendered nowhere else.
+    const scaleTip: ChartTooltipContent = {
+      rows: [{ value: formatValue(value), color }],
+      footer: `of ${formatValue(min)} to ${formatValue(max)}`,
+    };
+    // Both halves of the ring answer, so hovering anywhere on it works. Neither
+    // path carries a datum — the content is closed over instead of formatted
+    // from one, hence the raw show/move/hide calls.
+    const attachScaleTip = (
+      sel: d3.Selection<SVGPathElement, unknown, null, undefined>,
+    ) => {
+      sel
+        .on("pointerenter", function (event: PointerEvent) {
+          showChartTooltip(this, event.clientX, event.clientY, scaleTip);
+        })
+        .on("pointermove", (event: PointerEvent) => {
+          moveChartTooltip(event.clientX, event.clientY);
+        })
+        .on("pointerleave", hideChartTooltip)
+        .on("pointercancel", hideChartTooltip);
+    };
+    attachScaleTip(trackPath);
+    attachScaleTip(path);
 
     // Reading tick — rides the sweep with the fill instead of jumping ahead.
     const tickR = (inner + outer) / 2;
@@ -121,7 +158,9 @@ const RadialGauge = ({
       // Reduced motion, or an incidental redraw (resize / theme / color) that
       // did not move the reading: paint the final state, schedule nothing.
       applyAngle(valueAngle);
-      return;
+      // No sweep to stop, but the ring under the cursor is still destroyed by
+      // the next run's selectAll("*").remove().
+      return hideChartTooltip;
     }
 
     applyAngle(fromAngle);
@@ -138,13 +177,31 @@ const RadialGauge = ({
     // target into `drawnAngleRef`, i.e. an angle that is not on screen.
     return () => {
       g.interrupt("gauge");
+      // Same reason: the hovered ring does not survive the next run, and a
+      // tooltip left open would point at nothing.
+      hideChartTooltip();
     };
-  }, [value, min, max, color, trackColor, size, thickness, shouldIntro]);
+  }, [
+    value,
+    min,
+    max,
+    color,
+    trackColor,
+    size,
+    thickness,
+    formatValue,
+    shouldIntro,
+  ]);
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg ref={svgRef} width={size} height={size} />
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
+      {/* `inset-0` spans the whole gauge, ring included, so without this the
+          centre slot swallows every pointer event and the arc beneath it can
+          never be hovered. The slot is a readout, not a control — it has nothing
+          to catch. (PieChart avoids the same trap the other way round, by
+          stacking its svg above with `z-10`.) */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
         {children}
       </div>
     </div>

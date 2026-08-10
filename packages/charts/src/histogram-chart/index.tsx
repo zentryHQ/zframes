@@ -1,8 +1,14 @@
 import * as d3 from "d3";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { attachChartTooltip, hideChartTooltip } from "../lib/chart-tooltip";
 import { observeResize } from "../lib/observe-resize";
 import { useChartIntro } from "../lib/use-chart-intro";
-import { type BinOptions, binSample, normalCurve } from "./utils";
+import {
+  type BinOptions,
+  type HistogramBin,
+  binSample,
+  normalCurve,
+} from "./utils";
 
 // The binning helpers are re-exported by the package barrel (`@zframes/charts`)
 // rather than here, so there is exactly one public path to them.
@@ -58,6 +64,10 @@ const MIN_LABEL_GAP = 8;
  */
 const DEFAULT_FORMAT = (v: number) => String(v);
 const NO_MARKERS: HistogramMarker[] = [];
+/** Hover width of a marker's 1px rule. */
+const MARKER_HIT_W = 12;
+/** What the « / » flags on the outermost tick labels mean. */
+const TAIL_HINT = "the extreme tail is folded into this end bar";
 
 /**
  * Intro (first-draw) timings. The bars grow from the axis with a short
@@ -189,17 +199,19 @@ const HistogramChart = ({
     const fillOf = (x0: number) =>
       negativeColor !== undefined && x0 < 0 ? negativeColor : color;
 
+    // Every bin is the same width, so it is measured once off the domain start —
+    // and shared with the hover targets below, which have to stay bar-aligned.
+    // A 1px inset keeps adjacent bars legible as separate bins without a
+    // padding ratio that would drift with bin count.
+    const barW = Math.max(x(domain[0] + binWidth) - x(domain[0]) - 1, 1);
+
     const bars = g
       .selectAll("rect.bin")
       .data(bins)
       .enter()
       .append("rect")
-      // A 1px inset keeps adjacent bars legible as separate bins without a
-      // padding ratio that would drift with bin count.
       .attr("x", (b) => x(b.x0) + 0.5)
-      .attr("width", () =>
-        Math.max(x(domain[0] + binWidth) - x(domain[0]) - 1, 1),
-      )
+      .attr("width", barW)
       .attr("rx", 1)
       // `style`, not `attr`: a CSS var in a presentation attribute doesn't
       // resolve, so `var(--zf-up)` would silently fall back to black.
@@ -220,9 +232,9 @@ const HistogramChart = ({
           ? Math.min(BAR_STAGGER_TOTAL / (bins.length - 1), BAR_STAGGER_MAX)
           : 0;
       bars
-        // Named so a hover (the per-bar <title> aside, frames layer their own
-        // interactions over these rects) can't cancel the wrong transition or
-        // leave a bar stranded at height 0.
+        // Named so a hover — the tooltip's hit columns sit over these rects, and
+        // frames layer their own interactions on top — can't cancel the wrong
+        // transition or leave a bar stranded at height 0.
         .transition("intro")
         .delay((_, i) => i * step)
         .duration(BAR_DURATION)
@@ -231,15 +243,19 @@ const HistogramChart = ({
         .attr("height", barH);
     }
 
-    bars.append("title").text((b) => {
-      const range = b.openLow
+    // An open end bar covers everything past its edge, so it names one side of
+    // its interval rather than pretending to be one bin wide.
+    const rangeOf = (b: HistogramBin) =>
+      b.openLow
         ? `< ${formatValue(b.x1)}`
         : b.openHigh
           ? `≥ ${formatValue(b.x0)}`
           : `${formatValue(b.x0)} … ${formatValue(b.x1)}`;
-      const share = ((b.count / count) * 100).toFixed(1);
-      return `${range}: ${formatCount(b.count)} (${share}%)`;
-    });
+    const shareOf = (b: HistogramBin) => ((b.count / count) * 100).toFixed(1);
+    bars.attr(
+      "aria-label",
+      (b) => `${rangeOf(b)}: ${formatCount(b.count)} (${shareOf(b)}%)`,
+    );
 
     // The fitted normal, in the same units as bar height — the visual reference
     // the fat tails are read against.
@@ -298,6 +314,29 @@ const HistogramChart = ({
         .attr("stroke", "currentColor")
         .attr("stroke-opacity", 0.28);
 
+    // A bar is only as tall as its count, so the rare bins — the tails, which
+    // are the whole point of a distribution — are a few pixels of hover target.
+    // The tooltip hangs off a full-height transparent column per bin instead.
+    // Appended after the fitted curve and the zero rule so their strokes can't
+    // take the pointer off a column mid-sweep and strobe the tooltip.
+    const binHits = g
+      .selectAll("rect.bin-hit")
+      .data(bins)
+      .enter()
+      .append("rect")
+      .attr("x", (b) => x(b.x0) + 0.5)
+      .attr("width", barW)
+      .attr("y", 0)
+      .attr("height", innerHeight)
+      .attr("fill", "transparent");
+    attachChartTooltip(binHits, (b) => ({
+      title: rangeOf(b),
+      rows: [
+        { label: "count", value: formatCount(b.count), color: fillOf(b.x0) },
+      ],
+      footer: `${shareOf(b)}% of ${formatCount(count)}`,
+    }));
+
     // Markers are placed left to right with their labels nudged apart. Two
     // markers often land close together — a symbol whose latest move is near its
     // own mean, say — and centring each label on its own line printed "BTC" and
@@ -345,9 +384,22 @@ const HistogramChart = ({
         .style("font", FONT)
         .style("font-weight", "600")
         .text(marker.label);
-      line
-        .append("title")
-        .text(`${marker.label}: ${formatValue(marker.value)}`);
+      line.attr("aria-label", `${marker.label}: ${formatValue(marker.value)}`);
+      // The rule is a 1px dashed line, so the hover target is a band centred on
+      // it. Last in the group, so the rule and its label can't take the pointer
+      // off the band; transparent either way, so the group's intro fade below
+      // shows nothing of it.
+      const markerHit = line
+        .append("rect")
+        .attr("x", mx - MARKER_HIT_W / 2)
+        .attr("width", MARKER_HIT_W)
+        .attr("y", 0)
+        .attr("height", innerHeight)
+        .attr("fill", "transparent");
+      attachChartTooltip(markerHit, () => ({
+        title: marker.label,
+        rows: [{ value: formatValue(marker.value), color: marker.color }],
+      }));
       // Markers are readings off this sample (mean, ±σ, the latest observation),
       // not chrome like the zero rule or the gridlines — so they arrive with the
       // curve, on the group so the rule and its label fade as one.
@@ -443,10 +495,19 @@ const HistogramChart = ({
       .attr("fill-opacity", 0.55)
       .style("font", FONT)
       .text((b) => b.label);
-    tickLabels
-      .filter((b) => b.open)
-      .append("title")
-      .text("the extreme tail is folded into this end bar");
+    // The « / » flags need an explanation somewhere, and the label itself is the
+    // only thing carrying them — so the end labels keep the affordance, as a
+    // tooltip rather than a native title.
+    const openTicks = tickLabels.filter((b) => b.open);
+    openTicks.attr("aria-label", (b) => `${b.label}: ${TAIL_HINT}`);
+    attachChartTooltip(openTicks, (b) => ({
+      title: b.label,
+      footer: TAIL_HINT,
+    }));
+
+    // The next run opens with `selectAll("*").remove()`, so a poll or an unmount
+    // destroys the mark under the cursor — leaving a tooltip pointing at nothing.
+    return hideChartTooltip;
   }, [
     binned,
     width,

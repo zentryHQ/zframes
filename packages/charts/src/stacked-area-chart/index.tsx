@@ -17,6 +17,7 @@ import type {
   StackedAreaChartProps,
   AreaComponentProps,
   StackedSeriesData,
+  CombinedStackedDataPoint,
 } from "./types";
 import { CHART_DEFAULTS, STACKED_AREA_COLORS, AREA } from "./constants";
 import {
@@ -28,9 +29,14 @@ import {
   getStackOffset,
   getCurveFunction,
   formatValueWithSuffix,
+  findClosestDataPoint,
 } from "./utils";
 import { useChartDimensions } from "./hooks/use-chart-dimensions";
-import { useStackedAreaTooltip } from "./hooks/use-stacked-area-tooltip";
+import {
+  hideChartTooltip,
+  moveChartTooltip,
+  showChartTooltip,
+} from "../lib/chart-tooltip";
 import { createScales } from "./d3-rendering/create-scales";
 import { createGrid } from "./d3-rendering/create-grid";
 import { createAxes } from "./d3-rendering/create-axes";
@@ -173,18 +179,90 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
     );
   }, [dates, yDomain, dimensions.innerWidth, dimensions.innerHeight]);
 
-  // Tooltip hook
-  const { tooltipState, handleMouseMove, handleMouseLeave } =
-    useStackedAreaTooltip({
-      dates,
-      combinedData: combinedDataPoints,
-      xScale: scales?.xScale ?? null,
-      innerWidth: dimensions.innerWidth,
-      innerHeight: dimensions.innerHeight,
-      marginLeft: dimensions.marginLeft,
-      marginTop: dimensions.marginTop,
-      onDateHover,
-    });
+  /**
+   * Crosshair hover, driven imperatively.
+   *
+   * This used to live in a `useStackedAreaTooltip` hook that held the hovered
+   * point in React state, so every pointer move re-rendered the whole chart —
+   * areas, legend and all — to move one dashed line and retype a few numbers.
+   * The hover line is now written straight to its node by ref and the readout
+   * goes to the shared body-level tooltip, so a pointer sweep does no React work
+   * at all. It also stops the readout being clipped: the old tooltip was
+   * `absolute` inside the chart with a hard-coded 180px right clamp, which a
+   * narrow card cut off.
+   *
+   * `onDateHover` is unchanged — it is a public prop and some frames drive their
+   * own readout from it.
+   */
+  const hoverLineRef = useRef<SVGLineElement>(null);
+  /** Index currently shown, so content is rebuilt only when the point changes. */
+  const hoverIndexRef = useRef<number | null>(null);
+
+  const tooltipFor = useCallback(
+    (point: CombinedStackedDataPoint) => ({
+      title: point.date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+      rows: [
+        ...series.map((s) => ({
+          label: s.name,
+          value: formatValue(point.values[s.id] ?? 0),
+          color: seriesColors[s.id],
+        })),
+        // The stack's whole point is the total, so it is a row rather than a
+        // footnote — but unlabelled by colour, since it is not a band.
+        { label: "Total", value: formatValue(point.total) },
+      ],
+    }),
+    [series, seriesColors, formatValue],
+  );
+
+  const handlePointerMove = useCallback(
+    (event: React.PointerEvent<SVGRectElement>) => {
+      const xScale = scales?.xScale;
+      if (!xScale || dates.length === 0) return;
+
+      const rect = event.currentTarget.getBoundingClientRect();
+      const closest = findClosestDataPoint(event.clientX - rect.left, xScale, dates);
+      if (!closest) return;
+
+      if (hoverLineRef.current) {
+        const x = xScale(closest.date);
+        hoverLineRef.current.setAttribute("transform", `translate(${x}, 0)`);
+        hoverLineRef.current.setAttribute("opacity", "1");
+      }
+
+      const point = combinedDataPoints[closest.index] ?? null;
+      if (point) {
+        if (hoverIndexRef.current !== closest.index) {
+          hoverIndexRef.current = closest.index;
+          showChartTooltip(
+            event.currentTarget,
+            event.clientX,
+            event.clientY,
+            tooltipFor(point),
+          );
+        } else {
+          moveChartTooltip(event.clientX, event.clientY);
+        }
+      }
+      onDateHover?.(closest.date, point);
+    },
+    [scales, dates, combinedDataPoints, tooltipFor, onDateHover],
+  );
+
+  const handlePointerLeave = useCallback(() => {
+    hoverIndexRef.current = null;
+    hoverLineRef.current?.setAttribute("opacity", "0");
+    hideChartTooltip();
+    onDateHover?.(null, null);
+  }, [onDateHover]);
+
+  // A data poll or unmount destroys the point under the cursor; without this the
+  // shared tooltip would keep floating over a chart that no longer has it.
+  useEffect(() => hideChartTooltip, []);
 
   // Generate area paths using D3
   const areaPaths = useMemo(() => {
@@ -416,21 +494,23 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
               )}
             </g>
 
-            {/* Vertical hover line */}
-            {tooltipState.visible && (
-              <line
-                x1={tooltipState.x - dimensions.marginLeft}
-                y1={0}
-                x2={tooltipState.x - dimensions.marginLeft}
-                y2={dimensions.innerHeight}
-                stroke="#FFFFFF"
-                strokeWidth={1}
-                strokeOpacity={0.3}
-                strokeDasharray="4,4"
-              />
-            )}
+            {/* Vertical hover line. Always mounted and moved by ref — mounting
+                it conditionally would put the crosshair back on React's render
+                path, which is what this rewrite took it off. */}
+            <line
+              ref={hoverLineRef}
+              x1={0}
+              y1={0}
+              x2={0}
+              y2={dimensions.innerHeight}
+              stroke="#FFFFFF"
+              strokeWidth={1}
+              strokeOpacity={0.3}
+              strokeDasharray="4,4"
+              opacity={0}
+            />
 
-            {/* Invisible overlay for mouse events */}
+            {/* Invisible overlay for hover events */}
             <rect
               x={0}
               y={0}
@@ -438,59 +518,16 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
               height={dimensions.innerHeight}
               fill="transparent"
               style={{ cursor: "crosshair" }}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
+              onPointerMove={handlePointerMove}
+              onPointerLeave={handlePointerLeave}
+              onPointerCancel={handlePointerLeave}
             />
           </g>
         </svg>
       )}
 
-      {/* Tooltip */}
-      {tooltipState.visible && tooltipState.data && (
-        <div
-          className="pointer-events-none absolute z-50 rounded-lg border border-white/10 bg-zinc-900 px-3 py-2 shadow-xl"
-          style={{
-            left: Math.min(tooltipState.x + 10, dimensions.width - 180),
-            top: dimensions.marginTop + 10,
-            minWidth: 150,
-          }}
-        >
-          <div className="mb-2 text-xs text-white/60">
-            {tooltipState.date?.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </div>
-          <div className="space-y-1">
-            {series.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between gap-4"
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="h-2 w-2 rounded-full"
-                    style={{
-                      backgroundColor: seriesColors[s.id],
-                    }}
-                  />
-                  <span className="text-xs text-white/80">{s.name}</span>
-                </div>
-                <span className="text-xs font-medium text-white">
-                  {formatValue(tooltipState.data?.values[s.id] ?? 0)}
-                </span>
-              </div>
-            ))}
-            <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2">
-              <span className="text-xs font-medium text-white/60">Total</span>
-              <span className="text-xs font-semibold text-white">
-                {formatValue(tooltipState.data?.total ?? 0)}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* The readout itself is the shared body-level tooltip (see
+          handlePointerMove) — nothing to render here. */}
     </div>
   );
 }
@@ -556,7 +593,6 @@ export type {
   StackOffset,
 } from "./types";
 
-export { useStackedAreaTooltip } from "./hooks/use-stacked-area-tooltip";
 export { useChartDimensions } from "./hooks/use-chart-dimensions";
 export {
   getAllDates,

@@ -2,7 +2,7 @@ import { HeatmapChart, type HeatmapCell } from "@zframes/charts";
 import { defineFrame, useFundingComparison } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatPct } from "./format";
+import { changeColor, formatFundingPct, formatPct } from "./format";
 import { fundingVenueHeatmapMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -10,6 +10,12 @@ const schema = fundingVenueHeatmapMeta.schema;
 
 interface VenueCell extends HeatmapCell {
   annualizedPct: number;
+  /** Raw rate for the venue's own funding interval, decimal. */
+  rawRate: number;
+  /** That interval in hours — 1h on Hyperliquid, 8h on Binance/Bybit. */
+  intervalHours: number;
+  /** The coin's max−min annualized funding across venues, percentage points. */
+  spreadPct: number;
 }
 
 function Cell({ data, width }: { data: VenueCell; width: number }) {
@@ -39,6 +45,9 @@ function FundingVenueHeatmap({ config }: { config: z.output<typeof schema> }) {
           column: venue.venue,
           value: venue.annualizedPct,
           annualizedPct: venue.annualizedPct,
+          rawRate: venue.rawRate,
+          intervalHours: venue.intervalHours,
+          spreadPct: entry.spreadPct,
         });
       }
     }
@@ -56,6 +65,21 @@ function FundingVenueHeatmap({ config }: { config: z.output<typeof schema> }) {
       showLabels
       rowLabelWidth={48}
       columnLabelHeight={20}
+      formatTooltip={(cell) => ({
+        title: `${cell.row} · ${cell.column}`,
+        rows: [
+          {
+            label: "annualized",
+            value: formatPct(cell.annualizedPct, 1),
+            color: changeColor(cell.annualizedPct),
+          },
+          {
+            label: `${cell.intervalHours}h rate`,
+            value: formatFundingPct(cell.rawRate * 100),
+          },
+        ],
+        footer: `cross-venue spread ${formatPct(cell.spreadPct, 1)}`,
+      })}
     />
   );
 }

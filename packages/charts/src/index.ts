@@ -71,3 +71,16 @@ export type { RadialGaugeProps } from "./radial-gauge";
 export { ChartTimeframe } from "./lib/timeframe";
 export { parseMarketData } from "./lib/format";
 export { CHART_COLORS_MULTI_SERIES } from "./chart-utils";
+
+// The shared hover tooltip. Every chart above wires itself up internally, so a
+// frame gets tooltips for free; these are exported for the rare frame that
+// draws its own marks over a chart and wants the same surface.
+export {
+  attachChartTooltip,
+  delegateChartTooltip,
+  hideChartTooltip,
+  moveChartTooltip,
+  showChartTooltip,
+  CHART_TOOLTIP_ATTR,
+} from "./lib/chart-tooltip";
+export type { ChartTooltipContent, ChartTooltipRow } from "./lib/chart-tooltip";

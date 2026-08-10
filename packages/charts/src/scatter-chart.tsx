@@ -1,5 +1,10 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef, useState } from "react";
+import {
+  attachChartTooltip,
+  hideChartTooltip,
+  type ChartTooltipRow,
+} from "./lib/chart-tooltip";
 import { observeResize } from "./lib/observe-resize";
 import { useChartIntro } from "./lib/use-chart-intro";
 
@@ -28,6 +33,19 @@ export interface ScatterChartProps {
   radiusRange?: [number, number];
   /** Label the N heaviest bubbles. Default 12. */
   maxLabels?: number;
+  /**
+   * Name of the x quantity, used as the tooltip's row label. The chart cannot
+   * know what its axes mean, so a frame should pass the real name — "x: 1.2B"
+   * on its own is not readable. Default "x".
+   */
+  xLabel?: string;
+  /** Name of the y quantity, same reasoning as {@link xLabel}. Default "y". */
+  yLabel?: string;
+  /**
+   * Name of the weight quantity. No default: the weight is already encoded as
+   * bubble area, so it only earns a tooltip row when the caller names it.
+   */
+  weightLabel?: string;
 }
 
 const FONT = "10px 'DM Sans', sans-serif";
@@ -39,6 +57,13 @@ const DEFAULT_COLOR = "var(--color-highlight, #8b8bff)";
  */
 const DEFAULT_FORMAT = (v: number) => String(v);
 const DEFAULT_RADIUS_RANGE: [number, number] = [3, 14];
+const DEFAULT_X_LABEL = "x";
+const DEFAULT_Y_LABEL = "y";
+/**
+ * Floor for the invisible hit circle. The visible bubbles bottom out at r 3,
+ * which no pointer can reliably land on.
+ */
+const MIN_HIT_R = 10;
 
 /**
  * X/Y bubble scatter — correlation / distribution views (e.g. market cap vs
@@ -55,6 +80,9 @@ const ScatterChart = ({
   zeroXLine = false,
   radiusRange = DEFAULT_RADIUS_RANGE,
   maxLabels = 12,
+  xLabel = DEFAULT_X_LABEL,
+  yLabel = DEFAULT_Y_LABEL,
+  weightLabel,
 }: ScatterChartProps) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -204,7 +232,14 @@ const ScatterChart = ({
       .attr("fill-opacity", 0.55)
       .attr("stroke", (d) => d.color ?? color)
       .attr("stroke-opacity", 0.9)
-      .attr("r", (d) => (animate ? 0 : radius(d)));
+      .attr("r", (d) => (animate ? 0 : radius(d)))
+      // The reading the removed <title> used to give: the hover tooltip is
+      // aria-hidden, so the accessible name stays on the mark itself.
+      .attr(
+        "aria-label",
+        (d) =>
+          `${d.label} · ${xLabel} ${formatX(d.x)} · ${yLabel} ${formatY(d.y)}`,
+      );
     if (animate)
       dots
         .transition("intro")
@@ -213,15 +248,11 @@ const ScatterChart = ({
         .ease(d3.easeCubicOut)
         .attr("r", radius);
 
-    dots
-      .append("title")
-      .text((d) => `${d.label} · x ${formatX(d.x)} · y ${formatY(d.y)}`);
-
     // Label the heaviest points first, but keep it legible: greedily drop any
     // label whose box would overlap one already placed (dense clusters would
     // otherwise pile 12 tickers on top of each other). Labels near an edge
     // switch to start/end anchoring so a wide label at the extreme x never
-    // clips past the plot. Every point still carries a hover <title>.
+    // clips past the plot. Every point still names itself on hover.
     const LABEL_CHAR_PX = 6;
     const LABEL_H = 11;
     type LabelBox = { x1: number; x2: number; y1: number; y2: number };
@@ -289,6 +320,36 @@ const ScatterChart = ({
         .duration(300)
         .ease(d3.easeCubicOut)
         .attr("fill-opacity", 0.75);
+
+    // Hover layer, appended last so it sits above every mark. The bubbles are
+    // r 3–14 and grow from 0 during the intro, so hovering the visible circle
+    // is unreliable; these full-size invisible discs are the hit target.
+    const hits = g
+      .selectAll("circle.dot-hit")
+      .data(data)
+      .enter()
+      .append("circle")
+      .attr("cx", (d) => x(d.x))
+      .attr("cy", (d) => y(d.y))
+      .attr("r", (d) => Math.max(radius(d), MIN_HIT_R))
+      .attr("fill", "transparent")
+      // Pure hit geometry — the dot beneath already carries the reading.
+      .attr("aria-hidden", "true");
+    attachChartTooltip(hits, (d) => {
+      const rows: ChartTooltipRow[] = [
+        { label: xLabel, value: formatX(d.x) },
+        { label: yLabel, value: formatY(d.y) },
+      ];
+      // Caller-supplied units with no formatter of their own, so the weight is
+      // only thousands-separated, never rescaled.
+      if (d.weight !== undefined && weightLabel)
+        rows.push({ label: weightLabel, value: d.weight.toLocaleString() });
+      return { title: d.label, rows };
+    });
+
+    // The next draw opens with selectAll("*").remove(), so the mark under the
+    // cursor can vanish (poll, resize, unmount) with no pointerleave to follow.
+    return hideChartTooltip;
   }, [
     data,
     width,
@@ -300,6 +361,9 @@ const ScatterChart = ({
     zeroXLine,
     radiusRange,
     maxLabels,
+    xLabel,
+    yLabel,
+    weightLabel,
     shouldIntro,
   ]);
 

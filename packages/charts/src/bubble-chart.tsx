@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { memo, useEffect, useId, useRef, useState } from "react";
+import { attachChartTooltip, hideChartTooltip } from "./lib/chart-tooltip";
 import { observeResize } from "./lib/observe-resize";
 import { useChartIntro } from "./lib/use-chart-intro";
 import { prefersReducedMotion } from "./lib/utils";
@@ -26,7 +27,10 @@ export interface BubbleChartProps {
   showLabels?: boolean;
   /** Fallback fill for image-less nodes. */
   color?: string;
-  /** Extra tooltip line per node (label is always shown). */
+  /**
+   * The node's hover line — the tooltip shows `label` as its title and this
+   * string as its single row. Omit and the row falls back to the raw `value`.
+   */
   formatTitle?: (node: BubbleNode) => string;
 }
 
@@ -222,7 +226,7 @@ const BubbleChart = ({
 
       // Only label a bubble the text actually fits inside — a long ticker on a
       // medium bubble used to overflow past the rim (e.g. "MAYC"). Bubbles too
-      // small to hold their label stay unlabeled; the name is in the <title>.
+      // small to hold their label stay unlabeled; the name is in the tooltip.
       const fontSize = Math.max(9, Math.min(d.r * 0.42, 15));
       const textWidth = d.node.label.length * fontSize * 0.6;
       if (showLabels && d.r >= 14 && textWidth <= d.r * 2 - 6) {
@@ -240,9 +244,12 @@ const BubbleChart = ({
           .text(d.node.label);
       }
 
-      outer
-        .append("title")
-        .text(formatTitle ? formatTitle(d.node) : d.node.label);
+      // No <title>: it would surface the browser's own tooltip a second after
+      // the custom one, saying the same thing twice. AT reads this instead.
+      outer.attr(
+        "aria-label",
+        formatTitle ? formatTitle(d.node) : d.node.label,
+      );
 
       if (animateIntro) {
         group
@@ -263,6 +270,19 @@ const BubbleChart = ({
       }
     });
 
+    // Attached to the outer <g>, which has no geometry of its own but receives
+    // pointerenter from its descendants — and the base circle covers the whole
+    // bubble, so no separate hit target is needed.
+    attachChartTooltip(item, (d) => ({
+      title: d.node.label,
+      rows: [
+        {
+          value: formatTitle ? formatTitle(d.node) : String(d.node.value),
+          color: d.node.borderColor ?? d.node.color ?? color,
+        },
+      ],
+    }));
+
     const position = () => {
       simNodes.forEach(clampToBox);
       item.attr("transform", (d) => `translate(${d.x},${d.y})`);
@@ -278,6 +298,9 @@ const BubbleChart = ({
         d3
           .drag<SVGGElement, SimNode>()
           .on("start", (event) => {
+            // The drag captures the pointer, so pointerleave never arrives —
+            // and a tooltip riding the cursor through a drag is just noise.
+            hideChartTooltip();
             if (!event.active) simulation.alphaTarget(0.25).restart();
             event.subject.fx = event.subject.x;
             event.subject.fy = event.subject.y;
@@ -296,6 +319,9 @@ const BubbleChart = ({
 
     return () => {
       simulation.stop();
+      // A redraw wipes the SVG, so the hovered bubble stops existing — without
+      // this the tooltip would hang over an empty chart.
+      hideChartTooltip();
     };
   }, [nodes, box, showLabels, color, formatTitle, clipPrefix, shouldIntro]);
 

@@ -1,9 +1,11 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef, useState } from "react";
+import { attachChartTooltip, hideChartTooltip } from "../lib/chart-tooltip";
 import { observeResize } from "../lib/observe-resize";
 import { useChartIntro } from "../lib/use-chart-intro";
 import {
   type CalendarDatum,
+  type CalendarDay,
   type WeekStart,
   buildCalendarGrid,
   levelScale,
@@ -246,21 +248,38 @@ const CalendarHeatmap = ({
           d.value === null ? blankOpacity(d) : opacityOf(d.value),
         );
 
-    // Only in-window squares get a tooltip — the week padding is scaffolding,
-    // and "Dec 28: no data" on it invites the reader to ask what happened.
+    const dateLabel = (d: CalendarDay) =>
+      new Date(d.time).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    const valueLabel = (d: CalendarDay) =>
+      d.value === null ? "no data" : formatValue(d.value);
+
+    // The square IS the hit target — that's the GitHub interaction, and it needs
+    // no hit rect even at MIN_CELL. Only in-window squares get a tooltip: the
+    // week padding is scaffolding, and "Dec 28: no data" on it invites the
+    // reader to ask what happened.
+    attachChartTooltip(cells, (d) =>
+      d.inWindow
+        ? {
+            title: dateLabel(d),
+            rows: [
+              {
+                value: valueLabel(d),
+                // A hole has no band, so there is no colour to swatch.
+                color: d.value === null ? undefined : fillOf(d.value),
+              },
+            ],
+          }
+        : null,
+    );
+    // Carries the reading the native <title> used to give assistive tech, minus
+    // the duplicate browser tooltip it drew on top of this one.
     cells
       .filter((d) => d.inWindow)
-      .append("title")
-      .text((d) => {
-        const date = new Date(d.time).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        });
-        return d.value === null
-          ? `${date}: no data`
-          : `${date}: ${formatValue(d.value)}`;
-      });
+      .attr("aria-label", (d) => `${dateLabel(d)}: ${valueLabel(d)}`);
 
     if (showWeekdayLabels && cell >= 6) {
       const labels = weekdayLabels(weekStart);
@@ -369,6 +388,10 @@ const CalendarHeatmap = ({
       if (startX - lowWidth < 0)
         legend.attr("transform", `translate(${lowWidth},${legendY})`);
     }
+
+    // The next draw opens with selectAll("*").remove(), so a poll or unmount
+    // destroys the square under the cursor and would strand its tooltip.
+    return hideChartTooltip;
   }, [
     data,
     width,

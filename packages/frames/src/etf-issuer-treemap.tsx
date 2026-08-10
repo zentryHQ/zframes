@@ -2,6 +2,7 @@ import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useEtfFlows, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { changeColor, formatPct } from "./format";
 import { etfIssuerTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -24,19 +25,18 @@ function Leaf({
 }) {
   const money = useMoney();
   const aum = money.compact(data.netAssets);
-  const flow = money.compact(data.dailyNetInflow);
   return (
     <TreemapLeaf
       width={width}
       height={height}
       label={data.id}
       secondary={aum}
-      title={`${data.id} · ${aum} AUM · ${data.dailyNetInflow >= 0 ? "+" : ""}${flow} today`}
     />
   );
 }
 
 function EtfIssuerTreemap({ config }: { config: z.output<typeof schema> }) {
+  const money = useMoney();
   const { flows, isLoading } = useEtfFlows(config.asset);
 
   const data: IssuerNode[] = useMemo(
@@ -53,6 +53,8 @@ function EtfIssuerTreemap({ config }: { config: z.output<typeof schema> }) {
     [flows, config.limit],
   );
 
+  const totalAssets = flows?.totalNetAssets ?? 0;
+
   if (isLoading) return <FrameStatus loading>loading ETF flows…</FrameStatus>;
   if (data.length === 0)
     return <FrameStatus>ETF flows unavailable</FrameStatus>;
@@ -62,6 +64,25 @@ function EtfIssuerTreemap({ config }: { config: z.output<typeof schema> }) {
       data={data}
       LeafComponent={Leaf}
       getColorValue={(node) => node.dailyNetInflow}
+      formatTooltip={(node) => {
+        const share =
+          totalAssets > 0 ? (node.netAssets / totalAssets) * 100 : 0;
+        return {
+          title: node.id,
+          rows: [
+            { label: "AUM", value: money.compact(node.netAssets) },
+            {
+              label: "today",
+              value: `${node.dailyNetInflow >= 0 ? "+" : ""}${money.compact(node.dailyNetInflow)}`,
+              color: changeColor(node.dailyNetInflow),
+            },
+          ],
+          footer:
+            share > 0
+              ? `${formatPct(share, 1)} of ${config.asset.toUpperCase()} ETF assets`
+              : undefined,
+        };
+      }}
     />
   );
 }

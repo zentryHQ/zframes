@@ -1,5 +1,7 @@
 import * as d3 from "d3";
 import { memo, useEffect, useRef, useState } from "react";
+import type { ChartTooltipContent } from "./lib/chart-tooltip";
+import { attachChartTooltip, hideChartTooltip } from "./lib/chart-tooltip";
 import { observeResize } from "./lib/observe-resize";
 import { useChartIntro } from "./lib/use-chart-intro";
 
@@ -59,7 +61,7 @@ const INTRO_STAGGER_STEP_CAP_MS = 24;
  * Truncate a label with a trailing ellipsis so its rendered width never
  * exceeds `maxPx` — keeps long category names from overflowing the label
  * gutter and clipping their leading characters at the SVG's left edge. The
- * full label is preserved in the row's hover `<title>`.
+ * full label is preserved in the row's hover tooltip.
  */
 const fitLabel = (label: string, maxPx: number): string => {
   const maxChars = Math.floor(maxPx / CHAR_PX);
@@ -115,6 +117,14 @@ const BarChart = ({
     const svg = d3.select(svgEl);
     const barFill = (d: BarDatum) =>
       d.color ?? (negativeColor && d.value < 0 ? negativeColor : color);
+    // The swatch carries the bar's own fill — on a diverging chart that is what
+    // tells a gain bar from a loss bar. `d.label` is the FULL label, which the
+    // horizontal branch truncates when it draws it.
+    const tooltipFor = (d: BarDatum): ChartTooltipContent => ({
+      title: d.label,
+      rows: [{ value: formatValue(d.value), color: barFill(d) }],
+    });
+    const ariaFor = (d: BarDatum) => `${d.label}: ${formatValue(d.value)}`;
     // Computed once, up front, so the horizontal and vertical branches below
     // can never disagree about whether this draw is an intro.
     const animate = shouldIntro();
@@ -222,6 +232,9 @@ const BarChart = ({
         .attr("fill", "currentColor")
         .attr("fill-opacity", 0.65)
         .style("font", FONT)
+        // Painted above the row's hit rect, so a glyph would otherwise swallow
+        // the pointer and blank the tooltip mid-label.
+        .style("pointer-events", "none")
         .text((d) => fitLabel(d.label, labelWidth - LABEL_GAP - LABEL_INSET));
 
       // Value labels sit on the empty side of the row: positive bars grow
@@ -250,8 +263,21 @@ const BarChart = ({
             .attr("fill-opacity", 1);
       }
 
-      rows.append("title").text((d) => `${d.label}: ${formatValue(d.value)}`);
-      return;
+      rows.attr("aria-label", ariaFor);
+      // The visible bar is only 3–18px of a much taller row and the category
+      // label sits outside it in the left gutter, so the hover target is the
+      // whole row: back across the label column (x starts at -labelWidth, since
+      // the rows live inside a g translated by it) and on through the value
+      // gutter. Appended last so it sits above the bar and its value label.
+      const rowHits = rows
+        .append("rect")
+        .attr("x", -labelWidth)
+        .attr("width", width)
+        .attr("y", -rowHeight / 2)
+        .attr("height", rowHeight)
+        .attr("fill", "transparent");
+      attachChartTooltip(rowHits, tooltipFor);
+      return hideChartTooltip;
     }
 
     // vertical
@@ -310,7 +336,8 @@ const BarChart = ({
       bars.attr("y", barY).attr("height", barH);
     }
 
-    g.selectAll("rect.bar-hit")
+    const barHits = g
+      .selectAll("rect.bar-hit")
       .data(data)
       .enter()
       .append("rect")
@@ -319,8 +346,8 @@ const BarChart = ({
       .attr("y", 0)
       .attr("height", innerHeight)
       .attr("fill", "transparent")
-      .append("title")
-      .text((d) => `${d.label}: ${formatValue(d.value)}`);
+      .attr("aria-label", ariaFor);
+    attachChartTooltip(barHits, tooltipFor);
 
     if (showValues && band.bandwidth() >= 26) {
       const valueLabels = g
@@ -334,6 +361,9 @@ const BarChart = ({
         .attr("fill", barFill)
         .style("font", FONT)
         .style("font-weight", "600")
+        // Drawn over the column's hit rect; without this a glyph swallows the
+        // pointer and the tooltip blinks out right at the bar's tip.
+        .style("pointer-events", "none")
         .text((d) => formatValue(d.value));
       // Sits above the bar's tip, so it fades in with the bar rather than
       // floating over a bar that hasn't grown there yet.
@@ -366,6 +396,11 @@ const BarChart = ({
       .attr("fill-opacity", 0.55)
       .style("font", FONT)
       .text((d) => d.label);
+
+    // This effect opens by wiping the SVG, so a poll or an unmount destroys the
+    // mark under the cursor — without this the tooltip would hang there
+    // describing a bar that no longer exists.
+    return hideChartTooltip;
   }, [
     data,
     width,
