@@ -206,7 +206,7 @@ Gotchas: it's `xyz:SP500` (**not `SPY`** — that symbol doesn't exist on the de
 `xyz:XYZ100` for the Nasdaq-100 (not `NDX`/`QQQ`), `xyz:CL` for WTI crude (not
 `WTI`/`USOIL`), `xyz:SPCX` for SpaceX. Crypto stays bare (`BTC`, `ETH`). Ignore
 the other HIP-3 dexes (`km`/`flx`/`vntl`/…) — they're ~$0 volume; only `xyz` has
-liquidity. The full live universe with 24h volumes is in `docs/xyz-universe.html`.
+liquidity.
 
 ## 4. Fill in the frames
 
