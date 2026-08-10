@@ -23,7 +23,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.3",
     "@zframes/charts": "workspace:*",
     "@zframes/core": "workspace:*",
     "@zframes/data-primitives": "workspace:*",
@@ -54,6 +53,7 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.3",
     "@electric-sql/pglite-socket": "^0.2.6",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^26.1.1",
