@@ -1243,12 +1243,12 @@ export function usePortfolio(
 ): { portfolio: Portfolio | null; isLoading: boolean } {
   const providers = useProviders();
   const provider = source
-    ? providers.find(
+    ? (providers.find(
         (p) =>
           !!p.getPortfolio &&
           p.capabilities.includes("portfolio") &&
           (p.portfolioKinds?.includes(source.kind) ?? true),
-      ) ?? null
+      ) ?? null)
     : null;
   const key = source ? `${source.kind}:${source.address ?? ""}` : "";
   const { data: portfolio, isLoading } = usePolled<Portfolio | null>(

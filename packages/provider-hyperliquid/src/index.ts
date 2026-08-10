@@ -218,8 +218,8 @@ export class HyperliquidProvider implements MarketDataProvider {
             Number.isFinite(reported) && reported > 0
               ? reported
               : venue === "HlPerp"
-              ? 1
-              : 8;
+                ? 1
+                : 8;
           venues.push({
             venue: VENUE_LABELS[venue] ?? venue,
             rawRate,
