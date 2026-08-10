@@ -52,7 +52,12 @@ export function DashboardCard({
             />
           )}
         </div>
-        <span className="absolute right-3 top-3 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 font-mono text-[10px] text-white/70 backdrop-blur">
+        {/* No `backdrop-blur` here: this badge is one per gallery card, and it
+            sits directly over `.zf-kenburns`, which pans the thumbnail on hover
+            — so the blur re-snapshots a MOVING backdrop, per card, for the whole
+            hover. The tint carries the contrast instead (raised 40% → 60% to
+            replace what the blur was hiding). */}
+        <span className="absolute right-3 top-3 rounded-full border border-white/10 bg-black/60 px-2 py-0.5 font-mono text-[10px] text-white/70">
           {frameCount} {frameCount === 1 ? "frame" : "frames"}
         </span>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-400/70 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
