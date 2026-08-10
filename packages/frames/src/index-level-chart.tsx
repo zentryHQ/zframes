@@ -61,12 +61,14 @@ function IndexLevelChart({ config }: { config: z.output<typeof schema> }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <SeriesHeader series={official} />
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={200}
-        formatValue={config.logScale ? formatLogIndexValue : formatIndexValue}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={config.logScale ? formatLogIndexValue : formatIndexValue}
+        />
+      </div>
     </div>
   );
 }

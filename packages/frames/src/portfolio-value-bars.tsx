@@ -36,7 +36,7 @@ function ValueBars({
   if (data.length === 0) return <FrameStatus>no live prices yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
+    <div className="flex h-full min-h-0 flex-col gap-1 text-normal">
       <div className="flex items-baseline justify-between px-0.5">
         <PortfolioLabel
           portfolio={portfolio}
@@ -45,12 +45,18 @@ function ValueBars({
         />
         <span className="metric-sm text-strong">{money.compact(total)}</span>
       </div>
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        height={Math.max(data.length * 24, 96)}
-        formatValue={money.compact}
-      />
+      {/* `fill`, not `24px × holdings`: a pixel height pins the chart's wrapper,
+          so a card shorter than that number can't shrink it and the bars spill
+          out of the card body, clipped. Filling makes the chart the card's
+          dependent — the bars just get thinner. */}
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          fill
+          formatValue={money.compact}
+        />
+      </div>
     </div>
   );
 }

@@ -65,7 +65,7 @@ function OnchainOscillatorOverlay({
     <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe.YTD}
-      height={260}
+      fill
       formatValue={formatOscillator}
       control={
         <TimeframeToggle

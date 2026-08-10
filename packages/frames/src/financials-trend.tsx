@@ -178,20 +178,20 @@ function FinancialsTrend({ config }: { config: z.output<typeof schema> }) {
         )}
       </div>
 
-      {series.length > 0 ? (
-        <TimeSeriesChart
-          series={series}
-          timeframe={timeframeFor(spanYears)}
-          height={200}
-          formatValue={format}
-        />
-      ) : (
-        <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1">
+        {series.length > 0 ? (
+          <TimeSeriesChart
+            series={series}
+            timeframe={timeframeFor(spanYears)}
+            fill
+            formatValue={format}
+          />
+        ) : (
           <FrameStatus>
             one reported period so far — no trend to chart yet
           </FrameStatus>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="caption text-soft text-center">
         {data.cadence} filings as reported · {picked.unit}

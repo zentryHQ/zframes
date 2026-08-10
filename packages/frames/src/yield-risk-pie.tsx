@@ -37,22 +37,27 @@ function YieldRiskPie() {
   if (slices.length === 0) return <FrameStatus>no yield data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-      <PieChart
-        data={slices}
-        width={188}
-        height={188}
-        innerRadius={54}
-        outerRadius={86}
-        colors={slices.map((slice) => slice.color)}
-      >
-        <div className="flex max-w-[100px] flex-col items-center gap-0.5">
-          <span className="caption text-soft">TVL by IL risk</span>
-          <span className="metric-md text-strong leading-none tabular-nums">
-            {money.compact(total)}
-          </span>
-        </div>
-      </PieChart>
+    <div className="flex h-full min-h-0 w-full flex-col items-center justify-center gap-4">
+      <div className="min-h-0 w-full flex-1">
+        {/* `fill` scales the ring to the card; width/height stay behind it as
+            the reference box the radii keep their proportions against. */}
+        <PieChart
+          data={slices}
+          fill
+          width={188}
+          height={188}
+          innerRadius={54}
+          outerRadius={86}
+          colors={slices.map((slice) => slice.color)}
+        >
+          <div className="flex max-w-[100px] flex-col items-center gap-0.5">
+            <span className="caption text-soft">TVL by IL risk</span>
+            <span className="metric-md text-strong leading-none tabular-nums">
+              {money.compact(total)}
+            </span>
+          </div>
+        </PieChart>
+      </div>
 
       <div className="flex w-full max-w-xs flex-wrap justify-center gap-x-5 gap-y-1.5">
         {slices.map((slice) => (

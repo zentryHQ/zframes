@@ -86,12 +86,14 @@ function CreditSpreadChart({ config }: { config: z.output<typeof schema> }) {
           </div>
         ))}
       </div>
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={200}
-        formatValue={formatSpread}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={formatSpread}
+        />
+      </div>
       <div className="caption text-soft text-center">
         option-adjusted spread over Treasuries · wider = more default risk
         priced

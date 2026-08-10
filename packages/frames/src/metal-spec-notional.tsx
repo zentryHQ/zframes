@@ -168,13 +168,15 @@ function MetalSpecNotional({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={170}
-        yDomain={yDomain}
-        formatValue={money.compact}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          yDomain={yDomain}
+          formatValue={money.compact}
+        />
+      </div>
 
       <div className="caption text-soft text-center">
         every week valued at today's {spot === null ? "" : money.price(spot)}/

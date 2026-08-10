@@ -90,6 +90,16 @@ export interface StackedAreaChartProps<T extends StackedAreaSeries> {
   className?: string;
   /** Optional height (defaults to 400) */
   height?: number;
+  /**
+   * Size the chart to its CONTAINER's height instead of `height`.
+   *
+   * `height` pins the container, so a card body shorter than it can't shrink
+   * the chart and the bands spill out clipped. With `fill` the container takes
+   * the card's height and the bands are drawn to whatever that measures.
+   * Opt-in — existing callers keep their fixed height and pixel-identical
+   * output.
+   */
+  fill?: boolean;
   /** Chart margins */
   margin?: {
     top?: number;

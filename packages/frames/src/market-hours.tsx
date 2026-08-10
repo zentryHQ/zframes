@@ -200,7 +200,10 @@ function Row({ now, state }: { now: Date; state: MarketState }) {
   return (
     <a
       aria-label={`${state.name} website`}
-      className="group text-normal relative grid min-h-[42px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.022] py-1.5 pr-2.5 pl-3 transition duration-200 hover:-translate-y-px hover:border-white/[0.14] hover:bg-white/[0.05] hover:text-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50"
+      // `shrink-0`: as a shrinkable flex item the row compressed onto its
+      // min-height instead of letting the list scroll, and its own
+      // overflow-hidden then cut the chip and countdown short.
+      className="group text-normal relative grid min-h-[42px] shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.022] py-1.5 pr-2.5 pl-3 transition duration-200 hover:-translate-y-px hover:border-white/[0.14] hover:bg-white/[0.05] hover:text-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/50"
       href={state.website}
       rel="noreferrer"
       style={{ backgroundImage: tone.wash } satisfies CSSProperties}
@@ -282,7 +285,10 @@ function MarketHours({ config }: { config: z.output<typeof schema> }) {
           <span className="text-soft">/ {states.length} open</span>
         </span>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-auto pr-0.5">
+      {/* The shared scroll area, not a hand-rolled one — the exchange rows are
+          the card and the list is longer than any card, so it scrolls at every
+          size rather than squeezing each row until its own chrome is clipped. */}
+      <div className={`flex flex-col gap-1 ${scrollAreaClass}`}>
         {states.map((s) => (
           <Row key={s.code} now={now} state={s} />
         ))}

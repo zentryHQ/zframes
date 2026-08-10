@@ -74,15 +74,17 @@ function YieldDistribution({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-1.5 text-normal">
-      {/* No negativeColor: APY is one-sided, so a diverging split would imply a
-          zero crossing that cannot happen. */}
-      <HistogramChart
-        values={values}
-        height={140}
-        formatValue={axisDp === 0 ? formatAxisWhole : formatAxisDecimal}
-        formatCount={formatCompact}
-        markers={markers}
-      />
+      <div className="min-h-0 flex-1">
+        {/* No negativeColor: APY is one-sided, so a diverging split would imply
+            a zero crossing that cannot happen. */}
+        <HistogramChart
+          values={values}
+          fill
+          formatValue={axisDp === 0 ? formatAxisWhole : formatAxisDecimal}
+          formatCount={formatCompact}
+          markers={markers}
+        />
+      </div>
 
       {/* The TVL floor is deliberately not echoed here: it is a USD figure the
           user typed into the rail, and printing it on a card that may be

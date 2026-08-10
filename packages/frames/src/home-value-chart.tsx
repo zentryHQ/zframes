@@ -54,12 +54,14 @@ function HomeValueChart({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={220}
-        formatValue={formatValue}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={formatValue}
+        />
+      </div>
       <div className="caption text-soft text-center">
         Zillow ZHVI · typical home value · monthly
         {index?.asOf ? ` · through ${index.asOf}` : ""}

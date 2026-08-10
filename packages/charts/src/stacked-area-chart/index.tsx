@@ -88,6 +88,7 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
   AreaComponent = DefaultAreaComponent,
   className,
   height = CHART_DEFAULTS.height,
+  fill = false,
   margin,
   colors = STACKED_AREA_COLORS,
   getSeriesColor,
@@ -112,9 +113,14 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
 
   const dimensions = useChartDimensions({
     height,
+    fill,
     margin,
     containerRef,
   });
+
+  // The one style the container, the loading box and the empty box all take:
+  // filling means the card's height decides, not the prop.
+  const containerStyle = fill ? { height: "100%", minHeight: 0 } : { height };
 
   // Memoize series colors
   const seriesColors = useMemo(() => {
@@ -433,7 +439,7 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
       <div
         ref={containerRef}
         className={cn("relative w-full", className)}
-        style={{ height }}
+        style={containerStyle}
       >
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white/80 motion-reduce:animate-none" />
@@ -447,7 +453,7 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
       <div
         ref={containerRef}
         className={cn("relative w-full", className)}
-        style={{ height }}
+        style={containerStyle}
       >
         <div className="absolute inset-0 flex items-center justify-center text-sm text-white/50">
           No data available
@@ -460,7 +466,7 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
     <div
       ref={containerRef}
       className={cn("relative w-full", className)}
-      style={{ height }}
+      style={containerStyle}
     >
       {dimensions.width > 0 && scales && (
         <svg

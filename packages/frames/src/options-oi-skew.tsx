@@ -34,14 +34,16 @@ function OptionsOiSkew({ config }: { config: z.output<typeof schema> }) {
   if (!view) return <FrameStatus>no options data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={view.data}
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        height={200}
-        formatValue={formatCompact}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={view.data}
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          fill
+          formatValue={formatCompact}
+        />
+      </div>
       <div className="caption text-soft flex justify-between">
         <span style={{ color: UP_COLOR }}>call-heavy</span>
         <span>net OI by strike · {view.expiry}</span>

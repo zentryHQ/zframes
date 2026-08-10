@@ -152,13 +152,17 @@ function MetalCotNet({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={180}
-        yDomain={yDomain}
-        formatValue={config.showOpenInterest ? formatChangePct : formatCompact}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          yDomain={yDomain}
+          formatValue={
+            config.showOpenInterest ? formatChangePct : formatCompact
+          }
+        />
+      </div>
 
       <div className="caption text-soft text-center">
         {config.showOpenInterest ? (

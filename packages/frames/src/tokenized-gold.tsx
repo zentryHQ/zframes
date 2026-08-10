@@ -4,7 +4,7 @@ import type { z } from "zod";
 import { AssetLogo } from "./asset-logo";
 import { changeColor, formatChangePct, formatCompact } from "./format";
 import { tokenizedGoldMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = tokenizedGoldMeta.schema;
 
@@ -44,55 +44,66 @@ function TokenTile({
 }) {
   const money = useMoney();
   return (
-    <div className="flex min-h-0 min-w-0 flex-col justify-center gap-2 overflow-hidden rounded-md border border-white/[0.06] bg-white/[0.03] px-3 py-2">
-      <div className="flex min-w-0 items-center gap-2">
-        <AssetLogo symbol={token.symbol} size={18} />
-        <div className="min-w-0">
-          <div className="body-sm text-strong truncate font-bold">
-            {token.symbol}
+    <div className="flex min-h-0 min-w-0 flex-col rounded-md border border-white/[0.06] bg-white/[0.03] px-3 py-2">
+      {/* The tile scrolls rather than clips: identity, price and the three stats
+          are all the tile's substance, and the old centred stack overflowed at
+          BOTH ends on a short card — losing the symbol as well as the stats.
+          `my-auto` keeps the centring while it fits (a scroll container's
+          `justify-center` would put the overflow past its scrollable start). */}
+      <div className={`${scrollAreaClass} flex flex-col`}>
+        <div className="my-auto flex flex-col gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <AssetLogo symbol={token.symbol} size={18} />
+            <div className="min-w-0">
+              <div className="body-sm text-strong truncate font-bold">
+                {token.symbol}
+              </div>
+              <div className="caption text-soft truncate">{token.name}</div>
+            </div>
           </div>
-          <div className="caption text-soft truncate">{token.name}</div>
-        </div>
-      </div>
 
-      <div>
-        <div className="metric-md text-strong leading-none">
-          {money.price(token.price)}
-        </div>
-        <div
-          className="caption mt-1 font-bold"
-          style={{ color: changeColor(token.changePct) }}
-        >
-          {formatChangePct(token.changePct)}
-          <span className="text-soft ml-1 font-medium">24h</span>
-        </div>
-      </div>
+          <div>
+            <div className="metric-md text-strong leading-none">
+              {money.price(token.price)}
+            </div>
+            <div
+              className="caption mt-1 font-bold"
+              style={{ color: changeColor(token.changePct) }}
+            >
+              {formatChangePct(token.changePct)}
+              <span className="text-soft ml-1 font-medium">24h</span>
+            </div>
+          </div>
 
-      <div className="flex flex-col gap-1 border-t border-white/[0.06] pt-2">
-        {/* Premium is absent (not zero) whenever spot was unavailable. */}
-        {showPremium && (
-          <Stat
-            label="vs spot"
-            value={
-              token.premiumPct === undefined
-                ? "—"
-                : formatChangePct(token.premiumPct)
-            }
-            color={
-              token.premiumPct === undefined
-                ? undefined
-                : changeColor(token.premiumPct)
-            }
-          />
-        )}
-        <Stat
-          label="mkt cap"
-          value={token.marketCap > 0 ? money.compact(token.marketCap) : "—"}
-        />
-        <Stat
-          label="vaulted"
-          value={token.ounces > 0 ? `${formatCompact(token.ounces)} oz` : "—"}
-        />
+          <div className="flex flex-col gap-1 border-t border-white/[0.06] pt-2">
+            {/* Premium is absent (not zero) whenever spot was unavailable. */}
+            {showPremium && (
+              <Stat
+                label="vs spot"
+                value={
+                  token.premiumPct === undefined
+                    ? "—"
+                    : formatChangePct(token.premiumPct)
+                }
+                color={
+                  token.premiumPct === undefined
+                    ? undefined
+                    : changeColor(token.premiumPct)
+                }
+              />
+            )}
+            <Stat
+              label="mkt cap"
+              value={token.marketCap > 0 ? money.compact(token.marketCap) : "—"}
+            />
+            <Stat
+              label="vaulted"
+              value={
+                token.ounces > 0 ? `${formatCompact(token.ounces)} oz` : "—"
+              }
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -111,7 +122,10 @@ function TokenizedGold({ config }: { config: z.output<typeof schema> }) {
       <div
         className="grid min-h-0 flex-1 gap-2 overflow-hidden"
         style={{
-          gridTemplateColumns: `repeat(${Math.min(tokens.length, 2)}, minmax(0, 1fr))`,
+          gridTemplateColumns: `repeat(${Math.min(
+            tokens.length,
+            2,
+          )}, minmax(0, 1fr))`,
         }}
       >
         {tokens.map((token) => (

@@ -22,6 +22,15 @@ export interface ScatterDatum {
 export interface ScatterChartProps {
   data: ScatterDatum[];
   height?: number;
+  /**
+   * Size the chart to its CONTAINER's height instead of `height`.
+   *
+   * `height` pins the wrapper, so a card body shorter than it can't shrink the
+   * chart and the plot spills out clipped. With `fill` the wrapper takes the
+   * card's height and the plot is drawn to whatever that measures. Opt-in —
+   * existing callers keep their fixed height and pixel-identical output.
+   */
+  fill?: boolean;
   /** "log" needs strictly positive y values. Default linear. */
   yScale?: "linear" | "log";
   color?: string;
@@ -73,6 +82,7 @@ const MIN_HIT_R = 10;
 const ScatterChart = ({
   data,
   height = 220,
+  fill = false,
   yScale = "linear",
   color = DEFAULT_COLOR,
   formatX = DEFAULT_FORMAT,
@@ -87,6 +97,7 @@ const ScatterChart = ({
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState<number | null>(null);
+  const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   /**
    * Opens a short grace window at the first real draw, so the entrance survives
    * the re-render burst around first paint and then settles: a later redraw
@@ -99,14 +110,26 @@ const ScatterChart = ({
     const el = wrapRef.current;
     if (!el) return;
     const update = () => {
-      const w = el.getBoundingClientRect().width;
+      const rect = el.getBoundingClientRect();
       setWidth((prev) =>
-        prev !== null && Math.abs(prev - w) < 0.5 ? prev : w,
+        prev !== null && Math.abs(prev - rect.width) < 0.5 ? prev : rect.width,
       );
+      // Only tracked when filling — a pinned wrapper is `height` by
+      // construction, so measuring it would re-render for nothing.
+      if (fill)
+        setMeasuredHeight((prev) =>
+          prev !== null && Math.abs(prev - rect.height) < 0.5
+            ? prev
+            : rect.height,
+        );
     };
     update();
     return observeResize(el, update);
-  }, []);
+  }, [fill]);
+
+  // The wrapper can measure 0 before layout settles, so the prop stays the
+  // fallback — a collapsed chart is worse than a slightly-too-tall one.
+  const plotHeight = fill && measuredHeight ? measuredHeight : height;
 
   useEffect(() => {
     const svgEl = svgRef.current;
@@ -119,7 +142,7 @@ const ScatterChart = ({
 
     const margin = { top: 10, right: 16, bottom: 22, left: 46 };
     const innerWidth = Math.max(width - margin.left - margin.right, 10);
-    const innerHeight = Math.max(height - margin.top - margin.bottom, 10);
+    const innerHeight = Math.max(plotHeight - margin.top - margin.bottom, 10);
 
     const xExtent = d3.extent(data, (d) => d.x) as [number, number];
     const xPad = (xExtent[1] - xExtent[0] || 1) * 0.08;
@@ -353,7 +376,7 @@ const ScatterChart = ({
   }, [
     data,
     width,
-    height,
+    plotHeight,
     yScale,
     color,
     formatX,
@@ -368,9 +391,13 @@ const ScatterChart = ({
   ]);
 
   return (
-    <div ref={wrapRef} className="w-full" style={{ height }}>
+    <div
+      ref={wrapRef}
+      className="w-full"
+      style={fill ? { height: "100%", minHeight: 0 } : { height }}
+    >
       {width !== null && width > 0 && (
-        <svg ref={svgRef} width={width} height={height} />
+        <svg ref={svgRef} width={width} height={plotHeight} />
       )}
     </div>
   );

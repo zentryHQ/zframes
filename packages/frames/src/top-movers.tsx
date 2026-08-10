@@ -4,7 +4,7 @@ import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import { MoverRow } from "./mover-row";
 import { topMoversMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = topMoversMeta.schema;
 
@@ -52,29 +52,37 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="grid h-full grid-cols-2 gap-x-4 overflow-hidden">
-      <div className="flex flex-col gap-1.5">
+      {/* Each column scrolls under its own pinned heading rather than clipping:
+          `count` is the card's substance, so a short card should let you reach
+          the movers that don't fit instead of slicing the last row in half. The
+          `min-h-0` is what lets a grid item shrink below its rows at all. */}
+      <div className="flex min-h-0 flex-col gap-1.5">
         <div className="caption text-soft uppercase tracking-wide">gainers</div>
-        {gainers.map((row) => (
-          <MoverRow
-            key={row.symbol}
-            symbol={row.symbol}
-            label={tickerOf(row.symbol)}
-            price={row.markPx}
-            changePct={row.changePct}
-          />
-        ))}
+        <div className={`${scrollAreaClass} flex flex-col gap-1.5`}>
+          {gainers.map((row) => (
+            <MoverRow
+              key={row.symbol}
+              symbol={row.symbol}
+              label={tickerOf(row.symbol)}
+              price={row.markPx}
+              changePct={row.changePct}
+            />
+          ))}
+        </div>
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex min-h-0 flex-col gap-1.5">
         <div className="caption text-soft uppercase tracking-wide">losers</div>
-        {losers.map((row) => (
-          <MoverRow
-            key={row.symbol}
-            symbol={row.symbol}
-            label={tickerOf(row.symbol)}
-            price={row.markPx}
-            changePct={row.changePct}
-          />
-        ))}
+        <div className={`${scrollAreaClass} flex flex-col gap-1.5`}>
+          {losers.map((row) => (
+            <MoverRow
+              key={row.symbol}
+              symbol={row.symbol}
+              label={tickerOf(row.symbol)}
+              price={row.markPx}
+              changePct={row.changePct}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

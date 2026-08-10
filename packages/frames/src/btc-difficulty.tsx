@@ -28,7 +28,11 @@ function BtcDifficulty({ config }: { config: z.output<typeof schema> }) {
   const accent = "hsl(var(--zf-accent-hue, 242) 85% 72%)";
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-3">
+    // gap-2, not gap-3: at its own 2-row floor this stack stood 3px taller than
+    // the card body, so the previous-retarget footer was sliced through the
+    // middle. The gaps are the only fixed part that can yield — every block
+    // below is a single line of type — and 8px of them is enough to fit.
+    <div className="flex h-full min-h-0 flex-col justify-center gap-2">
       <div className="flex items-end justify-between gap-3">
         <div>
           <div className="caption text-soft uppercase">next adjustment</div>
@@ -65,7 +69,7 @@ function BtcDifficulty({ config }: { config: z.output<typeof schema> }) {
       </div>
 
       {config.showPrevious && (
-        <div className="caption text-soft border-t border-white/[0.08] pt-2">
+        <div className="caption text-soft border-t border-white/[0.08] pt-1.5">
           previous retarget{" "}
           <span
             className="font-bold tabular-nums"

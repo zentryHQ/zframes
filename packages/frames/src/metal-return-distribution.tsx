@@ -94,16 +94,18 @@ function MetalReturnDistribution({
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-1.5 text-normal">
-      <HistogramChart
-        values={values}
-        height={140}
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        tailTrim={TAIL_TRIM}
-        formatValue={formatChangePct}
-        formatCount={formatCompact}
-        markers={[{ value: stats.mean, label: "mean" }]}
-      />
+      <div className="min-h-0 flex-1">
+        <HistogramChart
+          values={values}
+          fill
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          tailTrim={TAIL_TRIM}
+          formatValue={formatChangePct}
+          formatCount={formatCompact}
+          markers={[{ value: stats.mean, label: "mean" }]}
+        />
+      </div>
       <div className="caption text-soft text-center">
         {metalName(config.symbol)} · {formatCompact(stats.count)}{" "}
         {config.period} returns · {span}

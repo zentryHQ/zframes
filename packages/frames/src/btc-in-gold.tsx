@@ -115,12 +115,14 @@ function BtcInGold({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <TimeSeriesChart
-        series={view.series}
-        timeframe={timeframeFor(config.years)}
-        height={190}
-        formatValue={formatValue}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={view.series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={formatValue}
+        />
+      </div>
     </div>
   );
 }

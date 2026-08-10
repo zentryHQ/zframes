@@ -9,6 +9,7 @@ import {
 } from "./journal-store";
 import { StatTile } from "./journal-ui";
 import { journalScoreMeta } from "./schemas";
+import { scrollAreaClass } from "./ui";
 
 const schema = journalScoreMeta.schema;
 
@@ -66,8 +67,12 @@ function JournalScore(_props: { config: z.output<typeof schema> }) {
           color={Math.abs(gap) > 4 ? "#f4a259" : UP_COLOR}
         />
       </div>
+      {/* zAI's read is prose — it can't be made shorter, and on a shorter card
+          it was sliced mid-sentence — so the note scrolls and the three tiles
+          above it always read whole. `pl-3` only: the scroll primitive brings
+          the right padding, which keeps the text off the scrollbar track. */}
       <div
-        className="rounded-md px-3 py-2"
+        className={`rounded-md py-2 pl-3 ${scrollAreaClass}`}
         style={{
           background: "hsl(var(--zf-accent-hue, 242) 80% 60% / 0.1)",
           border: "1px solid var(--color-accent-line)",

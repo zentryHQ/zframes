@@ -86,12 +86,14 @@ function IndexDrawdown({ config }: { config: z.output<typeof schema> }) {
           )}
         </div>
       </div>
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={190}
-        formatValue={formatChangePct}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={formatChangePct}
+        />
+      </div>
     </div>
   );
 }

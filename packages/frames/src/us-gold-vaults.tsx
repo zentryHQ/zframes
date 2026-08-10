@@ -119,11 +119,15 @@ function UsGoldVaults({ config }: { config: z.output<typeof schema> }) {
       </div>
 
       {config.mode === "bars" ? (
-        <div className="text-normal flex min-h-0 flex-1 flex-col justify-center">
+        // `fill`, not `26px × vaults`: a pixel height pins the chart's wrapper,
+        // so a card shorter than that number can't shrink it and the bars spill
+        // out of the card body, clipped. Filling makes the chart the card's
+        // dependent, exactly as the treemap arm below already is.
+        <div className="text-normal min-h-0 flex-1">
           <BarChart
             data={bars}
             orientation="horizontal"
-            height={Math.max(vaults.length * 26, 96)}
+            fill
             formatValue={formatOunces}
           />
         </div>

@@ -38,7 +38,7 @@ function Pips({ value }: { value: number }) {
   const face = PIP_FACES[value];
   if (!face) return null;
   return (
-    <div className="grid grid-cols-3 gap-1" aria-hidden>
+    <div className="grid grid-cols-3 gap-0.5" aria-hidden>
       {face.map((on, i) => (
         <span
           key={i}
@@ -93,7 +93,12 @@ function Dice({ config }: { config: Config }) {
       type="button"
       onClick={reroll}
       aria-label={`${MODE_LABEL[mode]} — roll again`}
-      className={`flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 px-3 py-2 ${interactiveSurface}`}
+      // Tighter gaps and vertical padding than the stack started with: the card
+      // is locked to 2x2, and there the five items (caption, result, pips,
+      // label, hint) plus 8px gaps stood taller than the body, so whichever
+      // ended up at the edge was sliced. Every item here is a single line or a
+      // fixed pip grid, so the spacing is the only part that can yield.
+      className={`flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1.5 px-3 py-1 ${interactiveSurface}`}
     >
       <span className="caption text-soft uppercase tracking-[0.12em]">
         {MODE_LABEL[mode]}

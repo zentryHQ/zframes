@@ -207,12 +207,14 @@ function MetalRealPrice({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={190}
-        formatValue={money.price}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={money.price}
+        />
+      </div>
     </div>
   );
 }

@@ -89,13 +89,15 @@ function OfrStressCategoryArea({
           {stress ? stress.date : ""}
         </div>
       </div>
-      <StackedAreaChart
-        series={series}
-        height={210}
-        formatXAxis={dayLabel}
-        formatYAxis={formatIndex}
-        formatValue={formatIndex}
-      />
+      <div className="min-h-0 flex-1">
+        <StackedAreaChart
+          series={series}
+          fill
+          formatXAxis={dayLabel}
+          formatYAxis={formatIndex}
+          formatValue={formatIndex}
+        />
+      </div>
       <SeriesLegend series={series} />
     </div>
   );

@@ -42,14 +42,16 @@ function TreasuryAuctionDemandScatter({
     return <FrameStatus>no auction-demand data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <ScatterChart
-        data={data}
-        height={210}
-        formatX={formatPct}
-        formatY={formatBidToCover}
-        maxLabels={data.length}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <ScatterChart
+          data={data}
+          fill
+          formatX={formatPct}
+          formatY={formatBidToCover}
+          maxLabels={data.length}
+        />
+      </div>
       <div className="caption text-soft text-center">
         awarded rate (x) vs bid-to-cover (y) · last {data.length} auctions
       </div>

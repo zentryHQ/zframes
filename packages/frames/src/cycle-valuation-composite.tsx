@@ -83,7 +83,7 @@ function CycleValuationComposite({
     <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe.YTD}
-      height={260}
+      fill
       formatValue={formatComposite}
       control={
         <TimeframeToggle

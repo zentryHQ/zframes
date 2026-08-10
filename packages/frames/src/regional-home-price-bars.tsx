@@ -46,14 +46,16 @@ function RegionalHomePriceBars({
 
   return (
     <div className="text-normal flex h-full min-h-0 flex-col justify-center gap-1">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        height={Math.max(data.length * 22, 96)}
-        formatValue={formatChangePct}
-      />
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          fill
+          formatValue={formatChangePct}
+        />
+      </div>
       <div className="caption text-soft text-center">
         FHFA HPI y/y · {config.level} · {rising} rising / {data.length - rising}{" "}
         falling

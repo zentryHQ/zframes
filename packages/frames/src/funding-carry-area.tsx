@@ -62,7 +62,7 @@ function FundingCarryArea({ config }: { config: z.output<typeof schema> }) {
     <div className="relative h-full min-h-0">
       <StackedAreaChart
         series={series}
-        height={250}
+        fill
         formatXAxis={formatCarryAxisDate}
         formatYAxis={formatFundingPct}
         formatValue={formatFundingPct}

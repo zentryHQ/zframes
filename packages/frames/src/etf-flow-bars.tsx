@@ -41,16 +41,18 @@ function EtfFlowBars({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>ETF flows unavailable</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={data}
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        height={200}
-        formatValue={money.compact}
-        showValues={false}
-        maxTickLabels={6}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          fill
+          formatValue={money.compact}
+          showValues={false}
+          maxTickLabels={6}
+        />
+      </div>
       <div className="flex items-center justify-between gap-2">
         <span className="caption text-soft">
           {config.asset.toUpperCase()} spot-ETF daily net flow · latest{" "}

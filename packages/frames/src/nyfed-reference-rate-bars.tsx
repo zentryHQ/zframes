@@ -35,7 +35,7 @@ function NyfedReferenceRateBars({
       <BarChart
         data={data}
         orientation="horizontal"
-        height={Math.max(data.length * 26, 96)}
+        fill
         formatValue={config.metric === "volume" ? formatCompactUsd : formatPct}
       />
     </div>
