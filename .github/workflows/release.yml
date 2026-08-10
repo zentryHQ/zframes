@@ -51,6 +51,10 @@ jobs:
           fi
 
       - run: pnpm typecheck
+      # Same formatting gate as CI: without it a release can ship from a commit
+      # whose CI is red (0.14.0 did exactly that), leaving a failing badge on
+      # the repo while npm looks healthy.
+      - run: pnpm format:check
       - run: pnpm test
 
       # prepack (runtime build → tsup → assert-artifacts) runs inside pack, so
