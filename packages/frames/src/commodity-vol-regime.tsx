@@ -156,12 +156,17 @@ function CommodityVolRegime({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <TimeSeriesChart
-        series={chart}
-        timeframe={timeframeFor(spanYears)}
-        height={140}
-        formatValue={formatValue}
-      />
+      {/* The line chart is the card's dependent — it absorbs whatever height is
+          left once the header and the distribution strip below have taken
+          theirs, so a short card shrinks the plot instead of clipping it. */}
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={chart}
+          timeframe={timeframeFor(spanYears)}
+          fill
+          formatValue={formatValue}
+        />
+      </div>
 
       {/* The distribution is what turns a level into "cheap or expensive": the
           bars are how often this index has printed each level over the window,

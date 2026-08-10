@@ -41,15 +41,17 @@ function MoversBars({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no mover data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        height={Math.max(data.length * 22, 96)}
-        formatValue={formatChangePct}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          fill
+          formatValue={formatChangePct}
+        />
+      </div>
       {/* The static "top movers · {window} change" caption is now the
           control itself — same row, same height, but adjustable. */}
       <div className="flex items-center justify-between gap-2">

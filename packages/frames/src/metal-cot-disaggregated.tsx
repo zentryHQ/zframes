@@ -321,15 +321,21 @@ function MetalCotDisaggregated({
       </div>
 
       {history ? (
-        <TimeSeriesChart
-          series={history.series}
-          timeframe={timeframeFor(history.years)}
-          height={190}
-          yDomain={history.yDomain}
-          formatValue={formatCompact}
-        />
+        <div className="min-h-0 flex-1">
+          <TimeSeriesChart
+            series={history.series}
+            timeframe={timeframeFor(history.years)}
+            fill
+            yDomain={history.yDomain}
+            formatValue={formatCompact}
+          />
+        </div>
       ) : (
         <>
+          {/* The bars keep a pixel height on purpose: it's ten horizontal rows
+              at ~22px each, so the number is the CONTENT's size rather than a
+              pinned plot, and the scrolling class rows below already claim the
+              rest. Filling would squash ten labelled bars into half a card. */}
           <BarChart
             data={bars}
             orientation="horizontal"

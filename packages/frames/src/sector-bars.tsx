@@ -31,7 +31,7 @@ function SectorBars({ config }: { config: z.output<typeof schema> }) {
         orientation="horizontal"
         color={UP_COLOR}
         negativeColor={DOWN_COLOR}
-        height={Math.max(data.length * 24, 96)}
+        fill
         formatValue={formatChangePct}
       />
     </div>

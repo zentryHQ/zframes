@@ -46,15 +46,17 @@ function FundingCrowdingScatter({
   if (data.length === 0) return <FrameStatus>no funding data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <ScatterChart
-        data={data}
-        zeroXLine
-        height={210}
-        formatX={formatChangePct}
-        formatY={formatFundingPct}
-        maxLabels={10}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <ScatterChart
+          data={data}
+          zeroXLine
+          fill
+          formatX={formatChangePct}
+          formatY={formatFundingPct}
+          maxLabels={10}
+        />
+      </div>
       <div className="caption text-soft text-center">
         24h change (x) vs funding rate (y) · bubble = open interest · top{" "}
         {data.length}

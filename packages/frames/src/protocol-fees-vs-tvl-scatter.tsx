@@ -53,15 +53,17 @@ function ProtocolFeesVsTvlScatter({
     return <FrameStatus>no matching protocol data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <ScatterChart
-        data={data}
-        yScale="log"
-        height={210}
-        formatX={formatX}
-        formatY={money.compact}
-        maxLabels={10}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <ScatterChart
+          data={data}
+          yScale="log"
+          fill
+          formatX={formatX}
+          formatY={money.compact}
+          maxLabels={10}
+        />
+      </div>
       <div className="caption text-soft text-center">
         TVL (x, log) vs 24h fees (y, log) · top {data.length} by fees
       </div>

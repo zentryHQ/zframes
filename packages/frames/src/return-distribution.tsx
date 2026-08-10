@@ -117,20 +117,22 @@ function ReturnDistribution({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-1.5 text-normal">
-      <HistogramChart
-        values={values}
-        height={140}
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        tailTrim={TAIL_TRIM}
-        formatValue={formatChangePct}
-        formatCount={formatCompact}
-        showNormalCurve={config.showNormalCurve}
-        markers={[
-          { value: stats.mean, label: "mean" },
-          { value: last, label: "last", color: changeColor(last) },
-        ]}
-      />
+      <div className="min-h-0 flex-1">
+        <HistogramChart
+          values={values}
+          fill
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          tailTrim={TAIL_TRIM}
+          formatValue={formatChangePct}
+          formatCount={formatCompact}
+          showNormalCurve={config.showNormalCurve}
+          markers={[
+            { value: stats.mean, label: "mean" },
+            { value: last, label: "last", color: changeColor(last) },
+          ]}
+        />
+      </div>
 
       <div className="flex items-center justify-between gap-2">
         <span className="caption text-soft min-w-0 truncate">

@@ -32,20 +32,26 @@ function MoversChart({
     return <FrameStatus>no 24h change reported for these holdings</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
+    <div className="flex h-full min-h-0 flex-col gap-1 text-normal">
       <PortfolioLabel
         portfolio={portfolio}
         config={config}
         className="caption text-soft"
       />
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        height={Math.max(data.length * 22, 96)}
-        formatValue={formatChangePct}
-      />
+      {/* `fill`, not `22px × holdings`: a pixel height pins the chart's wrapper,
+          so a card shorter than that number can't shrink it and the bars spill
+          out of the card body, clipped top and bottom. Filling makes the chart
+          the card's dependent — the bars just get thinner. */}
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          fill
+          formatValue={formatChangePct}
+        />
+      </div>
     </div>
   );
 }

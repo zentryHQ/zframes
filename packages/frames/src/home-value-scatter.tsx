@@ -42,20 +42,22 @@ function HomeValueScatter({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="text-normal flex h-full min-h-0 flex-col justify-center gap-1">
-      <ScatterChart
-        data={data}
-        // Linear, deliberately. US metro home values span roughly $200k–$1.2M —
-        // barely more than half a decade — and a log axis over less than one
-        // decade puts most of its ticks in the top third of the plot, so the
-        // labels crowd into an unreadable stack while buying no extra spread.
-        // (Log earns its place on a range like chain transaction counts, which
-        // cover several orders of magnitude.)
-        height={205}
-        zeroXLine
-        formatX={formatChangePct}
-        formatY={formatY}
-        maxLabels={10}
-      />
+      <div className="min-h-0 flex-1">
+        <ScatterChart
+          data={data}
+          // Linear, deliberately. US metro home values span roughly $200k–$1.2M —
+          // barely more than half a decade — and a log axis over less than one
+          // decade puts most of its ticks in the top third of the plot, so the
+          // labels crowd into an unreadable stack while buying no extra spread.
+          // (Log earns its place on a range like chain transaction counts, which
+          // cover several orders of magnitude.)
+          fill
+          zeroXLine
+          formatX={formatChangePct}
+          formatY={formatY}
+          maxLabels={10}
+        />
+      </div>
       <div className="caption text-soft text-center">
         y/y change (x) vs typical home value (y, {money.code}) · right of the
         line = still appreciating

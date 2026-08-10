@@ -57,7 +57,11 @@ function InstitutionalOwnership({
     );
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-3">
+    // gap-2, not gap-3: the 13F caveat wraps to a second line on a card four
+    // columns or narrower, and those 8px are what let the whole stack — hero,
+    // flow bar, caveat — sit inside a two-row card instead of being centred
+    // over it and clipped at both ends.
+    <div className="flex h-full min-h-0 flex-col justify-center gap-2">
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <div className="caption text-soft truncate uppercase">

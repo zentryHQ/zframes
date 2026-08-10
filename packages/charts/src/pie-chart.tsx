@@ -1,6 +1,7 @@
 import * as d3 from "d3";
-import { useEffect, useRef, memo } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import { attachChartTooltip, hideChartTooltip } from "./lib/chart-tooltip";
+import { observeResize } from "./lib/observe-resize";
 import { useChartIntro } from "./lib/use-chart-intro";
 import { prefersReducedMotion } from "./lib/utils";
 
@@ -17,6 +18,16 @@ interface PieChartProps {
   data: PieChartData[];
   width?: number;
   height?: number;
+  /**
+   * Size the ring to its CONTAINER instead of `width`/`height`.
+   *
+   * The radii are absolute pixels, so a card body shorter than `height` can't
+   * shrink the donut and it spills out clipped. With `fill` the whole ring —
+   * box and radii together — scales to the shorter side of the container,
+   * keeping the caller's inner/outer proportions. Opt-in: existing callers keep
+   * their fixed size and pixel-identical output.
+   */
+  fill?: boolean;
   innerRadius?: number;
   outerRadius?: number;
   /** Slice colors, applied in order. Defaults to the built-in 2-color set. */
@@ -30,6 +41,7 @@ const PieChart = ({
   data,
   width = 270,
   height = 270,
+  fill = false,
   innerRadius = 90,
   outerRadius = 100,
   colors = COLORS,
@@ -37,7 +49,36 @@ const PieChart = ({
   children,
 }: PieChartProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [measuredSide, setMeasuredSide] = useState<number | null>(null);
   const shouldIntro = useChartIntro();
+
+  useEffect(() => {
+    if (!fill) return;
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      // A donut is square: the shorter side is all of the card it can use.
+      const side = Math.min(rect.width, rect.height);
+      setMeasuredSide((prev) =>
+        prev !== null && Math.abs(prev - side) < 0.5 ? prev : side,
+      );
+    };
+    update();
+    return observeResize(el, update);
+  }, [fill]);
+
+  // The container can measure 0 before layout settles, so the props stay the
+  // fallback — a collapsed ring is worse than a slightly-too-big one. Scaling
+  // the radii is the point: they are absolute px, so resizing the box alone
+  // would leave a 200px donut inside a 120px card.
+  const side = fill && measuredSide ? measuredSide : null;
+  const scale = side !== null ? side / Math.min(width, height) : 1;
+  const boxWidth = side ?? width;
+  const boxHeight = side ?? height;
+  const ringInner = innerRadius * scale;
+  const ringOuter = outerRadius * scale;
 
   useEffect(() => {
     if (!svgRef.current || !data.length) return;
@@ -45,8 +86,8 @@ const PieChart = ({
     d3.select(svgRef.current).selectAll("*").remove();
 
     const svg = d3.select(svgRef.current);
-    const centerX = width / 2;
-    const centerY = height / 2;
+    const centerX = boxWidth / 2;
+    const centerY = boxHeight / 2;
 
     const defs = svg.append("defs");
 
@@ -87,14 +128,14 @@ const PieChart = ({
 
     const arc = d3
       .arc<d3.PieArcDatum<PieChartData>>()
-      .innerRadius(innerRadius)
-      .outerRadius(outerRadius)
+      .innerRadius(ringInner)
+      .outerRadius(ringOuter)
       .cornerRadius(100);
 
     const glowArc = d3
       .arc<d3.PieArcDatum<PieChartData>>()
-      .innerRadius(innerRadius)
-      .outerRadius(outerRadius)
+      .innerRadius(ringInner)
+      .outerRadius(ringOuter)
       .cornerRadius(100);
 
     const colorScale = d3
@@ -227,18 +268,21 @@ const PieChart = ({
     // This effect opens by wiping the SVG, so a poll or unmount destroys the
     // slice under the cursor — without this the tooltip would hang there.
     return hideChartTooltip;
+    // The DERIVED sizes, not the raw props: under `fill` the ring is scaled to
+    // the measured container, so a resize changes these while `width`/`height`
+    // stay put — keying on the props would leave the donut drawn at its old size.
   }, [
     data,
-    width,
-    height,
-    innerRadius,
-    outerRadius,
+    boxWidth,
+    boxHeight,
+    ringInner,
+    ringOuter,
     colors,
     formatValue,
     shouldIntro,
   ]);
 
-  return (
+  const donut = (
     <div
       className="relative flex flex-col items-center justify-center rounded-full"
       style={{
@@ -248,8 +292,8 @@ const PieChart = ({
     >
       <svg
         ref={svgRef}
-        width={width}
-        height={height}
+        width={boxWidth}
+        height={boxHeight}
         className="relative z-10"
       />
 
@@ -278,6 +322,20 @@ const PieChart = ({
           maskComposite: "exclude",
         }}
       />
+    </div>
+  );
+
+  if (!fill) return donut;
+
+  // The measured box is the card's, which is rarely square; the donut keeps its
+  // own square inside it, so the `rounded-full` chrome never stretches into an
+  // ellipse.
+  return (
+    <div
+      ref={wrapRef}
+      className="flex h-full min-h-0 w-full items-center justify-center"
+    >
+      {donut}
     </div>
   );
 };

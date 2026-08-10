@@ -49,7 +49,7 @@ function DexVolumeShareArea({ config }: { config: z.output<typeof schema> }) {
     <div className="relative h-full min-h-0">
       <StackedAreaChart
         series={series}
-        height={240}
+        fill
         formatXAxis={formatMonthDay}
         formatYAxis={money.compact}
         formatValue={money.compact}

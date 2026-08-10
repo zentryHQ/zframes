@@ -54,7 +54,7 @@ function MiningPoolsShare({ config }: { config: z.output<typeof schema> }) {
   return (
     // No existing header row to slot the toggle into — overlay it top-right
     // rather than adding a row that would shrink the donut.
-    <div className="relative flex h-full w-full flex-col items-center justify-center gap-4">
+    <div className="relative flex h-full min-h-0 w-full flex-col items-center justify-center gap-4">
       <TimeframeToggle
         options={WINDOW_OPTIONS}
         value={chartWindow}
@@ -62,21 +62,26 @@ function MiningPoolsShare({ config }: { config: z.output<typeof schema> }) {
         label="mining pool window"
         className="absolute top-0 right-0 z-10"
       />
-      <PieChart
-        data={slices}
-        width={188}
-        height={188}
-        innerRadius={54}
-        outerRadius={86}
-        colors={slices.map((slice) => slice.color)}
-      >
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="caption text-soft uppercase">top 3</span>
-          <span className="metric-lg text-strong leading-none">
-            {formatPct(top3Share, 0)}
-          </span>
-        </div>
-      </PieChart>
+      <div className="min-h-0 w-full flex-1">
+        {/* `fill` scales the ring to the card; width/height stay behind it as
+            the reference box the radii keep their proportions against. */}
+        <PieChart
+          data={slices}
+          fill
+          width={188}
+          height={188}
+          innerRadius={54}
+          outerRadius={86}
+          colors={slices.map((slice) => slice.color)}
+        >
+          <div className="flex flex-col items-center gap-0.5">
+            <span className="caption text-soft uppercase">top 3</span>
+            <span className="metric-lg text-strong leading-none">
+              {formatPct(top3Share, 0)}
+            </span>
+          </div>
+        </PieChart>
+      </div>
 
       <div className="flex w-full max-w-xs flex-wrap justify-center gap-x-4 gap-y-1.5">
         {slices.map((slice) => (

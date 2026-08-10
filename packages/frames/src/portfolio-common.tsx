@@ -15,7 +15,7 @@ import {
   type ReactNode,
 } from "react";
 import { AssetLogo } from "./asset-logo";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 /**
  * Shared plumbing for the source-agnostic portfolio frames (value / allocation /
@@ -274,55 +274,62 @@ function BinanceConnect({ onConnected }: { onConnected: () => void }) {
   };
 
   return (
-    <div className="flex h-full w-full flex-col justify-center gap-2 px-1">
-      <div className="flex items-center gap-1.5">
-        <AssetLogo symbol="BNB" size={18} />
-        <span className="text-strong text-sm font-bold">Connect Binance</span>
-      </div>
-      <p className="caption text-soft">
-        Use a <strong>read-only</strong> key + secret — create them in Binance{" "}
-        <a
-          href="https://www.binance.com/en/my/settings/api-management"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[hsl(var(--zf-accent-hue,242)_90%_72%)] underline underline-offset-2 hover:text-white"
-          onClick={(e) => e.stopPropagation()}
+    // A credential form is the card's substance — it can't be made shorter — so
+    // a short card scrolls it rather than clipping it. `my-auto` (not
+    // `justify-center`) does the centring while it fits: in a scroll container
+    // `justify-content` pushes the overflow past the scrollable start, so the
+    // heading would be both cut off AND unreachable.
+    <div className={`${scrollAreaClass} flex w-full flex-col px-1`}>
+      <div className="my-auto flex flex-col gap-2">
+        <div className="flex items-center gap-1.5">
+          <AssetLogo symbol="BNB" size={18} />
+          <span className="text-strong text-sm font-bold">Connect Binance</span>
+        </div>
+        <p className="caption text-soft">
+          Use a <strong>read-only</strong> key + secret — create them in Binance{" "}
+          <a
+            href="https://www.binance.com/en/my/settings/api-management"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[hsl(var(--zf-accent-hue,242)_90%_72%)] underline underline-offset-2 hover:text-white"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            API Management
+          </a>{" "}
+          (enable Reading only). Both stay on your machine, never shared.
+        </p>
+        <input
+          className={fieldClass}
+          placeholder="API key"
+          value={apiKey}
+          autoComplete="off"
+          onChange={(e) => setApiKey(e.target.value)}
+          onPointerDown={(e) => e.stopPropagation()}
+        />
+        <input
+          className={fieldClass}
+          placeholder="API secret"
+          type="password"
+          value={secret}
+          autoComplete="off"
+          onChange={(e) => setSecret(e.target.value)}
+          onPointerDown={(e) => e.stopPropagation()}
+        />
+        {error ? <p className="caption text-[#ff6b81]">{error}</p> : null}
+        <button
+          type="button"
+          className={btnClass}
+          disabled={busy || !apiKey.trim() || !secret.trim()}
+          onClick={(e) => {
+            e.stopPropagation();
+            void submit();
+          }}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          API Management
-        </a>{" "}
-        (enable Reading only). Both stay on your machine, never shared.
-      </p>
-      <input
-        className={fieldClass}
-        placeholder="API key"
-        value={apiKey}
-        autoComplete="off"
-        onChange={(e) => setApiKey(e.target.value)}
-        onPointerDown={(e) => e.stopPropagation()}
-      />
-      <input
-        className={fieldClass}
-        placeholder="API secret"
-        type="password"
-        value={secret}
-        autoComplete="off"
-        onChange={(e) => setSecret(e.target.value)}
-        onPointerDown={(e) => e.stopPropagation()}
-      />
-      {error ? <p className="caption text-[#ff6b81]">{error}</p> : null}
-      <button
-        type="button"
-        className={btnClass}
-        disabled={busy || !apiKey.trim() || !secret.trim()}
-        onClick={(e) => {
-          e.stopPropagation();
-          void submit();
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        {busy ? "Verifying…" : "Connect"}
-      </button>
+          {busy ? "Verifying…" : "Connect"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -331,41 +338,45 @@ function WalletConnect({ current }: { current?: string }) {
   const patch = useFramePatch();
   const [addr, setAddr] = useState(current ?? "");
   return (
-    <div className="flex h-full w-full flex-col justify-center gap-2 px-1">
-      <div className="flex items-center gap-1.5">
-        <AssetLogo symbol="ETH" size={18} />
-        <span className="text-strong text-sm font-bold">Track a wallet</span>
-      </div>
-      <p className="caption text-soft">
-        Enter a public Ethereum address or ENS name. No keys — it&rsquo;s public
-        on-chain data. Sharing this dashboard reveals the holdings.
-      </p>
-      <input
-        className={fieldClass}
-        placeholder="0x… or name.eth"
-        value={addr}
-        autoComplete="off"
-        onChange={(e) => setAddr(e.target.value)}
-        onPointerDown={(e) => e.stopPropagation()}
-      />
-      {!patch ? (
+    // Scrolls rather than clips, and centres with `my-auto` — same reason as
+    // `BinanceConnect` above.
+    <div className={`${scrollAreaClass} flex w-full flex-col px-1`}>
+      <div className="my-auto flex flex-col gap-2">
+        <div className="flex items-center gap-1.5">
+          <AssetLogo symbol="ETH" size={18} />
+          <span className="text-strong text-sm font-bold">Track a wallet</span>
+        </div>
         <p className="caption text-soft">
-          Set the address in the frame&rsquo;s config to start tracking.
+          Enter a public Ethereum address or ENS name. No keys — it&rsquo;s
+          public on-chain data. Sharing this dashboard reveals the holdings.
         </p>
-      ) : (
-        <button
-          type="button"
-          className={btnClass}
-          disabled={!addr.trim()}
-          onClick={(e) => {
-            e.stopPropagation();
-            patch({ address: addr.trim() });
-          }}
+        <input
+          className={fieldClass}
+          placeholder="0x… or name.eth"
+          value={addr}
+          autoComplete="off"
+          onChange={(e) => setAddr(e.target.value)}
           onPointerDown={(e) => e.stopPropagation()}
-        >
-          Track
-        </button>
-      )}
+        />
+        {!patch ? (
+          <p className="caption text-soft">
+            Set the address in the frame&rsquo;s config to start tracking.
+          </p>
+        ) : (
+          <button
+            type="button"
+            className={btnClass}
+            disabled={!addr.trim()}
+            onClick={(e) => {
+              e.stopPropagation();
+              patch({ address: addr.trim() });
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            Track
+          </button>
+        )}
+      </div>
     </div>
   );
 }

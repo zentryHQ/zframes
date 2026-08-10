@@ -85,12 +85,14 @@ function RealWages({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <TimeSeriesChart
-        series={series}
-        timeframe={ChartTimeframe.YTD}
-        height={250}
-        formatValue={formatChangePct}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={ChartTimeframe.YTD}
+          fill
+          formatValue={formatChangePct}
+        />
+      </div>
       {gap !== null && (
         <div className="caption text-soft text-center">
           pay {gap >= 0 ? "outrunning" : "trailing"} inflation by{" "}

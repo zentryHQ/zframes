@@ -61,12 +61,14 @@ function LaborForceFlow({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-1">
-      <TimeSeriesChart
-        series={series}
-        timeframe={ChartTimeframe.YTD}
-        height={250}
-        formatValue={formatRate}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={ChartTimeframe.YTD}
+          fill
+          formatValue={formatRate}
+        />
+      </div>
       <div className="caption text-soft text-center">
         unemployment vs labor-force participation · monthly, BLS
       </div>

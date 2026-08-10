@@ -23,15 +23,17 @@ function FxMoversBars({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no FX data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        height={Math.max(data.length * 24, 96)}
-        formatValue={formatChangePct}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          fill
+          formatValue={formatChangePct}
+        />
+      </div>
       <div className="caption text-soft text-center">
         {config.base.toUpperCase()} FX movers · day change
       </div>

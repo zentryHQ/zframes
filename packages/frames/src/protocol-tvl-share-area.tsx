@@ -59,7 +59,7 @@ function ProtocolTvlShareArea({ config }: { config: z.output<typeof schema> }) {
       />
       <StackedAreaChart
         series={series}
-        height={240}
+        fill
         formatXAxis={formatMonthDay}
         formatYAxis={money.compact}
         formatValue={money.compact}

@@ -159,12 +159,18 @@ function TokenUnlockSchedule({ config }: { config: z.output<typeof schema> }) {
       </div>
 
       {config.showChart && series.length > 0 && (
-        <TimeSeriesChart
-          series={series}
-          timeframe={timeframeFor(spanYears)}
-          height={150}
-          formatValue={formatCompact}
-        />
+        // The chart is the card's only elastic element — the header and the
+        // `config.events` rows below are content-sized and must stay legible —
+        // so it takes the slack and gives it back as the list grows, rather
+        // than pinning a floor the card can't shrink under.
+        <div className="min-h-0 flex-1">
+          <TimeSeriesChart
+            series={series}
+            timeframe={timeframeFor(spanYears)}
+            fill
+            formatValue={formatCompact}
+          />
+        </div>
       )}
 
       {upcoming.length === 0 ? (

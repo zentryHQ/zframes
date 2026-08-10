@@ -46,7 +46,7 @@ function FxTrendChart({ config }: { config: z.output<typeof schema> }) {
     <TimeSeriesChart
       series={series}
       timeframe={ChartTimeframe["1M"]}
-      height={220}
+      fill
       formatValue={formatChangePct}
     />
   );

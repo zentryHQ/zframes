@@ -26,6 +26,17 @@ export interface HistogramChartProps extends BinOptions {
   values: number[];
   height?: number;
   /**
+   * Size the chart to its CONTAINER's height instead of `height`.
+   *
+   * `height` pins the wrapper, so a card body shorter than it can't shrink the
+   * chart and the plot spills out clipped. With `fill` the wrapper takes the
+   * card's height and the plot is drawn to whatever that measures. Opt-in —
+   * existing callers keep their fixed height and pixel-identical output.
+   *
+   * Layout only — unrelated to the bars' `color`/`negativeColor` paint below.
+   */
+  fill?: boolean;
+  /**
    * Fill for bars. Applied as a `style`, not an attribute, so a CSS variable
    * (`var(--zf-up, #3fd08f)`) resolves and the bars follow the board's theme.
    */
@@ -100,6 +111,7 @@ const OVERLAY_DURATION = 320;
 const HistogramChart = ({
   values,
   height = 200,
+  fill = false,
   color = DEFAULT_COLOR,
   negativeColor,
   formatValue = DEFAULT_FORMAT,
@@ -116,6 +128,7 @@ const HistogramChart = ({
   const wrapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState<number | null>(null);
+  const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   /**
    * The intro plays only inside a short window that opens at the first real
    * draw — so it survives the re-render burst around first paint, but a data
@@ -127,14 +140,26 @@ const HistogramChart = ({
     const el = wrapRef.current;
     if (!el) return;
     const update = () => {
-      const w = el.getBoundingClientRect().width;
+      const rect = el.getBoundingClientRect();
       setWidth((prev) =>
-        prev !== null && Math.abs(prev - w) < 0.5 ? prev : w,
+        prev !== null && Math.abs(prev - rect.width) < 0.5 ? prev : rect.width,
       );
+      // Only tracked when filling — a pinned wrapper is `height` by
+      // construction, so measuring it would re-render for nothing.
+      if (fill)
+        setMeasuredHeight((prev) =>
+          prev !== null && Math.abs(prev - rect.height) < 0.5
+            ? prev
+            : rect.height,
+        );
     };
     update();
     return observeResize(el, update);
-  }, []);
+  }, [fill]);
+
+  // The wrapper can measure 0 before layout settles, so the prop stays the
+  // fallback — a collapsed chart is worse than a slightly-too-tall one.
+  const plotHeight = fill && measuredHeight ? measuredHeight : height;
 
   const binned = useMemo(
     () => binSample(values, { targetBins, maxBins, tailTrim, anchorZero }),
@@ -155,7 +180,7 @@ const HistogramChart = ({
 
     const marginLeft = showYAxis ? Y_AXIS_WIDTH : 4;
     const innerWidth = Math.max(width - marginLeft - MARGIN_RIGHT, 10);
-    const innerHeight = Math.max(height - TOP_PAD - BOTTOM_PAD, 10);
+    const innerHeight = Math.max(plotHeight - TOP_PAD - BOTTOM_PAD, 10);
 
     const domain: [number, number] = [bins[0].x0, bins[bins.length - 1].x1];
     const x = d3.scaleLinear().domain(domain).range([0, innerWidth]);
@@ -511,7 +536,7 @@ const HistogramChart = ({
   }, [
     binned,
     width,
-    height,
+    plotHeight,
     color,
     negativeColor,
     formatValue,
@@ -524,9 +549,13 @@ const HistogramChart = ({
   ]);
 
   return (
-    <div ref={wrapRef} className="w-full" style={{ height }}>
+    <div
+      ref={wrapRef}
+      className="w-full"
+      style={fill ? { height: "100%", minHeight: 0 } : { height }}
+    >
       {width !== null && width > 0 && binned && (
-        <svg ref={svgRef} width={width} height={height} />
+        <svg ref={svgRef} width={width} height={plotHeight} />
       )}
     </div>
   );

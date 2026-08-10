@@ -40,16 +40,18 @@ function PayrollsBars({ config }: { config: z.output<typeof schema> }) {
   const latest = data.at(-1)!;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={data}
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        height={200}
-        formatValue={formatJobs}
-        showValues={false}
-        maxTickLabels={6}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          fill
+          formatValue={formatJobs}
+          showValues={false}
+          maxTickLabels={6}
+        />
+      </div>
       <div className="caption text-soft text-center">
         nonfarm payrolls · monthly net change · latest{" "}
         {latest.value >= 0 ? "+" : ""}

@@ -87,12 +87,14 @@ function MetalDrawdown({ config }: { config: z.output<typeof schema> }) {
         )}
       </div>
 
-      <TimeSeriesChart
-        series={series}
-        timeframe={timeframeFor(config.years)}
-        height={180}
-        formatValue={formatDrawdownValue}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          formatValue={formatDrawdownValue}
+        />
+      </div>
     </div>
   );
 }

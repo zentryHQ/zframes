@@ -8,7 +8,7 @@ import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
 import { formatCompact, formatPct } from "./format";
 import { protocolMultiplesMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = protocolMultiplesMeta.schema;
 
@@ -56,7 +56,9 @@ function MultipleRow({
 }) {
   const cell = (value: Cell) => (
     <div
-      className={`metric-sm truncate ${value.muted ? "text-soft" : "text-strong"}`}
+      className={`metric-sm truncate ${
+        value.muted ? "text-soft" : "text-strong"
+      }`}
     >
       {value.text}
     </div>
@@ -137,55 +139,62 @@ function ProtocolMultiples({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 items-baseline gap-x-3 gap-y-2">
-        <div />
-        <div className="min-w-0">
-          <div className="caption text-normal truncate font-semibold">
-            ÷ REVENUE
+      {/* The matrix and the notes that say how to read it scroll together under
+          the pinned identity row: both are stacks of text that can't be made
+          smaller, so a short card slicing the last note through the middle told
+          the reader nothing. Kept a flex column so the notes keep their
+          `mt-auto` footing whenever there IS room. */}
+      <div className={`${scrollAreaClass} flex flex-col gap-3`}>
+        <div className="grid grid-cols-3 items-baseline gap-x-3 gap-y-2">
+          <div />
+          <div className="min-w-0">
+            <div className="caption text-normal truncate font-semibold">
+              ÷ REVENUE
+            </div>
+            <div className="caption text-soft truncate">what it kept · P/S</div>
           </div>
-          <div className="caption text-soft truncate">what it kept · P/S</div>
-        </div>
-        <div className="min-w-0">
-          <div className="caption text-normal truncate font-semibold">
-            ÷ FEES
+          <div className="min-w-0">
+            <div className="caption text-normal truncate font-semibold">
+              ÷ FEES
+            </div>
+            <div className="caption text-soft truncate">users paid · P/F</div>
           </div>
-          <div className="caption text-soft truncate">users paid · P/F</div>
+
+          <MultipleRow
+            label="Market cap"
+            sub="circulating supply"
+            perRevenue={multipleOf(marketCap, revenue365)}
+            perFees={multipleOf(marketCap, fees365)}
+          />
+          <MultipleRow
+            label="FDV"
+            sub="incl. locked supply"
+            perRevenue={multipleOf(fdv, revenue365)}
+            perFees={multipleOf(fdv, fees365)}
+          />
         </div>
 
-        <MultipleRow
-          label="Market cap"
-          sub="circulating supply"
-          perRevenue={multipleOf(marketCap, revenue365)}
-          perFees={multipleOf(marketCap, fees365)}
-        />
-        <MultipleRow
-          label="FDV"
-          sub="incl. locked supply"
-          perRevenue={multipleOf(fdv, revenue365)}
-          perFees={multipleOf(fdv, fees365)}
-        />
-      </div>
-
-      <div className="mt-auto flex flex-col gap-0.5">
-        <div className="caption text-soft truncate">
-          mcap {amount(marketCap)} · FDV {amount(fdv)}
-        </div>
-        <div className="caption text-soft truncate">
-          revenue 1y {amount(revenue365)} · fees 1y {amount(fees365)}
-          {takeRate != null && ` · keeps ${formatPct(takeRate * 100, 1)}`}
-        </div>
-        <div className="caption text-soft">
-          {/* The two columns differ by exactly the take rate, and the ÷FEES one
-              is the flattering read — it credits a protocol with money that went
-              to its LPs. FDV is the honest numerator while supply still unlocks. */}
-          ÷FEES flatters a pass-through protocol; FDV is the honest numerator
-          while supply unlocks
-        </div>
-        {gaps.length > 0 && (
+        <div className="mt-auto flex flex-col gap-0.5">
+          <div className="caption text-soft truncate">
+            mcap {amount(marketCap)} · FDV {amount(fdv)}
+          </div>
+          <div className="caption text-soft truncate">
+            revenue 1y {amount(revenue365)} · fees 1y {amount(fees365)}
+            {takeRate != null && ` · keeps ${formatPct(takeRate * 100, 1)}`}
+          </div>
           <div className="caption text-soft">
-            waiting on {gaps.join(" and ")}
+            {/* The two columns differ by exactly the take rate, and the ÷FEES one
+                is the flattering read — it credits a protocol with money that went
+                to its LPs. FDV is the honest numerator while supply still unlocks. */}
+            ÷FEES flatters a pass-through protocol; FDV is the honest numerator
+            while supply unlocks
           </div>
-        )}
+          {gaps.length > 0 && (
+            <div className="caption text-soft">
+              waiting on {gaps.join(" and ")}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

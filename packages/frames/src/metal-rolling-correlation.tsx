@@ -265,13 +265,15 @@ function MetalRollingCorrelation({
         </div>
       </div>
 
-      <TimeSeriesChart
-        series={view.series}
-        timeframe={timeframeFor(config.years)}
-        height={180}
-        yDomain={view.yDomain}
-        formatValue={formatCoefficient}
-      />
+      <div className="min-h-0 flex-1">
+        <TimeSeriesChart
+          series={view.series}
+          timeframe={timeframeFor(config.years)}
+          fill
+          yDomain={view.yDomain}
+          formatValue={formatCoefficient}
+        />
+      </div>
 
       <div className="caption text-soft text-center">
         {config.window}d rolling {isBeta ? "beta" : "correlation"} of daily log

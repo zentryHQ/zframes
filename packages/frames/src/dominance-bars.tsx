@@ -28,13 +28,15 @@ function DominanceBars({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no dominance data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        height={Math.max(data.length * 24, 96)}
-        formatValue={formatShare}
-      />
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          fill
+          formatValue={formatShare}
+        />
+      </div>
       <div className="caption text-soft text-center">
         market-cap share · top {data.length}
       </div>

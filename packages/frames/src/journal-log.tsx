@@ -209,7 +209,13 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
       </div>
 
       {/* 3 · reason (quick-pick) + optional note */}
-      <div className="flex flex-wrap gap-1.5">
+      {/* The chips are the one part of this form that grows — seven of them wrap
+          to two or three rows on a narrow card — so they take the leftover
+          height and scroll. Everything else here is a control you have to be
+          able to reach, and the log button was the first thing pushed out. */}
+      <div
+        className={`flex flex-wrap content-start gap-1.5 ${scrollAreaClass}`}
+      >
         {REASONS.map((r, i) => {
           const sel = reasonIdx === i;
           return (
@@ -223,7 +229,9 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
                 background: sel
                   ? "hsl(var(--zf-accent-hue, 242) 80% 60% / 0.3)"
                   : "rgba(255,255,255,0.04)",
-                border: `1px solid ${sel ? "var(--color-accent-line)" : "transparent"}`,
+                border: `1px solid ${
+                  sel ? "var(--color-accent-line)" : "transparent"
+                }`,
               }}
             >
               {r.label}

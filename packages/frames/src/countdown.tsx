@@ -109,6 +109,17 @@ function Countdown({ config }: { config: Config }) {
       [sRef, pad(seed.seconds), "sec"],
     ];
 
+  // The four columns sit on one nowrap row, so the readout's WIDTH grows with
+  // the day count while `cqmin` only ever knows the box's shorter side — on a
+  // card taller than it is wide the type scaled off the height and the row ran
+  // out the sides. Estimate the row in `em` (a DM Sans tabular digit ≈ 0.66em;
+  // the unit captions under each column are narrower than their numerals) and
+  // cap the size at the width that keeps it inside the card. The day count only
+  // ever falls, so a stale estimate between renders is conservative, never
+  // short; and both terms below stay under the old 20cqmin, so the readout only
+  // ever shrinks from here.
+  const rowEm = 0.66 * (String(seed.days).length + 6) + 1.5;
+
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-center [container-type:size]">
       {config.label && (
@@ -124,7 +135,11 @@ function Countdown({ config }: { config: Config }) {
 
       <div
         className="flex items-start justify-center gap-[0.5em] leading-none tabular-nums"
-        style={{ fontSize: "clamp(0.9rem, 20cqmin, 2.8rem)" }}
+        style={{
+          fontSize: `clamp(0.9rem, min(${(100 / rowEm).toFixed(
+            1,
+          )}cqw, 20cqh), 2.8rem)`,
+        }}
       >
         {cols.map(([ref, seedVal, unit], i) => (
           <div key={unit} className="flex flex-col items-center gap-[0.25em]">
