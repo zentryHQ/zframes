@@ -6,6 +6,7 @@ import {
   useLowEndDevice,
   useReducedMotion,
 } from "@zframes/unicorn";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -37,6 +38,13 @@ const SDK_URL = "/unicornStudio.umd.mjs";
 // angle or the two paths would look different per browser.
 const SCROLL_HUE_DEG = 90;
 
+// The scroll-hue drift belongs to the landing page's long narrative scroll
+// alone — every other route (gallery, catalogue, dashboard, …) keeps the scene
+// at its authored indigo, in lockstep with the site accent. The backdrop mounts
+// once in AppShell and survives navigation, so this is a per-pathname gate, not
+// a per-page mount.
+const SCROLL_HUE_PATHS = new Set(["/"]);
+
 export function UnicornBackground({
   projectId = SCENE_DEFAULT_PROJECT_ID,
   /** Scene opacity. The dashboard uses 1 (opaque cards cover it); the explorer
@@ -54,6 +62,8 @@ export function UnicornBackground({
   const reducedMotion = useReducedMotion();
   const [ready, setReady] = useState(false);
   const sceneRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const scrollHue = SCROLL_HUE_PATHS.has(pathname ?? "");
 
   // Scroll-hue fallback for browsers without CSS scroll timelines (Firefox):
   // rAF-throttled scroll → the same hue-rotate on the same element the CSS
@@ -62,7 +72,7 @@ export function UnicornBackground({
   // inline style anyway). hue-rotate never causes layout or content repaint, so
   // the per-frame cost is one style recalc on this element.
   useEffect(() => {
-    if (lowEnd || reducedMotion) return;
+    if (!scrollHue || lowEnd || reducedMotion) return;
     if (
       typeof CSS !== "undefined" &&
       CSS.supports("animation-timeline: scroll()")
@@ -90,8 +100,11 @@ export function UnicornBackground({
       if (raf) cancelAnimationFrame(raf);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      // The element survives route changes (AppShell mounts it once), so a
+      // navigation away must clear the last-applied inline filter too.
+      el.style.filter = "";
     };
-  }, [lowEnd, reducedMotion]);
+  }, [scrollHue, lowEnd, reducedMotion]);
 
   if (lowEnd || reducedMotion) return null;
 
@@ -104,7 +117,7 @@ export function UnicornBackground({
           Opacity stays inline — it's a runtime prop, not a static utility. */}
       <div
         ref={sceneRef}
-        className="animate-unicorn-scroll-hue absolute inset-0 transition-opacity duration-[900ms] ease-[var(--zf-ease-out,cubic-bezier(0.23,1,0.32,1))]"
+        className={`${scrollHue ? "animate-unicorn-scroll-hue " : ""}absolute inset-0 transition-opacity duration-[900ms] ease-[var(--zf-ease-out,cubic-bezier(0.23,1,0.32,1))]`}
         style={{ opacity: ready ? opacity : 0 }}
       >
         <UnicornScene
