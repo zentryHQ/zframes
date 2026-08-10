@@ -102,7 +102,13 @@ const PROXY_ALLOW_HOSTS = new Set<string>([
   "cdn.cboe.com",
 ]);
 
-// SEC's companyfacts blob is a few MB; allow headroom but bound it.
+/**
+ * Default cap on a relayed body. SEC's companyfacts blob is a few MB, so this
+ * allows headroom but bounds it — tuned for the loopback CLI, where the only
+ * limit is the user's own memory. A HOSTED mount must lower it to its
+ * platform's response cap via `opts.maxBytes`: on Vercel a function response
+ * over ~4.5 MB is a platform error the frame can't read as a 502.
+ */
 const PROXY_MAX_BYTES = 16_000_000;
 const PROXY_TIMEOUT_MS = 20_000;
 /**
@@ -271,12 +277,43 @@ function proxyError(res: ResLike, status: number, error: string): void {
 }
 
 /**
+ * Per-mount proxy tuning. Every field is optional and every default reproduces
+ * the loopback CLI's behaviour, so the mounts that pass nothing (`vite dev`,
+ * Storybook) are unaffected — these exist because the SAME relay also runs on a
+ * shared host (the explorer's Next route), where the platform imposes bounds a
+ * localhost process doesn't have.
+ */
+export interface ProxyOptions {
+  /**
+   * A polite contact UA (SEC fair-access). The default is a browser UA the
+   * official sources accept; `PROXY_FORCE_BROWSER_UA` hosts ignore this.
+   */
+  userAgent?: string;
+  /**
+   * Cap on the relayed body, in bytes. Defaults to `PROXY_MAX_BYTES` (16 MB).
+   * Lower it to the host platform's response limit so an oversized payload
+   * answers a clean 502 the frame degrades on, rather than a platform error.
+   */
+  maxBytes?: number;
+  /**
+   * Per-hostname relay timeout (ms), overriding `PROXY_TIMEOUT_MS` for hosts
+   * that are legitimately slower than the default. Keyed by the hostname of the
+   * REQUESTED url, and — like the timeout itself — fixed for the whole redirect
+   * chain, so a hop can neither extend nor shorten the bound it was entered
+   * under.
+   */
+  timeoutMsByHost?: Record<string, number>;
+}
+
+/**
  * GET `/__zframes/proxy?url=<encoded https URL>`: relay an allowlisted
  * official-data host to the browser, same-origin, so CORS-blocked or UA-walled
  * sources are reachable client-side without a backend or keys. GET-only,
  * https-only, host-allowlisted (no open-proxy / SSRF), size- and time-bounded.
  * `userAgent` lets the host send a polite contact UA (SEC fair-access); the
- * default is a browser UA the official sources accept.
+ * default is a browser UA the official sources accept. The size and time bounds
+ * are per-mount (`ProxyOptions`) so a hosted mount can hold its platform's
+ * limits without moving the CLI's.
  *
  * Redirects are followed, because real official sources use them (Bank of
  * England canonicalises its IADB CSV path, CoinDesk's RSS drops a trailing
@@ -289,7 +326,7 @@ function proxyError(res: ResLike, status: number, error: string): void {
 export async function handleProxy(
   req: ReqLike,
   res: ResLike,
-  opts: { userAgent?: string } = {},
+  opts: ProxyOptions = {},
 ): Promise<void> {
   if (req.method !== "GET" && req.method !== "HEAD") {
     proxyError(res, 405, "proxy is GET-only");
@@ -312,10 +349,15 @@ export async function handleProxy(
     proxyError(res, 403, `host not allowed: ${target.hostname}`);
     return;
   }
+  const maxBytes = opts.maxBytes ?? PROXY_MAX_BYTES;
   try {
     // One timeout for the whole chain, so following hops can't extend the
-    // bound; each hop shares the same signal.
-    const signal = AbortSignal.timeout(PROXY_TIMEOUT_MS);
+    // bound; each hop shares the same signal. A host may be given a longer
+    // bound than the shared default, but only per the ENTRY hostname — reading
+    // it per hop would let a redirect widen its own deadline.
+    const signal = AbortSignal.timeout(
+      opts.timeoutMsByHost?.[target.hostname] ?? PROXY_TIMEOUT_MS,
+    );
     const headers = {
       "User-Agent": uaFor(target.hostname, opts.userAgent),
       Accept: "application/json,text/plain,*/*",
@@ -371,8 +413,24 @@ export async function handleProxy(
         signal,
       });
     }
+    // Refuse an over-cap payload BEFORE buffering it, when the upstream says
+    // how big it is: the relay reads the whole body into memory, so a 17 MB file
+    // is otherwise fully downloaded only to be thrown away (FHFA's combined
+    // hpi_master.csv is exactly that case). Only an early-out, never the
+    // authoritative check — a gzipped response declares its COMPRESSED length
+    // while `.text()` hands back the larger decoded body, so this can only
+    // under-estimate, never falsely reject.
+    const declared = Number(upstream.headers.get("content-length"));
+    if (Number.isFinite(declared) && declared > maxBytes) {
+      proxyError(res, 502, "upstream response too large");
+      return;
+    }
     const text = await upstream.text();
-    if (text.length > PROXY_MAX_BYTES) {
+    // Measured in BYTES, not `text.length`'s UTF-16 code units: the cap bounds
+    // what goes on the wire (and what a hosted platform will accept as a
+    // response), and any non-ASCII content makes those two numbers differ — a
+    // CJK-heavy payload is up to 3x its unit count in UTF-8.
+    if (Buffer.byteLength(text, "utf8") > maxBytes) {
       proxyError(res, 502, "upstream response too large");
       return;
     }
