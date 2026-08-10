@@ -2,6 +2,7 @@ import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useDexVolume, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { changeColor, formatChangePct, formatPct } from "./format";
 import { dexVolumeTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -30,13 +31,13 @@ function Leaf({
       height={height}
       label={data.id}
       secondary={value}
-      title={`${data.id} · ${value} 24h volume`}
     />
   );
 }
 
 function DexVolumeTreemap({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useDexVolume();
+  const money = useMoney();
 
   const data: VolNode[] = useMemo(
     () =>
@@ -49,6 +50,13 @@ function DexVolumeTreemap({ config }: { config: z.output<typeof schema> }) {
     [entries, config.topN],
   );
 
+  // Share-of-total is read against the tiles actually drawn — the treemap only
+  // shows the top N, so a share of the whole DEX universe wouldn't add to 100%.
+  const shownVolume = useMemo(
+    () => data.reduce((sum, node) => sum + node.volume24h, 0),
+    [data],
+  );
+
   if (isLoading) return <FrameStatus loading>loading DEX volume…</FrameStatus>;
   if (data.length === 0) return <FrameStatus>no DEX volume data</FrameStatus>;
 
@@ -57,6 +65,21 @@ function DexVolumeTreemap({ config }: { config: z.output<typeof schema> }) {
       data={data}
       LeafComponent={Leaf}
       getColorValue={(node) => node.changePct}
+      formatTooltip={(node) => ({
+        title: node.id,
+        rows: [
+          { label: "24h vol", value: money.compact(node.volume24h) },
+          {
+            label: "1d",
+            value: formatChangePct(node.changePct),
+            color: changeColor(node.changePct),
+          },
+        ],
+        footer:
+          shownVolume > 0
+            ? `${formatPct((node.volume24h / shownVolume) * 100, 1)} of top ${data.length}`
+            : undefined,
+      })}
     />
   );
 }

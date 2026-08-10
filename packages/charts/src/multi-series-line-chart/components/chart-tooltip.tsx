@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 import type { MultiSeriesData } from "../types";
 import { CHART_BREAKPOINTS } from "../constants";
+import { ensureChartTooltipStyle } from "../../lib/chart-tooltip";
 
 interface ChartTooltipProps {
   containerWidth: number | null;
@@ -12,6 +13,25 @@ interface ChartTooltipProps {
   unitSuffix?: string | React.ReactNode;
 }
 
+/**
+ * The multi-series crosshair tooltip.
+ *
+ * Unlike every other chart in this package, this one is NOT driven by the shared
+ * `attachChartTooltip` helper: it is a crosshair readout for N series at one
+ * shared x, wired to a hover line and per-series knobs, and its cells are
+ * written by `createInteractions` straight into the `data-tooltip-*` slots below
+ * (no React render per pointer move — already the fast path).
+ *
+ * What it DOES share is the surface: the same `.zfc-tt*` classes the shared
+ * tooltip injects, so a board that shows a line chart next to a bar chart gets
+ * one tooltip design rather than two. Only the layout is local — the shared
+ * primitive builds its rows imperatively, this one declares them in JSX because
+ * the series set is known at render time.
+ *
+ * Positioning stays local too (`createInteractions` writes a transform relative
+ * to the chart container), because this tooltip is anchored to the crosshair's
+ * data point rather than to the cursor.
+ */
 const ChartTooltipComponent: React.FC<ChartTooltipProps> = ({
   containerWidth,
   tooltipRef,
@@ -20,69 +40,65 @@ const ChartTooltipComponent: React.FC<ChartTooltipProps> = ({
   unitPrefix,
   unitSuffix,
 }) => {
+  // The stylesheet normally lands when the shared tooltip first shows; this
+  // tooltip never calls into it, so it has to ask for the styles itself or it
+  // renders unstyled until some other chart on the board is hovered. In an
+  // effect, not in the render body: this component also renders on the server.
+  useEffect(() => {
+    ensureChartTooltipStyle();
+  }, []);
+
   const isLargeScreen = containerWidth && containerWidth > CHART_BREAKPOINTS.sm;
 
   if (isLargeScreen) {
     return (
       <div
         ref={tooltipRef}
-        className="pointer-events-none absolute left-0 top-0 z-50 rounded-md bg-slate-700 px-6 py-3 text-xs text-white opacity-0 transition-opacity duration-150 ease-out"
+        // `absolute` + `opacity-0`, not the shared node's `fixed`: this one is
+        // positioned inside the chart container, against the crosshair.
+        className="zfc-tt zfc-tt--inline pointer-events-none absolute left-0 top-0 z-50 opacity-0"
       >
-        <div className="flex flex-col gap-3">
-          <div
-            className="body-md font-semibold text-white/50"
-            data-tooltip-date
-          ></div>
-          <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
-            {series.map((seriesData) => (
-              <React.Fragment key={seriesData.id}>
-                <span className="text-soft flex max-w-[126px] items-center gap-1">
-                  <div
-                    className="h-full w-0.5 rounded-full"
-                    style={{
-                      backgroundColor: seriesColors[seriesData.id],
-                    }}
+        <div className="zfc-tt-title" data-tooltip-date></div>
+        <div className="zfc-tt-rows" data-bare="0">
+          {series.map((seriesData) => (
+            <React.Fragment key={seriesData.id}>
+              <span className="zfc-tt-label">
+                <span
+                  className="zfc-tt-sw"
+                  style={{ background: seriesColors[seriesData.id] }}
+                />
+                {seriesData.iconImageUrl && (
+                  <img
+                    src={seriesData.iconImageUrl}
+                    width={14}
+                    height={14}
+                    alt=""
+                    className="shrink-0 rounded-full"
                   />
-                  {seriesData.iconImageUrl && (
-                    <img
-                      src={seriesData.iconImageUrl}
-                      width={20}
-                      height={20}
-                      alt={seriesData.name}
-                      className="rounded-full"
-                    />
-                  )}
-                  <span className="text-normal body-sm font-bold capitalize">
-                    {seriesData.name}
-                  </span>
-                </span>
+                )}
+                <span className="capitalize">{seriesData.name}</span>
+              </span>
 
-                <div className="font-dmsans text-normal flex flex-row items-center font-bold">
-                  <div className="mr-1">{unitPrefix}</div>
-                  <span
-                    className="text-normal text-right text-xs font-bold"
-                    data-tooltip-value={seriesData.id}
-                  ></span>
-                  {unitSuffix}
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
+              <div className="zfc-tt-val">
+                {unitPrefix}
+                <span data-tooltip-value={seriesData.id}></span>
+                {unitSuffix}
+              </div>
+            </React.Fragment>
+          ))}
         </div>
       </div>
     );
   }
+  // Narrow cards have no room for the series column — the date rides the
+  // crosshair and the values are written into the legend instead (see
+  // `updateMobileLegendContent`).
   return (
     <div
       ref={tooltipRef}
-      className="pointer-events-none absolute left-0 top-0 z-50 min-w-[130px] rounded-md bg-slate-700 px-2 py-1 text-xs text-white opacity-0 transition-opacity duration-150 ease-out"
+      className="zfc-tt zfc-tt--inline pointer-events-none absolute left-0 top-0 z-50 min-w-[130px] text-center opacity-0"
     >
-      <div className="flex flex-col items-center justify-center gap-3">
-        <div
-          className="caption font-semibold text-white/50"
-          data-tooltip-date
-        ></div>
-      </div>
+      <div className="zfc-tt-title" data-tooltip-date></div>
     </div>
   );
 };

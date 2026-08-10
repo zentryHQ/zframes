@@ -68,7 +68,7 @@ function SeasonalityCell({
 function MetalSeasonality({ config }: { config: z.output<typeof schema> }) {
   const { histories, isLoading } = useMetalHistory([config.symbol]);
 
-  const { cells, months, monthMeans, rowCount } = useMemo(() => {
+  const { cells, months, monthMeans, openId, rowCount } = useMemo(() => {
     const windowed = sliceYears(histories[0]?.points ?? [], config.years);
     const returns = monthlyReturns(windowed);
 
@@ -129,6 +129,9 @@ function MetalSeasonality({ config }: { config: z.output<typeof schema> }) {
       cells: out,
       months: monthIndexes.length,
       monthMeans: means,
+      // The running month's cell id, so its tooltip can say the return is
+      // month-to-date — the grid draws it identically to a closed month.
+      openId: open ? `${open.year}-${open.month}` : null,
       rowCount: years.length,
     };
   }, [histories, config.years]);
@@ -148,6 +151,28 @@ function MetalSeasonality({ config }: { config: z.output<typeof schema> }) {
           showLabels
           rowLabelWidth={YEAR_LABEL_WIDTH}
           columnLabelHeight={18}
+          formatTooltip={(cell) => {
+            const mean =
+              monthMeans.find((m) => m.label === cell.column)?.pct ?? null;
+            return {
+              title: `${metalName(config.symbol)} · ${cell.column} ${cell.row}`,
+              rows: [
+                {
+                  label: "return",
+                  value: formatChangePct(cell.value),
+                  color: changeColor(cell.value),
+                },
+                {
+                  label: "avg",
+                  value: mean === null ? "–" : formatChangePct(mean),
+                },
+              ],
+              footer:
+                cell.id === openId
+                  ? `month to date · not in the ${cell.column} avg`
+                  : `${cell.column} avg across ${rowCount}y`,
+            };
+          }}
         />
       </div>
 

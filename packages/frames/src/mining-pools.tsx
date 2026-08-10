@@ -2,7 +2,7 @@ import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useMiningPools } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatPct } from "./format";
+import { formatCompact, formatPct } from "./format";
 import { miningPoolsMeta } from "./schemas";
 import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { TreemapLeaf } from "./treemap-leaf";
@@ -25,14 +25,12 @@ function Leaf({
   height: number;
   data: PoolNode;
 }) {
-  const pct = formatPct(data.sharePct, 1);
   return (
     <TreemapLeaf
       width={width}
       height={height}
       label={data.id}
-      secondary={pct}
-      title={`${data.id} · ${pct} of blocks`}
+      secondary={formatPct(data.sharePct, 1)}
     />
   );
 }
@@ -77,6 +75,16 @@ function MiningPoolsFrame({ config }: { config: z.output<typeof schema> }) {
         data={data}
         LeafComponent={Leaf}
         getColorValue={(node) => node.sharePct}
+        formatTooltip={(node) => ({
+          title: node.id,
+          rows: [
+            { label: "blocks", value: formatCompact(node.value) },
+            { label: "share", value: formatPct(node.sharePct, 1) },
+          ],
+          footer: pools?.totalBlocks
+            ? `${formatCompact(pools.totalBlocks)} blocks in ${chartWindow}`
+            : undefined,
+        })}
       />
     </div>
   );
