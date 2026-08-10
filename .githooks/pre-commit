@@ -37,6 +37,28 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
+# Git runs hooks as a non-interactive, non-login shell, so it never sources
+# ~/.bashrc or ~/.zshrc — a GUI git client or a bare `git commit` can land here
+# with none of nvm's PATH setup, even though it works fine from an interactive
+# terminal. Self-heal instead of relying on the caller's environment.
+#
+# Homebrew's bin dirs are added unconditionally (not just as a last resort):
+# nvm's `pnpm` is a corepack shim, and under a PATH that's missing them,
+# corepack's version-resolution silently fails to locate workspace binaries
+# and pnpm throws ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL — confirmed live, not
+# theoretical. Harmless no-op on Linux/CI, where these paths don't exist.
+for dir in /opt/homebrew/bin /opt/homebrew/sbin /usr/local/bin /usr/local/sbin; do
+  [ -d "$dir" ] && PATH="$dir:$PATH"
+done
+if ! command -v pnpm >/dev/null 2>&1; then
+  export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    # shellcheck disable=SC1091
+    . "$NVM_DIR/nvm.sh"
+    nvm use default >/dev/null 2>&1 || true
+  fi
+fi
+
 # Staged and still present. NUL-delimited: a path may contain spaces.
 staged=()
 while IFS= read -r -d '' f; do staged+=("$f"); done < <(
