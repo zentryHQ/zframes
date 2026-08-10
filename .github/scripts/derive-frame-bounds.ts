@@ -180,7 +180,18 @@ const BOARD_SOURCES = [
   "tests/fixtures/nvda-deepdive.dashboard.json",
   "tests/fixtures/quant-terminal.dashboard.json",
 ];
-for (const file of BOARD_SOURCES) {
+/**
+ * Boards outside the repo — the author's own store, say. A real board is
+ * evidence about what a frame survives, and a ceiling it exceeds is a ceiling
+ * set too low; feeding them in here is what stops the fit step from shrinking
+ * someone's card to satisfy a threshold. Kept out of BOARD_SOURCES so a CI run,
+ * which has none of these files, still derives the same bounds from the repo.
+ */
+const EXTRA_BOARDS = (process.env.EXTRA_BOARDS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+for (const file of [...BOARD_SOURCES, ...EXTRA_BOARDS]) {
   if (!existsSync(file)) continue;
   const raw = JSON.parse(readFileSync(file, "utf8"));
   const rows = Array.isArray(raw) ? raw : (raw.dashboards ?? raw.rows ?? [raw]);

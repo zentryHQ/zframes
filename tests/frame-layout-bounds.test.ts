@@ -46,46 +46,6 @@ interface BoardLike {
 
 const byName = new Map(allFrameMetas.map((m) => [m.name, m]));
 
-/**
- * Cards on boards that predate the measured envelope and sit outside it — the
- * debt this audit found rather than created. Every one of these is a card that
- * renders today with something clipped, truncated or marooned: `rates-board` at
- * three rows slices its third rate row in half, `funding-rate-chart` at three
- * rows cuts its x-axis labels off, `breathing` at 12x2 overflows its own circle
- * by 242px.
- *
- * They are listed rather than fixed because fixing them is a different change
- * with different consequences: the golden fixtures are verbatim copies of boards
- * a real person runs (editing one makes it a fiction), and editing the curated
- * seed re-seeds production on merge, overwriting any board edited in the
- * database since. So the list is the deliverable, and shrinking it is a
- * deliberate follow-up.
- *
- * A NEW violation still fails: this is an exact-match allowlist, not a filter.
- */
-const KNOWN_UNDERSIZED = [
-  "bitkub: clock w=2 < minW 3",
-  "crypto-command: funding-rate-chart h=3 < minH 4",
-  "crypto-command: funding-heatmap w=4 < minW 5",
-  "macro-watch: rates-board h=3 < minH 4",
-  "macro-watch: news-feed w=3 < minW 4",
-  "micky: clock w=2 < minW 3",
-  "micky: calculator h=3 < minH 4",
-  "micky: journal-score h=2 < minH 3",
-  "micky: breathing h=2 < minH 3",
-  "micky: breathing w=12 > maxW 5",
-  "micky: options-max-pain w=4 < minW 5",
-  "micky: options-oi-skew w=4 < minW 5",
-  "micky: fx-trend-chart w=4 < minW 5",
-  "quant-terminal: top-movers w=3 < minW 4",
-  "quant-terminal: top-movers h=4 > maxH 3",
-  "quant-terminal: rates-board h=3 < minH 4",
-  "curated/derivatives-desk: funding-rate-chart h=3 < minH 4",
-  "curated/gold-desk: metal-seasonality w=5 < minW 6",
-  "curated/gold-desk: metal-cot-concentration h=5 < minH 6",
-  "curated/fx-desk: fx-trend-chart w=4 < minW 5",
-];
-
 describe("frame layout envelope", () => {
   it("every frame declares a resize floor", () => {
     const missing = allFrameMetas
@@ -174,6 +134,6 @@ describe("frame layout envelope", () => {
           violations.push(`${name}: ${item.frame} h=${h} > maxH ${l.maxH}`);
       }
     }
-    expect(violations.sort()).toEqual([...KNOWN_UNDERSIZED].sort());
+    expect(violations).toEqual([]);
   });
 });

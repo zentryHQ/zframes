@@ -43,8 +43,8 @@
         "h": 1
       },
       "config": {
-        "title": "KUB \u2014 Bitkub Coin",
-        "subtitle": "Live from Bitkub via the @zframes/provider-bitkub venue \u00b7 every figure in THB"
+        "title": "KUB — Bitkub Coin",
+        "subtitle": "Live from Bitkub via the @zframes/provider-bitkub venue · every figure in THB"
       }
     },
     {
@@ -104,7 +104,7 @@
         "w": 5,
         "h": 3
       },
-      "title": "KUB / THB \u00b7 Daily",
+      "title": "KUB / THB · Daily",
       "config": {
         "symbol": "KUB",
         "source": "bitkub",
@@ -137,7 +137,7 @@
         "w": 3,
         "h": 3
       },
-      "title": "KUB Book \u2014 USD",
+      "title": "KUB Book — USD",
       "currency": "USD",
       "config": {
         "symbol": "KUB",
@@ -226,7 +226,7 @@
       },
       "config": {
         "title": "Bitkub Exchange",
-        "subtitle": "The venue itself \u2014 standing, volume, and its biggest THB markets"
+        "subtitle": "The venue itself — standing, volume, and its biggest THB markets"
       }
     },
     {
@@ -289,7 +289,7 @@
         "h": 3
       },
       "config": {
-        "text": "**Bitkub** is Thailand's largest digital-asset exchange \u2014 Bangkok, founded 2018 \u2014 and the issuer of **KUB**, the gas token of Bitkub Chain.\n\nThe market cards above are ordinary zframes frames pinned to `venue: \"bitkub\"`; the board's `currency` is **THB**, so prices convert from the canonical USD at the live ECB rate."
+        "text": "**Bitkub** is Thailand's largest digital-asset exchange — Bangkok, founded 2018 — and the issuer of **KUB**, the gas token of Bitkub Chain.\n\nThe market cards above are ordinary zframes frames pinned to `venue: \"bitkub\"`; the board's `currency` is **THB**, so prices convert from the canonical USD at the live ECB rate."
       }
     },
     {

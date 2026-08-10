@@ -97,7 +97,7 @@
         "x": 0,
         "y": 4,
         "w": 3,
-        "h": 3
+        "h": 4
       }
     },
     {
@@ -135,7 +135,7 @@
       "frame": "heading",
       "position": {
         "x": 0,
-        "y": 7,
+        "y": 8,
         "w": 12,
         "h": 1
       },
@@ -149,7 +149,7 @@
       "frame": "national-debt",
       "position": {
         "x": 0,
-        "y": 8,
+        "y": 9,
         "w": 4,
         "h": 3
       }
@@ -159,7 +159,7 @@
       "frame": "inflation-pulse",
       "position": {
         "x": 4,
-        "y": 8,
+        "y": 9,
         "w": 4,
         "h": 3
       }
@@ -169,7 +169,7 @@
       "frame": "labor-market",
       "position": {
         "x": 8,
-        "y": 8,
+        "y": 9,
         "w": 4,
         "h": 3
       }
@@ -179,7 +179,7 @@
       "frame": "heading",
       "position": {
         "x": 0,
-        "y": 11,
+        "y": 12,
         "w": 12,
         "h": 1
       },
@@ -193,7 +193,7 @@
       "frame": "price-chart",
       "position": {
         "x": 0,
-        "y": 12,
+        "y": 13,
         "w": 3,
         "h": 3
       },
@@ -210,7 +210,7 @@
       "frame": "price-chart",
       "position": {
         "x": 3,
-        "y": 12,
+        "y": 13,
         "w": 3,
         "h": 3
       },
@@ -227,7 +227,7 @@
       "frame": "price-chart",
       "position": {
         "x": 6,
-        "y": 12,
+        "y": 13,
         "w": 3,
         "h": 3
       },
@@ -244,7 +244,7 @@
       "frame": "price-chart",
       "position": {
         "x": 9,
-        "y": 12,
+        "y": 13,
         "w": 3,
         "h": 3
       },
@@ -261,7 +261,7 @@
       "frame": "top-movers",
       "position": {
         "x": 0,
-        "y": 15,
+        "y": 16,
         "w": 4,
         "h": 3
       }
@@ -271,7 +271,7 @@
       "frame": "fx-board",
       "position": {
         "x": 4,
-        "y": 15,
+        "y": 16,
         "w": 4,
         "h": 3
       }
@@ -281,7 +281,7 @@
       "frame": "treasury-auctions",
       "position": {
         "x": 8,
-        "y": 15,
+        "y": 16,
         "w": 4,
         "h": 3
       }
@@ -291,7 +291,7 @@
       "frame": "heading",
       "position": {
         "x": 0,
-        "y": 18,
+        "y": 19,
         "w": 12,
         "h": 1
       },
@@ -305,7 +305,7 @@
       "frame": "filings-feed",
       "position": {
         "x": 0,
-        "y": 19,
+        "y": 20,
         "w": 3,
         "h": 4
       },
@@ -320,8 +320,8 @@
       "frame": "news-feed",
       "position": {
         "x": 3,
-        "y": 19,
-        "w": 3,
+        "y": 20,
+        "w": 4,
         "h": 4
       },
       "title": "CNBC · Markets",
@@ -335,7 +335,7 @@
       "frame": "short-volume",
       "position": {
         "x": 6,
-        "y": 19,
+        "y": 24,
         "w": 3,
         "h": 4
       },
@@ -349,7 +349,7 @@
       "frame": "macro-calendar",
       "position": {
         "x": 9,
-        "y": 19,
+        "y": 20,
         "w": 3,
         "h": 4
       }
@@ -359,7 +359,7 @@
       "frame": "heading",
       "position": {
         "x": 0,
-        "y": 23,
+        "y": 28,
         "w": 12,
         "h": 1
       },
@@ -387,7 +387,7 @@
       "frame": "quote",
       "position": {
         "x": 4,
-        "y": 24,
+        "y": 29,
         "w": 4,
         "h": 3
       },
@@ -406,7 +406,7 @@
       "frame": "link-grid",
       "position": {
         "x": 8,
-        "y": 24,
+        "y": 29,
         "w": 4,
         "h": 3
       },
@@ -451,7 +451,7 @@
       "frame": "clock",
       "position": {
         "x": 0,
-        "y": 27,
+        "y": 29,
         "w": 3,
         "h": 3
       },
@@ -465,7 +465,7 @@
       "frame": "market-hours",
       "position": {
         "x": 3,
-        "y": 27,
+        "y": 32,
         "w": 5,
         "h": 3
       },
@@ -478,7 +478,7 @@
       "frame": "countdown",
       "position": {
         "x": 8,
-        "y": 27,
+        "y": 32,
         "w": 4,
         "h": 3
       },
