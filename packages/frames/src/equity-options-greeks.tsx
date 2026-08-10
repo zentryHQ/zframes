@@ -3,6 +3,12 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import {
+  type ChartTooltipContent,
+  chartTooltipLabel,
+  hoverTip,
+  useHideTipOnUnmount,
+} from "./chart-hover";
+import {
   CALL,
   PUT,
   delayLabel,
@@ -31,6 +37,7 @@ function formatGreek(value: number, scale: number): string {
 function EquityOptionsGreeks({ config }: { config: z.output<typeof schema> }) {
   const { data: chain, isLoading } = useOptionsChain(config.symbol);
   const money = useMoney();
+  useHideTipOnUnmount();
 
   const view = useMemo(() => {
     if (!chain) return null;
@@ -114,6 +121,26 @@ function EquityOptionsGreeks({ config }: { config: z.output<typeof schema> }) {
   );
   const atmX = spotBand === null ? null : bandCenter(spotBand);
 
+  /** One strike column's readout. A leg the feed published no greek for is
+   *  omitted rather than shown as 0 — a fabricated zero greek reads as a real
+   *  position, which is the one wrong answer worse than a missing line. */
+  const tipFor = (row: (typeof ladder)[number]): ChartTooltipContent => {
+    const rows: NonNullable<ChartTooltipContent["rows"]> = [];
+    if (row.call !== undefined)
+      rows.push({
+        label: `call ${config.greek}`,
+        value: formatGreek(row.call, scale),
+        color: CALL,
+      });
+    if (row.put !== undefined)
+      rows.push({
+        label: `put ${config.greek}`,
+        value: formatGreek(row.put, scale),
+        color: PUT,
+      });
+    return { title: `strike ${money.magnitude(row.strike)}`, rows };
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="caption text-soft mb-1 flex justify-between gap-2">
@@ -143,13 +170,6 @@ function EquityOptionsGreeks({ config }: { config: z.output<typeof schema> }) {
           const cx = bandCenter(i);
           return (
             <g key={row.strike}>
-              <title>
-                {`${money.magnitude(row.strike)} · call ${
-                  row.call === undefined ? "—" : formatGreek(row.call, scale)
-                } · put ${
-                  row.put === undefined ? "—" : formatGreek(row.put, scale)
-                }`}
-              </title>
               {row.call !== undefined && (
                 <rect
                   x={cx - barW - 1}
@@ -182,6 +202,27 @@ function EquityOptionsGreeks({ config }: { config: z.output<typeof schema> }) {
             strokeDasharray="4 3"
           />
         )}
+        {/* Hit targets, last so they sit above the bars: a call/put pair is
+            ~2px of stroke each side of the band centre, and a diverging bar is
+            nearly zero-height near the baseline. The invisible rect covers the
+            strike's whole column in the SAME coordinate space as the marks
+            (`bandW`, so it can't drift from `bandCenter`), and carries the
+            column's only spelled-out reading in the DOM. */}
+        {ladder.map((row, i) => {
+          const content = tipFor(row);
+          return (
+            <rect
+              key={`hit-${row.strike}`}
+              x={i * bandW}
+              y={0}
+              width={bandW}
+              height={H}
+              fill="transparent"
+              aria-label={chartTooltipLabel(content)}
+              {...hoverTip(content)}
+            />
+          );
+        })}
       </svg>
 
       <div className="caption text-soft mt-1 flex justify-between gap-2 tabular-nums">

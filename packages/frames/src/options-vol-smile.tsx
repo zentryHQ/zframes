@@ -1,6 +1,12 @@
 import { defineFrame, useMoney, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import {
+  type ChartTooltipContent,
+  chartTooltipLabel,
+  hoverTip,
+  useHideTipOnUnmount,
+} from "./chart-hover";
 import { DOWN_COLOR, UP_COLOR, formatPct } from "./format";
 import { optionsVolSmileMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -33,6 +39,8 @@ function OptionsVolSmile({ config }: { config: z.output<typeof schema> }) {
     };
   }, [summary]);
 
+  useHideTipOnUnmount();
+
   if (isLoading) return <FrameStatus loading>loading vol smile…</FrameStatus>;
   if (!view) return <FrameStatus>no options data yet</FrameStatus>;
 
@@ -55,6 +63,30 @@ function OptionsVolSmile({ config }: { config: z.output<typeof schema> }) {
       .map((s) => `${xAt(s.strike)},${yAt(s[key]!)}`)
       .join(" ");
   const ivRange = `${formatPct(minIv, 0)}–${formatPct(maxIv, 0)}`;
+
+  // One transparent full-height column per strike, shared by both curves, so a
+  // single hover compares call IV against put IV at that strike. Bounds are the
+  // midpoints to the neighbouring strikes, in the marks' own x space.
+  const hits = strikes.map((s, i) => {
+    const x = xAt(s.strike);
+    const left = i === 0 ? 0 : (xAt(strikes[i - 1].strike) + x) / 2;
+    const right =
+      i === strikes.length - 1 ? W : (x + xAt(strikes[i + 1].strike)) / 2;
+    const rows: NonNullable<ChartTooltipContent["rows"]> = [];
+    if (s.callIv !== undefined)
+      rows.push({ label: "call IV", value: formatPct(s.callIv), color: CALL });
+    if (s.putIv !== undefined)
+      rows.push({ label: "put IV", value: formatPct(s.putIv), color: PUT });
+    const content: ChartTooltipContent | null = rows.length
+      ? { title: money.magnitude(s.strike), rows }
+      : null;
+    return {
+      strike: s.strike,
+      left,
+      width: Math.max(right - left, 0),
+      content,
+    };
+  });
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -91,6 +123,20 @@ function OptionsVolSmile({ config }: { config: z.output<typeof schema> }) {
           stroke={PUT}
           strokeWidth={1.5}
         />
+        {hits.map((hit) => (
+          <rect
+            key={hit.strike}
+            x={hit.left}
+            y={0}
+            width={hit.width}
+            height={H}
+            fill="transparent"
+            aria-label={
+              hit.content ? chartTooltipLabel(hit.content) : undefined
+            }
+            {...hoverTip(hit.content)}
+          />
+        ))}
       </svg>
 
       <div className="caption text-soft mt-1 flex justify-between tabular-nums">

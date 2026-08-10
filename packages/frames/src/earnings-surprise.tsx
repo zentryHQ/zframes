@@ -4,6 +4,11 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import {
+  chartTooltipLabel,
+  hoverTip,
+  useHideTipOnUnmount,
+} from "./chart-hover";
+import {
   DOWN_COLOR,
   UP_COLOR,
   changeColor,
@@ -59,26 +64,25 @@ function surpriseOf(r: EarningsResult): number | null {
  * so a loss-making quarter grows downward from the shared baseline instead of
  * clipping at it; both regions are laid out for every bar, which is what keeps
  * the pair (and every other column) on one axis.
+ *
+ * Carries no tooltip of its own: a bar is capped at 14px, and the reading a
+ * hover wants is the PAIR (reported against consensus), so the hit target is the
+ * whole quarter column — see the `hoverTip` on the bar row below.
  */
 function Bar({
   up,
   down,
   posPct,
   fill,
-  title,
 }: {
   up: number;
   down: number;
   posPct: number;
   fill?: string;
-  title: string;
 }) {
   const neutral = fill ? "" : " bg-white/[0.16]";
   return (
-    <div
-      className="flex h-full min-w-0 max-w-[14px] flex-1 flex-col"
-      title={title}
-    >
+    <div className="flex h-full min-w-0 max-w-[14px] flex-1 flex-col">
       <div
         className="flex flex-col justify-end"
         style={{ height: `${posPct}%` }}
@@ -103,6 +107,7 @@ function Bar({
 
 function EarningsSurprise({ config }: { config: z.output<typeof schema> }) {
   const { data, isLoading } = useEarningsHistory(config.symbol);
+  useHideTipOnUnmount();
 
   const view = useMemo(() => {
     const results = data?.results ?? [];
@@ -194,16 +199,39 @@ function EarningsSurprise({ config }: { config: z.output<typeof schema> }) {
         {view.columns.map((c) => {
           const surpriseColor =
             c.surprisePct === null ? undefined : changeColor(c.surprisePct);
-          const bar = (value: number, fill?: string, kind = "reported") => ({
+          const bar = (value: number, fill?: string) => ({
             up: view.maxPos > 0 && value > 0 ? value / view.maxPos : 0,
             down: view.minNeg < 0 && value < 0 ? value / view.minNeg : 0,
             posPct: view.posPct,
             fill,
-            title: `${c.label} · ${kind} ${formatEps(value)}`,
           });
+          // The bars are the ONLY place the actual EPS figures live — the column
+          // prints the period and the surprise %, but never the cents that
+          // produced them, so this is the hover's whole reason to exist.
+          const tip = {
+            title: c.label,
+            rows: [
+              {
+                label: "reported",
+                value: formatEps(c.eps),
+                color: surpriseColor,
+              },
+              ...(c.consensusEps != null
+                ? [{ label: "consensus", value: formatEps(c.consensusEps) }]
+                : []),
+            ],
+            footer:
+              c.surprisePct === null
+                ? "no consensus to compare"
+                : `${formatChangePct(c.surprisePct)} surprise`,
+          };
           return (
             <div key={c.key} className="flex min-w-0 flex-1 flex-col gap-1">
-              <div className="relative flex min-h-0 flex-1 items-stretch justify-center gap-[3px]">
+              <div
+                className="relative flex min-h-0 flex-1 items-stretch justify-center gap-[3px]"
+                aria-label={chartTooltipLabel(tip)}
+                {...hoverTip(tip)}
+              >
                 {/* Zero baseline, bled across the column gap so the axis reads
                     as one line rather than a dashed row of stubs. */}
                 <div
@@ -214,9 +242,7 @@ function EarningsSurprise({ config }: { config: z.output<typeof schema> }) {
                 {/* A quarter with no consensus still reported a real EPS: its
                     bar stays, uncoloured, and only the comparison is dropped. */}
                 <Bar {...bar(c.eps, surpriseColor)} />
-                {c.consensusEps != null && (
-                  <Bar {...bar(c.consensusEps, undefined, "consensus")} />
-                )}
+                {c.consensusEps != null && <Bar {...bar(c.consensusEps)} />}
               </div>
               <div className="caption text-soft truncate text-center">
                 {shortPeriod(c.label)}

@@ -3,6 +3,12 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import {
+  type ChartTooltipContent,
+  chartTooltipLabel,
+  hoverTip,
+  useHideTipOnUnmount,
+} from "./chart-hover";
+import {
   CALL,
   PUT,
   delayLabel,
@@ -28,6 +34,7 @@ interface IvPoint {
 function EquityOptionsSmile({ config }: { config: z.output<typeof schema> }) {
   const { data: chain, isLoading } = useOptionsChain(config.symbol);
   const money = useMoney();
+  useHideTipOnUnmount();
 
   const view = useMemo(() => {
     if (!chain) return null;
@@ -106,6 +113,47 @@ function EquityOptionsSmile({ config }: { config: z.output<typeof schema> }) {
     { points: puts, color: PUT, label: "put" },
   ];
 
+  // The hover target is an invisible column per strike, not the marks: the
+  // points are 2px circles and the smile itself a 1.5px stroke, so neither is
+  // reachable with a cursor. A strike is ONE place on the curve, so its column
+  // carries both sides' IV rather than fighting itself for the pointer — and it
+  // is laid out with `xAt`, the same mapping the marks use, so the readout can
+  // never point at a strike the curve draws elsewhere.
+  const ivByStrike = new Map<number, { call?: number; put?: number }>();
+  for (const p of calls)
+    ivByStrike.set(p.strike, { ...ivByStrike.get(p.strike), call: p.iv });
+  for (const p of puts)
+    ivByStrike.set(p.strike, { ...ivByStrike.get(p.strike), put: p.iv });
+  const hitStrikes = [...ivByStrike.keys()].sort((a, b) => a - b);
+  const hitColumns = hitStrikes.map((strike, i) => {
+    const x = xAt(strike);
+    const prev = hitStrikes[i - 1];
+    const next = hitStrikes[i + 1];
+    // Columns meet at the midpoint between neighbouring strikes, and the outer
+    // two run to the edge, so every pixel of the plot belongs to exactly one.
+    const left = prev === undefined ? 0 : (xAt(prev) + x) / 2;
+    const right = next === undefined ? W : (x + xAt(next)) / 2;
+    const sides = ivByStrike.get(strike);
+    const rows: NonNullable<ChartTooltipContent["rows"]> = [];
+    if (sides?.call !== undefined)
+      rows.push({
+        label: "call IV",
+        value: formatPct(sides.call * 100, 1),
+        color: CALL,
+      });
+    if (sides?.put !== undefined)
+      rows.push({
+        label: "put IV",
+        value: formatPct(sides.put * 100, 1),
+        color: PUT,
+      });
+    const content: ChartTooltipContent = {
+      title: money.magnitude(strike),
+      rows,
+    };
+    return { strike, x: left, width: Math.max(right - left, 0), content };
+  });
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="caption text-soft mb-1 flex justify-between gap-2">
@@ -162,6 +210,19 @@ function EquityOptionsSmile({ config }: { config: z.output<typeof schema> }) {
               </circle>
             ))}
           </g>
+        ))}
+        {/* Last inside the svg so the columns sit above the marks they read. */}
+        {hitColumns.map((col) => (
+          <rect
+            key={col.strike}
+            x={col.x}
+            y={0}
+            width={col.width}
+            height={H}
+            fill="transparent"
+            aria-label={chartTooltipLabel(col.content)}
+            {...hoverTip(col.content)}
+          />
         ))}
       </svg>
 
