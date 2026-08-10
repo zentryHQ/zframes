@@ -29,7 +29,11 @@ function CurveSvg({ points }: { points: { label: string; rate: number }[] }) {
   // own point, so the end points get a half-width column.
   const halfGap = 50 / (n - 1);
   return (
-    <svg viewBox="0 0 100 40" preserveAspectRatio="none" className="h-20 w-full">
+    <svg
+      viewBox="0 0 100 40"
+      preserveAspectRatio="none"
+      className="h-20 w-full"
+    >
       <path d={`${line} L100,40 L0,40 Z`} fill={accent(0.14)} />
       <path
         d={line}
