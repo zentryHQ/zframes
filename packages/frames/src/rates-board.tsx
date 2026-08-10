@@ -7,7 +7,7 @@ import type { z } from "zod";
 import { formatCompactUsd, formatPct } from "./format";
 import { MetricRow } from "./metric-row";
 import { ratesBoardMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = ratesBoardMeta.schema;
 
@@ -41,7 +41,12 @@ function RatesBoard({ config }: { config: z.output<typeof schema> }) {
         <div className="caption text-soft text-right">daily</div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden">
+      {/* Scrolls rather than clips. The rate list is the card's substance and
+          the Treasury tiles below it are pinned, so on a short card the last
+          rate used to be sliced through the middle with nothing to say it was
+          there. Scrolling degrades honestly — you can still reach every rate —
+          which is also what lets this frame keep a 3-row floor. */}
+      <div className={scrollAreaClass}>
         {shownReferenceRates.map((rate) => {
           const target =
             rate.targetRateFrom !== undefined && rate.targetRateTo !== undefined

@@ -522,7 +522,7 @@ export const fxBoardMeta = defineFrameMeta({
   label: "FX Board",
   category: "macro",
   iconUrl: widgetIcon("fx-board"),
-  layout: { w: 4, h: 4, minW: 3, minH: 4, maxH: 5 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2, maxH: 5 },
   description:
     "Foreign-exchange board from the ECB's free daily reference rates (via Frankfurter, no key): each currency's latest rate vs a base, its day-over-day change, and a short trend sparkline. Daily reference data with broader currency coverage than the handful of FX perps — not a live intraday quote feed.",
   capabilities: ["fx-rates"],
