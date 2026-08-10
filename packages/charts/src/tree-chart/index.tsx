@@ -8,6 +8,12 @@ import React, {
   useTransition,
 } from "react";
 import * as d3 from "d3-hierarchy";
+import {
+  CHART_TOOLTIP_ATTR,
+  chartTooltipLabel,
+  delegateChartTooltip,
+  type ChartTooltipContent,
+} from "../lib/chart-tooltip";
 import { observeResize } from "../lib/observe-resize";
 import { useIsomorphicLayoutEffect } from "../lib/use-isomorphic-layout-effect";
 import { cn, prefersReducedMotion } from "../lib/utils";
@@ -30,6 +36,20 @@ const BORDER_RADIUS = "4px";
 const CORNER_BORDER_RADIUS = "4px";
 
 const TARGET_ASPECT_RATIO = 2.5;
+
+/**
+ * Fallback tooltip content. The chart only knows the `TreeNode` contract, so the
+ * bare value is everything it can honestly show — a frame should pass
+ * `formatTooltip` to label the number and give it units (market cap, % change).
+ *
+ * Module-level, not an inline default: it sits in the tooltip effect's
+ * dependency array, and a fresh identity per render would re-attach the
+ * delegated listener on every parent render.
+ */
+const DEFAULT_FORMAT_TOOLTIP = (node: TreeNode): ChartTooltipContent => ({
+  title: String(node.id),
+  rows: [{ value: String(node.value) }],
+});
 
 /**
  * Intro entrance. The tiles are React-DOM nodes, not d3-appended SVG, so the
@@ -199,12 +219,15 @@ function TreeChartInner<T extends TreeNode>({
   LeafComponent,
   getColorValue,
   tileMode = "squarify",
+  formatTooltip = DEFAULT_FORMAT_TOOLTIP,
 }: {
   data: T[];
   className?: string;
   LeafComponent: (props: LeafComponentProps<T>) => React.ReactNode;
   getColorValue?: (data: T) => number;
   tileMode?: TileMode;
+  /** Hover-tooltip content for one tile; `null` opts that tile out. */
+  formatTooltip?: (data: T) => ChartTooltipContent | null;
 }) {
   const outerContainerRef = useRef<HTMLDivElement | null>(null);
   const innerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -326,9 +349,11 @@ function TreeChartInner<T extends TreeNode>({
     );
   }, [data, dimension.width, dimension.height, tileFunction]);
 
-  const memoizedLeaves = useMemo(() => {
-    const leaves = root.leaves();
+  // Hoisted out of the tile memo so the tooltip's resolver reads the very array
+  // the tiles were rendered from — the key it looks up is a position in it.
+  const leaves = useMemo(() => root.leaves(), [root]);
 
+  const memoizedLeaves = useMemo(() => {
     const colorValues = leaves.map((leaf) =>
       getColorValue ? getColorValue(leaf.data) : leaf.data.value,
     );
@@ -379,7 +404,7 @@ function TreeChartInner<T extends TreeNode>({
       uniqueX0Values.map((x0, index) => [x0, index]),
     );
 
-    return leaves.map((leaf) => {
+    return leaves.map((leaf, index) => {
       const width = leaf.x1 - leaf.x0;
       const height = leaf.y1 - leaf.y0;
       const colorValue = getColorValue
@@ -394,6 +419,15 @@ function TreeChartInner<T extends TreeNode>({
         <div
           className="group absolute cursor-pointer rounded-sm border border-transparent hover:bg-[radial-gradient(146.13%_118.42%_at_50%_-15.5%,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0)_99.59%)] hover:bg-gradient-to-t"
           key={`${leaf.data.id}-box`}
+          // Keyed by position in `leaves`, not by `id`: ids are caller-supplied
+          // and nothing in the `TreeNode` contract makes them unique across
+          // branches, so a duplicate would point two tiles at one datum.
+          {...{ [CHART_TOOLTIP_ATTR]: String(index) }}
+          // The hover tooltip is aria-hidden (one shared node for the whole
+          // page), so the reading lives here. It is also the only place a small
+          // tile's figure is spelled out — the label inside it is dropped below
+          // ~48x30px.
+          aria-label={chartTooltipLabel(formatTooltip(leaf.data))}
           style={{
             left: leaf.x0,
             top: leaf.y0,
@@ -412,7 +446,35 @@ function TreeChartInner<T extends TreeNode>({
         </div>
       );
     });
-  }, [root, LeafComponent, getColorValue]);
+  }, [leaves, LeafComponent, getColorValue, formatTooltip]);
+
+  /**
+   * The resolver is reached through a ref rather than the effect's dep array.
+   * A frame's `formatTooltip` has to be an inline arrow — it closes over
+   * `useMoney()`, which only a component may call — so its identity changes
+   * every render, and depending on it would detach and re-attach the listener
+   * on each one. Synced in a layout effect so it is current before any pointer
+   * event can reach the container.
+   */
+  const formatTooltipRef = useRef(formatTooltip);
+  useIsomorphicLayoutEffect(() => {
+    formatTooltipRef.current = formatTooltip;
+  }, [formatTooltip]);
+
+  // One delegated listener on the tile container. A treemap can hold hundreds of
+  // tiles, so per-tile handler props would allocate three closures each on every
+  // data poll; the tiles carry only a string key instead.
+  useEffect(() => {
+    const container = innerContainerRef.current;
+    if (!container) return;
+    // Re-attaching on a new `leaves` also dismisses any open tooltip, which is
+    // what we want: the tile under the cursor has just been re-laid-out and its
+    // numbers are the previous poll's.
+    return delegateChartTooltip(container, (key) => {
+      const leaf = leaves[Number(key)];
+      return leaf ? formatTooltipRef.current(leaf.data) : null;
+    });
+  }, [leaves]);
 
   // Intro entrance: on the first draw that actually has geometry, the tiles
   // fade and scale up from their own centres, so the treemap visibly builds
@@ -497,6 +559,8 @@ const TreeChart = TreeChartInner as <T extends TreeNode>(props: {
   LeafComponent: (props: LeafComponentProps<T>) => React.ReactNode;
   getColorValue?: (data: T) => number;
   tileMode?: TileMode;
+  /** Hover-tooltip content for one tile; `null` opts that tile out. */
+  formatTooltip?: (data: T) => ChartTooltipContent | null;
 }) => React.ReactElement;
 
 // memo() erases the generic call signature, so cast it back to preserve

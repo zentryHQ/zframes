@@ -2,7 +2,7 @@ import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useMoney, useNftMarket } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatChangePct } from "./format";
+import { changeColor, formatChangePct, formatPct } from "./format";
 import { nftTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -31,13 +31,13 @@ function Leaf({
       height={height}
       label={data.id}
       secondary={floor}
-      title={`${data.id} · ${floor} floor · ${formatChangePct(data.floorChangePct24h)}`}
     />
   );
 }
 
 function NftTreemap({ config }: { config: z.output<typeof schema> }) {
   const { collections, isLoading } = useNftMarket();
+  const money = useMoney();
 
   const data: NftNode[] = useMemo(
     () =>
@@ -56,11 +56,29 @@ function NftTreemap({ config }: { config: z.output<typeof schema> }) {
   if (isLoading) return <FrameStatus loading>loading NFT floors…</FrameStatus>;
   if (data.length === 0) return <FrameStatus>no NFT data</FrameStatus>;
 
+  const shownMcap = data.reduce((sum, node) => sum + node.value, 0);
+
   return (
     <TreeChart
       data={data}
       LeafComponent={Leaf}
       getColorValue={(node) => node.floorChangePct24h}
+      formatTooltip={(node) => ({
+        title: node.id,
+        rows: [
+          { label: "mcap", value: money.compact(node.value) },
+          { label: "floor", value: money.price(node.floorUsd) },
+          {
+            label: "24h",
+            value: formatChangePct(node.floorChangePct24h),
+            color: changeColor(node.floorChangePct24h),
+          },
+        ],
+        footer:
+          shownMcap > 0
+            ? `${formatPct((node.value / shownMcap) * 100, 1)} of shown mcap`
+            : undefined,
+      })}
     />
   );
 }

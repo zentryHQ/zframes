@@ -1,9 +1,12 @@
 import * as d3 from "d3";
 import { useEffect, useRef, memo } from "react";
+import { attachChartTooltip, hideChartTooltip } from "./lib/chart-tooltip";
 import { useChartIntro } from "./lib/use-chart-intro";
 import { prefersReducedMotion } from "./lib/utils";
 
 const COLORS = ["#FF1F5F", "#81FE90"];
+/** Module-level so it keeps one identity across renders (it is a dep below). */
+const DEFAULT_FORMAT_VALUE = (v: number) => String(v);
 
 interface PieChartData {
   name: string;
@@ -18,6 +21,8 @@ interface PieChartProps {
   outerRadius?: number;
   /** Slice colors, applied in order. Defaults to the built-in 2-color set. */
   colors?: string[];
+  /** Renders a slice's value in the hover tooltip. */
+  formatValue?: (value: number) => string;
   children?: React.ReactNode;
 }
 
@@ -28,6 +33,7 @@ const PieChart = ({
   innerRadius = 90,
   outerRadius = 100,
   colors = COLORS,
+  formatValue = DEFAULT_FORMAT_VALUE,
   children,
 }: PieChartProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -102,6 +108,18 @@ const PieChart = ({
 
     const arcs = pie(data);
 
+    // The paths take their fill from the SELECTION index, and `PieArcDatum.index`
+    // is the *sort* position (d3.pie sorts by descending value by default), so
+    // the two disagree on any unsorted data — look the colour up per arc.
+    const sliceColor = new Map(
+      arcs.map((d, i) => [d, colorScale(i.toString()) as string]),
+    );
+    // A donut is read as parts of a whole, so the share of total — not the raw
+    // value — is the number the reader is actually after.
+    const total = d3.sum(arcs, (d) => d.data.value);
+    const shareOf = (d: d3.PieArcDatum<PieChartData>) =>
+      total > 0 ? `${((d.data.value / total) * 100).toFixed(1)}% of total` : "";
+
     const sliceGroups = pieGroup
       .selectAll("g")
       .data(arcs)
@@ -170,7 +188,16 @@ const PieChart = ({
         .append("path")
         .attr("class", "main-slice")
         .attr("fill", (_, i) => colorScale(i.toString()) as string)
-        .attr("stroke", "none"),
+        .attr("stroke", "none")
+        // The visible mark carries the reading assistive tech gets; the hover
+        // tooltip is aria-hidden.
+        .attr("aria-label", (d) => {
+          const share = shareOf(d);
+          const value = formatValue(d.data.value);
+          return share
+            ? `${d.data.name}: ${value} (${share})`
+            : `${d.data.name}: ${value}`;
+        }),
       arc,
     );
 
@@ -189,7 +216,31 @@ const PieChart = ({
           .duration(prefersReducedMotion() ? 0 : 300)
           .style("opacity", 0);
       });
-  }, [data, width, height, innerRadius, outerRadius, colors, shouldIntro]);
+
+    // The group is the hit target: the glow layer ignores pointer events and the
+    // main slice fills the ring, so there is nothing thin to miss.
+    attachChartTooltip(sliceGroups, (d) => {
+      const share = shareOf(d);
+      return {
+        title: d.data.name,
+        rows: [{ value: formatValue(d.data.value), color: sliceColor.get(d) }],
+        footer: share || undefined,
+      };
+    });
+
+    // This effect opens by wiping the SVG, so a poll or unmount destroys the
+    // slice under the cursor — without this the tooltip would hang there.
+    return hideChartTooltip;
+  }, [
+    data,
+    width,
+    height,
+    innerRadius,
+    outerRadius,
+    colors,
+    formatValue,
+    shouldIntro,
+  ]);
 
   return (
     <div

@@ -2,7 +2,7 @@ import { HeatmapChart, type CellComponentProps } from "@zframes/charts";
 import { defineFrame, useMetalHistory, type SeriesPoint } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { DOWN_COLOR, UP_COLOR } from "./format";
+import { changeColor, DOWN_COLOR, formatPct, UP_COLOR } from "./format";
 import {
   alignSeries,
   correlation,
@@ -169,6 +169,43 @@ function MetalsCorrelation({ config }: { config: z.output<typeof schema> }) {
           showLabels
           rowLabelWidth={62}
           columnLabelHeight={18}
+          formatTooltip={(cell) => {
+            const pair = `${cell.row} · ${cell.column}`;
+            // Same "–" the cell prints, so hovering an unmeasurable pair
+            // explains the dash rather than inventing a number for it.
+            if (!cell.measured)
+              return {
+                title: pair,
+                rows: [{ label: "correlation", value: "–" }],
+                footer: "too few shared fix days",
+              };
+            const coefficient = {
+              label: "correlation",
+              value: formatCoefficient(cell.value),
+              // The tint is the cell's own reading (up = co-movement), which the
+              // two-decimal number alone doesn't carry at a glance.
+              color: changeColor(cell.value),
+            };
+            if (cell.row === cell.column)
+              return {
+                title: cell.row,
+                rows: [coefficient],
+                footer: "same metal",
+              };
+            return {
+              title: pair,
+              rows: [
+                coefficient,
+                // r² — the share of one metal's daily moves the other explains.
+                // Whole percent: two decimals would out-precision the 0.87 above it.
+                {
+                  label: "r²",
+                  value: formatPct(cell.value * cell.value * 100, 0),
+                },
+              ],
+              footer: `daily returns · ${spanYears}y window`,
+            };
+          }}
         />
       </div>
       <div className="caption text-soft text-center">

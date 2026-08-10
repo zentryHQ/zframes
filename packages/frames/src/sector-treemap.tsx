@@ -2,7 +2,7 @@ import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useMoney, useSectorPerformance } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatChangePct } from "./format";
+import { changeColor, formatChangePct, formatPct } from "./format";
 import { sectorTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -23,20 +23,19 @@ function Leaf({
   height: number;
   data: SectorNode;
 }) {
-  const money = useMoney();
   return (
     <TreemapLeaf
       width={width}
       height={height}
       label={data.id}
       secondary={formatChangePct(data.changePct24h)}
-      title={`${data.id} · ${money.compact(data.marketCap)} · ${formatChangePct(data.changePct24h)}`}
     />
   );
 }
 
 function SectorTreemap({ config }: { config: z.output<typeof schema> }) {
   const { sectors, isLoading } = useSectorPerformance();
+  const money = useMoney();
 
   const data: SectorNode[] = useMemo(
     () =>
@@ -49,6 +48,11 @@ function SectorTreemap({ config }: { config: z.output<typeof schema> }) {
     [sectors, config.limit],
   );
 
+  const shownCap = useMemo(
+    () => data.reduce((sum, node) => sum + node.marketCap, 0),
+    [data],
+  );
+
   if (isLoading) return <FrameStatus loading>loading sectors…</FrameStatus>;
   if (data.length === 0) return <FrameStatus>no sector data yet</FrameStatus>;
 
@@ -57,6 +61,21 @@ function SectorTreemap({ config }: { config: z.output<typeof schema> }) {
       data={data}
       LeafComponent={Leaf}
       getColorValue={(node) => node.changePct24h}
+      formatTooltip={(node) => ({
+        title: node.id,
+        rows: [
+          { label: "mcap", value: money.compact(node.marketCap) },
+          {
+            label: "24h",
+            value: formatChangePct(node.changePct24h),
+            color: changeColor(node.changePct24h),
+          },
+        ],
+        footer:
+          shownCap > 0
+            ? `${formatPct((node.marketCap / shownCap) * 100)} of sectors shown`
+            : undefined,
+      })}
     />
   );
 }

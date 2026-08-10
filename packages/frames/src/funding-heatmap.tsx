@@ -3,7 +3,7 @@ import { defineFrame, useFundingHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
-import { formatFundingPct } from "./format";
+import { changeColor, formatFundingPct, formatPct } from "./format";
 import { fundingHeatmapMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -77,6 +77,24 @@ function FundingHeatmap({ config }: { config: z.output<typeof schema> }) {
       showLabels
       rowLabelWidth={48}
       columnLabelHeight={20}
+      formatTooltip={(cell) => ({
+        title: `${cell.row} · ${cell.column}`,
+        rows: [
+          // Prints are hourly, so the bucket average IS an hourly rate — the
+          // number the cell itself shows. The two below extrapolate it.
+          {
+            label: "avg 1h rate",
+            value: formatFundingPct(cell.rate * 100),
+            color: changeColor(cell.rate),
+          },
+          { label: "24h total", value: formatFundingPct(cell.rate * 24 * 100) },
+          {
+            label: "annualized",
+            value: formatPct(cell.rate * 24 * 365 * 100, 1),
+          },
+        ],
+        footer: cell.rate >= 0 ? "longs pay shorts" : "shorts pay longs",
+      })}
     />
   );
 }

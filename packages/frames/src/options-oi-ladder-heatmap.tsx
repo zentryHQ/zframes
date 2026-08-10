@@ -2,7 +2,7 @@ import { HeatmapChart, type HeatmapCell } from "@zframes/charts";
 import { defineFrame, useMoney, useOptionsSummary } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatCompact } from "./format";
+import { formatCompact, formatPct } from "./format";
 import { optionsOiLadderHeatmapMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -71,6 +71,10 @@ function OptionsOiLadderHeatmap({
     return out;
   }, [summary, config.expiries, config.buckets, money]);
 
+  // Denominator for a cell's share of the whole shown ladder — the reading the
+  // shade only hints at ("is this band actually where positioning sits?").
+  const totalOi = cells.reduce((sum, c) => sum + c.oi, 0);
+
   if (isLoading) return <FrameStatus loading>loading OI ladder…</FrameStatus>;
   if (cells.length === 0) return <FrameStatus>no options data yet</FrameStatus>;
 
@@ -82,6 +86,21 @@ function OptionsOiLadderHeatmap({
       showLabels
       rowLabelWidth={64}
       columnLabelHeight={20}
+      formatTooltip={(cell) => ({
+        title: `${cell.row} · ${cell.column}`,
+        rows: [
+          { label: "OI", value: `${formatCompact(cell.oi)} contracts` },
+          // Spot is what makes the strike band readable as ITM/OTM; omitted
+          // rather than shown as zero if the snapshot carries no underlying.
+          ...(summary?.underlyingPrice
+            ? [{ label: "spot", value: money.price(summary.underlyingPrice) }]
+            : []),
+        ],
+        footer:
+          totalOi > 0
+            ? `${formatPct((cell.oi / totalOi) * 100, 1)} of shown OI`
+            : undefined,
+      })}
     />
   );
 }
