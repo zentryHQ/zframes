@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# managed-by: .githooks/install.mjs — edit .githooks/pre-commit, then
+# `pnpm install` (or `node .githooks/install.mjs`) to reinstall. Editing the
+# copy in .git/hooks works until the next install overwrites it.
+#
+# Format staged files before they are committed.
+#
+# WHY THIS EXISTS. `pnpm format:check` gates every PR, so an unformatted commit
+# turns main red the moment it is pushed — and in a repo where several agent
+# sessions commit in parallel, the session that goes red is rarely the one that
+# wrote the offending line. This fixes it at the source instead.
+#
+# NO FORMATTER IS HARD-CODED. The hook resolves one at run time, first match wins:
+#
+#   1. a `format:staged` script in the root package.json — the explicit escape
+#      hatch; it receives the staged paths as arguments and the hook does not
+#      care what it runs
+#   2. biome    — a `biome.json`/`biome.jsonc` in the repo root
+#   3. dprint   — a `dprint.json`/`.dprint.json`
+#   4. prettier — a `.prettierrc*`/`prettier.config.*`, or the dependency
+#   5. nothing found → exit 0 silently
+#
+# So switching formatters is deleting one config and adding another; this file
+# does not change. Each command is passed the repo's own "skip files you don't
+# understand" flag, which is also why there is no extension allowlist here to
+# drift out of sync with the formatter's real support.
+#
+# INSTALLED BY `.githooks/install.mjs` (the package.json `prepare` script),
+# which copies this file into `$(git rev-parse --git-common-dir)/hooks`.
+# Deliberately NOT husky: husky installs itself by setting `core.hooksPath` on
+# the repo, which overrides a global hooks directory — and this machine has one
+# (`~/dotfiles/.config/git/hooks`) whose dispatcher links `.env*` files into new
+# worktrees. Husky would silently stop that, and every fresh worktree would come
+# up without env files. The global dispatcher already chains to the repo's own
+# hooks and preserves their exit code, so a plain symlink is all that is needed.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Staged and still present. NUL-delimited: a path may contain spaces.
+staged=()
+while IFS= read -r -d '' f; do staged+=("$f"); done < <(
+  git diff --cached --name-only --diff-filter=ACMR -z
+)
+[ ${#staged[@]} -eq 0 ] && exit 0
+
+# Drop anything that ALSO has unstaged changes. Formatting such a file and
+# re-adding it would stage the hunks the author deliberately left out of the
+# index — silently committing work they chose not to commit. Leaving it
+# unformatted is the lesser harm, and CI still catches it.
+unstaged=()
+while IFS= read -r -d '' f; do unstaged+=("$f"); done < <(
+  git diff --name-only -z
+)
+files=()
+for f in "${staged[@]}"; do
+  partial=0
+  for u in "${unstaged[@]:-}"; do
+    [ "$f" = "$u" ] && partial=1 && break
+  done
+  if [ "$partial" -eq 1 ]; then
+    echo "pre-commit: skipping $f — it has unstaged changes too" >&2
+  else
+    files+=("$f")
+  fi
+done
+[ ${#files[@]} -eq 0 ] && exit 0
+
+# Resolve the formatter.
+# A root-package.json script by that name. `compgen`/`ls` cannot answer this.
+has_script() {
+  node -e "process.exit(require('./package.json').scripts?.['$1'] ? 0 : 1)" 2>/dev/null
+}
+# A root dependency by that name, in either dependency block.
+has_dep() {
+  node -e "const p=require('./package.json');
+           const d={...p.dependencies,...p.devDependencies};
+           process.exit(d['$1'] ? 0 : 1)" 2>/dev/null
+}
+# Any file matching one of the given globs. Deliberately NOT `ls a* b*`: ls exits
+# non-zero when ANY argument matches nothing, so one absent config silently hid a
+# formatter that was in fact installed.
+has_config() {
+  for pattern in "$@"; do
+    compgen -G "$pattern" >/dev/null && return 0
+  done
+  return 1
+}
+
+cmd=()
+if has_script format:staged; then
+  cmd=(pnpm run format:staged)
+elif has_config 'biome.json*' || has_dep @biomejs/biome; then
+  cmd=(pnpm exec biome format --write --no-errors-on-unmatched)
+elif has_config 'dprint.json' '.dprint.json' || has_dep dprint; then
+  cmd=(pnpm exec dprint fmt)
+elif has_config '.prettierrc*' 'prettier.config.*' || has_dep prettier; then
+  cmd=(pnpm exec prettier --write --ignore-unknown)
+else
+  # Say so rather than exiting 0 in silence: a hook that quietly does nothing is
+  # indistinguishable from a hook that is working, which is the exact failure
+  # this whole file exists to prevent.
+  echo "pre-commit: no formatter detected (biome / dprint / prettier / a format:staged script) — skipping" >&2
+  exit 0
+fi
+
+"${cmd[@]}" "${files[@]}"
+
+# Re-stage only the paths we just formatted — never `git add -A`, which would
+# sweep in another session's concurrent edits.
+git add -- "${files[@]}"
