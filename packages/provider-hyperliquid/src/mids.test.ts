@@ -302,11 +302,44 @@ describe("allMids hidden-tab suspension", () => {
     subscribe(provider, vi.fn(), ["BTC"]);
     socket().open();
 
-    // A real network drop, not a suspend — the existing 2s reconnect must be
-    // untouched by the visibility plumbing.
+    // A real network drop, not a suspend — the reconnect must be untouched by the
+    // visibility plumbing. The wait is jittered ±20% around the 2 s base, so the
+    // window is 1.6–2.4 s: below the floor nothing has fired, past the ceiling
+    // exactly one attempt has. Advancing to the bare base would be a coin flip.
     socket().close();
-    vi.advanceTimersByTime(2_000);
+    vi.advanceTimersByTime(1_500);
+    expect(sockets).toHaveLength(1);
+    vi.advanceTimersByTime(1_000);
     expect(sockets).toHaveLength(2);
     expect(live()).toHaveLength(1);
+  });
+
+  // A flat retry is the failure mode this pins: every tab on every machine drops
+  // at the same instant in a venue outage, so a fixed delay has them all knocking
+  // in the same slot forever. Backoff has to actually grow, and — the half that
+  // silently rots — it has to come back down, or one bad afternoon leaves every
+  // tab on a 30 s reconnect for the rest of the session.
+  it("doubles the reconnect wait per failed attempt, and resets on an open", async () => {
+    const provider = await freshProvider();
+    subscribe(provider, vi.fn(), ["BTC"]);
+    socket().open();
+
+    socket().close();
+    vi.advanceTimersByTime(2_500);
+    expect(sockets).toHaveLength(2);
+
+    // Socket 2 never opens, so the next wait is the doubled 4 s (3.2–4.8 s with
+    // jitter) — the first window must pass with no third attempt.
+    socket().close();
+    vi.advanceTimersByTime(2_500);
+    expect(sockets).toHaveLength(2);
+    vi.advanceTimersByTime(2_500);
+    expect(sockets).toHaveLength(3);
+
+    // Socket 3 opens, so the ladder is back at the base for the next drop.
+    socket().open();
+    socket().close();
+    vi.advanceTimersByTime(2_500);
+    expect(sockets).toHaveLength(4);
   });
 });

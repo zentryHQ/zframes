@@ -4,6 +4,7 @@ import type {
   NewsItem,
   NewsQuery,
 } from "@zframes/spec";
+import { TtlCache } from "@zframes/data-primitives/cache";
 import { fetchText } from "@zframes/data-primitives/fetch";
 
 /**
@@ -42,7 +43,9 @@ const FEEDS: Record<string, { url: string; source: string }> = {
  */
 const googleNewsUrl = (tickers: string[]) => {
   const query = `(${tickers.join(" OR ")}) stock`;
-  return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(
+    query,
+  )}&hl=en-US&gl=US&ceid=US:en`;
 };
 
 const NAMED_ENTITIES: Record<string, string> = {
@@ -201,6 +204,20 @@ function parseFeed(xml: string, source: string, limit: number): NewsItem[] {
   return items.slice(0, limit);
 }
 
+// Every feed here is a public RSS endpoint read through the runtime proxy, and an
+// outlet publishes a handful of headlines an hour — so the shared cache reuses a
+// feed for 4 min (under useNews' 5-minute poll), dedups the concurrent loads a
+// board with several news cards on the same feed makes, persists across reloads,
+// and serves the last good headlines when a feed (or the proxy) is briefly down.
+// Keyed by the feed and the limit — plus the tickers on the stocks path, which
+// are what its query is built from. Each changes the parsed result.
+const newsCache = new TtlCache<NewsItem[]>({
+  namespace: "zframes:news",
+  ttlMs: 4 * 60_000,
+  persist: true,
+  revive: (value) => (Array.isArray(value) ? (value as NewsItem[]) : null),
+});
+
 /**
  * Free, no-API-key news provider backed by public RSS feeds.
  * - `news`: latest headlines from a named outlet feed (CoinDesk, Cointelegraph,
@@ -220,15 +237,22 @@ export class NewsProvider implements MarketDataProvider {
         .map((s) => (s.split(":").pop() ?? "").toUpperCase())
         .filter(Boolean);
       if (tickers.length === 0) return [];
-      const xml = await fetchText(googleNewsUrl(tickers), {
-        proxied: true,
-        timeoutMs: 12_000,
+      return newsCache.get(`stocks|${tickers.join(",")}|${limit}`, async () => {
+        const xml = await fetchText(googleNewsUrl(tickers), {
+          proxied: true,
+          timeoutMs: 12_000,
+        });
+        return parseFeed(xml, "Google News", limit);
       });
-      return parseFeed(xml, "Google News", limit);
     }
     const def = FEEDS[feed];
     if (!def) throw new Error(`news: unknown feed "${feed}"`);
-    const xml = await fetchText(def.url, { proxied: true, timeoutMs: 12_000 });
-    return parseFeed(xml, def.source, limit);
+    return newsCache.get(`${feed}|${limit}`, async () => {
+      const xml = await fetchText(def.url, {
+        proxied: true,
+        timeoutMs: 12_000,
+      });
+      return parseFeed(xml, def.source, limit);
+    });
   }
 }
