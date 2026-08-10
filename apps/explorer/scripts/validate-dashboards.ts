@@ -73,21 +73,25 @@ async function main() {
     const result = validateDashboardSpec(row.spec);
     if (result.ok) continue;
     broken.push(
-      `${row.curated ? "curated" : "community"} "${row.id}" (${row.title}):\n${formatProblems(
-        result.problems,
-      )}`,
+      `${row.curated ? "curated" : "community"} "${row.id}" (${
+        row.title
+      }):\n${formatProblems(result.problems)}`,
     );
   }
 
   const curatedCount = rows.filter((r) => r.curated).length;
   console.log(
-    `checked ${rows.length} dashboard(s) — ${curatedCount} curated, ${rows.length - curatedCount} community`,
+    `checked ${rows.length} dashboard(s) — ${curatedCount} curated, ${
+      rows.length - curatedCount
+    } community`,
   );
 
   if (broken.length) {
     report(
       `monitor: ${broken.length} stored dashboard(s) no longer validate`,
-      `Checked ${rows.length} dashboard(s) — ${curatedCount} curated, ${rows.length - curatedCount} community.\n\n` +
+      `Checked ${rows.length} dashboard(s) — ${curatedCount} curated, ${
+        rows.length - curatedCount
+      } community.\n\n` +
         "These were valid when written and are not now, so something in the frame registry moved under them — a renamed frame, a dropped loader, a renamed config field, a tightened enum.\n\n" +
         `\`\`\`\n${broken.join("\n\n")}\n\`\`\``,
       broken.length,
@@ -97,6 +101,9 @@ async function main() {
   }
   report("", "", 0);
   console.log("✓ every stored dashboard still validates against the registry");
+  // Explicit, like every sibling script: the pg pool otherwise holds the event
+  // loop open ~5 minutes after a passing run.
+  process.exit(0);
 }
 
 /**
@@ -108,7 +115,11 @@ async function main() {
 function report(title: string, body: string, findingsCount: number) {
   writeFileSync(
     process.env.DASHBOARD_VALIDITY_REPORT ?? "dashboard-validity-report.json",
-    `${JSON.stringify({ title, body, findingsCount, generatedAt: new Date().toISOString() }, null, 2)}\n`,
+    `${JSON.stringify(
+      { title, body, findingsCount, generatedAt: new Date().toISOString() },
+      null,
+      2,
+    )}\n`,
   );
 }
 
