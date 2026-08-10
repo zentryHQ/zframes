@@ -254,13 +254,15 @@ function usePolled<T>(
           // Keep the last good value, but don't wait out the full interval — a
           // transient first-fetch miss on a slow-poll frame (e.g. 6h) would
           // otherwise stick as an empty "no data" card until a manual reload.
-          // Retry with a short exponential backoff, capped so it never exceeds
-          // the normal cadence.
+          // Retry with a short exponential backoff. The cap scales with the
+          // cadence (never below 60s, never above refreshMs): a flat 60s cap
+          // meant a failing 6h frame hammered a throttled upstream ~360× its
+          // normal rate — exactly when it was already rate-limiting us.
           setIsLoading((loading) => (loading ? false : loading));
           errorStreak += 1;
           const backoff = Math.min(
             3_000 * 2 ** (errorStreak - 1),
-            60_000,
+            Math.max(60_000, refreshMs / 10),
             refreshMs,
           );
           scheduleNext(backoff);
@@ -1241,12 +1243,12 @@ export function usePortfolio(
 ): { portfolio: Portfolio | null; isLoading: boolean } {
   const providers = useProviders();
   const provider = source
-    ? (providers.find(
+    ? providers.find(
         (p) =>
           !!p.getPortfolio &&
           p.capabilities.includes("portfolio") &&
           (p.portfolioKinds?.includes(source.kind) ?? true),
-      ) ?? null)
+      ) ?? null
     : null;
   const key = source ? `${source.kind}:${source.address ?? ""}` : "";
   const { data: portfolio, isLoading } = usePolled<Portfolio | null>(
