@@ -52,6 +52,16 @@ const NFT_IDS = [
   "degods",
 ] as const;
 
+/**
+ * Pause between the per-collection NFT calls. Sequential alone isn't enough: the
+ * keyless tier answers 429 with `Retry-After: 60` after roughly six calls in
+ * ~30 s (see {@link idCache}), and ten back-to-back requests clear that in a
+ * couple of seconds — so the tail of the list would 429 and the card would render
+ * six collections out of ten. 250 ms spreads the ten over ~2.5 s, which stays
+ * inside the sub-window budget.
+ */
+const NFT_PACING_MS = 250;
+
 // CoinGecko's keyless public tier is the most rate-limited of our providers — a
 // burst of requests (the editor reloading on every Save, or several dashboards
 // on one IP) earns an HTTP 429. Both endpoints barely move (CoinGecko refreshes
@@ -626,7 +636,12 @@ export class CoinGeckoProvider implements MarketDataProvider {
       // Sequential, not Promise.all: the keyless tier throttles a burst, and a
       // slow-but-complete list beats a fast-but-half-429'd one. A single failed
       // collection is skipped rather than failing the whole set.
-      for (const id of NFT_IDS) {
+      for (let index = 0; index < NFT_IDS.length; index++) {
+        const id = NFT_IDS[index];
+        // Paced, not merely serialised — the first call goes out immediately so
+        // first paint isn't delayed, each later one waits out NFT_PACING_MS.
+        if (index > 0)
+          await new Promise((resolve) => setTimeout(resolve, NFT_PACING_MS));
         try {
           const body = await fetchJson<CoinGeckoNft>(`${NFT_URL}/${id}`);
           const floorUsd = Number(body?.floor_price?.usd);

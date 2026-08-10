@@ -26,9 +26,10 @@ import type { NewsItem } from "@zframes/spec";
  * Two real defects in `decodeEntities` are pinned as they behave today; see the
  * `KNOWN BUG` markers — fixing the source must flip those assertions.
  *
- * The provider holds no module-level cache, but each test still gets a FRESH
- * module (`vi.resetModules()` + dynamic import) so the file matches the house
- * provider-test pattern and stays correct if a cache is ever added. The network
+ * Each test gets a FRESH module (`vi.resetModules()` + dynamic import), which is
+ * load-bearing now that the provider holds a module-level `TtlCache`: most tests
+ * below run their fixture through the same `coindesk` feed, so a shared cache
+ * would hand every test after the first the FIRST one's parsed items. The network
  * is always a stubbed global `fetch` — never a real request.
  */
 

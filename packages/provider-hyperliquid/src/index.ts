@@ -22,6 +22,19 @@ const MIDS_FLUSH_MS = 150;
  * backgrounded dashboard stops streaming within seconds.
  */
 const HIDDEN_GRACE_MS = 20_000;
+/**
+ * Reconnect pacing for the mids socket. A flat retry is the wrong shape for a
+ * venue-wide outage: every open tab on every machine closed at the same instant,
+ * so a fixed delay has them all knocking again in the same 2 s slot, forever, and
+ * the retries themselves become the load. The delay doubles to a 30 s ceiling
+ * (a browser tab has no reason to hammer harder than that) and each wait is
+ * jittered so the tabs spread out instead of re-synchronising, then resets on a
+ * socket that actually opens — so a one-off drop still reconnects in ~2 s.
+ */
+const RECONNECT_BASE_MS = 2_000;
+const RECONNECT_MAX_MS = 30_000;
+/** Fraction of the delay to spread each wait over, ± (0.2 = ±20%). */
+const RECONNECT_JITTER = 0.2;
 
 interface AllMidsMessage {
   channel: string;
@@ -86,6 +99,10 @@ const VENUE_LABELS: Record<string, string> = {
  */
 const dexOf = (symbol: string): string =>
   symbol.includes(":") ? symbol.split(":")[0] : "";
+
+/** `delay` spread over ±RECONNECT_JITTER of itself, so retries never lock step. */
+const jittered = (delay: number): number =>
+  Math.round(delay * (1 + RECONNECT_JITTER * (Math.random() * 2 - 1)));
 
 /**
  * Parse an optional numeric wire field; a missing or non-finite value both
@@ -201,8 +218,8 @@ export class HyperliquidProvider implements MarketDataProvider {
             Number.isFinite(reported) && reported > 0
               ? reported
               : venue === "HlPerp"
-                ? 1
-                : 8;
+              ? 1
+              : 8;
           venues.push({
             venue: VENUE_LABELS[venue] ?? venue,
             rawRate,
@@ -228,6 +245,8 @@ export class HyperliquidProvider implements MarketDataProvider {
   private ws: WebSocket | null = null;
   private listeners = new Set<(mids: Record<string, number>) => void>();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Next reconnect wait before jitter; doubles per failed attempt. */
+  private reconnectDelayMs = RECONNECT_BASE_MS;
   private closedByUser = false;
   /** Dexes we want an allMids subscription for ("" = default dex). */
   private wantedDexes = new Set<string>([""]);
@@ -530,6 +549,7 @@ export class HyperliquidProvider implements MarketDataProvider {
     this.ws = ws;
 
     ws.onopen = () => {
+      this.reconnectDelayMs = RECONNECT_BASE_MS;
       this.subscribeMissingDexes();
     };
     ws.onmessage = (event) => {
@@ -556,7 +576,12 @@ export class HyperliquidProvider implements MarketDataProvider {
       if (this.pendingMids) this.flushMids();
       this.clearFlush();
       if (!this.closedByUser && this.listeners.size > 0) {
-        this.reconnectTimer = setTimeout(() => this.ensureSocket(), 2_000);
+        const wait = jittered(this.reconnectDelayMs);
+        this.reconnectDelayMs = Math.min(
+          this.reconnectDelayMs * 2,
+          RECONNECT_MAX_MS,
+        );
+        this.reconnectTimer = setTimeout(() => this.ensureSocket(), wait);
       }
     };
   }
