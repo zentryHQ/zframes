@@ -394,7 +394,12 @@ describe("deleting a group", () => {
     await act(async () => {
       fireEvent.click(view.getByRole("button", { name: "Customize" }));
     });
-    // The delete × is injected into GridStack-owned DOM, so reach it by item.
+    // The delete × is injected into GridStack-owned DOM on hover, so reach the
+    // item first and then look inside it.
+    const groupItem = view.container.querySelector<HTMLElement>(
+      `.grid-stack-item[gs-id="g"]`,
+    )!;
+    fireEvent.pointerOver(groupItem);
     const del = view.container.querySelector<HTMLElement>(
       `.grid-stack-item[gs-id="g"] > .zf-del-btn`,
     );
@@ -425,10 +430,20 @@ describe("deleting a group", () => {
     });
     // A nested frame is configurable and removable on its own — without this the
     // only way to change one would be to delete the whole cluster.
-    const childItem = view.container.querySelector(
+    const childItem = view.container.querySelector<HTMLElement>(
       `.grid-stack-item[gs-id="c1"]`,
     )!;
+    fireEvent.pointerOver(childItem);
     expect(childItem.querySelector(".zf-del-btn")).not.toBeNull();
     expect(childItem.querySelector(".zf-cfg-btn")).not.toBeNull();
+
+    // Hovering a child hovers its group too, so the cluster stays deletable
+    // rather than handing the pointer's arrival to the innermost card alone.
+    // The group's own pill has to be a DIRECT child — a descendant query here
+    // would pass on the child's, which is exactly the bug this guards.
+    const groupItem = view.container.querySelector<HTMLElement>(
+      `.grid-stack-item[gs-id="g"]`,
+    )!;
+    expect(groupItem.querySelector(":scope > .zf-del-btn")).not.toBeNull();
   });
 });
