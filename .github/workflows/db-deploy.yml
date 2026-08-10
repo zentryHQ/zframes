@@ -25,9 +25,12 @@ name: DB deploy
 # every push would quietly undo that. It therefore runs only when the seed file
 # itself changed in the push, or when a human explicitly asks via workflow_dispatch.
 #
-# Setup: secret PRODUCTION_DATABASE_URL (falls back to THUMBS_DATABASE_URL, which is
-# the same Neon connection string and already set). Skips cleanly when neither is
-# set, so a fork or a fresh clone does not fail.
+# Setup: secret DATABASE_URL_UNPOOLED — Neon's DIRECT (non-pooled) connection
+# string, which is a different secret from the pooled DATABASE_URL the read-only
+# crons use, for a real reason: this job runs DDL. Migrations take an advisory
+# lock and run multi-statement transactions, which Neon documents as belonging on
+# the direct endpoint rather than through the pgbouncer pool. Skips cleanly when
+# unset, so a fork or a fresh clone does not fail.
 
 on:
   push:
@@ -60,12 +63,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
-      DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL || secrets.THUMBS_DATABASE_URL }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
     steps:
       - name: Skip when no database is configured
         if: env.DATABASE_URL == ''
         run: |
-          echo "::warning::Neither PRODUCTION_DATABASE_URL nor THUMBS_DATABASE_URL is set — skipping."
+          echo "::warning::DATABASE_URL_UNPOOLED is not set — skipping."
 
       - uses: actions/checkout@v7
         if: env.DATABASE_URL != ''
