@@ -404,8 +404,8 @@ describe("Save in flow-vertical mode", () => {
       fireEvent.click(board.getByRole("button", { name: "Customize" }));
     });
     // Both strays ARE grid items as far as GridStack is concerned — customise
-    // mode decorated them — so the skip below is a real branch, not a vacuous
-    // pass on a list that never contained them.
+    // mode decorates them on hover like any other card — so the skip below is a
+    // real branch, not a vacuous pass on a list that never contained them.
     expect(domOrder(board.container)).toEqual([
       "high",
       "wide",
@@ -413,7 +413,9 @@ describe("Save in flow-vertical mode", () => {
       null,
       "ghost",
     ]);
+    fireEvent.pointerOver(stray);
     expect(stray.querySelector(".zf-del-btn")).not.toBeNull();
+    fireEvent.pointerOver(ghost);
     expect(ghost.querySelector(".zf-del-btn")).not.toBeNull();
 
     await act(async () => {
@@ -610,13 +612,37 @@ async function enterCustomise(view: Pick<RenderResult, "getByRole">) {
   });
 }
 
+/** Customise-mode affordances follow the pointer — only the hovered card (and
+ *  the group holding it) carries them — so a test has to hover an item before
+ *  its gear/delete exist. pointerover is delegated from the editor root, which
+ *  is what a real pointer entering the card fires. */
+function hoverItem(container: HTMLElement, id: string): HTMLElement {
+  const item = container.querySelector<HTMLElement>(
+    `.grid-stack-item[gs-id="${id}"]`,
+  );
+  if (!item) throw new Error(`no item "${id}"`);
+  fireEvent.pointerOver(item);
+  return item;
+}
+
 /** The per-item delete affordance the editor injects imperatively in customise
  *  mode (not React-rendered, so it has to be found in the DOM). */
 function deleteBtn(container: HTMLElement, id: string): HTMLElement {
+  hoverItem(container, id);
   const el = container.querySelector<HTMLElement>(
     `.grid-stack-item[gs-id="${id}"] .zf-del-btn`,
   );
   if (!el) throw new Error(`no delete button on item "${id}"`);
+  return el;
+}
+
+/** The per-item gear, same hover-scoped story as `deleteBtn`. */
+function configBtn(container: HTMLElement, id: string): HTMLElement {
+  hoverItem(container, id);
+  const el = container.querySelector<HTMLElement>(
+    `.grid-stack-item[gs-id="${id}"] .zf-cfg-btn`,
+  );
+  if (!el) throw new Error(`no config button on item "${id}"`);
   return el;
 }
 
@@ -824,15 +850,11 @@ describe("undo / redo", () => {
       fireEvent.click(view.getByRole("button", { name: "Undo" }));
     });
 
-    // Both cards are back AND still carry their affordances, so the board is
-    // still editable — including the one the undo re-created.
+    // Both cards are back AND still take their affordances on hover, so the
+    // board is still editable — including the one the undo re-created.
     for (const id of ["a", "b"]) {
       expect(deleteBtn(view.container, id)).toBeTruthy();
-      expect(
-        view.container.querySelector(
-          `.grid-stack-item[gs-id="${id}"] .zf-cfg-btn`,
-        ),
-      ).toBeTruthy();
+      expect(configBtn(view.container, id)).toBeTruthy();
     }
     // And the restored card can actually be deleted again.
     await act(async () => {
@@ -1500,10 +1522,9 @@ describe("currency controls", () => {
     await act(async () => {
       fireEvent.click(view.getByRole("button", { name: "Customize" }));
     });
-    // The gear is injected imperatively, so it has to be found in the DOM.
-    const gear = container.querySelector<HTMLElement>(
-      '.grid-stack-item[gs-id="a"] .zf-cfg-btn',
-    )!;
+    // The gear is injected imperatively on hover, so it has to be found in the
+    // DOM after the pointer reaches the card.
+    const gear = configBtn(container, "a");
     await act(async () => {
       fireEvent.click(gear);
     });
@@ -1567,11 +1588,7 @@ describe("currency controls", () => {
       fireEvent.click(view.getByRole("button", { name: "Customize" }));
     });
     await act(async () => {
-      fireEvent.click(
-        container.querySelector<HTMLElement>(
-          '.grid-stack-item[gs-id="a"] .zf-cfg-btn',
-        )!,
-      );
+      fireEvent.click(configBtn(container, "a"));
     });
     await act(async () => {
       fireEvent.click(

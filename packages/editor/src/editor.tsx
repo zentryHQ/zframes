@@ -294,6 +294,10 @@ export function DashboardEditor({
 }) {
   const providers = useProviders();
 
+  // The editor's own root. Stable across grid re-inits (switchMode tears the
+  // GridStack down and builds a new one), so it's what the customise-mode hover
+  // delegation listens on — see decorateChain.
+  const editorRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const gridInstanceRef = useRef<GridStack | null>(null);
   const gridReadyRef = useRef(false);
@@ -900,9 +904,14 @@ export function DashboardEditor({
   // Adds the customise-mode affordances to a grid item: a per-frame gear that
   // opens *that* frame's settings dialog, plus the delete ×. Idempotent —
   // guarded so repeated calls don't stack buttons/listeners.
+  //
+  // The guards are `:scope >`, not a bare descendant query: a group ITEM
+  // contains its children's items, so a plain `.zf-del-btn` lookup finds a
+  // child's pill and concludes the group is already decorated — leaving a
+  // cluster with no delete of its own whenever a child got decorated first.
   const decorateItem = useCallback(
     (el: GridItemHTMLElement) => {
-      if (!el.querySelector(".zf-cfg-btn")) {
+      if (!el.querySelector(":scope > .zf-cfg-btn")) {
         const cfg = document.createElement("button");
         cfg.className = "zf-cfg-btn";
         cfg.type = "button";
@@ -916,7 +925,7 @@ export function DashboardEditor({
         });
         el.appendChild(cfg);
       }
-      if (!el.querySelector(".zf-del-btn")) {
+      if (!el.querySelector(":scope > .zf-del-btn")) {
         const btn = document.createElement("button");
         btn.className = "zf-del-btn";
         btn.type = "button";
@@ -932,10 +941,66 @@ export function DashboardEditor({
     [deleteItem],
   );
 
+  // `:scope >` for the same reason decorateItem uses it: stripping a group must
+  // not reach in and take a child's pills with it.
   const undecorateItem = useCallback((el: GridItemHTMLElement) => {
-    el.querySelector(".zf-cfg-btn")?.remove();
-    el.querySelector(".zf-del-btn")?.remove();
+    el.querySelector(":scope > .zf-cfg-btn")?.remove();
+    el.querySelector(":scope > .zf-del-btn")?.remove();
   }, []);
+
+  // The items that currently carry the affordances — at most the hovered card
+  // and the group holding it.
+  const decoratedRef = useRef(new Set<GridItemHTMLElement>());
+
+  // Move the gear + delete onto the item under the pointer, and off everything
+  // else. They are a HOVER affordance (both are opacity:0 until their item is
+  // hovered), so decorating the whole board — which is what customise mode used
+  // to do on entry — put two invisible frosted pills on every card: 512 of them
+  // on this repo's own 247-frame board. Each carries a `backdrop-filter`, and
+  // that forces a compositing layer per pill, so entering customise mode nearly
+  // tripled the board's layer count (61 → 172, measured over CDP) and scrolling
+  // fell from ~72fps to ~52 with paint work doubling (159ms → 300ms per scroll
+  // pass). Decorating only what the pointer is actually over holds the layer
+  // count at 94 and puts scrolling back at ~68fps. Dropping the blur instead
+  // was measured too and did NOT help — the elements have to not be there.
+  //
+  // The chain, not just the innermost item: hovering a frame inside a group
+  // hovers the group as well, so both used to show their pills. Walking up
+  // keeps a cluster deletable while the pointer sits on one of its children.
+  const decorateChain = useCallback(
+    (target: Element | null, force = false) => {
+      // Mid-drag the pointer sweeps across every card it passes over; letting
+      // the affordances chase it would flicker them across the board for the
+      // whole gesture. The dragged item keeps whatever it had. `force` is the
+      // leave-customise path, which must strip them whatever is in flight.
+      if (!force && document.body.classList.contains("zf-dragging")) return;
+      const chain = new Set<GridItemHTMLElement>();
+      let node: Element | null = target;
+      while (node) {
+        const item = node.closest<GridItemHTMLElement>(".grid-stack-item");
+        if (!item) break;
+        chain.add(item);
+        node = item.parentElement;
+      }
+      for (const el of decoratedRef.current) {
+        if (chain.has(el)) continue;
+        // A deleted card takes its pills with it; only strip a live one.
+        if (el.isConnected) undecorateItem(el);
+        decoratedRef.current.delete(el);
+      }
+      for (const el of chain) {
+        if (decoratedRef.current.has(el)) continue;
+        decorateItem(el);
+        decoratedRef.current.add(el);
+      }
+    },
+    [decorateItem, undecorateItem],
+  );
+
+  // Ref-held so the []-deps GridStack callbacks (the drop handlers) can reach
+  // the current one without being re-created.
+  const decorateChainRef = useRef(decorateChain);
+  decorateChainRef.current = decorateChain;
 
   // Builds the GridStack item DOM for an instance and registers its content
   // node + data. Does not render React (caller calls renderInstance).
@@ -1160,7 +1225,6 @@ export function DashboardEditor({
         sub.makeWidget(childEl);
         contentRef.current.set(child.id, childContent);
         renderInstance(child.id);
-        if (editingRef.current) decorateItem(childEl);
       }
 
       // A drop lands in whichever grid the pointer was over, so the nested grid
@@ -1207,7 +1271,9 @@ export function DashboardEditor({
         });
         contentRef.current.set(id, content);
         renderInstance(id);
-        decorateItem(dropped);
+        // The pointer released over this card, so it is the hovered one — give
+        // it the affordances now rather than waiting for the next pointerover.
+        decorateChainRef.current(dropped);
         commitHistoryRef.current?.();
         setEditingId(id);
       });
@@ -1245,7 +1311,7 @@ export function DashboardEditor({
         requestAnimationFrame(() => fitSubGrid(el, host, sub));
       }
     },
-    [decorateItem, defaultConfig, fitSubGrid, renderInstance, uniqueId],
+    [defaultConfig, fitSubGrid, renderInstance, uniqueId],
   );
 
   // Build an item, register it with the grid, and — when it's a container — turn
@@ -1296,19 +1362,19 @@ export function DashboardEditor({
         // addItemEl also mounts the nested grid + child roots for a container,
         // and registers each child in instancesRef — so an undo restores a
         // group's contents, not just the empty group.
-        const el = addItemEl(grid, f);
+        addItemEl(grid, f);
         renderInstance(f.id);
-        // These are brand-new item elements, so the per-item gear + delete have
-        // to be re-attached. The `editing` effect that normally decorates won't
-        // re-run (its deps didn't change), so a restore mid-customise would
-        // otherwise leave every card unconfigurable and undeletable until the
-        // mode was toggled — which is exactly what an undo does.
-        if (editingRef.current) decorateItem(el);
+        // No decoration pass here: these are brand-new item elements, but the
+        // gear + delete follow the pointer now (decorateChain), so whichever
+        // restored card the user reaches for gets them on hover. The stale set
+        // still points at the items this loop just replaced — drop it so the
+        // next pointerover doesn't try to strip buttons off detached nodes.
       }
+      decoratedRef.current.clear();
       grid.batchUpdate(false);
       setCount(frames.length);
     },
-    [addItemEl, renderInstance, decorateItem],
+    [addItemEl, renderInstance],
   );
 
   // Click-to-add: append a new frame to the grid in the first free slot.
@@ -1332,16 +1398,17 @@ export function DashboardEditor({
         config: defaultConfig(def),
       };
       instancesRef.current.set(id, instance);
-      const el = addItemEl(grid, instance, true);
+      addItemEl(grid, instance, true);
       renderInstance(id);
-      decorateItem(el);
+      // Added from the palette, so the pointer is over the rail rather than the
+      // new card — no decoration to place yet; hovering it will.
       setCount(grid.getGridItems().length);
       commitHistoryRef.current?.();
       // Newly added → open its settings dialog straight away (required-field
       // frames land as error cards until configured, so jump the user there).
       setEditingId(id);
     },
-    [addItemEl, decorateItem, defaultConfig, renderInstance, uniqueId],
+    [addItemEl, defaultConfig, renderInstance, uniqueId],
   );
 
   // Pixel size of one horizontal band: the height left below the chrome / row
@@ -1477,7 +1544,8 @@ export function DashboardEditor({
           contentRef.current.set(id, content);
           renderInstance(id);
         }
-        decorateItem(el);
+        // Dropped under the pointer, so this IS the hovered card.
+        decorateChainRef.current(el);
         setCount(grid.getGridItems().length);
         commitHistoryRef.current?.();
         setEditingId(id);
@@ -1557,7 +1625,6 @@ export function DashboardEditor({
       uniqueId,
       defaultConfig,
       renderInstance,
-      decorateItem,
       mountSubGrid,
     ],
   );
@@ -1584,7 +1651,8 @@ export function DashboardEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Enter/leave customise mode: toggle drag+resize and the per-item affordances.
+  // Enter/leave customise mode: toggle drag+resize, and arm (or disarm) the
+  // hover delegation that carries the per-item affordances.
   useEffect(() => {
     const grid = gridInstanceRef.current;
     if (!grid) return;
@@ -1595,9 +1663,30 @@ export function DashboardEditor({
     for (const g of grids) {
       g.enableMove(editing);
       g.enableResize(editing);
-      g.getGridItems().forEach(editing ? decorateItem : undecorateItem);
     }
-  }, [editing, decorateItem, undecorateItem]);
+    if (!editing) {
+      decorateChain(null, true);
+      return;
+    }
+    // Delegated from the editor root rather than the grid element: switchMode
+    // tears the GridStack down and rebuilds it, and this root outlives that.
+    // pointerover only fires on boundary crossings, so the handler runs on
+    // card-to-card moves, not on every pixel of pointer travel.
+    const root = editorRef.current;
+    if (!root) return;
+    const onOver = (e: PointerEvent) =>
+      decorateChain(e.target instanceof Element ? e.target : null);
+    // Leaving the editor entirely (out to the header, the tape, the orb) has no
+    // hovered card, so nothing should keep wearing the pills.
+    const onLeave = () => decorateChain(null);
+    root.addEventListener("pointerover", onOver);
+    root.addEventListener("pointerleave", onLeave);
+    return () => {
+      root.removeEventListener("pointerover", onOver);
+      root.removeEventListener("pointerleave", onLeave);
+      decorateChain(null, true);
+    };
+  }, [editing, decorateChain]);
 
   // flow-horizontal is height-locked, but the customise toolbar is a row above
   // the grid that shrinks/grows the available height as it appears/disappears.
@@ -1932,10 +2021,12 @@ export function DashboardEditor({
       if (wasEditing) {
         grid.enableMove(true);
         grid.enableResize(true);
-        grid.getGridItems().forEach(decorateItem);
+        // No decoration pass — the hover delegation lives on the editor root,
+        // which this re-init doesn't touch, so the next pointerover re-arms the
+        // affordances on whatever card the pointer lands on.
       }
     },
-    [teardownGrid, initGrid, restore, decorateItem, spec.grid.rows],
+    [teardownGrid, initGrid, restore, spec.grid.rows],
   );
 
   // Swap the layout mode behind a brief blur+fade, so the structural reflow is
@@ -2250,6 +2341,7 @@ export function DashboardEditor({
         ? createPortal(renderCustomiseButton(), customiseButtonTarget)
         : null}
       <div
+        ref={editorRef}
         className={editing ? "zf-editor zf-customise" : "zf-editor"}
         data-mode={mode}
         // Surface mode ("dark"|"light") — drives the light page fill on the grid
