@@ -3,6 +3,12 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import {
+  type ChartTooltipContent,
+  chartTooltipLabel,
+  hoverTip,
+  useHideTipOnUnmount,
+} from "./chart-hover";
+import {
   CALL,
   PUT,
   delayLabel,
@@ -16,7 +22,7 @@ import {
   spotBandIndex,
   strikeRows,
 } from "./equity-options-shared";
-import { formatCompact } from "./format";
+import { formatCompact, formatPct } from "./format";
 import { equityOptionsOiMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -25,6 +31,7 @@ const schema = equityOptionsOiMeta.schema;
 function EquityOptionsOi({ config }: { config: z.output<typeof schema> }) {
   const { data: chain, isLoading } = useOptionsChain(config.symbol);
   const money = useMoney();
+  useHideTipOnUnmount();
 
   // A chain is thousands of contracts; everything below is derived once per
   // poll, never per render.
@@ -80,6 +87,25 @@ function EquityOptionsOi({ config }: { config: z.output<typeof schema> }) {
   );
   const atmX = spotBand === null ? null : bandCenter(spotBand);
 
+  // One reading per strike, shared by the hover tooltip and the hit rect's
+  // accessible name — the bars carry no labels, so this is the only place the
+  // figures are spelled out in the DOM.
+  const tipFor = (row: (typeof rows)[number]): ChartTooltipContent => {
+    const callOi = oiOf(row.call);
+    const putOi = oiOf(row.put);
+    const share =
+      expiry.totalOi > 0 ? ((callOi + putOi) / expiry.totalOi) * 100 : null;
+    return {
+      title: money.magnitude(row.strike),
+      rows: [
+        { label: "calls", value: formatCompact(callOi), color: CALL },
+        { label: "puts", value: formatCompact(putOi), color: PUT },
+      ],
+      footer:
+        share === null ? undefined : `${formatPct(share, 1)} of expiry OI`,
+    };
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="caption text-soft mb-1 flex justify-between gap-2">
@@ -113,9 +139,6 @@ function EquityOptionsOi({ config }: { config: z.output<typeof schema> }) {
           const pH = barH(putOi);
           return (
             <g key={row.strike}>
-              <title>
-                {`${money.magnitude(row.strike)} · calls ${formatCompact(callOi)} · puts ${formatCompact(putOi)}`}
-              </title>
               <rect
                 x={cx - barW - 1}
                 y={padT + plotH - cH}
@@ -144,6 +167,24 @@ function EquityOptionsOi({ config }: { config: z.output<typeof schema> }) {
             strokeDasharray="4 3"
           />
         )}
+        {/* Hit targets, last so they sit above every mark: a thin bar (and an
+            empty strike, which has no bar at all) is not hoverable, so each
+            strike gets an invisible full-height column covering both bars. */}
+        {rows.map((row, i) => {
+          const content = tipFor(row);
+          return (
+            <rect
+              key={`hit-${row.strike}`}
+              x={i * bandW}
+              y={0}
+              width={bandW}
+              height={H}
+              fill="transparent"
+              aria-label={chartTooltipLabel(content)}
+              {...hoverTip(content)}
+            />
+          );
+        })}
       </svg>
 
       <div className="caption text-soft mt-1 flex justify-between gap-2 tabular-nums">
