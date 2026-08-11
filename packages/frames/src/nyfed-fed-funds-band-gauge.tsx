@@ -28,7 +28,7 @@ function NyfedFedFundsBandGauge(_props: { config: z.output<typeof schema> }) {
         min={effr.targetRateFrom}
         max={effr.targetRateTo}
         color={accent()}
-        size={170}
+        fill
       >
         <div
           className="metric-xl leading-none"

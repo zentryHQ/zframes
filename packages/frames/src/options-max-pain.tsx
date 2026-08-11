@@ -66,7 +66,7 @@ function OptionsMaxPain({ config }: { config: z.output<typeof schema> }) {
       <BarChart
         data={view.bars}
         color="var(--color-disabled)"
-        height={200}
+        fill
         formatValue={money.compact}
       />
     </div>

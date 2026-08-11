@@ -54,7 +54,7 @@ function TreasuryAuctionSizeBars({
     <div className="flex h-full flex-col justify-center gap-1 text-normal">
       <BarChart
         data={data}
-        height={200}
+        fill
         formatValue={formatCompactUsd}
         showValues={false}
         maxTickLabels={Math.min(config.count, 8)}

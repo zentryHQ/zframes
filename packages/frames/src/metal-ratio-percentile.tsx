@@ -153,7 +153,7 @@ function MetalRatioPercentile({ config }: { config: z.output<typeof schema> }) {
           range that lives between 30 and 125. */}
       <HistogramChart
         values={values}
-        height={130}
+        fill
         anchorZero={false}
         formatValue={formatRatio}
         formatCount={formatCompact}

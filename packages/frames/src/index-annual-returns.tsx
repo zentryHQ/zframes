@@ -34,7 +34,7 @@ function IndexAnnualReturns({ config }: { config: z.output<typeof schema> }) {
     <div className="text-normal flex h-full min-h-0 flex-col justify-center gap-1">
       <BarChart
         data={data}
-        height={200}
+        fill
         formatValue={formatChangePct}
         showValues={false}
         maxTickLabels={12}

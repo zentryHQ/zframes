@@ -22,7 +22,7 @@ function DominanceGauge({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-1">
-      <RadialGauge value={value} min={0} max={100} color={ACCENT} size={170}>
+      <RadialGauge value={value} min={0} max={100} color={ACCENT} fill>
         <div
           className="metric-xl leading-none"
           style={{

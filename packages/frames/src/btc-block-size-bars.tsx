@@ -27,7 +27,7 @@ function BtcBlockSizeBars({ config }: { config: z.output<typeof schema> }) {
     <div className="flex h-full flex-col justify-center gap-1 text-normal">
       <BarChart
         data={data}
-        height={200}
+        fill
         formatValue={formatCompact}
         showValues={false}
         maxTickLabels={6}

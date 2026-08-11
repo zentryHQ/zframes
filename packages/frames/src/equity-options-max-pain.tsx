@@ -126,7 +126,7 @@ function EquityOptionsMaxPain({ config }: { config: z.output<typeof schema> }) {
       <BarChart
         data={bars}
         color="var(--color-disabled)"
-        height={170}
+        fill
         formatValue={money.compact}
         // Values on every bar are unreadable once a chain lists dozens of
         // strikes; the caption carries the two figures that matter.

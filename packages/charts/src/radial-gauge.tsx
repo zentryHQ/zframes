@@ -1,5 +1,6 @@
 import * as d3 from "d3";
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useRef, useState } from "react";
+import { observeResize } from "./lib/observe-resize";
 import {
   type ChartTooltipContent,
   hideChartTooltip,
@@ -18,8 +19,17 @@ export interface RadialGaugeProps {
   color?: string;
   /** Unfilled-track color. Defaults to a faint currentColor. */
   trackColor?: string;
-  /** Outer diameter in px. Default 180. */
+  /** Outer diameter in px. Default 180. Ignored when `fill` is set. */
   size?: number;
+  /**
+   * LAYOUT: size the gauge to its container instead of the `size` prop, taking
+   * the SMALLER of the container's two sides so the dial stays circular on a
+   * card of any shape. Opt-in; with it off the gauge renders exactly as before.
+   *
+   * Not to be confused with the SVG paint attribute of the same name, nor with
+   * liveline's gradient-area `fill` — this one is purely about geometry.
+   */
+  fill?: boolean;
   /** Arc thickness in px. Default 12. */
   thickness?: number;
   /** Renders the reading and the bounds in the hover tooltip. */
@@ -46,12 +56,34 @@ const RadialGauge = ({
   color = "var(--color-highlight, #8b8bff)",
   trackColor,
   size = 180,
+  fill = false,
   thickness = 12,
   formatValue = DEFAULT_FORMAT_VALUE,
   children,
 }: RadialGaugeProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [measured, setMeasured] = useState<number | null>(null);
   const shouldIntro = useChartIntro();
+  // A dial is square, so one number describes it: the smaller side of whatever
+  // box it was given. A zero measurement (first paint, before layout settles)
+  // falls back to the prop rather than collapsing the gauge to nothing.
+  const dial = fill && measured ? measured : size;
+
+  useEffect(() => {
+    if (!fill) return;
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => {
+      const r = el.getBoundingClientRect();
+      const side = Math.min(r.width, r.height);
+      setMeasured((prev) =>
+        prev !== null && Math.abs(prev - side) < 0.5 ? prev : side,
+      );
+    };
+    update();
+    return observeResize(el, update);
+  }, [fill]);
   // The angle currently painted — kept live by `applyAngle` so an effect that
   // re-runs mid-sweep continues from the visible angle, not the interrupted
   // transition's target.
@@ -64,7 +96,7 @@ const RadialGauge = ({
     d3.select(svgEl).selectAll("*").remove();
     const svg = d3.select(svgEl);
 
-    const outer = size / 2 - 2;
+    const outer = dial / 2 - 2;
     const inner = outer - thickness;
     const fraction =
       max > min ? Math.min(Math.max((value - min) / (max - min), 0), 1) : 0;
@@ -72,7 +104,7 @@ const RadialGauge = ({
 
     const g = svg
       .append("g")
-      .attr("transform", `translate(${size / 2},${size / 2})`);
+      .attr("transform", `translate(${dial / 2},${dial / 2})`);
 
     const track = d3
       .arc()
@@ -187,15 +219,28 @@ const RadialGauge = ({
     max,
     color,
     trackColor,
-    size,
+    dial,
     thickness,
     formatValue,
     shouldIntro,
   ]);
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg ref={svgRef} width={size} height={size} />
+    <div
+      ref={wrapRef}
+      className={
+        fill
+          ? // `flex-1` as well as `h-full`: a filling gauge is usually one item
+            // in a flex column (a caption above or below it), where `h-full`
+            // alone resolves to the WHOLE container and pushes its siblings
+            // out. As a flex child this claims only the free space; anywhere
+            // else it is inert, so the non-flex callers pay nothing for it.
+            "relative flex h-full min-h-0 w-full flex-1 items-center justify-center"
+          : "relative"
+      }
+      style={fill ? undefined : { width: size, height: size }}
+    >
+      <svg ref={svgRef} width={dial} height={dial} />
       {/* `inset-0` spans the whole gauge, ring included, so without this the
           centre slot swallows every pointer event and the arc beneath it can
           never be hovered. The slot is a readout, not a control — it has nothing
