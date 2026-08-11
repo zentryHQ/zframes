@@ -3,7 +3,7 @@ import { defineFrame, useMoney, usePredictionMarkets } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { predictionMarketBarsMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = predictionMarketBarsMeta.schema;
 
@@ -31,14 +31,19 @@ function PredictionMarketBars({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no markets yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        height={Math.max(data.length * 26, 96)}
-        formatValue={money.compact}
-      />
-      <div className="caption text-soft text-center">
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      {/* Scrolls rather than shrinks: the height is a COUNT of bars, each
+          needing its own row to stay readable, so a card shorter than the
+          list should let you reach the rest rather than squash every bar. */}
+      <div className={scrollAreaClass}>
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          height={Math.max(data.length * 26, 96)}
+          formatValue={money.compact}
+        />
+      </div>
+      <div className="caption text-soft shrink-0 text-center">
         prediction markets · 24h volume
       </div>
     </div>

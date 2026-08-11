@@ -11,7 +11,7 @@ import {
   valueAtOrBefore,
 } from "./metals-shared";
 import { metalPerformanceMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = metalPerformanceMeta.schema;
 
@@ -96,13 +96,18 @@ function MetalPerformance({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-1.5 text-normal">
-      <BarChart
-        data={bars}
-        orientation="horizontal"
-        height={Math.max(bars.length * 21, 96)}
-        formatValue={formatChangePct}
-      />
-      <div className="caption text-soft text-center">
+      {/* Scrolls rather than shrinks: the height is a COUNT of bars, each
+          needing its own row to stay readable, so a card shorter than the
+          list should let you reach the rest rather than squash every bar. */}
+      <div className={scrollAreaClass}>
+        <BarChart
+          data={bars}
+          orientation="horizontal"
+          height={Math.max(bars.length * 21, 96)}
+          formatValue={formatChangePct}
+        />
+      </div>
+      <div className="caption text-soft shrink-0 text-center">
         {metalName(config.symbol)} ·{" "}
         {annualized
           ? "compound annual rate · horizons under 1Y omitted"
