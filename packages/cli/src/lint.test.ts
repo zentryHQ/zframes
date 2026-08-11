@@ -10,6 +10,7 @@ type FrameInput = {
   position: Pos;
   layouts?: { "flow-horizontal"?: Pos };
   config: unknown;
+  children?: FrameInput[];
 };
 
 // lintSpec only reads spec.frames + spec.grid.{columns,rows}, so a minimal cast
@@ -233,5 +234,120 @@ describe("lintSpec", () => {
       ]),
     );
     expect(touching.some((i) => /overlaps frame/.test(i.message))).toBe(false);
+  });
+
+  it("flags children on a non-container frame", () => {
+    const issues = lintSpec(
+      makeSpec([
+        {
+          ...clock("host", { x: 0, y: 0, w: 3, h: 2 }),
+          children: [clock("kid", { x: 0, y: 0, w: 1, h: 1 })],
+        },
+      ]),
+    );
+    expect(issues.some((i) => /not a container/.test(i.message))).toBe(true);
+  });
+
+  const group = (
+    children: FrameInput[],
+    columns = 2,
+    rows = 2,
+  ): FrameInput => ({
+    id: "cluster",
+    frame: "group",
+    position: { x: 0, y: 0, w: 6, h: 4 },
+    config: { columns, rows },
+    children,
+  });
+
+  it("accepts a valid group and its children", () => {
+    const issues = lintSpec(
+      makeSpec([
+        group([
+          clock("kid-a", { x: 0, y: 0, w: 1, h: 1 }),
+          clock("kid-b", { x: 1, y: 0, w: 1, h: 1 }),
+          clock("kid-c", { x: 0, y: 1, w: 2, h: 1 }),
+        ]),
+      ]),
+    );
+    expect(issues).toEqual([]);
+  });
+
+  it("validates children: unknown frame, bad config, group-in-group", () => {
+    const issues = lintSpec(
+      makeSpec([
+        group([
+          {
+            id: "ghost",
+            frame: "does-not-exist",
+            position: { x: 0, y: 0, w: 1, h: 1 },
+            config: {},
+          },
+          {
+            id: "img",
+            frame: "image",
+            position: { x: 1, y: 0, w: 1, h: 1 },
+            config: { url: "" },
+          },
+          {
+            id: "nested",
+            frame: "group",
+            position: { x: 0, y: 1, w: 2, h: 1 },
+            config: {},
+          },
+        ]),
+      ]),
+    );
+    expect(
+      issues.some(
+        (i) => i.frameId === "ghost" && /unknown frame/.test(i.message),
+      ),
+    ).toBe(true);
+    expect(
+      issues.some(
+        (i) => i.frameId === "img" && i.message.startsWith("config.url"),
+      ),
+    ).toBe(true);
+    expect(
+      issues.some(
+        (i) => i.frameId === "nested" && /do not nest/.test(i.message),
+      ),
+    ).toBe(true);
+  });
+
+  it("flags a child that overflows or overlaps within the group's own grid", () => {
+    const issues = lintSpec(
+      makeSpec([
+        group([
+          // x(1) + w(2) > 2 columns
+          clock("wide-kid", { x: 1, y: 0, w: 2, h: 1 }),
+          clock("kid-a", { x: 0, y: 1, w: 2, h: 1 }),
+          clock("kid-b", { x: 0, y: 1, w: 1, h: 1 }),
+        ]),
+      ]),
+    );
+    expect(
+      issues.some(
+        (i) =>
+          i.frameId === "wide-kid" && /overflows its group/.test(i.message),
+      ),
+    ).toBe(true);
+    expect(
+      issues.some(
+        (i) =>
+          i.frameId === "kid-a" &&
+          /overlaps frame "kid-b" inside group/.test(i.message),
+      ),
+    ).toBe(true);
+  });
+
+  it("flags a child id colliding with a board-level id", () => {
+    const issues = lintSpec(
+      makeSpec([
+        clock("dup", { x: 6, y: 0, w: 2, h: 2 }),
+        group([clock("dup", { x: 0, y: 0, w: 1, h: 1 })]),
+      ]),
+    );
+    expect(issues.some((i) => /duplicate frame id/.test(i.message))).toBe(true);
   });
 });

@@ -1,5 +1,5 @@
 import type { DashboardSpec } from "@zframes/spec/spec";
-import { frameMetas } from "@zframes/frames/schemas";
+import { allFrameMetas } from "@zframes/frames/schemas";
 
 // Extracted from index.ts so it's importable without running the CLI: index.ts
 // invokes main() + process.exit() at module load, so a test (or any consumer)
@@ -13,7 +13,12 @@ export interface LintIssue {
 /** Validate a parsed spec beyond the Zod pass: frame names, configs, geometry. */
 export function lintSpec(spec: DashboardSpec): LintIssue[] {
   const issues: LintIssue[] = [];
-  const metaByName = new Map(frameMetas.map((meta) => [meta.name, meta]));
+  // Resolved against EVERYTHING renderable, not the curated agent-pickable
+  // `frameMetas` subset: the runtime renders `allFrames`, and a board a human
+  // extended in the editor holds frames the agent can't pick. Resolving
+  // against the subset mis-reported 18 such frames on a real board as
+  // "unknown" — and skipped their config/geometry checks via the `continue`.
+  const metaByName = new Map(allFrameMetas.map((meta) => [meta.name, meta]));
 
   const seenIds = new Set<string>();
   for (const instance of spec.frames) {
@@ -82,6 +87,85 @@ export function lintSpec(spec: DashboardSpec): LintIssue[] {
           frameId: instance.id,
           message: `too large for "${instance.frame}": ${w}×${h} is above its ${layout.maxW ?? "any"}×${layout.maxH ?? "any"} maximum`,
         });
+    }
+
+    if (instance.children && instance.children.length > 0) {
+      if (meta.container !== true) {
+        issues.push({
+          frameId: instance.id,
+          message: `"${instance.frame}" is not a container — its "children" will not render. Put children on a container frame (e.g. "group")`,
+        });
+      } else {
+        // The children's grid units come from the group's own validated
+        // config (columns/rows default 2×2), never the board's 12 columns.
+        const groupConfig = parsed.success
+          ? (parsed.data as { columns?: number; rows?: number })
+          : undefined;
+        const columns = groupConfig?.columns ?? 2;
+        const rows = groupConfig?.rows ?? 2;
+        for (const child of instance.children) {
+          if (seenIds.has(child.id))
+            issues.push({
+              frameId: child.id,
+              message: `duplicate frame id "${child.id}"`,
+            });
+          seenIds.add(child.id);
+
+          const childMeta = metaByName.get(child.frame);
+          if (!childMeta) {
+            issues.push({
+              frameId: child.id,
+              message: `unknown frame "${child.frame}". available: ${[
+                ...metaByName.keys(),
+              ].join(", ")}`,
+            });
+            continue;
+          }
+          if (childMeta.container === true) {
+            issues.push({
+              frameId: child.id,
+              message: `groups do not nest — "${child.frame}" cannot be a child of "${instance.id}"`,
+            });
+            continue;
+          }
+          const childParsed = childMeta.schema.safeParse(child.config);
+          if (!childParsed.success) {
+            for (const issue of childParsed.error.issues)
+              issues.push({
+                frameId: child.id,
+                message: `config.${issue.path.join(".") || "(root)"}: ${
+                  issue.message
+                }`,
+              });
+          }
+          if (child.position.x + child.position.w > columns)
+            issues.push({
+              frameId: child.id,
+              message: `overflows its group: x(${child.position.x}) + w(${child.position.w}) > the group's ${columns} columns`,
+            });
+          if (child.position.y + child.position.h > rows)
+            issues.push({
+              frameId: child.id,
+              message: `overflows its group: y(${child.position.y}) + h(${child.position.h}) > the group's ${rows} rows`,
+            });
+        }
+        for (let i = 0; i < instance.children.length; i++) {
+          for (let j = i + 1; j < instance.children.length; j++) {
+            const a = instance.children[i].position;
+            const b = instance.children[j].position;
+            const overlap =
+              a.x < b.x + b.w &&
+              b.x < a.x + a.w &&
+              a.y < b.y + b.h &&
+              b.y < a.y + a.h;
+            if (overlap)
+              issues.push({
+                frameId: instance.children[i].id,
+                message: `overlaps frame "${instance.children[j].id}" inside group "${instance.id}"`,
+              });
+          }
+        }
+      }
     }
 
     // The horizontal layout (when present) is height-bounded to grid.rows bands;
