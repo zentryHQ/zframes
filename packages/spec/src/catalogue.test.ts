@@ -148,6 +148,20 @@ describe("catalogueForAI", () => {
     expect(Object.keys(group).sort()).toEqual(ENTRY_KEYS);
   });
 
+  it("tells the agent each frame's designed size and resize envelope", () => {
+    // Without `layout` the agent guesses sizes, and a chart placed under its
+    // floor height renders clipped. Always present (`null`, not absent) so the
+    // entry shape stays fixed, like the flags above.
+    const bounds = { w: 6, h: 4, minW: 4, minH: 3 };
+    const [sized] = catalogueForAI([
+      fakeMeta({ name: "price-chart", layout: bounds }),
+    ]);
+    expect(sized.layout).toEqual(bounds);
+    const [unsized] = catalogueForAI([fakeMeta({ name: "clock" })]);
+    expect(unsized.layout).toBeNull();
+    expect(Object.keys(unsized).sort()).toEqual(ENTRY_KEYS);
+  });
+
   it("keeps the key set fixed when the meta omits the optional iconUrl", () => {
     // The entry is a literal, not a filtered copy: an absent iconUrl still
     // occupies the key, so the shape the agent parses never varies by frame.
