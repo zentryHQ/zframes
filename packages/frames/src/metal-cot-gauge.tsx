@@ -72,7 +72,7 @@ function MetalCotGauge({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col items-center justify-center gap-1">
-      <RadialGauge value={stats.pct} min={0} max={100} color={color} size={140}>
+      <RadialGauge value={stats.pct} min={0} max={100} color={color} fill>
         <div className="metric-xl leading-none tabular-nums" style={{ color }}>
           {Math.round(stats.pct)}
         </div>

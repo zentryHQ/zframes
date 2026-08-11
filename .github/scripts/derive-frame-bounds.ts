@@ -90,6 +90,10 @@ const clipTolerance = (box: number) =>
 /** A responsive chart narrower/shorter than this has lost its axes. */
 const CHART_MIN_W = 200;
 const CHART_MIN_H = 120;
+/** How square a chart box must be to count as a dial rather than a plot. */
+const DIAL_ASPECT = 0.25;
+/** …and the far smaller box a dial still reads at, having no axes to fit. */
+const DIAL_MIN_PX = 80;
 /** A scroll list showing fewer rows than this reads as broken, not scrollable. */
 const MIN_ROWS = 2;
 /** Extra truncated labels always tolerated, whatever the card's density. */
@@ -263,9 +267,20 @@ function faults(c: Cell, ctx: Ctx, ignore: Set<string> | null): string[] {
   const ellBudget = Math.max(ELL_TOL, ELL_SHARE * c.inkN);
   if (c.ell - ctx.refEll > ellBudget)
     f.push(`ellipsis:${c.ell}>${ctx.refEll}+${Math.round(ellBudget)}`);
-  if (ctx.chartResponsiveW && c.chartW >= 0 && c.chartW < CHART_MIN_W)
+  // A roughly SQUARE chart box is a dial — a gauge or a donut — not a plot with
+  // axes. The width thresholds below exist because a line chart narrower than
+  // ~200px has no room left for its y-axis labels and tick marks; a dial has
+  // neither, reads perfectly at 120px, and is judged on area instead. Without
+  // this every gauge was told it needed a third row to hold a 123px dial.
+  const dial =
+    c.chartW > 0 &&
+    c.chartH > 0 &&
+    Math.abs(c.chartW - c.chartH) / Math.max(c.chartW, c.chartH) < DIAL_ASPECT;
+  const minW = dial ? DIAL_MIN_PX : CHART_MIN_W;
+  const minH = dial ? DIAL_MIN_PX : CHART_MIN_H;
+  if (ctx.chartResponsiveW && c.chartW >= 0 && c.chartW < minW)
     f.push(`chartW:${c.chartW}`);
-  if (ctx.chartResponsiveH && c.chartH >= 0 && c.chartH < CHART_MIN_H)
+  if (ctx.chartResponsiveH && c.chartH >= 0 && c.chartH < minH)
     f.push(`chartH:${c.chartH}`);
   if (c.rows >= 0 && c.rows < MIN_ROWS) f.push(`rows:${c.rows}`);
   // Content the frame decided not to render at this size. Two readings of the

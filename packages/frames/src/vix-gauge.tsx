@@ -38,7 +38,7 @@ function VixGauge({ config }: { config: z.output<typeof schema> }) {
         value={series.latest}
         max={config.max}
         color={regime.color}
-        size={170}
+        fill
       >
         <div
           className="metric-xl leading-none"

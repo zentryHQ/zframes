@@ -188,7 +188,7 @@ function MetalCotPercentile({ config }: { config: z.output<typeof schema> }) {
 
       <HistogramChart
         values={values}
-        height={130}
+        fill
         color="hsl(var(--zf-accent-hue, 242) 45% 55%)"
         {...BIN_OPTIONS}
         // The normal the z-score is *defined* against. Positioning is nothing
