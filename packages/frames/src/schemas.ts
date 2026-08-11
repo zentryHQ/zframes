@@ -3971,7 +3971,7 @@ export const fundingSpreadBarsMeta = defineFrameMeta({
   label: "Funding Spread Bars",
   category: "derivatives",
   iconUrl: widgetIcon("funding-spread-bars"),
-  layout: { w: 4, h: 4, minW: 2, minH: 3, maxH: 4 },
+  layout: { w: 4, h: 4, minW: 2, minH: 2 },
   description:
     "Cross-venue predicted funding-rate spread per coin (max − min annualized rate across Hyperliquid/Binance/Bybit) as a ranked horizontal bar chart — the widest spreads are the clearest funding-arbitrage or crowded-positioning candidates. The bars-first sibling of Cross-Venue Funding. Keyless (Hyperliquid predicted fundings).",
   capabilities: ["funding-comparison"],
@@ -4369,7 +4369,7 @@ export const protocolTvlByCategoryMeta = defineFrameMeta({
   label: "Protocol TVL by Category",
   category: "crypto",
   iconUrl: widgetIcon("protocol-tvl-by-category"),
-  layout: { w: 4, h: 4, minW: 2, minH: 3, maxH: 4 },
+  layout: { w: 4, h: 4, minW: 2, minH: 2 },
   description:
     "Total value locked (TVL) summed by DeFiLlama category — Dexes, Lending, Liquid Staking, and more — as a horizontal bar chart ranked largest-first. Shows which slice of DeFi actually holds the capital. Keyless (DeFiLlama).",
   capabilities: ["protocol-tvl"],
@@ -4510,7 +4510,7 @@ export const chainPriceMoversMeta = defineFrameMeta({
   label: "Chain Price Movers",
   category: "onchain",
   iconUrl: widgetIcon("chain-price-movers"),
-  layout: { w: 4, h: 4, minW: 2, minH: 3, maxH: 4 },
+  layout: { w: 4, h: 4, minW: 2, minH: 1, maxH: 4 },
   description:
     "24h native-asset price change per major L1 (Bitcoin, Ethereum, Litecoin, Dogecoin, …) as a diverging bar chart, gains right in green, losses left in red. The price-led sibling of the Chain Activity Bars transaction chart. Keyless (Blockchair).",
   capabilities: ["chain-activity"],
@@ -5300,7 +5300,7 @@ export const predictionMarketBarsMeta = defineFrameMeta({
   label: "Prediction Market Bars",
   category: "sentiment",
   iconUrl: widgetIcon("prediction-market-bars"),
-  layout: { w: 5, h: 5, minW: 2, minH: 3, maxH: 5 },
+  layout: { w: 5, h: 5, minW: 2, minH: 2 },
   description:
     "Live Polymarket odds as a horizontal bar chart — the highest-volume open prediction markets ranked by trailing-24h volume. The chart-first sibling of the Prediction Markets list. Keyless (Polymarket).",
   capabilities: ["prediction-markets"],
@@ -5806,7 +5806,7 @@ export const metalPerformanceMeta = defineFrameMeta({
   label: "Metal Performance",
   category: "metals",
   iconUrl: widgetIcon("metal-performance"),
-  layout: { w: 4, h: 4, minW: 2, minH: 3, maxH: 4 },
+  layout: { w: 4, h: 4, minW: 2, minH: 2 },
   description:
     "One metal's return across standard horizons — 1M, 3M, 6M, YTD, 1Y, 5Y, 10Y, 20Y — as diverging bars. Switch to annualised to compare long horizons honestly instead of letting a 20-year number dwarf everything.",
   capabilities: ["metal-history"],
