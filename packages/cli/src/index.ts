@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
-import { catalogueForAI } from "@zframes/spec/catalogue";
 import { DashboardSpecSchema } from "@zframes/spec/spec";
 import { classifyTarget } from "@zframes/store/store";
-import { frameMetas } from "@zframes/frames/schemas";
+import { catalogue } from "./catalogue";
 import { list, use } from "./dashboards";
 import { init } from "./init";
 import { lintSpec } from "./lint";
@@ -31,8 +30,13 @@ usage:
                                 store dashboards from the in-app header dropdown
   zframes list                  list the dashboards in your store (default *)
   zframes use <name>            set the default store dashboard
-  zframes catalogue             print the frame catalogue as JSON Schema
-                                (this is what a generating agent reads)
+  zframes catalogue [frame...]  print the frame catalogue + design vocabulary as
+                                JSON: frames (config as JSON Schema, sizing),
+                                categories, theme presets, background scenes
+                                (this is what a generating agent reads). With
+                                frame names: full entries for just those frames.
+                                --summary: compact browse view — one line per
+                                frame plus the presets/scenes with their values
   zframes lint <name|file>      validate a dashboard; exit 1 with readable errors
                                 (the agent's self-correction feedback)
   zframes snapshot [name|file]  gather a keyless market snapshot for the symbols
@@ -92,9 +96,12 @@ async function main(): Promise<number> {
   switch (command) {
     case "init":
       return init(args.slice(1));
-    case "catalogue":
-      console.log(JSON.stringify(catalogueForAI(frameMetas), null, 2));
-      return 0;
+    case "catalogue": {
+      const result = catalogue(args.slice(1));
+      if (result.stdout) console.log(result.stdout);
+      if (result.stderr) console.error(result.stderr);
+      return result.code;
+    }
     case "lint":
       if (!arg) {
         console.error("usage: zframes lint <dashboard.json>");
