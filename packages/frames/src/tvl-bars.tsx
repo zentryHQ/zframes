@@ -3,7 +3,7 @@ import { defineFrame, useMoney, useTvlByChain } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tvlBarsMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = tvlBarsMeta.schema;
 
@@ -24,14 +24,20 @@ function TvlBars({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no TVL data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        height={Math.max(data.length * 26, 96)}
-        formatValue={money.compact}
-      />
-      <div className="caption text-soft text-center">
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      {/* Scrolls rather than shrinks. The height is a COUNT of bars — each row
+          needs its ~26px to stay readable — so on a card shorter than the list
+          the honest degradation is to reach the rest, not to squash every bar
+          past legibility. `fill` would do the latter. */}
+      <div className={scrollAreaClass}>
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          height={Math.max(data.length * 26, 96)}
+          formatValue={money.compact}
+        />
+      </div>
+      <div className="caption text-soft shrink-0 text-center">
         total value locked · by chain
       </div>
     </div>

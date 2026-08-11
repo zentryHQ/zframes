@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatCompact, formatPct } from "./format";
 import { cryptoDilutionMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = cryptoDilutionMeta.schema;
 
@@ -248,8 +248,11 @@ function CryptoDilution({ config }: { config: z.output<typeof schema> }) {
         />
       </div>
 
+      {/* Scrolls rather than shrinks: the chart's height is a COUNT of supply
+          segments, each needing its own row to stay readable, so a short card
+          should let you reach the rest instead of squashing every bar. */}
       {config.showChart && dilution.segments.length > 1 && (
-        <div className="min-h-0 flex-1">
+        <div className={scrollAreaClass}>
           <BarChart
             data={dilution.segments}
             orientation="horizontal"
