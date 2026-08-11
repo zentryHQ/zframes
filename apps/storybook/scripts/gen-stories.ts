@@ -42,6 +42,7 @@ import {
   canvasRender,
   variantsRender,
   sizesRender,
+  outOfBoundsRender,
   statesRender,
   liveRender,
 } from "../story-factory";
@@ -66,6 +67,14 @@ export const AllVariants: S = {
 export const AllSizes: S = {
   parameters: { controls: { disable: true } },
   render: sizesRender(frame),
+};
+
+// The spans the frame's bounds FORBID — one step under each floor, one step
+// over each ceiling. Every cell is meant to look wrong; the question is whether
+// it fails gracefully. A cell that looks fine means the bound is too strict.
+export const OutOfBounds: S = {
+  parameters: { controls: { disable: true } },
+  render: outOfBoundsRender(frame),
 };
 
 export const States: S = {

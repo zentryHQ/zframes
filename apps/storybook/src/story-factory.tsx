@@ -28,6 +28,12 @@ const FALLBACK_LAYOUT: FrameLayout = { w: 4, h: 3 };
  * point rather than enumerating to infinity.
  */
 const OPEN_MAX_H = 6;
+/**
+ * How far the out-of-bounds story will go past a height ceiling. A board really
+ * does grow downward forever, so "one row over the ceiling" has no natural stop
+ * — this is the same readable limit as OPEN_MAX_H, one row further on.
+ */
+const MAX_ROWS = OPEN_MAX_H + 2;
 /** Upper bound on rendered cells — the full cross product can be large. */
 const SIZE_CAP = 72;
 
@@ -180,41 +186,77 @@ export function variantsRender(frame: AnyFrameDefinition): Render {
   );
 }
 
+/** The frame's envelope, resolved against the board's real limits. */
+function envelope(frame: AnyFrameDefinition) {
+  const l = frame.layout ?? FALLBACK_LAYOUT;
+  return {
+    minW: Math.max(1, l.minW ?? 1),
+    maxW: Math.min(l.maxW ?? BOARD_COLUMNS, BOARD_COLUMNS),
+    minH: Math.max(1, l.minH ?? 1),
+    maxH: l.maxH ?? Math.max(l.h, OPEN_MAX_H),
+    l,
+  };
+}
+
 /**
- * Every grid span the frame can legally occupy, as GridStack would allow it:
+ * Every grid span the frame can LEGALLY occupy, exactly as GridStack allows it:
  * width from `layout.minW` to `layout.maxW` (clamped to the board's columns),
- * height from `layout.minH` to `layout.maxH`. Those four are exactly the
- * attributes the editor writes as `gs-min-w`/`gs-max-w`/`gs-min-h`/`gs-max-h`,
- * so this enumerates the real resize envelope — plus one step below each floor,
- * marked "below min", which is where the frame is expected to misbehave.
+ * height from `layout.minH` to `layout.maxH`. Those four are the attributes the
+ * editor writes as `gs-min-w`/`gs-max-w`/`gs-min-h`/`gs-max-h`, so this is the
+ * real resize envelope and nothing else.
  *
  * Ordered by height then width, so the grid reads as one row per row-count.
  */
-function sizesFor(
-  frame: AnyFrameDefinition,
-): { w: number; h: number; below: boolean }[] {
-  const l = frame.layout ?? FALLBACK_LAYOUT;
-  const minW = Math.max(1, l.minW ?? 1);
-  const maxW = Math.min(l.maxW ?? BOARD_COLUMNS, BOARD_COLUMNS);
-  const minH = Math.max(1, l.minH ?? 1);
-  const maxH = l.maxH ?? Math.max(l.h, OPEN_MAX_H);
-
-  // One step below each floor as well. The bounds exist BECAUSE the frame
-  // misbehaves just under them — content clipped, a chart squeezed past its
-  // axis — and a story that starts exactly at the floor is the one view that
-  // can never show you that. These cells are what you look at while fixing the
-  // frame, and what tells you the floor can come down once you have.
-  const fromW = Math.max(1, minW - 1);
-  const fromH = Math.max(1, minH - 1);
-
-  const out: { w: number; h: number; below: boolean }[] = [];
-  for (let h = fromH; h <= maxH; h++) {
-    for (let w = fromW; w <= maxW; w++)
-      out.push({ w, h, below: w < minW || h < minH });
-  }
+function validSizes(frame: AnyFrameDefinition): { w: number; h: number }[] {
+  const { minW, maxW, minH, maxH, l } = envelope(frame);
+  const out: { w: number; h: number }[] = [];
+  for (let h = minH; h <= maxH; h++)
+    for (let w = minW; w <= maxW; w++) out.push({ w, h });
   // A frame whose min exceeds its max (or which sits outside the board) would
   // otherwise render nothing at all; fall back to its declared default span.
-  if (out.length === 0) out.push({ w: l.w, h: l.h, below: false });
+  if (out.length === 0) out.push({ w: l.w, h: l.h });
+  return out.slice(0, SIZE_CAP);
+}
+
+/**
+ * The ring of spans just OUTSIDE the envelope — one step under each floor and
+ * one step over each ceiling.
+ *
+ * Separate from the valid set on purpose: the two answer different questions.
+ * "Does this frame hold up everywhere it is allowed to go" is a pass/fail sweep
+ * you want uncluttered; "what is the bound actually protecting against" is the
+ * evidence FOR the bound, and is the view you work in while fixing a frame — the
+ * cell that clips is the one you can never see from inside the envelope.
+ *
+ * A span the board can't produce is left out: nothing exceeds 12 columns, so a
+ * frame with `maxW: 12` has no over-wide case to show.
+ */
+function invalidSizes(
+  frame: AnyFrameDefinition,
+): { w: number; h: number; why: string }[] {
+  const { minW, maxW, minH, maxH } = envelope(frame);
+  const out: { w: number; h: number; why: string }[] = [];
+  const seen = new Set<string>();
+  const add = (w: number, h: number, why: string) => {
+    if (w < 1 || h < 1 || w > BOARD_COLUMNS || h > MAX_ROWS) return;
+    const key = `${w}x${h}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ w, h, why });
+  };
+
+  // Narrower than the floor, across the legal heights…
+  if (minW > 1)
+    for (let h = minH; h <= maxH; h++) add(minW - 1, h, "below minW");
+  // …shorter than the floor, across the legal widths…
+  if (minH > 1)
+    for (let w = minW; w <= maxW; w++) add(w, minH - 1, "below minH");
+  // …and the same one step past each ceiling, where the board can reach it.
+  if (maxW < BOARD_COLUMNS)
+    for (let h = minH; h <= maxH; h++) add(maxW + 1, h, "above maxW");
+  if (maxH < MAX_ROWS)
+    for (let w = minW; w <= maxW; w++) add(w, maxH + 1, "above maxH");
+
   return out.slice(0, SIZE_CAP);
 }
 
@@ -227,17 +269,59 @@ function sizesFor(
 export function sizesRender(frame: AnyFrameDefinition): Render {
   const base = baseConfig(frame);
   return (_args, context) => {
-    const sizes = sizesFor(frame);
+    const sizes = validSizes(frame);
     return (
       <div className="sb-sizes">
         {sizes.map((s) => (
           <div className="sb-cell sb-size-cell" key={`${s.w}x${s.h}`}>
-            <div
-              className="sb-cell-label"
-              style={s.below ? { color: "#f5a524" } : undefined}
-            >
+            <div className="sb-cell-label">
               {s.w}&times;{s.h}
-              {s.below ? " · below min" : ""}
+            </div>
+            <FrameCanvas
+              frame={frame}
+              config={base}
+              mode="normal"
+              size={s}
+              globals={context.globals}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+}
+
+/**
+ * The frame at the spans its bounds forbid — the evidence FOR the envelope.
+ *
+ * Every cell here is expected to look wrong; that is the point. A frame is
+ * finished when the damage is graceful (a list that scrolls, a chart that
+ * shrinks) rather than silent (a row sliced through the middle, an axis pushed
+ * out of the card). If a cell looks perfectly fine, the bound is too strict and
+ * can come down — re-measure with `pnpm frames:size:probe` and see.
+ *
+ * These spans are reachable even though the editor forbids them: a hand-edited
+ * `dashboard.json` can name any size, and the phone/tablet reflow can hand a
+ * card less height than its floor no matter what `layout` says.
+ */
+export function outOfBoundsRender(frame: AnyFrameDefinition): Render {
+  const base = baseConfig(frame);
+  return (_args, context) => {
+    const sizes = invalidSizes(frame);
+    if (sizes.length === 0)
+      return (
+        <div className="sb-cell-label" style={{ padding: 16 }}>
+          No out-of-bounds size exists for this frame on a {BOARD_COLUMNS}
+          -column board — its envelope already covers everything the board can
+          produce.
+        </div>
+      );
+    return (
+      <div className="sb-sizes">
+        {sizes.map((s) => (
+          <div className="sb-cell sb-size-cell" key={`${s.w}x${s.h}`}>
+            <div className="sb-cell-label" style={{ color: "#f5a524" }}>
+              {s.w}&times;{s.h} &middot; {s.why}
             </div>
             <FrameCanvas
               frame={frame}

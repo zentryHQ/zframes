@@ -57,6 +57,8 @@ Per-frame metadata lives in **four** lists that must stay in lockstep — `regis
    ```
 
    Omit `maxW`/`maxH` when the frame genuinely scales — that means unbounded, and is not the same as `12`. `tests/frame-layout-bounds.test.ts` fails the build if a frame ships without a floor or with an incoherent envelope.
+
+   Then check both Storybook stories: **AllSizes** must look right at every span, and **OutOfBounds** — one step under each floor, one step over each ceiling — must fail *gracefully*. A cell there that looks perfectly fine means the bound is too strict; a cell that slices content in half means the frame, not the bound, still needs work.
 2. New `<frame>.tsx` — import the meta, build the component using the primitives above, `export const xFrame = defineFrame({ ...xMeta, component: X })`.
 3. `index.ts` — add `xFrame` to `allFrames` (for hosts that register eagerly). **And `lazy.ts`** — add `"<name>": { load: () => import("./<name>").then((m) => m.xFrame) }` (set `titleIcon: true` if the module exports one). This is the per-frame chunk the runtime lazy-loads; **a missing entry = the frame silently won't render.**
 4. `pnpm typecheck && pnpm lint && pnpm test` from the repo root before committing — the parity test confirms `allFrameMetas` ≡ `lazy.ts` loaders.
