@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { DOWN_COLOR, UP_COLOR, formatChangePct } from "./format";
 import { yieldMomentumBarsMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = yieldMomentumBarsMeta.schema;
 
@@ -32,16 +32,21 @@ function YieldMomentumBars({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no pools match</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col justify-center gap-1 text-normal">
-      <BarChart
-        data={data}
-        orientation="horizontal"
-        color={UP_COLOR}
-        negativeColor={DOWN_COLOR}
-        height={Math.max(data.length * 22, 96)}
-        formatValue={formatChangePct}
-      />
-      <div className="caption text-soft text-center">
+    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
+      {/* Scrolls rather than shrinks: the height is a COUNT of bars, each
+          needing its own row to stay readable, so a card shorter than the
+          list should let you reach the rest rather than squash every bar. */}
+      <div className={scrollAreaClass}>
+        <BarChart
+          data={data}
+          orientation="horizontal"
+          color={UP_COLOR}
+          negativeColor={DOWN_COLOR}
+          height={Math.max(data.length * 22, 96)}
+          formatValue={formatChangePct}
+        />
+      </div>
+      <div className="caption text-soft shrink-0 text-center">
         top {data.length} · 7d APY change
       </div>
     </div>
