@@ -418,7 +418,8 @@ describe.each(FIXTURES)(
       // board: an invalid config (`knownInvalidConfigIds`).
       const rest = issues
         .filter(
-          (i) => !/^unknown frame/.test(i.message) && !isSizeEnvelope(i.message),
+          (i) =>
+            !/^unknown frame/.test(i.message) && !isSizeEnvelope(i.message),
         )
         .map((i) => `${i.frameId}: ${i.message}`)
         .sort();
