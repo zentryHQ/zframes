@@ -26,7 +26,7 @@ function SentimentGauge(_props: { config: z.output<typeof schema> }) {
   const color = indexColor(latest.value);
   return (
     <div className="flex h-full flex-col items-center justify-center gap-1">
-      <RadialGauge value={latest.value} color={color} size={170}>
+      <RadialGauge value={latest.value} color={color} fill>
         <div
           className="metric-xl leading-none"
           style={{ color, textShadow: `0 0 28px ${color}55` }}

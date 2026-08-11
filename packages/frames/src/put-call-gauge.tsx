@@ -20,7 +20,7 @@ function PutCallGauge({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-1">
-      <RadialGauge value={value} min={0} max={2} color={color} size={170}>
+      <RadialGauge value={value} min={0} max={2} color={color} fill>
         <div className="metric-xl leading-none" style={{ color }}>
           {value.toFixed(2)}
         </div>
