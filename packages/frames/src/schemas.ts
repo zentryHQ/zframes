@@ -3736,7 +3736,7 @@ export const tvlBarsMeta = defineFrameMeta({
   label: "TVL by Chain Bars",
   category: "crypto",
   iconUrl: widgetIcon("tvl-bars"),
-  layout: { w: 4, h: 4, minW: 3, minH: 4, maxH: 5 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2 },
   description:
     "Total value locked (TVL) per blockchain as a horizontal bar chart, ranked largest-first — DeFi capital compared across chains at a glance. The chart-first sibling of the TVL treemap. Keyless (DeFiLlama).",
   capabilities: ["tvl"],
@@ -4221,7 +4221,7 @@ export const nftActivityBarsMeta = defineFrameMeta({
   label: "NFT Activity Bars",
   category: "crypto",
   iconUrl: widgetIcon("nft-activity-bars"),
-  layout: { w: 4, h: 4, minW: 2, minH: 3, maxH: 4 },
+  layout: { w: 4, h: 4, minW: 2, minH: 2 },
   description:
     "Blue-chip NFT collections ranked by 24h sales count as a horizontal bar chart — which collections are actually trading, not just holding a floor price. The chart-first sibling of the NFT Collections list. Keyless (CoinGecko, curated slugs).",
   capabilities: ["nft-market"],
@@ -4442,7 +4442,7 @@ export const yieldMomentumBarsMeta = defineFrameMeta({
   label: "Yield Momentum Bars",
   category: "crypto",
   iconUrl: widgetIcon("yield-momentum-bars"),
-  layout: { w: 4, h: 5, minW: 3, minH: 4, maxH: 5 },
+  layout: { w: 4, h: 5, minW: 3, minH: 2 },
   description:
     "DeFi yield pools ranked by 7-day APY change as a diverging bar chart — the biggest APY gains and drops over the past week, filtered above a TVL floor to skip dust pools. Surfaces where yields are heating up or cooling off. Keyless (DeFiLlama).",
   capabilities: ["yields"],
@@ -6997,7 +6997,7 @@ export const homeValueMomentumMeta = defineFrameMeta({
   label: "Home Value Momentum",
   category: "macro",
   iconUrl: widgetIcon("home-value-momentum"),
-  layout: { w: 4, h: 4, minW: 3, minH: 4, maxH: 6 },
+  layout: { w: 4, h: 4, minW: 3, minH: 2 },
   description:
     "Year-over-year change in typical home value per metro as diverging bars — which housing markets are still appreciating and which have turned, ranked by move. The level tells you what a house costs; this tells you which direction the market is going. Keyless (Zillow), monthly.",
   capabilities: ["home-value-index"],
