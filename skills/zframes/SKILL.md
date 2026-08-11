@@ -26,31 +26,37 @@ current. The commands you'll use below are `init`, `catalogue`, `lint`, and
 
 ## 1. Route the request — serve, update, or create
 
-**Classify the ask first; it decides everything below.** The skill does three
-jobs, and only one of them builds anything — never run the interview or `init`
-unless you're genuinely creating a dashboard the user doesn't have yet.
+**Classify the ask first; it decides everything below** — including which
+reference files you read. Only one of the four jobs builds anything; never run
+the interview or `init` unless you're genuinely creating a dashboard the user
+doesn't have yet.
 
 - **Serve / open / start an existing dashboard** — "start my dashboard", "open
   my terminal", "serve it", or a bare `/zframes` when the user already has one.
   This is the common case once a dashboard exists. **Don't init, don't interview,
-  don't read the catalogue.** Run `zframes list` to see what's there, then jump
-  straight to **step 6** and serve: a bare `zframes serve` opens the default (the
-  `*` in the list), `zframes serve <name>` a specific one. That's the whole job —
-  if the store already holds the dashboard they mean, you're done after step 6.
+  don't read the catalogue or any reference file.** Run `zframes list` to see
+  what's there, then jump straight to **step 6** and serve: a bare
+  `zframes serve` opens the default (the `*` in the list),
+  `zframes serve <name>` a specific one. That's the whole job.
 - **Update an existing dashboard** — "add X", "swap the tickers", "change the
   theme". Run `zframes list` (the `*` marks the default) or find the
   `dashboard.json` the user is serving / one in the current directory. **Read it
-  first**, then change only what they asked for — re-read the catalogue (step 2)
-  if you're adding frames, edit the `frames` array (step 4), then lint + serve
-  (steps 5–6). Don't re-init — you'd wipe their frames.
+  first**, then change only what they asked for. If you're adding, resizing, or
+  rearranging frames, read the catalogue (step 2) and
+  **`references/design.md`** (the design method + the card-level fields:
+  events, groups, `source`, currency) before editing the `frames` array; then
+  lint + serve (steps 5–6). Don't re-init — you'd wipe their frames.
 - **Create a brand-new dashboard** — only when the user wants one they don't yet
   have (or explicitly asks for a fresh one alongside their others). Name it,
-  `init` it (below), then run the full build, steps 2 → 6.
+  `init` it (below), then run the full build: catalogue summary (step 2), the
+  interview (**read `references/interview.md`** before asking anything), the
+  design (**read `references/design.md`** before writing any frame JSON), then
+  lint + serve (steps 5–6).
 - **Fork a shared dashboard** — the user gives a zframes **explorer link**
-  (`.../dashboard/<id>` or `.../dashboard/<id>/dashboard.json`), or pastes the "fork" prompt.
-  They want that shared dashboard **on their machine** to keep and extend. Don't
-  interview or build — fetch it, land it in the store, serve, then offer to
-  personalize. See **Fork a shared dashboard** below.
+  (`.../dashboard/<id>` or `.../dashboard/<id>/dashboard.json`), or pastes the
+  "fork" prompt. They want that shared dashboard **on their machine** to keep
+  and extend. Don't interview or build — **read `references/fork.md`** and
+  follow it: fetch, land in the store, lint + serve, offer to personalize.
 
 The only artifact is a single `dashboard.json`. There is **no app to scaffold** —
 the runtime comes from the CLI. Dashboards live in a **global store**
@@ -91,296 +97,58 @@ file unless you pass `--force`.
 `init ~/dash.json` — and every command takes that path too. A token with a
 `/` or a `.json` suffix is always a path; a bare token is always a store name.)
 
-## Fork a shared dashboard (from an explorer link)
-
-When the user gives you a zframes **explorer link** — a `.../dashboard/<id>` URL, a
-`.../dashboard/<id>/dashboard.json` URL, or the pasted fork prompt — they want that shared
-dashboard **on their own machine** to own and personalize. Don't interview or
-build from scratch; fetch it, serve it, then offer to tweak it. This is the
-web→local handoff: the explorer is the showroom; forking pulls the artifact home.
-
-1. **Fetch the spec.** Resolve the raw URL: if the link already ends in
-   `/dashboard.json`, use it as-is; otherwise append `/dashboard.json`. Fetch it:
-
-   ```bash
-   curl -fsSL "<url>/dashboard.json" -o /tmp/zframes-fork.json
-   ```
-
-   (Or use your own web-fetch tool.) The result is a complete, valid
-   `dashboard.json` — the whole dashboard, not a fragment.
-
-2. **Land it in the store under a name.** Pick a short name from the title, `init`
-   the store entry, then **replace its file wholesale** with the fetched spec:
-
-   ```bash
-   npx --yes zframes@latest init <name> --title "<title from the spec>"
-   ```
-
-   `init` prints the store path it created
-   (`~/.config/zframes/dashboards/<name>/dashboard.json`). Overwrite that file with
-   the contents of `/tmp/zframes-fork.json` — the fetched spec is the entire
-   dashboard, so replace, don't merge.
-
-3. **Lint + serve** (steps 5–6): `zframes lint <name>`, then `zframes serve <name>`.
-   Now it's a real file they own, running live.
-
-4. **Offer to personalize.** It's now an ordinary "update" (step 4 rules) — "want
-   me to swap in your tickers, add a frame, or retheme it?" Read the file, change
-   only what they ask, re-lint, and the page reloads.
-
 ## 2. Read the catalogue — always, before generating
 
+The catalogue is read in **two phases** — the full dump (~270 frames of JSON
+Schema, ~400 KB) is far too big to read whole, and you don't need most of it.
+
+**Phase 1 — browse.** Before choosing anything:
+
 ```bash
-npx --yes zframes@latest catalogue > /tmp/zframes-catalogue.json
+npx --yes zframes@latest catalogue --summary > /tmp/zframes-summary.txt
 ```
 
-Then **read `/tmp/zframes-catalogue.json`** with your file reader (it's ~25 KB of
-JSON Schema). Redirect to a file and read the file rather than reading the
-command's piped stdout — that guarantees the *complete* catalogue even if the
-shell truncates large piped output. Frame names, config fields, and enum values
-come from here — never from memory. The catalogue grows; your memory doesn't.
+Read that file fully (~45 KB of plain text): every frame as one
+`name — description` line grouped by category, the category taxonomy, and the
+**design vocabulary** — the named theme presets *with the exact spec values to
+write* and the background scenes with their `projectId`s. This is the menu you
+curate frames and cosmetics from in step 4.
 
-## 3. Interview the user (first run = onboarding)
+**Phase 2 — fetch the schemas you'll actually use.** Once the design pass has
+picked the frame set, get the full entries — config schema plus each frame's
+**designed size and resize floor** (`layout`: `w`/`h`/`minW`/`minH`/…) — for
+exactly those frames:
 
-The interview has **one job: choose which tickers fill the dashboard.** It never
-decides *which frames* — every dashboard ships the full market frame set (step
-4); the funnel only picks the *symbols* that populate them. Keep it to a short
-three-step funnel, each step narrowing from the one before:
-
-1. **Stocks, crypto, or both?** The asset class. This is the only answer that
-   changes the frame set — it gates the asset-specific frames (US-stock frames
-   like `short-volume` for stocks; `bitcoin-dominance` / `tvl-treemap` for
-   crypto; *both* → all of them). If they're vague, default to **stocks**.
-2. **Which categories?** Built from their step-1 answer, so they pick from groups
-   instead of recalling tickers cold. Offer a short multi-select menu (≤4 options
-   — pick the subset that fits what they said; don't dump the whole palette):
-   - **Stocks** → the `xyz` dex is **cross-asset**, so the groups span asset
-     classes, not just equity sectors: equities *Big Tech, Semiconductors &
-     Memory, AI & Data-Center, Crypto-adjacent, EV & Auto, Space & Defense,
-     Consumer & Health* — plus *Indices* (S&P 500, Nasdaq-100), *Commodities*
-     (metals, energy), and *FX* (EUR/JPY/GBP). The **xyz symbol reference** below
-     maps every group to its valid tickers.
-   - **Crypto** → themes: *Majors (BTC/ETH), Layer-1s, DeFi, Layer-2s, AI,
-     Memecoins*.
-   - **Both** → offer both groupings.
-3. **Any in particular?** Within the chosen categories, ask them to name **3–5
-   specific tickers** (free text — "NVDA, TSLA, AAPL"). Show and accept **plain
-   tickers only**; the `xyz:` HIP-3 dex prefix is a framework internal you add
-   silently when writing the spec ("TSLA" → `xyz:TSLA`; crypto stays bare). If
-   they don't have specific names, **you pick representative liquid tickers** from
-   their chosen categories — don't send them off to research. Note which 1–2 are
-   the **main focus**; those drive the hero chart. If unsaid, take the first two.
-
-That's the whole interview. Everything else — the full frame set, zones,
-headings, the background, default config — is your call from the step-4 defaults;
-never ask about it, and never read back frame or widget names as options.
-
-This maps cleanly onto `AskUserQuestion`: step 1 is one question; step 2's options
-are built from step-1's answer (a second round, not the same call); step 3 is the
-free-text "Other" field. Label every option by **asset / category / ticker**,
-never by frame name.
-
-For "update my dashboard" requests, skip the funnel — read the existing
-`dashboard.json` first and change only what they asked for.
-
-### xyz symbol reference (valid tickers by category)
-
-The interview yields plain tickers; you write `xyz:<TICKER>`. `xyz` is the only
-liquid HIP-3 dex — every symbol below lives there. Pick from this list so you
-never emit a ticker the dex doesn't carry.
-
-| Category | Liquid tickers — write `xyz:…` |
-|---|---|
-| **Indices** | `XYZ100` (Nasdaq-100), `SP500` (S&P 500) · thin: `JP225` `KR200` `NIFTY` `DXY` `VIX` |
-| **Big Tech** | `AAPL` `MSFT` `GOOGL` `AMZN` `META` `NVDA` `ORCL` |
-| **Semiconductors & Memory** | `MU` `SKHX` `SNDK` `DRAM` `NVDA` `AMD` `AVGO` `ARM` `TSM` `MRVL` `QCOM` · ETF `SMH` |
-| **AI & Data-Center** | `PLTR` `NBIS` `CRWV` `BE` |
-| **Crypto-adjacent** | `MSTR` `COIN` `HOOD` `CRCL` |
-| **EV & Auto** | `TSLA` `RIVN` `HYUNDAI` |
-| **Space & Defense** | `SPCX` (SpaceX) `RKLB` |
-| **Commodities** | metals `GOLD` `SILVER` `COPPER` `PLATINUM` `PALLADIUM` · energy `CL` (WTI) `BRENTOIL` `NATGAS` · ETFs `XLE` `URNM` |
-| **FX** | `EUR` `JPY` `NOK` `GBP` |
-| **Consumer & Health** | `NFLX` `COST` `DKNG` `GME` `HIMS` `LLY` `BABA` `BX` |
-
-Gotchas: it's `xyz:SP500` (**not `SPY`** — that symbol doesn't exist on the dex),
-`xyz:XYZ100` for the Nasdaq-100 (not `NDX`/`QQQ`), `xyz:CL` for WTI crude (not
-`WTI`/`USOIL`), `xyz:SPCX` for SpaceX. Crypto stays bare (`BTC`, `ETH`). Ignore
-the other HIP-3 dexes (`km`/`flx`/`vntl`/…) — they're ~$0 volume; only `xyz` has
-liquidity.
-
-## 4. Fill in the frames
-
-Edit the file `init` scaffolded (or the existing one for updates): add objects to
-the `frames` array. **Leave the envelope alone** — `version`, `grid`,
-`background`, `theme`, `typography`, `appearance` and `currency` are already
-set; only
-touch them if the user explicitly asks (e.g. "more spacing" → bump `grid.gap`,
-"square corners" → `appearance.radius: 0`, "muted accent" → lower
-`theme.accentSat`, "warmer/blacker cards" → shift `theme.baseHue` / lower
-`theme.baseSat`, "terminal look" → `typography.fontFamily: "mono"`, "stop the
-numbers jumping" → `typography.numericStyle: "tabular"`, "bigger/smaller text" →
-`typography.scale`, "colourblind / custom gain-loss colours" →
-`theme.upColor`/`theme.downColor`, "glassy cards" → lower
-`appearance.surfaceOpacity`, "no animation" → `background.type: "gradient"`,
-"show it in baht / euros / yen" → `currency.code: "THB"|"EUR"|"JPY"` — 146
-codes (the catalogue's enum is the valid list); every market figure converts from
-USD at the live reference rate, and one card can opt out with its own
-`"currency": "USD"` beside `position`).
-
-**Denominating a board in another currency.** `currency.code` is the whole job —
-you do NOT convert anything yourself, and you never touch a frame's numbers.
-Percentages, ratios and quantities are unaffected, and US-macro frames (Treasury,
-CPI, national debt) deliberately stay in dollars, so a baht board still shows the
-US national debt in USD. That is correct, not a bug.
-
-**Annotating a chart with past events.** When the user wants to see what moved a
-chart — "mark the Fed meetings on the BTC chart", "show me where the hack was" —
-add an `events` array to **that card**, beside `position` (NOT inside `config`):
-
-```json
-{
-  "id": "btc-history", "frame": "price-events",
-  "position": { "x": 0, "y": 0, "w": 6, "h": 4 },
-  "events": [
-    { "date": "2026-06-12", "label": "FOMC +25bp",
-      "note": "Powell signalled one more hike.",
-      "color": "#f5a524", "url": "https://www.federalreserve.gov/" }
-  ],
-  "config": { "symbol": "BTC", "lookback": "3M" }
-}
+```bash
+npx --yes zframes@latest catalogue price-liveline price-chart yield-curve ... > /tmp/zframes-frames.json
 ```
 
-The card's chart draws them on its time axis (dashed rule + a flag you hover for
-the detail). There is **no dashboard-wide events list** — markers belong to the
-chart they explain, so a date that matters on two charts is written on both.
-`date` is ISO `YYYY-MM-DD` (add `THH:MM` for intraday); only `date` and `label`
-are required. Only frames the catalogue marks **`annotatable`** draw them (the
-history charts — `price-events`, `price-compare`, `protocol-tvl-chart`,
-`funding-rate-chart`, the metals/on-chain/macro charts …); on any other frame the
-field parses fine and shows nothing. The **`price-events`** frame (single-symbol
-price history, 7D–1Y) is the one built for this. A marker outside a chart's
-window isn't drawn, so widen `lookback` to reach older ones. Never invent events
-or dates you aren't sure of — ask the user, or leave them out.
+Then **read the file** with your file reader — redirect to a file rather than
+reading piped stdout, so nothing truncates. Frame names, config fields, enum
+values, and sizes come from here — never from memory. The catalogue grows; your
+memory doesn't. An unknown frame name makes the command exit 1 with the valid
+list — that's your typo feedback, same as lint.
 
-**Grouping frames that belong together.** When several cards are one idea — "put
-the four BTC network stats in one block", "a chart with its key numbers under it",
-"split this panel in two" — use the **`group`** frame. Its children go in a
-`children` array beside `position` (NOT inside `config`), and each child is a
-normal frame instance whose `position` is in the **group's own** `columns` ×
-`rows`, not the board's 12:
+## 3. Interview the user — read `references/interview.md` first
 
-```json
-{
-  "id": "btc-block", "frame": "group",
-  "position": { "x": 0, "y": 0, "w": 6, "h": 4 },
-  "title": "Bitcoin Network",
-  "config": { "columns": 2, "rows": 2, "gap": 8 },
-  "children": [
-    { "id": "fees", "frame": "btc-fees",
-      "position": { "x": 0, "y": 0, "w": 1, "h": 1 }, "config": {} },
-    { "id": "mempool", "frame": "btc-mempool",
-      "position": { "x": 1, "y": 0, "w": 1, "h": 1 }, "config": {} },
-    { "id": "hashrate", "frame": "btc-hashrate",
-      "position": { "x": 0, "y": 1, "w": 2, "h": 1 }, "config": {} }
-  ]
-}
-```
+On the create path, interview the user before building — but **read
+`references/interview.md` before asking anything**. It holds the whole funnel:
+a three-round narrowing (asset class → categories → 3–5 specific tickers, with
+one optional theme-preset question riding along), the option menus per asset
+class, and the **xyz symbol reference** that maps every category to the tickers
+the dex actually carries. The interview picks symbols and (optionally) a look —
+never frames; you assemble the board yourself in step 4.
 
-The whole cluster then moves and resizes as ONE card when the user rearranges the
-board, instead of coming apart. The group's rows are fractions of its own height,
-so the children always fill it exactly — size the group with `position` and lay the
-children out in the small grid. `config.columns`/`rows` default to `2`×`2`; keep
-them small (a group is a cluster, not a second dashboard, and 24 children is the
-hard ceiling). `title` on the group renders as a label above the cluster — reach
-for that instead of spending a row on a `heading` child. **Groups cannot contain
-groups**: a `children` on a child is rejected outright, so lay the whole cluster
-out in one group. The group itself draws no card by default (the children's own
-cards carry the look); add `"panel": true` to its config for a surrounding
-surface. Catalogue entries carry `"container": true` for frames that work this way.
+## 4. Design the dashboard — read `references/design.md` first
 
-**Sourcing a frame from a second venue.** Data routing is first-match by
-capability, so a frame only reads another venue if you say so: set
-`"source": "bitkub"` (or `"nasdaq"`) in the frame's `config` — supported on
-`price-chart`, `top-movers`, `price-events`, `rsi-momentum`, `return-calendar`,
-`return-distribution` and `order-book-depth`; the catalogue's enum per frame is
-the authority. The field is **`source`**, not `venue`. Symbols are source-native:
-Bitkub lists bare tickers (`KUB`, `BTC`) and has **no** HIP-3 stock perps, so
-never send it an `xyz:` symbol; Nasdaq wants a plain US ticker (`NVDA`, not
-`xyz:NVDA`). Bitkub is the only venue with an order book, which is what the
-`order-book-depth` frame renders (bid/ask ladder + spread). Pin `nasdaq` when a
-stock card should show the real listing rather than its perp — its volume and
-open interest are the listing's, not Hyperliquid's book — but note it serves
-**daily bars only** and can't back a card that scans a whole universe
-(`top-movers`). A Bitkub or Nasdaq `price-chart` has no live tick (only
-Hyperliquid streams quotes) — it polls candles, which is expected.
-
-**Show the full frame set — every dashboard gets all the market frames.** You
-don't cherry-pick frames by interest; build the whole comprehensive set and
-populate the symbol-bearing frames with the user's tickers from the interview.
-The only thing that varies the set is the **asset class** (step 1): the US-stock
-frames for a stocks desk, the crypto frames for a crypto desk, all of them for
-*both*. The pure-content frames (`note`, `image`, `dino-game`) stay opt-in — add
-them only if the user asks; `heading`s are structure (added per the zone rules
-below). Start from this spine (with the interview's symbols), then add the rest
-of the catalogue's market frames around it:
-
-- **`price-liveline` hero** — the user's 2–8 main symbols streaming together in
-  one live race. Keep `normalize: true` so stocks and crypto share an axis.
-  Place it big and up top: `w: 8–12, h: 3`.
-- **Four `price-chart` cards on one row** — each `w: 3, h: 3` (3 × 4 = 12
-  columns, so all four sit side by side on the same row), all
-  `"interval": "5m"` (intraday), `title` = the ticker, and **color-coded** (a
-  distinct `color` hex per card). Split the rendering two and two: two
-  `"mode": "candle"`, two `"mode": "line"`. Default stocks picks when the user
-  named fewer than four — **NVDA & TSLA as candles, AAPL & AMD as lines**
-  (e.g. NVDA `#76b900`, TSLA `#e82127`, AAPL `#0a84ff`, AMD `#f5a623`). On a
-  crypto desk, use the user's coins instead (e.g. BTC & ETH as candles, SOL & a
-  fourth as lines).
-- **`short-volume`** *(stocks desks only — FINRA reports US-equity short
-  volume)* for the stock tickers (`"sort": "shortPct"`): `w: 5, h: 4`.
-- **The macro trio — always include all three.** Keyless official-data context
-  every dashboard should carry; group them in a row under a "Macro" heading
-  (4 + 4 + 4 = 12 columns). None need config — schema defaults are sensible:
-  - **`rates-board`** — NY Fed SOFR / effective fed funds / repo rates +
-    Treasury average rates. `w: 4, h: 4`.
-  - **`yield-curve`** — the US Treasury par yield curve + the 2s10s spread.
-    `w: 4, h: 3`.
-  - **`inflation-pulse`** — BLS CPI, month-over-month / year-over-year + trend.
-    `w: 4, h: 3`.
-- **`clock` + `market-hours` — always include both.** A `clock` set to the
-  market's timezone (`"timezone": "America/New_York"`, `"label": "New York"`),
-  `w: 3, h: 2`; and `market-hours` for exchange open / closed status with next
-  open/close countdowns (`"exchanges": ["NYSE","NASDAQ"]` for a US-stocks desk,
-  or leave it empty for the world set), `w: 4, h: 4`.
-- **The rest of the catalogue's market frames — include them too**, so the
-  dashboard reads as complete rather than sparse. From the catalogue you read in
-  step 2, add the remaining market frames that fit the asset class:
-  `top-movers`, `price-ticker`, and a normalized `price-compare` of the user's
-  tickers on any desk; **`fear-greed`** for market mood; and when crypto is in
-  scope, `bitcoin-dominance`, `tvl-treemap`, `funding-rate-chart`, and
-  `funding-heatmap`. Symbol-bearing frames take the user's tickers; context
-  frames need no config (schema defaults are sensible).
-
-Layout rules for the frames:
-
-- The grid is 12 columns, `rowHeight: 96` (set by `init`). Place each frame with
-  an explicit `position: { x, y, w, h }` in grid units.
-- **Group into zones.** Put a `heading` frame (full-width `w: 12, h: 1`) above
-  each group of related frames — e.g. "Markets", "On-chain", "Desk". Headings
-  render as bare section dividers (no card); they're what make a dashboard read
-  as designed instead of a widget dump. A good dashboard has 2–3 zones.
-- **Titles: usually omit.** Every frame renders a polished default title from its
-  catalogue `label` (e.g. "OI by Strike", "Funding Heatmap"), so **leave `"title"`
-  unset by default** — don't re-state the default and never abbreviate. Set a
-  per-instance `"title"` (sibling of `frame`/`position`) only when the label the
-  default can't know matters: **required on every `price-chart`** — use the ticker
-  (`"title": "TSLA"`, not `"PRICE CHART"`) — and useful to distinguish otherwise
-  identical cards (e.g. which outlet a `news-feed` shows). Ignored by `heading`.
-- Big charts: `w: 6–12, h: 3`. Lists/tickers: `w: 3–4, h: 3`. Small cards
-  (fear-greed, bitcoin-dominance): `w: 2–3, h: 3`.
-- No overlaps; no frame past column 12; every `id` unique and human-readable.
-- Only set config fields the user cares about — schema defaults cover the
-  rest, except required fields (the catalogue's `required` list).
+Fill the `frames` array of the file `init` scaffolded (or the existing file for
+updates). This is a design job, not a dump, and **`references/design.md` is the
+method — read it before writing any frame JSON.** It covers the three passes
+(4a apply ONE theme preset, 4b curate 20–35 cards in 3–5 zones from a mandatory
+spine, 4c compose the layout — catalogue sizes, rows packed to 12, headed
+zones, hierarchy) plus the card-level fields you'll need while writing: event
+annotations, `group` clusters, pinning a frame to a second venue with
+`source`, and per-board/per-card display currency.
 
 ## 5. Lint — the feedback loop
 
@@ -390,7 +158,10 @@ npx --yes zframes@latest lint <name>   # the store name (or a path to a dashboar
 
 If it reports issues, fix the JSON and re-lint until clean. The error
 messages name the frame instance and the exact field. Unknown frame names
-come back with the list of valid ones — use it.
+come back with the list of valid ones — use it. Lint also enforces the design
+floor: a frame placed under its `layout` minimums, overlapping cards, a group
+child overflowing its group's own `columns`/`rows`, and a group-in-a-group all
+fail with the offending numbers named.
 
 Renderer-level failures (a frame whose capability no provider covers) show
 up as error cards in the running dashboard; treat those the same way.
@@ -413,25 +184,32 @@ the file (yours or theirs) show on reload, so further "add X to my dashboard"
 requests are just another edit + the page reloads. Pass `--port <n>` if 37263 is
 taken.
 
+**Verify it renders designed, not just valid.** Lint proves the JSON; it can't
+see pixels. After serving a *newly built or reshaped* board, if you have a
+browser tool, open `http://127.0.0.1:37263` and sweep once for: error cards
+("Invalid configuration", "Unknown frame", missing-capability), cards stuck
+empty, rows with holes, and clipped card interiors — fix the spec and reload.
+(Give live data a few seconds to settle before judging a card empty; a chart's
+draw-in animation is not a bug.) No browser tool? Tell the user exactly what to
+glance for and fix what they report. Skip this sweep for a plain serve or a
+one-field update — the diff is the proof there.
+
 ## Hard rules
 
 - **Serve when they just want to look.** If a dashboard already exists and the
   user says start / open / serve (or sends a bare `/zframes`), serve it
   (step 1 → step 6) — no interview, no `init`, no rebuild. Build or re-interview
   only when they're creating a new dashboard or changing an existing one.
-- **The interview only picks tickers, never frames.** Every dashboard ships the
-  full market frame set (step 4); the onboarding funnel — asset class →
-  categories → specific tickers — exists only to choose which symbols fill them.
-  Never ask which frames or widgets to include, never show or read back frame
-  names as options, and never make the user assemble the dashboard.
-- **Size every card from its `layout`.** Each catalogue entry carries
-  `layout: { w, h, minW, minH, maxW?, maxH? }` — the span the frame reads well
-  at, and the floor and ceiling its UI can survive. Use `w`/`h` unless the user
-  asked for something specific, and never place a card outside `minW`/`minH` →
-  `maxW`/`maxH`. Nothing errors when you do: an undersized chart renders with its
-  axis squeezed away and an oversized stat renders one number in an empty card,
-  so this is the one mistake that only shows up as "the dashboard looks wrong".
-  A missing `maxW`/`maxH` means the frame scales to whatever the board is.
+- **The interview picks tickers (and at most a look), never frames.** The
+  onboarding funnel — asset class → categories → specific tickers, with one
+  optional theme-preset question riding along — exists only to choose the
+  symbols and the vibe. You assemble the board: never ask which frames or
+  widgets to include, never show or read back frame names as options.
+- **Curate and compose — the two design invariants.** 20–35 cards in 3–5
+  headed zones, sizes from each frame's catalogue `layout` (never outside its
+  `minW`/`minH` → `maxW`/`maxH` envelope), every row packed to 12 columns,
+  exactly one theme preset applied verbatim. A catalogue dump and a sparse
+  husk are both failures.
 - dashboard.json is the only artifact. No React, no CSS, no new frames.
   If the user wants a frame that doesn't exist, say so and list what does.
 - Free data only: 29 keyless sources — Hyperliquid (crypto + HIP-3 stock perps),
