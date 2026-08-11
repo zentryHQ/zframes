@@ -54,10 +54,10 @@
  *      tests/fixtures/<name>.dashboard.json
  *   npx prettier@3 --write tests/fixtures/<name>.dashboard.json
  *
- * Then run this file: the `knownInvalidConfigIds` /
- * `lintSpuriousUnknownFrames` / `outboundFetchTargets` lists are the only
- * things that should need editing, and shrinking either of the first two is a
- * fix, not a regression.
+ * Then run this file: the `knownInvalidConfigIds` / `outboundFetchTargets`
+ * lists are the only things that should need editing (size-envelope debt is
+ * tracked in `tests/frame-layout-bounds.test.ts`), and shrinking the first is
+ * a fix, not a regression.
  */
 import {
   afterAll,
@@ -103,11 +103,6 @@ interface Fixture {
    */
   knownInvalidConfigIds: string[];
   /**
-   * Frame names on this board that `lintSpec` mis-reports as "unknown frame".
-   * See the KNOWN BUG note in the lint test below.
-   */
-  lintSpuriousUnknownFrames: string[];
-  /**
    * Every target this board's frames try to `fetch` *directly* (i.e. not
    * through a provider), deduped: an absolute URL as its hostname, a relative
    * one as its path. The render test stubs `fetch` and asserts this exact set,
@@ -129,26 +124,6 @@ const FIXTURES: Fixture[] = [
     // because `heading` is `chrome: "bare"`, which ignores it). Empty now, and
     // it must stay that way: a new entry means a card broke.
     knownInvalidConfigIds: [],
-    lintSpuriousUnknownFrames: [
-      "breakeven",
-      "breathing",
-      "checklist",
-      "day-meter",
-      "dice",
-      "holiday-calendar",
-      "journal-log",
-      "journal-open",
-      "journal-results",
-      "journal-score",
-      "marquee",
-      "pomodoro",
-      "returns-projector",
-      "risk-reward",
-      "rules-card",
-      "session-progress",
-      "spotify-embed",
-      "stopwatch",
-    ],
     // The portfolio cards whose source is a keyed account poll the loopback
     // credential route.
     outboundFetchTargets: ["/__zframes/account/credentials"],
@@ -157,7 +132,6 @@ const FIXTURES: Fixture[] = [
     name: "crypto-command",
     raw: cryptoCommandSpec,
     knownInvalidConfigIds: [],
-    lintSpuriousUnknownFrames: [],
     // One `custom-data` card (Bangkok temperature).
     outboundFetchTargets: ["api.open-meteo.com"],
   },
@@ -165,7 +139,6 @@ const FIXTURES: Fixture[] = [
     name: "macro-watch",
     raw: macroWatchSpec,
     knownInvalidConfigIds: [],
-    lintSpuriousUnknownFrames: [],
     // Every card on this board reads through a provider.
     outboundFetchTargets: [],
   },
@@ -179,21 +152,18 @@ const FIXTURES: Fixture[] = [
     name: "nvda-deepdive",
     raw: nvdaDeepDiveSpec,
     knownInvalidConfigIds: [],
-    lintSpuriousUnknownFrames: [],
     outboundFetchTargets: [],
   },
   {
     name: "quant-terminal",
     raw: quantTerminalSpec,
     knownInvalidConfigIds: [],
-    lintSpuriousUnknownFrames: [],
     outboundFetchTargets: [],
   },
   {
     name: "bitkub",
     raw: bitkubSpec,
     knownInvalidConfigIds: [],
-    lintSpuriousUnknownFrames: [],
     // This board has no provider of its own — its ten `custom-data` cards are
     // the Bitkub/CoinGecko REST calls.
     outboundFetchTargets: ["api.bitkub.com", "api.coingecko.com"],
@@ -344,13 +314,7 @@ afterEach(() => {
 
 describe.each(FIXTURES)(
   "golden dashboard: $name",
-  ({
-    name,
-    raw,
-    knownInvalidConfigIds,
-    lintSpuriousUnknownFrames,
-    outboundFetchTargets,
-  }) => {
+  ({ name, raw, knownInvalidConfigIds, outboundFetchTargets }) => {
     /** Parsed once per fixture — every later test needs the parse to have held. */
     let spec: DashboardSpec;
 
@@ -431,11 +395,16 @@ describe.each(FIXTURES)(
       expect(invalid.sort()).toEqual([...knownInvalidConfigIds].sort());
     });
 
-    it("lintSpec reports nothing beyond the known frameMetas false alarm", () => {
+    it("lintSpec reports nothing beyond the pinned known defects", () => {
+      // lintSpec now resolves against `allFrameMetas` (everything renderable),
+      // so a board a human extended in the editor lints clean — the old
+      // frameMetas-subset resolution mis-reported 18 of this board's frames as
+      // "unknown" and skipped their config/geometry checks. Any unknown-frame
+      // issue here is therefore REAL (a rename broke a saved board).
       const issues = lintSpec(spec);
-      const frameOf = new Map(spec.frames.map((f) => [f.id, f.frame]));
-      const isUnknownFrame = (message: string) =>
-        /^unknown frame/.test(message);
+      expect(issues.filter((i) => /^unknown frame/.test(i.message))).toEqual(
+        [],
+      );
 
       // Size-envelope findings are genuine — these boards really do carry cards
       // below their frame's measured floor — but they are tracked card-by-card
@@ -445,51 +414,29 @@ describe.each(FIXTURES)(
       const isSizeEnvelope = (message: string) =>
         /is (below|above) its .* (minimum|maximum)$/.test(message);
 
-      // Real lint findings: geometry overflow, overlap, duplicate id, invalid
-      // config. Everything here is a genuine defect in the saved board.
-      const real = issues
-        .filter((i) => !isUnknownFrame(i.message) && !isSizeEnvelope(i.message))
+      // Everything else lint finds must be a pinned, known defect in the saved
+      // board: an invalid config (`knownInvalidConfigIds`).
+      const rest = issues
+        .filter(
+          (i) => !/^unknown frame/.test(i.message) && !isSizeEnvelope(i.message),
+        )
         .map((i) => `${i.frameId}: ${i.message}`)
         .sort();
-      const expectedReal = knownInvalidConfigIds
+      const expectedRest = knownInvalidConfigIds
         .map((id) => `${id}: config.`)
         .sort();
-      expect(real.length).toBe(expectedReal.length);
-      for (let i = 0; i < real.length; i++)
-        expect(real[i].startsWith(expectedReal[i])).toBe(true);
-
-      // KNOWN BUG: lintSpec resolves frame names against `frameMetas` (the
-      // curated agent-pickable subset) instead of `allFrameMetas` (everything
-      // renderable), so `zframes lint` reports "unknown frame" for 18 frames
-      // that render perfectly on this board — should be resolved against
-      // allFrameMetas so only genuinely unregistered names are flagged. Pinned
-      // so the suite stays green; fixing the source must flip this assertion.
-      // Knock-on effect: lint.ts `continue`s right after the unknown-frame
-      // issue, so its config, grid-overflow and horizontal-overflow checks are
-      // ALSO skipped for those instances (19 of micky's 207). That is why the
-      // geometry test below checks the grid directly instead of leaning on
-      // lintSpec, and why `knownInvalidConfigIds` is asserted against the
-      // frames' own schemas in a separate test above.
-      const spurious = [
-        ...new Set(
-          issues
-            .filter((i) => isUnknownFrame(i.message))
-            .map((i) => frameOf.get(i.frameId ?? "") ?? "?"),
-        ),
-      ].sort();
-      expect(spurious).toEqual([...lintSpuriousUnknownFrames].sort());
-      // Every one of them IS renderable — that is what makes it a false alarm.
-      for (const frame of spurious) expect(metaByName.has(frame)).toBe(true);
+      expect(rest.length).toBe(expectedRest.length);
+      for (let i = 0; i < rest.length; i++)
+        expect(rest[i].startsWith(expectedRest[i])).toBe(true);
     });
 
     it("every instance's geometry fits the grid", () => {
-      // Checked here rather than through lintSpec on purpose: lint bails out of
-      // the per-instance loop at the unknown-frame issue (see the KNOWN BUG
-      // above), so its own overflow checks never run for 19 of micky's
-      // instances — pushing `marquee` or `journal-log` off the right edge left
-      // the whole suite green. This loop covers all 323 instances across the
-      // five boards. An out-of-grid card is clipped or silently reflowed by the
-      // CSS grid, so it is a real defect in a saved board, not a lint nicety.
+      // Kept as a direct check even though lintSpec now covers every instance
+      // (it once bailed at spurious unknown-frame issues and skipped 19 of
+      // micky's cards): this loop asserts the geometry invariant on its own,
+      // so a lint regression can't take the overflow coverage down with it.
+      // An out-of-grid card is clipped or silently reflowed by the CSS grid,
+      // so it is a real defect in a saved board, not a lint nicety.
       const columnOverflow = spec.frames
         .filter((f) => f.position.x + f.position.w > spec.grid.columns)
         .map(
