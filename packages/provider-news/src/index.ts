@@ -76,11 +76,51 @@ function decodeEntities(s: string): string {
 const stripCdata = (s: string) =>
   s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
 
-/** CDATA → raw, strip any HTML tags, decode entities, collapse whitespace. */
+/**
+ * CDATA → raw, strip any HTML tags, decode entities, collapse whitespace.
+ *
+ * Two passes on purpose. A feed may deliver its markup either raw (inside
+ * CDATA, as CoinDesk does) or entity-ESCAPED — Google News sends
+ * `&lt;a href="…"&gt;Headline&lt;/a&gt;` — and a single strip-then-decode
+ * handles only the first, publishing the escaped feed's `<a href="https://
+ * news.google.com/rss/articles/CB…` as visible summary text. The second pass
+ * runs only when decoding actually produced something tag-shaped (`<` followed
+ * by a letter or `/`), so prose like "5 &lt; 6 &gt; 4" is left alone.
+ */
 function plainText(s: string): string {
-  return decodeEntities(stripCdata(s).replace(/<[^>]+>/g, " "))
-    .replace(/\s+/g, " ")
-    .trim();
+  let out = decodeEntities(stripCdata(s).replace(/<[^>]+>/g, " "));
+  if (HAS_TAG.test(out)) out = decodeEntities(out.replace(/<[^>]+>/g, " "));
+  return out.replace(/\s+/g, " ").trim();
+}
+
+const HAS_TAG = /<\/?[a-z][^>]*>/i;
+
+/**
+ * Feed HTML with its escaping resolved — CDATA unwrapped, and entity-escaped
+ * markup decoded so an `<img>` inside it is findable. Only decoded when the
+ * text is escaped-tag-shaped, so a raw-HTML description is untouched.
+ */
+function feedHtml(s: string): string {
+  const raw = stripCdata(s);
+  return /&lt;\/?[a-z]/i.test(raw) ? decodeEntities(raw) : raw;
+}
+
+/** Alphanumeric squash — for comparing a summary against its own headline. */
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+/**
+ * True when the summary is just the headline again. Google News' description
+ * IS the linked title plus the outlet name, so once the markup is stripped the
+ * row would print the same sentence twice. Requires near-equal length as well
+ * as containment, so a real summary that merely opens with its own headline
+ * still survives.
+ */
+function restatesTitle(title: string, summary: string): boolean {
+  const a = squash(title);
+  const b = squash(summary);
+  if (!a || !b) return false;
+  if (!a.includes(b) && !b.includes(a)) return false;
+  return Math.min(a.length, b.length) / Math.max(a.length, b.length) >= 0.8;
 }
 
 /** Inner content of the first <name …>…</name> element in `block`. */
@@ -146,9 +186,7 @@ function imageOf(block: string): string | undefined {
     tag(block, "description") ??
     tag(block, "content") ??
     tag(block, "summary");
-  const img = desc
-    ? stripCdata(desc).match(/<img\b[^>]*\bsrc="([^"]+)"/i)
-    : null;
+  const img = desc ? feedHtml(desc).match(/<img\b[^>]*\bsrc="([^"]+)"/i) : null;
   if (img) {
     const u = decodeEntities(img[1]).trim();
     if (isHttps(u)) return u;
@@ -184,7 +222,9 @@ function parseFeed(xml: string, source: string, limit: number): NewsItem[] {
       tag(block, "description") ??
       tag(block, "summary") ??
       tag(block, "content");
-    const summary = rawDesc ? plainText(rawDesc).slice(0, 280) : undefined;
+    const text = rawDesc ? plainText(rawDesc) : "";
+    const summary =
+      text && !restatesTitle(title, text) ? text.slice(0, 280) : undefined;
     const publishedAt = dateOf(block);
     const imageUrl = imageOf(block);
     items.push({
