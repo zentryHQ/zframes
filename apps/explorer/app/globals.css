@@ -421,6 +421,34 @@ body::before {
   }
 }
 
+/* The heart's per-click beat. Two IDENTICAL keyframe sets, alternated per click:
+ * swapping animation-name is what restarts a running CSS animation without
+ * remounting the element (a remount would also reset the fill's clip-path and
+ * kill its transition), so a burst of clicks reads as a beat per click instead
+ * of one beat that started on the first. Transform-only — compositor-cheap. */
+.zf-heartbeat-a {
+  animation: zf-heartbeat-a 0.28s var(--zf-ease-out);
+}
+.zf-heartbeat-b {
+  animation: zf-heartbeat-b 0.28s var(--zf-ease-out);
+}
+@keyframes zf-heartbeat-a {
+  35% {
+    transform: scale(1.3);
+  }
+}
+@keyframes zf-heartbeat-b {
+  35% {
+    transform: scale(1.3);
+  }
+}
+
+/* The heart's fill rises smoothly between allowance steps instead of jumping —
+ * clip-path animates off-layout, same budget as transform/opacity. */
+.zf-heart-fill {
+  transition: clip-path 0.25s var(--zf-ease-out);
+}
+
 /* Filled primary CTA — the hero + sign-in buttons. The outline buttons shift
  * their border + text colour on hover; a FILLED button has neither to spare, so
  * the fill itself must react. It brightens + lifts on hover and presses
@@ -656,6 +684,16 @@ body::before {
     to {
       opacity: 0;
     }
+  }
+  /* The heart beat is decoration (the "+1" fade above already confirms the
+     click), so it goes entirely; the fill snaps between steps instead of
+     rising. */
+  .zf-heartbeat-a,
+  .zf-heartbeat-b {
+    animation: none;
+  }
+  .zf-heart-fill {
+    transition: none;
   }
 }
 
