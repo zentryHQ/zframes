@@ -136,9 +136,10 @@ export async function sendLike(
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ kind, id, browserId: browserId() }),
-      // A STALLED CONNECTION MUST NOT WEDGE THE BUTTON. Without this the fetch can
-      // hang indefinitely: the caller's `pending` flag never clears, so every later
-      // click is dropped, and the optimistic "+1" stays on screen until a reload.
+      // A STALLED CONNECTION MUST NOT WEDGE A CLICK. Without this the fetch can
+      // hang indefinitely: that click's in-flight unit never settles, so the
+      // count stays optimistically one high until a reload. (Clicks are parallel,
+      // so a stall no longer blocks LATER clicks — but each one still has to end.)
       // The abort surfaces as a throw and lands in the retryable `error` path below.
       signal: AbortSignal.timeout(8000),
     });
