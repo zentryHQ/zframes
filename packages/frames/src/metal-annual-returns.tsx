@@ -61,13 +61,18 @@ function MetalAnnualReturns({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-1.5 text-normal">
-      <BarChart
-        data={bars}
-        orientation="vertical"
-        height={186}
-        formatValue={formatChangePct}
-        maxTickLabels={Math.min(bars.length, 12)}
-      />
+      {/* Fills, unlike the horizontal bar lists that scroll: bars stand SIDE BY
+          SIDE here, so height is the value axis rather than a row count — it can
+          shrink with the card without costing a single bar its legibility. */}
+      <div className="min-h-0 flex-1">
+        <BarChart
+          data={bars}
+          orientation="vertical"
+          fill
+          formatValue={formatChangePct}
+          maxTickLabels={Math.min(bars.length, 12)}
+        />
+      </div>
       <div className="caption text-soft text-center">
         {metalName(config.symbol)} · {bars.length} calendar years
         {partialYear !== null ? ` (${partialYear} YTD)` : ""} ·{" "}

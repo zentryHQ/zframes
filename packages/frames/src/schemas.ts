@@ -4544,7 +4544,7 @@ export const mempoolFeeCurveMeta = defineFrameMeta({
   label: "Mempool Fee Curve",
   category: "bitcoin",
   iconUrl: widgetIcon("mempool-fee-curve"),
-  layout: { w: 5, h: 3, minW: 3, minH: 3, maxH: 4 },
+  layout: { w: 5, h: 3, minW: 3, minH: 2 },
   description:
     "Bitcoin mempool's projected next-to-mine blocks as a fee-decay bar chart — median sat/vB per block, tinted by urgency, showing how fast fees drop as you're willing to wait a block or two longer. The chart-first sibling of the BTC Mempool card. Keyless (mempool.space).",
   capabilities: ["btc-mempool"],
@@ -5653,7 +5653,7 @@ export const metalAnnualReturnsMeta = defineFrameMeta({
   label: "Metal Annual Returns",
   category: "metals",
   iconUrl: widgetIcon("metal-annual-returns"),
-  layout: { w: 6, h: 4, minW: 6, minH: 3, maxH: 4 },
+  layout: { w: 6, h: 4, minW: 6, minH: 2 },
   description:
     "Calendar-year percent return per year as diverging bars — green up years, red down years — from the LBMA fix history. The at-a-glance record of how often, and how hard, a metal actually delivers.",
   capabilities: ["metal-history"],
