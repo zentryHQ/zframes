@@ -251,7 +251,7 @@ describe("plainText — CDATA, tag stripping, entities, whitespace", () => {
     expect(items[0].summary).toBe("One Two");
   });
 
-  it("decodes named entities AFTER stripping tags, so &lt;b&gt; survives", async () => {
+  it("strips entity-escaped tags too, keeping ordinary entities as text", async () => {
     const items = await itemsFrom(
       rss(
         item(
@@ -263,8 +263,9 @@ describe("plainText — CDATA, tag stripping, entities, whitespace", () => {
       ),
     );
 
-    // Decoded markup is text, not markup — proving the strip runs first.
-    expect(items[0].title).toBe('Bitcoin & Ether "flip" <b>bold</b>');
+    // A second pass runs once decoding reveals markup, so an escaped feed can't
+    // publish literal "<b>" into the card; &amp;/&quot; stay ordinary text.
+    expect(items[0].title).toBe('Bitcoin & Ether "flip" bold');
   });
 
   it("decodes decimal, hex and &nbsp; entities", async () => {
@@ -417,6 +418,79 @@ describe("summary — source precedence and the 280-char cut", () => {
   });
 });
 
+describe("summary — entity-escaped markup and headline restatement", () => {
+  it("strips markup a feed delivered entity-ESCAPED, not just raw", async () => {
+    // Google News' exact shape: the description is an escaped <a> around the
+    // headline, then &amp;nbsp; padding and an escaped <font> naming the outlet.
+    const items = await itemsFrom(
+      rss(
+        item(
+          headline("Escaped markup", "https://a.test/1"),
+          "<description>" +
+            '&lt;a href="https://news.google.com/rss/articles/CBMi" target="_blank"&gt;' +
+            "Chip demand held up through the quarter&lt;/a&gt;&amp;nbsp;&amp;nbsp;" +
+            '&lt;font color="#6f6f6f"&gt;StockStory&lt;/font&gt;' +
+            "</description>",
+        ),
+      ),
+    );
+
+    expect(items[0].summary).toBe(
+      "Chip demand held up through the quarter StockStory",
+    );
+    expect(items[0].summary).not.toContain("<a href");
+    expect(items[0].summary).not.toContain("news.google.com");
+  });
+
+  it("omits a summary that only restates its own headline", async () => {
+    const items = await itemsFrom(
+      rss(
+        item(
+          headline(
+            "Nvidia (NVDA) Stock Trades Down, Here Is Why - StockStory",
+            "https://a.test/1",
+          ),
+          "<description>" +
+            '&lt;a href="https://news.google.com/rss/articles/CBMi"&gt;' +
+            "Nvidia (NVDA) Stock Trades Down, Here Is Why&lt;/a&gt;&amp;nbsp;" +
+            "&lt;font&gt;StockStory&lt;/font&gt;" +
+            "</description>",
+        ),
+      ),
+    );
+
+    expect(items[0].title).toContain("Nvidia");
+    expect(items[0]).not.toHaveProperty("summary");
+  });
+
+  it("keeps a real summary that merely opens with its headline", async () => {
+    const items = await itemsFrom(
+      rss(
+        item(
+          headline("Gold hits a record", "https://a.test/1"),
+          "<description>Gold hits a record as the London fix clears $4,000 " +
+            "for the first time, capping a run that began in March.</description>",
+        ),
+      ),
+    );
+
+    expect(items[0].summary).toContain("London fix");
+  });
+
+  it("leaves comparison prose alone — '&lt;' is not always a tag", async () => {
+    const items = await itemsFrom(
+      rss(
+        item(
+          headline("Inequality", "https://a.test/1"),
+          "<description>Spreads held 5 &lt; 6 and 7 &gt; 3 all week.</description>",
+        ),
+      ),
+    );
+
+    expect(items[0].summary).toBe("Spreads held 5 < 6 and 7 > 3 all week.");
+  });
+});
+
 describe("imageOf — the thumbnail ladder, https only", () => {
   it("takes media:thumbnail ahead of every lower rung", async () => {
     const items = await itemsFrom(
@@ -504,6 +578,20 @@ describe("imageOf — the thumbnail ladder, https only", () => {
     );
 
     expect(items[0].imageUrl).toBe("https://img.test/desc.jpg");
+  });
+
+  it("finds an <img> the feed entity-ESCAPED into its description", async () => {
+    const items = await itemsFrom(
+      rss(
+        item(
+          headline("Escaped image", "https://a.test/1"),
+          "<description>&lt;p&gt;Lead&lt;/p&gt;" +
+            '&lt;img src="https://img.test/escaped.jpg"&gt;</description>',
+        ),
+      ),
+    );
+
+    expect(items[0].imageUrl).toBe("https://img.test/escaped.jpg");
   });
 
   it("rejects an http URL at every rung (mixed-content safety)", async () => {
