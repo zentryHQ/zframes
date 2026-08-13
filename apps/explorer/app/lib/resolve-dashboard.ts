@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getDashboard } from "@/app/lib/dashboards";
 
 /**
@@ -41,7 +42,9 @@ export type ResolvedDashboard = {
   likes: number;
 };
 
-export async function resolveDashboard(
+// React cache(): generateMetadata and the page both resolve the same id per
+// request — dedupe to one query instead of two.
+export const resolveDashboard = cache(async function resolveDashboard(
   id: string,
 ): Promise<ResolvedDashboard | null> {
   const row = await getDashboard(id);
@@ -58,4 +61,4 @@ export async function resolveDashboard(
     createdAt: row.createdAt,
     likes: row.likes,
   };
-}
+});

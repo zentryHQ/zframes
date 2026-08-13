@@ -1,6 +1,8 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   customType,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -75,43 +77,64 @@ export const verification = pgTable("verification", {
 // community row leaves all three at their defaults, so nothing about publishing
 // changed.
 
-export const dashboards = pgTable("dashboards", {
-  id: text("id").primaryKey(), // community: nanoid · curated: a readable slug
-  // Nullable BECAUSE of curated rows: a showcase board has no user behind it, and
-  // inventing a synthetic "zframes" row in Better Auth's `user` table to satisfy
-  // a FK would put a fake account in the auth system to model authorship that
-  // doesn't exist. `listByOwner` filters by a real id, so null rows never match.
-  ownerId: text("owner_id").references(() => user.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  spec: jsonb("spec").notNull(), // the DashboardSpec (validated before insert)
-  // Curated only: the editorial one-liner the gallery searches and shows. A
-  // community publish has no field for it in the UI, so it stays null.
-  description: text("description"),
-  // True for the editorial showcase. Drives the gallery's two sections and marks
-  // the rows the seeder owns (it upserts by id and would otherwise have no way to
-  // tell its own rows from a user's).
-  curated: boolean("curated").notNull().default(false),
-  // Curated only: position in the landing page's sticky card stack, or null to
-  // appear in the gallery but not on the front door. Replaces the old
-  // `LANDING_IDS` array — an ORDER, so the sequence is data rather than the
-  // literal order of a hand-written list.
-  landingOrder: integer("landing_order"),
-  visibility: text("visibility").notNull().default("unlisted"), // listed | unlisted
-  // Publishing is open (no review queue / admin UI). `status` stays as the
-  // operator's SQL-only takedown lever: set "removed" and the dashboard drops
-  // from the gallery AND its preview/raw-spec 404 (see dashboards.ts filters).
-  status: text("status").notNull().default("approved"), // approved | removed
-  tags: text("tags").array().notNull().default([]),
-  views: integer("views").notNull().default(0),
-  forks: integer("forks").notNull().default(0),
-  // Public likes. Unlike `views`/`forks` above — which were declared and never
-  // wired — this one is live: `/api/likes` increments it, the gallery sorts on it.
-  // A column rather than a separate table BECAUSE the gallery already selects full
-  // rows, so ordering by popularity costs no join.
-  likes: integer("likes").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export const dashboards = pgTable(
+  "dashboards",
+  {
+    id: text("id").primaryKey(), // community: nanoid · curated: a readable slug
+    // Nullable BECAUSE of curated rows: a showcase board has no user behind it, and
+    // inventing a synthetic "zframes" row in Better Auth's `user` table to satisfy
+    // a FK would put a fake account in the auth system to model authorship that
+    // doesn't exist. `listByOwner` filters by a real id, so null rows never match.
+    ownerId: text("owner_id").references(() => user.id, {
+      onDelete: "cascade",
+    }),
+    title: text("title").notNull(),
+    spec: jsonb("spec").notNull(), // the DashboardSpec (validated before insert)
+    // Curated only: the editorial one-liner the gallery searches and shows. A
+    // community publish has no field for it in the UI, so it stays null.
+    description: text("description"),
+    // True for the editorial showcase. Drives the gallery's two sections and marks
+    // the rows the seeder owns (it upserts by id and would otherwise have no way to
+    // tell its own rows from a user's).
+    curated: boolean("curated").notNull().default(false),
+    // Curated only: position in the landing page's sticky card stack, or null to
+    // appear in the gallery but not on the front door. Replaces the old
+    // `LANDING_IDS` array — an ORDER, so the sequence is data rather than the
+    // literal order of a hand-written list.
+    landingOrder: integer("landing_order"),
+    visibility: text("visibility").notNull().default("unlisted"), // listed | unlisted
+    // Publishing is open (no review queue / admin UI). `status` stays as the
+    // operator's SQL-only takedown lever: set "removed" and the dashboard drops
+    // from the gallery AND its preview/raw-spec 404 (see dashboards.ts filters).
+    status: text("status").notNull().default("approved"), // approved | removed
+    tags: text("tags").array().notNull().default([]),
+    views: integer("views").notNull().default(0),
+    forks: integer("forks").notNull().default(0),
+    // Public likes. Unlike `views`/`forks` above — which were declared and never
+    // wired — this one is live: `/api/likes` increments it, the gallery sorts on it.
+    // A column rather than a separate table BECAUSE the gallery already selects full
+    // rows, so ordering by popularity costs no join.
+    likes: integer("likes").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    // One index per list query, matching its filter + order (partial where the
+    // query filters on constants). Mirrored in drizzle/0004_dashboard_indexes.sql.
+    index("dashboards_gallery_idx")
+      .on(t.createdAt.desc())
+      .where(
+        sql`${t.visibility}='listed' and ${t.status}='approved' and ${t.curated}=false`,
+      ),
+    index("dashboards_curated_idx")
+      .on(t.landingOrder.nullsLast(), t.title)
+      .where(sql`${t.curated}=true and ${t.status}='approved'`),
+    index("dashboards_owner_idx").on(t.ownerId, t.createdAt.desc()),
+    index("dashboards_indexable_idx")
+      .on(t.updatedAt.desc())
+      .where(sql`${t.visibility}='listed' and ${t.status}='approved'`),
+  ],
+);
 
 export type DashboardRow = typeof dashboards.$inferSelect;
 
@@ -177,8 +200,7 @@ export const likeGrants = pgTable(
 // ── nightly dashboard screenshots ────────────────────────────────────────────
 // Real browser captures of /dashboard/[id], refreshed by scripts/capture-thumbs.ts on a
 // nightly cron. A SEPARATE table (not a column on `dashboards`) so gallery
-// queries (listCommunity/listByOwner select full rows) never drag image blobs
-// over the wire. Keyed by dashboard id — covers BOTH community rows and the
+// queries never drag image blobs over the wire. Keyed by dashboard id — covers BOTH community rows and the
 // static curated ids (which have no `dashboards` row). No FK on purpose.
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({

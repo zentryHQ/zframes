@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/app/lib/auth-session";
-import { toBoardListing } from "@/app/lib/board-summary";
 import {
   listCommunity,
   listCurated,
@@ -23,19 +22,20 @@ export const runtime = "nodejs";
 // the thumbnail draws, never the spec. A curated spec is tens of KB and the
 // gallery shows eighteen of them.
 export async function GET() {
-  const [curatedRows, communityRows] = await Promise.all([
+  const [curated, community] = await Promise.all([
     listCurated(),
     listCommunity(),
   ]);
-  return NextResponse.json({
-    curated: curatedRows.map(toBoardListing),
-    community: communityRows.map((d) => ({
-      ...toBoardListing(d),
-      views: d.views,
-      forks: d.forks,
-      createdAt: d.createdAt,
-    })),
-  });
+  return NextResponse.json(
+    { curated, community },
+    {
+      // The list changes on publish, not on visit — a minute of shared cache
+      // absorbs the gallery's on-mount refetch across visitors.
+      headers: {
+        "cache-control": "public, s-maxage=60, stale-while-revalidate=300",
+      },
+    },
+  );
 }
 
 // POST /api/dashboards — publish (auth-gated). Immutable: mints a new id.

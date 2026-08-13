@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { toBoardSummary } from "@/app/lib/board-summary";
 import { listLandingBoards } from "@/app/lib/dashboards";
 import { faqJsonLd } from "@/app/lib/faq";
 import {
@@ -51,7 +50,7 @@ export default async function Home() {
       <JsonLd data={softwareApplicationJsonLd()} />
       <JsonLd data={howToJsonLd()} />
       <JsonLd data={faqJsonLd()} />
-      <LandingView boards={boards.map(toBoardSummary)} />
+      <LandingView boards={boards} />
     </>
   );
 }
