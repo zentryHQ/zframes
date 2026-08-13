@@ -382,7 +382,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
           screen for the whole read. */}
       <section id="build" className="mx-auto max-w-7xl px-6 pt-24">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
-          <div className="lg:sticky lg:top-24 lg:self-start">
+          <div className="relative lg:sticky lg:top-24 lg:self-start">
             <Reveal>
               <span className="zf-label mb-2.5">How it works</span>
               <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -395,10 +395,13 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             </Reveal>
             {/* Ghosted watermark — the three beats, barely there. Desktop only:
                 on mobile the rail isn't sticky and the ghost would just be a
-                gap between heading and steps. */}
+                gap between heading and steps. ABSOLUTE on purpose: if it added
+                height to the sticky block, the rail would be nearly as tall as
+                the step column and the heading would get almost no pinned
+                travel before the section end pushes it off. */}
             <div
               aria-hidden
-              className="pointer-events-none mt-12 hidden select-none font-bold leading-[0.95] tracking-tighter text-white/[0.04] lg:block"
+              className="pointer-events-none absolute left-0 top-full mt-12 hidden select-none font-bold leading-[0.95] tracking-tighter text-white/[0.04] lg:block"
             >
               <div className="text-[clamp(4rem,7vw,6.5rem)]">install</div>
               <div className="text-[clamp(4rem,7vw,6.5rem)]">describe</div>
