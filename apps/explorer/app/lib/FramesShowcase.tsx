@@ -184,7 +184,7 @@ const CHAPTERS: Chapter[] = [
         // The disaggregated report, not the legacy one: the familiar COT lumps
         // miner hedging in with swap-dealer bank shorts — opposite stories.
         frame: "metal-cot-disaggregated",
-        className: "w-80 h-72 hidden sm:block",
+        className: "w-[24rem] h-[22rem] hidden sm:block",
         drift: 66,
         tilt: 1.4,
       },
@@ -204,7 +204,7 @@ const CHAPTERS: Chapter[] = [
         // A commodity has no earnings — "expensive" is answered by where its
         // implied vol sits against its own history, not by a P/E.
         frame: "commodity-vol-regime",
-        className: "w-72 h-56 hidden lg:block",
+        className: "w-[22rem] h-[22rem] hidden lg:block",
         drift: 78,
         tilt: -1.2,
       },
@@ -246,7 +246,7 @@ const CHAPTERS: Chapter[] = [
         // listing that gap is the investment case, and no price chart shows it.
         frame: "crypto-dilution",
         config: { symbol: "ARB" },
-        className: "w-64 h-56 hidden md:block",
+        className: "w-[22rem] h-[20rem] hidden md:block",
         drift: 76,
         tilt: -1.2,
       },
@@ -254,7 +254,7 @@ const CHAPTERS: Chapter[] = [
         // Fees vs revenue — what users paid against what the protocol kept; a
         // multiple built on the first number flatters a pass-through DEX ~28×.
         frame: "protocol-revenue",
-        className: "w-72 h-56 hidden lg:block",
+        className: "w-[24rem] h-[20rem] hidden lg:block",
         drift: 30,
         tilt: 1.4,
       },
