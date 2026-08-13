@@ -8,7 +8,6 @@ import {
   type MotionValue,
 } from "motion/react";
 import Link from "next/link";
-import { allFrameMetas } from "@zframes/frames/schemas";
 import type { BoardSummary } from "@/app/lib/board-summary";
 import { CopyCommand } from "@/app/lib/CopyCommand";
 import { FAQ } from "@/app/lib/faq";
@@ -51,16 +50,20 @@ const FOCUS_SLOT_VH = 300;
 // whileInView reveals); hover/press micro-interactions stay CSS (globals.css).
 // Client, but copy still SSRs (client components render on the server first).
 
-// The hero's floating specimens — cast for silhouette variety (streaming line,
-// gauge, curve, stacked area, stat) and instant keyless data. Desktop-mostly;
-// each gets its own parallax depth (mouse strength + scroll drift) and idle-bob
-// phase so the cluster reads as a suspended volume, not a wallpaper.
+// The hero's floating specimens — cast for silhouette variety and instant
+// keyless data. Desktop-mostly; each gets its own parallax depth (mouse
+// strength + scroll drift) and idle-bob phase so the cluster reads as a
+// suspended volume, not a wallpaper.
 //
-// Casting is TRADITIONAL FINANCE first: equity perps streaming live, the
-// Treasury curve, corporate credit spreads, the VIX, the debt stack, gold. One
-// crypto card (the BTC/ETH ticker) keeps both asset classes visibly present —
-// the promise is "stocks and crypto", and the crypto families get three whole
-// chapters of their own further down the page.
+// Composition rule: SIX cards, three per side, edge-anchored on a staggered
+// vertical rhythm — the centre column keeps clear air so the promise owns the
+// fold (eight cards filled every gutter and read as clutter). Every card is
+// deliberately ADVANCED: equity perps streaming live, the Treasury curve, an
+// options book by strike, a cross-symbol funding heatmap, a volume profile —
+// dense, terminal-grade silhouettes, not bare stat cards. One crypto card (the
+// market-cap treemap) keeps both asset classes visibly present — the promise is
+// "stocks and crypto", and the crypto families get chapters of their own
+// further down the page.
 const HERO_FLOATERS: {
   frame: string;
   config?: Record<string, unknown>;
@@ -73,92 +76,77 @@ const HERO_FLOATERS: {
   tilt: number;
   delay: string;
 }[] = [
+  // ── Left rail, top → bottom ──
   {
     frame: "price-liveline",
     // The signature frame gets the biggest slot — three HIP-3 equity perps
     // racing on one normalized axis, ticking off a single streamed socket. This
     // is the "live market" half of the promise, in one card.
     config: { symbols: ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL"] },
-    className: "w-[26rem] h-60",
-    pos: "left-[1%] top-[13%] hidden lg:block",
+    className: "w-[24rem] h-56",
+    pos: "left-[1%] top-[8%] hidden lg:block",
     mouse: 18,
     scroll: 42,
     tilt: -2.2,
     delay: "0s",
   },
   {
-    // The VIX as a regime band rather than a bare number — the one gauge
-    // silhouette in the cluster, and instantly legible as a markets card.
-    frame: "vix-gauge",
-    className: "w-56 h-52",
-    pos: "right-[20%] top-[3%] hidden xl:block",
-    mouse: -20,
-    scroll: 70,
-    tilt: -1.4,
-    delay: "-5s",
-  },
-  {
-    // The crypto presence: both asset classes on screen at once, without the
-    // hero turning into a crypto board.
-    frame: "price-ticker",
-    config: { symbols: ["BTC", "ETH"] },
-    className: "w-72 h-28",
-    pos: "right-[2%] top-[47%] hidden xl:block",
-    mouse: 16,
-    scroll: 48,
-    tilt: 1,
-    delay: "-2.8s",
-  },
-  {
-    // Visible earliest (md), so the smallest desktop still gets a real chart:
-    // the gold/silver ratio off the LBMA's own London fix series.
-    frame: "gold-silver-ratio",
-    className: "w-56 h-52",
-    pos: "right-[3%] top-[13%] hidden md:block",
-    mouse: -14,
-    scroll: 74,
-    tilt: 2,
-    delay: "-2.2s",
-  },
-  {
-    frame: "index-level",
-    className: "w-52 h-32",
-    pos: "left-[7%] bottom-[17%] hidden lg:block",
-    mouse: -22,
-    scroll: 92,
-    tilt: 1.6,
-    delay: "-4.1s",
-  },
-  {
-    // High-yield vs investment-grade OAS on one grid — two FRED series fetched
-    // in a single call, so the pair is aligned by construction.
-    frame: "credit-spread-chart",
-    className: "w-80 h-44",
-    pos: "right-[4%] bottom-[14%] hidden lg:block",
-    mouse: 12,
-    scroll: 56,
-    tilt: -1.6,
-    delay: "-1.4s",
-  },
-  {
     frame: "yield-curve",
     className: "w-64 h-44",
-    pos: "left-[20%] top-[4%] hidden xl:block",
+    pos: "left-[3%] top-[46%] hidden xl:block",
     mouse: 26,
     scroll: 64,
     tilt: 1.2,
     delay: "-3.2s",
   },
   {
-    // The debt stack as a stacked area — the densest silhouette in the cluster,
-    // and a shape no crypto card produces.
-    frame: "treasury-debt-composition-area",
-    className: "w-80 h-56",
-    pos: "left-[2%] top-[44%] hidden lg:block",
-    mouse: 20,
-    scroll: 58,
-    tilt: 1.8,
-    delay: "-3.6s",
+    // Volume-by-price with POC + value area — quant vocabulary in one card.
+    frame: "volume-profile",
+    config: { symbol: "xyz:NVDA" },
+    className: "w-64 h-60",
+    pos: "left-[8%] bottom-[4%] hidden lg:block",
+    mouse: -22,
+    scroll: 92,
+    tilt: 1.6,
+    delay: "-4.1s",
+  },
+  // ── Right rail, top → bottom ──
+  {
+    // The options book by strike — call vs put walls around spot, the most
+    // terminal-grade silhouette in the cluster.
+    frame: "options-oi-strike",
+    config: { currency: "BTC", strikes: 12 },
+    className: "w-72 h-48",
+    pos: "right-[2%] top-[6%] hidden xl:block",
+    mouse: -20,
+    scroll: 70,
+    tilt: -1.4,
+    delay: "-5s",
+  },
+  {
+    // Visible earliest (md), so the smallest desktop still gets a dense card.
+    // Also the crypto presence: both asset classes on screen at once, without
+    // the hero turning into a crypto board.
+    frame: "market-cap-treemap",
+    config: { topN: 12 },
+    className: "w-60 h-48",
+    pos: "right-[4%] top-[42%] hidden md:block",
+    mouse: -14,
+    scroll: 74,
+    tilt: 2,
+    delay: "-2.2s",
+  },
+  {
+    // Funding regimes across the equity perps — a heatmap silhouette no
+    // simple card produces, and it reads "cross-symbol analysis" at a glance.
+    frame: "funding-heatmap",
+    config: { symbols: ["xyz:TSLA", "xyz:NVDA", "xyz:AAPL", "xyz:MSFT"] },
+    className: "w-80 h-40",
+    pos: "right-[3%] bottom-[6%] hidden xl:block",
+    mouse: 16,
+    scroll: 48,
+    tilt: 1,
+    delay: "-2.8s",
   },
 ];
 
@@ -172,7 +160,6 @@ const HERO_FLOATERS: {
  * would be tens of kilobytes of client payload for data the iframes fetch anyway.
  */
 export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
-  const frameCount = allFrameMetas.length;
   const reduced = useReducedMotion();
   const stackRef = useRef<HTMLElement>(null);
   const progress = useSectionProgress(stackRef);
@@ -239,7 +226,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
                   style={{ animationDelay: f.delay }}
                 >
                   <div
-                    className={`glow-brand-soft opacity-90 ${f.className}`}
+                    className={`glow-brand-soft opacity-75 ${f.className}`}
                     style={{ rotate: `${f.tilt}deg` }}
                   >
                     <LiveFrame
@@ -257,10 +244,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
         {/* The promise. Scrubs out (fade + rise + slight shrink) on scroll so
             the hand-off to Act II reads as one camera move. */}
         <ScrollExit className="relative z-10 mx-auto max-w-3xl text-center">
-          <span className="animate-fade-up zf-label justify-center">
-            Live market terminals · agent-built · free &amp; open source
-          </span>
-          <h1 className="animate-fade-up mt-5 text-balance text-5xl font-bold leading-[1.04] tracking-tight text-white [animation-delay:60ms] sm:text-7xl">
+          <h1 className="animate-fade-up text-balance text-5xl font-bold leading-[1.04] tracking-tight text-white [animation-delay:60ms] sm:text-7xl">
             Describe your dashboard.
             <br className="hidden sm:block" />{" "}
             <span className="bg-gradient-to-r from-indigo-200 via-violet-200 to-indigo-300 bg-clip-text text-transparent">
@@ -285,48 +269,19 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             >
               Build your own dashboard
             </Link>
-            <Link
-              href="/catalogue"
-              className="zf-press rounded-xl border border-white/15 bg-white/[0.03] px-6 py-3 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
-            >
-              Explore {frameCount} frames →
-            </Link>
-          </div>
-
-          {/* Licence + price, stated plainly right under the CTAs — the two
-              things a visitor most often has to go hunting for. The repo link
-              is the proof, so the claim is one click from being checked. */}
-          <div className="animate-fade-up mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-white/55 [animation-delay:210ms]">
-            <a
-              href="https://github.com/zentryhq/zframes"
-              target="_blank"
-              rel="noreferrer"
-              className="zf-press inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] px-3 py-1 transition-colors hover:border-white/30 hover:text-white"
-            >
-              <svg
-                viewBox="0 0 16 16"
-                className="h-3.5 w-3.5"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-              </svg>
-              Open source · MIT
-            </a>
-            <span className="rounded-full border border-white/[0.12] px-3 py-1">
-              Free — no account, no API keys
-            </span>
           </div>
 
           {/* The real entry point (README §Quickstart). */}
-          <div className="animate-fade-up mt-9 flex flex-col items-center gap-2.5 [animation-delay:240ms]">
+          <div className="animate-fade-up mt-10 flex flex-col items-center gap-2.5 [animation-delay:240ms]">
             <span className="text-xs uppercase tracking-widest text-white/55">
               Install in your agent, then just talk
             </span>
             <CopyCommand command="npx skills add zentryhq/zframes" />
             <span className="font-mono text-xs text-white/55">
-              <span className="text-indigo-300">/zframes</span> build me a TSLA
-              + NVDA terminal with funding &amp; fear-greed
+              <span className="text-indigo-300">/zframes</span>
+              {
+                "  build me an NVDA earnings desk with options walls, short volume & SEC filings"
+              }
             </span>
           </div>
         </ScrollExit>
@@ -342,9 +297,9 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             Real boards. Demo data. Zero keys.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
-            Every board here is rendering right now on simulated demo data —
-            the same frames your generated terminal runs on live, keyless
-            feeds. Keep scrolling; open any one.
+            Every board here is rendering right now on simulated demo data — the
+            same frames your generated terminal runs on live, keyless feeds.
+            Keep scrolling; open any one.
           </p>
         </Reveal>
       </section>
@@ -422,36 +377,59 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
       <FramesShowcase />
 
       {/* ── Act IV · How — three beats to your own terminal ──────────────── */}
+      {/* Sticky-rail layout: the heading column pins while the steps scroll
+          past it — the numbered column is the tall one, so the title stays on
+          screen for the whole read. */}
       <section id="build" className="mx-auto max-w-7xl px-6 pt-24">
-        <Reveal>
-          <SectionHeading
-            eyebrow="How it works"
-            title="Three beats to your own terminal"
-            description="No repo to clone, no builder UI to learn. Your agent does the building; you own the artifact."
-          />
-        </Reveal>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StepCard
-            index={0}
-            step="01"
-            title="Install the skill"
-            body="One command teaches your coding agent — Claude Code, Cursor, Codex — how to build zframes terminals."
-            code="npx skills add zentryhq/zframes"
-          />
-          <StepCard
-            index={1}
-            step="02"
-            title="Describe what you watch"
-            body="“TSLA and NVDA, funding rates, fear & greed.” The agent reads the frame catalogue and writes the spec."
-            code="/zframes build me a TSLA + NVDA terminal"
-          />
-          <StepCard
-            index={2}
-            step="03"
-            title="Own the result"
-            body="One git-trackable dashboard.json, served locally with live keyless data — editable in the browser, forever yours."
-            code="npx zframes serve"
-          />
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
+          <div className="lg:sticky lg:top-24 lg:self-start">
+            <Reveal>
+              <span className="zf-label mb-2.5">How it works</span>
+              <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                Three beats to your own terminal
+              </h2>
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-white/65 sm:text-base">
+                No repo to clone, no builder UI to learn. Your agent does the
+                building; you own the artifact.
+              </p>
+            </Reveal>
+            {/* Ghosted watermark — the three beats, barely there. Desktop only:
+                on mobile the rail isn't sticky and the ghost would just be a
+                gap between heading and steps. */}
+            <div
+              aria-hidden
+              className="pointer-events-none mt-12 hidden select-none font-bold leading-[0.95] tracking-tighter text-white/[0.04] lg:block"
+            >
+              <div className="text-[clamp(4rem,7vw,6.5rem)]">install</div>
+              <div className="text-[clamp(4rem,7vw,6.5rem)]">describe</div>
+              <div className="text-[clamp(4rem,7vw,6.5rem)]">own</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-14 pt-2 sm:gap-20 lg:py-10">
+            <Step
+              index={0}
+              n="1"
+              title="Install the skill"
+              body="One command teaches your coding agent — Claude Code, Cursor, Codex — how to build zframes terminals."
+              code="npx skills add zentryhq/zframes"
+            />
+            <Step
+              index={1}
+              n="2"
+              title="Describe what you watch"
+              body="“An NVDA earnings desk: options walls, short volume, filings.” The agent reads the frame catalogue and writes the spec."
+              code="/zframes build me an NVDA earnings desk"
+              prefix="›"
+            />
+            <Step
+              index={2}
+              n="3"
+              title="Own the result"
+              body="One git-trackable dashboard.json, served locally with live keyless data — editable in the browser, forever yours."
+              code="npx zframes serve"
+            />
+          </div>
         </div>
       </section>
 
@@ -553,72 +531,98 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
  */
 function Faq() {
   return (
-    <section id="faq" className="mx-auto max-w-3xl px-6 pt-24">
-      <Reveal>
-        <SectionHeading
-          eyebrow="Questions"
-          title="Common questions"
-          description="The things people ask before installing — price, keys, agents, and where your dashboard actually lives."
-        />
-      </Reveal>
-      <div className="flex flex-col gap-2.5">
-        {FAQ.map((item, i) => (
-          <Reveal key={item.question} delay={Math.min(i, 4) * 0.05}>
-            <details className="zf-surface group px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
-              <summary className="zf-press flex cursor-pointer list-none items-center justify-between gap-4 text-left font-semibold text-white">
-                <h3 className="text-[15px]">{item.question}</h3>
-                {/* Rotates to a minus when open — the only motion here, and
-                    CSS-only so it works with JS off. */}
-                <svg
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4 shrink-0 text-indigo-300 transition-transform duration-200 group-open:rotate-45"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  aria-hidden="true"
-                >
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </summary>
-              <p className="mt-3 text-pretty text-sm leading-relaxed text-white/70">
-                {item.answer}
-              </p>
-            </details>
+    <section id="faq" className="mx-auto max-w-7xl px-6 pt-24">
+      {/* Same sticky-rail layout as the How section: the heading column pins
+          while the question list scrolls past it. */}
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
+        <div className="lg:sticky lg:top-24 lg:self-start">
+          <Reveal>
+            <span className="zf-label mb-2.5">Questions</span>
+            <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Common questions
+            </h2>
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-white/65 sm:text-base">
+              The things people ask before installing — price, keys, agents, and
+              where your dashboard actually lives.
+            </p>
+            <p className="mt-6 text-sm text-white/45">
+              Something else?{" "}
+              <a
+                href="https://github.com/zentryhq/zframes"
+                className="font-medium text-indigo-300 transition-colors hover:text-indigo-200"
+              >
+                It&rsquo;s all open source →
+              </a>
+            </p>
           </Reveal>
-        ))}
+        </div>
+
+        <div className="flex flex-col gap-2.5">
+          {FAQ.map((item, i) => (
+            <Reveal key={item.question} delay={Math.min(i, 4) * 0.05}>
+              <details className="zf-surface group px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
+                <summary className="zf-press flex cursor-pointer list-none items-center justify-between gap-4 text-left font-semibold text-white">
+                  <h3 className="text-[15px]">{item.question}</h3>
+                  {/* Rotates to a minus when open — the only motion here, and
+                    CSS-only so it works with JS off. */}
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4 shrink-0 text-indigo-300 transition-transform duration-200 group-open:rotate-45"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </summary>
+                <p className="mt-3 text-pretty text-sm leading-relaxed text-white/70">
+                  {item.answer}
+                </p>
+              </details>
+            </Reveal>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
 
-// How-it-works step — numbered, with the actual command as the artifact.
-function StepCard({
-  step,
+// One beat in the How column: numbered badge, title, prose, then the command
+// as a real copy chip (CopyCommand), not a decorative <code>.
+function Step({
+  n,
   title,
   body,
   code,
+  prefix,
   index,
 }: {
-  step: string;
+  n: string;
   title: string;
   body: string;
   code: string;
+  prefix?: string;
   index: number;
 }) {
   return (
-    <Reveal delay={index * 0.1}>
-      <div className="zf-surface flex h-full flex-col p-6">
-        <span className="font-mono text-sm font-semibold text-indigo-300">
-          {step}
+    <Reveal delay={index * 0.08}>
+      <div className="flex gap-5">
+        <span className="flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-full bg-white text-sm font-bold text-slate-950">
+          {n}
         </span>
-        <h3 className="mt-3 font-semibold text-white">{title}</h3>
-        <p className="mt-1.5 flex-1 text-sm leading-relaxed text-white/60">
-          {body}
-        </p>
-        <code className="mt-4 block truncate rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs text-indigo-200">
-          {code}
-        </code>
+        <div className="min-w-0 flex-1 pt-1">
+          <h3 className="text-lg font-bold tracking-tight text-white sm:text-xl">
+            {title}
+          </h3>
+          <p className="mt-2 max-w-lg text-pretty text-sm leading-relaxed text-white/65 sm:text-[15px]">
+            {body}
+          </p>
+          <div className="mt-5 inline-flex max-w-full">
+            <CopyCommand command={code} prefix={prefix} />
+          </div>
+        </div>
       </div>
     </Reveal>
   );

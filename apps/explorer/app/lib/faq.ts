@@ -39,7 +39,7 @@ export const FAQ: FaqItem[] = [
   },
   {
     question: `How do I install ${SITE_NAME}?`,
-    answer: `Run \`${INSTALL_COMMAND}\` to install the skill into your coding agent, then ask it for the dashboard you want — for example "/zframes build me a TSLA and NVDA terminal with funding rates and fear & greed". The agent writes the spec and serves it with \`npx zframes serve\`. There is no repository to clone and no build step.`,
+    answer: `Run \`${INSTALL_COMMAND}\` to install the skill into your coding agent, then ask it for the dashboard you want — for example "/zframes build me an NVDA earnings desk with options walls, short volume and SEC filings". The agent writes the spec and serves it with \`npx zframes serve\`. There is no repository to clone and no build step.`,
   },
   {
     question: "Where does my dashboard actually live?",
