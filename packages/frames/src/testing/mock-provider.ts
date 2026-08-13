@@ -2373,10 +2373,16 @@ export class MockMarketDataProvider implements MarketDataProvider {
       const trend = Array.from({ length: n }, (_, i) => {
         total += r() * 6_000_000_000;
         const t = BASELINE_NOW - (n - 1 - i) * DAY;
+        // The composition frame stacks the public/intragovernmental split per
+        // point and drops any point missing it — total alone renders empty.
+        const rounded = round(total, 0);
+        const heldByPublic = round(rounded * (0.788 + r() * 0.004), 0);
         return {
           time: t,
           date: new Date(t).toISOString().slice(0, 10),
-          total: round(total, 0),
+          total: rounded,
+          heldByPublic,
+          intragovernmental: rounded - heldByPublic,
         };
       });
       return {
