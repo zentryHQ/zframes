@@ -306,6 +306,12 @@ export function useMidsState(symbols: readonly string[]): {
   const provider = useProviderFor("quote-stream");
   const [mids, setMids] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
+  // Published by the enclosing card (FrameContent → ValidFrameCard), exactly as
+  // in usePolled: an off-screen card must not re-render + redraw its chart on
+  // every stream tick. The stream stays subscribed (cheap — providers fan out
+  // from one socket/timer), but state stops updating; the first tick after the
+  // card scrolls back into view repaints it.
+  const visibility = useContext(FrameVisibilityContext);
   const key = symbols.join(",");
   useEffect(() => {
     const wanted = key.split(",").filter(Boolean);
@@ -327,6 +333,7 @@ export function useMidsState(symbols: readonly string[]): {
       // A tick that changes nothing must cost zero state updates, so this only
       // fires while still loading rather than on every message.
       setIsLoading((loading) => (loading ? false : loading));
+      if (visibility && !visibility.visibleRef.current) return;
       setMids((prev) => {
         let changed = false;
         const next: Record<string, number> = {};
@@ -347,7 +354,7 @@ export function useMidsState(symbols: readonly string[]): {
       clearTimeout(timeout);
       unsubscribe();
     };
-  }, [provider, key]);
+  }, [provider, key, visibility]);
   return { mids, isLoading };
 }
 

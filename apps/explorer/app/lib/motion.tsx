@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import {
   motion,
+  motionValue,
   useReducedMotion,
   useScroll,
   useSpring,
@@ -84,6 +85,59 @@ export function Parallax({
   );
 }
 
+// One shared pointer tracker for every MouseParallax on the page. The hero
+// mounts six of these; per-instance listeners meant 6 mousemove handlers × 12
+// springs firing on every pointer move (trackpad scrolling emits mousemove
+// too). Shared: ONE passive listener writes two normalized (-1..1) motion
+// values, attached while at least one instance is mounted; each instance
+// derives its own drift from them.
+const pointerX = motionValue(0);
+const pointerY = motionValue(0);
+let pointerSubscribers = 0;
+const onPointerMove = (e: MouseEvent) => {
+  pointerX.set((e.clientX / window.innerWidth - 0.5) * 2);
+  pointerY.set((e.clientY / window.innerHeight - 0.5) * 2);
+};
+function subscribePointer(): () => void {
+  if (pointerSubscribers === 0)
+    window.addEventListener("mousemove", onPointerMove, { passive: true });
+  pointerSubscribers += 1;
+  return () => {
+    pointerSubscribers -= 1;
+    if (pointerSubscribers === 0)
+      window.removeEventListener("mousemove", onPointerMove);
+  };
+}
+
+const POINTER_SPRING = { stiffness: 50, damping: 18, mass: 0.6 };
+
+// Parallax drift driven by an EXTERNAL progress value (0..1) instead of the
+// element's own viewport measurement. `useScroll({target})` costs an
+// offsetParent walk + layout reads for EVERY instance on EVERY scroll frame —
+// the showcase's ~43 specimen/numeral drifts each carried one. A section now
+// measures once (useViewportProgress on its root) and every decoration inside
+// derives its drift from that single value: same depth cue, one measurement.
+export function DrivenParallax({
+  children,
+  className,
+  distance = 60,
+  progress,
+}: {
+  children: ReactNode;
+  className?: string;
+  distance?: number;
+  progress: MotionValue<number>;
+}) {
+  const reduced = useReducedMotion();
+  const y = useTransform(progress, [0, 1], [distance, -distance]);
+  if (reduced) return <div className={className}>{children}</div>;
+  return (
+    <motion.div style={{ y }} className={className}>
+      {children}
+    </motion.div>
+  );
+}
+
 // Pointer-follow drift — the hero's depth cue at rest. The layer eases toward
 // the cursor (or away, negative strength) with a soft spring, so stacked layers
 // given different strengths read as a parallax volume even before any scroll.
@@ -99,19 +153,20 @@ export function MouseParallax({
   strength?: number;
 }) {
   const reduced = useReducedMotion();
-  const x = useSpring(0, { stiffness: 50, damping: 18, mass: 0.6 });
-  const y = useSpring(0, { stiffness: 50, damping: 18, mass: 0.6 });
+  const x = useSpring(
+    useTransform(pointerX, (v) => v * strength),
+    POINTER_SPRING,
+  );
+  const y = useSpring(
+    useTransform(pointerY, (v) => v * strength),
+    POINTER_SPRING,
+  );
 
   useEffect(() => {
     if (reduced) return;
     if (window.matchMedia("(hover: none)").matches) return;
-    const onMove = (e: MouseEvent) => {
-      x.set((e.clientX / window.innerWidth - 0.5) * 2 * strength);
-      y.set((e.clientY / window.innerHeight - 0.5) * 2 * strength);
-    };
-    window.addEventListener("mousemove", onMove, { passive: true });
-    return () => window.removeEventListener("mousemove", onMove);
-  }, [reduced, strength, x, y]);
+    return subscribePointer();
+  }, [reduced]);
 
   if (reduced) return <div className={className}>{children}</div>;
   return (
@@ -275,6 +330,14 @@ export function FocusPanel({
   const zIndex = useTransform(progress, (p) =>
     Math.round(500 - Math.abs(focusT(p, count) - index) * 100),
   );
+  // A fully-demoted panel (opacity 0) is taken out of compositing entirely —
+  // four permanently-promoted viewport-sized layers over live iframes made the
+  // compositor re-raster all of them on every crossfade frame. `will-change` is
+  // deliberately NOT set: the animated transform promotes the two panels that
+  // are actually mid-transition, and the rest stay unpromoted.
+  const panelVisibility = useTransform(progress, (p) =>
+    amt(p) >= 1 ? "hidden" : "visible",
+  );
   return (
     <motion.div
       className={`absolute inset-0 ${className ?? ""}`}
@@ -283,9 +346,9 @@ export function FocusPanel({
         opacity,
         y,
         zIndex,
+        visibility: panelVisibility,
         transformOrigin: "center center",
         pointerEvents: active ? "auto" : "none",
-        willChange: "transform, opacity",
       }}
     >
       {children}

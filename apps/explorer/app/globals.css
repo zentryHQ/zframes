@@ -1,4 +1,9 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+/* The webfonts load via <link> tags in app/layout.tsx, NOT a CSS @import: an
+ * @import here serialized DNS+TLS+fetch of the font CSS BEHIND this stylesheet
+ * (render-blocking chain, and the hero's text-7xl reflowed on swap). The <link>
+ * path lets the HTML preload scanner start both round trips immediately. The
+ * family must stay the literal "DM Sans" (not next/font's hashed name) — the
+ * spec kernel's FONT_FAMILY_STACKS pins that name for every embedded board. */
 @import "tailwindcss";
 @import "@zframes/charts/src/theme.css";
 @import "tw-animate-css";
@@ -115,8 +120,12 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Deliberately NOT `scroll-behavior: smooth` at the root: the landing is
+ * ~1500vh, and its hero CTA anchors PAST the whole sticky board stack — a
+ * smooth scroll animated the viewport through every crossfade, parallax
+ * measurement and iframe re-raster on the way (the single worst jank moment on
+ * the site, triggered by the primary CTA). Long in-page jumps are instant. */
 html {
-  scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: var(--zf-scrollbar-thumb) transparent;
 }
@@ -279,16 +288,30 @@ body::before {
   flex: none;
 }
 
+/* Skip layout + paint for tall below-fold sections until they approach the
+ * viewport. `auto` intrinsic-size remembers the real height after first render,
+ * so scrollbar jumps only ever happen once, on the way down. Applied to the
+ * landing's chapter scenes, How/FAQ/value sections — a ~1200vh page otherwise
+ * lays out and paints every one of them on first render. */
+.cv-below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
+
 /* Terminal glass — the header + overlay material. Navy-tinted translucency off
  * the base hue (NOT white glass), so it reads as darkened terminal chrome. */
 .glass {
   background: linear-gradient(
     180deg,
-    hsl(var(--zf-base-hue) var(--zf-base-sat) 12% / 0.6),
-    hsl(var(--zf-base-hue) var(--zf-base-sat) 6% / 0.5)
+    hsl(var(--zf-base-hue) var(--zf-base-sat) 12% / 0.72),
+    hsl(var(--zf-base-hue) var(--zf-base-sat) 6% / 0.62)
   );
-  backdrop-filter: blur(14px) saturate(1.1);
-  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  /* A fixed backdrop-filter re-reads + re-blurs the whole strip on EVERY
+   * scroll frame (everything behind it moves, so nothing caches). Keep the
+   * glass but cheap: smaller radius, no saturate() second filter pass; the
+   * slightly higher fill opacity above covers the visual difference. */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 /* Gradient hairline rim via mask — now indigo-tinted off the accent (was white),
@@ -596,18 +619,29 @@ html[data-zf-demo] .zf-frame-source {
   animation: fade-up 0.7s var(--zf-ease-out) both;
 }
 
+/* Pulsing ring as a pseudo-element animating transform+opacity (compositor
+ * only) — the old box-shadow keyframes repainted the element every frame of an
+ * infinite 2s loop, multiplied across every LIVE pill on the page. */
 @keyframes live-pulse {
   0% {
-    box-shadow: 0 0 0 0 hsla(150, 70%, 52%, 0.55);
+    transform: scale(1);
+    opacity: 0.55;
   }
-  70% {
-    box-shadow: 0 0 0 6px hsla(150, 70%, 52%, 0);
-  }
+  70%,
   100% {
-    box-shadow: 0 0 0 0 hsla(150, 70%, 52%, 0);
+    transform: scale(3.4);
+    opacity: 0;
   }
 }
 .live-dot {
+  position: relative;
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: hsla(150, 70%, 52%, 0.55);
   animation: live-pulse 2s ease-out infinite;
 }
 
@@ -643,10 +677,13 @@ html[data-zf-demo] .zf-frame-source {
     scroll-behavior: auto;
   }
   .animate-fade-up,
-  .live-dot,
+  .live-dot::after,
   .animate-float,
   .animate-scroll-cue {
     animation: none;
+  }
+  .live-dot::after {
+    content: none;
   }
   /* Dialogs keep the comprehension-aiding fade but lose the movement. */
   .animate-dialog-in {
