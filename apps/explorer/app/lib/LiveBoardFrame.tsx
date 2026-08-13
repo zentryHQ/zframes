@@ -7,6 +7,7 @@ import {
   type MotionValue,
 } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getDataMode } from "@/app/lib/data-mode";
 
 // A full-bleed live example board — the real board rendered inside a same-origin
 // <iframe src="/embed/{id}">, framed to fill one fullscreen panel of the landing's
@@ -56,6 +57,13 @@ export function LiveBoardFrame({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [mounted, setMounted] = useState(false);
   const [loaded, setLoaded] = useState(false);
+
+  // The top-bar pill must not claim LIVE over a demo-mode board. Resolved in
+  // an effect (SSR renders the demo shape; see DataModeToggle for the pattern).
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    setLive(getDataMode() === "live");
+  }, []);
 
   useEffect(() => {
     if (mounted) return;
@@ -134,7 +142,7 @@ export function LiveBoardFrame({
         <iframe
           ref={iframeRef}
           src={`/embed/${id}`}
-          title={`${title} — live preview`}
+          title={`${title} — board preview`}
           loading="lazy"
           scrolling="no"
           tabIndex={-1}
@@ -147,7 +155,7 @@ export function LiveBoardFrame({
       {!loaded && (
         <div className="absolute inset-0 z-0 flex items-center justify-center bg-gradient-to-br from-white/[0.03] to-transparent">
           <span className="animate-pulse font-mono text-xs tracking-widest text-white/40">
-            LOADING LIVE BOARD…
+            LOADING BOARD…
           </span>
         </div>
       )}
@@ -156,16 +164,25 @@ export function LiveBoardFrame({
             iframe, below the caption chrome. Inside .group so it drives hover. */}
       <Link
         href={`/dashboard/${id}`}
-        aria-label={`Open ${title} live preview`}
+        aria-label={`Open ${title} preview`}
         className="absolute inset-0 z-10"
       />
 
-      {/* Top bar — LIVE pill + frame count. Visual only. */}
+      {/* Top bar — LIVE/DEMO pill + frame count. Visual only. The pill follows
+          the browser's data mode: claiming LIVE over simulated numbers is the
+          exact mislabelling the demo-by-default posture forbids. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between p-4 sm:p-5">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/45 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur">
-          <span className="live-dot h-1.5 w-1.5 rounded-full bg-up" />
-          Live
-        </span>
+        {live ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/45 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur">
+            <span className="live-dot h-1.5 w-1.5 rounded-full bg-up" />
+            Live
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-black/45 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300/90 backdrop-blur">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            Demo
+          </span>
+        )}
         <span className="rounded-full border border-white/10 bg-black/45 px-2.5 py-1 font-mono text-[11px] text-white/70 backdrop-blur">
           {frameCount} {frameCount === 1 ? "frame" : "frames"}
         </span>
@@ -201,7 +218,7 @@ export function LiveBoardFrame({
             )}
           </div>
           <span className="glow-brand hidden shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg sm:inline-flex">
-            Open live preview
+            Open full preview
             <span className="zf-arrow-reveal">→</span>
           </span>
         </div>
