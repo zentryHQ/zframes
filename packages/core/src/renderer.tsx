@@ -91,7 +91,12 @@ export function DashboardRenderer({
     // Display currency resolves once for the whole board (one shared FX poll);
     // each card may still override it via FrameInstance.currency.
     <DashboardCurrencyProvider code={spec.currency.code}>
-      <style>{FRAME_CSS}</style>
+      {/* React 19 style hoisting: href + precedence dedupe this into ONE
+          document-level tag however many renderers mount (the catalogue mounts
+          hundreds of one-frame boards). */}
+      <style href="zframes-frame-css" precedence="zframes">
+        {FRAME_CSS}
+      </style>
       <div
         className={horizontal ? "zf-grid zf-flow-horizontal" : "zf-grid"}
         style={{
