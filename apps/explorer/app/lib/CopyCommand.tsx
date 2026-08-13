@@ -5,7 +5,15 @@ import { toast } from "sonner";
 
 // The real entry point (per the README): install the skill into your agent.
 // A copyable command chip — small client island dropped into the server hero.
-export function CopyCommand({ command }: { command: string }) {
+// `prefix` is the glyph before the command: "$" for shell (default), "›" for
+// a line typed at an agent rather than a terminal.
+export function CopyCommand({
+  command,
+  prefix = "$",
+}: {
+  command: string;
+  prefix?: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   return (
@@ -20,7 +28,7 @@ export function CopyCommand({ command }: { command: string }) {
       className="hairline zf-press group flex items-center gap-3 rounded-xl bg-black/30 px-4 py-2.5 font-mono text-sm text-white/80 transition-colors hover:bg-black/50"
       aria-label="Copy install command"
     >
-      <span className="select-none text-indigo-300/70">$</span>
+      <span className="select-none text-indigo-300/70">{prefix}</span>
       <span className="text-white/85">{command}</span>
       <span className="ml-1 text-white/40 transition-colors group-hover:text-white/70">
         {copied ? (
