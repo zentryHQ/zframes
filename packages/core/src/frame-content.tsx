@@ -112,8 +112,11 @@ export const FRAME_CSS = `
     grid-template-rows: repeat(var(--zf-h-rows, 6), minmax(0, 1fr));
     grid-auto-flow: column dense;
     grid-auto-columns: var(--zf-row-h, 96px);
-    height: var(--zf-h-height, calc(100vh - 220px));
-    min-height: 420px;
+    /* dvh (not vh) so a mobile URL bar doesn't inflate the box, and the 420px
+       floor yields on short viewports (landscape phones) — a hard 420px inside
+       an overflow-hidden 100dvh host clipped the bottom of the board. */
+    height: var(--zf-h-height, calc(100dvh - 220px));
+    min-height: min(420px, calc(100dvh - 120px));
     overflow-x: auto;
     overflow-y: hidden;
     align-content: stretch;
@@ -555,15 +558,43 @@ export const FRAME_CSS = `
    span (height), but ignore horizontal placement. */
 @media (max-width: 640px) {
   .zf-grid {
-    grid-template-columns: 1fr;
+    /* minmax(0, …) like the base grid: a bare 1fr lets one card's min-content
+       (an unwrappable stat row) widen the track past the viewport. */
+    grid-template-columns: minmax(0, 1fr);
+    /* Shrink the row unit with the viewport (16vw ≈ the desktop 96px row scaled
+       by phone-width/design-width) so a card keeps roughly its authored aspect
+       instead of going portrait, and a 20-frame board doesn't become 7,000px of
+       scroll. Meets the desktop value again right at the breakpoint. */
+    grid-auto-rows: min(var(--zf-row-h, 96px), 16vw);
+    /* Authored gutters are sized for desktop; on a 360px phone they can eat a
+       third of the width, so cap them. */
+    padding-inline: min(var(--zf-pad-x, 0px), 16px);
   }
-  /* Direct children only. A group's children live in the group's OWN grid, which
-     is already sized to its card — stacking them full-width here would make them
-     overflow a slot that didn't grow. The group itself collapses like any card
-     and its cluster scales down inside it. */
+  /* Direct children only — a group's children reflow inside the group's OWN
+     grid below, not against the board. */
   .zf-grid > .zf-frame,
   .zf-grid > .zf-bare,
   .zf-grid > .zf-group {
+    grid-column: 1 / -1;
+    grid-row: auto / span var(--zf-row-span, 1);
+  }
+  /* A group's children stack below (one per row instead of an N-col cluster),
+     so the group itself gets double its authored span — without it each child
+     is a sliver of a card sized for the side-by-side layout. */
+  .zf-grid > .zf-group {
+    grid-row: auto / span calc(var(--zf-row-span, 1) * 2);
+  }
+  /* Inside a group: the authored N-column cluster gives ~50px cells on a phone,
+     so stack the children full-width instead. Rows stay fractions of the
+     group's height (auto 1fr units, one per spanned row) so the cluster still
+     fills its slot exactly rather than overflowing the card. */
+  .zf-subgrid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-rows: minmax(0, 1fr);
+  }
+  .zf-subgrid > .zf-frame,
+  .zf-subgrid > .zf-bare {
     grid-column: 1 / -1;
     grid-row: auto / span var(--zf-row-span, 1);
   }

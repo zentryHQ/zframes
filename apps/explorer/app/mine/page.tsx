@@ -110,7 +110,7 @@ export default function MyDashboardsPage() {
           {rows.map((d) => (
             <li
               key={d.id}
-              className="zf-surface card-lift flex items-center justify-between gap-4 px-4 py-3.5"
+              className="zf-surface card-lift flex flex-wrap items-center justify-between gap-x-4 gap-y-2.5 px-4 py-3.5"
             >
               <div className="min-w-0">
                 <Link
@@ -119,7 +119,7 @@ export default function MyDashboardsPage() {
                 >
                   {d.title}
                 </Link>
-                <div className="mt-1 flex items-center gap-2 font-mono text-xs text-white/55">
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-xs text-white/55">
                   <span
                     className={
                       d.visibility === "listed"
@@ -134,7 +134,9 @@ export default function MyDashboardsPage() {
                   </span>
                   <span>· {d.frameCount} frames</span>
                   <span>· {d.views} views</span>
-                  <code className="text-white/55">/dashboard/{d.id}</code>
+                  <code className="break-all text-white/55">
+                    /dashboard/{d.id}
+                  </code>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">

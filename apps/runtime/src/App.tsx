@@ -25,7 +25,7 @@ import { DashboardChooser } from "./dashboard-chooser";
 import { createLazyRegistry, prefetchFrames } from "./lazy-registry";
 import { prefetchIdle } from "./prefetch-idle";
 import { TickerTape } from "./ticker-tape";
-import { useIsDesktop } from "./use-is-desktop";
+import { useIsDesktop, useMediaQuery } from "./use-is-desktop";
 import { ZaiOrb } from "./zai-orb";
 
 // The GridStack editor is desktop-only and heavy (GridStack + its CSS side-effect
@@ -185,6 +185,11 @@ export default function App() {
   // editor. Phones and tablets get the read-only CSS-grid renderer, which
   // reflows itself (single column <=640px, two columns 641-1023px).
   const isDesktop = useIsDesktop();
+  // FRAME_CSS only side-scrolls flow-horizontal boards above the phone
+  // breakpoint (<=640px falls back to the vertical single-column stack), so the
+  // host must not clamp <main> to a non-scrolling 100dvh there — that clipped
+  // everything below the first viewport.
+  const isWide = useMediaQuery("(min-width: 641px)");
   // Lifted from the zAI orb: when the orb is open, the background recolors +
   // brightens so opening zAI visibly "charges" the scene behind the dashboard.
   const [orbOpen, setOrbOpen] = useState(false);
@@ -289,7 +294,8 @@ export default function App() {
   // flow-horizontal is full-bleed: it drops the centred max-width so the board
   // uses the whole viewport width and scrolls sideways. liveMode wins while
   // customising; otherwise the saved spec decides.
-  const isHorizontal = (liveMode ?? spec.grid.mode) === "flow-horizontal";
+  const isHorizontal =
+    (liveMode ?? spec.grid.mode) === "flow-horizontal" && isWide;
   // The live edit wins while customising, else the saved spec. Resolve the
   // backdrop's authored hue from its projectId so the accent hue-rotate spins
   // the scene relative to its own colour — a preset's paired scene renders as
@@ -321,11 +327,11 @@ export default function App() {
         }
       >
         <header
-          className={`mb-5 flex flex-col gap-2 border-b border-white/[0.06] pb-4 pr-28 sm:flex-row sm:items-center ${
+          className={`mb-5 flex flex-col gap-2 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-center lg:pr-28 ${
             isHorizontal ? "px-4 sm:px-6" : ""
           }`}
         >
-          <div className="flex items-baseline gap-3">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-3">
             <h1 className="font-dmsans text-strong text-lg font-extrabold tracking-tight">
               /
               <span

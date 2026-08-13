@@ -78,7 +78,10 @@ const TAPE_CSS = `
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
-@media (prefers-reduced-motion: reduce) {
+/* Touch devices can't hover-pause the marquee, so a symbol mid-scroll could
+   never be read — give them the same static, finger-scrollable strip the
+   reduced-motion branch uses. */
+@media (prefers-reduced-motion: reduce), (hover: none) {
   .zf-tape { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
   .zf-tape-track { animation: none; }
 }
