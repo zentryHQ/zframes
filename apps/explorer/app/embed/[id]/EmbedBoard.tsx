@@ -4,6 +4,7 @@ import { DashboardSpecSchema } from "@zframes/core";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardBackground } from "@/app/lib/DashboardBackground";
+import { getDataMode } from "@/app/lib/data-mode";
 
 // The live board, client-only (shared WS + browser APIs) → dynamic ssr:false,
 // same as the /dashboard/[id] preview. This component IS the whole /embed/[id] document
@@ -64,6 +65,17 @@ function scrollProgressOf(data: unknown): number | null {
 const SHELL_PAD = 32;
 
 export function EmbedBoard({ spec }: { spec: unknown }) {
+  // /embed/* renders bare (no AppShell, so no header data-mode pill), but the
+  // demo-by-default rule still applies: simulated numbers must be visibly
+  // labelled on EVERY surface — including a board iframed into the landing
+  // showcase or a third-party page. Resolved in an effect (SSR-safe: server
+  // renders no badge, and a demo-mode client adds it on mount). Note a
+  // partitioned third-party iframe can't read the opt-in flag and correctly
+  // falls back to demo — which is exactly when the label matters most.
+  const [demo, setDemo] = useState(false);
+  useEffect(() => {
+    setDemo(getDataMode() === "demo");
+  }, []);
   // Parse only to read the background + accent for the backdrop; DashboardView
   // re-parses and owns the invalid-spec message, so a bad spec just skips the bg.
   const parsed = DashboardSpecSchema.safeParse(spec);
@@ -153,6 +165,15 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
           <DashboardView spec={spec} />
         </div>
       </div>
+      {demo && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-md border border-amber-400/20 bg-black/50 px-2 py-1 text-[11px] text-amber-300/90 backdrop-blur-sm"
+        >
+          <span className="h-1 w-1 rounded-full bg-amber-400" />
+          Demo data
+        </div>
+      )}
     </div>
   );
 }
