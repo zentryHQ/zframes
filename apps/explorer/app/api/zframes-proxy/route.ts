@@ -78,8 +78,8 @@ const ERROR_TTL = 60;
  * ~4.5 MB fails at the platform, which reaches the browser as neither a body
  * nor the proxy's own 502 — so the cap has to bind inside the handler, below
  * the platform's. It must stay above SEC's biggest real payload: NVDA's
- * companyfacts blob measured 4,039,082 bytes and is the landing page's
- * spotlight. The CLI keeps its own 16 MB default (loopback, no such limit).
+ * companyfacts blob measured 4,039,082 bytes and backs the landing showcase's
+ * financials card. The CLI keeps its own 16 MB default (loopback, no such limit).
  */
 const MAX_RELAY_BYTES = 4_400_000;
 
@@ -204,7 +204,7 @@ async function proxy(request: Request): Promise<Response> {
   // else gets a short one, so a repeated failure is at least not re-asked
   // upstream once per visitor per poll.
   const ttl =
-    result.status === 200 ? (TTL_BY_HOST[targetHost ?? ""] ?? DEFAULT_TTL) : 0;
+    result.status === 200 ? TTL_BY_HOST[targetHost ?? ""] ?? DEFAULT_TTL : 0;
   headers.set(
     "CDN-Cache-Control",
     ttl > 0
