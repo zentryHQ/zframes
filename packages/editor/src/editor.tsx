@@ -19,6 +19,8 @@ import {
   baselineOf,
   canRedo,
   canUndo,
+  framesEqual,
+  historyLimitFor,
   initHistory,
   isDirty,
   pushHistory,
@@ -1091,9 +1093,7 @@ export function DashboardEditor({
       // separate GridStack configs — so crossing modes always means a rebuild.
       if (next.grid.mode !== modeRef.current) {
         rebuildGrid(next.grid.mode, next.frames);
-      } else if (
-        JSON.stringify(collectSpec().frames) !== JSON.stringify(next.frames)
-      ) {
+      } else if (!framesEqual(collectSpec().frames, next.frames)) {
         restore(next.frames);
       }
 
@@ -1182,7 +1182,14 @@ export function DashboardEditor({
   const commitHistory = useCallback(() => {
     if (!editingRef.current) return;
     if (Date.now() < suppressCommitUntilRef.current) return;
-    historyRef.current = pushHistory(historyRef.current, collectSpec());
+    const snapshot = collectSpec();
+    // Fewer retained entries on very large boards, so undo depth × board size
+    // stays bounded (see MAX_RETAINED_FRAMES).
+    historyRef.current = pushHistory(
+      historyRef.current,
+      snapshot,
+      historyLimitFor(snapshot.frames.length),
+    );
     publishHistory();
   }, [collectSpec, publishHistory]);
   commitHistoryRef.current = commitHistory;
@@ -1308,7 +1315,11 @@ export function DashboardEditor({
     // Same display-currency wrapper the renderer applies, so a board looks
     // identical in customise mode and when served.
     <DashboardCurrencyProvider code={currencyCode}>
-      <style>{FRAME_CSS}</style>
+      {/* Same href/precedence as DashboardRenderer's copy, so React 19 hoists
+          the two into one document-level tag when both are on a page. */}
+      <style href="zframes-frame-css" precedence="zframes">
+        {FRAME_CSS}
+      </style>
       {customiseButtonTarget && !editing
         ? createPortal(renderCustomiseButton(), customiseButtonTarget)
         : null}

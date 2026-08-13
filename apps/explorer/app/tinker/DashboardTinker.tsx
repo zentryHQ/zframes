@@ -8,13 +8,12 @@ import {
   type DashboardSpec,
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
-import { allFrames } from "@zframes/frames";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import "gridstack/dist/gridstack.min.css";
 import { PublishDialog } from "@/app/lib/PublishDialog";
 import { Button } from "@/app/components/ui/button";
-import { providers, registry } from "@/app/lib/frames";
+import { frameDefs, providers, registry } from "@/app/lib/frames";
 
 // Client-only module (the page dynamic-imports it ssr:false) — DashboardEditor
 // (GridStack) + localStorage both run in the browser.
@@ -31,8 +30,8 @@ const COLS = 12;
 // frame dropped into the lowest columns it fits. `float:true` in the editor
 // keeps these placements exactly as laid out.
 function buildStarter() {
-  const byCat = new Map<string, typeof allFrames>();
-  for (const def of allFrames) {
+  const byCat = new Map<string, typeof frameDefs>();
+  for (const def of frameDefs) {
     const key = def.category ?? "other";
     const bucket = byCat.get(key) ?? [];
     bucket.push(def);
@@ -49,7 +48,7 @@ function buildStarter() {
   const skyline = new Array<number>(COLS).fill(0);
   let uid = 0;
 
-  const dims = (def: (typeof allFrames)[number]) => ({
+  const dims = (def: (typeof frameDefs)[number]) => ({
     w: Math.min(Math.max(def.layout?.w ?? 4, 1), COLS),
     h: Math.max(def.layout?.h ?? 3, 1),
   });
@@ -128,18 +127,19 @@ function buildStarter() {
   };
 }
 
-const STARTER = buildStarter();
-
 function loadSpec(): DashboardSpec {
-  const fallback = DashboardSpecSchema.parse(STARTER);
+  // The saved spec first: buildStarter() packs ~285 default configs, so it is
+  // built lazily, only when this browser has nothing usable saved.
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return fallback;
-    const parsed = DashboardSpecSchema.safeParse(JSON.parse(raw));
-    return parsed.success ? parsed.data : fallback;
+    if (raw) {
+      const parsed = DashboardSpecSchema.safeParse(JSON.parse(raw));
+      if (parsed.success) return parsed.data;
+    }
   } catch {
-    return fallback;
+    // Storage unavailable / corrupt JSON — fall through to the starter.
   }
+  return DashboardSpecSchema.parse(buildStarter());
 }
 
 export default function DashboardTinker() {

@@ -386,6 +386,17 @@ export function defaultForShape(
 }
 
 /**
+ * Frame definitions are module singletons and their schemas never change, so
+ * the (Zod parse + JSON-Schema conversion) work is done once per definition.
+ * Callers get a shallow copy — some (the catalogue's account-frame override)
+ * mutate top-level keys of the result.
+ */
+const defaultConfigCache = new WeakMap<
+  AnyFrameDefinition,
+  Record<string, unknown>
+>();
+
+/**
  * A schema-valid starting config for a frame added from the palette. Frames
  * with all-optional fields resolve straight from `safeParse({})`; frames with
  * required fields (a price-chart's symbol, a note's text) get minimal
@@ -393,6 +404,16 @@ export function defaultForShape(
  * render immediately and never land as a null/undefined error card.
  */
 export function buildDefaultConfig(
+  def: AnyFrameDefinition,
+): Record<string, unknown> {
+  const cached = defaultConfigCache.get(def);
+  if (cached) return { ...cached };
+  const config = computeDefaultConfig(def);
+  defaultConfigCache.set(def, config);
+  return { ...config };
+}
+
+function computeDefaultConfig(
   def: AnyFrameDefinition,
 ): Record<string, unknown> {
   const empty = def.schema.safeParse({});

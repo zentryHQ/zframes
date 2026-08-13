@@ -82,6 +82,40 @@ function sweepStaleSpendKeys(): void {
   }
 }
 
+/**
+ * Today's spent counts, scanned out of localStorage ONCE per session. The
+ * catalogue mounts ~285 LikeButtons, each asking `spentToday` on mount — one
+ * getItem per button was 285 synchronous storage reads during first paint.
+ * All writes go through `setSpent`, so the map cannot drift from the mirror
+ * within this tab; another tab's writes stay invisible until reload, which the
+ * mirror's contract already tolerates (it is UX, never enforcement).
+ */
+let spentCache: Map<string, number> | null = null;
+function spentMap(): Map<string, number> {
+  if (spentCache) return spentCache;
+  sweepStaleSpendKeys();
+  const map = new Map<string, number>();
+  const today = `${SPENT_PREFIX}${utcDay()}.`;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(today)) continue;
+      const n = Number.parseInt(localStorage.getItem(key) ?? "", 10);
+      if (Number.isFinite(n) && n > 0) map.set(key, n);
+    }
+  } catch {
+    /* storage unavailable — an empty map, exactly like a fresh browser */
+  }
+  spentCache = map;
+  return map;
+}
+
+function setSpent(kind: string, id: string, n: number): void {
+  const key = spentKey(kind, id);
+  spentMap().set(key, n);
+  safeSet(key, String(n));
+}
+
 export function browserId(): string {
   const existing = safeGet(ID_KEY);
   if (existing) return existing;
@@ -107,14 +141,11 @@ function spentKey(kind: string, id: string): string {
 }
 
 export function spentToday(kind: string, id: string): number {
-  sweepStaleSpendKeys();
-  const raw = safeGet(spentKey(kind, id));
-  const n = raw ? Number.parseInt(raw, 10) : 0;
-  return Number.isFinite(n) && n > 0 ? n : 0;
+  return spentMap().get(spentKey(kind, id)) ?? 0;
 }
 
 export function recordSpend(kind: string, id: string): void {
-  safeSet(spentKey(kind, id), String(spentToday(kind, id) + 1));
+  setSpent(kind, id, spentToday(kind, id) + 1);
 }
 
 /** Cheap UX gate. Never authoritative — see the note at the top of this file. */
@@ -153,7 +184,7 @@ export async function sendLike(
       // Mirror the server's verdict so the button stops asking again this day —
       // including for a network cap the client had no way to predict.
       if (body.reason === "item-cap") {
-        safeSet(spentKey(kind, id), String(CLIENT_ITEM_CAP));
+        setSpent(kind, id, CLIENT_ITEM_CAP);
       }
       return {
         ok: false,

@@ -213,6 +213,67 @@ export function useEditorGridController({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Deferred first render (restore only) ──
+  // restore() used to createRoot + render every frame synchronously in one
+  // effect — ~300 roots on a big board, a multi-second first-mount stall. The
+  // GridStack widgets are still all added synchronously (geometry and scroll
+  // height must be right immediately), but each item's React root is created
+  // only when its element approaches the viewport, one-shot per item.
+  // Everything a save needs (instancesRef, the nested grids, gridstackNode) is
+  // registered synchronously, so an item whose root never mounted still
+  // round-trips through collectSpec.
+  const restoringRef = useRef(false);
+  const deferredRef = useRef<Map<Element, string[]>>(new Map());
+  const restoreObserverRef = useRef<IntersectionObserver | null>(null);
+
+  const clearDeferred = useCallback(() => {
+    restoreObserverRef.current?.disconnect();
+    deferredRef.current.clear();
+  }, []);
+
+  /** Render `id` when `el` nears the viewport — or immediately outside a
+   *  restore pass / where IntersectionObserver is unavailable (jsdom). */
+  const deferRender = useCallback(
+    (el: Element, id: string) => {
+      if (!restoringRef.current) {
+        renderInstance(id);
+        return;
+      }
+      if (
+        !restoreObserverRef.current &&
+        typeof IntersectionObserver === "function"
+      ) {
+        restoreObserverRef.current = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              const ids = deferredRef.current.get(entry.target);
+              deferredRef.current.delete(entry.target);
+              restoreObserverRef.current?.unobserve(entry.target);
+              if (ids) for (const deferredId of ids) renderInstance(deferredId);
+            }
+          },
+          { rootMargin: "600px" },
+        );
+      }
+      const io = restoreObserverRef.current;
+      if (!io) {
+        renderInstance(id);
+        return;
+      }
+      // A group's children queue on the GROUP's element (their own elements sit
+      // inside it, so one observation covers the cluster).
+      const ids = deferredRef.current.get(el);
+      if (ids) {
+        ids.push(id);
+      } else {
+        deferredRef.current.set(el, [id]);
+        io.observe(el);
+      }
+    },
+    [renderInstance],
+  );
+
   const patchInstance = useCallback(
     (id: string, patch: Record<string, unknown>) => {
       const inst = instancesRef.current.get(id);
@@ -248,6 +309,10 @@ export function useEditorGridController({
       rootsRef.current.delete(id);
       contentRef.current.delete(id);
       instancesRef.current.delete(id);
+      // A still-deferred render for this item (or this group's children) has
+      // nothing left to mount into.
+      deferredRef.current.delete(el);
+      restoreObserverRef.current?.unobserve(el);
       // Deleting a group takes its children with it — they exist only inside it.
       // Their instances have to go too, or the next save would still carry them
       // (and the recoverable-delete snapshot is what puts them all back).
@@ -522,7 +587,9 @@ export function useEditorGridController({
         sub.el.appendChild(childEl);
         sub.makeWidget(childEl);
         contentRef.current.set(child.id, childContent);
-        renderInstance(child.id);
+        // Immediate outside a restore pass (an interactive drop is on screen);
+        // deferred to the group's viewport approach during restore.
+        deferRender(el, child.id);
       }
 
       // A drop lands in whichever grid the pointer was over, so the nested grid
@@ -610,7 +677,7 @@ export function useEditorGridController({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [defaultConfig, fitSubGrid, renderInstance, uniqueId],
+    [defaultConfig, deferRender, fitSubGrid, renderInstance, uniqueId],
   );
 
   // Build an item, register it with the grid, and — when it's a container — turn
@@ -644,6 +711,9 @@ export function useEditorGridController({
       rootsRef.current.forEach(unmountRootSoon);
       rootsRef.current.clear();
       contentRef.current.clear();
+      // Renders still pending from a previous restore target elements this pass
+      // is about to remove.
+      clearDeferred();
       // Nested grids are recreated per item below, so the old instances are
       // dropped wholesale — keeping a stale one would leave collectSpec reading a
       // detached grid and saving the pre-undo children.
@@ -658,24 +728,30 @@ export function useEditorGridController({
         .forEach((node) => node.remove());
 
       grid.batchUpdate();
-      for (const f of frames) {
-        // addItemEl also mounts the nested grid + child roots for a container,
-        // and registers each child in instancesRef — so an undo restores a
-        // group's contents, not just the empty group.
-        addItemEl(grid, f);
-        renderInstance(f.id);
-        // No decoration pass here: these are brand-new item elements, but the
-        // gear + delete follow the pointer now (decorateChain), so whichever
-        // restored card the user reaches for gets them on hover. The stale set
-        // still points at the items this loop just replaced — drop it so the
-        // next pointerover doesn't try to strip buttons off detached nodes.
+      restoringRef.current = true;
+      try {
+        for (const f of frames) {
+          // addItemEl also mounts the nested grid + child widgets for a
+          // container, and registers each child in instancesRef — so an undo
+          // restores a group's contents, not just the empty group. React roots
+          // are deferred to viewport approach (see deferRender).
+          const el = addItemEl(grid, f);
+          deferRender(el, f.id);
+          // No decoration pass here: these are brand-new item elements, but the
+          // gear + delete follow the pointer now (decorateChain), so whichever
+          // restored card the user reaches for gets them on hover. The stale set
+          // still points at the items this loop just replaced — drop it so the
+          // next pointerover doesn't try to strip buttons off detached nodes.
+        }
+      } finally {
+        restoringRef.current = false;
       }
       decoratedRef.current.clear();
       grid.batchUpdate(false);
       setCount(frames.length);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [addItemEl, renderInstance],
+    [addItemEl, clearDeferred, deferRender],
   );
 
   // Click-to-add: append a new frame to the grid in the first free slot.
@@ -745,6 +821,7 @@ export function useEditorGridController({
     rootsRef.current.forEach(unmountRootSoon);
     rootsRef.current.clear();
     contentRef.current.clear();
+    clearDeferred();
     // Nested grids are destroyed along with their parent items by grid.destroy,
     // but the maps pointing at them are ours to clear — a stale entry would have
     // collectSpec read a detached grid after a mode switch.
@@ -758,7 +835,7 @@ export function useEditorGridController({
       el.style.height = "";
     }
     gridInstanceRef.current = null;
-  }, []);
+  }, [clearDeferred]);
 
   // Initialise GridStack for a layout mode and wire its drop/removal handlers.
   // flow-vertical is the classic column grid; flow-horizontal is the coerced
@@ -971,10 +1048,13 @@ export function useEditorGridController({
   }, [gap]);
 
   // The currency code is read from a ref, so React has no dependency that would
-  // notice a change: re-render every item root when the dashboard currency
-  // changes, or already-mounted cards would keep quoting the old one.
+  // notice a change: re-render every MOUNTED item root when the dashboard
+  // currency changes, or already-mounted cards would keep quoting the old one.
+  // Only rootsRef's keys — rendering every instance here would eagerly mount
+  // the roots restore() deliberately deferred (this effect also runs once on
+  // mount); a deferred item reads the current code when it first renders.
   useEffect(() => {
-    for (const id of instancesRef.current.keys()) renderInstance(id);
+    for (const id of rootsRef.current.keys()) renderInstance(id);
   }, [currencyCode, renderInstance]);
 
   // Mount once: init GridStack for the saved mode, render the spec. Horizontal
