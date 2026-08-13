@@ -29,7 +29,9 @@ export function AuthNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="group flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-white/70 outline-none transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:bg-white/[0.06] data-[state=open]:text-white">
-        <span className="max-w-[16ch] truncate">{data.user.email}</span>
+        <span className="max-w-[9ch] truncate sm:max-w-[16ch]">
+          {data.user.email}
+        </span>
         <ChevronDownIcon className="size-3 text-white/45 transition-transform duration-200 group-data-[state=open]:rotate-180" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-44">

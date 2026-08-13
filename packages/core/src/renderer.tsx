@@ -71,12 +71,23 @@ export function DashboardRenderer({
   registry: FrameRegistry;
 }) {
   const horizontal = spec.grid.mode === "flow-horizontal";
+  // Render in reading order (y, then x), not array order. On desktop placement
+  // is explicit so DOM order is invisible; on the phone/tablet reflows (and for
+  // tab order) DOM order IS the visual order, and an agent- or hand-written
+  // spec makes no ordering promise — the editor sorts on save, load doesn't.
+  const ordered = useMemo(
+    () =>
+      [...spec.frames].sort(
+        (a, b) => a.position.y - b.position.y || a.position.x - b.position.x,
+      ),
+    [spec.frames],
+  );
   // Memoized so each frame's grid-placement style keeps a stable identity across
   // re-renders that don't touch the grid — without this the fresh style object
   // per frame would defeat React.memo(FrameContent) and re-render every card.
   const styles = useMemo(
     () =>
-      spec.frames.map((instance, index) =>
+      ordered.map((instance, index) =>
         positionStyle(
           instance,
           index,
@@ -85,7 +96,7 @@ export function DashboardRenderer({
           spec.grid.columns,
         ),
       ),
-    [spec.frames, horizontal, spec.grid.rows, spec.grid.columns],
+    [ordered, horizontal, spec.grid.rows, spec.grid.columns],
   );
   return (
     // Display currency resolves once for the whole board (one shared FX poll);
@@ -134,7 +145,7 @@ export function DashboardRenderer({
           ...surfaceModeVars(spec.theme.surface),
         }}
       >
-        {spec.frames.map((instance, index) => (
+        {ordered.map((instance, index) => (
           <FrameContent
             key={instance.id}
             instance={instance}

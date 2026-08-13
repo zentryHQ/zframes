@@ -14,7 +14,9 @@ const LINKS = [
 export function NavLinks() {
   const pathname = usePathname();
   return (
-    <div className="hidden items-center gap-1 sm:flex">
+    // order-last + w-full wraps the links onto their own header row below sm
+    // (the header nav is flex-wrap) — hiding them left phones with no nav.
+    <div className="order-last -mx-3 flex w-full items-center gap-1 sm:order-none sm:mx-0 sm:w-auto">
       {LINKS.map((l) => {
         const active =
           l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);

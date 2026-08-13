@@ -2,6 +2,7 @@
 
 import { DashboardEditor } from "@zframes/editor/editor";
 import {
+  DashboardRenderer,
   DashboardSpecSchema,
   FRAME_CATEGORIES,
   FramesProvider,
@@ -14,6 +15,7 @@ import "gridstack/dist/gridstack.min.css";
 import { PublishDialog } from "@/app/lib/PublishDialog";
 import { Button } from "@/app/components/ui/button";
 import { frameDefs, providers, registry } from "@/app/lib/frames";
+import { DESKTOP_EDIT_QUERY, useMediaQuery } from "@/app/lib/use-media-query";
 
 // Client-only module (the page dynamic-imports it ssr:false) — DashboardEditor
 // (GridStack) + localStorage both run in the browser.
@@ -144,6 +146,11 @@ function loadSpec(): DashboardSpec {
 
 export default function DashboardTinker() {
   const [spec] = useState<DashboardSpec>(loadSpec);
+  // Editing needs desktop width + a fine pointer (same gate as the runtime):
+  // the 12-column GridStack is ~27px per column on a phone and its per-card
+  // controls are hover-revealed. Everything narrower gets the read-only
+  // renderer, which reflows through FRAME_CSS on its own.
+  const canEdit = useMediaQuery(DESKTOP_EDIT_QUERY);
   // The editor only reads `spec` at mount; onSave hands us the live spec, which
   // we keep in a ref so Publish always sends the latest edited state.
   const latest = useRef<DashboardSpec>(spec);
@@ -162,11 +169,13 @@ export default function DashboardTinker() {
 
   return (
     <FramesProvider providers={providers}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 pt-6">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 pt-6">
         <div>
           <h1 className="text-lg font-semibold text-white">Tinker</h1>
           <p className="text-xs text-white/55">
-            Customise then Save (this browser), or Publish to a shareable link.
+            {canEdit
+              ? "Customise then Save (this browser), or Publish to a shareable link."
+              : "Editing needs a desktop browser — this is a read-only preview."}
           </p>
         </div>
         <Button variant="accent" size="sm" onClick={() => setShowPublish(true)}>
@@ -175,7 +184,11 @@ export default function DashboardTinker() {
       </div>
 
       <main className="mx-auto max-w-7xl px-6 py-4">
-        <DashboardEditor spec={spec} registry={registry} onSave={onSave} />
+        {canEdit ? (
+          <DashboardEditor spec={spec} registry={registry} onSave={onSave} />
+        ) : (
+          <DashboardRenderer spec={spec} registry={registry} />
+        )}
       </main>
 
       {showPublish && (

@@ -25,11 +25,11 @@ export function CopyCommand({
         toast.success("Command copied");
         window.setTimeout(() => setCopied(false), 1500);
       }}
-      className="hairline zf-press group flex items-center gap-3 rounded-xl bg-black/30 px-4 py-2.5 font-mono text-sm text-white/80 transition-colors hover:bg-black/50"
+      className="hairline zf-press group flex items-center gap-3 rounded-xl bg-black/30 px-4 py-2.5 text-left font-mono text-xs text-white/80 transition-colors hover:bg-black/50 sm:text-sm"
       aria-label="Copy install command"
     >
       <span className="select-none text-indigo-300/70">{prefix}</span>
-      <span className="text-white/85">{command}</span>
+      <span className="min-w-0 text-white/85">{command}</span>
       <span className="ml-1 text-white/40 transition-colors group-hover:text-white/70">
         {copied ? (
           <svg
