@@ -10,8 +10,10 @@ import {
   type AnyFrameDefinition,
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
+import { prefetchFrames } from "@zframes/frames/lazy-registry";
 import {
   memo,
+  useCallback,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -46,9 +48,13 @@ const GAP = 12;
 // IntersectionObserver is safe.
 function LazyMount({
   minHeight,
+  onApproach,
   children,
 }: {
   minHeight: number;
+  /** Fires once, well before mount (1200px out) — used to warm the frame's
+   *  lazy chunk so the 300px mount resolves from cache instead of the network. */
+  onApproach?: () => void;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -68,6 +74,22 @@ function LazyMount({
     io.observe(el);
     return () => io.disconnect();
   }, []);
+  useEffect(() => {
+    if (!onApproach) return;
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          onApproach();
+          io.disconnect();
+        }
+      },
+      { rootMargin: "1200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [onApproach]);
   return (
     <div ref={ref} style={{ minHeight }}>
       {show ? children : null}
@@ -156,10 +178,14 @@ const FrameCard = memo(function FrameCard({
   const w = Math.min(def.layout?.w ?? 4, 12);
   const h = Math.min(def.layout?.h ?? 3, 4);
   const boxHeight = h * ROW + (h - 1) * GAP;
+  const warmChunk = useCallback(
+    () => prefetchFrames(registry, [def.name]),
+    [def.name],
+  );
 
   return (
     <div className="card-lift hairline group flex flex-col overflow-hidden rounded-xl bg-black/20">
-      <LazyMount minHeight={boxHeight}>
+      <LazyMount minHeight={boxHeight} onApproach={warmChunk}>
         <FramePreview def={def} w={w} h={h} boxHeight={boxHeight} />
       </LazyMount>
       {/* The like button lives in the footer, not overlaid on the preview: the
