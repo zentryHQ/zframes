@@ -6,7 +6,7 @@ import {
   useMotionValueEvent,
   type MotionValue,
 } from "motion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { getDataMode } from "@/app/lib/data-mode";
 
 // A full-bleed live example board — the real board rendered inside a same-origin
@@ -21,7 +21,7 @@ import { getDataMode } from "@/app/lib/data-mode";
 //     scene no matter how many are stacked.
 //   • scroll/interaction — the iframe is display-only (pointer-events:none,
 //     scrolling off); a transparent full-panel <Link> owns the click → /dashboard/{id}.
-export function LiveBoardFrame({
+export const LiveBoardFrame = memo(function LiveBoardFrame({
   id,
   title,
   description,
@@ -29,6 +29,7 @@ export function LiveBoardFrame({
   frameCount,
   bgActive = true,
   boardVisible = true,
+  mountEnabled = true,
   scrollProgress,
 }: {
   id: string;
@@ -44,6 +45,14 @@ export function LiveBoardFrame({
    * and polling entirely (`content-visibility: hidden`), not just its scene.
    */
   boardVisible?: boolean;
+  /**
+   * Extra gate on mounting the iframe, owned by the parent. In the landing's
+   * focus stack every panel shares ONE sticky box, so all four
+   * IntersectionObservers fire on the same frame — without this gate four
+   * documents (~126 frames) mount in a single burst right as the user scrolls
+   * into the stack. Once true and intersected, the mount is one-shot.
+   */
+  mountEnabled?: boolean;
   /**
    * How far through the board's OWN content to scrub, 0..1. A real board is
    * several viewports tall, so while the panel dwells in focus the landing
@@ -66,7 +75,7 @@ export function LiveBoardFrame({
   }, []);
 
   useEffect(() => {
-    if (mounted) return;
+    if (mounted || !mountEnabled) return;
     const el = ref.current;
     if (!el) return;
     const io = new IntersectionObserver(
@@ -80,13 +89,15 @@ export function LiveBoardFrame({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [mounted]);
+  }, [mounted, mountEnabled]);
 
   // Board control channel into the embed (same-origin). Push on every change,
   // and answer the embed's `zf:bg-hello` — sent once it has hydrated and is
   // actually listening — so the initial state can't be lost to the load race.
   const stateRef = useRef({ bgActive, boardVisible });
-  stateRef.current = { bgActive, boardVisible };
+  useEffect(() => {
+    stateRef.current = { bgActive, boardVisible };
+  }, [bgActive, boardVisible]);
   const post = useCallback((message: unknown) => {
     iframeRef.current?.contentWindow?.postMessage(
       message,
@@ -104,10 +115,13 @@ export function LiveBoardFrame({
   }, [bgActive, boardVisible, sendState]);
 
   // Content scrub — fires on every scroll frame while this board dwells, so it
-  // goes straight out as a message (no React state) and the embed applies it as
-  // a transform. The last value is kept so the embed's hello can be answered
-  // with it too, exactly like the board state above.
+  // never touches React state. Coalesced to at most ONE postMessage per
+  // animation frame (a cross-document structured-clone dispatch per motion
+  // update stacked up under fast scroll), carrying the latest value. The last
+  // value is kept so the embed's hello can be answered with it too, exactly
+  // like the board state above.
   const scrollRef = useRef(0);
+  const scrollRafRef = useRef(0);
   const sendScroll = useCallback(
     (progress: number) => {
       scrollRef.current = progress;
@@ -115,8 +129,25 @@ export function LiveBoardFrame({
     },
     [post],
   );
+  const queueScroll = useCallback(
+    (progress: number) => {
+      scrollRef.current = progress;
+      if (scrollRafRef.current) return;
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = 0;
+        post({ type: "zf:scroll", progress: scrollRef.current });
+      });
+    },
+    [post],
+  );
+  useEffect(
+    () => () => {
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    },
+    [],
+  );
   const fallbackScroll = useMotionValue(0);
-  useMotionValueEvent(scrollProgress ?? fallbackScroll, "change", sendScroll);
+  useMotionValueEvent(scrollProgress ?? fallbackScroll, "change", queueScroll);
 
   useEffect(() => {
     const onMessage = (e: MessageEvent) => {
@@ -172,18 +203,21 @@ export function LiveBoardFrame({
           the browser's data mode: claiming LIVE over simulated numbers is the
           exact mislabelling the demo-by-default posture forbids. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between p-4 sm:p-5">
+        {/* Solid fills, deliberately not backdrop-blur: 3 chips × 4 boards =
+            12 blur layers each re-sampling a live, repainting iframe every
+            frame. Over a dark board the solid is visually equivalent. */}
         {live ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/45 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/85 backdrop-blur">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/85">
             <span className="live-dot h-1.5 w-1.5 rounded-full bg-up" />
             Live
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-black/45 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300/90 backdrop-blur">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-black/60 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300/90">
             <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
             Demo
           </span>
         )}
-        <span className="rounded-full border border-white/10 bg-black/45 px-2.5 py-1 font-mono text-[11px] text-white/70 backdrop-blur">
+        <span className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 font-mono text-[11px] text-white/70">
           {frameCount} {frameCount === 1 ? "frame" : "frames"}
         </span>
       </div>
@@ -225,4 +259,4 @@ export function LiveBoardFrame({
       </div>
     </div>
   );
-}
+});

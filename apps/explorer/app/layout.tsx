@@ -93,6 +93,21 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        {/* Webfonts as <link>s, not a CSS @import (see globals.css header):
+            preconnect + parallel discovery instead of a render-blocking chain
+            behind the app stylesheet. */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        />
+      </head>
       {/* AppShell owns the chrome and hides it on /embed/* (iframed live boards).
           The flex-column / sticky-footer scaffold lives inside AppShell now. */}
       <body className="min-h-screen">

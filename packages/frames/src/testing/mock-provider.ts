@@ -1440,6 +1440,39 @@ export class MockMarketDataProvider implements MarketDataProvider {
   }
 
   // ── streaming mids ──────────────────────────────────────────────────────
+  // One shared ticker fans out to every subscriber (mirroring the real
+  // Hyperliquid provider's single socket + listener set): N mid-consuming
+  // frames on one page cost 1 timer, not N. The ticker also stands down while
+  // the tab is hidden — a background demo board must hold no timers at all —
+  // and emits once on return so the board is fresh when looked at.
+  private midsEmitters = new Set<() => void>();
+  private midsTimer: ReturnType<typeof setInterval> | null = null;
+  private midsOnVisibility = () => {
+    if (document.hidden) {
+      this.stopMidsTicker();
+      return;
+    }
+    this.tick += 1;
+    for (const emit of this.midsEmitters) emit();
+    this.startMidsTicker();
+  };
+  private startMidsTicker() {
+    if (this.midsTimer !== null) return;
+    if (typeof document !== "undefined" && document.hidden) return;
+    // 600 ms, not the original 1500: the real Hyperliquid feed ticks several
+    // times a second, so a slower cadence reads as a stalled board on the
+    // public demo-mode explorer where this stream fronts for it.
+    this.midsTimer = setInterval(() => {
+      this.tick += 1;
+      for (const emit of this.midsEmitters) emit();
+    }, 600);
+  }
+  private stopMidsTicker() {
+    if (this.midsTimer === null) return;
+    clearInterval(this.midsTimer);
+    this.midsTimer = null;
+  }
+
   subscribeMids(
     onMids: (mids: Record<string, number>) => void,
     symbols?: readonly string[],
@@ -1467,14 +1500,23 @@ export class MockMarketDataProvider implements MarketDataProvider {
 
     emit();
     if (this.mode === "empty") return () => {};
-    // 600 ms, not the original 1500: the real Hyperliquid feed ticks several
-    // times a second, so a slower cadence reads as a stalled board on the
-    // public demo-mode explorer where this stream fronts for it.
-    const id = setInterval(() => {
-      this.tick += 1;
-      emit();
-    }, 600);
-    return () => clearInterval(id);
+    this.midsEmitters.add(emit);
+    if (this.midsEmitters.size === 1) {
+      if (typeof document !== "undefined")
+        document.addEventListener("visibilitychange", this.midsOnVisibility);
+      this.startMidsTicker();
+    }
+    return () => {
+      this.midsEmitters.delete(emit);
+      if (this.midsEmitters.size === 0) {
+        this.stopMidsTicker();
+        if (typeof document !== "undefined")
+          document.removeEventListener(
+            "visibilitychange",
+            this.midsOnVisibility,
+          );
+      }
+    };
   }
 
   // ── day stats ───────────────────────────────────────────────────────────

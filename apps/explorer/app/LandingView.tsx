@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   useMotionValueEvent,
   useReducedMotion,
@@ -173,6 +173,13 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
   // (content-visibility: hidden). The parent owns this: an iframe's own
   // IntersectionObserver can't see that a faded-out sibling is effectively gone.
   const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 1]);
+  const demoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (demoteTimer.current) clearTimeout(demoteTimer.current);
+    },
+    [],
+  );
 
   useMotionValueEvent(progress, "change", (p) => {
     const n = boards.length;
@@ -187,7 +194,21 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
     setActiveIndex((a) => (a === settled ? a : settled));
     const lo = Math.max(0, Math.floor(t - 0.7));
     const hi = Math.min(n - 1, Math.ceil(t + 0.7));
-    setVisibleRange((v) => (v[0] === lo && v[1] === hi ? v : [lo, hi]));
+    // Hysteresis: widen the visible window immediately (a board must be
+    // rendering before it crossfades in), but DEMOTE only after the scroll has
+    // settled for 400 ms. Each demotion flips `content-visibility` on a
+    // ~30-frame board inside its iframe — a full relayout — and a fast
+    // fly-through used to trigger that on every boundary it crossed, which is
+    // exactly the "fast scroll = lag" signature.
+    setVisibleRange((v) => {
+      const wLo = Math.min(v[0], lo);
+      const wHi = Math.max(v[1], hi);
+      return wLo === v[0] && wHi === v[1] ? v : [wLo, wHi];
+    });
+    if (demoteTimer.current) clearTimeout(demoteTimer.current);
+    demoteTimer.current = setTimeout(() => {
+      setVisibleRange((v) => (v[0] === lo && v[1] === hi ? v : [lo, hi]));
+    }, 400);
   });
 
   return (
@@ -356,6 +377,12 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
                 count={boards.length}
                 active={i === activeIndex}
                 boardVisible={i >= visibleRange[0] && i <= visibleRange[1]}
+                // Stage the iframe mounts: all four panels share one sticky box,
+                // so their IntersectionObservers fire on the SAME frame — four
+                // documents, ~126 frames, all mounting at once. Gate each mount
+                // on scroll proximity instead (one slot ahead of the visible
+                // window); mounting stays one-shot inside LiveBoardFrame.
+                mountEnabled={i <= visibleRange[1] + 1}
               />
             ))}
           </div>
@@ -380,7 +407,10 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
       {/* Sticky-rail layout: the heading column pins while the steps scroll
           past it — the numbered column is the tall one, so the title stays on
           screen for the whole read. */}
-      <section id="build" className="mx-auto max-w-7xl px-6 pt-24">
+      <section
+        id="build"
+        className="cv-below-fold mx-auto max-w-7xl px-6 pt-24"
+      >
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
           <div className="relative lg:sticky lg:top-24 lg:self-start">
             <Reveal>
@@ -437,7 +467,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
       </section>
 
       {/* ── Act V · Why — the value grid ─────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-6 pt-24">
+      <section className="cv-below-fold mx-auto max-w-7xl px-6 pt-24">
         <Reveal>
           <SectionHeading
             eyebrow="Why zframes"
@@ -534,7 +564,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
  */
 function Faq() {
   return (
-    <section id="faq" className="mx-auto max-w-7xl px-6 pt-24">
+    <section id="faq" className="cv-below-fold mx-auto max-w-7xl px-6 pt-24">
       {/* Same sticky-rail layout as the How section: the heading column pins
           while the question list scrolls past it. */}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
@@ -634,13 +664,16 @@ function Step({
 // One board in the focus stack. Exists as its own component only because the
 // dwell-scrub is a hook: each board derives its own 0..1 content progress from
 // the shared section scroll, and hands it to the embed (see LiveBoardFrame).
-function ShowcaseBoard({
+// Memoized: activeIndex/visibleRange changes re-render the parent several times
+// per scroll gesture, and only the boards whose flags changed should pay.
+const ShowcaseBoard = memo(function ShowcaseBoard({
   board,
   progress,
   index,
   count,
   active,
   boardVisible,
+  mountEnabled,
 }: {
   board: BoardSummary;
   progress: MotionValue<number>;
@@ -648,6 +681,7 @@ function ShowcaseBoard({
   count: number;
   active: boolean;
   boardVisible: boolean;
+  mountEnabled: boolean;
 }) {
   const contentScroll = useFocusDwellProgress(progress, index, count);
   return (
@@ -660,11 +694,12 @@ function ShowcaseBoard({
         frameCount={board.frameCount}
         bgActive={active}
         boardVisible={boardVisible}
+        mountEnabled={mountEnabled}
         scrollProgress={contentScroll}
       />
     </FocusPanel>
   );
-}
+});
 
 // Feature card — reveals on scroll with a per-index stagger so the grid
 // cascades in rather than popping all at once.
