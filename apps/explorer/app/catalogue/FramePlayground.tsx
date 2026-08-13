@@ -18,6 +18,7 @@ import "gridstack/dist/gridstack.min.css";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { frameDefs, providers, registry } from "@/app/lib/frames";
+import { useMediaQuery } from "@/app/lib/use-media-query";
 
 // Same GridStack tuning the real editor/Tinker uses, so drag + resize feel
 // IDENTICAL here: 12 responsive columns, a fixed row height, half-gap margins,
@@ -140,6 +141,10 @@ export default function FramePlayground() {
   );
   const def = registry.get(name) ?? frameDefs[0];
   const bounds = useMemo(() => boundsOf(def), [def]);
+  // The 12-column GridStack is ~23px per column inside this card on a phone —
+  // unreadable and not a workable touch target. Below tablet width the demo
+  // renders the frame statically at its default size instead.
+  const canDrag = useMediaQuery("(min-width: 768px)");
 
   const [rect, setRect] = useState(() => ({
     x: 0,
@@ -157,7 +162,7 @@ export default function FramePlayground() {
   //    the size/position readout; the frame itself lives in the item's content
   //    node and refits via its own ResizeObserver — no spec re-parse.
   useEffect(() => {
-    if (!gridEl.current) return;
+    if (!canDrag || !gridEl.current) return;
     const grid = GridStack.init(
       {
         column: COLUMNS,
@@ -195,7 +200,7 @@ export default function FramePlayground() {
       grid.destroy(false);
       gridRef.current = null;
     };
-  }, []);
+  }, [canDrag]);
 
   // 2) (Re)build the single frame item whenever the featured frame changes.
   //    Mirrors the editor's buildItemEl + renderInstance: an imperative
@@ -252,7 +257,7 @@ export default function FramePlayground() {
       </FramesProvider>,
     );
     setRect({ x: 0, y: 0, w: b.defW, h: b.defH });
-  }, [name, def]);
+  }, [name, def, canDrag]);
 
   const pickFrame = useCallback((next: string) => setName(next), []);
 
@@ -293,7 +298,11 @@ export default function FramePlayground() {
             Featured frame
           </label>
           <FramePicker groups={groups} value={name} onChange={pickFrame} />
-          <div className="inline-flex overflow-hidden rounded-lg border border-white/10">
+          <div
+            className={`${
+              canDrag ? "inline-flex" : "hidden"
+            } overflow-hidden rounded-lg border border-white/10`}
+          >
             {presets.map((p) => (
               <button
                 key={p.label}
@@ -317,7 +326,9 @@ export default function FramePlayground() {
         <div className="mb-4 flex items-center justify-between">
           <span className="font-mono text-xs text-white/55">{def.name}</span>
           <span className="font-mono text-xs tabular-nums text-white/70">
-            {rect.w}&thinsp;&times;&thinsp;{rect.h}
+            {/* rect only updates while the GridStack board is live. */}
+            {canDrag ? rect.w : bounds.defW}&thinsp;&times;&thinsp;
+            {canDrag ? rect.h : bounds.defH}
             <span className="ml-2 text-white/35">
               size {bounds.minW}&times;{bounds.minH}&ndash;{bounds.maxW}&times;
               {bounds.maxH}
@@ -325,12 +336,36 @@ export default function FramePlayground() {
           </span>
         </div>
 
-        {/* The real GridStack board. */}
-        <div ref={gridEl} className="grid-stack" />
+        {canDrag ? (
+          /* The real GridStack board. */
+          <div ref={gridEl} className="grid-stack" />
+        ) : (
+          /* Static stand-in below tablet width: the frame at its default size,
+             no drag surface. Its own FramesProvider mirrors the detached
+             GridStack root — same `providers` singleton, no duplicate sockets. */
+          <div
+            className="relative"
+            style={{ height: Math.min(bounds.defH, 4) * 88 }}
+          >
+            <FramesProvider providers={providers}>
+              <FrameContent
+                instance={{
+                  id: def.name,
+                  frame: def.name,
+                  position: { x: 0, y: 0, w: bounds.defW, h: bounds.defH },
+                  config: buildDefaultConfig(def),
+                }}
+                registry={registry}
+                className="zf-fill"
+              />
+            </FramesProvider>
+          </div>
+        )}
 
         <p className="mt-4 font-mono text-[11px] text-white/45">
-          drag the frame to move &middot; drag the corner to resize &middot;
-          snaps to the grid, live
+          {canDrag
+            ? "drag the frame to move · drag the corner to resize · snaps to the grid, live"
+            : "open on a wider screen to drag and resize the frame live"}
         </p>
       </div>
     </section>

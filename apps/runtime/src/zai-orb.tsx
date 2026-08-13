@@ -151,14 +151,17 @@ const ORB_CSS = `
     opacity 0.22s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 .zai-dock[data-open="true"] .zai-panel {
-  width: 330px;
+  /* Fluid below ~430px viewports: 100vw minus the dock's right offset (18),
+     the orb (60), the dock gap (10) and a 12px left gutter — otherwise the
+     open pill ran off the left edge of a phone. */
+  width: min(330px, calc(100vw - 100px));
   opacity: 1;
 }
 .zai-input-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 330px;
+  width: min(330px, calc(100vw - 100px));
   padding: 9px 10px 9px 14px;
   border-radius: 9999px;
   background: rgba(12, 13, 20, 0.72);
@@ -411,7 +414,9 @@ const ORB_CSS = `
   position: absolute;
   right: 70px;
   bottom: 72px;
-  width: 344px;
+  /* right: 70px sits 88px from the viewport edge (dock right 18 + 70); keep a
+     12px left gutter on narrow phones instead of running off-screen. */
+  width: min(344px, calc(100vw - 100px));
   display: flex;
   flex-direction: column;
   gap: 8px;

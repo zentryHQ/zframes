@@ -103,13 +103,13 @@ const HERO_FLOATERS: {
     delay: "-5s",
   },
   {
-    // Visible earliest (md), so the smallest desktop still gets a dense card.
+    // Visible earliest (lg — at md it sat directly under the hero paragraph).
     // Also the crypto presence: both asset classes on screen at once, without
     // the hero turning into a crypto board.
     frame: "market-cap-treemap",
     config: { topN: 12 },
     className: "w-60 h-48",
-    pos: "right-[4%] top-[42%] hidden md:block",
+    pos: "right-[4%] top-[42%] hidden lg:block",
     mouse: -14,
     scroll: 74,
     tilt: 2,

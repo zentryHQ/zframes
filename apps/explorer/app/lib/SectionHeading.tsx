@@ -13,7 +13,7 @@ export function SectionHeading({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex items-end justify-between gap-4">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
         <span className="zf-label mb-2.5">{eyebrow}</span>
         <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
@@ -25,7 +25,9 @@ export function SectionHeading({
           </p>
         )}
       </div>
-      {action && <div className="hidden shrink-0 sm:block">{action}</div>}
+      {/* flex-wrap drops the action under the copy on phones instead of hiding
+          it — it's usually the section's only CTA. */}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }

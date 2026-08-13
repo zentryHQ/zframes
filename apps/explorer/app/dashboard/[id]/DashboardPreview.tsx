@@ -41,7 +41,7 @@ export function DashboardPreview({
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-6">
-      <div className="mb-4 flex items-center justify-between gap-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div>
           <div className="flex items-center gap-3">
             <Link href="/" className="text-xs text-white/55 hover:text-white">
@@ -53,7 +53,7 @@ export function DashboardPreview({
         {/* Like sits LEFT of the fork pair and stays outline-quiet: this page's
             conversion goal is "fork it onto your machine", and a like button that
             competes with that CTA would trade the thing we want for a cheap tap. */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <LikeButton kind="dashboard" id={id} initialTotal={likes} />
           <AgentForkButton id={id} />
           <Button variant="accent" size="sm" onClick={fork}>

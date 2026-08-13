@@ -50,7 +50,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             rubber-bands with the page on overscroll. Content is offset by the
             header height below. */}
         <header className="glass fixed inset-x-0 top-0 z-50 border-b border-white/[0.07]">
-          <nav className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-3 text-sm">
+          {/* flex-wrap: below sm the NavLinks (order-last w-full) wrap onto a
+              second row; the content offset below matches both heights. */}
+          <nav className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 text-sm sm:px-6">
             <Link href="/" className="group flex items-center gap-2.5">
               <BrandMark idKey="hdr" className="zf-grow h-7 w-7" />
               <span className="text-[15px] font-semibold tracking-tight text-white">
@@ -72,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </nav>
         </header>
 
-        <div className="flex-1 pt-[57px]">{children}</div>
+        <div className="flex-1 pt-[95px] sm:pt-[57px]">{children}</div>
 
         <Footer />
       </div>
