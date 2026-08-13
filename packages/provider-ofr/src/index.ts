@@ -6,6 +6,7 @@ import type {
   MarketDataProvider,
 } from "@zframes/spec";
 import { TtlCache } from "@zframes/data-primitives/cache";
+import { splitCsvRow } from "@zframes/data-primitives/csv";
 import { fetchText } from "@zframes/data-primitives/fetch";
 
 const FSI_CSV_URL =
@@ -51,7 +52,7 @@ function parseFsi(csv: string): FinancialStress {
   let lastRow: string[] | null = null;
   // Row 0 is the header; skip it. Rows are oldest → newest in the file.
   for (let i = 1; i < lines.length; i++) {
-    const cells = lines[i].split(",");
+    const cells = splitCsvRow(lines[i]);
     if (cells.length < 7) continue;
     const date = cells[0];
     const value = finiteNumber(cells[1]);

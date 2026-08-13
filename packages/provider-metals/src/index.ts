@@ -1,8 +1,5 @@
 import type {
   Capability,
-  CotConcentration,
-  CotDisaggregated,
-  CotTraderClass,
   CotWeek,
   GoldReserve,
   GoldReserveEntry,
@@ -17,6 +14,16 @@ import type {
 import { TtlCache } from "@zframes/data-primitives/cache";
 import { parseCsvRows } from "@zframes/data-primitives/csv";
 import { fetchJson, fetchText } from "@zframes/data-primitives/fetch";
+import {
+  COT_URL,
+  COT_WEEKS,
+  cotCache,
+  cotDisaggCache,
+  loadDisaggregated,
+  type CotRow,
+} from "./cot";
+import { FIX_WARMUP_MS, LBMA_CURRENCIES, historyFor, lastFix } from "./lbma";
+import { METALS, num, wantedSymbols } from "./universe";
 
 /**
  * Keyless metals provider. Gold is the anchor, but every source below covers
@@ -28,12 +35,13 @@ import { fetchJson, fetchText } from "@zframes/data-primitives/fetch";
  *    prices in USD/GBP/EUR, gold and silver back to **1968**, platinum and
  *    palladium to 1990. This is the reference price the physical market settles
  *    against, not a scraped chart feed, and it's the deepest keyless price
- *    history in the whole zframes fleet.
+ *    history in the whole zframes fleet. (Loading lives in `./lbma`.)
  *  - **Positioning** — the CFTC's own public-reporting Socrata datasets, weekly:
  *    the legacy futures-only Commitments of Traders since 2010, enriched
  *    week-by-week with the **disaggregated** report (2006-06-13 onwards), which
  *    splits the legacy `commercial` bucket into producer/merchant hedgers and
- *    swap dealers and adds trader counts and concentration.
+ *    swap dealers and adds trader counts and concentration. (Constants and the
+ *    disaggregated pipeline live in `./cot`.)
  *  - **Official reserve** — the U.S. Treasury's monthly gold-reserve status
  *    report (Fort Knox / West Point / Denver / NY Fed), via fiscaldata.
  *  - **Tokenized gold** — PAXG/XAUT from CoinGecko's free tier, so the crypto
@@ -50,79 +58,10 @@ import { fetchJson, fetchText } from "@zframes/data-primitives/fetch";
  */
 
 const SPOT_URL = "https://api.gold-api.com/price";
-const LBMA_URL = "https://prices.lbma.org.uk/json";
-const COT_URL = "https://publicreporting.cftc.gov/resource/6dca-aqww.json";
-/** The disaggregated futures-only report — a separate dataset, same host and keying. */
-const COT_DISAGG_URL =
-  "https://publicreporting.cftc.gov/resource/72hh-3qpy.json";
 const RESERVE_URL =
   "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/gold_reserve";
 const COINGECKO_URL = "https://api.coingecko.com/api/v3/coins/markets";
 const CBOE_URL = "https://cdn.cboe.com/api/global/us_indices/daily_prices";
-
-/**
- * Weeks requested from each COT dataset. Shared by both calls so the two reports
- * cover the same window by construction — a wider disaggregated request would
- * only return weeks with no legacy week to merge onto.
- */
-const COT_WEEKS = 520;
-
-interface MetalDef {
-  /** Display name, matching what gold-api returns. */
-  name: string;
-  /** LBMA fix file basename, or null where the LBMA publishes no fix (copper). */
-  lbma: string | null;
-  /** CFTC contract market code for the US futures contract, or null. */
-  cotCode: string | null;
-  /** Market name to label the COT series with. */
-  cotMarket: string | null;
-  /** Contract size in the metal's native unit (troy oz; copper pounds). */
-  contractSize: number;
-}
-
-/** The metal universe, in board order. Keys are the symbols the API speaks. */
-const METALS: Record<string, MetalDef> = {
-  XAU: {
-    name: "Gold",
-    lbma: "gold_pm",
-    cotCode: "088691",
-    cotMarket: "GOLD - COMMODITY EXCHANGE INC.",
-    contractSize: 100,
-  },
-  XAG: {
-    name: "Silver",
-    lbma: "silver",
-    cotCode: "084691",
-    cotMarket: "SILVER - COMMODITY EXCHANGE INC.",
-    contractSize: 5_000,
-  },
-  XPT: {
-    name: "Platinum",
-    lbma: "platinum_pm",
-    cotCode: "076651",
-    cotMarket: "PLATINUM - NEW YORK MERCANTILE EXCHANGE",
-    contractSize: 50,
-  },
-  XPD: {
-    name: "Palladium",
-    lbma: "palladium_pm",
-    cotCode: "075651",
-    cotMarket: "PALLADIUM - NEW YORK MERCANTILE EXCHANGE",
-    contractSize: 100,
-  },
-  HG: {
-    name: "Copper",
-    lbma: null,
-    cotCode: "085692",
-    cotMarket: "COPPER- #1 - COMMODITY EXCHANGE INC.",
-    contractSize: 25_000,
-  },
-};
-
-const DEFAULT_SYMBOLS = Object.keys(METALS);
-
-/** The LBMA publishes each fix in three currencies, in this column order. */
-const LBMA_CURRENCIES = ["USD", "GBP", "EUR"] as const;
 
 /** Publisher credit on the volatility series. */
 const CBOE_SOURCE = "Cboe";
@@ -150,27 +89,6 @@ const VOL_INDICES: Record<string, string> = {
   OVX: "Crude Oil ETF Volatility",
 };
 
-/** Coerce a wire value (Socrata and fiscaldata send numbers as strings) to a finite number. */
-function num(value: unknown): number | null {
-  const n = typeof value === "string" ? Number(value) : value;
-  return typeof n === "number" && Number.isFinite(n) ? n : null;
-}
-
-/** Normalise a caller's symbol list to known, de-duplicated metal symbols. */
-function wantedSymbols(symbols?: string[]): string[] {
-  const list = symbols?.length ? symbols : DEFAULT_SYMBOLS;
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const raw of list) {
-    const symbol = raw.trim().toUpperCase();
-    if (METALS[symbol] && !seen.has(symbol)) {
-      seen.add(symbol);
-      out.push(symbol);
-    }
-  }
-  return out;
-}
-
 // Spot moves continuously and the endpoint is a tiny single-object payload, so
 // the TTL sits just under the hook's 60s poll: reloads and sibling frames reuse
 // one quote, background polls still refresh. Not persisted — a stale price
@@ -179,59 +97,6 @@ const spotCache = new TtlCache<MetalSpot>({
   namespace: "zframes:metals:spot",
   ttlMs: 45_000,
   persist: false,
-});
-
-// The LBMA fix files are the full history in one document (~150 KB gzipped for
-// gold), and the fix publishes twice a business day — so the TTL is long and,
-// unlike every small provider payload, this one is NOT persisted: several
-// decades of daily points per metal would blow the localStorage budget for
-// every other cache. One download per metal per 6h serves every metals frame on
-// the board through the shared in-memory entry.
-const historyCache = new TtlCache<MetalHistory[]>({
-  namespace: "zframes:metals:history",
-  ttlMs: 6 * 60 * 60_000,
-  persist: false,
-});
-
-// Latest LBMA USD fix per symbol, filled as histories resolve. getMetalSpot
-// reads it to attach a change-vs-fix (see getMetalSpot).
-const lastFix = new Map<string, number>();
-
-/**
- * How long a cold `getMetalSpot` waits for the fix history before answering
- * without a change column. The LBMA file lands in ~1.5s; past this the price
- * is worth more than the delta, and the download completes into the shared
- * cache regardless, so the next poll fills the column in.
- */
-const FIX_WARMUP_MS = 3_000;
-
-// COT publishes Friday afternoon for the prior Tuesday — weekly data behind a
-// 6h TTL, small enough (a few hundred rows of nine numbers) to persist.
-const cotCache = new TtlCache<MetalPositioning>({
-  namespace: "zframes:metals:cot",
-  ttlMs: 6 * 60 * 60_000,
-  persist: true,
-});
-
-// The disaggregated report is the same weekly cadence as its legacy sibling, so
-// the TTL sits just under the hook's 6h poll and background polls still refresh.
-//
-// NOT persisted, unlike that sibling, and the payload is why: the 55 published
-// columns this maps come back as **~1 MB of JSON per metal** for a 520-week
-// window (measured live on all five), against the legacy report's nine columns.
-// Five metals persisted would land right on the ~5 MB origin localStorage quota,
-// where `setItem` throws into the cache's swallowing write guard and persistence
-// silently stops — for every other provider's small payloads too, with no
-// symptom. In-memory sharing already gives a board with three gold cards one
-// download; surviving a reload isn't worth spending the whole origin budget.
-//
-// Keys are metal symbols, so the fan-out is the five-metal universe and cannot
-// drift; `maxEntries` is a backstop rather than a working limit.
-const cotDisaggCache = new TtlCache<DisaggWeek[]>({
-  namespace: "zframes:metals:cot-disagg",
-  ttlMs: 5 * 60 * 60_000,
-  persist: false,
-  maxEntries: 8,
 });
 
 // One daily close per index, so the TTL sits just under the 6h
@@ -269,121 +134,6 @@ interface GoldApiQuote {
   updatedAt?: string;
 }
 
-/** One LBMA fix row: `d` the date, `v` the price in [USD, GBP, EUR]. */
-interface LbmaRow {
-  d?: string;
-  v?: (number | null)[];
-}
-
-interface CotRow {
-  report_date_as_yyyy_mm_dd?: string;
-  open_interest_all?: string;
-  noncomm_positions_long_all?: string;
-  noncomm_positions_short_all?: string;
-  /** CFTC's own field name — the typo ("postions") is in their schema, not ours. */
-  noncomm_postions_spread_all?: string;
-  comm_positions_long_all?: string;
-  comm_positions_short_all?: string;
-  nonrept_positions_long_all?: string;
-  nonrept_positions_short_all?: string;
-}
-
-/**
- * Every disaggregated column this provider maps, in ONE list so the `$select`
- * and the row type below can't drift apart — a name that exists in only one of
- * the two is the failure mode this shape exists to prevent.
- *
- * **The swap-dealer short and spread columns carry a DOUBLE underscore**
- * (`swap__positions_short_all`, `swap__positions_spread_all`) while the long one
- * has a single (`swap_positions_long_all`). That is a defect in the CFTC's own
- * schema — the same class as the legacy report's `noncomm_postions_spread_all`
- * typo above — and Socrata answers a single-underscore guess by simply omitting
- * the column rather than erroring, so the card renders zeros and nothing says
- * why. Verified live: every name below comes back non-null for all five metals.
- *
- * The `_all` suffix is inconsistent by class too, so there is no pattern to
- * derive and each name is read exactly as published: swap / managed-money /
- * non-reportable carry it, producer-merchant and other-reportable don't, and
- * `traders_other_rept_short` drops it where `traders_other_rept_long_all` keeps
- * it. `m_money_positions_spread` and `change_in_m_money_spread` likewise lack
- * the `_all` their long/short siblings have.
- */
-const DISAGG_FIELDS = [
-  "report_date_as_yyyy_mm_dd",
-  // Positions, by trader class.
-  "prod_merc_positions_long",
-  "prod_merc_positions_short",
-  "swap_positions_long_all",
-  "swap__positions_short_all",
-  "swap__positions_spread_all",
-  "m_money_positions_long_all",
-  "m_money_positions_short_all",
-  "m_money_positions_spread",
-  "other_rept_positions_long",
-  "other_rept_positions_short",
-  "other_rept_positions_spread",
-  "nonrept_positions_long_all",
-  "nonrept_positions_short_all",
-  // Week-over-week changes, as the agency computed them.
-  "change_in_prod_merc_long",
-  "change_in_prod_merc_short",
-  "change_in_swap_long_all",
-  "change_in_swap_short_all",
-  "change_in_swap_spread_all",
-  "change_in_m_money_long_all",
-  "change_in_m_money_short_all",
-  "change_in_m_money_spread",
-  "change_in_other_rept_long",
-  "change_in_other_rept_short",
-  "change_in_other_rept_spread",
-  "change_in_nonrept_long_all",
-  "change_in_nonrept_short_all",
-  // Share of total open interest, percent.
-  "pct_of_oi_prod_merc_long",
-  "pct_of_oi_prod_merc_short",
-  "pct_of_oi_swap_long_all",
-  "pct_of_oi_swap_short_all",
-  "pct_of_oi_m_money_long_all",
-  "pct_of_oi_m_money_short_all",
-  "pct_of_oi_other_rept_long",
-  "pct_of_oi_other_rept_short",
-  "pct_of_oi_nonrept_long_all",
-  "pct_of_oi_nonrept_short_all",
-  // Trader counts. Non-reportables have none by definition — they are the
-  // positions below the threshold at which a trader must report at all.
-  "traders_tot_all",
-  "traders_prod_merc_long_all",
-  "traders_prod_merc_short_all",
-  "traders_swap_long_all",
-  "traders_swap_short_all",
-  "traders_m_money_long_all",
-  "traders_m_money_short_all",
-  "traders_other_rept_long_all",
-  "traders_other_rept_short",
-  // Concentration in the largest 4 and 8 traders, percent.
-  "conc_gross_le_4_tdr_long",
-  "conc_gross_le_4_tdr_short",
-  "conc_gross_le_8_tdr_long",
-  "conc_gross_le_8_tdr_short",
-  "conc_net_le_4_tdr_long_all",
-  "conc_net_le_4_tdr_short_all",
-  "conc_net_le_8_tdr_long_all",
-  "conc_net_le_8_tdr_short_all",
-  // The published contract unit, e.g. "(CONTRACTS OF 100 TROY OUNCES)".
-  "contract_units",
-] as const;
-
-const DISAGG_SELECT = DISAGG_FIELDS.join(",");
-
-/** A disaggregated row, typed off the selected columns — Socrata sends strings. */
-type CotDisaggRow = Partial<Record<(typeof DISAGG_FIELDS)[number], string>>;
-
-/** One mapped disaggregated week, keyed by the same epoch the legacy week carries. */
-interface DisaggWeek {
-  time: number;
-  data: CotDisaggregated;
-}
-
 interface ReserveRow {
   record_date?: string;
   facility_desc?: string;
@@ -402,236 +152,6 @@ interface CoinGeckoMarket {
   market_cap?: number;
   total_volume?: number;
   circulating_supply?: number;
-}
-
-/** Fetch and parse one metal's whole LBMA fix history for one currency. */
-async function loadLbma(
-  symbol: string,
-  file: string,
-  currency: string,
-): Promise<MetalHistory> {
-  const column = LBMA_CURRENCIES.indexOf(
-    currency as (typeof LBMA_CURRENCIES)[number],
-  );
-  const rows = await fetchJson<LbmaRow[]>(
-    `${LBMA_URL}/${file}.json`,
-    undefined,
-    {
-      // Decades of daily fixes in one document — well past the shared default.
-      timeoutMs: 30_000,
-    },
-  );
-  if (!Array.isArray(rows)) throw new Error(`lbma ${file}: unexpected shape`);
-  const points: SeriesPoint[] = [];
-  for (const row of rows) {
-    const value = num(row?.v?.[column]);
-    // Pre-1999 rows carry a null EUR column, and the odd row is blank; both are
-    // simply absent from the series rather than rendering as a zero.
-    if (!row?.d || value === null || value <= 0) continue;
-    const time = Date.parse(`${row.d}T00:00:00Z`);
-    if (!Number.isFinite(time)) continue;
-    points.push({ time, value });
-  }
-  if (points.length === 0) throw new Error(`lbma ${file}: no usable rows`);
-  points.sort((a, b) => a.time - b.time);
-  // USD is the fix the spot change is measured against; remember the newest.
-  if (currency === "USD") lastFix.set(symbol, points[points.length - 1].value);
-  return { symbol, currency, points };
-}
-
-/** One cache entry per (symbol, currency) so boards in EUR don't evict the USD board. */
-function historyFor(symbol: string, currency: string): Promise<MetalHistory> {
-  const def = METALS[symbol];
-  if (!def?.lbma)
-    return Promise.reject(new Error(`no LBMA fix published for ${symbol}`));
-  const file = def.lbma;
-  return historyCache
-    .get(`${symbol}:${currency}`, async () => [
-      await loadLbma(symbol, file, currency),
-    ])
-    .then(([history]) => history);
-}
-
-/**
- * Assemble one trader class from its published columns.
- *
- * `long`/`short` are required by the interface, so they fall back to 0. Every
- * optional field is left **undefined** when its column is absent rather than
- * collapsed to 0, because the absences here are real and meaningful: the
- * producer/merchant and non-reportable classes never spread, and non-reportables
- * have no trader counts at all. A zero would read as "flat this week".
- */
-function traderClass(parts: {
-  long: unknown;
-  short: unknown;
-  spread?: unknown;
-  changeLong?: unknown;
-  changeShort?: unknown;
-  changeSpread?: unknown;
-  pctOfOiLong?: unknown;
-  pctOfOiShort?: unknown;
-  tradersLong?: unknown;
-  tradersShort?: unknown;
-}): CotTraderClass {
-  return {
-    long: num(parts.long) ?? 0,
-    short: num(parts.short) ?? 0,
-    spread: num(parts.spread) ?? undefined,
-    changeLong: num(parts.changeLong) ?? undefined,
-    changeShort: num(parts.changeShort) ?? undefined,
-    changeSpread: num(parts.changeSpread) ?? undefined,
-    pctOfOiLong: num(parts.pctOfOiLong) ?? undefined,
-    pctOfOiShort: num(parts.pctOfOiShort) ?? undefined,
-    tradersLong: num(parts.tradersLong) ?? undefined,
-    tradersShort: num(parts.tradersShort) ?? undefined,
-  };
-}
-
-/**
- * Concentration in the largest traders, or undefined when the gross columns the
- * interface requires aren't all published — the net pair stays optional on top.
- */
-function concentrationFrom(row: CotDisaggRow): CotConcentration | undefined {
-  const grossLong4 = num(row.conc_gross_le_4_tdr_long);
-  const grossShort4 = num(row.conc_gross_le_4_tdr_short);
-  const grossLong8 = num(row.conc_gross_le_8_tdr_long);
-  const grossShort8 = num(row.conc_gross_le_8_tdr_short);
-  if (
-    grossLong4 === null ||
-    grossShort4 === null ||
-    grossLong8 === null ||
-    grossShort8 === null
-  )
-    return undefined;
-  return {
-    grossLong4,
-    grossShort4,
-    grossLong8,
-    grossShort8,
-    netLong4: num(row.conc_net_le_4_tdr_long_all) ?? undefined,
-    netShort4: num(row.conc_net_le_4_tdr_short_all) ?? undefined,
-    netLong8: num(row.conc_net_le_8_tdr_long_all) ?? undefined,
-    netShort8: num(row.conc_net_le_8_tdr_short_all) ?? undefined,
-  };
-}
-
-/**
- * Map one disaggregated row, or null if it isn't one.
- *
- * The guard matters more than it looks: the two COT datasets live on the same
- * host and share several column names outright (`nonrept_positions_long_all` is
- * in both), so a legacy row reaching this function would otherwise map into a
- * week of zeros that looks published. Requiring the three classes the legacy
- * report cannot express — producer/merchant, swap dealers, managed money — is
- * what makes "this row is disaggregated" checkable rather than assumed.
- */
-function disaggregatedFrom(row: CotDisaggRow): CotDisaggregated | null {
-  if (
-    num(row.prod_merc_positions_long) === null ||
-    num(row.swap_positions_long_all) === null ||
-    num(row.m_money_positions_long_all) === null
-  )
-    return null;
-  return {
-    producerMerchant: traderClass({
-      long: row.prod_merc_positions_long,
-      short: row.prod_merc_positions_short,
-      changeLong: row.change_in_prod_merc_long,
-      changeShort: row.change_in_prod_merc_short,
-      pctOfOiLong: row.pct_of_oi_prod_merc_long,
-      pctOfOiShort: row.pct_of_oi_prod_merc_short,
-      tradersLong: row.traders_prod_merc_long_all,
-      tradersShort: row.traders_prod_merc_short_all,
-    }),
-    swapDealer: traderClass({
-      long: row.swap_positions_long_all,
-      // Double underscore on short and spread, single on long — CFTC's schema,
-      // not a typo here. See DISAGG_FIELDS.
-      short: row.swap__positions_short_all,
-      spread: row.swap__positions_spread_all,
-      changeLong: row.change_in_swap_long_all,
-      changeShort: row.change_in_swap_short_all,
-      changeSpread: row.change_in_swap_spread_all,
-      pctOfOiLong: row.pct_of_oi_swap_long_all,
-      pctOfOiShort: row.pct_of_oi_swap_short_all,
-      tradersLong: row.traders_swap_long_all,
-      tradersShort: row.traders_swap_short_all,
-    }),
-    managedMoney: traderClass({
-      long: row.m_money_positions_long_all,
-      short: row.m_money_positions_short_all,
-      spread: row.m_money_positions_spread,
-      changeLong: row.change_in_m_money_long_all,
-      changeShort: row.change_in_m_money_short_all,
-      changeSpread: row.change_in_m_money_spread,
-      pctOfOiLong: row.pct_of_oi_m_money_long_all,
-      pctOfOiShort: row.pct_of_oi_m_money_short_all,
-      tradersLong: row.traders_m_money_long_all,
-      tradersShort: row.traders_m_money_short_all,
-    }),
-    otherReportable: traderClass({
-      long: row.other_rept_positions_long,
-      short: row.other_rept_positions_short,
-      spread: row.other_rept_positions_spread,
-      changeLong: row.change_in_other_rept_long,
-      changeShort: row.change_in_other_rept_short,
-      changeSpread: row.change_in_other_rept_spread,
-      pctOfOiLong: row.pct_of_oi_other_rept_long,
-      pctOfOiShort: row.pct_of_oi_other_rept_short,
-      tradersLong: row.traders_other_rept_long_all,
-      tradersShort: row.traders_other_rept_short,
-    }),
-    nonReportable: traderClass({
-      long: row.nonrept_positions_long_all,
-      short: row.nonrept_positions_short_all,
-      changeLong: row.change_in_nonrept_long_all,
-      changeShort: row.change_in_nonrept_short_all,
-      pctOfOiLong: row.pct_of_oi_nonrept_long_all,
-      pctOfOiShort: row.pct_of_oi_nonrept_short_all,
-    }),
-    totalTraders: num(row.traders_tot_all) ?? undefined,
-    concentration: concentrationFrom(row),
-    // Surfaced as published rather than folded into `contractSize`, which stays
-    // the provider's own hardcoded number so the five shipped frames reading it
-    // keep the value they have.
-    contractUnits: row.contract_units,
-  };
-}
-
-/**
- * Fetch and map one metal's disaggregated weeks, newest-first off the wire.
- *
- * Fetched **direct, not proxied**: publicreporting.cftc.gov answers
- * `Access-Control-Allow-Origin: *`, exactly like the legacy call beside it.
- */
-async function loadDisaggregated(
-  key: string,
-  code: string,
-): Promise<DisaggWeek[]> {
-  const url =
-    `${COT_DISAGG_URL}?$select=${DISAGG_SELECT}` +
-    `&cftc_contract_market_code=${code}` +
-    `&$order=report_date_as_yyyy_mm_dd%20DESC&$limit=${COT_WEEKS}`;
-  const rows = await fetchJson<CotDisaggRow[]>(url, undefined, {
-    // ~1 MB per metal at this width and window — the shared default is for the
-    // small payloads, so this gets the LBMA history's allowance.
-    timeoutMs: 30_000,
-  });
-  if (!Array.isArray(rows))
-    throw new Error(`cftc disaggregated ${key}: unexpected shape`);
-  const weeks: DisaggWeek[] = [];
-  for (const row of rows) {
-    // Both datasets publish the same Socrata timestamp field in the same format
-    // ("2026-07-28T00:00:00.000") and both are parsed with this identical call,
-    // so the epochs align by construction and the merge downstream is exact.
-    const time = Date.parse(row?.report_date_as_yyyy_mm_dd ?? "");
-    if (!Number.isFinite(time)) continue;
-    const data = disaggregatedFrom(row);
-    if (data) weeks.push({ time, data });
-  }
-  if (weeks.length === 0)
-    throw new Error(`cftc disaggregated ${key}: no usable rows`);
-  return weeks;
 }
 
 /** ISO date (`YYYY-MM-DD`) of an epoch, in UTC — how the series reports its date. */

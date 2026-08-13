@@ -287,7 +287,7 @@ const walletCache = new TtlCache<Portfolio>({
 });
 
 export class WalletProvider implements MarketDataProvider {
-  readonly name = "On-chain wallet";
+  readonly name = "wallet"; // a public on-chain wallet address
   readonly capabilities: readonly Capability[] = ["portfolio"];
   readonly portfolioKinds: readonly PortfolioSourceKind[] = ["wallet"];
 

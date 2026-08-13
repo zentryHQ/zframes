@@ -339,27 +339,23 @@ describe("OfrProvider", () => {
       );
     });
 
-    it("shifts every later column when a field is quoted (known CSV fragility)", async () => {
-      // KNOWN FRAGILITY, documented rather than fixed: the parser is a naive
-      // `split(",")` with no quoted-field handling. Today's file has no quoted
-      // fields, but the moment one appears — here a thousands-separated Credit
-      // value `"0,5"` — every later column is read one place to the left, so a
-      // category silently reports its NEIGHBOUR's contribution.
+    it("keeps later columns aligned when a field is quoted", async () => {
+      // The parser goes through `splitCsvRow`, so a quoted field — here a
+      // thousands-separated Credit value `"0,5"` — stays ONE cell instead of
+      // shifting every later column left (the naive-`split(",")` failure this
+      // test used to pin as a known fragility).
       stubCsv(csv(['2026-06-18,1,"0,5",0.2,0.3,0.4,0.5,9.1,9.2,9.3']));
 
       const out = await new OfrProvider().getFinancialStress();
 
-      // The headline index (column 1) is still correct — the shift starts after.
       expect(out.value).toBe(1);
-      // Credit/Equity are unreadable halves of the quoted field …
+      // `0,5` isn't a finite number, so Credit alone is dropped …
       expect("credit" in out.trend[0]).toBe(false);
-      expect("equityValuation" in out.trend[0]).toBe(false);
-      // … and the three that follow report the wrong source column: Safe assets
-      // shows Equity's 0.2, Funding shows Safe assets' 0.3, Volatility shows
-      // Funding's 0.4.
-      expect(out.trend[0].safeAssets).toBe(0.2);
-      expect(out.trend[0].funding).toBe(0.3);
-      expect(out.trend[0].volatility).toBe(0.4);
+      // … and every later category still reads its OWN column.
+      expect(out.trend[0].equityValuation).toBe(0.2);
+      expect(out.trend[0].safeAssets).toBe(0.3);
+      expect(out.trend[0].funding).toBe(0.4);
+      expect(out.trend[0].volatility).toBe(0.5);
     });
 
     it("throws a labelled error on an empty, headers-only or garbage CSV", async () => {

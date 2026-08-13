@@ -48,7 +48,7 @@ const num = (v: unknown): number => {
  * Cloudflare-fronted (max-age ~6s) and un-keyed, so we poll gently (~2 min TTL).
  */
 export class UltrasoundProvider implements MarketDataProvider {
-  readonly name = "ultrasound.money";
+  readonly name = "ultrasound"; // upstream: ultrasound.money
   readonly capabilities: readonly Capability[] = ["eth-supply"];
 
   private readonly cache = new TtlCache<EthSupply>({

@@ -28,7 +28,7 @@ const portfolioCache = new TtlCache<Portfolio>({
  * credential stored) surfaces as the frame's connect-state.
  */
 export class BinanceProvider implements MarketDataProvider {
-  readonly name = "Binance";
+  readonly name = "binance";
   readonly capabilities: readonly Capability[] = ["portfolio"];
   readonly portfolioKinds: readonly PortfolioSourceKind[] = ["binance"];
 

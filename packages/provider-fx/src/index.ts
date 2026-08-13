@@ -38,9 +38,11 @@ const DXY_WEIGHTS: Record<string, number> = {
 // latest rate, previous-day change, and a sparkline — so the shared cache keeps a
 // TTL just under the hook's hourly poll, dedups concurrent loads across frames,
 // persists across reloads, and serves the last good value on a transient error.
-// Keyed by base+symbols+window so different boards don't collide.
-const cache = new TtlCache<FxRateWithSource[]>({
-  namespace: "zframes:fx",
+// Keyed by base+symbols+window so different boards don't collide. (The
+// namespace was renamed from "zframes:fx", orphaning that persisted key set —
+// acceptable, the cache is size-bounded.)
+const ratesCache = new TtlCache<FxRateWithSource[]>({
+  namespace: "zframes:fx:rates",
   ttlMs: 55 * 60_000,
   persist: true,
 });
@@ -144,7 +146,7 @@ export class FxProvider implements MarketDataProvider {
     if (wanted.length === 0) return [];
     const windowDays = opts.windowDays ?? FX_DEFAULT_WINDOW_DAYS;
     const key = `${b}:${[...wanted].sort().join(",")}:${windowDays}`;
-    const rows = await cache.get(key, async () => {
+    const rows = await ratesCache.get(key, async () => {
       const { value } = await loadFromChain(
         { base: b, symbols: wanted, windowDays, purpose: "rates" },
         (table) => mapRates(table, b, wanted),
