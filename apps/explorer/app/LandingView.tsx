@@ -8,6 +8,12 @@ import { FramesShowcase } from "@/app/lib/FramesShowcase";
 import { LiveFrame, LiveFrameStyles } from "@/app/lib/LiveFrame";
 import { MouseParallax, Parallax, Reveal, ScrollExit } from "@/app/lib/motion";
 import { SectionHeading } from "@/app/lib/SectionHeading";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/app/components/ui/accordion";
 import { ShowcaseStack } from "@/app/lib/ShowcaseStack";
 
 // Gallery home — the public front door as a five-act scroll narrative:
@@ -421,10 +427,13 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
  * answers to be visible on the page, and an answer engine quoting words we never
  * showed a human is worse than not being quoted.
  *
- * Native `<details>` rather than a JS accordion: the answers are in the document
- * either way (crawlers read collapsed content, and Google's guidance explicitly
- * allows FAQ answers behind an accordion), and this costs no state, no
- * dependency, and works before hydration.
+ * shadcn's Radix accordion rather than native `<details>` so open/close animates
+ * (height + fade; `<details>` snaps). The SEO property the old `<details>`
+ * version bought is preserved: `AccordionContent` force-mounts (see
+ * `components/ui/accordion.tsx`), so every answer is in the server HTML for
+ * crawlers even while collapsed — Google's guidance allows FAQ answers behind
+ * an accordion but requires the marked-up text to be on the page. `type="multiple"`
+ * keeps the old independent-toggles behaviour.
  */
 function Faq() {
   return (
@@ -454,17 +463,21 @@ function Faq() {
           </Reveal>
         </div>
 
-        <div className="flex flex-col gap-2.5">
+        <Accordion type="multiple" className="flex flex-col gap-2.5">
           {FAQ.map((item, i) => (
             <Reveal key={item.question} delay={Math.min(i, 4) * 0.05}>
-              <details className="zf-surface group px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
-                <summary className="zf-press flex cursor-pointer list-none items-center justify-between gap-4 text-left font-semibold text-white">
-                  <h3 className="text-[15px]">{item.question}</h3>
-                  {/* Rotates to a minus when open — the only motion here, and
-                    CSS-only so it works with JS off. */}
+              <AccordionItem
+                value={item.question}
+                className="zf-surface px-5 py-4"
+              >
+                {/* AccordionTrigger's header IS the h3 (Radix's default), so
+                    the question text is a span, not a nested heading. */}
+                <AccordionTrigger className="zf-press w-full cursor-pointer font-semibold text-white [&[data-state=open]>svg]:rotate-45">
+                  <span className="text-[15px]">{item.question}</span>
+                  {/* The plus rotates to a × when open. */}
                   <svg
                     viewBox="0 0 24 24"
-                    className="h-4 w-4 shrink-0 text-indigo-300 transition-transform duration-200 group-open:rotate-45"
+                    className="h-4 w-4 shrink-0 text-indigo-300 transition-transform duration-200"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2"
@@ -473,14 +486,16 @@ function Faq() {
                   >
                     <path d="M12 5v14M5 12h14" />
                   </svg>
-                </summary>
-                <p className="mt-3 text-pretty text-sm leading-relaxed text-white/70">
-                  {item.answer}
-                </p>
-              </details>
+                </AccordionTrigger>
+                <AccordionContent className="pt-3">
+                  <p className="text-pretty text-sm leading-relaxed text-white/70">
+                    {item.answer}
+                  </p>
+                </AccordionContent>
+              </AccordionItem>
             </Reveal>
           ))}
-        </div>
+        </Accordion>
       </div>
     </section>
   );
