@@ -33,6 +33,35 @@ database — an empty gallery on a new checkout means one of the three was skipp
 versioned migrations — see below. `drizzle-kit generate` is still useful for
 *authoring* the SQL for a new migration file.
 
+## Demo data by default; live data is a per-browser opt-in
+
+Since **2026-08-13** every frame-rendering surface (landing, `/dashboard/[id]`,
+`/embed/[id]`, `/catalogue`, `/tinker`) renders **simulated data by default** —
+the full-capability `MockMarketDataProvider` from `@zframes/frames/testing`, the
+same deterministic offline provider the frame smoke tests run on. Provider
+composition branches once, at module init, in `app/lib/frames.ts` on a
+`localStorage` flag (`zframes-data-mode`, helpers in `app/lib/data-mode.ts`);
+`live` mounts the keyless set + `WalletProvider` instead, and toggling persists +
+reloads. This is a ToS-compliance posture, not a performance one: default page
+loads must touch **no** upstream market API on Zentry's behalf — the visitor's
+browser initiates every live fetch (see `docs/decisions/web-explorer/`, local-only).
+
+Two labelling rules keep it honest, and both are load-bearing:
+
+- The header carries the `DataModeToggle` pill ("Demo data" / "Live data") — the
+  site-wide label plus the switch, in `AppShell`.
+- `/embed/*` renders bare (no header), so `EmbedBoard` draws its own fixed
+  corner "Demo data" badge. A third-party iframe can't read the opt-in flag
+  (partitioned storage) and correctly falls back to demo — which is exactly when
+  that badge matters.
+
+**Footgun:** a mock data gap renders as a *quiet empty card*, not an error — the
+frame smoke test only forbids error cards, so nothing fails when a frame's mock
+method returns a shape the frame filters out. If a card is empty in demo mode but
+fine live, fix the method in `packages/frames/src/testing/mock-provider.ts`
+(e.g. `getNationalDebt` needed per-point `heldByPublic`/`intragovernmental` for
+the composition frame).
+
 ## Dashboards live in the database, not in code
 
 Since **2026-08-05** there is exactly one place a dashboard can be: a row in

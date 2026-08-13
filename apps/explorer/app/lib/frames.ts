@@ -8,9 +8,14 @@
 // (the only truly keyed provider: needs a server relay) stays excluded.
 import { createRegistry } from "@zframes/core";
 import { allFrames } from "@zframes/frames";
+import { MockMarketDataProvider } from "@zframes/frames/testing";
 import { createKeylessProviders } from "@zframes/providers-keyless";
 import { WalletProvider } from "@zframes/provider-wallet";
+import { getDataMode } from "@/app/lib/data-mode";
 
+// Construction is side-effect-free (the Hyperliquid socket opens lazily on the
+// first subscribe, every fetch on the first method call), so the live set can be
+// built unconditionally for its COUNT while demo mode never actually reads it.
 const keyless = createKeylessProviders();
 
 /**
@@ -24,13 +29,28 @@ const keyless = createKeylessProviders();
  */
 export const KEYLESS_PROVIDER_COUNT = keyless.length;
 
-// Keyless set + WalletProvider. Wallet is keyless-safe — a public on-chain
-// address read straight from the browser (public RPC + CoinGecko, no key, no
-// signing, no relay) — so it powers the `portfolio` capability on public
+/**
+ * The mode this page load resolved at module init — "demo" unless this browser
+ * has opted in to live data (see `data-mode.ts` for why demo is the default).
+ * Fixed for the page's lifetime; toggling reloads.
+ */
+export const dataMode = getDataMode();
+
+// DEMO (default): one deterministic offline provider covering every capability —
+// the same MockMarketDataProvider the frame smoke tests and Storybook run on, so
+// every frame is guaranteed to render on it. Nothing is fetched from any
+// upstream market API, which is the point (see data-mode.ts).
+//
+// LIVE (opt-in): keyless set + WalletProvider. Wallet is keyless-safe — a public
+// on-chain address read straight from the browser (public RPC + CoinGecko, no
+// key, no signing, no relay) — so it powers the `portfolio` capability on public
 // surfaces (e.g. the hero's live on-chain wallet portfolio). Binance is the one
 // provider still excluded: its signed relay has no server in the static/SSR
 // explorer.
-export const providers = [...keyless, new WalletProvider()];
+export const providers =
+  dataMode === "live"
+    ? [...keyless, new WalletProvider()]
+    : [new MockMarketDataProvider()];
 
 /**
  * The public on-chain address every `account: true` frame is demoed against on
