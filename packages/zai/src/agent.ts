@@ -1,6 +1,4 @@
 import { spawn } from "node:child_process";
-import { access, readFile } from "node:fs/promises";
-import { constants } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -16,6 +14,13 @@ import { dirname, join } from "node:path";
  * Node-only and React-free (built-ins only) so it bundles into the CLI next to
  * `./serve` and loads under Vite's Node config loader. Same `(req, res)` shape
  * as `./serve`, shared verbatim by the dev plugin and the CLI server.
+ *
+ * This file holds the HTTP handlers + the spawn/stream orchestration; the
+ * sibling modules carry one topic each — `agent-stream` (Claude stream-line
+ * parsing), `agent-prompt` (prompt construction), `agent-env` (runner registry,
+ * PATH detection, child-env resolution). Siblings are imported by package
+ * subpath (NOT relative paths) because this file is reached by Vite's Node
+ * config-loader, which can't resolve a relative extensionless path.
  */
 
 // Route strings live in `routes` (React-free AND Node-free) so the browser
@@ -26,17 +31,29 @@ import { dirname, join } from "node:path";
 // config-loader, which can't resolve a relative extensionless path.
 export { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/spec/routes";
 
+import {
+  detectAgents,
+  resolveAgentEnv,
+  type Runner,
+} from "@zframes/zai/agent-env";
+import {
+  buildPrompt,
+  MAX_HISTORY_TURNS,
+  type HistoryTurn,
+} from "@zframes/zai/agent-prompt";
+
+// Re-exported so the package barrel (and the tests/hosts importing from
+// `@zframes/zai/agent`) keep the same public surface as before the split.
+export {
+  claudeDelta,
+  claudeResult,
+  claudeStatus,
+} from "@zframes/zai/agent-stream";
+export { resolveAgentEnv } from "@zframes/zai/agent-env";
+export { buildPrompt, type HistoryTurn } from "@zframes/zai/agent-prompt";
+
 const MAX_BODY_BYTES = 64_000; // a question, never an upload
 const RUN_TIMEOUT_MS = 120_000; // bound latency/cost — kill a runaway agent
-const MAX_CONTEXT_CHARS = 12_000; // cap the client's on-screen digest in the prompt
-const MAX_HISTORY_TURNS = 6; // last ~3 exchanges of the orb's ephemeral thread
-const MAX_HISTORY_CHARS = 600; // per turn — orb answers are 2–4 sentences anyway
-
-/** One prior turn of the orb's ephemeral thread, replayed for follow-up context. */
-export interface HistoryTurn {
-  role: "user" | "zai";
-  text: string;
-}
 
 // Structural req/res shapes satisfied by both Node http and Vite connect, so
 // this module needs no node/vite type dep (mirrors `./serve`).
@@ -54,356 +71,7 @@ interface ResLike {
   end(body?: string): unknown;
 }
 
-interface Runner {
-  id: string;
-  label: string;
-  bin: string;
-  /**
-   * argv for a one-shot, read-only answer. `outFile` is a temp path a runner may
-   * write its final message to (codex) instead of stdout.
-   */
-  buildArgs(prompt: string, outFile: string): string[];
-  /**
-   * Streaming runners parse ONE line of their NDJSON stdout into an incremental
-   * text delta (or null for non-text lines), so the answer can be relayed to the
-   * browser token-by-token. Runners that omit it don't stream — their whole
-   * answer is delivered once, via `readResult` on close.
-   */
-  parseDelta?(line: string): string | null;
-  /**
-   * Optional: map ONE stdout line to a short status ("searching the web…") when
-   * the runner starts a tool call, so the orb shows activity during the gap
-   * before the answer streams. Null for lines that aren't a tool start.
-   */
-  parseStatus?(line: string): string | null;
-  /** The final, canonical answer from full stdout (or the out-file). */
-  readResult(stdout: string, outFile: string): Promise<string>;
-  /**
-   * The env var this CLI reads for its config/credentials dir (claude →
-   * CLAUDE_CONFIG_DIR, codex → CODEX_HOME). Lets a user point zframes at a specific
-   * account via `ZFRAMES_<var>`, applied only to this runner's child so it never
-   * hijacks a bare `claude`/`codex` elsewhere. Omitted → env is passed through as-is.
-   * See `resolveAgentEnv`.
-   */
-  configEnv?: string;
-}
-
-/** Tolerantly parse one NDJSON line; blank or non-JSON lines yield null. */
-function tryParse<T>(line: string): T | null {
-  const s = line.trim();
-  if (!s) return null;
-  try {
-    return JSON.parse(s) as T;
-  } catch {
-    return null;
-  }
-}
-
-/** The slice of Claude's `--output-format stream-json` events we read. */
-interface ClaudeStreamLine {
-  type?: string;
-  result?: unknown;
-  event?: {
-    type?: string;
-    delta?: { type?: string; text?: unknown };
-    // On a `content_block_start`, the block being opened — a `tool_use` block
-    // carries the tool `name` (e.g. WebSearch), which we surface as a status.
-    content_block?: { type?: string; name?: unknown };
-  };
-}
-
-/**
- * A single token-level text delta from a Claude stream line, or null.
- *
- * `claudeDelta`, `claudeResult`, and `buildPrompt` are exported purely as unit
- * seams for `agent-prompt.test.ts` — they're deterministic string logic with no
- * subprocess. They are NOT part of the server contract (only `handleAgents` /
- * `handleAsk` are); the private `@zframes/core` package inlines this file wholesale.
- */
-export function claudeDelta(line: string): string | null {
-  const o = tryParse<ClaudeStreamLine>(line);
-  if (o?.type !== "stream_event") return null;
-  const delta =
-    o.event?.type === "content_block_delta" ? o.event.delta : undefined;
-  return delta?.type === "text_delta" && typeof delta.text === "string"
-    ? delta.text
-    : null;
-}
-
-/**
- * A short human-readable status when Claude *starts* a tool call, or null. The
- * token stream goes quiet while a web lookup runs, so the orb would otherwise
- * show dead-air "thinking…"; this lets it show "searching the web…" instead.
- * Only the web tools are surfaced — any other tool start is silent (null).
- */
-export function claudeStatus(line: string): string | null {
-  const o = tryParse<ClaudeStreamLine>(line);
-  if (o?.type !== "stream_event") return null;
-  if (o.event?.type !== "content_block_start") return null;
-  const block = o.event.content_block;
-  if (block?.type !== "tool_use") return null;
-  switch (block.name) {
-    case "WebSearch":
-      return "searching the web…";
-    case "WebFetch":
-      return "reading a page…";
-    default:
-      return null;
-  }
-}
-
-/** Claude's canonical answer: the closing `result`, else the joined deltas. */
-export function claudeResult(stdout: string): string {
-  let result: string | null = null;
-  let deltas = "";
-  for (const line of stdout.split("\n")) {
-    const o = tryParse<ClaudeStreamLine>(line);
-    if (!o) continue;
-    if (o.type === "result" && typeof o.result === "string") {
-      result = o.result;
-      continue;
-    }
-    if (
-      o.type === "stream_event" &&
-      o.event?.type === "content_block_delta" &&
-      o.event.delta?.type === "text_delta" &&
-      typeof o.event.delta.text === "string"
-    ) {
-      deltas += o.event.delta.text;
-    }
-  }
-  return (result ?? deltas).trim();
-}
-
-const RUNNERS: Runner[] = [
-  {
-    id: "claude",
-    label: "Claude",
-    bin: "claude",
-    // -p/--print is non-interactive. stream-json emits NDJSON events as the
-    // answer is generated; --verbose is required alongside it under -p, and
-    // --include-partial-messages adds the token-level `content_block_delta`
-    // events we relay live. The canonical answer is the closing `result` event.
-    // --allowedTools whitelists WebSearch/WebFetch so zAI can look up news +
-    // context; in headless -p that also KEEPS Bash/Write/Edit blocked (only
-    // allowlisted tools auto-approve), so it can search the web but can't wander
-    // the dashboard folder we run it in. Search results interleave as tool
-    // events the delta parser ignores, then the text answer streams as usual.
-    buildArgs: (prompt) => [
-      "-p",
-      prompt,
-      "--output-format",
-      "stream-json",
-      "--verbose",
-      "--include-partial-messages",
-      "--allowedTools",
-      "WebSearch",
-      "WebFetch",
-    ],
-    parseDelta: claudeDelta,
-    parseStatus: claudeStatus,
-    readResult: async (stdout) => claudeResult(stdout),
-    configEnv: "CLAUDE_CONFIG_DIR",
-  },
-  {
-    id: "codex",
-    label: "Codex",
-    bin: "codex",
-    // `exec` is non-interactive; read-only sandbox so a Q&A can't mutate
-    // anything, and -o writes ONLY the final message to a file (stdout carries
-    // session noise). --skip-git-repo-check so it runs outside a repo too.
-    // --search enables the native web_search tool for news + context (a network
-    // read, orthogonal to the read-only filesystem sandbox). It's a TOP-LEVEL
-    // codex flag, so it must precede the `exec` subcommand — after it, exec's
-    // parser rejects it as an unknown argument.
-    buildArgs: (prompt, outFile) => [
-      "--search",
-      "exec",
-      "--skip-git-repo-check",
-      "-s",
-      "read-only",
-      "--color",
-      "never",
-      "-o",
-      outFile,
-      prompt,
-    ],
-    readResult: async (stdout, outFile) => {
-      try {
-        return (await readFile(outFile, "utf8")).trim();
-      } catch {
-        return stdout.trim();
-      }
-    },
-    configEnv: "CODEX_HOME",
-  },
-  {
-    id: "kimi",
-    label: "Kimi",
-    bin: "kimi",
-    // -p/--prompt runs one prompt non-interactively and prints the response.
-    buildArgs: (prompt) => ["-p", prompt, "--output-format", "text"],
-    readResult: async (stdout) => stdout.trim(),
-  },
-];
-
-/** First executable named `bin` on PATH, or null (shell-less, like a spawn). */
-async function onPath(bin: string): Promise<boolean> {
-  for (const dir of (process.env.PATH ?? "").split(":")) {
-    if (!dir) continue;
-    try {
-      await access(join(dir, bin), constants.X_OK);
-      return true;
-    } catch {
-      /* keep scanning */
-    }
-  }
-  return false;
-}
-
-let detected: Promise<Runner[]> | null = null;
-/** Runners actually installed, detected once and cached for the process. */
-function detectAgents(): Promise<Runner[]> {
-  if (!detected) {
-    detected = Promise.all(
-      RUNNERS.map(async (r) => ((await onPath(r.bin)) ? r : null)),
-    ).then((rs) => rs.filter((r): r is Runner => r !== null));
-  }
-  return detected;
-}
-
-/**
- * Ground the answer in what's on screen. The browser sends a live digest of the
- * dashboard (`clientContext` — frames + current readings, built in the runtime's
- * screen-context.ts); we prefer it when present. Without it (CLI-only client, or
- * a capture failure) we fall back to reading the spec from disk for the title +
- * the symbols, so the bridge still works standalone.
- */
-export async function buildPrompt(
-  specFile: string,
-  question: string,
-  clientContext?: string,
-  catalogue?: string,
-  history?: HistoryTurn[],
-): Promise<string> {
-  let title = "a live market dashboard";
-  const symbols = new Set<string>();
-  try {
-    const spec = JSON.parse(await readFile(specFile, "utf8")) as {
-      title?: unknown;
-      frames?: { config?: Record<string, unknown> }[];
-    };
-    if (typeof spec.title === "string" && spec.title) title = spec.title;
-    for (const frame of spec.frames ?? []) {
-      const cfg = frame.config ?? {};
-      if (typeof cfg.symbol === "string") symbols.add(cfg.symbol);
-      if (Array.isArray(cfg.symbols))
-        for (const s of cfg.symbols) if (typeof s === "string") symbols.add(s);
-    }
-  } catch {
-    /* a missing/odd spec just means a less grounded prompt */
-  }
-  const trimmed = clientContext?.trim();
-  const grounding = trimmed
-    ? `Here is what the user is looking at on their dashboard "${title}" right now ` +
-      `(live values captured from the screen):\n\n${trimmed.slice(
-        0,
-        MAX_CONTEXT_CHARS,
-      )}`
-    : `The user's dashboard is titled "${title}". The symbols on screen right now are: ${
-        symbols.size ? [...symbols].join(", ") : "no specific symbols"
-      }.`;
-  // The full frame catalogue, when the host supplies it — so the assistant can
-  // answer "what frames exist / what does X show / how do I add one" from the
-  // running build's own metadata, not a guess or a network fetch.
-  const trimmedCatalogue = catalogue?.trim();
-  const frameCatalogue = trimmedCatalogue
-    ? `The frames a user can add in zframes (name — what it shows), by family:\n${trimmedCatalogue}\n\n`
-    : "";
-  // The orb's recent thread, embedded as a transcript so follow-ups ("what about
-  // ETH?", "why?") have context — the runners are one-shot (`claude -p` /
-  // `codex exec`), so prior turns ride in the prompt rather than a session.
-  // Text-only Q/A: the live digest above is always the CURRENT screen, so stale
-  // readings are never replayed; only the conversation is.
-  const recent = (history ?? [])
-    .filter((m) => m.text.trim())
-    .slice(-MAX_HISTORY_TURNS);
-  const transcript = recent.length
-    ? `Conversation so far (most recent last):\n${recent
-        .map(
-          (m) =>
-            `${m.role === "user" ? "User" : "zAI"}: ${m.text
-              .replace(/\s+/g, " ")
-              .trim()
-              .slice(0, MAX_HISTORY_CHARS)}`,
-        )
-        .join("\n")}\n\n`
-    : "";
-  return (
-    // Primer: brief the runner on what zframes is and how it works, so a
-    // general-purpose agent answers as the embedded assistant rather than from
-    // cold. Kept tight — the catalogue + live digest below carry the specifics.
-    `You are zAI, the assistant built into zframes — a keyless, AI-personalizable ` +
-    `live market dashboard for crypto and stocks. Users assemble their own dashboard ` +
-    `from "frames": self-contained widgets for live prices, funding, open interest, ` +
-    `fear & greed, TVL and on-chain activity, macro rates, news, even games. They ` +
-    `arrange frames on a grid in "customise" mode — drag, resize, add, remove, and ` +
-    `configure each — and edits save to a dashboard.json the runtime renders from. ` +
-    `All data comes from free public APIs (no keys, no accounts); stocks are ` +
-    `Hyperliquid HIP-3 perps — equities (xyz:TSLA), indices (xyz:SP500), ` +
-    `commodities (xyz:GOLD), FX (xyz:EUR) — shown alongside crypto. Help ` +
-    `the user read what's on their screen and the markets it tracks.\n\n` +
-    `${frameCatalogue}` +
-    `${grounding}\n\n` +
-    `${transcript}` +
-    // Scope guard: zAI is a market analyst embedded in the dashboard, not a
-    // general chatbot. Keep it on-topic so it stays grounded and on-brand —
-    // off-topic asks get a one-line decline that points back to what it can do.
-    `Stay strictly on topic. Only answer questions about zframes itself (its frames, ` +
-    `data, dashboard, and how to use it) and about markets and finance — stocks, ` +
-    `crypto, prices, funding, market caps, on-chain and macro data, and the symbols ` +
-    `on screen. If the question is about anything else (general knowledge, coding, ` +
-    `personal advice, writing, other software, etc.), do not answer it: reply in one ` +
-    `sentence that you only cover zframes and the markets it tracks, and invite a ` +
-    `market or dashboard question instead.\n\n` +
-    // Sourcing rule: web search is on (news, catalysts, context the live feeds
-    // can't carry), so every answer must be explicit about provenance — the
-    // user has to know a figure is from their own live dashboard vs. the web.
-    // The live readings stay the authority for anything on screen, so a stale
-    // web number can never contradict what the user is looking at.
-    `You may use web search when it helps — for news, catalysts, or context not in ` +
-    `the live readings above. Be explicit in your answer about where each fact comes ` +
-    `from: say when a number or fact is from the live dashboard readings above versus ` +
-    `from the web, and name the web source (e.g. "per Reuters"). For anything shown on ` +
-    `the dashboard, treat the live readings above as the source of truth — don't ` +
-    `override them with a web figure.\n\n` +
-    `Answer the user's question in 2–4 sentences of plain text — no markdown headings, ` +
-    `no preamble.\n\nQuestion: ${question}`
-  );
-}
-
 type RunResult = { ok: true; answer: string } | { ok: false; error: string };
-
-/**
- * The environment a runner's child process should receive: the parent env, plus —
- * when the user has set the zframes-scoped override `ZFRAMES_<CONFIG_VAR>` — that
- * value applied to the CLI's own config-dir var (`runner.configEnv`). This lets a
- * user point zframes at a specific account (`ZFRAMES_CLAUDE_CONFIG_DIR`,
- * `ZFRAMES_CODEX_HOME`) without exporting `CLAUDE_CONFIG_DIR` / `CODEX_HOME`
- * globally — which would hijack every other invocation of that CLI (and break a
- * multi-account setup). With no override set the parent env is returned unchanged,
- * so default single-account users are unaffected. Exported as the unit seam for
- * agent-env.test.ts.
- */
-export function resolveAgentEnv(
-  runner: Pick<Runner, "configEnv">,
-  baseEnv: Record<string, string | undefined> = process.env,
-): Record<string, string | undefined> {
-  if (!runner.configEnv) return baseEnv;
-  const override = baseEnv[`ZFRAMES_${runner.configEnv}`];
-  if (!override) return baseEnv;
-  return { ...baseEnv, [runner.configEnv]: override };
-}
 
 let askCounter = 0;
 function runAgent(

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveAgentEnv } from "@zframes/zai/agent";
+import { resolveAgentEnv } from "@zframes/zai/agent-env";
 
 // resolveAgentEnv is pure — it decides the child env for a spawned runner from a
 // base env + the runner's config-dir var. Nothing here spawns a process; this is

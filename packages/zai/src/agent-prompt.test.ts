@@ -2,12 +2,12 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { buildPrompt } from "@zframes/zai/agent-prompt";
 import {
-  buildPrompt,
   claudeDelta,
   claudeResult,
   claudeStatus,
-} from "@zframes/zai/agent";
+} from "@zframes/zai/agent-stream";
 
 // buildPrompt reads the spec off disk, so each case writes a tiny real spec into
 // a temp dir. The parsers (claudeResult/claudeDelta) are pure — no fs needed.
