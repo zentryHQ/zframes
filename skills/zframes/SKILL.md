@@ -146,9 +146,10 @@ updates). This is a design job, not a dump, and **`references/design.md` is the
 method — read it before writing any frame JSON.** It covers the three passes
 (4a apply ONE theme preset, 4b curate 20–35 cards in 3–5 zones from a mandatory
 spine, 4c compose the layout — catalogue sizes, rows packed to 12, headed
-zones, hierarchy) plus the card-level fields you'll need while writing: event
-annotations, `group` clusters, pinning a frame to a second venue with
-`source`, and per-board/per-card display currency.
+zones, hierarchy, small asset-logo tiles as decoration and row fillers) plus
+the card-level fields you'll need while writing: event annotations, `group`
+clusters, pinning a frame to a second venue with `source`, and
+per-board/per-card display currency.
 
 ## 5. Lint — the feedback loop
 
