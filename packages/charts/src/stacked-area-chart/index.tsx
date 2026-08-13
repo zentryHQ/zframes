@@ -40,7 +40,6 @@ import {
 import { createScales } from "./d3-rendering/create-scales";
 import { createGrid } from "./d3-rendering/create-grid";
 import { createAxes } from "./d3-rendering/create-axes";
-import { drawAreas, updateAreaOpacities } from "./d3-rendering/draw-areas";
 
 /**
  * First-draw entrance: the stacked bands fade + rise into place, bottom band
@@ -590,26 +589,3 @@ const StackedAreaChartMemo = React.memo(
 ) as typeof StackedAreaChart;
 
 export default StackedAreaChartMemo;
-
-export type {
-  StackedAreaSeries,
-  StackedAreaDataPoint,
-  StackedAreaChartProps,
-  AreaComponentProps,
-  CombinedStackedDataPoint,
-  StackedAreaChartScales,
-  StackedAreaChartDimensions,
-  StackOrder,
-  StackOffset,
-} from "./types";
-
-export { useChartDimensions } from "./hooks/use-chart-dimensions";
-export {
-  getAllDates,
-  combineSeriesData,
-  createCombinedDataPoints,
-  calculateStackedYDomain,
-  formatValueWithSuffix,
-  formatPercentage,
-} from "./utils";
-export { STACKED_AREA_COLORS, AREA } from "./constants";

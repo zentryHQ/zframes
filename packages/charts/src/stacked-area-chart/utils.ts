@@ -194,10 +194,3 @@ export function formatValueWithSuffix(value: number): string {
   if (absValue >= 1e3) return `${sign}${(absValue / 1e3).toFixed(1)}K`;
   return `${sign}${absValue.toFixed(0)}`;
 }
-
-/**
- * Format percentage (0-1 range)
- */
-export function formatPercentage(value: number): string {
-  return `${(value * 100).toFixed(0)}%`;
-}

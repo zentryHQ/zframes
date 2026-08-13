@@ -33,33 +33,6 @@ export const calculateChartDomain = (data: DataPoint[], padding = 0.1) => {
   return [minDomain, maxDomain];
 };
 
-export const getDatapointsFromTimeframe = (
-  timeframe: ChartTimeframe,
-  timeIntervalMs: number,
-): number => {
-  switch (timeframe) {
-    case ChartTimeframe["24h"]:
-      return (24 * 60 * 60 * 1000) / timeIntervalMs;
-    case ChartTimeframe["3D"]:
-      return (3 * 24 * 60 * 60 * 1000) / timeIntervalMs;
-    case ChartTimeframe["7D"]:
-      return (7 * 24 * 60 * 60 * 1000) / timeIntervalMs;
-    case ChartTimeframe["1M"]:
-      return (30 * 24 * 60 * 60 * 1000) / timeIntervalMs;
-    case ChartTimeframe["3M"]:
-      return (90 * 24 * 60 * 60 * 1000) / timeIntervalMs;
-    case ChartTimeframe["YTD"]:
-    case ChartTimeframe["1Y"]:
-      return (365 * 24 * 60 * 60 * 1000) / timeIntervalMs;
-    case ChartTimeframe["5Y"]:
-      return (5 * 365 * 24 * 60 * 60 * 1000) / timeIntervalMs;
-    case ChartTimeframe.MAX:
-      return (50 * 365 * 24 * 60 * 60 * 1000) / timeIntervalMs;
-    default:
-      return 30;
-  }
-};
-
 export const CHART_COLORS_MULTI_SERIES = [
   "#3B82F6", // Blue
   "#10B981", // Green
