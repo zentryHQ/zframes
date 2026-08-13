@@ -332,19 +332,19 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
         </ScrollExit>
       </section>
 
-      {/* ── Act II · Proof — full boards, streaming ──────────────────────── */}
+      {/* ── Act II · Proof — full boards, rendering ──────────────────────── */}
       <section className="mx-auto max-w-5xl px-6 pb-2 pt-16 text-center">
         <Reveal>
           <span className="zf-label mb-3 justify-center">
-            Live, not screenshots
+            Real frames, not screenshots
           </span>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Real boards. Live or demo. Zero keys.
+            Real boards. Demo data. Zero keys.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
-            Every board here is rendering live right now, on the same keyless
-            feeds your generated terminal will run on. Keep scrolling; open any
-            one.
+            Every board here is rendering right now on simulated demo data —
+            the same frames your generated terminal runs on live, keyless
+            feeds. Keep scrolling; open any one.
           </p>
         </Reveal>
       </section>
