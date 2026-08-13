@@ -38,6 +38,36 @@
    * quint ease-out (mirrors --zf-ease-out below — @theme can't var()-reference
    * a :root token, so the value is repeated verbatim). */
   --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* The FAQ accordion's open/close (ui/accordion.tsx). Local pair instead of
+   * tw-animate's accordion-down/up because the content is force-mounted for
+   * SEO: on a pre-hydration paint Radix hasn't measured the height var yet,
+   * and tw-animate's `up` keyframe falls back to `height: auto` — which plays
+   * a visible every-answer-open flash on page load. Falling back to 0px makes
+   * the un-hydrated animation a no-op (0 → 0). */
+  --animate-zf-accordion-down: zf-accordion-down 0.3s
+    cubic-bezier(0.23, 1, 0.32, 1);
+  --animate-zf-accordion-up: zf-accordion-up 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  @keyframes zf-accordion-down {
+    from {
+      height: 0;
+      opacity: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height, auto);
+      opacity: 1;
+    }
+  }
+  @keyframes zf-accordion-up {
+    from {
+      height: var(--radix-accordion-content-height, 0px);
+      opacity: 1;
+    }
+    to {
+      height: 0;
+      opacity: 0;
+    }
+  }
 }
 
 /* The dashboard token system (FRAME_CSS parity), as raw vars the terminal-surface
