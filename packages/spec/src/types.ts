@@ -86,6 +86,8 @@ export type Capability =
   | "options-chain"
   | "portfolio";
 
+// ── Crypto market data ───────────────────────────────────────────────────────
+
 export interface DayStats {
   markPx: number;
   prevDayPx: number;
@@ -121,33 +123,38 @@ export interface Candle {
   volume?: number;
 }
 
-/** One currency's exchange rate vs a base, with a short trend. */
-export interface FxRate {
-  /** Quote currency code, e.g. "EUR" — units of this per 1 `base`. */
+/** Live open interest for one perp symbol (single venue). */
+export interface OpenInterestEntry {
+  /** Provider-native symbol, e.g. "BTC", "xyz:TSLA". */
   symbol: string;
-  /** Base currency the rate is quoted against, e.g. "USD". */
-  base: string;
-  /** Latest rate: how many `symbol` one `base` buys. */
-  rate: number;
-  /** Percent change vs the previous available (business) day. */
-  changePct: number;
-  /** Recent daily closes for a sparkline, oldest→newest. */
-  history: SeriesPoint[];
+  /** Open interest as USD notional (base-unit OI × mark price). */
+  openInterestUsd: number;
 }
 
-/** Total value locked for one chain/protocol. */
-export interface TvlEntry {
-  name: string;
-  tvl: number;
+/** One price level in an order book, with the depth cumulated from the top. */
+export interface OrderBookLevel {
+  /** Level price, in the pair's quote currency. */
+  price: number;
+  /** Resting size at this level, in the base asset. */
+  size: number;
+  /** Size summed from the best level through this one, in the base asset. */
+  cumulativeSize: number;
 }
 
-/** One fear & greed index observation. */
-export interface FearGreedPoint {
-  /** 0 (extreme fear) … 100 (extreme greed). */
-  value: number;
-  classification: string;
-  /** Epoch milliseconds. */
-  time: number;
+/** A two-sided order-book snapshot, best level first on both sides. */
+export interface OrderBook {
+  /** Base asset ticker the book is for, e.g. "KUB". */
+  symbol: string;
+  /** Venue-native pair id, e.g. "KUB_THB". */
+  pair: string;
+  /** Bids, highest price first. */
+  bids: OrderBookLevel[];
+  /** Asks, lowest price first. */
+  asks: OrderBookLevel[];
+  /** Midpoint of the best bid and best ask, quote currency. 0 if either side is empty. */
+  mid: number;
+  /** Best-bid/best-ask spread as a percent of `mid`. */
+  spreadPct: number;
 }
 
 /** Global crypto market snapshot. */
@@ -157,6 +164,551 @@ export interface GlobalMarket {
   /** Market-cap dominance per asset symbol (lowercase), as percentages. */
   dominance: Record<string, number>;
 }
+
+/** One coin's market-cap snapshot. */
+export interface CoinMarketEntry {
+  /** Upper-case ticker, e.g. "BTC". */
+  symbol: string;
+  /** Display name, e.g. "Bitcoin". */
+  name: string;
+  /** Market capitalisation, USD. */
+  marketCapUsd: number;
+  /** 24h price change, percent (when the source reports it). */
+  changePct24h?: number;
+}
+
+/** One coin's multi-window price-change snapshot across the broad market. */
+export interface CoinMover {
+  /** Upper-case ticker, e.g. "BTC". */
+  symbol: string;
+  /** Display name, e.g. "Bitcoin". */
+  name: string;
+  /** Market-cap rank (1 = largest). Lets a frame exclude illiquid dust. */
+  rank: number;
+  /** Spot price, USD. */
+  priceUsd: number;
+  /** Market capitalisation, USD. */
+  marketCapUsd: number;
+  /** 24h volume, USD — a liquidity floor for filtering dust pumps. */
+  volume24hUsd: number;
+  /** % price change per window. Keys: "1h" | "24h" | "7d" | "30d". */
+  changePct: Record<string, number>;
+}
+
+/** One trending coin (by search interest). */
+export interface TrendingCoin {
+  id: string;
+  name: string;
+  symbol: string;
+  /** Market-cap rank, when known. */
+  rank: number | null;
+  /** Current price, USD, when reported. */
+  price: number | null;
+  /** 24h price change, percent, when reported. */
+  changePct24h: number | null;
+}
+
+/** One market sector / category with its aggregate performance. */
+export interface MarketSector {
+  name: string;
+  /** Aggregate market cap, USD. */
+  marketCap: number;
+  /** 24h market-cap change, percent. */
+  changePct24h: number;
+}
+
+/** One issuer's spot-ETF flow figures. */
+export interface EtfIssuerFlow {
+  ticker: string;
+  institute: string;
+  /** Latest-day net inflow, USD (negative = outflow). */
+  dailyNetInflow: number;
+  /** Net assets under management, USD. */
+  netAssets: number;
+  /** Cumulative net inflow since inception, USD. */
+  cumNetInflow: number;
+}
+
+/** Spot-ETF flows for one asset (BTC or ETH), per-issuer + total, with history. */
+export interface EtfFlows {
+  /** "btc" | "eth". */
+  asset: string;
+  /** ISO date of the latest reading. */
+  date: string;
+  /** Latest-day total net inflow across all issuers, USD. */
+  dailyTotalNetInflow: number;
+  /** Cumulative net inflow, USD. */
+  cumNetInflow: number;
+  /** Total net assets across all issuers, USD. */
+  totalNetAssets: number;
+  /** Per-issuer breakdown, descending by net assets. */
+  issuers: EtfIssuerFlow[];
+  /** Daily total-net-inflow history, oldest→newest. */
+  history: SeriesPoint[];
+}
+
+/** One outcome of a prediction market, with its implied probability. */
+export interface PredictionOutcome {
+  /** Outcome label, e.g. "Yes". */
+  label: string;
+  /** Market-implied probability, 0–1. */
+  prob: number;
+}
+
+/** One prediction-market question with outcome probabilities. */
+export interface PredictionMarket {
+  /** The market question. */
+  question: string;
+  /** Outcomes with implied probabilities. */
+  outcomes: PredictionOutcome[];
+  /** Trailing-24h volume, USD. */
+  volume24h: number;
+  /** ISO end date. */
+  endDate: string;
+}
+
+/** One NFT collection's market snapshot (floor, volume, sales). */
+export interface NftCollection {
+  /** CoinGecko collection id/slug, e.g. "bored-ape-yacht-club". */
+  id: string;
+  /** Human display name, e.g. "Bored Ape Yacht Club". */
+  name: string;
+  /** Floor price in the collection's native currency (usually ETH). */
+  floorNative: number;
+  /** Floor price in USD. */
+  floorUsd: number;
+  /** 24h change in the floor price, percent (USD basis). */
+  floorChangePct24h: number;
+  /** Collection market cap in USD (floor × supply). */
+  marketCapUsd: number;
+  /** Trailing-24h trading volume in USD. */
+  volume24hUsd: number;
+  /** Number of sales in the last 24h. */
+  sales24h: number;
+}
+
+/**
+ * Public development activity behind a crypto asset.
+ *
+ * A token has no filings, so this is the nearest available read on whether
+ * anything is still being built — the crypto stand-in for the qualitative half
+ * of a company profile. It is a weak signal on purpose: it measures one public
+ * repository, so a monorepo, a rename or a private fork all distort it.
+ */
+export interface CryptoDeveloperActivity {
+  stars?: number;
+  forks?: number;
+  /** Repository watchers/subscribers. */
+  subscribers?: number;
+  totalIssues?: number;
+  closedIssues?: number;
+  pullRequestsMerged?: number;
+  pullRequestContributors?: number;
+  /** Commits in the trailing four weeks. */
+  commits4Weeks?: number;
+}
+
+/**
+ * Identity, supply and valuation snapshot for ONE crypto asset — the crypto
+ * analogue of an equity profile.
+ *
+ * The supply fields are the point of it. An equity's share count is in its
+ * filings; a token's is the whole investment case, and the gap between
+ * `circulatingSupply` and `totalSupply`/`maxSupply` (and so between
+ * `marketCap` and `fullyDilutedValuation`) is the dilution a price chart alone
+ * never shows. Everything past identity is optional because coverage thins
+ * fast below the majors — a frame must render what it has.
+ */
+export interface CryptoAssetProfile {
+  /** Provider-native asset id, e.g. "bitcoin" — NOT the ticker. */
+  id: string;
+  /** Upper-case ticker, e.g. "BTC". */
+  symbol: string;
+  /** Display name, e.g. "Bitcoin". */
+  name: string;
+  /** Plain-text description as published (markup stripped). */
+  description?: string;
+  /** Publisher's taxonomy, e.g. ["Layer 1", "Smart Contract Platform"]. */
+  categories: string[];
+  /** Market-cap rank, 1 = largest. */
+  marketCapRank?: number;
+  /** Canonical links, when published. */
+  links?: {
+    homepage?: string;
+    sourceCode?: string;
+    twitter?: string;
+    subreddit?: string;
+    whitepaper?: string;
+  };
+  /** Last price, USD. */
+  price?: number;
+  /** Market capitalisation (circulating supply × price), USD. */
+  marketCap?: number;
+  /** Fully diluted valuation (total/max supply × price), USD. */
+  fullyDilutedValuation?: number;
+  /** 24h traded volume, USD. */
+  volume24h?: number;
+  /** Tokens in circulation. */
+  circulatingSupply?: number;
+  /** Tokens issued, including locked/vesting. */
+  totalSupply?: number;
+  /** Hard supply cap; absent when the asset is uncapped (most are). */
+  maxSupply?: number;
+  /** All-time high, USD. */
+  ath?: number;
+  /** ISO date of the all-time high. */
+  athDate?: string;
+  /** Percent below the all-time high now (negative). */
+  athChangePct?: number;
+  /** All-time low, USD. */
+  atl?: number;
+  /** ISO date of the all-time low. */
+  atlDate?: string;
+  /** Percent above the all-time low now. */
+  atlChangePct?: number;
+  changePct24h?: number;
+  changePct7d?: number;
+  changePct30d?: number;
+  changePct1y?: number;
+  /** Public repository activity, when the publisher tracks one. */
+  developer?: CryptoDeveloperActivity;
+}
+
+// ── Derivatives & options ────────────────────────────────────────────────────
+
+/**
+ * One listed option contract in a chain.
+ *
+ * ⚠️ `iv` here is a DECIMAL (0.42 = 42%), unlike {@link OptionsSummary.avgIv}
+ * and {@link OptionsStrikeOi.callIv}, which carry the venue's unscaled percent.
+ * The two shapes coexist because the aggregate summary predates the chain; a
+ * provider filling both must scale, and a frame must not mix them on one axis.
+ */
+export interface OptionContract {
+  /** OCC-style contract id, e.g. "NVDA260821C00220000". */
+  contract: string;
+  /** Expiry, ISO date e.g. "2026-08-21". */
+  expiry: string;
+  /** Strike price, USD. */
+  strike: number;
+  side: "call" | "put";
+  /** Implied volatility as a decimal (0.42 = 42%); 0 upstream means "no quote". */
+  iv?: number;
+  openInterest: number;
+  volume: number;
+  bid?: number;
+  ask?: number;
+  lastPrice?: number;
+  delta?: number;
+  gamma?: number;
+  vega?: number;
+  theta?: number;
+  rho?: number;
+}
+
+/**
+ * A listed option chain, per underlying — deliberately asset-class-agnostic.
+ * The same expiry/strike/side/IV/OI fields describe a crypto venue's book, a
+ * listed equity and a metal ETF (GLD/SLV chains come off the same Cboe feed),
+ * so one frame reads all three and the card picks its feed with `source`.
+ *
+ * Greeks are present only where the feed publishes them: the delayed exchange
+ * feed does, a crypto book-summary call does NOT (they exist there only
+ * per-instrument, i.e. one request per contract), so a frame must hide those
+ * columns rather than render an empty grid.
+ */
+export interface OptionsChain {
+  /** Underlying ticker, e.g. "NVDA". */
+  symbol: string;
+  /** Underlying last price, USD. */
+  underlyingPrice?: number;
+  /** 30-day implied volatility index for the underlying, decimal. */
+  iv30?: number;
+  /** Minutes the quotes lag real time (15 for a delayed feed, 0 for live). */
+  delayMinutes: number;
+  contracts: OptionContract[];
+}
+
+/** Call vs put open interest at one strike. */
+export interface OptionsStrikeOi {
+  strike: number;
+  /** Call open interest at this strike (contracts). */
+  callOi: number;
+  /** Put open interest at this strike (contracts). */
+  putOi: number;
+  /** Call mark implied vol % when a call is listed here (e.g. 58.4 = 58.4%, matching `OptionsSummary.avgIv`'s unscaled convention). */
+  callIv?: number;
+  /** Put mark implied vol % when a put is listed here. */
+  putIv?: number;
+}
+
+/** Per-strike call/put OI for one expiry. */
+export interface OptionsExpiryStrikes {
+  /** Expiry label as Deribit names it, e.g. "27JUN26". */
+  expiry: string;
+  /** Expiry as epoch ms (for sorting / "nearest"). */
+  expiryMs: number;
+  /** Strikes ascending; one row per strike present in the book. */
+  strikes: OptionsStrikeOi[];
+}
+
+/** Aggregated options-market summary for one currency (BTC/ETH), one snapshot. */
+export interface OptionsSummary {
+  /** Upper-case currency, e.g. "BTC". */
+  currency: string;
+  /** Reference spot/underlying price (USD) for ATM context. */
+  underlyingPrice: number;
+  /** Put/call ratio by total open interest (sum putOI / sum callOI). */
+  putCallRatioOi: number;
+  /** Put/call ratio by 24h contract volume. */
+  putCallRatioVolume: number;
+  /** Total call open interest (contracts). */
+  callOi: number;
+  /** Total put open interest (contracts). */
+  putOi: number;
+  /** Total 24h call volume (contracts). */
+  callVolume: number;
+  /** Total 24h put volume (contracts). */
+  putVolume: number;
+  /** Open-interest-weighted mean implied vol % across the book (ATM-ish proxy). */
+  avgIv: number;
+  /** Per-strike OI for the single nearest expiry, ascending by strike. */
+  nearestExpiry: OptionsExpiryStrikes;
+  /** Every expiry present in the book (not just nearest), nearest-first — lets a frame build a strike-vs-expiry ladder or compare a derived metric (e.g. max pain) across the term structure. */
+  allExpiries?: OptionsExpiryStrikes[];
+  /** Epoch ms the snapshot was built. */
+  asOf: number;
+}
+
+/** One point on a volatility index (DVOL) series. */
+export interface VolatilityPoint {
+  /** Epoch ms. */
+  time: number;
+  /** Index value (annualised IV %, e.g. 38.7). */
+  value: number;
+}
+
+/** One venue's funding rate for a coin, annualized for cross-venue comparison. */
+export interface FundingVenueRate {
+  /** Venue label, e.g. "Hyperliquid", "Binance", "Bybit". */
+  venue: string;
+  /** Raw funding rate for the interval, decimal. */
+  rawRate: number;
+  /** Funding interval in hours (varies by venue — 1h vs 8h vs 4h). */
+  intervalHours: number;
+  /** Annualized funding, percent (rawRate × periods-per-year × 100). */
+  annualizedPct: number;
+}
+
+/** Cross-venue predicted funding for one coin. */
+export interface FundingComparison {
+  /** Coin symbol, e.g. "BTC". */
+  coin: string;
+  /** Per-venue annualized funding. */
+  venues: FundingVenueRate[];
+  /** Max − min annualized funding across venues, percentage points. */
+  spreadPct: number;
+}
+
+// ── DeFi & protocol economy ──────────────────────────────────────────────────
+
+/** One observation in a generic numeric time series (epoch ms → value). */
+export interface SeriesPoint {
+  /** Epoch milliseconds. */
+  time: number;
+  value: number;
+}
+
+/** Total value locked for one chain/protocol. */
+export interface TvlEntry {
+  name: string;
+  tvl: number;
+}
+
+/** 24h trading volume for one DEX protocol. */
+export interface DexVolumeEntry {
+  name: string;
+  /** Trailing-24h volume, USD. */
+  volume24h: number;
+  /** 1-day change in volume, percent (when the source reports it). */
+  changePct?: number;
+}
+
+/** Current total value locked for one DeFi protocol. */
+export interface ProtocolTvlEntry {
+  name: string;
+  /** Current TVL, USD. */
+  tvl: number;
+  /** DeFiLlama category, e.g. "Dexes", "Lending", "Liquid Staking". */
+  category?: string;
+  /** 1-day change in TVL, percent (when the source reports it). */
+  changePct?: number;
+}
+
+/** Trailing-24h protocol fees for one DeFi protocol. */
+export interface ProtocolFeesEntry {
+  name: string;
+  /** Fees accrued in the last 24h, USD. */
+  fees24h: number;
+  /** 1-day change, percent (when the source reports it). */
+  changePct?: number;
+}
+
+/**
+ * A protocol's fee and revenue history — the crypto analogue of an income
+ * statement, and the only keyless basis for a real valuation multiple.
+ *
+ * **`fees` and `revenue` are different lines and the distinction decides the
+ * multiple.** `fees` is everything users paid to use the protocol; `revenue` is
+ * only the part the protocol itself kept — the rest accrues to liquidity
+ * providers, suppliers or stakers. Dividing market cap by *fees* flatters a
+ * protocol that passes almost everything through, so a price-to-sales analogue
+ * must use `revenue`.
+ *
+ * Distinct from {@link ProtocolFeesEntry}, which is a cross-protocol 24h
+ * snapshot list (a leaderboard). This is one protocol, in depth, over time.
+ */
+export interface ProtocolFundamentals {
+  /** Publisher's protocol slug, e.g. "uniswap". */
+  protocol: string;
+  /** Display name, e.g. "Uniswap". */
+  name: string;
+  /** Daily total fees paid by users, USD, oldest → newest. */
+  fees: SeriesPoint[];
+  /** Daily protocol revenue, USD, oldest → newest. Empty when unpublished. */
+  revenue: SeriesPoint[];
+  /** Trailing 30-day total fees, USD. */
+  fees30d?: number;
+  /** Trailing 365-day total fees, USD. */
+  fees365d?: number;
+  /** Trailing 30-day total revenue, USD. */
+  revenue30d?: number;
+  /** Trailing 365-day total revenue, USD — the denominator of a P/S analogue. */
+  revenue365d?: number;
+  /** Current total value locked, USD, when the publisher reports it. */
+  tvl?: number;
+}
+
+/** One scheduled or already-passed token-unlock event. */
+export interface TokenUnlockEvent {
+  /** Epoch ms the tokens unlock. Can be in the FUTURE — that is the point. */
+  time: number;
+  /** Who it unlocks to, as published: "Team", "Investors", "Ecosystem", … */
+  category: string;
+  /** Publisher's description of the event. */
+  description?: string;
+  /** Tokens unlocking in this event. */
+  tokens: number;
+  /** How it releases — a cliff, or a linear stream — as published. */
+  unlockType?: string;
+}
+
+/**
+ * A token's emission and unlock schedule.
+ *
+ * **The only forward-looking supply information in the fleet**, and the crypto
+ * analogue of a share-lockup expiry: every other supply number here describes
+ * what has already been issued, while this says what is *about* to be. For a
+ * token whose insiders hold a third of the supply on a vesting cliff, it is the
+ * single most decision-relevant fact on a research card, and a price chart
+ * cannot express it.
+ *
+ * `schedule` deliberately runs past today — a frame should draw the boundary
+ * between observed and scheduled rather than plotting one continuous line, or
+ * the projection reads as history.
+ */
+export interface TokenUnlocks {
+  /** Publisher's protocol slug, e.g. "arbitrum". */
+  protocol: string;
+  /**
+   * Cumulative unlocked/circulating supply over time, oldest → newest,
+   * INCLUDING scheduled future points.
+   */
+  schedule: SeriesPoint[];
+  /** Epoch ms of the last OBSERVED point — everything after it is projection. */
+  observedThrough?: number;
+  /** Max supply as the publisher models it. */
+  maxSupply?: number;
+  /** Share of supply held by insiders today, percent (0–100). */
+  insiderPctNow?: number;
+  /** Share of supply insiders hold once fully vested, percent (0–100). */
+  insiderPctFinal?: number;
+  /** How far through the documented schedule the token is, percent (0–100). */
+  progressPct?: number;
+  /** Upcoming unlock events, soonest first. */
+  upcoming: TokenUnlockEvent[];
+}
+
+/** Total stablecoin supply — a market-wide liquidity-regime gauge. */
+export interface StablecoinSupply {
+  /** Total USD-pegged stablecoin circulating supply, USD. */
+  totalUsd: number;
+  /** Percent change vs 1 day / 7 days / 30 days ago. */
+  changePct1d: number;
+  changePct7d: number;
+  changePct30d: number;
+  /** Coarse trend: [30d ago, 7d ago, 1d ago, now], for a sparkline. */
+  history: SeriesPoint[];
+  /** Largest chains by stablecoin circulating supply, descending. */
+  topChains: { name: string; usd: number }[];
+}
+
+/** One DeFi yield pool. */
+export interface YieldPool {
+  /** DeFiLlama pool uuid. */
+  pool: string;
+  chain: string;
+  project: string;
+  symbol: string;
+  /** Total value locked, USD. */
+  tvlUsd: number;
+  /** Total APY, percent. */
+  apy: number;
+  /** Base (organic) APY, percent, when reported. */
+  apyBase: number | null;
+  /** Reward (incentive) APY, percent, when reported. */
+  apyReward: number | null;
+  /** 7-day APY change, percentage points, when reported. */
+  apyPct7D: number | null;
+  /** Whether the pool is a stablecoin pool. */
+  stablecoin: boolean;
+  /** Impermanent-loss risk flag ("no" | "yes"). */
+  ilRisk: string;
+}
+
+/** Aggregate DeFi fees/revenue snapshot with a trend. */
+export interface FeesOverview {
+  /** Trailing-24h protocol fees across all of DeFi, USD. */
+  total24h: number;
+  /** Trailing-7d fees, USD (when reported). */
+  total7d: number | null;
+  /** 1-day change in 24h fees, percent (when reported). */
+  changePct: number | null;
+  /** Daily fees history, oldest→newest. */
+  history: SeriesPoint[];
+}
+
+/** One DEX liquidity pool / trading pair with 24h activity. */
+export interface DexPool {
+  /** Pool/pair label, e.g. "PEPE / WETH". */
+  name: string;
+  /** Network id the pool trades on, e.g. "eth", "solana", "base". */
+  network: string;
+  /** Base-token spot price in USD. */
+  priceUsd: number;
+  /** Trailing-24h volume in USD. */
+  volume24hUsd: number;
+  /** 24h price change, percent. */
+  changePct24h: number;
+  /** Total pool liquidity (reserve) in USD. */
+  reserveUsd: number;
+  /** Fully-diluted valuation of the base token in USD (0 if unknown). */
+  fdvUsd: number;
+  /** Trade count in the last 24h (buys + sells). */
+  txns24h: number;
+}
+
+// ── On-chain networks (Bitcoin, Ethereum, cross-chain) ───────────────────────
 
 /**
  * Bitcoin on-chain valuation snapshot — the market-vs-realized-value family
@@ -219,235 +771,184 @@ export interface OnchainExtras {
   };
 }
 
-/**
- * Synthetic US Dollar Index (DXY) — the ICE-weighted geometric mean of six
- * USD pairs, computed from ECB reference rates (a keyless FX source). A live
- * tick isn't available keyless; this is the daily-granularity workaround.
- */
-export interface DollarIndex {
-  /** Latest DXY value. */
-  value: number;
-  /** Percent change vs the previous available business day. */
-  changePct: number;
-  /** Recent daily history, oldest→newest, for a trend line/sparkline. */
+/** Recommended on-chain fee tiers (sat/vB) from a mempool source. */
+export interface BtcFees {
+  /** Next-block inclusion. */
+  fastest: number;
+  halfHour: number;
+  hour: number;
+  economy: number;
+  minimum: number;
+}
+
+/** One projected ("template") block the mempool will likely mine next. */
+export interface ProjectedBlock {
+  /** Median fee rate, sat/vB. */
+  medianFee: number;
+  /** [min, …, max] sat/vB fee spread across the block. */
+  feeRange: number[];
+  /** Total fees in the projected block, sats. */
+  totalFees: number;
+  /** Transaction count. */
+  nTx: number;
+  /** Virtual size, vB. */
+  blockVSize: number;
+}
+
+/** Current mempool congestion + the next few projected blocks. */
+export interface MempoolState {
+  /** Unconfirmed transaction count. */
+  count: number;
+  /** Total vsize of the mempool, vB. */
+  vsize: number;
+  /** Sum of fees of all mempool txs, sats. */
+  totalFee: number;
+  /** Projected blocks, next-to-mine first (typically up to 8). */
+  projected: ProjectedBlock[];
+}
+
+/** One recently mined block (normalised). */
+export interface BtcBlock {
+  /** Block hash. */
+  id: string;
+  height: number;
+  /** Mined-at, epoch milliseconds. */
+  time: number;
+  txCount: number;
+  /** Block size, bytes. */
+  size: number;
+  /** Total fees paid in the block, sats. */
+  totalFees: number;
+  /** Median fee rate, sat/vB. */
+  medianFee: number;
+  /** Mining pool display name, e.g. "Foundry USA". */
+  poolName: string;
+  /** Mining pool slug, e.g. "foundryusa". */
+  poolSlug: string;
+}
+
+/** One observation in the hashrate history. */
+export interface HashratePoint {
+  /** Epoch milliseconds. */
+  time: number;
+  /** Average network hashrate, H/s. */
+  hashrate: number;
+}
+
+/** One observation in the difficulty history. */
+export interface DifficultyPoint {
+  /** Epoch milliseconds. */
+  time: number;
+  difficulty: number;
+}
+
+/** Network hashrate + difficulty over a window, with current readings. */
+export interface NetworkHashrate {
+  /** Latest network hashrate, H/s. */
+  currentHashrate: number;
+  currentDifficulty: number;
+  /** Hashrate history, oldest → newest. */
+  hashrates: HashratePoint[];
+  /** Difficulty history, oldest → newest. */
+  difficulty: DifficultyPoint[];
+}
+
+/** Countdown + estimate to the next Bitcoin difficulty retarget. */
+export interface DifficultyAdjustment {
+  /** Progress through the current 2016-block epoch, percent (0–100). */
+  progressPercent: number;
+  /** Signed estimated % change at the NEXT retarget (+ = harder). */
+  difficultyChange: number;
+  /** Signed % change applied at the PREVIOUS retarget. */
+  previousRetarget: number;
+  /** Blocks left until the retarget. */
+  remainingBlocks: number;
+  /** Time left until the retarget, milliseconds. */
+  remainingTimeMs: number;
+  /** Estimated retarget moment, epoch milliseconds. */
+  estimatedRetargetDate: number;
+  /** Block height of the next retarget. */
+  nextRetargetHeight: number;
+  /** Average block time this epoch, ms (target = 600_000). */
+  avgBlockTimeMs: number;
+}
+
+/** One mining pool's share over a window. */
+export interface MiningPool {
+  name: string;
+  slug: string;
+  /** Blocks mined in the window. */
+  blockCount: number;
+  /** Share of window blocks, percent (0–100). */
+  sharePct: number;
+  rank: number;
+}
+
+/** Mining-pool dominance over a window. */
+export interface MiningPools {
+  /** Window label echoed back, e.g. "1w". */
+  window: string;
+  /** Total blocks in the window (denominator for share). */
+  totalBlocks: number;
+  /** Pools in rank order. */
+  pools: MiningPool[];
+}
+
+/** Lightning Network summary stats. */
+export interface LightningStats {
+  nodeCount: number;
+  channelCount: number;
+  /** Total public capacity, sats. */
+  totalCapacity: number;
+  torNodes: number;
+  clearnetNodes: number;
+  /** Median channel capacity, sats. */
+  medCapacity: number;
+  /** Prior-day snapshot for a delta (when present). */
+  prevNodeCount?: number;
+  prevChannelCount?: number;
+  prevTotalCapacity?: number;
+}
+
+/** Ethereum supply economics — EIP-1559 burn vs PoS issuance, net growth, staking. */
+export interface EthSupply {
+  /** Current total ETH supply, coins. */
+  supply: number;
+  /** Annualized burn, ETH/yr. */
+  burnRateYearlyEth: number;
+  /** Annualized PoS issuance, ETH/yr. */
+  issuanceRateYearlyEth: number;
+  /** Net annual supply growth, percent (negative = deflationary). */
+  supplyGrowthYearlyPct: number;
+  /** Counterfactual PoW annual supply growth, percent. */
+  supplyGrowthYearlyPowPct: number;
+  /** Total staking yield, percent (issuance + MEV + tips APR). */
+  stakingAprPct: number;
+  /** Live burn, ETH/minute. */
+  burnEthPerMin: number;
+  /** Recent supply history, oldest→newest, for a sparkline. */
   history: SeriesPoint[];
 }
 
-/**
- * One live spot quote for a precious/industrial metal. Priced in USD per troy
- * ounce for the four precious metals (XAU/XAG/XPT/XPD) and USD per pound for
- * copper (HG), matching how each contract is quoted.
- */
-export interface MetalSpot {
-  /** Metal symbol: "XAU" | "XAG" | "XPT" | "XPD" | "HG". */
-  symbol: string;
-  /** Human name, e.g. "Gold". */
-  name: string;
-  /** Latest price, USD per troy ounce (copper: USD per pound). */
-  price: number;
-  /** Epoch milliseconds of the quote. */
-  updatedAt: number;
-  /**
-   * Percent change vs `prevFix` — the most recent daily benchmark fix. Absent
-   * when no benchmark history is available for the metal (copper has no LBMA
-   * fix) or the history fetch failed.
-   */
-  changePct?: number;
-  /** The daily benchmark the change is measured against (latest LBMA fix), USD. */
-  prevFix?: number;
+/** One blockchain's headline network activity over the last 24h. */
+export interface ChainActivity {
+  /** Blockchair chain slug, e.g. "bitcoin", "ethereum". */
+  chain: string;
+  /** Human display label, e.g. "Bitcoin". */
+  label: string;
+  /** Confirmed transactions in the last 24h. */
+  transactions24h: number;
+  /** Blocks produced in the last 24h. */
+  blocks24h: number;
+  /** Transactions currently waiting in the mempool. */
+  mempoolTxns: number;
+  /** Spot price of the chain's native asset in USD. */
+  priceUsd: number;
+  /** 24h change in the native asset price, percent. */
+  priceChangePct24h: number;
 }
 
-/**
- * A metal's daily benchmark-price history — the LBMA London fixes, the
- * reference price the physical market settles against. Decades deep (gold and
- * silver from 1968), so frames can slice their own window.
- */
-export interface MetalHistory {
-  /** Metal symbol: "XAU" | "XAG" | "XPT" | "XPD". */
-  symbol: string;
-  /** Quote currency, ISO 4217 — the LBMA publishes USD, GBP and EUR. */
-  currency: string;
-  /** Daily fix points, oldest → newest. */
-  points: SeriesPoint[];
-}
-
-/**
- * One trader class in the CFTC's *disaggregated* Commitments-of-Traders report.
- *
- * Every field beyond `long`/`short` is published by the CFTC rather than
- * derived, so a frame reads the agency's own arithmetic instead of recomputing
- * it from a window that may be shorter than the one the agency used.
- */
-export interface CotTraderClass {
-  /** Long contracts held by this class. */
-  long: number;
-  /** Short contracts held by this class. */
-  short: number;
-  /** Spreading contracts (long and short in different months); some classes never spread. */
-  spread?: number;
-  /** Week-over-week change in longs, as published. */
-  changeLong?: number;
-  /** Week-over-week change in shorts, as published. */
-  changeShort?: number;
-  /** Week-over-week change in spreads, as published. */
-  changeSpread?: number;
-  /** Longs as a percent of total open interest (0–100), as published. */
-  pctOfOiLong?: number;
-  /** Shorts as a percent of total open interest (0–100), as published. */
-  pctOfOiShort?: number;
-  /** How many distinct reporting traders hold the long side. */
-  tradersLong?: number;
-  /** How many distinct reporting traders hold the short side. */
-  tradersShort?: number;
-}
-
-/**
- * Position concentration in the largest reporting traders, percent (0–100).
- *
- * "Gross" counts a trader's long and short books separately; "net" nets them
- * first, so net is always ≤ gross. The gold market routinely runs above 50% of
- * gross shorts in four hands — a fact the legacy report cannot show at all.
- */
-export interface CotConcentration {
-  /** Percent of gross longs held by the largest 4 traders. */
-  grossLong4: number;
-  /** Percent of gross shorts held by the largest 4 traders. */
-  grossShort4: number;
-  /** Percent of gross longs held by the largest 8 traders. */
-  grossLong8: number;
-  /** Percent of gross shorts held by the largest 8 traders. */
-  grossShort8: number;
-  /** Percent of net longs held by the largest 4 traders. */
-  netLong4?: number;
-  /** Percent of net shorts held by the largest 4 traders. */
-  netShort4?: number;
-  /** Percent of net longs held by the largest 8 traders. */
-  netLong8?: number;
-  /** Percent of net shorts held by the largest 8 traders. */
-  netShort8?: number;
-}
-
-/**
- * One week of the CFTC's *disaggregated* futures-only report — who holds the
- * position, not just the net.
- *
- * **Why this exists alongside the legacy fields on {@link CotWeek}:** the legacy
- * report's single `commercial` bucket lumps producer/merchant *hedging* together
- * with swap-dealer *bank* shorts. In metals those are opposite stories — a miner
- * selling forward is supply reaching the market, a dealer short is the other
- * side of an index long — and conflating them is the most common misreading of
- * gold positioning. The disaggregated report separates them, and additionally
- * publishes trader counts and concentration, which the legacy report omits.
- *
- * Published weekly from 2006-06-13 (the legacy series runs decades further
- * back), so the oldest weeks of a long window carry legacy fields only.
- */
-export interface CotDisaggregated {
-  /** Producer / merchant / processor / user — physical-market hedgers. */
-  producerMerchant: CotTraderClass;
-  /** Swap dealers — banks intermediating index and OTC exposure. */
-  swapDealer: CotTraderClass;
-  /** Managed money — CTAs, hedge funds and other registered money managers. */
-  managedMoney: CotTraderClass;
-  /** Other reportables — large traders fitting none of the above. */
-  otherReportable: CotTraderClass;
-  /** Non-reportable — positions below the reporting threshold ("small traders"). */
-  nonReportable: CotTraderClass;
-  /** Total distinct reporting traders in the market. */
-  totalTraders?: number;
-  /** Concentration in the largest 4 and 8 traders. */
-  concentration?: CotConcentration;
-  /** Contract unit exactly as published, e.g. "(CONTRACTS OF 100 TROY OUNCES)". */
-  contractUnits?: string;
-}
-
-/** One weekly CFTC Commitments-of-Traders observation (legacy futures-only report). */
-export interface CotWeek {
-  /** Epoch milliseconds of the Tuesday the positions were reported for. */
-  time: number;
-  /** Total open interest, contracts. */
-  openInterest: number;
-  /** Non-commercial ("large speculator") long contracts. */
-  noncommercialLong: number;
-  /** Non-commercial short contracts. */
-  noncommercialShort: number;
-  /** Non-commercial spreading contracts (long and short in different months). */
-  noncommercialSpread: number;
-  /** Commercial (hedger / producer / merchant) long contracts. */
-  commercialLong: number;
-  /** Commercial short contracts. */
-  commercialShort: number;
-  /** Non-reportable ("small trader") long contracts. */
-  nonreportableLong: number;
-  /** Non-reportable short contracts. */
-  nonreportableShort: number;
-  /**
-   * The same week from the disaggregated report, when the CFTC published one.
-   * Absent for weeks before 2006-06-13, so a frame that needs it must handle a
-   * mixed series rather than assuming every week carries it.
-   */
-  disaggregated?: CotDisaggregated;
-}
-
-/** Weekly CFTC positioning for one metal's US futures market. */
-export interface MetalPositioning {
-  /** Metal symbol: "XAU" | "XAG" | "XPT" | "XPD" | "HG". */
-  symbol: string;
-  /** Exchange market name as CFTC publishes it, e.g. "GOLD - COMMODITY EXCHANGE INC.". */
-  market: string;
-  /** Contract size in the metal's native unit (gold 100 oz, silver 5000 oz, copper 25000 lb) — makes notional derivable. */
-  contractSize: number;
-  /** Weekly observations, oldest → newest. */
-  weeks: CotWeek[];
-}
-
-/** One line of the U.S. Treasury's monthly gold-reserve status report. */
-export interface GoldReserveEntry {
-  /** Holding facility, e.g. "Mint Held Gold - Deep Storage". */
-  facility: string;
-  /** Physical form, "Gold Bullion" or "Gold Coins". */
-  form: string;
-  /** Vault location, e.g. "Fort Knox, KY". */
-  location: string;
-  /** Fine troy ounces held. */
-  ounces: number;
-  /** Statutory book value, USD (gold is carried at $42.2222/oz, not market). */
-  bookValueUsd: number;
-}
-
-/** The U.S. official gold reserve for one reporting month. */
-export interface GoldReserve {
-  /** Epoch milliseconds of the report date (month end). */
-  asOf: number;
-  /** Total fine troy ounces across every facility. */
-  totalOunces: number;
-  /** Total statutory book value, USD. */
-  totalBookValueUsd: number;
-  /** Per-facility/location lines, descending by ounces. */
-  entries: GoldReserveEntry[];
-}
-
-/** A gold-backed token (1 token ≈ 1 troy ounce), with its premium to spot. */
-export interface TokenizedGold {
-  /** Provider coin id, e.g. "pax-gold". */
-  id: string;
-  /** Ticker, e.g. "PAXG". */
-  symbol: string;
-  /** Display name, e.g. "PAX Gold". */
-  name: string;
-  /** Token price, USD. */
-  price: number;
-  /** 24h price change, percent. */
-  changePct: number;
-  /** Market capitalisation, USD. */
-  marketCap: number;
-  /** Trailing-24h trading volume, USD. */
-  volume24h: number;
-  /** Circulating supply — one token is one troy ounce, so this is ounces vaulted. */
-  ounces: number;
-  /** Premium (+) or discount (−) vs spot gold, percent. Absent when spot is unavailable. */
-  premiumPct?: number;
-}
+// ── Macro, Treasury & rates ──────────────────────────────────────────────────
 
 /** One short-rate / repo reference rate observation from an official source. */
 export interface ReferenceRate {
@@ -650,60 +1151,7 @@ export interface OfficialSeries {
   source: string;
 }
 
-/** One region's Zillow Home Value Index (ZHVI) reading and monthly history. */
-export interface HomeValueEntry {
-  /** Region label as Zillow publishes it: "United States", "Austin, TX". */
-  region: string;
-  /** Region granularity — "country" for the national row, "msa" for a metro. */
-  kind: "country" | "msa";
-  /** Two-letter state of the metro's principal city; absent nationally. */
-  state?: string;
-  /** Zillow's population size rank (0 = the national row, 1 = New York). */
-  sizeRank: number;
-  /** Latest typical home value, USD. */
-  value: number;
-  /** % change vs the previous month. */
-  changePctMoM: number;
-  /** % change vs twelve months earlier, when that far back is published. */
-  changePctYoY?: number;
-  /** Monthly values oldest → newest, USD. */
-  points: SeriesPoint[];
-}
-
-/** Zillow ZHVI for a set of regions, all read from one published monthly file. */
-export interface HomeValueIndex {
-  /** One entry per requested region, in request order. */
-  entries: HomeValueEntry[];
-  /** ISO date of the newest monthly column in the file, e.g. "2026-06-30". */
-  asOf: string;
-  source: string;
-}
-
-/** One region's FHFA House Price Index series. */
-export interface RegionalHousingSeries {
-  /** Region key as published — a state code ("TX") or a metro name ("Austin, TX"). */
-  region: string;
-  /** Latest index value (FHFA rebases each series to 100 at its own start). */
-  latest: number;
-  /** Human-readable latest period, e.g. "2026 Q1". */
-  period: string;
-  /** % change vs four quarters earlier, when that much history exists. */
-  changePctYoY?: number;
-  /** Quarterly points oldest → newest, timed at each quarter's first day. */
-  points: SeriesPoint[];
-}
-
-/**
- * FHFA House Price Index at sub-national granularity — the state/metro
- * counterpart to the single national {@link OfficialSeries} house-price index.
- */
-export interface RegionalHousingPrice {
-  /** One series per requested region, in request order. */
-  series: RegionalHousingSeries[];
-  /** Which published granularity was read. */
-  level: "state" | "metro";
-  source: string;
-}
+// ── Equity & SEC filings ─────────────────────────────────────────────────────
 
 /** One filing from SEC EDGAR. */
 export interface SecFiling {
@@ -969,59 +1417,6 @@ export interface InstitutionalOwnership {
 }
 
 /**
- * One listed option contract in a chain.
- *
- * ⚠️ `iv` here is a DECIMAL (0.42 = 42%), unlike {@link OptionsSummary.avgIv}
- * and {@link OptionsStrikeOi.callIv}, which carry the venue's unscaled percent.
- * The two shapes coexist because the aggregate summary predates the chain; a
- * provider filling both must scale, and a frame must not mix them on one axis.
- */
-export interface OptionContract {
-  /** OCC-style contract id, e.g. "NVDA260821C00220000". */
-  contract: string;
-  /** Expiry, ISO date e.g. "2026-08-21". */
-  expiry: string;
-  /** Strike price, USD. */
-  strike: number;
-  side: "call" | "put";
-  /** Implied volatility as a decimal (0.42 = 42%); 0 upstream means "no quote". */
-  iv?: number;
-  openInterest: number;
-  volume: number;
-  bid?: number;
-  ask?: number;
-  lastPrice?: number;
-  delta?: number;
-  gamma?: number;
-  vega?: number;
-  theta?: number;
-  rho?: number;
-}
-
-/**
- * A listed option chain, per underlying — deliberately asset-class-agnostic.
- * The same expiry/strike/side/IV/OI fields describe a crypto venue's book, a
- * listed equity and a metal ETF (GLD/SLV chains come off the same Cboe feed),
- * so one frame reads all three and the card picks its feed with `source`.
- *
- * Greeks are present only where the feed publishes them: the delayed exchange
- * feed does, a crypto book-summary call does NOT (they exist there only
- * per-instrument, i.e. one request per contract), so a frame must hide those
- * columns rather than render an empty grid.
- */
-export interface OptionsChain {
-  /** Underlying ticker, e.g. "NVDA". */
-  symbol: string;
-  /** Underlying last price, USD. */
-  underlyingPrice?: number;
-  /** 30-day implied volatility index for the underlying, decimal. */
-  iv30?: number;
-  /** Minutes the quotes lag real time (15 for a delayed feed, 0 for live). */
-  delayMinutes: number;
-  contracts: OptionContract[];
-}
-
-/**
  * One symbol's daily short-sale volume from FINRA's consolidated tape report.
  * This is *reported short volume* (sell-side short flow for the day, including
  * market-maker hedging) — NOT short interest (outstanding short positions).
@@ -1040,6 +1435,313 @@ export interface ShortVolumeEntry {
   /** shortVolume / totalVolume as a percent (0–100). */
   shortPct: number;
 }
+
+// ── Metals & commodities ─────────────────────────────────────────────────────
+
+/**
+ * One live spot quote for a precious/industrial metal. Priced in USD per troy
+ * ounce for the four precious metals (XAU/XAG/XPT/XPD) and USD per pound for
+ * copper (HG), matching how each contract is quoted.
+ */
+export interface MetalSpot {
+  /** Metal symbol: "XAU" | "XAG" | "XPT" | "XPD" | "HG". */
+  symbol: string;
+  /** Human name, e.g. "Gold". */
+  name: string;
+  /** Latest price, USD per troy ounce (copper: USD per pound). */
+  price: number;
+  /** Epoch milliseconds of the quote. */
+  updatedAt: number;
+  /**
+   * Percent change vs `prevFix` — the most recent daily benchmark fix. Absent
+   * when no benchmark history is available for the metal (copper has no LBMA
+   * fix) or the history fetch failed.
+   */
+  changePct?: number;
+  /** The daily benchmark the change is measured against (latest LBMA fix), USD. */
+  prevFix?: number;
+}
+
+/**
+ * A metal's daily benchmark-price history — the LBMA London fixes, the
+ * reference price the physical market settles against. Decades deep (gold and
+ * silver from 1968), so frames can slice their own window.
+ */
+export interface MetalHistory {
+  /** Metal symbol: "XAU" | "XAG" | "XPT" | "XPD". */
+  symbol: string;
+  /** Quote currency, ISO 4217 — the LBMA publishes USD, GBP and EUR. */
+  currency: string;
+  /** Daily fix points, oldest → newest. */
+  points: SeriesPoint[];
+}
+
+/**
+ * One trader class in the CFTC's *disaggregated* Commitments-of-Traders report.
+ *
+ * Every field beyond `long`/`short` is published by the CFTC rather than
+ * derived, so a frame reads the agency's own arithmetic instead of recomputing
+ * it from a window that may be shorter than the one the agency used.
+ */
+export interface CotTraderClass {
+  /** Long contracts held by this class. */
+  long: number;
+  /** Short contracts held by this class. */
+  short: number;
+  /** Spreading contracts (long and short in different months); some classes never spread. */
+  spread?: number;
+  /** Week-over-week change in longs, as published. */
+  changeLong?: number;
+  /** Week-over-week change in shorts, as published. */
+  changeShort?: number;
+  /** Week-over-week change in spreads, as published. */
+  changeSpread?: number;
+  /** Longs as a percent of total open interest (0–100), as published. */
+  pctOfOiLong?: number;
+  /** Shorts as a percent of total open interest (0–100), as published. */
+  pctOfOiShort?: number;
+  /** How many distinct reporting traders hold the long side. */
+  tradersLong?: number;
+  /** How many distinct reporting traders hold the short side. */
+  tradersShort?: number;
+}
+
+/**
+ * Position concentration in the largest reporting traders, percent (0–100).
+ *
+ * "Gross" counts a trader's long and short books separately; "net" nets them
+ * first, so net is always ≤ gross. The gold market routinely runs above 50% of
+ * gross shorts in four hands — a fact the legacy report cannot show at all.
+ */
+export interface CotConcentration {
+  /** Percent of gross longs held by the largest 4 traders. */
+  grossLong4: number;
+  /** Percent of gross shorts held by the largest 4 traders. */
+  grossShort4: number;
+  /** Percent of gross longs held by the largest 8 traders. */
+  grossLong8: number;
+  /** Percent of gross shorts held by the largest 8 traders. */
+  grossShort8: number;
+  /** Percent of net longs held by the largest 4 traders. */
+  netLong4?: number;
+  /** Percent of net shorts held by the largest 4 traders. */
+  netShort4?: number;
+  /** Percent of net longs held by the largest 8 traders. */
+  netLong8?: number;
+  /** Percent of net shorts held by the largest 8 traders. */
+  netShort8?: number;
+}
+
+/**
+ * One week of the CFTC's *disaggregated* futures-only report — who holds the
+ * position, not just the net.
+ *
+ * **Why this exists alongside the legacy fields on {@link CotWeek}:** the legacy
+ * report's single `commercial` bucket lumps producer/merchant *hedging* together
+ * with swap-dealer *bank* shorts. In metals those are opposite stories — a miner
+ * selling forward is supply reaching the market, a dealer short is the other
+ * side of an index long — and conflating them is the most common misreading of
+ * gold positioning. The disaggregated report separates them, and additionally
+ * publishes trader counts and concentration, which the legacy report omits.
+ *
+ * Published weekly from 2006-06-13 (the legacy series runs decades further
+ * back), so the oldest weeks of a long window carry legacy fields only.
+ */
+export interface CotDisaggregated {
+  /** Producer / merchant / processor / user — physical-market hedgers. */
+  producerMerchant: CotTraderClass;
+  /** Swap dealers — banks intermediating index and OTC exposure. */
+  swapDealer: CotTraderClass;
+  /** Managed money — CTAs, hedge funds and other registered money managers. */
+  managedMoney: CotTraderClass;
+  /** Other reportables — large traders fitting none of the above. */
+  otherReportable: CotTraderClass;
+  /** Non-reportable — positions below the reporting threshold ("small traders"). */
+  nonReportable: CotTraderClass;
+  /** Total distinct reporting traders in the market. */
+  totalTraders?: number;
+  /** Concentration in the largest 4 and 8 traders. */
+  concentration?: CotConcentration;
+  /** Contract unit exactly as published, e.g. "(CONTRACTS OF 100 TROY OUNCES)". */
+  contractUnits?: string;
+}
+
+/** One weekly CFTC Commitments-of-Traders observation (legacy futures-only report). */
+export interface CotWeek {
+  /** Epoch milliseconds of the Tuesday the positions were reported for. */
+  time: number;
+  /** Total open interest, contracts. */
+  openInterest: number;
+  /** Non-commercial ("large speculator") long contracts. */
+  noncommercialLong: number;
+  /** Non-commercial short contracts. */
+  noncommercialShort: number;
+  /** Non-commercial spreading contracts (long and short in different months). */
+  noncommercialSpread: number;
+  /** Commercial (hedger / producer / merchant) long contracts. */
+  commercialLong: number;
+  /** Commercial short contracts. */
+  commercialShort: number;
+  /** Non-reportable ("small trader") long contracts. */
+  nonreportableLong: number;
+  /** Non-reportable short contracts. */
+  nonreportableShort: number;
+  /**
+   * The same week from the disaggregated report, when the CFTC published one.
+   * Absent for weeks before 2006-06-13, so a frame that needs it must handle a
+   * mixed series rather than assuming every week carries it.
+   */
+  disaggregated?: CotDisaggregated;
+}
+
+/** Weekly CFTC positioning for one metal's US futures market. */
+export interface MetalPositioning {
+  /** Metal symbol: "XAU" | "XAG" | "XPT" | "XPD" | "HG". */
+  symbol: string;
+  /** Exchange market name as CFTC publishes it, e.g. "GOLD - COMMODITY EXCHANGE INC.". */
+  market: string;
+  /** Contract size in the metal's native unit (gold 100 oz, silver 5000 oz, copper 25000 lb) — makes notional derivable. */
+  contractSize: number;
+  /** Weekly observations, oldest → newest. */
+  weeks: CotWeek[];
+}
+
+/** One line of the U.S. Treasury's monthly gold-reserve status report. */
+export interface GoldReserveEntry {
+  /** Holding facility, e.g. "Mint Held Gold - Deep Storage". */
+  facility: string;
+  /** Physical form, "Gold Bullion" or "Gold Coins". */
+  form: string;
+  /** Vault location, e.g. "Fort Knox, KY". */
+  location: string;
+  /** Fine troy ounces held. */
+  ounces: number;
+  /** Statutory book value, USD (gold is carried at $42.2222/oz, not market). */
+  bookValueUsd: number;
+}
+
+/** The U.S. official gold reserve for one reporting month. */
+export interface GoldReserve {
+  /** Epoch milliseconds of the report date (month end). */
+  asOf: number;
+  /** Total fine troy ounces across every facility. */
+  totalOunces: number;
+  /** Total statutory book value, USD. */
+  totalBookValueUsd: number;
+  /** Per-facility/location lines, descending by ounces. */
+  entries: GoldReserveEntry[];
+}
+
+/** A gold-backed token (1 token ≈ 1 troy ounce), with its premium to spot. */
+export interface TokenizedGold {
+  /** Provider coin id, e.g. "pax-gold". */
+  id: string;
+  /** Ticker, e.g. "PAXG". */
+  symbol: string;
+  /** Display name, e.g. "PAX Gold". */
+  name: string;
+  /** Token price, USD. */
+  price: number;
+  /** 24h price change, percent. */
+  changePct: number;
+  /** Market capitalisation, USD. */
+  marketCap: number;
+  /** Trailing-24h trading volume, USD. */
+  volume24h: number;
+  /** Circulating supply — one token is one troy ounce, so this is ounces vaulted. */
+  ounces: number;
+  /** Premium (+) or discount (−) vs spot gold, percent. Absent when spot is unavailable. */
+  premiumPct?: number;
+}
+
+// ── Housing & credit ─────────────────────────────────────────────────────────
+
+/** One region's Zillow Home Value Index (ZHVI) reading and monthly history. */
+export interface HomeValueEntry {
+  /** Region label as Zillow publishes it: "United States", "Austin, TX". */
+  region: string;
+  /** Region granularity — "country" for the national row, "msa" for a metro. */
+  kind: "country" | "msa";
+  /** Two-letter state of the metro's principal city; absent nationally. */
+  state?: string;
+  /** Zillow's population size rank (0 = the national row, 1 = New York). */
+  sizeRank: number;
+  /** Latest typical home value, USD. */
+  value: number;
+  /** % change vs the previous month. */
+  changePctMoM: number;
+  /** % change vs twelve months earlier, when that far back is published. */
+  changePctYoY?: number;
+  /** Monthly values oldest → newest, USD. */
+  points: SeriesPoint[];
+}
+
+/** Zillow ZHVI for a set of regions, all read from one published monthly file. */
+export interface HomeValueIndex {
+  /** One entry per requested region, in request order. */
+  entries: HomeValueEntry[];
+  /** ISO date of the newest monthly column in the file, e.g. "2026-06-30". */
+  asOf: string;
+  source: string;
+}
+
+/** One region's FHFA House Price Index series. */
+export interface RegionalHousingSeries {
+  /** Region key as published — a state code ("TX") or a metro name ("Austin, TX"). */
+  region: string;
+  /** Latest index value (FHFA rebases each series to 100 at its own start). */
+  latest: number;
+  /** Human-readable latest period, e.g. "2026 Q1". */
+  period: string;
+  /** % change vs four quarters earlier, when that much history exists. */
+  changePctYoY?: number;
+  /** Quarterly points oldest → newest, timed at each quarter's first day. */
+  points: SeriesPoint[];
+}
+
+/**
+ * FHFA House Price Index at sub-national granularity — the state/metro
+ * counterpart to the single national {@link OfficialSeries} house-price index.
+ */
+export interface RegionalHousingPrice {
+  /** One series per requested region, in request order. */
+  series: RegionalHousingSeries[];
+  /** Which published granularity was read. */
+  level: "state" | "metro";
+  source: string;
+}
+
+// ── FX & currency ────────────────────────────────────────────────────────────
+
+/** One currency's exchange rate vs a base, with a short trend. */
+export interface FxRate {
+  /** Quote currency code, e.g. "EUR" — units of this per 1 `base`. */
+  symbol: string;
+  /** Base currency the rate is quoted against, e.g. "USD". */
+  base: string;
+  /** Latest rate: how many `symbol` one `base` buys. */
+  rate: number;
+  /** Percent change vs the previous available (business) day. */
+  changePct: number;
+  /** Recent daily closes for a sparkline, oldest→newest. */
+  history: SeriesPoint[];
+}
+
+/**
+ * Synthetic US Dollar Index (DXY) — the ICE-weighted geometric mean of six
+ * USD pairs, computed from ECB reference rates (a keyless FX source). A live
+ * tick isn't available keyless; this is the daily-granularity workaround.
+ */
+export interface DollarIndex {
+  /** Latest DXY value. */
+  value: number;
+  /** Percent change vs the previous available business day. */
+  changePct: number;
+  /** Recent daily history, oldest→newest, for a trend line/sparkline. */
+  history: SeriesPoint[];
+}
+
+// ── News & sentiment ─────────────────────────────────────────────────────────
 
 /**
  * One news headline, normalised across different upstream RSS outlet feeds.
@@ -1077,449 +1779,16 @@ export interface NewsQuery {
   limit?: number;
 }
 
-/** One observation in a generic numeric time series (epoch ms → value). */
-export interface SeriesPoint {
-  /** Epoch milliseconds. */
-  time: number;
+/** One fear & greed index observation. */
+export interface FearGreedPoint {
+  /** 0 (extreme fear) … 100 (extreme greed). */
   value: number;
-}
-
-/** 24h trading volume for one DEX protocol. */
-export interface DexVolumeEntry {
-  name: string;
-  /** Trailing-24h volume, USD. */
-  volume24h: number;
-  /** 1-day change in volume, percent (when the source reports it). */
-  changePct?: number;
-}
-
-/** Current total value locked for one DeFi protocol. */
-export interface ProtocolTvlEntry {
-  name: string;
-  /** Current TVL, USD. */
-  tvl: number;
-  /** DeFiLlama category, e.g. "Dexes", "Lending", "Liquid Staking". */
-  category?: string;
-  /** 1-day change in TVL, percent (when the source reports it). */
-  changePct?: number;
-}
-
-/** Trailing-24h protocol fees for one DeFi protocol. */
-export interface ProtocolFeesEntry {
-  name: string;
-  /** Fees accrued in the last 24h, USD. */
-  fees24h: number;
-  /** 1-day change, percent (when the source reports it). */
-  changePct?: number;
-}
-
-/** One coin's market-cap snapshot. */
-export interface CoinMarketEntry {
-  /** Upper-case ticker, e.g. "BTC". */
-  symbol: string;
-  /** Display name, e.g. "Bitcoin". */
-  name: string;
-  /** Market capitalisation, USD. */
-  marketCapUsd: number;
-  /** 24h price change, percent (when the source reports it). */
-  changePct24h?: number;
-}
-
-/**
- * Public development activity behind a crypto asset.
- *
- * A token has no filings, so this is the nearest available read on whether
- * anything is still being built — the crypto stand-in for the qualitative half
- * of a company profile. It is a weak signal on purpose: it measures one public
- * repository, so a monorepo, a rename or a private fork all distort it.
- */
-export interface CryptoDeveloperActivity {
-  stars?: number;
-  forks?: number;
-  /** Repository watchers/subscribers. */
-  subscribers?: number;
-  totalIssues?: number;
-  closedIssues?: number;
-  pullRequestsMerged?: number;
-  pullRequestContributors?: number;
-  /** Commits in the trailing four weeks. */
-  commits4Weeks?: number;
-}
-
-/**
- * Identity, supply and valuation snapshot for ONE crypto asset — the crypto
- * analogue of an equity profile.
- *
- * The supply fields are the point of it. An equity's share count is in its
- * filings; a token's is the whole investment case, and the gap between
- * `circulatingSupply` and `totalSupply`/`maxSupply` (and so between
- * `marketCap` and `fullyDilutedValuation`) is the dilution a price chart alone
- * never shows. Everything past identity is optional because coverage thins
- * fast below the majors — a frame must render what it has.
- */
-export interface CryptoAssetProfile {
-  /** Provider-native asset id, e.g. "bitcoin" — NOT the ticker. */
-  id: string;
-  /** Upper-case ticker, e.g. "BTC". */
-  symbol: string;
-  /** Display name, e.g. "Bitcoin". */
-  name: string;
-  /** Plain-text description as published (markup stripped). */
-  description?: string;
-  /** Publisher's taxonomy, e.g. ["Layer 1", "Smart Contract Platform"]. */
-  categories: string[];
-  /** Market-cap rank, 1 = largest. */
-  marketCapRank?: number;
-  /** Canonical links, when published. */
-  links?: {
-    homepage?: string;
-    sourceCode?: string;
-    twitter?: string;
-    subreddit?: string;
-    whitepaper?: string;
-  };
-  /** Last price, USD. */
-  price?: number;
-  /** Market capitalisation (circulating supply × price), USD. */
-  marketCap?: number;
-  /** Fully diluted valuation (total/max supply × price), USD. */
-  fullyDilutedValuation?: number;
-  /** 24h traded volume, USD. */
-  volume24h?: number;
-  /** Tokens in circulation. */
-  circulatingSupply?: number;
-  /** Tokens issued, including locked/vesting. */
-  totalSupply?: number;
-  /** Hard supply cap; absent when the asset is uncapped (most are). */
-  maxSupply?: number;
-  /** All-time high, USD. */
-  ath?: number;
-  /** ISO date of the all-time high. */
-  athDate?: string;
-  /** Percent below the all-time high now (negative). */
-  athChangePct?: number;
-  /** All-time low, USD. */
-  atl?: number;
-  /** ISO date of the all-time low. */
-  atlDate?: string;
-  /** Percent above the all-time low now. */
-  atlChangePct?: number;
-  changePct24h?: number;
-  changePct7d?: number;
-  changePct30d?: number;
-  changePct1y?: number;
-  /** Public repository activity, when the publisher tracks one. */
-  developer?: CryptoDeveloperActivity;
-}
-
-/**
- * A protocol's fee and revenue history — the crypto analogue of an income
- * statement, and the only keyless basis for a real valuation multiple.
- *
- * **`fees` and `revenue` are different lines and the distinction decides the
- * multiple.** `fees` is everything users paid to use the protocol; `revenue` is
- * only the part the protocol itself kept — the rest accrues to liquidity
- * providers, suppliers or stakers. Dividing market cap by *fees* flatters a
- * protocol that passes almost everything through, so a price-to-sales analogue
- * must use `revenue`.
- *
- * Distinct from {@link ProtocolFeesEntry}, which is a cross-protocol 24h
- * snapshot list (a leaderboard). This is one protocol, in depth, over time.
- */
-export interface ProtocolFundamentals {
-  /** Publisher's protocol slug, e.g. "uniswap". */
-  protocol: string;
-  /** Display name, e.g. "Uniswap". */
-  name: string;
-  /** Daily total fees paid by users, USD, oldest → newest. */
-  fees: SeriesPoint[];
-  /** Daily protocol revenue, USD, oldest → newest. Empty when unpublished. */
-  revenue: SeriesPoint[];
-  /** Trailing 30-day total fees, USD. */
-  fees30d?: number;
-  /** Trailing 365-day total fees, USD. */
-  fees365d?: number;
-  /** Trailing 30-day total revenue, USD. */
-  revenue30d?: number;
-  /** Trailing 365-day total revenue, USD — the denominator of a P/S analogue. */
-  revenue365d?: number;
-  /** Current total value locked, USD, when the publisher reports it. */
-  tvl?: number;
-}
-
-/** One scheduled or already-passed token-unlock event. */
-export interface TokenUnlockEvent {
-  /** Epoch ms the tokens unlock. Can be in the FUTURE — that is the point. */
-  time: number;
-  /** Who it unlocks to, as published: "Team", "Investors", "Ecosystem", … */
-  category: string;
-  /** Publisher's description of the event. */
-  description?: string;
-  /** Tokens unlocking in this event. */
-  tokens: number;
-  /** How it releases — a cliff, or a linear stream — as published. */
-  unlockType?: string;
-}
-
-/**
- * A token's emission and unlock schedule.
- *
- * **The only forward-looking supply information in the fleet**, and the crypto
- * analogue of a share-lockup expiry: every other supply number here describes
- * what has already been issued, while this says what is *about* to be. For a
- * token whose insiders hold a third of the supply on a vesting cliff, it is the
- * single most decision-relevant fact on a research card, and a price chart
- * cannot express it.
- *
- * `schedule` deliberately runs past today — a frame should draw the boundary
- * between observed and scheduled rather than plotting one continuous line, or
- * the projection reads as history.
- */
-export interface TokenUnlocks {
-  /** Publisher's protocol slug, e.g. "arbitrum". */
-  protocol: string;
-  /**
-   * Cumulative unlocked/circulating supply over time, oldest → newest,
-   * INCLUDING scheduled future points.
-   */
-  schedule: SeriesPoint[];
-  /** Epoch ms of the last OBSERVED point — everything after it is projection. */
-  observedThrough?: number;
-  /** Max supply as the publisher models it. */
-  maxSupply?: number;
-  /** Share of supply held by insiders today, percent (0–100). */
-  insiderPctNow?: number;
-  /** Share of supply insiders hold once fully vested, percent (0–100). */
-  insiderPctFinal?: number;
-  /** How far through the documented schedule the token is, percent (0–100). */
-  progressPct?: number;
-  /** Upcoming unlock events, soonest first. */
-  upcoming: TokenUnlockEvent[];
-}
-
-/** Live open interest for one perp symbol (single venue). */
-export interface OpenInterestEntry {
-  /** Provider-native symbol, e.g. "BTC", "xyz:TSLA". */
-  symbol: string;
-  /** Open interest as USD notional (base-unit OI × mark price). */
-  openInterestUsd: number;
-}
-
-/** Recommended on-chain fee tiers (sat/vB) from a mempool source. */
-export interface BtcFees {
-  /** Next-block inclusion. */
-  fastest: number;
-  halfHour: number;
-  hour: number;
-  economy: number;
-  minimum: number;
-}
-
-/** One projected ("template") block the mempool will likely mine next. */
-export interface ProjectedBlock {
-  /** Median fee rate, sat/vB. */
-  medianFee: number;
-  /** [min, …, max] sat/vB fee spread across the block. */
-  feeRange: number[];
-  /** Total fees in the projected block, sats. */
-  totalFees: number;
-  /** Transaction count. */
-  nTx: number;
-  /** Virtual size, vB. */
-  blockVSize: number;
-}
-
-/** Current mempool congestion + the next few projected blocks. */
-export interface MempoolState {
-  /** Unconfirmed transaction count. */
-  count: number;
-  /** Total vsize of the mempool, vB. */
-  vsize: number;
-  /** Sum of fees of all mempool txs, sats. */
-  totalFee: number;
-  /** Projected blocks, next-to-mine first (typically up to 8). */
-  projected: ProjectedBlock[];
-}
-
-/** One recently mined block (normalised). */
-export interface BtcBlock {
-  /** Block hash. */
-  id: string;
-  height: number;
-  /** Mined-at, epoch milliseconds. */
-  time: number;
-  txCount: number;
-  /** Block size, bytes. */
-  size: number;
-  /** Total fees paid in the block, sats. */
-  totalFees: number;
-  /** Median fee rate, sat/vB. */
-  medianFee: number;
-  /** Mining pool display name, e.g. "Foundry USA". */
-  poolName: string;
-  /** Mining pool slug, e.g. "foundryusa". */
-  poolSlug: string;
-}
-
-/** One observation in the hashrate history. */
-export interface HashratePoint {
+  classification: string;
   /** Epoch milliseconds. */
   time: number;
-  /** Average network hashrate, H/s. */
-  hashrate: number;
 }
 
-/** One observation in the difficulty history. */
-export interface DifficultyPoint {
-  /** Epoch milliseconds. */
-  time: number;
-  difficulty: number;
-}
-
-/** Network hashrate + difficulty over a window, with current readings. */
-export interface NetworkHashrate {
-  /** Latest network hashrate, H/s. */
-  currentHashrate: number;
-  currentDifficulty: number;
-  /** Hashrate history, oldest → newest. */
-  hashrates: HashratePoint[];
-  /** Difficulty history, oldest → newest. */
-  difficulty: DifficultyPoint[];
-}
-
-/** Countdown + estimate to the next Bitcoin difficulty retarget. */
-export interface DifficultyAdjustment {
-  /** Progress through the current 2016-block epoch, percent (0–100). */
-  progressPercent: number;
-  /** Signed estimated % change at the NEXT retarget (+ = harder). */
-  difficultyChange: number;
-  /** Signed % change applied at the PREVIOUS retarget. */
-  previousRetarget: number;
-  /** Blocks left until the retarget. */
-  remainingBlocks: number;
-  /** Time left until the retarget, milliseconds. */
-  remainingTimeMs: number;
-  /** Estimated retarget moment, epoch milliseconds. */
-  estimatedRetargetDate: number;
-  /** Block height of the next retarget. */
-  nextRetargetHeight: number;
-  /** Average block time this epoch, ms (target = 600_000). */
-  avgBlockTimeMs: number;
-}
-
-/** One mining pool's share over a window. */
-export interface MiningPool {
-  name: string;
-  slug: string;
-  /** Blocks mined in the window. */
-  blockCount: number;
-  /** Share of window blocks, percent (0–100). */
-  sharePct: number;
-  rank: number;
-}
-
-/** Mining-pool dominance over a window. */
-export interface MiningPools {
-  /** Window label echoed back, e.g. "1w". */
-  window: string;
-  /** Total blocks in the window (denominator for share). */
-  totalBlocks: number;
-  /** Pools in rank order. */
-  pools: MiningPool[];
-}
-
-/** Lightning Network summary stats. */
-export interface LightningStats {
-  nodeCount: number;
-  channelCount: number;
-  /** Total public capacity, sats. */
-  totalCapacity: number;
-  torNodes: number;
-  clearnetNodes: number;
-  /** Median channel capacity, sats. */
-  medCapacity: number;
-  /** Prior-day snapshot for a delta (when present). */
-  prevNodeCount?: number;
-  prevChannelCount?: number;
-  prevTotalCapacity?: number;
-}
-
-/** Call vs put open interest at one strike. */
-export interface OptionsStrikeOi {
-  strike: number;
-  /** Call open interest at this strike (contracts). */
-  callOi: number;
-  /** Put open interest at this strike (contracts). */
-  putOi: number;
-  /** Call mark implied vol % when a call is listed here (e.g. 58.4 = 58.4%, matching `OptionsSummary.avgIv`'s unscaled convention). */
-  callIv?: number;
-  /** Put mark implied vol % when a put is listed here. */
-  putIv?: number;
-}
-
-/** Per-strike call/put OI for one expiry. */
-export interface OptionsExpiryStrikes {
-  /** Expiry label as Deribit names it, e.g. "27JUN26". */
-  expiry: string;
-  /** Expiry as epoch ms (for sorting / "nearest"). */
-  expiryMs: number;
-  /** Strikes ascending; one row per strike present in the book. */
-  strikes: OptionsStrikeOi[];
-}
-
-/** Aggregated options-market summary for one currency (BTC/ETH), one snapshot. */
-export interface OptionsSummary {
-  /** Upper-case currency, e.g. "BTC". */
-  currency: string;
-  /** Reference spot/underlying price (USD) for ATM context. */
-  underlyingPrice: number;
-  /** Put/call ratio by total open interest (sum putOI / sum callOI). */
-  putCallRatioOi: number;
-  /** Put/call ratio by 24h contract volume. */
-  putCallRatioVolume: number;
-  /** Total call open interest (contracts). */
-  callOi: number;
-  /** Total put open interest (contracts). */
-  putOi: number;
-  /** Total 24h call volume (contracts). */
-  callVolume: number;
-  /** Total 24h put volume (contracts). */
-  putVolume: number;
-  /** Open-interest-weighted mean implied vol % across the book (ATM-ish proxy). */
-  avgIv: number;
-  /** Per-strike OI for the single nearest expiry, ascending by strike. */
-  nearestExpiry: OptionsExpiryStrikes;
-  /** Every expiry present in the book (not just nearest), nearest-first — lets a frame build a strike-vs-expiry ladder or compare a derived metric (e.g. max pain) across the term structure. */
-  allExpiries?: OptionsExpiryStrikes[];
-  /** Epoch ms the snapshot was built. */
-  asOf: number;
-}
-
-/** One point on a volatility index (DVOL) series. */
-export interface VolatilityPoint {
-  /** Epoch ms. */
-  time: number;
-  /** Index value (annualised IV %, e.g. 38.7). */
-  value: number;
-}
-
-/** One coin's multi-window price-change snapshot across the broad market. */
-export interface CoinMover {
-  /** Upper-case ticker, e.g. "BTC". */
-  symbol: string;
-  /** Display name, e.g. "Bitcoin". */
-  name: string;
-  /** Market-cap rank (1 = largest). Lets a frame exclude illiquid dust. */
-  rank: number;
-  /** Spot price, USD. */
-  priceUsd: number;
-  /** Market capitalisation, USD. */
-  marketCapUsd: number;
-  /** 24h volume, USD — a liquidity floor for filtering dust pumps. */
-  volume24hUsd: number;
-  /** % price change per window. Keys: "1h" | "24h" | "7d" | "30d". */
-  changePct: Record<string, number>;
-}
+// ── Portfolio (keyed tier) ───────────────────────────────────────────────────
 
 /** A connected-account portfolio source: a keyed CEX account or an on-chain address. */
 export type PortfolioSourceKind = "binance" | "wallet";
@@ -1567,254 +1836,9 @@ export interface Portfolio {
   asOf: number;
 }
 
+// ── The provider interface ───────────────────────────────────────────────────
+
 export type Unsubscribe = () => void;
-
-/** Total stablecoin supply — a market-wide liquidity-regime gauge. */
-export interface StablecoinSupply {
-  /** Total USD-pegged stablecoin circulating supply, USD. */
-  totalUsd: number;
-  /** Percent change vs 1 day / 7 days / 30 days ago. */
-  changePct1d: number;
-  changePct7d: number;
-  changePct30d: number;
-  /** Coarse trend: [30d ago, 7d ago, 1d ago, now], for a sparkline. */
-  history: SeriesPoint[];
-  /** Largest chains by stablecoin circulating supply, descending. */
-  topChains: { name: string; usd: number }[];
-}
-
-/** One DeFi yield pool. */
-export interface YieldPool {
-  /** DeFiLlama pool uuid. */
-  pool: string;
-  chain: string;
-  project: string;
-  symbol: string;
-  /** Total value locked, USD. */
-  tvlUsd: number;
-  /** Total APY, percent. */
-  apy: number;
-  /** Base (organic) APY, percent, when reported. */
-  apyBase: number | null;
-  /** Reward (incentive) APY, percent, when reported. */
-  apyReward: number | null;
-  /** 7-day APY change, percentage points, when reported. */
-  apyPct7D: number | null;
-  /** Whether the pool is a stablecoin pool. */
-  stablecoin: boolean;
-  /** Impermanent-loss risk flag ("no" | "yes"). */
-  ilRisk: string;
-}
-
-/** Aggregate DeFi fees/revenue snapshot with a trend. */
-export interface FeesOverview {
-  /** Trailing-24h protocol fees across all of DeFi, USD. */
-  total24h: number;
-  /** Trailing-7d fees, USD (when reported). */
-  total7d: number | null;
-  /** 1-day change in 24h fees, percent (when reported). */
-  changePct: number | null;
-  /** Daily fees history, oldest→newest. */
-  history: SeriesPoint[];
-}
-
-/** One venue's funding rate for a coin, annualized for cross-venue comparison. */
-export interface FundingVenueRate {
-  /** Venue label, e.g. "Hyperliquid", "Binance", "Bybit". */
-  venue: string;
-  /** Raw funding rate for the interval, decimal. */
-  rawRate: number;
-  /** Funding interval in hours (varies by venue — 1h vs 8h vs 4h). */
-  intervalHours: number;
-  /** Annualized funding, percent (rawRate × periods-per-year × 100). */
-  annualizedPct: number;
-}
-
-/** Cross-venue predicted funding for one coin. */
-export interface FundingComparison {
-  /** Coin symbol, e.g. "BTC". */
-  coin: string;
-  /** Per-venue annualized funding. */
-  venues: FundingVenueRate[];
-  /** Max − min annualized funding across venues, percentage points. */
-  spreadPct: number;
-}
-
-/** Ethereum supply economics — EIP-1559 burn vs PoS issuance, net growth, staking. */
-export interface EthSupply {
-  /** Current total ETH supply, coins. */
-  supply: number;
-  /** Annualized burn, ETH/yr. */
-  burnRateYearlyEth: number;
-  /** Annualized PoS issuance, ETH/yr. */
-  issuanceRateYearlyEth: number;
-  /** Net annual supply growth, percent (negative = deflationary). */
-  supplyGrowthYearlyPct: number;
-  /** Counterfactual PoW annual supply growth, percent. */
-  supplyGrowthYearlyPowPct: number;
-  /** Total staking yield, percent (issuance + MEV + tips APR). */
-  stakingAprPct: number;
-  /** Live burn, ETH/minute. */
-  burnEthPerMin: number;
-  /** Recent supply history, oldest→newest, for a sparkline. */
-  history: SeriesPoint[];
-}
-
-/** One outcome of a prediction market, with its implied probability. */
-export interface PredictionOutcome {
-  /** Outcome label, e.g. "Yes". */
-  label: string;
-  /** Market-implied probability, 0–1. */
-  prob: number;
-}
-
-/** One prediction-market question with outcome probabilities. */
-export interface PredictionMarket {
-  /** The market question. */
-  question: string;
-  /** Outcomes with implied probabilities. */
-  outcomes: PredictionOutcome[];
-  /** Trailing-24h volume, USD. */
-  volume24h: number;
-  /** ISO end date. */
-  endDate: string;
-}
-
-/** One issuer's spot-ETF flow figures. */
-export interface EtfIssuerFlow {
-  ticker: string;
-  institute: string;
-  /** Latest-day net inflow, USD (negative = outflow). */
-  dailyNetInflow: number;
-  /** Net assets under management, USD. */
-  netAssets: number;
-  /** Cumulative net inflow since inception, USD. */
-  cumNetInflow: number;
-}
-
-/** Spot-ETF flows for one asset (BTC or ETH), per-issuer + total, with history. */
-export interface EtfFlows {
-  /** "btc" | "eth". */
-  asset: string;
-  /** ISO date of the latest reading. */
-  date: string;
-  /** Latest-day total net inflow across all issuers, USD. */
-  dailyTotalNetInflow: number;
-  /** Cumulative net inflow, USD. */
-  cumNetInflow: number;
-  /** Total net assets across all issuers, USD. */
-  totalNetAssets: number;
-  /** Per-issuer breakdown, descending by net assets. */
-  issuers: EtfIssuerFlow[];
-  /** Daily total-net-inflow history, oldest→newest. */
-  history: SeriesPoint[];
-}
-
-/** One trending coin (by search interest). */
-export interface TrendingCoin {
-  id: string;
-  name: string;
-  symbol: string;
-  /** Market-cap rank, when known. */
-  rank: number | null;
-  /** Current price, USD, when reported. */
-  price: number | null;
-  /** 24h price change, percent, when reported. */
-  changePct24h: number | null;
-}
-
-/** One market sector / category with its aggregate performance. */
-export interface MarketSector {
-  name: string;
-  /** Aggregate market cap, USD. */
-  marketCap: number;
-  /** 24h market-cap change, percent. */
-  changePct24h: number;
-}
-
-/** One NFT collection's market snapshot (floor, volume, sales). */
-export interface NftCollection {
-  /** CoinGecko collection id/slug, e.g. "bored-ape-yacht-club". */
-  id: string;
-  /** Human display name, e.g. "Bored Ape Yacht Club". */
-  name: string;
-  /** Floor price in the collection's native currency (usually ETH). */
-  floorNative: number;
-  /** Floor price in USD. */
-  floorUsd: number;
-  /** 24h change in the floor price, percent (USD basis). */
-  floorChangePct24h: number;
-  /** Collection market cap in USD (floor × supply). */
-  marketCapUsd: number;
-  /** Trailing-24h trading volume in USD. */
-  volume24hUsd: number;
-  /** Number of sales in the last 24h. */
-  sales24h: number;
-}
-
-/** One DEX liquidity pool / trading pair with 24h activity. */
-export interface DexPool {
-  /** Pool/pair label, e.g. "PEPE / WETH". */
-  name: string;
-  /** Network id the pool trades on, e.g. "eth", "solana", "base". */
-  network: string;
-  /** Base-token spot price in USD. */
-  priceUsd: number;
-  /** Trailing-24h volume in USD. */
-  volume24hUsd: number;
-  /** 24h price change, percent. */
-  changePct24h: number;
-  /** Total pool liquidity (reserve) in USD. */
-  reserveUsd: number;
-  /** Fully-diluted valuation of the base token in USD (0 if unknown). */
-  fdvUsd: number;
-  /** Trade count in the last 24h (buys + sells). */
-  txns24h: number;
-}
-
-/** One price level in an order book, with the depth cumulated from the top. */
-export interface OrderBookLevel {
-  /** Level price, in the pair's quote currency. */
-  price: number;
-  /** Resting size at this level, in the base asset. */
-  size: number;
-  /** Size summed from the best level through this one, in the base asset. */
-  cumulativeSize: number;
-}
-
-/** A two-sided order-book snapshot, best level first on both sides. */
-export interface OrderBook {
-  /** Base asset ticker the book is for, e.g. "KUB". */
-  symbol: string;
-  /** Venue-native pair id, e.g. "KUB_THB". */
-  pair: string;
-  /** Bids, highest price first. */
-  bids: OrderBookLevel[];
-  /** Asks, lowest price first. */
-  asks: OrderBookLevel[];
-  /** Midpoint of the best bid and best ask, quote currency. 0 if either side is empty. */
-  mid: number;
-  /** Best-bid/best-ask spread as a percent of `mid`. */
-  spreadPct: number;
-}
-
-/** One blockchain's headline network activity over the last 24h. */
-export interface ChainActivity {
-  /** Blockchair chain slug, e.g. "bitcoin", "ethereum". */
-  chain: string;
-  /** Human display label, e.g. "Bitcoin". */
-  label: string;
-  /** Confirmed transactions in the last 24h. */
-  transactions24h: number;
-  /** Blocks produced in the last 24h. */
-  blocks24h: number;
-  /** Transactions currently waiting in the mempool. */
-  mempoolTxns: number;
-  /** Spot price of the chain's native asset in USD. */
-  priceUsd: number;
-  /** 24h change in the native asset price, percent. */
-  priceChangePct24h: number;
-}
 
 /**
  * A data provider fulfills frame capabilities. Every data method is optional —
