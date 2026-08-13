@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useRef,
+  useState,
   type CSSProperties,
   type ReactNode,
 } from "react";
@@ -21,6 +22,7 @@ export const FramePatchContext = createContext<FramePatcher | null>(null);
 export function useFramePatch(): FramePatcher | null {
   return useContext(FramePatchContext);
 }
+import { Dialog as DialogPrimitive } from "radix-ui";
 import type { FrameRegistry, FrameSource } from "@zframes/spec/frame";
 import { FrameCurrencyOverride } from "./currency";
 import { FrameEventsProvider } from "./events";
@@ -609,6 +611,182 @@ export const FRAME_CSS = `
     transform: none;
   }
 }
+/* ── "How to read this" affordance ─────────────────────────────────────────
+   A quiet info glyph pinned to the card's bottom-right (only on frames whose
+   meta declares an \`interpretation\`). It has to blend into the chrome — barely
+   there until pointed at — so it reads as furniture, not content: same ink
+   ladder as the source credit, no background until hover. Sits above the body
+   (z-index 2) but outside its overflow clip, since it's a sibling of
+   .zf-frame-body pinned into the card's own padding band. */
+.zf-info-btn {
+  position: absolute;
+  right: 7px;
+  bottom: 5px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.2);
+  cursor: pointer;
+  transition:
+    color 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    background-color 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.zf-info-btn svg {
+  display: block;
+  width: 13px;
+  height: 13px;
+}
+@media (hover: hover) {
+  .zf-info-btn:hover {
+    color: hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 80%);
+    background: hsl(0 0% var(--zf-ink-l, 100%) / 0.07);
+  }
+}
+.zf-info-btn:focus-visible {
+  outline: 1px solid hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.7);
+  outline-offset: 1px;
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.7);
+}
+/* The dialog is a Radix (shadcn-style) Dialog: Overlay + Content portaled to
+   the body, so the card's overflow clip and the grid's stacking can't cut it
+   off. Radix drives the data-state attributes the open/close animations key
+   off — the same mechanism shadcn's classes animate with. Because the portal
+   leaves the card's DOM, the trigger snapshots the card's --zf-* theme vars
+   onto the content element inline, so the dialog still follows the board's
+   theme. */
+.zf-info-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(4, 5, 10, 0.55);
+  backdrop-filter: blur(3px);
+}
+.zf-info-overlay[data-state='open'] {
+  animation: zf-fade 0.18s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.zf-info-overlay[data-state='closed'] {
+  animation: zf-fade 0.15s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)) reverse;
+}
+.zf-info-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  z-index: 61;
+  width: min(30rem, calc(100vw - 48px));
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 1px solid hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.28);
+  border-radius: 16px;
+  background: linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 13.5%) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 8%) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 6%) 100%);
+  box-shadow: 0 24px 80px -24px rgba(0, 0, 0, 0.9);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.85);
+  font-family: var(--font-dmsans, "DM Sans", sans-serif);
+  outline: none;
+}
+.zf-info-dialog[data-state='open'] {
+  animation: zf-info-in 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.zf-info-dialog[data-state='closed'] {
+  animation: zf-info-out 0.15s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+@keyframes zf-info-in {
+  from { opacity: 0; scale: 0.96; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes zf-info-out {
+  from { opacity: 1; scale: 1; }
+  to { opacity: 0; scale: 0.96; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zf-info-dialog[data-state='open'],
+  .zf-info-dialog[data-state='closed'] {
+    animation-name: zf-fade;
+  }
+  .zf-info-dialog[data-state='closed'] {
+    animation-direction: reverse;
+  }
+}
+.zf-info-dialog-inner {
+  padding: 20px 22px 22px;
+  overflow-y: auto;
+  max-height: inherit;
+  box-sizing: border-box;
+}
+.zf-info-dialog-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.zf-info-dialog-kicker {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 80%);
+}
+.zf-info-dialog-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.95);
+}
+.zf-info-dialog-close {
+  margin-left: auto;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.45);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+@media (hover: hover) {
+  .zf-info-dialog-close:hover {
+    color: hsl(0 0% var(--zf-ink-l, 100%) / 0.9);
+    background: hsl(0 0% var(--zf-ink-l, 100%) / 0.08);
+  }
+}
+.zf-info-dialog p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.72);
+}
+.zf-info-dialog ul {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  /* Explicit: host resets (Tailwind preflight) strip list-style. */
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.zf-info-dialog li {
+  font-size: 13px;
+  line-height: 1.55;
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.72);
+}
+.zf-info-dialog p:last-child,
+.zf-info-dialog ul:last-child {
+  margin-bottom: 0;
+}
 /* Suspense fallback while a frame's component chunk loads (lazy registry). A
    quiet pulsing fill sized to the card body — no layout shift since the grid
    item already holds its slot. */
@@ -751,6 +929,142 @@ function SourceCredit({ sources }: { sources: FrameSource[] }) {
   );
 }
 
+/**
+ * The `interpretation` text is plain prose with light structure — blank lines
+ * separate paragraphs, `- ` lines are bullets (see FrameMeta.interpretation).
+ * Parsed here rather than rendered as one <pre> so the dialog gets real
+ * typography without core taking a markdown dependency.
+ */
+function interpretationBlocks(text: string): ReactNode[] {
+  return text
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean)
+    .map((block, i) => {
+      const lines = block.split("\n").map((l) => l.trim());
+      if (lines.every((l) => l.startsWith("- "))) {
+        return (
+          <ul key={i}>
+            {lines.map((l, j) => (
+              <li key={j}>{l.slice(2)}</li>
+            ))}
+          </ul>
+        );
+      }
+      return <p key={i}>{lines.join(" ")}</p>;
+    });
+}
+
+const InfoGlyph = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
+
+/**
+ * The card's --zf-* vars the info dialog needs. Radix portals the dialog to
+ * document.body — outside the card whose theme (board-wide or per-card
+ * `style` override) it should match — so the trigger snapshots these off its
+ * own computed style at open time and sets them inline on the content.
+ */
+const INFO_THEME_VARS = [
+  "--zf-accent-hue",
+  "--zf-accent-sat",
+  "--zf-base-hue",
+  "--zf-base-sat",
+  "--zf-ink-l",
+  "--font-dmsans",
+] as const;
+
+/**
+ * The quiet bottom-right info glyph + its "how to read this card" dialog — a
+ * Radix Dialog in shadcn's composition (Root/Trigger/Portal/Overlay/Content/
+ * Title/Close), styled by the zf-* chrome stylesheet since core stays
+ * Tailwind-free. Radix supplies focus trap, Esc/overlay dismissal, aria
+ * wiring, and the data-state attributes the open/close animations key off.
+ * `stopPropagation` on pointer-down keeps the click from starting a GridStack
+ * drag in the editor, same as the source credit.
+ *
+ * The content mounts only while open (Radix's default): a board can hold
+ * dozens of annotated cards, and the guide prose belongs in the DOM (and in
+ * anything reading the card's text — a screen reader's flow, the currency
+ * smoke tests that assert a THB board shows no "$") only when asked for.
+ */
+function InterpretationInfo({ label, text }: { label: string; text: string }) {
+  const [open, setOpen] = useState(false);
+  const [themeVars, setThemeVars] = useState<CSSProperties>();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  return (
+    <DialogPrimitive.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (next && triggerRef.current) {
+          const computed = getComputedStyle(triggerRef.current);
+          const vars: Record<string, string> = {};
+          for (const name of INFO_THEME_VARS) {
+            const value = computed.getPropertyValue(name);
+            if (value) vars[name] = value;
+          }
+          setThemeVars(vars as CSSProperties);
+        }
+        setOpen(next);
+      }}
+    >
+      <DialogPrimitive.Trigger asChild>
+        <button
+          ref={triggerRef}
+          type="button"
+          className="zf-info-btn"
+          aria-label={`How to read: ${label}`}
+          title="How to read this card"
+          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <InfoGlyph />
+        </button>
+      </DialogPrimitive.Trigger>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="zf-info-overlay" />
+        <DialogPrimitive.Content
+          className="zf-info-dialog"
+          style={themeVars}
+          aria-describedby={undefined}
+        >
+          <div className="zf-info-dialog-inner">
+            <div className="zf-info-dialog-head">
+              <span className="zf-info-dialog-kicker">How to read</span>
+              <DialogPrimitive.Close asChild>
+                <button
+                  type="button"
+                  className="zf-info-dialog-close"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </DialogPrimitive.Close>
+            </div>
+            <DialogPrimitive.Title asChild>
+              <h2 className="zf-info-dialog-title">{label}</h2>
+            </DialogPrimitive.Title>
+            {interpretationBlocks(text)}
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  );
+}
+
 class FrameErrorBoundary extends Component<
   { children: ReactNode },
   { error: Error | null }
@@ -806,6 +1120,7 @@ function ValidFrameCard({
   title,
   titleContent,
   sources,
+  interpretation,
   children,
 }: {
   style?: CSSProperties;
@@ -815,6 +1130,8 @@ function ValidFrameCard({
   title?: string;
   titleContent?: ReactNode;
   sources: FrameSource[];
+  /** Frame label + meta `interpretation`; absent → no info glyph. */
+  interpretation?: { label: string; text: string };
   children: ReactNode;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -871,6 +1188,12 @@ function ValidFrameCard({
           </div>
         )}
         <div className="zf-frame-body">{children}</div>
+        {interpretation && (
+          <InterpretationInfo
+            label={interpretation.label}
+            text={interpretation.text}
+          />
+        )}
       </div>
     </FrameVisibilityContext.Provider>
   );
@@ -1085,6 +1408,11 @@ function FrameContentImpl({
       hasIcon={!!TitleIcon}
       title={instance.title ?? (autoTitle ? def.label : undefined)}
       sources={sources}
+      interpretation={
+        def.interpretation
+          ? { label: instance.title ?? def.label, text: def.interpretation }
+          : undefined
+      }
       titleIcon={
         TitleIcon ? (
           <Suspense fallback={null}>

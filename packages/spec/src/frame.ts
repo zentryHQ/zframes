@@ -231,6 +231,19 @@ export interface FrameMeta<S extends z.ZodType = z.ZodType> {
    */
   usdOnly?: boolean;
   /**
+   * Reader-facing "how to read this card" guide. When present the chrome pins a
+   * quiet info glyph to the card's bottom-right that opens a dialog with this
+   * text — plain prose for a non-expert: what the numbers mean, how the visual
+   * encoding reads, and what a high/low/up/down value typically signals.
+   *
+   * Plain text with light structure: blank lines separate paragraphs, and lines
+   * starting with `- ` render as bullets. Deliberately optional — media,
+   * structural and user-input frames (image, video, heading, note, journal…)
+   * simply omit it and get no icon, so "needs no explanation" is expressed by
+   * absence rather than a flag.
+   */
+  interpretation?: string;
+  /**
    * Where this frame's data comes from. The chrome renders it as a clickable
    * credit in the title row (one or more provider links). Omit for frames with
    * no external data feed.

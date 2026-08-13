@@ -60,6 +60,11 @@ export const marketHoursMeta = defineFrameMeta({
   layout: { w: 4, h: 4, minW: 4, minH: 2 },
   description:
     "Which world stock exchanges are open right now — each row shows an open / closed / holiday status dot and a live countdown to the next open or close. Computed entirely client-side from each exchange's timezone and regular trading hours (no API); a bundled 2026 holiday list keeps the major Western exchanges accurate on market holidays. Intraday lunch breaks and half-day early closes are not modelled. Needs no data provider.",
+  interpretation: `Each row's status is computed on the viewer's machine from that exchange's timezone and its regular trading hours, checked against a bundled table of market holidays. A green dot means the exchange is inside its normal cash session right now; the countdown is the time remaining until its next open or close.
+
+Open and closed here refer to the regular session only. Intraday lunch breaks (Tokyo, Hong Kong) and half-day early closes are not modelled, so an exchange can show as open during a midday pause it actually observes.
+
+- The bundled holiday table currently covers 2026 and is most complete for the large Western exchanges, so a smaller market's holiday can appear as a normal trading day.`,
   capabilities: [],
   schema: z.object({
     exchanges: z
@@ -85,6 +90,11 @@ export const countdownMeta = defineFrameMeta({
   layout: { w: 3, h: 2, minW: 2, minH: 2, maxW: 4, maxH: 3 },
   description:
     "Live countdown to a target date and time — FOMC decisions, CPI prints, options expiry, earnings, a token unlock, the next market open. Counts down in days / hours / minutes / seconds, ticking every second, and flips to a 'reached' state once the moment passes. Needs no data provider.",
+  interpretation: `The readout is the time remaining between now and the configured target instant, split into days, hours, minutes and seconds. It ticks down once per second and switches to a reached state when the moment passes.
+
+The target is a fixed date typed in when the card was set up — the frame knows nothing about the event itself. If a meeting is rescheduled or an unlock delayed, the countdown keeps pointing at the old time until someone edits the card.
+
+- A target written without a timezone offset is read in each viewer's local timezone, so two people in different cities can see different remaining times on the same card. A target with an explicit offset (or Z) counts to the same instant everywhere.`,
   capabilities: [],
   schema: z.object({
     target: z
@@ -168,6 +178,12 @@ export const calculatorMeta = defineFrameMeta({
   layout: { w: 3, h: 4, minW: 2, minH: 4, maxH: 5 },
   description:
     "Position-size & risk calculator. Enter account size, risk-per-trade %, entry and stop price; it computes the dollars at risk, the per-unit risk, the position size (units) that respects that risk budget, the resulting position value, and whether the setup is long or short. All math runs client-side — no data provider. Inputs are editable live; the configured values are the starting point.",
+  interpretation: `The position size is worked backwards from a risk budget. The account size times the risk percent gives the money at risk; the distance between entry and stop gives the risk per unit; dividing the first by the second gives how many units can be held so that a stop-out loses roughly the budgeted amount. The position value is that size times the entry price.
+
+The position value is usually much larger than the money at risk — a tighter stop produces a bigger position, not a safer one. And the loss only stays at the budget if the stop is actually honoured; a price gap through the stop loses more than the calculated figure.
+
+- Every number here is arithmetic on the user's own inputs; the frame checks no live prices.
+- A stop below entry is read as a long setup, a stop above entry as a short.`,
   capabilities: [],
   schema: z.object({
     account: z
@@ -233,6 +249,9 @@ export const riskRewardMeta = defineFrameMeta({
   layout: { w: 3, h: 3, minW: 2, minH: 2, maxH: 5 },
   description:
     "Risk:reward planner. Enter entry, stop-loss and profit-target prices; it computes the per-unit risk and reward, their percentages of entry, and the resulting R:R ratio, shown large above a two-segment bar (red risk leg vs green reward leg, sized to scale). Pure client-side math — no data provider. Complements the calculator frame by adding the target/reward leg the position sizer leaves out.",
+  interpretation: `The headline ratio compares what the plan risks against what it aims to win. The distance from entry to stop is the risk per unit; the distance from entry to target is the reward per unit; the R:R ratio is reward divided by risk, so 2.0 means the target sits twice as far from entry as the stop does. The two-segment bar draws those two distances to scale — the red leg is the risk side, the green leg the reward side.
+
+A high ratio is not a probability. It says nothing about how likely the target is to be reached — a 5:1 plan that rarely plays out still loses money over time. The ratio is a property of the three price levels the user typed in; the frame checks no market data, so it also cannot tell whether the levels are realistic.`,
   capabilities: [],
   schema: z.object({
     entry: z.number().default(100).describe("Planned entry price."),
@@ -282,6 +301,9 @@ export const sessionProgressMeta = defineFrameMeta({
   layout: { w: 3, h: 2, minW: 1, minH: 2, maxH: 2 },
   description:
     "A horizontal progress bar showing how far through today's trading session an exchange is — fills from open to close with a percent readout, and a 'closes in …' / 'opens in …' countdown. Pick any exchange code (NYSE, NASDAQ, LSE, TSX, B3, …); sessions are computed client-side from the exchange's timezone and hours, so it needs no data provider.",
+  interpretation: `The bar measures elapsed clock time, nothing else: it runs from the exchange's official open to its official close in that exchange's own timezone, so 50 percent means the session is half over by the clock. While the market is closed, the countdown switches to the time remaining until the next open.
+
+The percent has no connection to prices, volume or activity — a session can be 90 percent done with most of its trading still ahead in the closing minutes. Sessions come from the exchange's regular published hours, so half-day early closes and intraday lunch breaks are not reflected in the fill.`,
   capabilities: [],
   schema: z.object({
     exchange: z
@@ -364,6 +386,12 @@ export const returnsProjectorMeta = defineFrameMeta({
   layout: { w: 3, h: 4, minW: 3, minH: 3 },
   description:
     "A compound-growth projector — enter a starting principal, a percent return per period, the number of periods, and an optional per-period contribution; it charts the projected balance curve and shows the ending value and total gain. Pure client-side math, no data provider; complements the position-size/risk `calculator`.",
+  interpretation: `The curve is a plain compounding sequence: each period the balance grows by the configured percent, then the optional contribution is added, repeated for the chosen number of periods. The ending value and total gain read straight off the last point of that sequence.
+
+This is arithmetic on the user's own inputs, not a forecast. The same rate is applied every period without variation, so the chart shows what a perfectly steady return would produce — real returns fluctuate, and losing periods compound too.
+
+- The curve steepening toward the end is a property of compounding itself, not an accelerating assumption.
+- Small changes to the per-period rate produce large differences in the ending value; treat the output as a what-if, not an expectation.`,
   capabilities: [],
   schema: z.object({
     principal: z.number().default(1000).describe("Starting balance."),
@@ -396,6 +424,11 @@ export const breakevenMeta = defineFrameMeta({
   layout: { w: 3, h: 4, minW: 2, minH: 3 },
   description:
     "A break-even / average-cost calculator — add your fills (price + size) and it computes the size-weighted average entry; set an optional current price to see the unrealized P&L %. Pure client-side math, no data provider.",
+  interpretation: `The break-even figure is the size-weighted average price of the entered fills: each fill's price counts in proportion to its size, so a large fill pulls the average further than a small one. It is the price at which the whole position, taken together, would close out flat.
+
+When a current price is set, the unrealized P&L percent is the gap between that price and the average entry, expressed as a percent of the average entry. Both numbers come purely from what was typed in — the frame fetches no live price.
+
+- Fees, funding and slippage are not included, so the true break-even of a real position sits slightly beyond the displayed one.`,
   capabilities: [],
   schema: z.object({
     fills: z
