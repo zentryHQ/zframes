@@ -67,7 +67,7 @@ async function post<T>(path: string, type: string): Promise<T> {
  * the frame shows its empty state. Daily data → cache aggressively (6h).
  */
 export class EtfFlowsProvider implements MarketDataProvider {
-  readonly name = "SoSoValue";
+  readonly name = "etf-flows"; // upstream: SoSoValue
   readonly capabilities: readonly Capability[] = ["etf-flows"];
 
   private readonly cache = new TtlCache<EtfFlows>({

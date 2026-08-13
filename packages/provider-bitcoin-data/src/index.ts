@@ -56,7 +56,7 @@ const latestValue = (s: SeriesPoint[]): number | null =>
  * on a transient 429. A frame should NOT poll this faster than its 12h+ hook.
  */
 export class BitcoinDataProvider implements MarketDataProvider {
-  readonly name = "bitcoin-data.com";
+  readonly name = "bitcoin-data"; // upstream: bitcoin-data.com
   readonly capabilities: readonly Capability[] = ["onchain-cycle-extras"];
 
   private readonly cache = new TtlCache<OnchainExtras>({

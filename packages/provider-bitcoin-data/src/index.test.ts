@@ -160,7 +160,7 @@ describe("BitcoinDataProvider", () => {
 
   it("advertises its identity and capabilities", () => {
     const provider = new BitcoinDataProvider();
-    expect(provider.name).toBe("bitcoin-data.com");
+    expect(provider.name).toBe("bitcoin-data");
     expect(provider.capabilities).toEqual(["onchain-cycle-extras"]);
   });
 

@@ -85,7 +85,7 @@ function populationStd(xs: number[]): number {
  * and a fresh pull on reload at this cadence is cheap enough.
  */
 export class CoinMetricsProvider implements MarketDataProvider {
-  readonly name = "Coin Metrics";
+  readonly name = "coinmetrics"; // upstream: Coin Metrics community API
   readonly capabilities: readonly Capability[] = [
     "onchain-valuation",
     "price-history-daily",

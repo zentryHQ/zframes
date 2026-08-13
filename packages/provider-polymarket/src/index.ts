@@ -38,7 +38,7 @@ function parseStringArray(raw: string | undefined): string[] {
  * market-implied probability). Cloudflare-cached ~5 min → 4-min TTL.
  */
 export class PolymarketProvider implements MarketDataProvider {
-  readonly name = "Polymarket";
+  readonly name = "polymarket";
   readonly capabilities: readonly Capability[] = ["prediction-markets"];
 
   private readonly cache = new TtlCache<PredictionMarket[]>({

@@ -44,24 +44,22 @@ async function loadFactory(): Promise<Factory> {
 
 /**
  * The fleet in construction order — which IS the capability-routing order.
- * These are the providers' real `.name` values (several differ from their
- * package name: `provider-etf-flows` reports "SoSoValue", `provider-ultrasound`
- * reports "ultrasound.money", …), because `.name` is what a frame's `source`
- * pins against.
+ * These are the providers' real `.name` values (each is the package slug of
+ * `provider-<slug>`), because `.name` is what a frame's `source` pins against.
  */
 const EXPECTED_ORDER = [
   "hyperliquid",
   "defillama",
-  "alternative.me",
+  "alternativeme",
   "coingecko",
   "coinpaprika",
   "geckoterminal",
   "blockchair",
-  "Coin Metrics",
-  "bitcoin-data.com",
-  "ultrasound.money",
-  "Polymarket",
-  "SoSoValue",
+  "coinmetrics",
+  "bitcoin-data",
+  "ultrasound",
+  "polymarket",
+  "etf-flows",
   "nyfed",
   "treasury",
   "bls",
