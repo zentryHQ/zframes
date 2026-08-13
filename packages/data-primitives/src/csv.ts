@@ -110,16 +110,12 @@ function yieldToEventLoop(): Promise<void> {
 }
 
 /**
- * {@link parseCsvRows}, but yielding to the event loop every few milliseconds so
- * a large document doesn't parse inside a single task.
- *
- * The output is identical — this exists purely for *when* the work happens.
- * Zillow's ZHVI table is ~895 rows × ~318 columns (~4.4 MB), enough that parsing
- * it synchronously drops frames on the poll that refreshes it; the small files
- * (FRED series, the FHFA state table) are fine either way and keep using the
- * sync entry point.
+ * The chunked fallback for {@link parseCsvRowsAsync}: parse on the calling
+ * thread, but yield to the event loop every few milliseconds so a large
+ * document doesn't parse inside a single task. Exported for tests; callers use
+ * {@link parseCsvRowsAsync}, which prefers the worker.
  */
-export async function parseCsvRowsAsync(text: string): Promise<string[][]> {
+export async function parseCsvRowsChunked(text: string): Promise<string[][]> {
   // The budget starts before the line split, because on a multi-megabyte
   // document that split is itself several milliseconds of unbroken work — start
   // the clock after it and the first chunk runs for split + budget.
@@ -138,4 +134,145 @@ export async function parseCsvRowsAsync(text: string): Promise<string[][]> {
     }
   }
   return rows;
+}
+
+// ── Worker offload ───────────────────────────────────────────────────────────
+// The big official files (Zillow ~4.4 MB, FHFA metro ~4 MB) cost tens of
+// milliseconds of pure parsing; the chunked fallback above only decides WHEN
+// that cost lands, a worker removes it from the main thread entirely (what
+// remains is the native structured-clone receive of the parsed rows, far
+// cheaper than the parse). The worker is built from a Blob URL whose source
+// embeds `splitCsvRow.toString()` — one implementation, no bundler asset
+// wiring, works identically under Vite, Next/Turbopack and the tsup CLI.
+
+/** The worker's whole script. Exported so tests can eval + round-trip it. */
+export function csvWorkerSource(): string {
+  return `"use strict";
+const splitCsvRow = ${splitCsvRow.toString()};
+self.onmessage = (e) => {
+  const { id, text } = e.data;
+  try {
+    const rows = [];
+    for (const line of text.split(/\\r?\\n/)) {
+      if (line === "") continue;
+      rows.push(splitCsvRow(line));
+    }
+    self.postMessage({ id, rows });
+  } catch (error) {
+    self.postMessage({ id, error: String(error) });
+  }
+};`;
+}
+
+type PendingParse = {
+  resolve: (rows: string[][]) => void;
+  reject: (error: unknown) => void;
+  /** Kept so a worker failure can re-parse on the fallback path. */
+  text: string;
+};
+
+/** Terminate an idle worker after this long — frees its heap between polls
+ * (the files behind this re-fetch on multi-hour TTLs). */
+const WORKER_IDLE_MS = 30_000;
+
+let csvWorker: Worker | null = null;
+let csvWorkerUrl: string | null = null;
+/** Set on any construction/runtime failure: this environment gets the chunked
+ * fallback from then on rather than retrying a broken worker per call. */
+let workerFailed = false;
+let nextParseId = 0;
+const pendingParses = new Map<number, PendingParse>();
+let idleTimer: ReturnType<typeof setTimeout> | undefined;
+
+function scheduleWorkerShutdown(): void {
+  if (idleTimer !== undefined) clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => {
+    idleTimer = undefined;
+    if (pendingParses.size > 0) return;
+    csvWorker?.terminate();
+    csvWorker = null;
+    if (csvWorkerUrl) URL.revokeObjectURL(csvWorkerUrl);
+    csvWorkerUrl = null;
+  }, WORKER_IDLE_MS);
+}
+
+/** Fail the worker permanently and settle every in-flight parse via the
+ * chunked fallback — a worker crash must cost latency, never a result. */
+function failWorker(): void {
+  workerFailed = true;
+  csvWorker?.terminate();
+  csvWorker = null;
+  if (csvWorkerUrl) URL.revokeObjectURL(csvWorkerUrl);
+  csvWorkerUrl = null;
+  const inFlight = [...pendingParses.values()];
+  pendingParses.clear();
+  for (const entry of inFlight)
+    parseCsvRowsChunked(entry.text).then(entry.resolve, entry.reject);
+}
+
+function getCsvWorker(): Worker | null {
+  if (workerFailed) return null;
+  if (csvWorker) return csvWorker;
+  if (
+    typeof Worker === "undefined" ||
+    typeof Blob === "undefined" ||
+    typeof URL === "undefined" ||
+    typeof URL.createObjectURL !== "function"
+  )
+    return null;
+  try {
+    const url = URL.createObjectURL(
+      new Blob([csvWorkerSource()], { type: "text/javascript" }),
+    );
+    const worker = new Worker(url);
+    worker.onmessage = (e: MessageEvent) => {
+      const { id, rows, error } = e.data as {
+        id: number;
+        rows?: string[][];
+        error?: string;
+      };
+      const entry = pendingParses.get(id);
+      if (!entry) return;
+      pendingParses.delete(id);
+      if (rows) entry.resolve(rows);
+      // A per-message error is near-impossible (the parser throws on nothing);
+      // fall back rather than reject so the caller still gets its table.
+      else if (error)
+        parseCsvRowsChunked(entry.text).then(entry.resolve, entry.reject);
+      if (pendingParses.size === 0) scheduleWorkerShutdown();
+    };
+    worker.onerror = failWorker;
+    csvWorker = worker;
+    csvWorkerUrl = url;
+    return worker;
+  } catch {
+    workerFailed = true;
+    return null;
+  }
+}
+
+/**
+ * {@link parseCsvRows}, off the calling thread. In a browser the parse runs in
+ * a shared Web Worker (created on first use, torn down after 30 s idle); where
+ * workers don't exist (Node, tests, SSR) or ever fail, it degrades to
+ * {@link parseCsvRowsChunked}, which yields to the event loop instead.
+ *
+ * The output is identical to the sync entry — these exist purely for *where*
+ * and *when* the work happens. Zillow's ZHVI table is ~895 rows × ~318 columns
+ * (~4.4 MB) and the FHFA metro file is ~4 MB, enough that parsing them on the
+ * main thread drops frames; the small files (FRED series, the OFR index) are
+ * fine either way and keep using the sync entry point.
+ */
+export function parseCsvRowsAsync(text: string): Promise<string[][]> {
+  const worker = getCsvWorker();
+  if (!worker) return parseCsvRowsChunked(text);
+  if (idleTimer !== undefined) {
+    clearTimeout(idleTimer);
+    idleTimer = undefined;
+  }
+  const id = nextParseId++;
+  return new Promise<string[][]>((resolve, reject) => {
+    pendingParses.set(id, { resolve, reject, text });
+    worker.postMessage({ id, text });
+  });
 }

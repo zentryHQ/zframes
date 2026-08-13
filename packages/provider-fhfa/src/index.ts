@@ -6,7 +6,7 @@ import type {
   SeriesPoint,
 } from "@zframes/spec";
 import { TtlCache } from "@zframes/data-primitives/cache";
-import { parseCsvRows } from "@zframes/data-primitives/csv";
+import { parseCsvRowsAsync } from "@zframes/data-primitives/csv";
 import { fetchText } from "@zframes/data-primitives/fetch";
 
 /**
@@ -109,13 +109,15 @@ function quarterStart(year: number, quarter: number): number {
  * the region as published. Rows arrive grouped by region and ordered oldest →
  * newest, and that order is preserved rather than re-sorted.
  */
-export function parseHpiCsv(
+export async function parseHpiCsv(
   csv: string,
   level: HpiLevel,
-): Map<string, SeriesPoint[]> {
+): Promise<Map<string, SeriesPoint[]>> {
   const { columns } = LEVELS[level];
   const series = new Map<string, SeriesPoint[]>();
-  for (const cells of parseCsvRows(csv)) {
+  // Worker-offloaded: the metro file is ~4 MB, and parsing it on the main
+  // thread was a visible hitch when the first FHFA card mounted.
+  for (const cells of await parseCsvRowsAsync(csv)) {
     const region = cells[columns.region]?.trim();
     const year = finiteNumber(cells[columns.year]);
     const quarter = finiteNumber(cells[columns.quarter]);

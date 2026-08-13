@@ -12,7 +12,7 @@ import type {
   TokenizedGold,
 } from "@zframes/spec";
 import { TtlCache } from "@zframes/data-primitives/cache";
-import { parseCsvRows } from "@zframes/data-primitives/csv";
+import { parseCsvRowsAsync } from "@zframes/data-primitives/csv";
 import { fetchJson, fetchText } from "@zframes/data-primitives/fetch";
 import {
   COT_URL,
@@ -205,7 +205,9 @@ async function loadVolIndex(indexId: string): Promise<OfficialSeries> {
     proxied: true,
     timeoutMs: 20_000,
   });
-  const rows = parseCsvRows(csv);
+  // Worker-offloaded: the Cboe histories run ~90–160 KB — small next to the
+  // Zillow/FHFA tables, but they arrive in a burst (one file per vol index).
+  const rows = await parseCsvRowsAsync(csv);
   const column = closeColumn(rows[0] ?? [], indexId);
   const points: SeriesPoint[] = [];
   for (let i = 1; i < rows.length; i++) {
