@@ -1467,10 +1467,13 @@ export class MockMarketDataProvider implements MarketDataProvider {
 
     emit();
     if (this.mode === "empty") return () => {};
+    // 600 ms, not the original 1500: the real Hyperliquid feed ticks several
+    // times a second, so a slower cadence reads as a stalled board on the
+    // public demo-mode explorer where this stream fronts for it.
     const id = setInterval(() => {
       this.tick += 1;
       emit();
-    }, 1500);
+    }, 600);
     return () => clearInterval(id);
   }
 
