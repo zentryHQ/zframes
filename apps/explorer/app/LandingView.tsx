@@ -339,7 +339,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             Live, not screenshots
           </span>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Real boards. Real data. Zero keys.
+            Real boards. Live or demo. Zero keys.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
             Every board here is rendering live right now, on the same keyless
