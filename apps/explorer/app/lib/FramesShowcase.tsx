@@ -6,7 +6,7 @@ import { motion, useReducedMotion, useTransform } from "motion/react";
 import { FRAME_CATEGORIES } from "@zframes/core";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import { LiveFrame } from "@/app/lib/LiveFrame";
-import { Parallax, Reveal, useViewportProgress } from "@/app/lib/motion";
+import { DrivenParallax, Reveal, useViewportProgress } from "@/app/lib/motion";
 
 // ── The frames chapter ──────────────────────────────────────────────────────
 // The landing's second act: the vocabulary the agent composes from. The biggest
@@ -419,11 +419,22 @@ function ChapterScene({ chapter, index }: { chapter: Chapter; index: number }) {
   const flip = index % 2 === 1; // alternate copy side for scroll rhythm
   const count = familyCount(chapter.key);
   const numeral = String(index + 1).padStart(2, "0");
+  // ONE viewport measurement per chapter; the ghost numeral and every specimen
+  // derive their drift from it (DrivenParallax) instead of each carrying their
+  // own scroll-linked layout reads. `cv-below-fold` skips layout+paint of
+  // off-screen chapters entirely (the specimens' own IntersectionObservers
+  // report not-intersecting inside a skipped subtree, so no data flows either).
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const { progress } = useViewportProgress(sceneRef);
 
   return (
-    <div className="relative mx-auto max-w-7xl px-6 py-12 sm:py-16">
+    <div
+      ref={sceneRef}
+      className="cv-below-fold relative mx-auto max-w-7xl px-6 py-12 sm:py-16"
+    >
       {/* Ghost chapter numeral — drifts counter-scroll behind everything. */}
-      <Parallax
+      <DrivenParallax
+        progress={progress}
         distance={-70}
         className={`pointer-events-none absolute top-1/2 -z-10 hidden -translate-y-1/2 sm:block ${
           flip ? "right-0" : "left-0"
@@ -432,7 +443,7 @@ function ChapterScene({ chapter, index }: { chapter: Chapter; index: number }) {
         <span className="select-none font-mono text-[16rem] font-bold leading-none text-white/[0.035]">
           {numeral}
         </span>
-      </Parallax>
+      </DrivenParallax>
 
       <div
         className={`flex flex-col items-center gap-10 lg:gap-16 ${
@@ -465,7 +476,12 @@ function ChapterScene({ chapter, index }: { chapter: Chapter; index: number }) {
           }`}
         >
           {chapter.specimens.map((s, i) => (
-            <Parallax key={s.frame} distance={s.drift} className="shrink-0">
+            <DrivenParallax
+              key={s.frame}
+              progress={progress}
+              distance={s.drift}
+              className="shrink-0"
+            >
               <Reveal delay={i * 0.08} y={26}>
                 <div
                   className={`glow-brand-soft ${s.className}`}
@@ -479,7 +495,7 @@ function ChapterScene({ chapter, index }: { chapter: Chapter; index: number }) {
                   />
                 </div>
               </Reveal>
-            </Parallax>
+            </DrivenParallax>
           ))}
         </div>
       </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { DashboardSpecSchema } from "@zframes/core";
+import { DashboardSpecSchema } from "@zframes/spec/spec";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DashboardBackground } from "@/app/lib/DashboardBackground";
 import { getDataMode } from "@/app/lib/data-mode";
 
@@ -78,7 +78,10 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
   }, []);
   // Parse only to read the background + accent for the backdrop; DashboardView
   // re-parses and owns the invalid-spec message, so a bad spec just skips the bg.
-  const parsed = DashboardSpecSchema.safeParse(spec);
+  // Memoized: this component re-renders on every parent postMessage state flip,
+  // and an unmemoized full-spec parse per render handed DashboardView a fresh
+  // frames array each time — defeating React.memo on every card below it.
+  const parsed = useMemo(() => DashboardSpecSchema.safeParse(spec), [spec]);
 
   // Scene liveness starts OFF (an iframed board never boots a WebGL scene it's
   // about to be told to suspend — the static swatch covers the gap); board
@@ -95,16 +98,35 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const overflowRef = useRef(0);
   const progressRef = useRef(0);
+  // The transform is written inside rAF, never in the message task: the parent
+  // posts from its own frame loop, and applying synchronously in the message
+  // handler put the style write outside this document's rendering cadence.
+  const scrollRafRef = useRef(0);
   const applyScroll = useCallback(() => {
-    const el = contentRef.current;
-    if (!el) return;
-    const y = -Math.round(overflowRef.current * progressRef.current);
-    el.style.transform = `translate3d(0, ${y}px, 0)`;
+    if (scrollRafRef.current) return;
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = 0;
+      const el = contentRef.current;
+      if (!el) return;
+      const y = -Math.round(overflowRef.current * progressRef.current);
+      el.style.transform = `translate3d(0, ${y}px, 0)`;
+    });
   }, []);
+  useEffect(
+    () => () => {
+      if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    },
+    [],
+  );
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
+    // rAF-coalesced: while 30 frames settle after load the ResizeObserver fires
+    // many times, and each measure() is a forced layout (scrollHeight) of a
+    // multi-viewport tree. One measure per animation frame at most.
+    let rafId = 0;
     const measure = () => {
+      rafId = 0;
       // A hidden board (content-visibility) measures as ~0 — keep the last known
       // overflow rather than snapping the content back to the top behind the stack.
       const h = el.scrollHeight;
@@ -112,13 +134,17 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
       overflowRef.current = Math.max(0, h - (window.innerHeight - SHELL_PAD));
       applyScroll();
     };
-    measure();
-    const ro = new ResizeObserver(measure);
+    const queueMeasure = () => {
+      if (!rafId) rafId = requestAnimationFrame(measure);
+    };
+    queueMeasure();
+    const ro = new ResizeObserver(queueMeasure);
     ro.observe(el);
-    window.addEventListener("resize", measure);
+    window.addEventListener("resize", queueMeasure);
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       ro.disconnect();
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", queueMeasure);
     };
   }, [applyScroll]);
 
@@ -160,15 +186,17 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
       >
         {/* Scrubbed by the framing page (`zf:scroll`); a standalone embed leaves
             progress at 0, so this is an identity transform and the document
-            scrolls normally. */}
-        <div ref={contentRef} style={{ willChange: "transform" }}>
+            scrolls normally. No `will-change`: a permanently-promoted layer the
+            size of the whole board re-rasters on every content repaint — the
+            animated transform promotes it while actually scrubbing. */}
+        <div ref={contentRef}>
           <DashboardView spec={spec} />
         </div>
       </div>
       {demo && (
         <div
           aria-hidden
-          className="pointer-events-none fixed bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-md border border-amber-400/20 bg-black/50 px-2 py-1 text-[11px] text-amber-300/90 backdrop-blur-sm"
+          className="pointer-events-none fixed bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-md border border-amber-400/20 bg-black/65 px-2 py-1 text-[11px] text-amber-300/90"
         >
           <span className="h-1 w-1 rounded-full bg-amber-400" />
           Demo data

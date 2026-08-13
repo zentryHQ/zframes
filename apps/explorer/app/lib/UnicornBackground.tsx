@@ -65,6 +65,31 @@ export function UnicornBackground({
   const pathname = usePathname();
   const scrollHue = SCROLL_HUE_PATHS.has(pathname ?? "");
 
+  // Defer the engine (241 KB parse + WebGL context + shader compile) until the
+  // page has loaded and the main thread is idle — it used to land exactly
+  // during hydration and the landing's board-mount burst. The static body
+  // gradient is the designed fallback, and the 900 ms fade below hides the
+  // late start.
+  const [deferred, setDeferred] = useState(false);
+  useEffect(() => {
+    let idleId = 0;
+    let timerId: ReturnType<typeof setTimeout> | undefined;
+    const arm = () => {
+      if (typeof window.requestIdleCallback === "function")
+        idleId = window.requestIdleCallback(() => setDeferred(true), {
+          timeout: 2000,
+        });
+      else timerId = setTimeout(() => setDeferred(true), 350);
+    };
+    if (document.readyState === "complete") arm();
+    else window.addEventListener("load", arm, { once: true });
+    return () => {
+      window.removeEventListener("load", arm);
+      if (idleId) window.cancelIdleCallback?.(idleId);
+      if (timerId) clearTimeout(timerId);
+    };
+  }, []);
+
   // Scroll-hue fallback for browsers without CSS scroll timelines (Firefox):
   // rAF-throttled scroll → the same hue-rotate on the same element the CSS
   // path animates. Supporting browsers bail here — the compositor-driven
@@ -81,9 +106,17 @@ export function UnicornBackground({
     const el = sceneRef.current;
     if (!el) return;
     let raf = 0;
+    // scrollHeight is CACHED and refreshed only on resize/content growth: the
+    // landing is ~1500vh with pending style changes from motion on most frames,
+    // so reading document scrollHeight per scroll frame forced a layout each
+    // time. A ResizeObserver on documentElement catches content-height changes
+    // (boards mounting, sections expanding) without any per-scroll read.
+    let max = 0;
+    const remeasure = () => {
+      max = document.documentElement.scrollHeight - window.innerHeight;
+    };
     const apply = () => {
       raf = 0;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
       const progress = max > 0 ? Math.min(window.scrollY / max, 1) : 0;
       el.style.filter =
         progress > 0
@@ -93,20 +126,28 @@ export function UnicornBackground({
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(apply);
     };
+    const onResize = () => {
+      remeasure();
+      onScroll();
+    };
+    remeasure();
     apply();
+    const ro = new ResizeObserver(onResize);
+    ro.observe(document.documentElement);
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
     return () => {
       if (raf) cancelAnimationFrame(raf);
+      ro.disconnect();
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", onResize);
       // The element survives route changes (AppShell mounts it once), so a
       // navigation away must clear the last-applied inline filter too.
       el.style.filter = "";
     };
   }, [scrollHue, lowEnd, reducedMotion]);
 
-  if (lowEnd || reducedMotion) return null;
+  if (lowEnd || reducedMotion || !deferred) return null;
 
   return (
     <div
