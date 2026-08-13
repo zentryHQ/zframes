@@ -545,7 +545,7 @@ beforeAll(() => {
       width: 640,
       height: 320,
       toJSON() {},
-    } as DOMRect);
+    }) as DOMRect;
   for (const [prop, value] of [
     ["clientWidth", 640],
     ["clientHeight", 320],
