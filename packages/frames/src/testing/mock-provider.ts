@@ -1073,8 +1073,8 @@ export class MockMarketDataProvider implements MarketDataProvider {
           roll > 0.94
             ? round(120 + r() * 260, 1)
             : roll > 0.78
-            ? round(18 + r() * 55, 1)
-            : round(0.6 + r() * 11, 1);
+              ? round(18 + r() * 55, 1)
+              : round(0.6 + r() * 11, 1);
         const stable = r() > 0.55;
         padded.push([
           CHAINS[i % CHAINS.length],
@@ -1933,7 +1933,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
     const byId = Object.keys(profiles).find(
       (key) => profiles[key].id === asset.toLowerCase(),
     );
-    const symbol = profiles[ticker] ? ticker : byId ?? ticker;
+    const symbol = profiles[ticker] ? ticker : (byId ?? ticker);
     const known = profiles[symbol];
     const empty: CryptoAssetProfile = {
       id: known?.id ?? symbol.toLowerCase(),
@@ -2220,12 +2220,12 @@ export class MockMarketDataProvider implements MarketDataProvider {
             value < 25
               ? "Extreme Fear"
               : value < 45
-              ? "Fear"
-              : value < 55
-              ? "Neutral"
-              : value < 75
-              ? "Greed"
-              : "Extreme Greed",
+                ? "Fear"
+                : value < 55
+                  ? "Neutral"
+                  : value < 75
+                    ? "Greed"
+                    : "Extreme Greed",
           // most-recent first
           time: BASELINE_NOW - i * DAY,
         };
@@ -4688,7 +4688,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
         label:
           source.kind === "binance"
             ? "Binance · main"
-            : source.address ?? "0x12…ab",
+            : (source.address ?? "0x12…ab"),
         holdings,
         totalUsd: round(
           holdings.reduce((a, h) => a + (h.valueUsd ?? 0), 0),

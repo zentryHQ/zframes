@@ -204,7 +204,7 @@ async function proxy(request: Request): Promise<Response> {
   // else gets a short one, so a repeated failure is at least not re-asked
   // upstream once per visitor per poll.
   const ttl =
-    result.status === 200 ? TTL_BY_HOST[targetHost ?? ""] ?? DEFAULT_TTL : 0;
+    result.status === 200 ? (TTL_BY_HOST[targetHost ?? ""] ?? DEFAULT_TTL) : 0;
   headers.set(
     "CDN-Cache-Control",
     ttl > 0
