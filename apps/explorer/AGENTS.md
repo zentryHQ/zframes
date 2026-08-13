@@ -207,7 +207,7 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   only the live grid stays client-only, behind `CatalogueClient`. `CatalogueView`
   must therefore **not** render `<main>` or an `<h1>` — the page owns both.
 - **`/gallery` fetches its rows server-side** and passes them as `initial`. The
-  client still refetches on mount to reconcile the ISR window.
+  client refetches on mount only when that seed is empty (DB blip recovery).
 - **`/llms.txt`** (`app/llms.txt/route.ts`) is fully derived — frames from the
   registry, boards from the table, Q&A from `app/lib/faq.ts`. It cannot go stale
   on its own.

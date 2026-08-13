@@ -48,6 +48,10 @@ export function toBoardSummary(row: DashboardRow): BoardSummary {
  * (tens of KB per board, for four fields each) or downgrading the curated
  * thumbnails to synthetic ones. This is the third option: project the geometry
  * server-side, so the real layout survives at a fraction of the payload.
+ *
+ * List queries build this shape in SQL (see the projections in dashboards.ts —
+ * kept in sync with the mappers below); the mappers remain for callers that
+ * already hold a full row, e.g. the resolveDashboard path.
  */
 export type BoardListing = BoardSummary & {
   layout: { id: string; frame: string; position: FramePosition }[];

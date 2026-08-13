@@ -1,6 +1,6 @@
 import { FRAME_CATEGORIES } from "@zframes/spec/frame";
 import { allFrameMetas } from "@zframes/frames/schemas";
-import { listCurated } from "@/app/lib/dashboards";
+import { listCuratedMeta } from "@/app/lib/dashboards";
 import { FAQ } from "@/app/lib/faq";
 import {
   absoluteUrl,
@@ -46,9 +46,9 @@ export async function GET(): Promise<Response> {
   // A failed query costs the board list, not the file — same posture as the
   // landing page and the sitemap. The rest of this document is the half that
   // actually answers "what is zframes".
-  let curated: Awaited<ReturnType<typeof listCurated>> = [];
+  let curated: Awaited<ReturnType<typeof listCuratedMeta>> = [];
   try {
-    curated = await listCurated();
+    curated = await listCuratedMeta();
   } catch (err) {
     console.error("[llms.txt] could not list curated boards:", err);
   }

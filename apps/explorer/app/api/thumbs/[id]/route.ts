@@ -4,7 +4,9 @@ import { loadDashboardThumb } from "@/app/lib/dashboard-thumb";
 // 404 when no capture exists yet (the card's SVG mini-map stays as the
 // fallback) AND when the dashboard was taken down — both rules live in
 // loadDashboardThumb, shared with the /dashboard/[id] og:image.
-export const dynamic = "force-dynamic";
+// ISR, not per-request: the blob changes nightly, so an hour of server cache
+// (matching the Cache-Control below) skips the DB read on every gallery view.
+export const revalidate = 3600;
 
 export async function GET(
   _req: Request,

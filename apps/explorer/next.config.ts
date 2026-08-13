@@ -42,6 +42,12 @@ const nextConfig: NextConfig = {
   // static pages the same way the runtime bakes its own header version in.
   env: { ZFRAMES_CLI_VERSION: cliVersion },
   transpilePackages: zframesPackages,
+  // The nightly captures are 1440px JPEGs served through /api/thumbs; next/image
+  // downscales + reformats them for the ~400px gallery cards.
+  images: { formats: ["image/avif", "image/webp"] },
+  experimental: {
+    optimizePackageImports: ["lucide-react", "radix-ui", "motion", "sonner"],
+  },
   // Keep the DB drivers out of the bundle — PGlite ships WASM and postgres is a
   // native-ish driver; they must load from node_modules in the Node runtime.
   serverExternalPackages: ["postgres"],

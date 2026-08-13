@@ -27,6 +27,30 @@ export const alt = `${SITE_NAME} — free, open-source market terminals your AI 
 const INK = "#e7ecf6";
 const MUTED = "rgba(231,236,246,0.62)";
 
+// The fonts and the brand mark are static — read off disk once per server
+// (lazily so module init stays I/O-free), not per render.
+// `fetch(new URL(..., import.meta.url))` does not work here — Next emits the
+// asset to a relative /_next/static/media URL fetch cannot parse. The mark is a
+// PNG, not inline SVG, because satori does not resolve `<defs>` / `url(#id)`
+// gradient references and the real mark is built from three.
+let assetsPromise: Promise<{
+  regular: Buffer;
+  bold: Buffer;
+  mark: string;
+}> | null = null;
+function loadAssets() {
+  assetsPromise ??= Promise.all([
+    readFile(join(process.cwd(), "assets", "DMSans-Regular.ttf")),
+    readFile(join(process.cwd(), "assets", "DMSans-Bold.ttf")),
+    readFile(join(process.cwd(), "assets", "zframes-icon-512.png")),
+  ]).then(([regular, bold, markPng]) => ({
+    regular,
+    bold,
+    mark: `data:image/png;base64,${markPng.toString("base64")}`,
+  }));
+  return assetsPromise;
+}
+
 function Pill({ children }: { children: string }) {
   return (
     <div
@@ -46,17 +70,7 @@ function Pill({ children }: { children: string }) {
 }
 
 export default async function Image() {
-  // Node runtime: the fonts and the brand mark are read off disk rather than
-  // fetched. `fetch(new URL(..., import.meta.url))` does not work here — Next
-  // emits the asset to a relative /_next/static/media URL fetch cannot parse.
-  // The mark is a PNG, not inline SVG, because satori does not resolve `<defs>` /
-  // `url(#id)` gradient references and the real mark is built from three.
-  const [regular, bold, markPng] = await Promise.all([
-    readFile(join(process.cwd(), "assets", "DMSans-Regular.ttf")),
-    readFile(join(process.cwd(), "assets", "DMSans-Bold.ttf")),
-    readFile(join(process.cwd(), "assets", "zframes-icon-512.png")),
-  ]);
-  const mark = `data:image/png;base64,${markPng.toString("base64")}`;
+  const { regular, bold, mark } = await loadAssets();
 
   return new ImageResponse(
     <div

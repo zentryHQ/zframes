@@ -1,6 +1,6 @@
 "use client";
 
-import { frameSearchTokens } from "@zframes/core";
+import { frameSearchTokens } from "@zframes/spec/catalogue";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { BoardListing } from "@/app/lib/board-summary";
@@ -61,11 +61,13 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
   // titles, descriptions and links existed only after a client fetch — invisible
   // to any crawler that does not run JavaScript, which is most answer engines.
   const [data, setData] = useState<GalleryResponse | null>(initial ?? null);
-  // Still refetches on mount even when seeded. The page is ISR (see page.tsx),
-  // so the server copy can be a few minutes old; this reconciles it to live
-  // without costing the first paint. Same value in, same value out — no
-  // hydration mismatch, because the client's initial state is the server's.
+  // Fetches on mount ONLY when the server seed is empty (a DB blip at render
+  // time — the client fetch is the recovery path). A seeded render skips it:
+  // the page is ISR with revalidate=300, so the seed is at most minutes old and
+  // refetching the same list on every mount doubled the gallery's query load.
   useEffect(() => {
+    if (initial && (initial.curated.length > 0 || initial.community.length > 0))
+      return;
     fetch("/api/dashboards")
       .then((r) => (r.ok ? r.json() : null))
       .then((d: GalleryResponse | null) => {
@@ -77,6 +79,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
         // Likewise: only fall back to empty if we never had anything to show.
         setData((prev) => prev ?? { curated: [], community: [] });
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [query, setQuery] = useState(() => {

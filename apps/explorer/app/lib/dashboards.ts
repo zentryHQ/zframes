@@ -1,9 +1,53 @@
 import { and, desc, eq, isNotNull, ne, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import type { BoardListing, BoardSummary } from "@/app/lib/board-summary";
 import { db } from "@/app/lib/db";
 import { dashboards, type DashboardRow } from "@/app/lib/db/schema";
 
 export type Visibility = "listed" | "unlisted";
+
+// ── SQL projections for list queries ─────────────────────────────────────────
+// A spec is tens of KB of jsonb and a list query returns dozens of rows, so the
+// summary fields are projected in SQL rather than pulling full specs and mapping
+// them through `toBoardSummary`/`toBoardListing` (which stay, for the
+// single-board resolveDashboard path).
+
+const frameCount = sql<number>`coalesce(jsonb_array_length(${dashboards.spec}->'frames'), 0)`;
+
+// The SQL twin of `toBoardListing`'s layout projection — the bare
+// {id, frame, position} per card that the gallery thumbnail draws, with the same
+// filter on malformed entries, in spec order.
+const layout = sql<BoardListing["layout"]>`coalesce((
+  select jsonb_agg(jsonb_build_object(
+    'id', f.value->>'id',
+    'frame', f.value->>'frame',
+    'position', jsonb_build_object(
+      'x', f.value->'position'->'x',
+      'y', f.value->'position'->'y',
+      'w', f.value->'position'->'w',
+      'h', f.value->'position'->'h'
+    )
+  ) order by f.ord)
+  from jsonb_array_elements(${dashboards.spec}->'frames') with ordinality as f(value, ord)
+  where jsonb_typeof(f.value->'id') = 'string'
+    and jsonb_typeof(f.value->'frame') = 'string'
+    and jsonb_typeof(f.value->'position'->'x') = 'number'
+    and jsonb_typeof(f.value->'position'->'y') = 'number'
+    and jsonb_typeof(f.value->'position'->'w') = 'number'
+    and jsonb_typeof(f.value->'position'->'h') = 'number'
+), '[]'::jsonb)`;
+
+const summaryColumns = {
+  id: dashboards.id,
+  title: dashboards.title,
+  // null → "" matches `toBoardSummary` (community boards have no description).
+  description: sql<string>`coalesce(${dashboards.description}, '')`,
+  tags: dashboards.tags,
+  frameCount,
+  likes: dashboards.likes,
+};
+
+const listingColumns = { ...summaryColumns, layout };
 
 // Immutable-per-publish: every publish mints a NEW id, so a shared link is a
 // stable snapshot (an "update" is a new publish → new link). Spec is validated
@@ -37,9 +81,28 @@ export async function getDashboard(id: string): Promise<DashboardRow | null> {
   return row ?? null;
 }
 
-export async function listByOwner(ownerId: string): Promise<DashboardRow[]> {
+// Projected: the "mine" list needs metadata + frameCount, never the spec.
+export async function listByOwner(ownerId: string): Promise<
+  {
+    id: string;
+    title: string;
+    visibility: string;
+    tags: string[];
+    views: number;
+    createdAt: Date;
+    frameCount: number;
+  }[]
+> {
   return db
-    .select()
+    .select({
+      id: dashboards.id,
+      title: dashboards.title,
+      visibility: dashboards.visibility,
+      tags: dashboards.tags,
+      views: dashboards.views,
+      createdAt: dashboards.createdAt,
+      frameCount,
+    })
     .from(dashboards)
     .where(eq(dashboards.ownerId, ownerId))
     .orderBy(desc(dashboards.createdAt));
@@ -48,9 +111,20 @@ export async function listByOwner(ownerId: string): Promise<DashboardRow[]> {
 // The public community gallery: listed + approved, newest first. `curated: false`
 // is load-bearing — curated rows are also listed+approved, so without it every
 // showcase board would appear in BOTH gallery sections.
-export async function listCommunity(limit = 48): Promise<DashboardRow[]> {
+export type CommunityListing = BoardListing & {
+  views: number;
+  forks: number;
+  createdAt: Date;
+};
+
+export async function listCommunity(limit = 48): Promise<CommunityListing[]> {
   return db
-    .select()
+    .select({
+      ...listingColumns,
+      views: dashboards.views,
+      forks: dashboards.forks,
+      createdAt: dashboards.createdAt,
+    })
     .from(dashboards)
     .where(
       and(
@@ -107,9 +181,25 @@ export async function listIndexableBoards(): Promise<
 // The gallery's curated section. Ordered by `landingOrder` first so the boards the
 // front door leads with also lead the gallery, then by title for a stable rest —
 // NOT by createdAt, which for a seeded set is an accident of insertion order.
-export async function listCurated(): Promise<DashboardRow[]> {
+export async function listCurated(): Promise<BoardListing[]> {
   return db
-    .select()
+    .select(listingColumns)
+    .from(dashboards)
+    .where(and(eq(dashboards.curated, true), eq(dashboards.status, "approved")))
+    .orderBy(sql`${dashboards.landingOrder} nulls last`, dashboards.title);
+}
+
+// The curated set as bare link metadata (id/title/description) — for consumers
+// like /llms.txt that render a link list and need neither spec nor geometry.
+export async function listCuratedMeta(): Promise<
+  { id: string; title: string; description: string | null }[]
+> {
+  return db
+    .select({
+      id: dashboards.id,
+      title: dashboards.title,
+      description: dashboards.description,
+    })
     .from(dashboards)
     .where(and(eq(dashboards.curated, true), eq(dashboards.status, "approved")))
     .orderBy(sql`${dashboards.landingOrder} nulls last`, dashboards.title);
@@ -118,9 +208,11 @@ export async function listCurated(): Promise<DashboardRow[]> {
 // The landing page's sticky card stack, in `landingOrder`. Replaces the old
 // hand-written `LANDING_IDS` tuple: which boards front the site — and in what
 // order — is now editable without a deploy, which was the point of the move.
-export async function listLandingBoards(): Promise<DashboardRow[]> {
+// Projected to BoardSummary: the landing stack shows labels + frame counts and
+// renders each board through an /embed/[id] iframe that fetches its own spec.
+export async function listLandingBoards(): Promise<BoardSummary[]> {
   return db
-    .select()
+    .select(summaryColumns)
     .from(dashboards)
     .where(
       and(
