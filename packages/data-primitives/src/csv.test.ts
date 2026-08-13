@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseCsvRows, parseCsvRowsAsync, splitCsvRow } from "./csv";
+import {
+  csvWorkerSource,
+  parseCsvRows,
+  parseCsvRowsAsync,
+  parseCsvRowsChunked,
+  splitCsvRow,
+} from "./csv";
 
 // What this file pins, and why it matters:
 //
@@ -162,5 +168,31 @@ describe("parseCsvRowsAsync", () => {
     expect(parsed).toHaveLength(5_001);
     expect(parsed[1]).toEqual(["Metro 0, TX", "0", "0"]);
     expect(parsed.at(-1)).toEqual(["Metro 4999, TX", "4999", "9998"]);
+  });
+
+  it("chunked fallback matches the sync parser", async () => {
+    for (const text of cases) {
+      expect(await parseCsvRowsChunked(text)).toEqual(parseCsvRows(text));
+    }
+  });
+});
+
+describe("csvWorkerSource", () => {
+  // The worker script embeds `splitCsvRow.toString()` into a Blob at run time,
+  // so no bundler ever type-checks it — this evals the generated source against
+  // a stubbed `self` and round-trips a message, pinning that the script (a) is
+  // valid JS after transpilation and (b) produces exactly the sync parser's
+  // output, quoting semantics included.
+  it("round-trips a parse request through the generated script", () => {
+    const posted: unknown[] = [];
+    const self = {
+      onmessage: null as null | ((e: { data: unknown }) => void),
+      postMessage: (m: unknown) => posted.push(m),
+    };
+    new Function("self", csvWorkerSource())(self);
+    expect(self.onmessage).toBeTypeOf("function");
+    const text = 'name,v\r\n"Dallas, TX",4\n\n"say ""hi"", now",5';
+    self.onmessage?.({ data: { id: 7, text } });
+    expect(posted).toEqual([{ id: 7, rows: parseCsvRows(text) }]);
   });
 });
