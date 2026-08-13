@@ -46,43 +46,53 @@ import { NasdaqProvider } from "@zframes/provider-nasdaq";
 import { CboeProvider } from "@zframes/provider-cboe";
 import { TreasuryProvider } from "@zframes/provider-treasury";
 
+/** Provider constructors, in capability-routing order (see the header note). */
+const KEYLESS_PROVIDERS = [
+  HyperliquidProvider,
+  DefiLlamaProvider,
+  AlternativeMeProvider,
+  CoinGeckoProvider,
+  CoinpaprikaProvider,
+  GeckoTerminalProvider,
+  BlockchairProvider,
+  CoinMetricsProvider,
+  BitcoinDataProvider,
+  UltrasoundProvider,
+  PolymarketProvider,
+  EtfFlowsProvider,
+  NyFedProvider,
+  TreasuryProvider,
+  BlsProvider,
+  SecProvider,
+  FinraProvider,
+  // Nasdaq sits with the equity cluster and DELIBERATELY after Hyperliquid:
+  // it also fulfils `day-stats` and `ohlcv`, so placing it earlier would
+  // silently repoint every existing price card at the exchange's daily bars
+  // (no intraday, no crypto). Here it stays reachable only by pinning
+  // `source: "nasdaq"`, which is exactly what a card wanting the real
+  // consolidated tape instead of the HIP-3 perp asks for.
+  NasdaqProvider,
+  CboeProvider,
+  OfrProvider,
+  FredProvider,
+  ZillowProvider,
+  FhfaProvider,
+  FxProvider,
+  MetalsProvider,
+  NewsProvider,
+  MempoolProvider,
+  DeribitProvider,
+  BitkubProvider,
+] as const;
+
+/**
+ * How many keyless providers ship. A static fact importable from SERVER code
+ * (the landing's value grid quotes it): reading a length must not construct
+ * the provider set — instances hold caches and a shared WebSocket.
+ */
+export const KEYLESS_PROVIDER_COUNT = KEYLESS_PROVIDERS.length;
+
 /** The keyless market-data provider set, in capability-routing order. */
 export function createKeylessProviders(): MarketDataProvider[] {
-  return [
-    new HyperliquidProvider(),
-    new DefiLlamaProvider(),
-    new AlternativeMeProvider(),
-    new CoinGeckoProvider(),
-    new CoinpaprikaProvider(),
-    new GeckoTerminalProvider(),
-    new BlockchairProvider(),
-    new CoinMetricsProvider(),
-    new BitcoinDataProvider(),
-    new UltrasoundProvider(),
-    new PolymarketProvider(),
-    new EtfFlowsProvider(),
-    new NyFedProvider(),
-    new TreasuryProvider(),
-    new BlsProvider(),
-    new SecProvider(),
-    new FinraProvider(),
-    // Nasdaq sits with the equity cluster and DELIBERATELY after Hyperliquid:
-    // it also fulfils `day-stats` and `ohlcv`, so placing it earlier would
-    // silently repoint every existing price card at the exchange's daily bars
-    // (no intraday, no crypto). Here it stays reachable only by pinning
-    // `source: "nasdaq"`, which is exactly what a card wanting the real
-    // consolidated tape instead of the HIP-3 perp asks for.
-    new NasdaqProvider(),
-    new CboeProvider(),
-    new OfrProvider(),
-    new FredProvider(),
-    new ZillowProvider(),
-    new FhfaProvider(),
-    new FxProvider(),
-    new MetalsProvider(),
-    new NewsProvider(),
-    new MempoolProvider(),
-    new DeribitProvider(),
-    new BitkubProvider(),
-  ];
+  return KEYLESS_PROVIDERS.map((Provider) => new Provider());
 }

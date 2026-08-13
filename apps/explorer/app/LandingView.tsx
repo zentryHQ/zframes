@@ -1,39 +1,14 @@
-"use client";
-
 import type { ReactNode } from "react";
-import { memo, useEffect, useRef, useState } from "react";
-import {
-  useMotionValueEvent,
-  useReducedMotion,
-  type MotionValue,
-} from "motion/react";
 import Link from "next/link";
+import { KEYLESS_PROVIDER_COUNT } from "@zframes/providers-keyless";
 import type { BoardSummary } from "@/app/lib/board-summary";
 import { CopyCommand } from "@/app/lib/CopyCommand";
 import { FAQ } from "@/app/lib/faq";
-import { KEYLESS_PROVIDER_COUNT } from "@/app/lib/frames";
 import { FramesShowcase } from "@/app/lib/FramesShowcase";
-import { LiveBoardFrame } from "@/app/lib/LiveBoardFrame";
 import { LiveFrame, LiveFrameStyles } from "@/app/lib/LiveFrame";
-import {
-  FocusPanel,
-  focusT,
-  MouseParallax,
-  Parallax,
-  Reveal,
-  ScrollExit,
-  useFocusDwellProgress,
-  useSectionProgress,
-} from "@/app/lib/motion";
+import { MouseParallax, Parallax, Reveal, ScrollExit } from "@/app/lib/motion";
 import { SectionHeading } from "@/app/lib/SectionHeading";
-
-// The focus-gallery's shared sticky box sits below the header (57px) with a
-// little air. Every board renders full inside this box; scale/opacity animate.
-const FOCUS_STICKY_TOP = 72;
-// Scroll depth (vh) allotted to each board's slot. Generous on purpose: the dwell
-// band is a fixed fraction of the slot, so this is the dial that decides how long
-// a board holds focus — and therefore how gently its own frames scroll past.
-const FOCUS_SLOT_VH = 300;
+import { ShowcaseStack } from "@/app/lib/ShowcaseStack";
 
 // Gallery home — the public front door as a five-act scroll narrative:
 //
@@ -46,9 +21,13 @@ const FOCUS_SLOT_VH = 300;
 //   IV   How         install → describe → own, ending on the command
 //   V    Why         the value grid + final CTA
 //
-// `motion` drives only scroll/pointer orchestration (parallax, scrubs,
-// whileInView reveals); hover/press micro-interactions stay CSS (globals.css).
-// Client, but copy still SSRs (client components render on the server first).
+// This file is a SERVER component on purpose: the copy — hero text, FAQ, value
+// grid, step cards — used to hydrate as part of one 650-line client tree purely
+// because it sat inside `Reveal` wrappers. Client components (`Reveal`,
+// `ScrollExit`, `MouseParallax`, the live frames, the stack) are leaf islands
+// that receive these sections as server-rendered children; only `ShowcaseStack`
+// holds page-level client state. `motion` drives only scroll/pointer
+// orchestration; hover/press micro-interactions stay CSS (globals.css).
 
 // The hero's floating specimens — cast for silhouette variety and instant
 // keyless data. Desktop-mostly; each gets its own parallax depth (mouse
@@ -151,66 +130,14 @@ const HERO_FLOATERS: {
 ];
 
 /**
- * The landing page's whole client tree. Split out of `page.tsx` on 2026-08-05:
- * the showcase boards moved from a static module into the `dashboards` table, and
- * a `"use client"` component cannot await a query — so `page.tsx` is now a thin
- * server component that fetches them and hands them down as `boards`.
+ * The landing page. Split out of `page.tsx` on 2026-08-05: the showcase boards
+ * moved from a static module into the `dashboards` table, so `page.tsx` is a
+ * thin server component that fetches them and hands them down as `boards`.
  *
  * They arrive as {@link BoardSummary} rather than full rows on purpose: the specs
  * would be tens of kilobytes of client payload for data the iframes fetch anyway.
  */
 export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
-  const reduced = useReducedMotion();
-  const stackRef = useRef<HTMLElement>(null);
-  const progress = useSectionProgress(stackRef);
-  // The board that is SETTLED at full (centred in the dwell band). Only it runs
-  // its animated WebGL backdrop (bgActive) and takes clicks; -1 mid-transition
-  // so no scene boots on a fast fly-through. Same-value bailout means scrolling
-  // re-renders nothing until the focused board actually changes.
-  const [activeIndex, setActiveIndex] = useState(0);
-  // The window of boards whose CONTENT is on show (near enough to `t` to be
-  // visible/crossfading). Boards outside it stop rendering + polling entirely
-  // (content-visibility: hidden). The parent owns this: an iframe's own
-  // IntersectionObserver can't see that a faded-out sibling is effectively gone.
-  const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 1]);
-  const demoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (demoteTimer.current) clearTimeout(demoteTimer.current);
-    },
-    [],
-  );
-
-  useMotionValueEvent(progress, "change", (p) => {
-    const n = boards.length;
-    const t = focusT(p, n);
-    const r = Math.round(t);
-    // Settled only while resting in a board's dwell band; else nothing is
-    // "active" (the crossfade owns the mid-transition look, no scene needed).
-    // The band has to cover the whole dwell — the content scrubs across it, and
-    // a board whose own frames are scrolling past must keep its scene alive.
-    const settled =
-      Math.abs(t - r) < 0.34 ? Math.min(n - 1, Math.max(0, r)) : -1;
-    setActiveIndex((a) => (a === settled ? a : settled));
-    const lo = Math.max(0, Math.floor(t - 0.7));
-    const hi = Math.min(n - 1, Math.ceil(t + 0.7));
-    // Hysteresis: widen the visible window immediately (a board must be
-    // rendering before it crossfades in), but DEMOTE only after the scroll has
-    // settled for 400 ms. Each demotion flips `content-visibility` on a
-    // ~30-frame board inside its iframe — a full relayout — and a fast
-    // fly-through used to trigger that on every boundary it crossed, which is
-    // exactly the "fast scroll = lag" signature.
-    setVisibleRange((v) => {
-      const wLo = Math.min(v[0], lo);
-      const wHi = Math.max(v[1], hi);
-      return wLo === v[0] && wHi === v[1] ? v : [wLo, wHi];
-    });
-    if (demoteTimer.current) clearTimeout(demoteTimer.current);
-    demoteTimer.current = setTimeout(() => {
-      setVisibleRange((v) => (v[0] === lo && v[1] === hi ? v : [lo, hi]));
-    }, 400);
-  });
-
   return (
     <main className="overflow-x-clip">
       <LiveFrameStyles />
@@ -325,69 +252,9 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
         </Reveal>
       </section>
 
-      {/* Focus gallery — three boards, one per asset class (bullion, equities,
-          crypto). Each grows from small into a full, un-clipped view, DWELLS
-          there long enough for its own content to scroll through the frame (so a
-          board taller than the viewport is still seen whole), then shrinks and
-          fades as the next grows up in its place. Under reduced motion: a plain
-          vertical list, no scrub. */}
-      {/* No boards → render no showcase at all. Reachable now that the boards
-          come from a query: an unseeded or unreachable database used to be
-          impossible (they were compiled in). An empty sticky container would
-          otherwise be 30vh of blank scroll with nothing pinned inside it. */}
-      {boards.length === 0 ? null : reduced ? (
-        <section className="mx-auto max-w-[88rem] space-y-6 px-4 pb-[8vh] sm:px-6">
-          {boards.map((d) => (
-            <div key={d.id} className="h-[78vh]">
-              <LiveBoardFrame
-                id={d.id}
-                title={d.title}
-                description={d.description}
-                tags={d.tags}
-                frameCount={d.frameCount}
-                bgActive={false}
-                boardVisible
-              />
-            </div>
-          ))}
-        </section>
-      ) : (
-        <section
-          ref={stackRef}
-          className="relative overflow-x-clip"
-          // One scroll "slot" per board (plus lead-in/out); the sticky box below
-          // stays pinned across the whole range while the boards crossfade. The
-          // slot is deliberately deep — most of it is dwell, and the dwell is
-          // what scrolls the board's own frames past (FOCUS_SLOT_VH).
-          style={{ height: `${boards.length * FOCUS_SLOT_VH + 30}vh` }}
-        >
-          <div
-            className="sticky mx-auto w-full max-w-[88rem] px-4 sm:px-6"
-            style={{
-              top: FOCUS_STICKY_TOP,
-              height: `calc(100svh - ${FOCUS_STICKY_TOP}px - 2rem)`,
-            }}
-          >
-            {boards.map((d, i) => (
-              <ShowcaseBoard
-                key={d.id}
-                board={d}
-                progress={progress}
-                index={i}
-                count={boards.length}
-                active={i === activeIndex}
-                boardVisible={i >= visibleRange[0] && i <= visibleRange[1]}
-                // Stage the iframe mounts: all four panels share one sticky box,
-                // so their IntersectionObservers fire on the SAME frame — four
-                // documents, ~126 frames, all mounting at once. Gate each mount
-                // on scroll proximity instead (one slot ahead of the visible
-                // window); mounting stays one-shot inside LiveBoardFrame.
-                mountEnabled={i <= visibleRange[1] + 1}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      {/* Focus gallery — the sticky card-stack of live board embeds. Client
+          island: the only part of the page holding page-level client state. */}
+      <ShowcaseStack boards={boards} />
 
       <section className="mx-auto max-w-5xl px-6 pb-8 pt-12 text-center">
         <Reveal>
@@ -412,7 +279,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
         className="cv-below-fold mx-auto max-w-7xl px-6 pt-24"
       >
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-20">
-          <div className="relative lg:sticky lg:top-24 lg:self-start">
+          <div className="lg:sticky lg:top-24 lg:self-start">
             <Reveal>
               <span className="zf-label mb-2.5">How it works</span>
               <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -425,13 +292,10 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             </Reveal>
             {/* Ghosted watermark — the three beats, barely there. Desktop only:
                 on mobile the rail isn't sticky and the ghost would just be a
-                gap between heading and steps. ABSOLUTE on purpose: if it added
-                height to the sticky block, the rail would be nearly as tall as
-                the step column and the heading would get almost no pinned
-                travel before the section end pushes it off. */}
+                gap between heading and steps. */}
             <div
               aria-hidden
-              className="pointer-events-none absolute left-0 top-full mt-12 hidden select-none font-bold leading-[0.95] tracking-tighter text-white/[0.04] lg:block"
+              className="pointer-events-none mt-12 hidden select-none font-bold leading-[0.95] tracking-tighter text-white/[0.04] lg:block"
             >
               <div className="text-[clamp(4rem,7vw,6.5rem)]">install</div>
               <div className="text-[clamp(4rem,7vw,6.5rem)]">describe</div>
@@ -660,46 +524,6 @@ function Step({
     </Reveal>
   );
 }
-
-// One board in the focus stack. Exists as its own component only because the
-// dwell-scrub is a hook: each board derives its own 0..1 content progress from
-// the shared section scroll, and hands it to the embed (see LiveBoardFrame).
-// Memoized: activeIndex/visibleRange changes re-render the parent several times
-// per scroll gesture, and only the boards whose flags changed should pay.
-const ShowcaseBoard = memo(function ShowcaseBoard({
-  board,
-  progress,
-  index,
-  count,
-  active,
-  boardVisible,
-  mountEnabled,
-}: {
-  board: BoardSummary;
-  progress: MotionValue<number>;
-  index: number;
-  count: number;
-  active: boolean;
-  boardVisible: boolean;
-  mountEnabled: boolean;
-}) {
-  const contentScroll = useFocusDwellProgress(progress, index, count);
-  return (
-    <FocusPanel progress={progress} index={index} count={count} active={active}>
-      <LiveBoardFrame
-        id={board.id}
-        title={board.title}
-        description={board.description}
-        tags={board.tags}
-        frameCount={board.frameCount}
-        bgActive={active}
-        boardVisible={boardVisible}
-        mountEnabled={mountEnabled}
-        scrollProgress={contentScroll}
-      />
-    </FocusPanel>
-  );
-});
 
 // Feature card — reveals on scroll with a per-index stagger so the grid
 // cascades in rather than popping all at once.
