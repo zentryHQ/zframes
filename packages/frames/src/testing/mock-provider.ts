@@ -1073,8 +1073,8 @@ export class MockMarketDataProvider implements MarketDataProvider {
           roll > 0.94
             ? round(120 + r() * 260, 1)
             : roll > 0.78
-              ? round(18 + r() * 55, 1)
-              : round(0.6 + r() * 11, 1);
+            ? round(18 + r() * 55, 1)
+            : round(0.6 + r() * 11, 1);
         const stable = r() > 0.55;
         padded.push([
           CHAINS[i % CHAINS.length],
@@ -1488,10 +1488,28 @@ export class MockMarketDataProvider implements MarketDataProvider {
       for (const s of requested) {
         const markPx = priceFor(s);
         const changePct = round((rng(`chg:${s}`)() * 2 - 1) * 6);
+        // The optional venue fields (funding, volume, premium, oracle, impact
+        // prices) must be present too — the funding-leaderboard / volume-share /
+        // liquidity-basis family of frames reads them and treats a stats table
+        // without them as "no data yet".
+        const r = rng(`daystats:${s}`);
+        const funding = round((r() - 0.5) * 0.00005, 8);
+        const premium = round((r() - 0.5) * 0.0012, 6);
+        const oraclePx = round(markPx / (1 + premium), markPx < 1 ? 5 : 2);
+        const halfSpread = markPx * (0.0002 + r() * 0.0015);
+        const digits = markPx < 1 ? 5 : 2;
         out[s] = {
           markPx,
-          prevDayPx: round(markPx / (1 + changePct / 100), markPx < 1 ? 5 : 2),
+          prevDayPx: round(markPx / (1 + changePct / 100), digits),
           changePct,
+          funding,
+          dayNtlVlm: round(5_000_000 + r() * 2_000_000_000, 0),
+          premium,
+          oraclePx,
+          impactPxs: [
+            round(markPx - halfSpread, digits),
+            round(markPx + halfSpread, digits),
+          ],
         };
       }
       return out;
@@ -1915,7 +1933,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
     const byId = Object.keys(profiles).find(
       (key) => profiles[key].id === asset.toLowerCase(),
     );
-    const symbol = profiles[ticker] ? ticker : (byId ?? ticker);
+    const symbol = profiles[ticker] ? ticker : byId ?? ticker;
     const known = profiles[symbol];
     const empty: CryptoAssetProfile = {
       id: known?.id ?? symbol.toLowerCase(),
@@ -2155,7 +2173,9 @@ export class MockMarketDataProvider implements MarketDataProvider {
           : Array.from({ length: 5 }, (_, i) => ({
               time: observedThrough + (i + 1) * 34 * DAY,
               category: CATEGORIES[i % CATEGORIES.length],
-              description: `${CATEGORIES[i % CATEGORIES.length]} tranche ${i + 1}`,
+              description: `${CATEGORIES[i % CATEGORIES.length]} tranche ${
+                i + 1
+              }`,
               tokens: round(known.maxSupply * (0.004 + r() * 0.012), 0),
               unlockType: i % 3 === 0 ? "cliff" : "linear",
             }));
@@ -2200,12 +2220,12 @@ export class MockMarketDataProvider implements MarketDataProvider {
             value < 25
               ? "Extreme Fear"
               : value < 45
-                ? "Fear"
-                : value < 55
-                  ? "Neutral"
-                  : value < 75
-                    ? "Greed"
-                    : "Extreme Greed",
+              ? "Fear"
+              : value < 55
+              ? "Neutral"
+              : value < 75
+              ? "Greed"
+              : "Extreme Greed",
           // most-recent first
           time: BASELINE_NOW - i * DAY,
         };
@@ -2461,9 +2481,17 @@ export class MockMarketDataProvider implements MarketDataProvider {
         "Nov",
         "Dec",
       ];
+      // Points sit on true calendar month starts, not a 30-day grid: the
+      // year-over-year frames (real-wages, misery-index) join each point to
+      // `Date.UTC(y - 1, m, 1)`, so drifting timestamps never match and the
+      // frame reads as "no data yet".
+      const anchor = new Date(BASELINE_NOW);
+      const anchorYear = anchor.getUTCFullYear();
+      const anchorMonth = anchor.getUTCMonth();
       const points = Array.from({ length: months }, (_, i) => {
         v *= 1 + (r() - 0.45) * 0.01;
-        const t = BASELINE_NOW - (months - 1 - i) * 30 * DAY;
+        const back = months - 1 - i;
+        const t = Date.UTC(anchorYear, anchorMonth - back, 1);
         const d = new Date(t);
         return {
           time: t,
@@ -2870,7 +2898,9 @@ export class MockMarketDataProvider implements MarketDataProvider {
         const end = new Date(period.endMs);
         const eps = model[idx].dilutedEps;
         const result: EarningsResult = {
-          fiscalQuarterEnd: `${MONTH_ABBR[end.getUTCMonth()]} ${end.getUTCFullYear()}`,
+          fiscalQuarterEnd: `${
+            MONTH_ABBR[end.getUTCMonth()]
+          } ${end.getUTCFullYear()}`,
           // Companies report a few weeks after the books close.
           dateReported: isoDay(period.endMs + 24 * DAY),
           eps,
@@ -3152,15 +3182,40 @@ export class MockMarketDataProvider implements MarketDataProvider {
       const r = rng(`opts:${cur}`);
       const step = underlying > 1000 ? 2000 : underlying > 100 ? 100 : 5;
       const atm = Math.round(underlying / step) * step;
-      const strikes = Array.from({ length: 13 }, (_, i) => {
-        const strike = atm + (i - 6) * step;
-        const dist = Math.abs(i - 6);
-        return {
-          strike,
-          callOi: Math.round((6 - dist + 1) * 800 * r() + 200),
-          putOi: Math.round((6 - dist + 1) * 760 * r() + 200),
-        };
-      });
+      // Several expiries, each with per-strike IVs off the shared smile shape —
+      // the vol-smile frame filters strikes to those carrying callIv/putIv, and
+      // the OI-ladder / max-pain-by-expiry frames read `allExpiries`, so a
+      // nearest-expiry-only summary without IVs renders all three as empty.
+      const expiryDefs = [
+        { expiry: "27JUN26", dte: 7 },
+        { expiry: "25JUL26", dte: 35 },
+        { expiry: "26SEP26", dte: 98 },
+        { expiry: "26DEC26", dte: 189 },
+      ];
+      const allExpiries = expiryDefs.map(({ expiry, dte }) => ({
+        expiry,
+        expiryMs: BASELINE_NOW + dte * DAY,
+        strikes: Array.from({ length: 13 }, (_, i) => {
+          const strike = atm + (i - 6) * step;
+          const dist = Math.abs(i - 6);
+          const m = Math.log(strike / underlying);
+          return {
+            strike,
+            callOi: Math.round((6 - dist + 1) * 800 * r() + 200),
+            putOi: Math.round((6 - dist + 1) * 760 * r() + 200),
+            callIv: round(
+              MockMarketDataProvider.smileIv(dte, m, "call") * 100,
+              1,
+            ),
+            putIv: round(
+              MockMarketDataProvider.smileIv(dte, m, "put") * 100,
+              1,
+            ),
+          };
+        }),
+      }));
+      const nearestExpiry = allExpiries[0];
+      const strikes = nearestExpiry.strikes;
       const callOi = strikes.reduce((a, s) => a + s.callOi, 0);
       const putOi = strikes.reduce((a, s) => a + s.putOi, 0);
       return {
@@ -3173,11 +3228,8 @@ export class MockMarketDataProvider implements MarketDataProvider {
         callVolume: Math.round(callOi * (0.3 + r() * 0.4)),
         putVolume: Math.round(putOi * (0.3 + r() * 0.4)),
         avgIv: round(40 + r() * 30),
-        nearestExpiry: {
-          expiry: "27JUN26",
-          expiryMs: BASELINE_NOW + 7 * DAY,
-          strikes,
-        },
+        nearestExpiry,
+        allExpiries,
         asOf: BASELINE_NOW,
       };
     });
@@ -4599,7 +4651,9 @@ export class MockMarketDataProvider implements MarketDataProvider {
         return {
           region,
           latest: newest.value,
-          period: `${date.getUTCFullYear()} Q${Math.floor(date.getUTCMonth() / 3) + 1}`,
+          period: `${date.getUTCFullYear()} Q${
+            Math.floor(date.getUTCMonth() / 3) + 1
+          }`,
           changePctYoY: round((r() * 2 - 0.4) * 5),
           points,
         };
@@ -4634,7 +4688,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
         label:
           source.kind === "binance"
             ? "Binance · main"
-            : (source.address ?? "0x12…ab"),
+            : source.address ?? "0x12…ab",
         holdings,
         totalUsd: round(
           holdings.reduce((a, h) => a + (h.valueUsd ?? 0), 0),

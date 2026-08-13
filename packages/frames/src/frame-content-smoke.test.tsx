@@ -398,17 +398,12 @@ const UNREADABLE_HERE: Record<string, string> = {
   "metal-open-interest": "the mock pairs no spot price with the OI report",
   "nyfed-reference-rate-bars":
     "default config shows the rate %, not the volume",
-  "options-oi-ladder-heatmap":
-    "the mock has a single expiry, so it shows empty",
-  "options-vol-smile": "the mock has no vol-smile series",
   "portfolio-allocation": "behind the Binance connect gate — no credentials",
   "portfolio-holdings": "behind the Binance connect gate — no credentials",
   "portfolio-value": "behind the Binance connect gate — no credentials",
   "portfolio-value-bars": "behind the Binance connect gate — no credentials",
   "trending-coins": "its money branch needs a coin with no 24h change",
   "treasury-debt-composition-area": "the mock has no composition series",
-  "volume-movers-scatter": "mock day stats carry no 24h notional volume",
-  "volume-share-donut": "mock day stats carry no 24h notional volume",
 };
 
 /**
@@ -550,7 +545,7 @@ beforeAll(() => {
       width: 640,
       height: 320,
       toJSON() {},
-    }) as DOMRect;
+    } as DOMRect);
   for (const [prop, value] of [
     ["clientWidth", 640],
     ["clientHeight", 320],
@@ -751,7 +746,9 @@ async function renderOnce(
   )
     .map(
       (el) =>
-        `${el.getAttribute("title") ?? ""} ${el.getAttribute("aria-label") ?? ""}`,
+        `${el.getAttribute("title") ?? ""} ${
+          el.getAttribute("aria-label") ?? ""
+        }`,
     )
     .join(" ");
   const out: Rendered = {
@@ -845,7 +842,9 @@ describe("the currency classification covers the whole registry", () => {
     expect(
       unclassified,
       `unclassified frames — add each to CONVERTS, USD_ONLY or ` +
-        `NO_MONEY with a reason:\n${unclassified.map((n) => `  - ${n}`).join("\n")}`,
+        `NO_MONEY with a reason:\n${unclassified
+          .map((n) => `  - ${n}`)
+          .join("\n")}`,
     ).toEqual([]);
     const unknown = CLASSIFIED.filter((n) => !registered.includes(n));
     expect(unknown, `classified but not registered: ${unknown}`).toEqual([]);
