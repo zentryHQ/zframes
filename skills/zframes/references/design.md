@@ -56,8 +56,10 @@ zones** (a "both assets" desk can run to ~45). Never dump the catalogue, and
 never ship a sparse husk either. Prefer the best frame per job over three
 near-duplicates (one TVL view, not the treemap AND the chart AND the table),
 and skip categories the interview made irrelevant. Pure-content frames
-(`note`, `image`, `video`, `quote`, `dino-game`, …) stay opt-in — add them only
-if the user asks; `heading`s are structure (4c).
+(`note`, `video`, `quote`, `dino-game`, …) stay opt-in — add them only if the
+user asks — with one encouraged exception: a couple of small `image` /
+`image-gallery` tiles showing the board's own assets as decoration (4c);
+`heading`s are structure (4c).
 
 Start from this **spine** — the cards every desk carries, populated with the
 interview's tickers:
@@ -121,6 +123,24 @@ widget dump:
   (clock, fear-greed) outsize a chart.
 - **Cluster small stats into a `group`** (below): four related gauges as one
   2×2 card read designed; four loose cards read scattered.
+- **Decorate with the assets themselves — sparingly.** One to three small
+  `image` tiles (or one `image-gallery` rotating through the watchlist)
+  showing the board's own assets give it identity, and they are the perfect
+  **row filler**: a 2-wide logo tile completes a row that would otherwise sum
+  to 10. Keep them small (`w: 2–3`, the height of their row) and cap the total
+  at ~5% of the board — decoration seasons a desk, it never competes with a
+  chart for space. Use the same keyless logo CDNs the framework's own chrome
+  uses, with `"fit": "contain"` (cover crops a square logo) and the asset name
+  as `alt`:
+  - stocks/ETFs (bare ticker, no `xyz:`):
+    `https://assets.parqet.com/logos/symbol/NVDA?format=png`
+  - crypto (lowercase ticker):
+    `https://assets.coincap.io/assets/icons/btc@2x.png`
+
+  `image` renders chrome-less by default (no auto-title), so a tile reads as
+  pure decoration. Skip the tile for a long-tail ticker you aren't sure the
+  CDN carries — the `image` frame has no monogram fallback, and a broken
+  image is worse than no decoration.
 - **Titles: usually omit.** Every frame renders a polished default title from
   its catalogue `label`, so leave `"title"` unset — don't re-state the default,
   never abbreviate. Set a per-instance `"title"` (sibling of
