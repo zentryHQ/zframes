@@ -33,7 +33,7 @@ interface FngResponse {
  * - sentiment: crypto fear & greed index (0 extreme fear … 100 extreme greed).
  */
 export class AlternativeMeProvider implements MarketDataProvider {
-  readonly name = "alternative.me";
+  readonly name = "alternativeme"; // upstream: alternative.me
   readonly capabilities: readonly Capability[] = ["sentiment"];
 
   async getFearGreed(limit = 30): Promise<FearGreedPoint[]> {

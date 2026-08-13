@@ -226,9 +226,9 @@ describe("frame ↔ provider capability coverage", () => {
     // providers by the configured source kind. Distinct kinds are the contract.
     expect(binance?.portfolioKinds).toEqual(["binance"]);
     expect(wallet?.portfolioKinds).toEqual(["wallet"]);
-    // Names double as the user-visible source labels and the venue handles.
-    expect(binance?.name).toBe("Binance");
-    expect(wallet?.name).toBe("On-chain wallet");
+    // Names are the package slugs — the handles a frame's `source` pins.
+    expect(binance?.name).toBe("binance");
+    expect(wallet?.name).toBe("wallet");
   });
 
   it("marks exactly the portfolio-capability frames as account-tier", () => {

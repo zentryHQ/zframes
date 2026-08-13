@@ -64,7 +64,7 @@ function blsPeriodLabel(time: number): string {
  * `revive` guard drops a malformed persisted entry rather than trusting it.
  */
 const macroCache = new TtlCache<MacroSeries>({
-  namespace: "zframes:macro",
+  namespace: "zframes:bls:macro",
   ttlMs: 6 * 60 * 60_000,
   persist: true,
   revive: (value) =>
