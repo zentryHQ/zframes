@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { toBoardListing, type BoardListing } from "@/app/lib/board-summary";
+import type { BoardListing } from "@/app/lib/board-summary";
 import { listCommunity, listCurated } from "@/app/lib/dashboards";
 import { absoluteUrl, SITE_NAME } from "@/app/lib/site";
 import { breadcrumbJsonLd, JsonLd, SITE_ID } from "@/app/lib/structured-data";
@@ -14,8 +14,9 @@ import { GalleryView } from "./GalleryView";
  * from the browser, which meant the server HTML contained three skeleton cards
  * and not one board title. The rows are fetched here now and handed down as
  * `initial`, so the gallery's actual content — every board's title, blurb and
- * link — is in the document a crawler receives. The client still refetches on
- * mount to reconcile anything the ISR window made stale.
+ * link — is in the document a crawler receives. The client refetches on mount
+ * only when this seed comes up empty (a DB blip — the fetch is the recovery
+ * path).
  */
 export const revalidate = 300; // 5 minutes
 
@@ -37,14 +38,12 @@ export default async function GalleryPage() {
     community: [],
   };
   try {
+    // Both queries project the listing shape in SQL — no specs over the wire.
     const [curated, community] = await Promise.all([
       listCurated(),
       listCommunity(),
     ]);
-    initial = {
-      curated: curated.map(toBoardListing),
-      community: community.map(toBoardListing),
-    };
+    initial = { curated, community };
   } catch (err) {
     // The client fetch on mount is the recovery path — an unreachable database
     // costs the server-rendered copy, not the page.

@@ -17,12 +17,11 @@ import { boardArea, coverFit, imageSize } from "@/app/lib/thumb-image";
 // yet — a board published since the last cron, or a local dev DB — it falls back
 // to the synthetic mini-map drawn from the spec's layout geometry.
 export const runtime = "nodejs";
-// The capture is refreshed nightly and a takedown must drop out of unfurls
-// immediately, so this renders per request rather than being baked at build
-// time by the page's generateStaticParams (which would freeze the curated ids'
-// cards to whatever existed at build). Crawler traffic is negligible, and the
-// response still carries an hour of CDN cache below.
-export const dynamic = "force-dynamic";
+// ISR, not per-request: the capture is refreshed nightly, so an hour of server
+// cache (matching the Cache-Control below) never outlives it — and still not
+// baked at build by the page's generateStaticParams, which would freeze the
+// curated ids' cards to whatever existed at build.
+export const revalidate = 3600;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const alt = "A live market dashboard on zframes";
@@ -52,6 +51,30 @@ function miniMap(frames: Frame[]) {
       heading,
     };
   });
+}
+
+// The fonts + brand mark are static — read off disk ONCE per server, not per
+// request (lazily so module init stays I/O-free). fetch(new URL(...,
+// import.meta.url)) doesn't work here — Next emits the asset to a relative
+// /_next/static/media URL fetch can't parse. All three are covered by
+// outputFileTracingIncludes in next.config; the mark is a copy of
+// docs/assets/zframes-icon-512.png, kept inside the app so tracing can reach it.
+let assetsPromise: Promise<{
+  regular: Buffer;
+  bold: Buffer;
+  mark: string;
+}> | null = null;
+function loadAssets() {
+  assetsPromise ??= Promise.all([
+    readFile(join(process.cwd(), "assets", "DMSans-Regular.ttf")),
+    readFile(join(process.cwd(), "assets", "DMSans-Bold.ttf")),
+    readFile(join(process.cwd(), "assets", "zframes-icon-512.png")),
+  ]).then(([regular, bold, markPng]) => ({
+    regular,
+    bold,
+    mark: `data:image/png;base64,${markPng.toString("base64")}`,
+  }));
+  return assetsPromise;
 }
 
 // The nightly capture as a satori-drawable layer: a data URI plus the explicit
@@ -178,21 +201,11 @@ export default async function Image({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [entry, capture] = await Promise.all([
+  const [entry, capture, { regular, bold, mark }] = await Promise.all([
     resolveDashboard(id),
     captureLayer(id),
+    loadAssets(),
   ]);
-  // Node runtime: read the (static, non-variable) fonts + brand mark off disk.
-  // fetch(new URL(..., import.meta.url)) doesn't work here — Next emits the
-  // asset to a relative /_next/static/media URL fetch can't parse. All three are
-  // covered by outputFileTracingIncludes in next.config; the mark is a copy of
-  // docs/assets/zframes-icon-512.png, kept inside the app so tracing can reach it.
-  const [regular, bold, markPng] = await Promise.all([
-    readFile(join(process.cwd(), "assets", "DMSans-Regular.ttf")),
-    readFile(join(process.cwd(), "assets", "DMSans-Bold.ttf")),
-    readFile(join(process.cwd(), "assets", "zframes-icon-512.png")),
-  ]);
-  const mark = `data:image/png;base64,${markPng.toString("base64")}`;
 
   const title = entry?.title ?? "zframes";
   const frames = ((entry?.spec as { frames?: Frame[] })?.frames ??
