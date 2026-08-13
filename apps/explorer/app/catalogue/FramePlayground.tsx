@@ -9,16 +9,15 @@ import {
   type FrameInstance,
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
-import { allFrames } from "@zframes/frames";
 import {
   GridStack,
   type GridItemHTMLElement,
   type GridStackNode,
 } from "gridstack";
 import "gridstack/dist/gridstack.min.css";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { providers, registry } from "@/app/lib/frames";
+import { frameDefs, providers, registry } from "@/app/lib/frames";
 
 // Same GridStack tuning the real editor/Tinker uses, so drag + resize feel
 // IDENTICAL here: 12 responsive columns, a fixed row height, half-gap margins,
@@ -64,12 +63,63 @@ const BOARD_CSS = `
 .zf-playground .zf-fill { width: 100%; height: 100%; }
 `;
 
+// Hoisted: constant JSX, so the two stylesheets never re-render (an inline
+// <style> child re-renders as a text diff on every parent render). FRAME_CSS
+// carries the shared href/precedence so React 19 dedupes it with the
+// renderer's copies elsewhere on the page.
+const PLAYGROUND_STYLES = (
+  <>
+    <style href="zframes-frame-css" precedence="zframes">
+      {FRAME_CSS}
+    </style>
+    <style href="zframes-playground-css" precedence="zframes">
+      {BOARD_CSS}
+    </style>
+  </>
+);
+
+type PickerGroup = {
+  cat: (typeof FRAME_CATEGORIES)[number];
+  frames: AnyFrameDefinition[];
+};
+
+// Memo'd: the ~285-option select otherwise re-renders on every rect update
+// while dragging/resizing (groups and onChange are stable; only value moves).
+const FramePicker = memo(function FramePicker({
+  groups,
+  value,
+  onChange,
+}: {
+  groups: PickerGroup[];
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  return (
+    <select
+      id="playground-frame"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 font-mono text-xs text-white outline-none transition-colors hover:border-white/20 focus:border-indigo-300/50"
+    >
+      {groups.map((g) => (
+        <optgroup key={g.cat.key} label={g.cat.label}>
+          {g.frames.map((f) => (
+            <option key={f.name} value={f.name}>
+              {f.name}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+});
+
 export default function FramePlayground() {
   // Frame families → an <optgroup>-per-family picker, so switching the featured
   // frame proves *every* frame is dynamic, not just the one we lead with.
-  const groups = useMemo(() => {
+  const groups = useMemo<PickerGroup[]>(() => {
     const byCat = new Map<string, AnyFrameDefinition[]>();
-    for (const def of allFrames) {
+    for (const def of frameDefs) {
       const list = byCat.get(def.category) ?? [];
       list.push(def);
       byCat.set(def.category, list);
@@ -82,18 +132,13 @@ export default function FramePlayground() {
     })).filter((g) => g.frames.length > 0);
   }, []);
 
-  const byName = useMemo(() => {
-    const m = new Map<string, AnyFrameDefinition>();
-    for (const def of allFrames) m.set(def.name, def);
-    return m;
-  }, []);
-
   const [name, setName] = useState(
     () =>
-      (byName.has("price-liveline") ? "price-liveline" : allFrames[0]?.name) ??
-      "",
+      (registry.has("price-liveline")
+        ? "price-liveline"
+        : frameDefs[0]?.name) ?? "",
   );
-  const def = byName.get(name) ?? allFrames[0];
+  const def = registry.get(name) ?? frameDefs[0];
   const bounds = useMemo(() => boundsOf(def), [def]);
 
   const [rect, setRect] = useState(() => ({
@@ -126,15 +171,23 @@ export default function FramePlayground() {
     )!;
     gridRef.current = grid;
 
+    // No `drag` subscription: it fires per pointer-move and the readout only
+    // changes on cell boundaries — `change` (moves) + `resize` cover it.
     const sync = (n?: GridStackNode | null) => {
       if (!n) return;
-      setRect({ x: n.x ?? 0, y: n.y ?? 0, w: n.w ?? 0, h: n.h ?? 0 });
+      const x = n.x ?? 0;
+      const y = n.y ?? 0;
+      const w = n.w ?? 0;
+      const h = n.h ?? 0;
+      // Same-value bail: keep the previous object so React skips the re-render.
+      setRect((prev) =>
+        prev.x === x && prev.y === y && prev.w === w && prev.h === h
+          ? prev
+          : { x, y, w, h },
+      );
     };
     grid.on("change", (_e, nodes) => sync((nodes as GridStackNode[])?.[0]));
     grid.on("resize", (_e, el) =>
-      sync((el as GridItemHTMLElement)?.gridstackNode),
-    );
-    grid.on("drag", (_e, el) =>
       sync((el as GridItemHTMLElement)?.gridstackNode),
     );
 
@@ -220,8 +273,7 @@ export default function FramePlayground() {
 
   return (
     <section className="zf-playground mb-14">
-      <style>{FRAME_CSS}</style>
-      <style>{BOARD_CSS}</style>
+      {PLAYGROUND_STYLES}
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-indigo-300/25 bg-indigo-400/[0.08] px-3 py-1 text-xs font-medium tracking-wide text-indigo-100">
@@ -240,22 +292,7 @@ export default function FramePlayground() {
           <label className="sr-only" htmlFor="playground-frame">
             Featured frame
           </label>
-          <select
-            id="playground-frame"
-            value={name}
-            onChange={(e) => pickFrame(e.target.value)}
-            className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 font-mono text-xs text-white outline-none transition-colors hover:border-white/20 focus:border-indigo-300/50"
-          >
-            {groups.map((g) => (
-              <optgroup key={g.cat.key} label={g.cat.label}>
-                {g.frames.map((f) => (
-                  <option key={f.name} value={f.name}>
-                    {f.name}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+          <FramePicker groups={groups} value={name} onChange={pickFrame} />
           <div className="inline-flex overflow-hidden rounded-lg border border-white/10">
             {presets.map((p) => (
               <button

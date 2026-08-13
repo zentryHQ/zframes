@@ -7,7 +7,6 @@ import {
   type FrameInstance,
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
-import { allFrames } from "@zframes/frames";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { providers, registry } from "@/app/lib/frames";
 
@@ -32,12 +31,15 @@ import { providers, registry } from "@/app/lib/frames";
 //     (filings/news lists) still scrolls the PAGE on touch rather than being
 //     trapped by the list.
 
-const byName = new Map(allFrames.map((def) => [def.name, def]));
-
 /** Inject the dashboard's frame stylesheet once per page. Render one instance
- *  near the top of any page that uses <LiveFrame>. */
+ *  near the top of any page that uses <LiveFrame>. Same href/precedence as
+ *  DashboardRenderer's copy, so React 19 hoists them into one document tag. */
 export function LiveFrameStyles() {
-  return <style>{FRAME_CSS}</style>;
+  return (
+    <style href="zframes-frame-css" precedence="zframes">
+      {FRAME_CSS}
+    </style>
+  );
 }
 
 export function LiveFrame({
@@ -81,7 +83,9 @@ export function LiveFrame({
     return () => io.disconnect();
   }, [mounted, rootMargin]);
 
-  const def = byName.get(frame);
+  // The lazy registry's entries carry the full meta (layout, schema) eagerly;
+  // only the component chunk defers, and FrameContent renders it in Suspense.
+  const def = registry.get(frame);
   const instance = useMemo<FrameInstance | null>(() => {
     if (!def) return null;
     return {

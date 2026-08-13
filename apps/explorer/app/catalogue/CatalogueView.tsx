@@ -10,8 +10,9 @@ import {
   type AnyFrameDefinition,
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
-import { allFrames } from "@zframes/frames";
 import {
+  memo,
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -23,7 +24,12 @@ import {
 // moved to ./order so the server-rendered FrameIndex can share them — a Server
 // Component cannot import this file (it is `ssr: false`) or @zframes/core.
 import { ORDERED_CATEGORIES } from "@/app/catalogue/order";
-import { PUBLIC_DEMO_ADDRESS, providers, registry } from "@/app/lib/frames";
+import {
+  PUBLIC_DEMO_ADDRESS,
+  frameDefs,
+  providers,
+  registry,
+} from "@/app/lib/frames";
 import { LikeButton } from "@/app/lib/LikeButton";
 import { LikeCount } from "@/app/lib/LikeCount";
 import { useFrameLikes } from "@/app/lib/use-frame-likes";
@@ -69,19 +75,20 @@ function LazyMount({
   );
 }
 
-function FrameCard({
+// The spec build (buildDefaultConfig's Zod parse + DashboardSpecSchema.parse)
+// lives in this inner component, rendered only once LazyMount shows the card —
+// running it for all ~285 cards during the first render blocked first paint.
+function FramePreview({
   def,
-  likes,
-  onLiked,
+  w,
+  h,
+  boxHeight,
 }: {
   def: AnyFrameDefinition;
-  likes: number;
-  onLiked: (name: string, total: number) => void;
+  w: number;
+  h: number;
+  boxHeight: number;
 }) {
-  const w = Math.min(def.layout?.w ?? 4, 12);
-  const h = Math.min(def.layout?.h ?? 3, 4);
-  const boxHeight = h * ROW + (h - 1) * GAP;
-
   const spec = useMemo(() => {
     const config = buildDefaultConfig(def);
     // The `account: true` frames default to `source: "binance"`, which the
@@ -115,25 +122,45 @@ function FrameCard({
   }, [def, w, h]);
 
   return (
+    /* The outer tile IS the card here (hairline rim + footer). Flatten the
+       frame's own chrome into it via the --zf-frame-* override hooks so the
+       live preview sits flush instead of nesting a second bordered card. */
+    <div
+      className="zf-flush"
+      style={
+        {
+          height: boxHeight,
+          "--zf-frame-border": "transparent",
+          "--zf-frame-radius": "0px",
+          "--zf-frame-shadow": "none",
+          "--zf-frame-bg": "transparent",
+        } as CSSProperties
+      }
+    >
+      <DashboardRenderer spec={spec} registry={registry} />
+    </div>
+  );
+}
+
+// Memo'd so the shared like-counts map resolving (or one card's like landing)
+// doesn't re-render all ~285 cards — only the card whose `likes` changed.
+const FrameCard = memo(function FrameCard({
+  def,
+  likes,
+  onLiked,
+}: {
+  def: AnyFrameDefinition;
+  likes: number;
+  onLiked: (name: string, total: number) => void;
+}) {
+  const w = Math.min(def.layout?.w ?? 4, 12);
+  const h = Math.min(def.layout?.h ?? 3, 4);
+  const boxHeight = h * ROW + (h - 1) * GAP;
+
+  return (
     <div className="card-lift hairline group flex flex-col overflow-hidden rounded-xl bg-black/20">
       <LazyMount minHeight={boxHeight}>
-        {/* The outer tile IS the card here (hairline rim + footer). Flatten the
-            frame's own chrome into it via the --zf-frame-* override hooks so the
-            live preview sits flush instead of nesting a second bordered card. */}
-        <div
-          className="zf-flush"
-          style={
-            {
-              height: boxHeight,
-              "--zf-frame-border": "transparent",
-              "--zf-frame-radius": "0px",
-              "--zf-frame-shadow": "none",
-              "--zf-frame-bg": "transparent",
-            } as CSSProperties
-          }
-        >
-          <DashboardRenderer spec={spec} registry={registry} />
-        </div>
+        <FramePreview def={def} w={w} h={h} boxHeight={boxHeight} />
       </LazyMount>
       {/* The like button lives in the footer, not overlaid on the preview: the
           preview IS a live frame and a floating control would sit on top of real
@@ -173,7 +200,7 @@ function FrameCard({
       </div>
     </div>
   );
-}
+});
 
 /**
  * The most-liked strip. Charter: it sits BESIDE the category grouping (which stays
@@ -232,7 +259,7 @@ export default function CatalogueView() {
   const { likes, bump, loaded } = useFrameLikes();
   const byCategory = useMemo(() => {
     const map = new Map<string, AnyFrameDefinition[]>();
-    for (const def of allFrames) {
+    for (const def of frameDefs) {
       const list = map.get(def.category) ?? [];
       list.push(def);
       map.set(def.category, list);
@@ -240,7 +267,7 @@ export default function CatalogueView() {
     return map;
   }, []);
 
-  const total = allFrames.length;
+  const total = frameDefs.length;
 
   // Free-text search, seeded from and synced to the URL (?q=…) so a filtered
   // view is shareable and survives a refresh. This view is client-only
@@ -253,14 +280,26 @@ export default function CatalogueView() {
     return new URLSearchParams(window.location.search).get("q") ?? "";
   });
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const q = query.trim();
-    if (q) url.searchParams.set("q", q);
-    else url.searchParams.delete("q");
-    window.history.replaceState(null, "", url);
+    // Debounced: Chrome rate-limits history.replaceState, and per-keystroke
+    // calls both hit that limit and add work to an already-busy frame.
+    const t = setTimeout(() => {
+      const url = new URL(window.location.href);
+      const q = query.trim();
+      if (q) url.searchParams.set("q", q);
+      else url.searchParams.delete("q");
+      window.history.replaceState(null, "", url);
+    }, 300);
+    return () => clearTimeout(t);
   }, [query]);
 
-  const tokens = useMemo(() => frameSearchTokens(query), [query]);
+  // Filtering derives from the DEFERRED query so keystrokes commit against the
+  // heavy grid at low priority — the input stays responsive while the sections
+  // catch up a beat later.
+  const deferredQuery = useDeferredValue(query);
+  const tokens = useMemo(
+    () => frameSearchTokens(deferredQuery),
+    [deferredQuery],
+  );
   const searching = tokens.length > 0;
   // Filter once (label / description / name / category label) and drop empty
   // families. Filtering BEFORE render also means LazyMount only mounts matches,
@@ -321,16 +360,24 @@ export default function CatalogueView() {
         </header>
 
         {/* Interactive hero: prove frames reflow + drag before the static browse
-            grid. Hidden while searching so results stay the focus. */}
-        {!searching && <FramePlayground />}
+            grid. CSS-hidden (not unmounted) while searching so results stay the
+            focus WITHOUT tearing down + rebuilding its GridStack per keystroke. */}
+        <div className={searching ? "hidden" : undefined}>
+          <FramePlayground />
+        </div>
 
-        {/* Hidden while searching (results stay the focus) and until the counts
-            have landed, so it can't flash in empty and then reorder. */}
-        {!searching && loaded && <MostLikedStrip likes={likes} />}
+        {/* CSS-hidden while searching (results stay the focus); not mounted
+            until the counts have landed, so it can't flash in empty and then
+            reorder. */}
+        {loaded && (
+          <div className={searching ? "hidden" : undefined}>
+            <MostLikedStrip likes={likes} />
+          </div>
+        )}
 
         {sections.length === 0 ? (
           <p className="text-sm text-white/55">
-            No frames match “{query.trim()}”.
+            No frames match “{deferredQuery.trim()}”.
           </p>
         ) : (
           sections.map(({ cat, frames }) => (

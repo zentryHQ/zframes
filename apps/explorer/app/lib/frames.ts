@@ -6,8 +6,8 @@
 // TtlCache state, so all pages reuse one socket + one cache. "use client" keeps
 // this out of any server render. Keyless tier + the wallet provider — Binance
 // (the only truly keyed provider: needs a server relay) stays excluded.
-import { createRegistry } from "@zframes/core";
-import { allFrames } from "@zframes/frames";
+import type { AnyFrameDefinition } from "@zframes/core";
+import { createLazyRegistry } from "@zframes/frames/lazy-registry";
 import { MockMarketDataProvider } from "@zframes/frames/testing";
 import { createKeylessProviders } from "@zframes/providers-keyless";
 import { WalletProvider } from "@zframes/provider-wallet";
@@ -65,6 +65,13 @@ export const providers =
  */
 export const PUBLIC_DEMO_ADDRESS = "0xF977814e90dA44bFA03b6295A0616a897441acec";
 
-// Eager registry over all built-in frames. Lazy per-frame splitting is a later
-// bundle optimization; eager is correct and simplest.
-export const registry = createRegistry(allFrames);
+// Lazy registry: eager metas (schema/capabilities/layout for validation and
+// the palette), React.lazy components resolved from per-frame chunks on first
+// render — so a route ships the frames it renders, not all ~285 + D3. The
+// eager `allFrames` barrel must not be imported anywhere in the explorer.
+export const registry = createLazyRegistry();
+
+/** Every frame definition, for surfaces that enumerate the catalogue
+ *  (catalogue grid, playground picker, tinker starter). Full metas, lazy
+ *  components — a drop-in replacement for iterating the eager `allFrames`. */
+export const frameDefs: AnyFrameDefinition[] = [...registry.values()];
