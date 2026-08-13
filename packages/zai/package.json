@@ -15,7 +15,10 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./agent": "./src/agent.ts"
+    "./agent": "./src/agent.ts",
+    "./agent-stream": "./src/agent-stream.ts",
+    "./agent-prompt": "./src/agent-prompt.ts",
+    "./agent-env": "./src/agent-env.ts"
   },
   "sideEffects": false,
   "scripts": {
