@@ -439,6 +439,9 @@ importers:
       '@zframes/spec':
         specifier: workspace:*
         version: link:../spec
+      radix-ui:
+        specifier: ^1.6.2
+        version: 1.6.2(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react:
         specifier: '>=18'
         version: 19.2.7
