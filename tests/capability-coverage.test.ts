@@ -201,11 +201,11 @@ describe("frame ↔ provider capability coverage", () => {
       m.capabilities.includes("portfolio"),
     );
     expect(accountFrames.map((m) => m.name)).toEqual([
-      "portfolio-value",
       "portfolio-allocation",
       "portfolio-holdings",
       "portfolio-movers",
       "portfolio-value-bars",
+      "portfolio-value",
     ]);
     expect(unservedNeeds(allFrameMetas, keylessAdvertised)).toEqual(
       accountFrames.map((m) => `${m.name} → portfolio`),
