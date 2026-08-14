@@ -4,14 +4,22 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct } from "./format";
 import { coinMomentumHeatmapMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, cellLabelFits } from "./ui";
 
 const schema = coinMomentumHeatmapMeta.schema;
 
 const WINDOWS = ["1h", "24h", "7d", "30d"] as const;
 
-function Cell({ data, width }: { data: HeatmapCell; width: number }) {
-  if (width < 44) return null;
+function Cell({
+  data,
+  width,
+  height,
+}: {
+  data: HeatmapCell;
+  width: number;
+  height: number;
+}) {
+  if (!cellLabelFits(width, height, 44)) return null;
   return (
     <div className="flex h-full w-full items-center justify-center">
       <span className="caption text-normal tabular-nums">

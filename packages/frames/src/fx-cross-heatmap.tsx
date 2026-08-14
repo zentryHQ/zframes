@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct, formatRate } from "./format";
 import { fxCrossHeatmapMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, cellLabelFits } from "./ui";
 
 const schema = fxCrossHeatmapMeta.schema;
 
@@ -13,8 +13,16 @@ interface FxCrossCell extends HeatmapCell {
   rate: number;
 }
 
-function Cell({ data, width }: { data: FxCrossCell; width: number }) {
-  if (width < 40) return null;
+function Cell({
+  data,
+  width,
+  height,
+}: {
+  data: FxCrossCell;
+  width: number;
+  height: number;
+}) {
+  if (!cellLabelFits(width, height, 40)) return null;
   return (
     <div className="flex h-full w-full items-center justify-center">
       <span className="caption text-normal tabular-nums">

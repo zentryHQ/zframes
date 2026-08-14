@@ -484,21 +484,30 @@ function HeatmapChartInner<T extends HeatmapCell>({
   const rowLabels = useMemo(() => {
     if (!showLabels) return null;
     const { cellHeight, rowY } = layout;
+    // Same thinning as the column labels below, on the other axis: a label needs
+    // ~14px of line box, and a tall grid (20 years of months) gives each row far
+    // less than that. Unthinned, consecutive labels overlap into an illegible
+    // smear — which reads as a broken card, not as a dense one. Every Nth label
+    // is drawn in full instead, spilling into its now-empty neighbours.
+    const step = Math.max(1, Math.ceil(14 / Math.max(cellHeight, 1)));
 
-    return uniqueRows.map((row, index) => (
-      <div
-        key={`row-${row}`}
-        className="absolute flex items-center justify-end pr-2 text-xs text-white/60"
-        style={{
-          left: 0,
-          top: chartArea.y + rowY(index),
-          width: rowLabelWidth,
-          height: cellHeight,
-        }}
-      >
-        <span className="truncate">{row}</span>
-      </div>
-    ));
+    return uniqueRows.map((row, index) => {
+      if (index % step !== 0) return null;
+      return (
+        <div
+          key={`row-${row}`}
+          className="pointer-events-none absolute flex items-center justify-end pr-2 text-xs leading-none text-white/60"
+          style={{
+            left: 0,
+            top: chartArea.y + rowY(index),
+            width: rowLabelWidth,
+            height: cellHeight,
+          }}
+        >
+          <span className="truncate">{row}</span>
+        </div>
+      );
+    });
   }, [showLabels, uniqueRows, layout, chartArea, rowLabelWidth]);
 
   // Render column labels
