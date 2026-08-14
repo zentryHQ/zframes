@@ -178,6 +178,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "dex-volume-chart": {
     load: () => import("./dex-volume-chart").then((m) => m.dexVolumeChartFrame),
+    titleContent: true,
   },
   "dex-volume-share-area": {
     load: () =>
@@ -248,6 +249,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "etf-flows-chart": {
     load: () => import("./etf-flows-chart").then((m) => m.etfFlowsChartFrame),
+    titleContent: true,
   },
   "etf-issuer-bars": {
     load: () => import("./etf-issuer-bars").then((m) => m.etfIssuerBarsFrame),
@@ -255,6 +257,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "etf-issuer-treemap": {
     load: () =>
       import("./etf-issuer-treemap").then((m) => m.etfIssuerTreemapFrame),
+    titleContent: true,
   },
   "eth-issuance-impact": {
     load: () =>
@@ -330,6 +333,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "funding-rate-chart": {
     load: () =>
       import("./funding-rate-chart").then((m) => m.fundingRateChartFrame),
+    titleContent: true,
   },
   "funding-spread-bars": {
     load: () =>
@@ -372,6 +376,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "home-value-chart": {
     load: () => import("./home-value-chart").then((m) => m.homeValueChartFrame),
+    titleContent: true,
   },
   "home-value-momentum": {
     load: () =>
@@ -625,6 +630,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "news-feed": {
     load: () => import("./news-feed").then((m) => m.newsFeedFrame),
+    titleContent: true,
   },
   "nft-activity-bars": {
     load: () =>
@@ -660,6 +666,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
       import("./nyfed-reference-rate-bars").then(
         (m) => m.nyfedReferenceRateBarsFrame,
       ),
+    titleContent: true,
   },
   "nyfed-sofr-term-averages-bars": {
     load: () =>
@@ -964,6 +971,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "top-movers": {
     load: () => import("./top-movers").then((m) => m.topMoversFrame),
+    titleContent: true,
   },
   "treasury-auction-demand-scatter": {
     load: () =>

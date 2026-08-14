@@ -73,4 +73,5 @@ function HomeValueChart({ config }: { config: z.output<typeof schema> }) {
 export const homeValueChartFrame = defineFrame({
   ...homeValueChartMeta,
   component: HomeValueChart,
+  titleContent: ({ config }) => <>{config.regions.join(" / ")} · Home Values</>,
 });
