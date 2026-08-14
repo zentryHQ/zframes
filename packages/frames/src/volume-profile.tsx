@@ -2,7 +2,7 @@ import { defineFrame, useCandles, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { UP_COLOR } from "./format";
-import { tickerOf } from "./asset-logo";
+import { AssetLogo, tickerOf } from "./asset-logo";
 import { volumeProfileMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -148,4 +148,6 @@ function VolumeProfile({ config }: { config: z.output<typeof schema> }) {
 export const volumeProfileFrame = defineFrame({
   ...volumeProfileMeta,
   component: VolumeProfile,
+  titleIcon: ({ config }) => <AssetLogo symbol={config.symbol} size={14} />,
+  titleContent: ({ config }) => <>{tickerOf(config.symbol)} · Volume Profile</>,
 });

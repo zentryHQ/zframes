@@ -116,4 +116,5 @@ function OptionsOiLadderHeatmap({
 export const optionsOiLadderHeatmapFrame = defineFrame({
   ...optionsOiLadderHeatmapMeta,
   component: OptionsOiLadderHeatmap,
+  titleContent: ({ config }) => <>{config.currency} · OI Ladder</>,
 });

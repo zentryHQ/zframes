@@ -71,4 +71,9 @@ function ProtocolTvlShareArea({ config }: { config: z.output<typeof schema> }) {
 export const protocolTvlShareAreaFrame = defineFrame({
   ...protocolTvlShareAreaMeta,
   component: ProtocolTvlShareArea,
+  // StackedAreaChart draws no legend, so the compared protocols must be named
+  // in the title — identity first so truncation trims the tail, not the names.
+  titleContent: ({ config }) => (
+    <>{config.protocols.map(prettySlug).join(" / ")} · TVL Share</>
+  ),
 });

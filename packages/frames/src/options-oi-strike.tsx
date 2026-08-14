@@ -171,4 +171,7 @@ function OptionsOiStrike({ config }: { config: z.output<typeof schema> }) {
 export const optionsOiStrikeFrame = defineFrame({
   ...optionsOiStrikeMeta,
   component: OptionsOiStrike,
+  // The card must say which book it reads — an anonymous "OI by Strike" could
+  // be BTC or ETH.
+  titleContent: ({ config }) => <>{config.currency} · OI by Strike</>,
 });

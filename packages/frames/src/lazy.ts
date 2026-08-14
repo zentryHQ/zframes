@@ -150,12 +150,14 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "day-meter": {
     load: () => import("./day-meter").then((m) => m.dayMeterFrame),
+    titleContent: true,
   },
   "defi-revenue": {
     load: () => import("./defi-revenue").then((m) => m.defiRevenueFrame),
   },
   "dex-hot-pools": {
     load: () => import("./dex-hot-pools").then((m) => m.dexHotPoolsFrame),
+    titleContent: true,
   },
   "dex-pool-bubbles": {
     load: () => import("./dex-pool-bubbles").then((m) => m.dexPoolBubblesFrame),
@@ -168,6 +170,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "dex-pool-treemap": {
     load: () => import("./dex-pool-treemap").then((m) => m.dexPoolTreemapFrame),
+    titleContent: true,
   },
   "dex-volume-bubbles": {
     load: () =>
@@ -179,6 +182,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "dex-volume-share-area": {
     load: () =>
       import("./dex-volume-share-area").then((m) => m.dexVolumeShareAreaFrame),
+    titleContent: true,
   },
   "dex-volume-treemap": {
     load: () =>
@@ -298,6 +302,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "funding-carry-area": {
     load: () =>
       import("./funding-carry-area").then((m) => m.fundingCarryAreaFrame),
+    titleContent: true,
   },
   "funding-comparison": {
     load: () =>
@@ -343,6 +348,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "fx-trend-chart": {
     load: () => import("./fx-trend-chart").then((m) => m.fxTrendChartFrame),
+    titleContent: true,
   },
   "gold-silver-ratio": {
     load: () =>
@@ -356,6 +362,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "holiday-calendar": {
     load: () =>
       import("./holiday-calendar").then((m) => m.holidayCalendarFrame),
+    titleContent: true,
   },
   "home-price-index": {
     load: () => import("./home-price-index").then((m) => m.homePriceIndexFrame),
@@ -695,6 +702,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "options-max-pain": {
     load: () => import("./options-max-pain").then((m) => m.optionsMaxPainFrame),
+    titleContent: true,
   },
   "options-max-pain-multi": {
     load: () =>
@@ -707,13 +715,16 @@ export const frameLoaders: Record<string, FrameLoader> = {
       import("./options-oi-ladder-heatmap").then(
         (m) => m.optionsOiLadderHeatmapFrame,
       ),
+    titleContent: true,
   },
   "options-oi-skew": {
     load: () => import("./options-oi-skew").then((m) => m.optionsOiSkewFrame),
+    titleContent: true,
   },
   "options-oi-strike": {
     load: () =>
       import("./options-oi-strike").then((m) => m.optionsOiStrikeFrame),
+    titleContent: true,
   },
   "options-put-call": {
     load: () => import("./options-put-call").then((m) => m.optionsPutCallFrame),
@@ -721,6 +732,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "options-vol-smile": {
     load: () =>
       import("./options-vol-smile").then((m) => m.optionsVolSmileFrame),
+    titleContent: true,
   },
   "options-vol-spread": {
     load: () =>
@@ -818,6 +830,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   "protocol-revenue": {
     load: () =>
       import("./protocol-revenue").then((m) => m.protocolRevenueFrame),
+    titleContent: true,
   },
   "protocol-tvl-bubbles": {
     load: () =>
@@ -838,6 +851,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
       import("./protocol-tvl-share-area").then(
         (m) => m.protocolTvlShareAreaFrame,
       ),
+    titleContent: true,
   },
   "protocol-tvl-treemap": {
     load: () =>
@@ -1018,6 +1032,8 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "volume-profile": {
     load: () => import("./volume-profile").then((m) => m.volumeProfileFrame),
+    titleIcon: true,
+    titleContent: true,
   },
   "volume-share-donut": {
     load: () =>

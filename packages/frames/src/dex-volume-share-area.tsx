@@ -73,4 +73,7 @@ function DexVolumeShareArea({ config }: { config: z.output<typeof schema> }) {
 export const dexVolumeShareAreaFrame = defineFrame({
   ...dexVolumeShareAreaMeta,
   component: DexVolumeShareArea,
+  titleContent: ({ config }) => (
+    <>{config.protocols.map(prettySlug).join(" / ")} · Volume Share</>
+  ),
 });

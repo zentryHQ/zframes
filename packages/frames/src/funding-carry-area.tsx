@@ -86,4 +86,7 @@ function FundingCarryArea({ config }: { config: z.output<typeof schema> }) {
 export const fundingCarryAreaFrame = defineFrame({
   ...fundingCarryAreaMeta,
   component: FundingCarryArea,
+  titleContent: ({ config }) => (
+    <>{config.symbols.map(tickerOf).join(" / ")} · Funding Carry</>
+  ),
 });

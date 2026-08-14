@@ -2,7 +2,12 @@ import { TreeChart, type TreeNode } from "@zframes/charts";
 import { defineFrame, useDexPools, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { changeColor, formatChangePct, formatPct } from "./format";
+import {
+  changeColor,
+  formatChangePct,
+  formatPct,
+  networkLabel,
+} from "./format";
 import { dexPoolTreemapMeta } from "./schemas";
 import { TreemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
@@ -84,4 +89,7 @@ function DexPoolTreemap({ config }: { config: z.output<typeof schema> }) {
 export const dexPoolTreemapFrame = defineFrame({
   ...dexPoolTreemapMeta,
   component: DexPoolTreemap,
+  titleContent: ({ config }) => (
+    <>{networkLabel(config.network)} · Pool Treemap</>
+  ),
 });
