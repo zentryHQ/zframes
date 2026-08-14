@@ -55,4 +55,7 @@ function FxTrendChart({ config }: { config: z.output<typeof schema> }) {
 export const fxTrendChartFrame = defineFrame({
   ...fxTrendChartMeta,
   component: FxTrendChart,
+  // The legend names each quoted currency, but the base every line is measured
+  // against appears nowhere else on the card.
+  titleContent: ({ config }) => <>FX Trends vs {config.base.toUpperCase()}</>,
 });

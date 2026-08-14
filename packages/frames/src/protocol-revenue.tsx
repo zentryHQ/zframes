@@ -10,7 +10,7 @@ import {
 } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { formatPct } from "./format";
+import { formatPct, prettySlug } from "./format";
 import { downsample, timeframeFor, toChartData } from "./metals-shared";
 import { protocolRevenueMeta } from "./schemas";
 import { TimeSeriesChart } from "./series-chart";
@@ -275,4 +275,7 @@ function ProtocolRevenue({ config }: { config: z.output<typeof schema> }) {
 export const protocolRevenueFrame = defineFrame({
   ...protocolRevenueMeta,
   component: ProtocolRevenue,
+  titleContent: ({ config }) => (
+    <>{prettySlug(config.protocol)} · Fees & Revenue</>
+  ),
 });

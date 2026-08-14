@@ -1,6 +1,6 @@
 import { defineFrame, useDexPools, useMoney } from "@zframes/core";
 import type { z } from "zod";
-import { changeColor, formatChangePct } from "./format";
+import { changeColor, formatChangePct, networkLabel } from "./format";
 import { MetricRow } from "./metric-row";
 import { dexHotPoolsMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -35,4 +35,6 @@ function DexHotPools({ config }: { config: z.output<typeof schema> }) {
 export const dexHotPoolsFrame = defineFrame({
   ...dexHotPoolsMeta,
   component: DexHotPools,
+  // Pool pairs don't say which chain they trade on — the title must.
+  titleContent: ({ config }) => <>{networkLabel(config.network)} · Hot Pools</>,
 });

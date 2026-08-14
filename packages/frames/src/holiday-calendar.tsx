@@ -68,4 +68,5 @@ function HolidayCalendar({ config }: { config: Config }) {
 export const holidayCalendarFrame = defineFrame({
   ...holidayCalendarMeta,
   component: HolidayCalendar,
+  titleContent: ({ config }) => <>{config.exchange} · Holidays</>,
 });
