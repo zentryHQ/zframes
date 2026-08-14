@@ -90,4 +90,6 @@ function EtfIssuerTreemap({ config }: { config: z.output<typeof schema> }) {
 export const etfIssuerTreemapFrame = defineFrame({
   ...etfIssuerTreemapMeta,
   component: EtfIssuerTreemap,
+  // Tiles are issuer names — which asset's ETFs they issue lives in the title.
+  titleContent: ({ config }) => <>{config.asset.toUpperCase()} · ETF Issuers</>,
 });

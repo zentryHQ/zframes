@@ -100,4 +100,12 @@ function NewsFeed({ config }: { config: z.output<typeof schema> }) {
 export const newsFeedFrame = defineFrame({
   ...newsFeedMeta,
   component: NewsFeed,
+  // In "stocks" mode the rows carry per-item outlets, so the picked tickers
+  // must live in the title; outlet modes name the feed.
+  titleContent: ({ config }) =>
+    config.source === "stocks" && config.symbols.length > 0 ? (
+      <>{config.symbols.join(" / ")} · Headlines</>
+    ) : (
+      <>{SOURCE_LABELS[config.source] ?? "News"} · News</>
+    ),
 });

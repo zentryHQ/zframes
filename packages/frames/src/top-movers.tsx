@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import { MoverRow } from "./mover-row";
+import { prettySlug } from "./format";
 import { topMoversMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
 
@@ -91,4 +92,8 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
 export const topMoversFrame = defineFrame({
   ...topMoversMeta,
   component: TopMovers,
+  // The venue picks the whole universe (Hyperliquid HIP-3 vs Bitkub tickers).
+  titleContent: ({ config }) => (
+    <>{prettySlug(config.source ?? "hyperliquid")} · Top Movers</>
+  ),
 });

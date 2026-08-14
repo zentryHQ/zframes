@@ -71,4 +71,7 @@ function DexVolumeChart({ config }: { config: z.output<typeof schema> }) {
 export const dexVolumeChartFrame = defineFrame({
   ...dexVolumeChartMeta,
   component: DexVolumeChart,
+  titleContent: ({ config }) => (
+    <>{config.protocols.map(prettySlug).join(" / ")} · DEX Volume</>
+  ),
 });
