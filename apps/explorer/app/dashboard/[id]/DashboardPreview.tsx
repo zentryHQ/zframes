@@ -1,10 +1,12 @@
 "use client";
 
+import { DashboardSpecSchema } from "@zframes/spec/spec";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { AgentForkButton } from "@/app/lib/AgentForkButton";
+import { DashboardBackground } from "@/app/lib/DashboardBackground";
 import { LikeButton } from "@/app/lib/LikeButton";
 import { Button } from "@/app/components/ui/button";
 
@@ -13,7 +15,11 @@ const DashboardView = dynamic(() => import("@/app/lib/DashboardView"), {
   ssr: false,
 });
 
-const TINKER_KEY = "zframes:tinker-spec";
+// One-shot handoff slot: /tinker reads this FIRST (before its own saved board),
+// then clears it — so "Edit this board" always opens THIS board, without
+// silently overwriting the visitor's saved tinker work until they hit Save.
+// Must match HANDOFF_KEY in app/tinker/DashboardTinker.tsx.
+const TINKER_HANDOFF_KEY = "zframes:tinker-handoff";
 
 export function DashboardPreview({
   id,
@@ -28,11 +34,17 @@ export function DashboardPreview({
 }) {
   const router = useRouter();
 
-  // "Make it mine": copy the spec into the local tinker slot, then open the
+  // Parse only to read the background + accent for the backdrop — same as
+  // EmbedBoard. DashboardView re-parses and owns the invalid-spec message, so a
+  // bad spec just skips the board backdrop (the body gradient shows through;
+  // AppShell's site Aurora is deliberately absent on /dashboard/*).
+  const parsed = useMemo(() => DashboardSpecSchema.safeParse(spec), [spec]);
+
+  // "Make it mine": copy the spec into the handoff slot, then open the
   // editor. Snapshot-and-fork — no server write, the recipient owns a copy.
   const fork = useCallback(() => {
     try {
-      window.localStorage.setItem(TINKER_KEY, JSON.stringify(spec));
+      window.localStorage.setItem(TINKER_HANDOFF_KEY, JSON.stringify(spec));
     } catch {
       /* localStorage unavailable — the editor still opens with its own default */
     }
@@ -41,6 +53,21 @@ export function DashboardPreview({
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-6">
+      {/* The board's OWN declared background (unicorn scene / gradient / image),
+          replacing the site Aurora that AppShell suppresses on this route.
+          Wrapped at z-[-1] so an opaque fill never paints over the header/footer
+          chrome — DashboardBackground's own layers sit at z-0 for the bare
+          /embed/* documents. pointer-events-none on the wrapper: fixed inset-0
+          would otherwise swallow every click on the page. */}
+      {parsed.success && (
+        <div aria-hidden className="pointer-events-none fixed inset-0 z-[-1]">
+          <DashboardBackground
+            background={parsed.data.background}
+            accentHue={parsed.data.theme.accentHue}
+            accentSat={parsed.data.theme.accentSat}
+          />
+        </div>
+      )}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div>
           <div className="flex items-center gap-3">
@@ -57,7 +84,7 @@ export function DashboardPreview({
           <LikeButton kind="dashboard" id={id} initialTotal={likes} />
           <AgentForkButton id={id} />
           <Button variant="accent" size="sm" onClick={fork}>
-            Tinker here →
+            Edit this board →
           </Button>
         </div>
       </div>

@@ -22,6 +22,13 @@ import { getDataMode } from "@/app/lib/data-mode";
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const bare = pathname?.startsWith("/embed/") ?? false;
+  // /dashboard/[id] and /tinker render the BOARD's own declared background (its
+  // unicorn scene / gradient / image, via DashboardBackground in
+  // DashboardPreview / DashboardTinker) — mounting the site Aurora underneath it
+  // would run a second WebGL scene for nothing, so the chrome backdrop yields on
+  // those routes.
+  const boardBackdrop =
+    (pathname?.startsWith("/dashboard/") ?? false) || pathname === "/tinker";
 
   // Demo-mode gate for frame chrome: a per-card source attribution ("LBMA",
   // "FRED", …) over simulated numbers claims a provenance the data doesn't
@@ -43,7 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* The living Aurora canvas — the same scene a generated dashboard renders
           on — fixed behind every page. Degrades to the body gradient on
           reduced-motion / low-end / load failure. */}
-      <UnicornBackground />
+      {!boardBackdrop && <UnicornBackground />}
 
       <div className="flex min-h-screen flex-col">
         {/* Fixed (not sticky) so the bar stays pinned to the viewport and never

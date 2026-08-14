@@ -9,7 +9,9 @@ import {
 import { useLowEndDevice, useReducedMotion } from "@zframes/unicorn";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
-// The board's OWN background, rendered behind an embedded/live dashboard — the
+// The board's OWN background, rendered behind an embedded/live dashboard (both
+// /embed/[id] and the /dashboard/[id] preview, where AppShell suppresses the
+// site Aurora so this scene is the only one running) — the
 // same what-vs-how split the runtime uses (spec declares the background;
 // background.tsx there renders it). The explorer's site chrome paints the Aurora
 // canvas site-wide, but the /embed/* routes render BARE (no chrome), so an
