@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { motion, useReducedMotion, useTransform } from "motion/react";
 import { FRAME_CATEGORIES } from "@zframes/core";
 import { allFrameMetas } from "@zframes/frames/schemas";
+import { frameSlotMinHeight } from "@/app/lib/frame-slot";
 import { LiveFrame } from "@/app/lib/LiveFrame";
 import { DrivenParallax, Reveal, useViewportProgress } from "@/app/lib/motion";
 
@@ -485,7 +486,13 @@ function ChapterScene({ chapter, index }: { chapter: Chapter; index: number }) {
               <Reveal delay={i * 0.08} y={26}>
                 <div
                   className={`glow-brand-soft ${s.className}`}
-                  style={s.tilt ? { rotate: `${s.tilt}deg` } : undefined}
+                  // The `h-*` in `className` sets the collage rhythm; this floor
+                  // keeps that rhythm from sizing a specimen under its measured
+                  // envelope, which clips it on the y-axis with no error.
+                  style={{
+                    minHeight: frameSlotMinHeight(s.frame),
+                    ...(s.tilt ? { rotate: `${s.tilt}deg` } : {}),
+                  }}
                 >
                   <LiveFrame
                     frame={s.frame}
@@ -508,10 +515,9 @@ export function FramesShowcase() {
 
   return (
     <section aria-label="The frame catalogue" className="overflow-x-clip">
-      {/* Act intro — kicker + the giant count. */}
+      {/* Act intro — the giant count. */}
       <div className="mx-auto max-w-5xl px-6 pt-24 text-center sm:pt-32">
         <Reveal>
-          <span className="zf-label mb-3 justify-center">The vocabulary</span>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Those boards were composed from
           </h2>
