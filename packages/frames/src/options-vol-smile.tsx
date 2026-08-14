@@ -153,4 +153,5 @@ function OptionsVolSmile({ config }: { config: z.output<typeof schema> }) {
 export const optionsVolSmileFrame = defineFrame({
   ...optionsVolSmileMeta,
   component: OptionsVolSmile,
+  titleContent: ({ config }) => <>{config.currency} · Vol Smile</>,
 });

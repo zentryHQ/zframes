@@ -76,4 +76,5 @@ function OptionsMaxPain({ config }: { config: z.output<typeof schema> }) {
 export const optionsMaxPainFrame = defineFrame({
   ...optionsMaxPainMeta,
   component: OptionsMaxPain,
+  titleContent: ({ config }) => <>{config.currency} · Max Pain</>,
 });

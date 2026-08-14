@@ -98,6 +98,24 @@ export function formatCompactUsd(value: number): string {
 /** Turn a provider slug into a readable series/legend label: "lido" → "Lido",
  *  "rocket-pool" → "Rocket Pool". Keeps chart legends in step with the treemaps,
  *  which get already-pretty names from their providers. */
+/**
+ * Human name for a GeckoTerminal network id ("eth" → "Ethereum"). Falls back
+ * to prettySlug for ids outside the known set, so an enum addition never
+ * renders a blank.
+ */
+const NETWORK_LABELS: Record<string, string> = {
+  eth: "Ethereum",
+  solana: "Solana",
+  base: "Base",
+  arbitrum: "Arbitrum",
+  bsc: "BNB Chain",
+  polygon_pos: "Polygon",
+};
+
+export function networkLabel(network: string): string {
+  return NETWORK_LABELS[network] ?? prettySlug(network);
+}
+
 export function prettySlug(slug: string): string {
   return slug
     .split(/[-_]/)

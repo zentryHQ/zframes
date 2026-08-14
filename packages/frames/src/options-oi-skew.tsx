@@ -56,4 +56,5 @@ function OptionsOiSkew({ config }: { config: z.output<typeof schema> }) {
 export const optionsOiSkewFrame = defineFrame({
   ...optionsOiSkewMeta,
   component: OptionsOiSkew,
+  titleContent: ({ config }) => <>{config.currency} · OI Skew</>,
 });

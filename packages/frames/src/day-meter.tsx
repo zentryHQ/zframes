@@ -100,4 +100,5 @@ function DayMeter({ config }: { config: Config }) {
 export const dayMeterFrame = defineFrame({
   ...dayMeterMeta,
   component: DayMeter,
+  titleContent: ({ config }) => <>{config.exchange} · Day Meter</>,
 });
