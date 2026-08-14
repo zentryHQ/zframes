@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import { FrameStatus } from "./ui";
+import { FrameStatus, cellLabelFits } from "./ui";
 
 afterEach(cleanup);
 
@@ -49,5 +49,19 @@ describe("FrameStatus — the capture contract", () => {
       <FrameStatus>no London fix history yet</FrameStatus>,
     );
     expect(getByText("no London fix history yet")).toBeTruthy();
+  });
+});
+
+describe("cellLabelFits", () => {
+  it("rejects a cell that is wide enough but too short", () => {
+    // The regression this exists for: a 20-year seasonality matrix leaves each
+    // row ~11px, and a width-only guard printed a caption clipped top and
+    // bottom across the whole grid.
+    expect(cellLabelFits(120, 11, 44)).toBe(false);
+    expect(cellLabelFits(120, 16, 44)).toBe(true);
+  });
+
+  it("still rejects a narrow cell", () => {
+    expect(cellLabelFits(30, 40, 44)).toBe(false);
   });
 });
