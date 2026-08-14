@@ -20,6 +20,9 @@
     "format:check": "prettier --check .",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:e2e": "pnpm test:e2e:runtime && pnpm test:e2e:explorer",
+    "test:e2e:runtime": "playwright test -c apps/runtime/e2e/playwright.config.ts",
+    "test:e2e:explorer": "playwright test -c apps/explorer/e2e/playwright.config.ts",
     "test:providers": "tsx .github/scripts/provider-smoke.ts",
     "test:frames:render": "tsx .github/scripts/frame-render-smoke.ts",
     "frames:meta": "tsx .github/scripts/dump-frame-meta.mts",
@@ -42,6 +45,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.53.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@zframes/provider-sec": "workspace:^",

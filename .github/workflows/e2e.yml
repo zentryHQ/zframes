@@ -1,0 +1,68 @@
+# End-to-end suites (Playwright) for the two apps:
+#   • runtime  — vite dev serving a temp copy of a fixture board; render + the
+#                editor's save-writes-dashboard.json round-trip.
+#   • explorer — throwaway Postgres (docker compose, :5434) → migrate → seed,
+#                next dev; landing/gallery/catalogue + a seeded board rendering
+#                on demo data.
+# Locally: `pnpm test:e2e` (drives the system Chrome). CI installs Playwright's
+# chromium instead via PLAYWRIGHT_CHANNEL.
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLAYWRIGHT_CHANNEL: chromium
+
+jobs:
+  runtime:
+    name: runtime e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e:runtime
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: runtime-e2e-traces
+          path: apps/runtime/test-results/
+          retention-days: 7
+
+  explorer:
+    name: explorer e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e:explorer
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: explorer-e2e-traces
+          path: apps/explorer/test-results/
+          retention-days: 7

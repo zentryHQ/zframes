@@ -14,9 +14,10 @@ pnpm zframes serve <dashboard.json>   # the runtime: serve a dashboard live (--p
 pnpm --filter @zframes/storybook dev  # Storybook — every frame in all variants/states at :6006
 pnpm test:providers      # LIVE smoke: hit every keyless provider's real API, assert the response shape
 pnpm test:frames:render  # headless-render every frame in a built Storybook, flag error cards / crashes
+pnpm test:e2e            # Playwright e2e: runtime (fixture board + save round-trip) then explorer (needs Docker)
 ```
 
-`pnpm test` is hermetic (stubs fetch) and gates every PR. Alongside it, a **scheduled-monitor suite** runs on crons and files GitHub issues instead of gating PRs: provider liveness, published-CLI smoke (linux/macos/windows), frame-render, and a `pnpm audit` (+ Dependabot). See `.github/scripts/README.md`. **Releasing the CLI:** bump `packages/cli/package.json` version, commit, then `git tag v<version> && git push origin v<version>` — `release.yml` verifies, builds, and npm-publishes via trusted publishing (OIDC + provenance; no token). CodeQL (default setup) and secret-scanning push protection run repo-side.
+`pnpm test` is hermetic (stubs fetch) and gates every PR. **Playwright e2e suites** live in `apps/runtime/e2e/` (vite dev serving a temp copy of a fixture board — render assertions + the editor's Save→dashboard.json round-trip; `ZFRAMES_DASHBOARD_FILE` is the vite-config override that points the dev plugin at it) and `apps/explorer/e2e/` (throwaway Postgres on :5434 via `e2e/docker-compose.e2e.yml` → migrate → seed, `next dev` on :43264 — landing/gallery/catalogue/board/embed on demo data); both drive the system Chrome locally (`PLAYWRIGHT_CHANNEL` overrides) and run in CI via `e2e.yml`. Alongside it, a **scheduled-monitor suite** runs on crons and files GitHub issues instead of gating PRs: provider liveness, published-CLI smoke (linux/macos/windows), frame-render, and a `pnpm audit` (+ Dependabot). See `.github/scripts/README.md`. **Releasing the CLI:** bump `packages/cli/package.json` version, commit, then `git tag v<version> && git push origin v<version>` — `release.yml` verifies, builds, and npm-publishes via trusted publishing (OIDC + provenance; no token). CodeQL (default setup) and secret-scanning push protection run repo-side.
 
 ## Structure
 
