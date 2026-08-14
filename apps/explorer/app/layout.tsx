@@ -92,7 +92,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // data-zf-demo: the explorer is mock-data-only, so the demo flag is static.
+    // globals.css hides every card's provider attribution under it — simulated
+    // numbers must not carry a real source's name. On <html> so each /embed/*
+    // iframe document (its own <html>) carries its own flag too.
+    <html lang="en" data-zf-demo="">
       <head>
         {/* Webfonts as <link>s, not a CSS @import (see globals.css header):
             preconnect + parallel discovery instead of a render-blocking chain

@@ -4,7 +4,7 @@ import { SEEDED_BOARD } from "./seeded";
 test("landing renders with the demo-data pill", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("h1")).toBeVisible();
-  // The site-wide data-mode label (AppShell) — the ToS posture made visible.
+  // The site-wide demo-data label (AppShell) — the mock-only posture made visible.
   await expect(page.getByText("Demo data").first()).toBeVisible();
 });
 

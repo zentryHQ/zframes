@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/catalogue" },
   openGraph: {
     title: `Frame catalogue · ${SITE_NAME}`,
-    description: `All ${FRAME_COUNT} frames a ${SITE_NAME} dashboard can be built from, rendering live with real data.`,
+    description: `All ${FRAME_COUNT} frames a ${SITE_NAME} dashboard can be built from, every one rendered in the browser.`,
     url: absoluteUrl("/catalogue"),
     type: "website",
   },
@@ -80,8 +80,8 @@ export default function CataloguePage() {
           The frame <span className="text-indigo-200">catalogue</span>
         </h1>
         <p className="mt-3 text-base leading-relaxed text-white/75">
-          Every built-in frame, live and grouped by family. Each renders with a
-          schema-default config — the same set an agent picks from when
+          Every built-in frame, rendered and grouped by family. Each renders
+          with a schema-default config — the same set an agent picks from when
           generating a dashboard. {FRAME_COUNT} frames, {FAMILY_COUNT} families,
           all keyless: no API key and no account to view any of them.
         </p>

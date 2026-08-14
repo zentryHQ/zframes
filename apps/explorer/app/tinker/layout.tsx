@@ -13,11 +13,11 @@ import { absoluteUrl, SITE_NAME } from "@/app/lib/site";
  */
 export const metadata: Metadata = {
   title: "Tinker — edit a dashboard in the browser",
-  description: `Open a ${SITE_NAME} dashboard spec in the browser editor: drag, resize and reconfigure frames against live keyless market data. No install, no account.`,
+  description: `Open a ${SITE_NAME} dashboard spec in the browser editor: drag, resize and reconfigure frames. No install, no account.`,
   alternates: { canonical: "/tinker" },
   openGraph: {
     title: `Tinker · ${SITE_NAME}`,
-    description: `Edit a live market dashboard in the browser — drag, resize and reconfigure frames against real data.`,
+    description: `Edit a market dashboard in the browser — drag, resize and reconfigure frames.`,
     url: absoluteUrl("/tinker"),
     type: "website",
   },

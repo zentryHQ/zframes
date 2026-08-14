@@ -8,11 +8,11 @@ The explorer is a hybrid — a marketing front door (landing + curated/community
 
 ## Users
 
-Developers and market-curious builders who drive AI coding agents (Claude Code, Cursor, Codex, Gemini). They arrive from the repo, a share link, or word of mouth to answer one question: *what is this, and is it worth installing the skill?* Their context is a browser tab open next to their terminal. Secondary users: people who already use zframes, returning to browse the community gallery, preview a board with live data, publish their own, or fork someone else's onto their machine.
+Developers and market-curious builders who drive AI coding agents (Claude Code, Cursor, Codex, Gemini). They arrive from the repo, a share link, or word of mouth to answer one question: *what is this, and is it worth installing the skill?* Their context is a browser tab open next to their terminal. Secondary users: people who already use zframes, returning to browse the community gallery, preview a board (simulated demo data — live data is the CLI's job), publish their own, or fork someone else's onto their machine.
 
 ## Product Purpose
 
-Prove, in the browser, that an agent-generated market terminal is real and good — then convert the visitor into someone who installs the skill and talks to their agent. It showcases live, keyless dashboards (real data, no signup), lets anyone preview/fork/publish, and browse the full frame catalogue. Success = a visitor understands the pitch in one fold, sees a genuinely premium live terminal, and copies the install command. It is the shop window for a CLI-first, own-your-`dashboard.json` product — never a hosted SaaS.
+Prove, in the browser, that an agent-generated market terminal is real and good — then convert the visitor into someone who installs the skill and talks to their agent. It showcases dashboards on clearly-labelled simulated demo data (the real, keyless data arrives when they run the CLI), lets anyone preview/fork/publish, and browse the full frame catalogue. Success = a visitor understands the pitch in one fold, sees a genuinely premium terminal, and copies the install command. It is the shop window for a CLI-first, own-your-`dashboard.json` product — never a hosted SaaS.
 
 ## Brand Personality
 

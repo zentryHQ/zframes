@@ -13,11 +13,12 @@ import { DrivenParallax, Reveal, useViewportProgress } from "@/app/lib/motion";
 // The landing's second act: the vocabulary the agent composes from. The biggest
 // frame families — traditional finance first (markets, macro & rates, filings,
 // metals), then the crypto-native ones — each staged as a parallax collage of
-// REAL live frames (LiveFrame →
+// REAL frames (LiveFrame →
 // the runtime's own FrameContent on shared providers) drifting at different
 // rates around the family's copy, with a ghosted chapter numeral moving
-// counter-scroll behind. Every specimen is streaming real data — the section
-// doesn't describe the catalogue, it IS the catalogue.
+// counter-scroll behind. Every specimen renders simulated demo data (the site
+// is mock-only — see frames.ts), but the section doesn't describe the
+// catalogue, it IS the catalogue.
 
 type Specimen = {
   frame: string;
@@ -57,7 +58,7 @@ const CHAPTERS: Chapter[] = [
     label: "Prices & Markets",
     headline: "Equities and crypto on one tape.",
     blurb:
-      "TSLA and NVDA candles streaming as equity perps over Hyperliquid HIP-3, the session clock beside them, and the whole crypto universe on the same free socket. Charts, volume profiles, tickers: the pulse of the tape, live.",
+      "TSLA and NVDA candles as equity perps over Hyperliquid HIP-3, the session clock beside them, and the whole crypto universe on the same free socket. Charts, volume profiles, tickers: the pulse of the tape.",
     specimens: [
       {
         frame: "price-chart",
@@ -332,7 +333,7 @@ const CHAPTERS: Chapter[] = [
     label: "Sentiment & News",
     headline: "What the crowd is feeling.",
     blurb:
-      "Fear & greed over time, live mood gauges, streaming headlines — the mood ring for the tape, refreshed all day.",
+      "Fear & greed over time, mood gauges, rolling headlines — the mood ring for the tape.",
     specimens: [
       {
         frame: "fear-greed-chart",
@@ -409,7 +410,7 @@ function CountMoment({ total }: { total: number }) {
           {total}
         </span>
         <span className="ml-3 align-baseline font-mono text-[clamp(1rem,3vw,1.75rem)] font-medium tracking-normal text-indigo-300 sm:ml-6">
-          live frames
+          frames
         </span>
       </motion.div>
     </div>

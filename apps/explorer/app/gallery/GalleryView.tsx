@@ -151,7 +151,8 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
         </h1>
         <p className="mt-3 text-base leading-relaxed text-white/75">
           Curated boards and dashboards published by the community. Preview any
-          one live with real data, then fork it onto your machine.
+          one in the browser on demo data, then fork it onto your machine to run
+          it live.
         </p>
         <div className="relative mt-6 max-w-md">
           <svg
@@ -266,7 +267,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
         <SectionHeading
           eyebrow="Community"
           title="Published by people"
-          description="Dashboards shared by others. Preview any one live, or fork it onto your machine with your AI agent."
+          description="Dashboards shared by others. Preview any one in the browser, or fork it onto your machine with your AI agent."
           action={
             <Link
               href="/tinker"
