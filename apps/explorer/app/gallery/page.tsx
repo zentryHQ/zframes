@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/gallery" },
   openGraph: {
     title: `Dashboard gallery · ${SITE_NAME}`,
-    description: `Keyless market dashboards you can preview in the browser and fork onto your own machine.`,
+    description: `Market dashboards you can preview in the browser and fork onto your own machine.`,
     url: absoluteUrl("/gallery"),
     type: "website",
   },

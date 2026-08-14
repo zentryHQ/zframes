@@ -67,7 +67,6 @@ export async function GET(): Promise<Response> {
     "- Run a dashboard: `npx zframes serve`",
     "- Supported agents: any skills-aware coding agent (Claude Code, Cursor, Codex, Gemini)",
     `- Frames available: ${allFrameMetas.length}, across ${FRAME_CATEGORIES.length} families`,
-    "- Data: keyless free public APIs — no API keys and no signup required",
     "- Where a dashboard lives: one dashboard.json on your own machine, served locally by the CLI",
     "- Asset classes: stocks, crypto, macro and rates, precious metals and commodities, FX, housing, options",
     "- Display currencies: 146",

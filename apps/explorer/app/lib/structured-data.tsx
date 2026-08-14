@@ -146,7 +146,7 @@ export function howToJsonLd() {
         "@type": "HowToStep",
         position: 3,
         name: "Own the result",
-        text: "You get one git-trackable dashboard.json, served locally with live keyless data and editable in the browser.",
+        text: "You get one git-trackable dashboard.json, served locally with live data and editable in the browser.",
         url: absoluteUrl("/#build"),
       },
     ],

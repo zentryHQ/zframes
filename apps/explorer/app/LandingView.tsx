@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { KEYLESS_PROVIDER_COUNT } from "@zframes/providers-keyless";
 import type { BoardSummary } from "@/app/lib/board-summary";
 import { CopyCommand } from "@/app/lib/CopyCommand";
 import { FAQ } from "@/app/lib/faq";
@@ -251,12 +250,12 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
       <section className="mx-auto max-w-5xl px-6 pb-2 pt-16 text-center">
         <Reveal>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Real boards. Demo data. Zero keys.
+            Real boards. Demo data. Zero setup.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
             Every board here is rendering right now on simulated demo data — the
-            same frames your generated terminal runs on live, keyless feeds.
-            Keep scrolling; open any one.
+            same frames your generated terminal runs on live data. Keep
+            scrolling; open any one.
           </p>
         </Reveal>
       </section>
@@ -332,7 +331,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
               index={2}
               n="3"
               title="Own the result"
-              body="One git-trackable dashboard.json, served locally with live keyless data — editable in the browser, forever yours."
+              body="One git-trackable dashboard.json, served locally with live data — editable in the browser, forever yours."
               code="npx zframes serve"
             />
           </div>
@@ -348,7 +347,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             description="No repo to clone, no builder UI to learn, no bill. Install a skill, tell your agent what you want to watch, and it builds your dashboard — yours to own."
           />
         </Reveal>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <ValueCard
             index={0}
             title="Free and open source"
@@ -372,17 +371,6 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
           />
           <ValueCard
             index={2}
-            title="Keyless"
-            body={`${KEYLESS_PROVIDER_COUNT} free public sources — Hyperliquid, CoinGecko and DeFiLlama alongside the Fed's FRED, the Treasury, the SEC, Zillow and the FHFA. No signup, no API keys, no .env to preview or run.`}
-            icon={
-              <>
-                <circle cx="8" cy="15" r="4" />
-                <path d="M10.85 12.15 19 4M18 5l2 2M20 3l1 1" />
-              </>
-            }
-          />
-          <ValueCard
-            index={3}
             title="Yours to own"
             body="Your dashboard is one git-trackable dashboard.json; the CLI serves it locally, editable in the browser. No hosted service, no lock-in."
             icon={
@@ -408,7 +396,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             <p className="max-w-xl text-pretty text-sm leading-relaxed text-white/65">
               Install the skill, tell your agent what you want to watch, and own
               a live terminal in minutes — free and open source, stocks and
-              crypto, no keys, no account.
+              crypto, no account.
             </p>
             <Link
               href="#build"

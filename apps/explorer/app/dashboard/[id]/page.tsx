@@ -66,8 +66,8 @@ export async function generateMetadata({
   // board on the site.
   const description = entry
     ? entry.description?.trim()
-      ? `${entry.description.trim()} A ${frameCount}-frame ${SITE_NAME} dashboard — preview it in the browser, or fork it onto your machine with your AI agent to run it on live keyless data.`
-      : `A ${frameCount}-frame market dashboard on ${SITE_NAME} — preview it in the browser, or fork it onto your machine with your AI agent to run it on live keyless data.`
+      ? `${entry.description.trim()} A ${frameCount}-frame ${SITE_NAME} dashboard — preview it in the browser, or fork it onto your machine with your AI agent to run it on live data.`
+      : `A ${frameCount}-frame market dashboard on ${SITE_NAME} — preview it in the browser, or fork it onto your machine with your AI agent to run it on live data.`
     : `A market dashboard on ${SITE_NAME}.`;
   const indexable = !!entry && entry.visibility === "listed";
 
