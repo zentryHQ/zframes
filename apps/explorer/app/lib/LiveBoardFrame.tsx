@@ -7,7 +7,6 @@ import {
   type MotionValue,
 } from "motion/react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { getDataMode } from "@/app/lib/data-mode";
 
 // A full-bleed live example board — the real board rendered inside a same-origin
 // <iframe src="/embed/{id}">, framed to fill one fullscreen panel of the landing's
@@ -66,13 +65,6 @@ export const LiveBoardFrame = memo(function LiveBoardFrame({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [mounted, setMounted] = useState(false);
   const [loaded, setLoaded] = useState(false);
-
-  // The top-bar pill must not claim LIVE over a demo-mode board. Resolved in
-  // an effect (SSR renders the demo shape; see DataModeToggle for the pattern).
-  const [live, setLive] = useState(false);
-  useEffect(() => {
-    setLive(getDataMode() === "live");
-  }, []);
 
   useEffect(() => {
     if (mounted || !mountEnabled) return;
@@ -199,24 +191,18 @@ export const LiveBoardFrame = memo(function LiveBoardFrame({
         className="absolute inset-0 z-10"
       />
 
-      {/* Top bar — LIVE/DEMO pill + frame count. Visual only. The pill follows
-          the browser's data mode: claiming LIVE over simulated numbers is the
-          exact mislabelling the demo-by-default posture forbids. */}
+      {/* Top bar — DEMO pill + frame count. Visual only. The site is
+          mock-data-only, so the pill always declares the numbers simulated:
+          claiming LIVE over simulated numbers is the exact mislabelling the
+          labelling posture forbids. */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between p-4 sm:p-5">
         {/* Solid fills, deliberately not backdrop-blur: 3 chips × 4 boards =
             12 blur layers each re-sampling a live, repainting iframe every
             frame. Over a dark board the solid is visually equivalent. */}
-        {live ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/60 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/85">
-            <span className="live-dot h-1.5 w-1.5 rounded-full bg-up" />
-            Live
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-black/60 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300/90">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-            Demo
-          </span>
-        )}
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-black/60 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300/90">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+          Demo
+        </span>
         <span className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 font-mono text-[11px] text-white/70">
           {frameCount} {frameCount === 1 ? "frame" : "frames"}
         </span>

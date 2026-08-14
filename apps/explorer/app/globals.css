@@ -400,10 +400,10 @@ body::before {
   display: none;
 }
 
-/* Demo mode hides every card's source attribution (top-right "LBMA" / "FRED" /
+/* Demo data hides every card's source attribution (top-right "LBMA" / "FRED" /
  * "gold-api.com" link): simulated numbers must not carry a real provider's
- * name. AppShell toggles the attribute on <html> from the data-mode flag —
- * including inside each /embed/* iframe document. */
+ * name. The site is mock-data-only, so the root layout sets the attribute
+ * statically on <html> — including each /embed/* iframe document's own. */
 html[data-zf-demo] .zf-frame-source {
   display: none;
 }

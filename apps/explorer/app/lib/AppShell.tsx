@@ -1,17 +1,16 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Agentation } from "agentation";
 import { Toaster } from "sonner";
 import { AuthNav } from "@/app/lib/AuthNav";
 import { BrandMark } from "@/app/lib/BrandMark";
-import { DataModeToggle } from "@/app/lib/DataModeToggle";
+import { DemoDataBadge } from "@/app/lib/DemoDataBadge";
 import { Footer } from "@/app/lib/Footer";
 import { NavLinks } from "@/app/lib/NavLinks";
 import { UnicornBackground } from "@/app/lib/UnicornBackground";
-import { getDataMode } from "@/app/lib/data-mode";
 
 // Site chrome wrapper. The chrome-less /embed/* routes — iframed live boards in
 // the landing showcase — render BARE: no header, footer, Aurora canvas, toaster,
@@ -29,19 +28,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   // those routes.
   const boardBackdrop =
     (pathname?.startsWith("/dashboard/") ?? false) || pathname === "/tinker";
-
-  // Demo-mode gate for frame chrome: a per-card source attribution ("LBMA",
-  // "FRED", …) over simulated numbers claims a provenance the data doesn't
-  // have, so globals.css hides `.zf-frame-source` under this attribute. Set on
-  // <html> in an effect (SSR-safe), and set HERE because AppShell mounts on
-  // every route — including the bare /embed/* documents inside the landing's
-  // showcase iframes, each of which is its own <html> needing its own flag.
-  useEffect(() => {
-    document.documentElement.toggleAttribute(
-      "data-zf-demo",
-      getDataMode() === "demo",
-    );
-  }, []);
 
   if (bare) return <>{children}</>;
 
@@ -70,12 +56,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="ml-2 hidden h-5 w-px bg-white/10 sm:block" />
             <NavLinks />
 
-            {/* Right slot: the data-mode pill (demo by default, live opt-in —
-                see data-mode.ts), then the auth controls once a session exists.
-                No persistent sign-in CTA: auth prompts live at the gated actions
-                themselves. (The GitHub link now lives in the footer.) */}
+            {/* Right slot: the site-wide "Demo data" label (every frame renders
+                simulated data — see frames.ts), then the auth controls once a
+                session exists. No persistent sign-in CTA: auth prompts live at
+                the gated actions themselves. (The GitHub link lives in the
+                footer.) */}
             <div className="ml-auto flex items-center gap-3">
-              <DataModeToggle />
+              <DemoDataBadge />
               <AuthNav />
             </div>
           </nav>
