@@ -35,7 +35,13 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    dashboardWriteback({ catalogue: catalogueSummary(frameMetas) }),
+    dashboardWriteback({
+      // Explicit spec override for the e2e suite (apps/runtime/e2e), which
+      // serves a temp copy of its fixture board; unset everywhere else, where
+      // the store-default resolution below applies.
+      file: process.env.ZFRAMES_DASHBOARD_FILE,
+      catalogue: catalogueSummary(frameMetas),
+    }),
   ],
   define: {
     __ZFRAMES_VERSION__: JSON.stringify(runtimeVersion),

@@ -1,0 +1,20 @@
+# Throwaway Postgres for the e2e suite — SEPARATE from the dev database
+# (docker-compose.yml, :5433) so a run never touches your boards. No volume on
+# purpose: data lives and dies with the container, and global-teardown removes it.
+# Same postgres:18-alpine pin and the same /var/lib/postgresql mount rules as the
+# dev compose file (see the comments there).
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: zframes-explorer-e2e-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "127.0.0.1:5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 2s
+      timeout: 3s
+      retries: 30

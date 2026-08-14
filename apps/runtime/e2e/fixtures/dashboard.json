@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "title": "E2E Fixture Board",
+  "author": "zframes e2e",
+  "background": { "type": "none" },
+  "theme": { "accentHue": 145, "accentSat": 85, "baseHue": 150, "baseSat": 16 },
+  "frames": [
+    {
+      "id": "e2e-heading",
+      "frame": "heading",
+      "position": { "x": 0, "y": 0, "w": 12, "h": 1 },
+      "config": { "title": "E2E", "subtitle": "Playwright fixture board" }
+    },
+    {
+      "id": "e2e-ticker",
+      "frame": "price-ticker",
+      "position": { "x": 0, "y": 1, "w": 6, "h": 2 },
+      "config": { "symbols": ["BTC", "ETH", "SOL"] }
+    },
+    {
+      "id": "e2e-chart",
+      "frame": "price-chart",
+      "position": { "x": 6, "y": 1, "w": 6, "h": 4 },
+      "config": { "symbol": "BTC", "interval": "5m", "mode": "line" }
+    },
+    {
+      "id": "e2e-movers",
+      "frame": "top-movers",
+      "position": { "x": 0, "y": 3, "w": 6, "h": 2 },
+      "config": { "count": 8 }
+    }
+  ]
+}
