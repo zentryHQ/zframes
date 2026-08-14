@@ -18,6 +18,14 @@ import {
 //   Close/Cancel/Done control.
 // - A visually-hidden DialogTitle satisfies radix's a11y contract; the visible
 //   heading still lives in each consumer's content.
+//
+// FOOTGUN: `.zf-surface` must go on an INNER div, never on DialogContent itself.
+// globals.css is unlayered while Tailwind's utilities live in `@layer utilities`,
+// so `.zf-surface { position: relative }` beats DialogContent's `fixed` — the
+// panel then lays out in normal flow at the end of <body> instead of centred in
+// the viewport. On a tall page that is thousands of pixels below the fold: the
+// overlay dims, the dialog is nowhere (on /tinker it landed at y=46541px), and
+// nothing errors. Keep positioning classes and surface classes on separate nodes.
 export function Dialog({
   onClose,
   children,
@@ -37,10 +45,10 @@ export function Dialog({
       <DialogContent
         showCloseButton={false}
         aria-describedby={undefined}
-        className={`zf-surface w-full ${maxWidth} border-0 bg-transparent p-6 shadow-none`}
+        className={`w-full ${maxWidth} border-0 bg-transparent p-0 shadow-none`}
       >
         <DialogTitle className="sr-only">Dialog</DialogTitle>
-        {children}
+        <div className="zf-surface p-6">{children}</div>
       </DialogContent>
     </DialogRoot>
   );
