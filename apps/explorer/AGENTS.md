@@ -247,6 +247,13 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   dynamic `[id]` routes — `rm -rf .next` between them.
 - **Use `localhost`, not `127.0.0.1`.** Next 16 blocks dev chunks from the raw IP;
   boards render blank with only a server-log warning.
+- **`globals.css` is unlayered, so every `.zf-*` rule beats a Tailwind utility.**
+  Tailwind v4 puts utilities in `@layer utilities`; unlayered wins regardless of
+  specificity. So `.zf-surface { position: relative }` silently overrides a
+  `fixed`/`absolute`/`sticky` class on the *same* element — which is how the
+  Publish/Fork dialog ended up laid out in normal flow at the end of `<body>`
+  (y≈46,500px on `/tinker`): overlay dimmed, panel nowhere, no error anywhere.
+  Keep positioning classes and `.zf-*` surface classes on **separate nodes**.
 - **`/embed/*` is the only framable path.** `next.config.ts` sets
   `X-Frame-Options: DENY` everywhere else, which is why the chrome-less embed route
   exists separately from `/dashboard/[id]` rather than being a query param.
