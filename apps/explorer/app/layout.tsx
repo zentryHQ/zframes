@@ -44,7 +44,6 @@ export const metadata: Metadata = {
     "crypto dashboard",
     "market terminal",
     "open source trading terminal",
-    "keyless market data",
     "Claude Code skill",
     "coding agent",
     "dashboard.json",

@@ -30,8 +30,8 @@ export const FAQ: FaqItem[] = [
     answer: `Yes. ${SITE_NAME} is free and open source under the MIT licence — the framework, the CLI and all of the frames. There is no paid tier, no account and nothing withheld behind one. The source is at ${REPO_URL}.`,
   },
   {
-    question: "Do I need an API key to use it?",
-    answer: `No. Every default data source is keyless — free public APIs including Hyperliquid, CoinGecko, DeFiLlama, the Federal Reserve's FRED, the U.S. Treasury, SEC EDGAR, the LBMA, Zillow and the FHFA. You can preview and run a dashboard without signing up for anything or creating a .env file. Connecting a private account (for example a Binance portfolio) is a separate opt-in tier.`,
+    question: "Do I need to sign up for anything?",
+    answer: `No. You can preview any board here in the browser and run your own locally without creating an account. Connecting a private account (for example an exchange portfolio) is a separate opt-in tier.`,
   },
   {
     question: `Which AI agents can build a ${SITE_NAME} dashboard?`,
