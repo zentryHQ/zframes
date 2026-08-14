@@ -33,7 +33,7 @@ export const SITE_TITLE_SUFFIX = SITE_NAME;
 
 /** The one-line pitch. Kept under ~160 chars so it survives as a SERP snippet. */
 export const SITE_DESCRIPTION =
-  "Describe the market dashboard you want and your AI coding agent builds it — live stocks and crypto, no API keys, no account. Free and open source (MIT).";
+  "Describe the market dashboard you want and your AI coding agent builds it — live stocks and crypto, no account. Free and open source (MIT).";
 
 /**
  * The longer pitch, for surfaces with room: the OG card body, `llms.txt`, and
@@ -42,7 +42,7 @@ export const SITE_DESCRIPTION =
  * rather than adjectives.
  */
 export const SITE_LONG_DESCRIPTION =
-  "zframes is a free, open-source framework for AI-generated market dashboards. You install a skill into your coding agent (Claude Code, Cursor, Codex, Gemini), describe what you want to watch, and the agent writes a dashboard.json that the zframes CLI serves locally as a live terminal — stocks and crypto, from keyless public data sources, with no API keys, no signup and no hosted service.";
+  "zframes is a free, open-source framework for AI-generated market dashboards. You install a skill into your coding agent (Claude Code, Cursor, Codex, Gemini), describe what you want to watch, and the agent writes a dashboard.json that the zframes CLI serves locally as a live terminal — stocks and crypto, with no signup and no hosted service.";
 
 export const REPO_URL = "https://github.com/zentryhq/zframes";
 export const NPM_URL = "https://www.npmjs.com/package/zframes";

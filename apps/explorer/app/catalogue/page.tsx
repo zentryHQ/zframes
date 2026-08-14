@@ -29,7 +29,7 @@ const FAMILY_COUNT = FRAME_CATEGORIES.length;
 
 export const metadata: Metadata = {
   title: "Frame catalogue",
-  description: `Browse all ${FRAME_COUNT} ${SITE_NAME} frames across ${FAMILY_COUNT} families — live price charts, company fundamentals, macro and rates, metals, Bitcoin and on-chain, options, FX, housing and sentiment. Every one is keyless and free.`,
+  description: `Browse all ${FRAME_COUNT} ${SITE_NAME} frames across ${FAMILY_COUNT} families — live price charts, company fundamentals, macro and rates, metals, Bitcoin and on-chain, options, FX, housing and sentiment.`,
   alternates: { canonical: "/catalogue" },
   openGraph: {
     title: `Frame catalogue · ${SITE_NAME}`,
@@ -83,7 +83,7 @@ export default function CataloguePage() {
           Every built-in frame, rendered and grouped by family. Each renders
           with a schema-default config — the same set an agent picks from when
           generating a dashboard. {FRAME_COUNT} frames, {FAMILY_COUNT} families,
-          all keyless: no API key and no account to view any of them.
+          free to browse — no account needed to view any of them.
         </p>
       </header>
 

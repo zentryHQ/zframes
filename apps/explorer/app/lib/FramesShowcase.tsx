@@ -58,7 +58,7 @@ const CHAPTERS: Chapter[] = [
     label: "Prices & Markets",
     headline: "Equities and crypto on one tape.",
     blurb:
-      "TSLA and NVDA candles as equity perps over Hyperliquid HIP-3, the session clock beside them, and the whole crypto universe on the same free socket. Charts, volume profiles, tickers: the pulse of the tape.",
+      "TSLA and NVDA candles as equity perps, the session clock beside them, and the whole crypto universe on the same live tape. Charts, volume profiles, tickers: the pulse of the tape.",
     specimens: [
       {
         frame: "price-chart",
@@ -91,7 +91,7 @@ const CHAPTERS: Chapter[] = [
     label: "Macro & Rates",
     headline: "The official numbers, unofficial speed.",
     blurb:
-      "The Treasury yield curve, corporate credit spreads, the composition of the federal debt, the FX cross grid, and who actually showed up to the last auction. Primary sources — Treasury, FRED, the New York Fed — rendered like a terminal, not a press release.",
+      "The Treasury yield curve, corporate credit spreads, the composition of the federal debt, the FX cross grid, and who actually showed up to the last auction. Official figures, rendered like a terminal, not a press release.",
     specimens: [
       {
         frame: "yield-curve",
@@ -130,7 +130,7 @@ const CHAPTERS: Chapter[] = [
     label: "Equities & Filings",
     headline: "Straight out of EDGAR.",
     blurb:
-      "What a company actually filed and how the street is positioned against it — eighteen years of reported revenue stitched across the XBRL tags issuers quietly switch mid-history, the SEC's own submissions feed, and FINRA's daily reported short-sale volume. Public records, read at terminal speed.",
+      "What a company actually filed and how the street is positioned against it — eighteen years of reported revenue stitched across the tags issuers quietly switch mid-history, its filings feed, and daily reported short-sale volume. Public records, read at terminal speed.",
     // `financials-trend` is the deep-dive lead (fundamentals-history), and
     // `filings-feed`/`filings-mix` read EDGAR's submissions JSON (CORS-open,
     // small). Still no `fundamentals`/`capital-structure-bars` here: those read
@@ -217,7 +217,7 @@ const CHAPTERS: Chapter[] = [
     label: "Crypto & On-chain",
     headline: "The whole chain economy, mapped.",
     blurb:
-      "Market caps as living treemaps, TVL across every protocol, a token's supply overhang against its FDV, and what a protocol actually keeps of its fees — DeFiLlama and CoinGecko, no keys, cached politely.",
+      "Market caps as living treemaps, TVL across every protocol, a token's supply overhang against its FDV, and what a protocol actually keeps of its fees.",
     specimens: [
       {
         frame: "market-cap-treemap",
@@ -300,7 +300,7 @@ const CHAPTERS: Chapter[] = [
     label: "Derivatives & Options",
     headline: "Where leverage lives.",
     blurb:
-      "Funding rates across venues, open interest, strike ladders, put/call positioning and volatility off Deribit's public feed — the positioning picture under the price.",
+      "Funding rates across venues, open interest, strike ladders, put/call positioning and volatility — the positioning picture under the price.",
     specimens: [
       {
         frame: "funding-rate-chart",
