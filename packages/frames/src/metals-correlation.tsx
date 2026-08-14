@@ -11,7 +11,7 @@ import {
   sliceYears,
 } from "./metals-shared";
 import { metalsCorrelationMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, cellLabelFits } from "./ui";
 
 const schema = metalsCorrelationMeta.schema;
 
@@ -43,6 +43,7 @@ interface CorrelationCell {
 function MatrixCell({
   data,
   width,
+  height,
   colorIntensity,
   isPositive,
 }: CellComponentProps<CorrelationCell>) {
@@ -64,7 +65,7 @@ function MatrixCell({
            ramp — a tinted "0.00" would read as "measured, and uncorrelated". */
         <span className="absolute inset-0 rounded bg-black/55" />
       )}
-      {width >= MIN_LABEL_WIDTH && (
+      {cellLabelFits(width, height, MIN_LABEL_WIDTH) && (
         <span className="absolute inset-0 flex items-center justify-center">
           <span
             className={`caption tabular-nums ${

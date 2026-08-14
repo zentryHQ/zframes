@@ -5,7 +5,7 @@ import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import { changeColor, formatFundingPct, formatPct } from "./format";
 import { fundingHeatmapMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, cellLabelFits } from "./ui";
 
 const schema = fundingHeatmapMeta.schema;
 
@@ -17,8 +17,16 @@ interface FundingCell extends HeatmapCell {
   rate: number;
 }
 
-function Cell({ data, width }: { data: FundingCell; width: number }) {
-  if (width < 44) return null;
+function Cell({
+  data,
+  width,
+  height,
+}: {
+  data: FundingCell;
+  width: number;
+  height: number;
+}) {
+  if (!cellLabelFits(width, height, 44)) return null;
   return (
     <div className="flex h-full w-full items-center justify-center">
       <span className="caption text-normal tabular-nums">

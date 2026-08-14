@@ -18,6 +18,31 @@ export const scrollAreaXClass =
   "min-w-0 overflow-x-auto pb-1 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/[0.08] hover:[&::-webkit-scrollbar-thumb]:bg-white/15";
 
 /**
+ * Line box a `caption`-sized figure needs before it starts clipping against the
+ * top and bottom of its cell. A matrix card packs rows far tighter than columns
+ * — 20 years of monthly returns leaves ~13px a row — so a width-only guard lets
+ * a number render sliced in half.
+ */
+const MIN_CELL_LABEL_HEIGHT = 13;
+
+/**
+ * Should a matrix cell print its figure at this size? Every `HeatmapChart` frame
+ * routes its `CellComponent` text through this instead of its own `width < 44`
+ * check: the colour already carries the reading, so below the fit the label is
+ * dropped and the cell stays clean rather than clipped.
+ *
+ * `minWidth` is per-frame (a `+12.34%` needs more room than a `0.82`); the
+ * height floor is shared, since every frame draws the figure at `caption` size.
+ */
+export function cellLabelFits(
+  width: number,
+  height: number,
+  minWidth: number,
+): boolean {
+  return width >= minWidth && height >= MIN_CELL_LABEL_HEIGHT;
+}
+
+/**
  * Shared loading / empty placeholder for frames. Loading gets a real widget
  * skeleton instead of text-only pulse; empty states stay quiet and readable.
  */

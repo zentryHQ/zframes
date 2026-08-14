@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatCompact, formatPct } from "./format";
 import { optionsOiLadderHeatmapMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, cellLabelFits } from "./ui";
 
 const schema = optionsOiLadderHeatmapMeta.schema;
 
@@ -13,8 +13,16 @@ interface OiCell extends HeatmapCell {
   oi: number;
 }
 
-function Cell({ data, width }: { data: OiCell; width: number }) {
-  if (width < 44) return null;
+function Cell({
+  data,
+  width,
+  height,
+}: {
+  data: OiCell;
+  width: number;
+  height: number;
+}) {
+  if (!cellLabelFits(width, height, 44)) return null;
   return (
     <div className="flex h-full w-full items-center justify-center">
       <span className="caption text-normal tabular-nums">

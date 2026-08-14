@@ -1,6 +1,6 @@
 import { HeatmapChart, type CellComponentProps } from "@zframes/charts";
 import { defineFrame, useMetalHistory } from "@zframes/core";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
 import { DOWN_COLOR, UP_COLOR, changeColor, formatChangePct } from "./format";
 import {
@@ -10,7 +10,7 @@ import {
   sliceYears,
 } from "./metals-shared";
 import { metalSeasonalityMeta } from "./schemas";
-import { FrameStatus } from "./ui";
+import { FrameStatus, cellLabelFits } from "./ui";
 
 const schema = metalSeasonalityMeta.schema;
 
@@ -21,10 +21,36 @@ const schema = metalSeasonalityMeta.schema;
 const YEAR_LABEL_WIDTH = 44;
 const CELL_GAP = 3;
 
-/** Below these the cell is too small to hold "+12.34%" without clipping, so the
- *  colour alone carries the month and the grid stays legible. */
+/** Below this the cell is too small to hold "+12.34%" without clipping, so the
+ *  colour alone carries the month and the grid stays legible. The height floor
+ *  is shared — see `cellLabelFits`. */
 const MIN_LABEL_WIDTH = 46;
-const MIN_LABEL_HEIGHT = 13;
+
+/** Per-column widths at which the averages strip can still print each form
+ *  without ellipsing. `+1.23%` needs ~40px at caption size; below that the sign
+ *  and the unit are dropped in that order — the colour already carries the sign,
+ *  and the row is labelled "avg" of a percent grid, so the `%` is redundant
+ *  before the digits are. Under the last threshold the strip is dropped
+ *  entirely: a row of `+…` is not a number, it's noise. */
+const AVG_FULL_WIDTH = 40;
+const AVG_SHORT_WIDTH = 26;
+const AVG_MIN_WIDTH = 18;
+
+/** Observed content-box width of an element, 0 until first measure. */
+function useWidth<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setWidth(el.offsetWidth);
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setWidth(el.offsetWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, width] as const;
+}
 
 interface SeasonCell {
   id: string;
@@ -54,7 +80,7 @@ function SeasonalityCell({
           opacity: 0.18 + colorIntensity * 0.82,
         }}
       />
-      {width >= MIN_LABEL_WIDTH && height >= MIN_LABEL_HEIGHT && (
+      {cellLabelFits(width, height, MIN_LABEL_WIDTH) && (
         <span className="absolute inset-0 flex items-center justify-center">
           <span className="caption text-strong tabular-nums">
             {formatChangePct(data.value)}
@@ -67,6 +93,7 @@ function SeasonalityCell({
 
 function MetalSeasonality({ config }: { config: z.output<typeof schema> }) {
   const { histories, isLoading } = useMetalHistory([config.symbol]);
+  const [stripRef, stripWidth] = useWidth<HTMLDivElement>();
 
   const { cells, months, monthMeans, openId, rowCount } = useMemo(() => {
     const windowed = sliceYears(histories[0]?.points ?? [], config.years);
@@ -141,6 +168,22 @@ function MetalSeasonality({ config }: { config: z.output<typeof schema> }) {
   if (cells.length === 0)
     return <FrameStatus>no monthly returns yet</FrameStatus>;
 
+  // The measured box spans the year gutter too, so the gutter comes off before
+  // the remainder is split into month columns.
+  const gridWidth = Math.max(0, stripWidth - YEAR_LABEL_WIDTH);
+  const columnWidth =
+    months > 0 && gridWidth > 0
+      ? (gridWidth - CELL_GAP * (months - 1)) / months
+      : 0;
+  const showAvg = stripWidth === 0 || columnWidth >= AVG_MIN_WIDTH;
+  const formatAvg = (pct: number) => {
+    if (columnWidth === 0 || columnWidth >= AVG_FULL_WIDTH)
+      return formatChangePct(pct);
+    if (columnWidth >= AVG_SHORT_WIDTH)
+      return `${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}`;
+    return Math.abs(pct).toFixed(1);
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-1.5">
       <div className="min-h-0 flex-1">
@@ -177,35 +220,46 @@ function MetalSeasonality({ config }: { config: z.output<typeof schema> }) {
       </div>
 
       {/* Each month's mean across the window — the seasonal signal the grid is
-          read for, aligned column-for-column underneath it. */}
-      <div className="flex items-center border-t border-white/[0.08] pt-1.5">
-        <span
-          className="caption text-soft shrink-0 pr-2 text-right"
-          style={{ width: YEAR_LABEL_WIDTH }}
-        >
-          avg
-        </span>
-        <div
-          className="grid min-w-0 flex-1"
-          style={{
-            gap: CELL_GAP,
-            gridTemplateColumns: `repeat(${months}, minmax(0, 1fr))`,
-          }}
-        >
-          {monthMeans.map((mean) => (
+          read for, aligned column-for-column underneath it. Hidden outright once
+          its columns are too narrow to hold even a one-decimal figure. */}
+      {/* The measured box stays mounted even when the strip is hidden — measuring
+          the strip itself would freeze its last width at the moment it
+          disappeared, so a resize back to a wide card could never bring it
+          back. */}
+      <div ref={stripRef}>
+        {showAvg && (
+          <div className="flex items-center border-t border-white/[0.08] pt-1.5">
             <span
-              key={mean.label}
-              className={`caption truncate text-center tabular-nums${
-                mean.pct === null ? " text-soft" : ""
-              }`}
-              style={
-                mean.pct === null ? undefined : { color: changeColor(mean.pct) }
-              }
+              className="caption text-soft shrink-0 pr-2 text-right"
+              style={{ width: YEAR_LABEL_WIDTH }}
             >
-              {mean.pct === null ? "–" : formatChangePct(mean.pct)}
+              avg
             </span>
-          ))}
-        </div>
+            <div
+              className="grid min-w-0 flex-1"
+              style={{
+                gap: CELL_GAP,
+                gridTemplateColumns: `repeat(${months}, minmax(0, 1fr))`,
+              }}
+            >
+              {monthMeans.map((mean) => (
+                <span
+                  key={mean.label}
+                  className={`caption overflow-hidden text-center tabular-nums${
+                    mean.pct === null ? " text-soft" : ""
+                  }`}
+                  style={
+                    mean.pct === null
+                      ? undefined
+                      : { color: changeColor(mean.pct) }
+                  }
+                >
+                  {mean.pct === null ? "–" : formatAvg(mean.pct)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* The row count, not config.years: a leading partial year is dropped, and
