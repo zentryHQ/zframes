@@ -5,6 +5,7 @@ import type { BoardSummary } from "@/app/lib/board-summary";
 import { CopyCommand } from "@/app/lib/CopyCommand";
 import { FAQ } from "@/app/lib/faq";
 import { FramesShowcase } from "@/app/lib/FramesShowcase";
+import { frameSlotMinHeight } from "@/app/lib/frame-slot";
 import { LiveFrame, LiveFrameStyles } from "@/app/lib/LiveFrame";
 import { MouseParallax, Parallax, Reveal, ScrollExit } from "@/app/lib/motion";
 import { SectionHeading } from "@/app/lib/SectionHeading";
@@ -181,7 +182,12 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
                 >
                   <div
                     className={`glow-brand-soft opacity-75 ${f.className}`}
-                    style={{ rotate: `${f.tilt}deg` }}
+                    // Floor the slot at the frame's measured minimum so a
+                    // hand-tuned `h-*` can't clip it (see frameSlotMinHeight).
+                    style={{
+                      minHeight: frameSlotMinHeight(f.frame),
+                      rotate: `${f.tilt}deg`,
+                    }}
                   >
                     <LiveFrame
                       frame={f.frame}
@@ -244,9 +250,6 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
       {/* ── Act II · Proof — full boards, rendering ──────────────────────── */}
       <section className="mx-auto max-w-5xl px-6 pb-2 pt-16 text-center">
         <Reveal>
-          <span className="zf-label mb-3 justify-center">
-            Real frames, not screenshots
-          </span>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Real boards. Demo data. Zero keys.
           </h2>
