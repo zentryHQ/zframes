@@ -23,7 +23,13 @@ pnpm --dir apps/explorer check:schema         # do the migrations match schema.t
 pnpm --dir apps/explorer db:down              # stop the dev database, KEEP its data
 pnpm --dir apps/explorer db:reset             # DESTROY the volume and start clean
 pnpm --dir apps/explorer db:psql              # a psql shell in the container
+pnpm test:e2e:explorer                        # (repo root) Playwright e2e — own throwaway DB on :5434, next dev on :43264
 ```
+
+The e2e suite (`e2e/`) is self-contained: it boots its own Postgres from
+`e2e/docker-compose.e2e.yml` (port **5434**, no volume — never your `:5433` dev
+data), runs migrate + seed against it, starts `next dev -p 43264`, and tears the
+container down after. `E2E_KEEP_DB=1` keeps the database up to debug a failure.
 
 **First run on a machine:** `db:up` → `migrate` → `seed:curated`. That is also the
 recovery path after `db:reset`, and the only way to get boards into a fresh
