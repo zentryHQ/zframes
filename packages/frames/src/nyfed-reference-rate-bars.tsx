@@ -45,4 +45,11 @@ function NyfedReferenceRateBars({
 export const nyfedReferenceRateBarsFrame = defineFrame({
   ...nyfedReferenceRateBarsMeta,
   component: NyfedReferenceRateBars,
+  // The metric enum swaps what the bars measure — a volume card must not sit
+  // under a title that says rates.
+  titleContent: ({ config }) => (
+    <>
+      NY Fed · {config.metric === "volume" ? "Rate Volumes" : "Reference Rates"}
+    </>
+  ),
 });

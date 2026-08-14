@@ -70,4 +70,7 @@ function EtfFlowsChart({ config }: { config: z.output<typeof schema> }) {
 export const etfFlowsChartFrame = defineFrame({
   ...etfFlowsChartMeta,
   component: EtfFlowsChart,
+  titleContent: ({ config }) => (
+    <>{config.asset.toUpperCase()} · ETF Net Flow</>
+  ),
 });

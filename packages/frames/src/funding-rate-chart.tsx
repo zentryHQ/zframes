@@ -72,4 +72,8 @@ function FundingRateChart({ config }: { config: z.output<typeof schema> }) {
 export const fundingRateChartFrame = defineFrame({
   ...fundingRateChartMeta,
   component: FundingRateChart,
+  // Legend pills truncate at max-w-12 — the compared symbols live in the title.
+  titleContent: ({ config }) => (
+    <>{config.symbols.map(tickerOf).join(" / ")} · Funding Rate</>
+  ),
 });
