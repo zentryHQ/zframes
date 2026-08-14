@@ -22,11 +22,11 @@ export const revalidate = 300; // 5 minutes
 
 export const metadata: Metadata = {
   title: "Dashboard gallery",
-  description: `Browse curated and community ${SITE_NAME} dashboards — live stock, crypto, macro and metals terminals. Preview any one with real data, then fork it onto your machine with your AI agent. Free, no account.`,
+  description: `Browse curated and community ${SITE_NAME} dashboards — stock, crypto, macro and metals terminals. Preview any one in the browser, then fork it onto your machine with your AI agent to run it on live data. Free, no account.`,
   alternates: { canonical: "/gallery" },
   openGraph: {
     title: `Dashboard gallery · ${SITE_NAME}`,
-    description: `Live, keyless market dashboards you can preview in the browser and fork onto your own machine.`,
+    description: `Keyless market dashboards you can preview in the browser and fork onto your own machine.`,
     url: absoluteUrl("/gallery"),
     type: "website",
   },
