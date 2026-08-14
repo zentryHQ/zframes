@@ -9,9 +9,10 @@ import {
   type DashboardSpec,
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import "gridstack/dist/gridstack.min.css";
+import { DashboardBackground } from "@/app/lib/DashboardBackground";
 import { PublishDialog } from "@/app/lib/PublishDialog";
 import { Button } from "@/app/components/ui/button";
 import { frameDefs, providers, registry } from "@/app/lib/frames";
@@ -22,6 +23,12 @@ import { DESKTOP_EDIT_QUERY, useMediaQuery } from "@/app/lib/use-media-query";
 // Bumped from v1 (the old 3-frame starter) so the new all-frames default
 // surfaces past any spec a returning browser had saved under the old key.
 const STORAGE_KEY = "zframes:tinker-spec-v3";
+
+// One-shot handoff slot written by /dashboard/[id]'s "Edit this board" button
+// (must match TINKER_HANDOFF_KEY there). Read before the saved board, cleared
+// after mount — a reload returns to the visitor's own saved board unless they
+// saved the fork over it.
+const HANDOFF_KEY = "zframes:tinker-handoff";
 
 const COLS = 12;
 
@@ -129,23 +136,46 @@ function buildStarter() {
   };
 }
 
-function loadSpec(): DashboardSpec {
-  // The saved spec first: buildStarter() packs ~285 default configs, so it is
+function loadSpec(): { spec: DashboardSpec; handoff: boolean } {
+  // A board handed off from /dashboard/[id]'s "Edit this board" wins — the
+  // visitor explicitly asked to edit THAT board. Read-only here; the key is
+  // removed in an effect after mount, NOT in this initializer (StrictMode runs
+  // initializers twice in dev, and consume-on-first-read would hand the second
+  // run nothing).
+  try {
+    const raw = window.localStorage.getItem(HANDOFF_KEY);
+    if (raw) {
+      const parsed = DashboardSpecSchema.safeParse(JSON.parse(raw));
+      if (parsed.success) return { spec: parsed.data, handoff: true };
+    }
+  } catch {
+    // Storage unavailable / corrupt JSON — fall through to the saved board.
+  }
+  // Then the saved spec: buildStarter() packs ~285 default configs, so it is
   // built lazily, only when this browser has nothing usable saved.
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = DashboardSpecSchema.safeParse(JSON.parse(raw));
-      if (parsed.success) return parsed.data;
+      if (parsed.success) return { spec: parsed.data, handoff: false };
     }
   } catch {
     // Storage unavailable / corrupt JSON — fall through to the starter.
   }
-  return DashboardSpecSchema.parse(buildStarter());
+  return { spec: DashboardSpecSchema.parse(buildStarter()), handoff: false };
 }
 
 export default function DashboardTinker() {
-  const [spec] = useState<DashboardSpec>(loadSpec);
+  const [{ spec, handoff }] = useState(loadSpec);
+  // Consume the handoff AFTER mount (see loadSpec for why not in the
+  // initializer): from here on, a reload shows the visitor's own saved board.
+  useEffect(() => {
+    try {
+      window.localStorage.removeItem(HANDOFF_KEY);
+    } catch {
+      /* storage unavailable — nothing to clear */
+    }
+  }, []);
   // Editing needs desktop width + a fine pointer (same gate as the runtime):
   // the 12-column GridStack is ~27px per column on a phone and its per-card
   // controls are hover-revealed. Everything narrower gets the read-only
@@ -155,6 +185,18 @@ export default function DashboardTinker() {
   // we keep in a ref so Publish always sends the latest edited state.
   const latest = useRef<DashboardSpec>(spec);
   const [showPublish, setShowPublish] = useState(false);
+
+  // Live cosmetics the editor reports while customising (null = not editing →
+  // fall back to the saved spec), mirroring the runtime's App.tsx: the
+  // full-bleed <DashboardBackground> renders HERE, outside the editor, so a
+  // scene swap / opacity drag / gradient toggle in the Cosmetics rail repaints
+  // the real backdrop live instead of only after Save + reload. The picked
+  // values still land in the spec via the editor's own collectSpec.
+  const [liveBackground, setLiveBackground] = useState<
+    DashboardSpec["background"] | null
+  >(null);
+  const [liveHue, setLiveHue] = useState<number | null>(null);
+  const [liveSat, setLiveSat] = useState<number | null>(null);
 
   const onSave = useCallback(async (next: DashboardSpec) => {
     latest.current = next;
@@ -169,13 +211,27 @@ export default function DashboardTinker() {
 
   return (
     <FramesProvider providers={providers}>
+      {/* The board's own background (live edit wins, else the saved spec) —
+          same z-[-1] wrapper as /dashboard/[id]: below the header/footer
+          chrome, pointer-events-none so a fixed inset-0 layer never swallows
+          clicks. AppShell suppresses the site Aurora on /tinker; a board with
+          `type:"none"` falls back to the default Aurora inside this component. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-[-1]">
+        <DashboardBackground
+          background={liveBackground ?? spec.background}
+          accentHue={liveHue ?? spec.theme.accentHue}
+          accentSat={liveSat ?? spec.theme.accentSat}
+        />
+      </div>
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 pt-6">
         <div>
           <h1 className="text-lg font-semibold text-white">Tinker</h1>
           <p className="text-xs text-white/55">
-            {canEdit
-              ? "Customise then Save (this browser), or Publish to a shareable link."
-              : "Editing needs a desktop browser — this is a read-only preview."}
+            {!canEdit
+              ? "Editing needs a desktop browser — this is a read-only preview."
+              : handoff
+                ? `Editing a copy of “${spec.title}” — Save keeps it in this browser, or Publish a shareable link.`
+                : "Customise then Save (this browser), or Publish to a shareable link."}
           </p>
         </div>
         <Button variant="accent" size="sm" onClick={() => setShowPublish(true)}>
@@ -185,7 +241,14 @@ export default function DashboardTinker() {
 
       <main className="mx-auto max-w-7xl px-6 py-4">
         {canEdit ? (
-          <DashboardEditor spec={spec} registry={registry} onSave={onSave} />
+          <DashboardEditor
+            spec={spec}
+            registry={registry}
+            onSave={onSave}
+            onBackgroundChange={setLiveBackground}
+            onAccentHueChange={setLiveHue}
+            onAccentSatChange={setLiveSat}
+          />
         ) : (
           <DashboardRenderer spec={spec} registry={registry} />
         )}
