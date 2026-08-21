@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { handleProxy, handleSpecWrite } from "./serve";
+import { PROXY_ALLOW_HOSTS } from "./proxy-allowlist";
 
 /**
  * Two contracts of `@zframes/serve`'s Node handlers, neither reachable from the
@@ -41,6 +42,14 @@ import { handleProxy, handleSpecWrite } from "./serve";
 // tiny fakes suffice; these aliases pull the param types off the exports.
 type WriteReq = Parameters<typeof handleSpecWrite>[0];
 type ProxyReq = Parameters<typeof handleProxy>[0];
+type ProxyRes = Parameters<typeof handleProxy>[1];
+type ProxyOpts = NonNullable<Parameters<typeof handleProxy>[2]>;
+
+// The relay allows nothing unless its mount names hosts, so these fixtures pass
+// the in-repo fleet's list (what the CLI and vite mounts pass today). The empty
+// default is asserted in serve.test.ts, where the allowlist behaviour lives.
+const relay = (req: ProxyReq, res: ProxyRes, opts: ProxyOpts = {}) =>
+  handleProxy(req, res, { allowHosts: PROXY_ALLOW_HOSTS, ...opts });
 
 interface FakeRes {
   statusCode: number;
@@ -336,28 +345,28 @@ describe("handleSpecWrite body assembly across data chunks", () => {
 });
 
 describe("handleProxy upstream status relay", () => {
-  async function relay(status: number, body: string): Promise<FakeRes> {
+  async function relayStatus(status: number, body: string): Promise<FakeRes> {
     stubFetch({ status, body });
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
+    await relay(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
     await res.done;
     return res;
   }
 
   it("relays a 429 (rate limit) so TtlCache can serve stale", async () => {
-    const res = await relay(429, `{"error":"slow down"}`);
+    const res = await relayStatus(429, `{"error":"slow down"}`);
     expect(res.statusCode).toBe(429);
     expect(res.body).toBe(`{"error":"slow down"}`);
   });
 
   it("relays a 404 rather than collapsing it to 200", async () => {
-    const res = await relay(404, "not found");
+    const res = await relayStatus(404, "not found");
     expect(res.statusCode).toBe(404);
     expect(res.body).toBe("not found");
   });
 
   it("relays a 500 rather than collapsing it to 200", async () => {
-    const res = await relay(500, "boom");
+    const res = await relayStatus(500, "boom");
     expect(res.statusCode).toBe(500);
     expect(res.body).toBe("boom");
   });
@@ -365,10 +374,7 @@ describe("handleProxy upstream status relay", () => {
   it("falls back to application/octet-stream with no upstream type", async () => {
     stubFetch({ contentType: null, body: "raw-bytes" });
     const res = makeRes();
-    await handleProxy(
-      makeProxyReq(proxyUrl("https://cdn.finra.org/f.txt")),
-      res,
-    );
+    await relay(makeProxyReq(proxyUrl("https://cdn.finra.org/f.txt")), res);
     await res.done;
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-type"]).toBe("application/octet-stream");
@@ -378,10 +384,7 @@ describe("handleProxy upstream status relay", () => {
   it("passes a non-JSON upstream content-type through unchanged", async () => {
     stubFetch({ contentType: "text/csv; charset=utf-8", body: "a,b\n1,2" });
     const res = makeRes();
-    await handleProxy(
-      makeProxyReq(proxyUrl("https://cdn.finra.org/f.csv")),
-      res,
-    );
+    await relay(makeProxyReq(proxyUrl("https://cdn.finra.org/f.csv")), res);
     await res.done;
     expect(res.headers["content-type"]).toBe("text/csv; charset=utf-8");
   });
@@ -391,10 +394,7 @@ describe("handleProxy request shape", () => {
   it("accepts HEAD but relays it upstream as a full-body GET", async () => {
     const fetchMock = stubFetch({ body: `{"ok":1}` });
     const res = makeRes();
-    await handleProxy(
-      makeProxyReq(proxyUrl("https://data.sec.gov/x"), "HEAD"),
-      res,
-    );
+    await relay(makeProxyReq(proxyUrl("https://data.sec.gov/x"), "HEAD"), res);
     await res.done;
     // Only a non-GET/HEAD method is 405 (serve.ts:170), so HEAD passes the guard
     // and reaches the same allowlisted target.
@@ -420,7 +420,7 @@ describe("handleProxy request shape", () => {
     const target =
       "https://api.fiscaldata.treasury.gov/services/api/v1/x?fields=a,b&page[size]=2";
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(target)), res);
+    await relay(makeProxyReq(proxyUrl(target)), res);
     await res.done;
     expect(res.statusCode).toBe(200);
     // The full query survives the `?url=` decode + URL round-trip verbatim —
@@ -432,7 +432,7 @@ describe("handleProxy request shape", () => {
   it("fetches with redirect:manual under an abort timeout", async () => {
     const fetchMock = stubFetch();
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
+    await relay(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
     await res.done;
     const init = fetchMock.mock.calls[0][1];
     // `manual`, not `follow`: the handler walks the chain itself so it can
@@ -463,7 +463,7 @@ describe("handleProxy redirect handling", () => {
       { status: 200, contentType: "text/csv", body: "DATE,XUDLUSS\n" },
     ]);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await relay(makeProxyReq(proxyUrl(ALLOWED)), res);
     await res.done;
     expect(fetchMock.mock.calls.map((c) => c[0])).toEqual([
       ALLOWED,
@@ -487,7 +487,7 @@ describe("handleProxy redirect handling", () => {
       { status: 200, contentType: "application/csv", body: "DATE,X\n" },
     ]);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await relay(makeProxyReq(proxyUrl(ALLOWED)), res);
     await res.done;
     expect(fetchMock.mock.calls[1][0]).toBe(
       "https://www.bankofengland.co.uk/boeapps/database/_iadb-FromShowColumns.asp",
@@ -502,7 +502,7 @@ describe("handleProxy redirect handling", () => {
       { status: 200, body: `{"ok":1}` },
     ]);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await relay(makeProxyReq(proxyUrl(ALLOWED)), res);
     await res.done;
     expect(fetchMock.mock.calls[1][0]).toBe("https://data.sec.gov/moved");
     expect(res.statusCode).toBe(200);
@@ -515,7 +515,7 @@ describe("handleProxy redirect handling", () => {
         { status: 200, body: `{"n":${status}}` },
       ]);
       const res = makeRes();
-      await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+      await relay(makeProxyReq(proxyUrl(ALLOWED)), res);
       await res.done;
       expect(fetchMock).toHaveBeenCalledTimes(2);
       expect(res.statusCode).toBe(200);
@@ -546,7 +546,7 @@ describe("handleProxy redirect handling", () => {
       { status: 200, body: `{"leaked":true}` },
     ]);
     const res = makeRes();
-    await handleProxy(
+    await relay(
       makeProxyReq(proxyUrl("https://www.sec.gov/redirect?to=evil")),
       res,
     );
@@ -568,7 +568,7 @@ describe("handleProxy redirect handling", () => {
       { status: 200, body: `{"leaked":true}` },
     ]);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await relay(makeProxyReq(proxyUrl(ALLOWED)), res);
     await res.done;
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(res.statusCode).toBe(403);
@@ -582,7 +582,7 @@ describe("handleProxy redirect handling", () => {
       { status: 200, body: `{"leaked":true}` },
     ]);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await relay(makeProxyReq(proxyUrl(ALLOWED)), res);
     await res.done;
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(res.statusCode).toBe(403);
@@ -594,7 +594,7 @@ describe("handleProxy redirect handling", () => {
       { status: 302, location: null, body: "should not be relayed" },
     ]);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await relay(makeProxyReq(proxyUrl(ALLOWED)), res);
     await res.done;
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(res.statusCode).toBe(502);
@@ -607,7 +607,7 @@ describe("handleProxy redirect handling", () => {
       { status: 302, location: "http://[not-a-url", body: "nope" },
     ]);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await relay(makeProxyReq(proxyUrl(ALLOWED)), res);
     await res.done;
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(res.statusCode).toBe(502);
@@ -624,7 +624,7 @@ describe("handleProxy redirect handling", () => {
       })),
     );
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await relay(makeProxyReq(proxyUrl(ALLOWED)), res);
     await res.done;
     expect(fetchMock).toHaveBeenCalledTimes(6);
     expect(res.statusCode).toBe(502);
@@ -637,7 +637,7 @@ describe("handleProxy redirect handling", () => {
       { status: 200 },
     ]);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(ALLOWED)), res);
+    await relay(makeProxyReq(proxyUrl(ALLOWED)), res);
     await res.done;
     // One timeout for the chain — following hops can't extend the bound.
     expect(fetchMock.mock.calls[1][1].signal).toBe(
@@ -661,14 +661,14 @@ describe("handleProxy per-mount size and timeout options", () => {
   it("defaults to the 16 MB cap when no maxBytes is given", async () => {
     stubFetch({ contentLength: "16000001" });
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(SEC)), res);
+    await relay(makeProxyReq(proxyUrl(SEC)), res);
     await res.done;
     expect(res.statusCode).toBe(502);
     expect(res.body).toContain("too large");
 
     stubFetch({ contentLength: "15999999", body: `{"ok":1}` });
     const under = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(SEC)), under);
+    await relay(makeProxyReq(proxyUrl(SEC)), under);
     await under.done;
     expect(under.statusCode).toBe(200);
   });
@@ -677,7 +677,7 @@ describe("handleProxy per-mount size and timeout options", () => {
     const onBodyRead = vi.fn();
     stubFetch({ contentLength: "5000000", onBodyRead });
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(SEC)), res, {
+    await relay(makeProxyReq(proxyUrl(SEC)), res, {
       maxBytes: 4_400_000,
     });
     await res.done;
@@ -693,7 +693,7 @@ describe("handleProxy per-mount size and timeout options", () => {
     // spotlight frame — the cap exists to sit above it, not to clip it.
     stubFetch({ contentLength: "4039082", body: `{"cik":1045810}` });
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(SEC)), res, {
+    await relay(makeProxyReq(proxyUrl(SEC)), res, {
       maxBytes: 4_400_000,
     });
     await res.done;
@@ -707,7 +707,7 @@ describe("handleProxy per-mount size and timeout options", () => {
     // to keep the response inside the platform's BYTE limit.
     stubFetch({ body: "อ".repeat(400) });
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(SEC)), res, { maxBytes: 1000 });
+    await relay(makeProxyReq(proxyUrl(SEC)), res, { maxBytes: 1000 });
     await res.done;
     expect(res.statusCode).toBe(502);
     expect(res.body).toContain("too large");
@@ -715,7 +715,7 @@ describe("handleProxy per-mount size and timeout options", () => {
     // Control: the same 400 units of ASCII is 400 bytes and relays fine.
     stubFetch({ body: "a".repeat(400) });
     const ascii = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(SEC)), ascii, { maxBytes: 1000 });
+    await relay(makeProxyReq(proxyUrl(SEC)), ascii, { maxBytes: 1000 });
     await ascii.done;
     expect(ascii.statusCode).toBe(200);
   });
@@ -724,7 +724,7 @@ describe("handleProxy per-mount size and timeout options", () => {
     const timeout = vi.spyOn(AbortSignal, "timeout");
     stubFetch();
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(SEC)), res);
+    await relay(makeProxyReq(proxyUrl(SEC)), res);
     await res.done;
     expect(timeout).toHaveBeenCalledWith(20_000);
     timeout.mockRestore();
@@ -738,7 +738,7 @@ describe("handleProxy per-mount size and timeout options", () => {
 
     stubFetch();
     const slow = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(FHFA)), slow, {
+    await relay(makeProxyReq(proxyUrl(FHFA)), slow, {
       timeoutMsByHost: byHost,
     });
     await slow.done;
@@ -746,7 +746,7 @@ describe("handleProxy per-mount size and timeout options", () => {
 
     stubFetch();
     const normal = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(SEC)), normal, {
+    await relay(makeProxyReq(proxyUrl(SEC)), normal, {
       timeoutMsByHost: byHost,
     });
     await normal.done;
@@ -761,7 +761,7 @@ describe("handleProxy per-mount size and timeout options", () => {
       { status: 200, body: "csv" },
     ]);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl(SEC)), res, {
+    await relay(makeProxyReq(proxyUrl(SEC)), res, {
       timeoutMsByHost: { "www.fhfa.gov": 50_000 },
     });
     await res.done;

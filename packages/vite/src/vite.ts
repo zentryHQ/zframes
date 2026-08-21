@@ -11,6 +11,7 @@ import {
   handleSpecRead,
   handleSpecWrite,
 } from "@zframes/serve/serve";
+import { PROXY_ALLOW_HOSTS } from "@zframes/serve/proxy-allowlist";
 import {
   AGENTS_LIST_ROUTE,
   ASK_ROUTE,
@@ -103,11 +104,16 @@ export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
       server.middlewares.use(writeRoute, (req, res) => {
         handleSpecWrite(req, res, target());
       });
-      // Same-origin official-data proxy — the dev mirror of the CLI serve route,
-      // so frames needing CORS-blocked sources work identically under vite dev.
+      // Same-origin data proxy: the dev mirror of the CLI serve route, so
+      // frames needing CORS-blocked sources work identically under vite dev.
+      // The dev mount passes the in-repo fleet's list for the same transitional
+      // reason the CLI does (see there); the relay allows nothing on its own.
       server.middlewares.use(DASHBOARD_PROXY_ROUTE, (req, res, next) => {
         if (req.method !== "GET" && req.method !== "HEAD") return next();
-        void handleProxy(req, res, { userAgent: proxyUserAgent });
+        void handleProxy(req, res, {
+          allowHosts: PROXY_ALLOW_HOSTS,
+          userAgent: proxyUserAgent,
+        });
       });
       // The zAI orb's keyless agent bridge — same contract the CLI's `serve`
       // ships, so `vite dev` dogfoods it too. Hidden when no runner is found.

@@ -15,6 +15,7 @@ import {
   handleSpecRead,
   handleSpecWrite,
 } from "@zframes/serve/serve";
+import { PROXY_ALLOW_HOSTS } from "@zframes/serve/proxy-allowlist";
 import {
   DASHBOARD_LIST_ROUTE,
   DASHBOARD_SWITCH_ROUTE,
@@ -290,10 +291,18 @@ export function createRequestHandler(
       void handleAccountCredentials(req, res);
       return;
     }
-    // Same-origin relay for official-data hosts that browsers can't fetch
-    // directly (no CORS / UA wall). Host-allowlisted inside handleProxy.
+    // Same-origin relay for data hosts that browsers can't fetch directly (no
+    // CORS / UA wall). The relay itself allows NOTHING: the reachable set is
+    // whatever this mount passes, which is why the decision is visible here
+    // rather than buried in the relay.
     if (path === DASHBOARD_PROXY_ROUTE) {
       void handleProxy(req, res, {
+        // TRANSITIONAL. Today this is the in-repo fleet's list. Once adapters
+        // are operator-installed plugins it becomes
+        // `proxyHostsOf(installedManifests)`, so a bare install authorises no
+        // host at all and every reachable host traces back to a package the
+        // operator named.
+        allowHosts: PROXY_ALLOW_HOSTS,
         userAgent: contact ? `zframes (${contact})` : undefined,
         // FHFA serves its ~4 MB metro CSV at ~30 KB/s on bad days — far past
         // the default 20s relay timeout. Loopback has no platform duration

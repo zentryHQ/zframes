@@ -1,7 +1,20 @@
 /**
- * Hosts the proxy will relay to — official/open financial-data surfaces only.
- * An allowlist (not an open proxy) so a dashboard or page can't turn the local
- * serve process into an SSRF relay to arbitrary or internal hosts.
+ * TRANSITIONAL: the hosts the IN-REPO provider fleet contacts.
+ *
+ * The relay itself no longer reads this list. `handleProxy` allows only what
+ * its mount passes (`ProxyOptions.allowHosts`, empty by default), and the two
+ * mounts that still bundle the fleet pass this constant explicitly, so the
+ * choice is visible at the mount instead of compiled into the relay.
+ *
+ * Where this is going: each adapter declares the hosts it contacts in its
+ * plugin manifest (`ProviderPluginManifest.hosts`, @zframes/spec), and a mount
+ * derives its allowlist with `proxyHostsOf(installedManifests)`. Then this file
+ * goes away with the bundled fleet, and a zframes install authorises exactly
+ * the hosts belonging to adapters its operator chose to install.
+ *
+ * It stays an allowlist (never an open proxy) either way, so a dashboard or
+ * page cannot turn the local serve process into an SSRF relay to arbitrary or
+ * internal hosts.
  */
 export const PROXY_ALLOW_HOSTS = new Set<string>([
   "data.sec.gov",
