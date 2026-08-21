@@ -181,17 +181,6 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
           <DashboardView spec={spec} />
         </div>
       </div>
-      {/* /embed/* renders bare (no AppShell, so no header demo pill), but the
-          labelling rule still applies: simulated numbers must be visibly
-          labelled on EVERY surface — including a board iframed into the
-          landing showcase or a third-party page. */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-md border border-amber-400/20 bg-black/65 px-2 py-1 text-[11px] text-amber-300/90"
-      >
-        <span className="h-1 w-1 rounded-full bg-amber-400" />
-        Demo data
-      </div>
     </div>
   );
 }

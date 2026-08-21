@@ -250,12 +250,11 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
       <section className="mx-auto max-w-5xl px-6 pb-2 pt-16 text-center">
         <Reveal>
           <h2 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Real boards. Demo data. Zero setup.
+            Real boards. Zero setup.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-pretty text-sm leading-relaxed text-white/65 sm:text-base">
-            Every board here is rendering right now on simulated demo data — the
-            same frames your generated terminal runs on live data. Keep
-            scrolling; open any one.
+            Every board here is rendering right now — the same frames your
+            generated terminal runs. Keep scrolling; open any one.
           </p>
         </Reveal>
       </section>

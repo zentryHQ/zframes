@@ -7,7 +7,6 @@ import { Agentation } from "agentation";
 import { Toaster } from "sonner";
 import { AuthNav } from "@/app/lib/AuthNav";
 import { BrandMark } from "@/app/lib/BrandMark";
-import { DemoDataBadge } from "@/app/lib/DemoDataBadge";
 import { Footer } from "@/app/lib/Footer";
 import { NavLinks } from "@/app/lib/NavLinks";
 import { UnicornBackground } from "@/app/lib/UnicornBackground";
@@ -56,13 +55,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="ml-2 hidden h-5 w-px bg-white/10 sm:block" />
             <NavLinks />
 
-            {/* Right slot: the site-wide "Demo data" label (every frame renders
-                simulated data — see frames.ts), then the auth controls once a
-                session exists. No persistent sign-in CTA: auth prompts live at
-                the gated actions themselves. (The GitHub link lives in the
-                footer.) */}
+            {/* Right slot: the auth controls, once a session exists. No
+                persistent sign-in CTA: auth prompts live at the gated actions
+                themselves. (The GitHub link lives in the footer.) */}
             <div className="ml-auto flex items-center gap-3">
-              <DemoDataBadge />
               <AuthNav />
             </div>
           </nav>
