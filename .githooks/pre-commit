@@ -76,6 +76,18 @@ while IFS= read -r -d '' f; do unstaged+=("$f"); done < <(
 )
 files=()
 for f in "${staged[@]}"; do
+  # Skip symlinks. A symlink has no content of its own to format, and every
+  # formatter here ERRORS on an explicitly-listed one rather than ignoring it
+  # ("Explicitly specified pattern ... is a symbolic link") — which aborts the
+  # whole commit under `set -e`, before the `git add` below ever runs. Neither
+  # `.prettierignore` nor `--ignore-unknown` suppresses it: the objection is the
+  # file type, not the extension. This repo commits `CLAUDE.md -> AGENTS.md`
+  # pairs by convention, so staged symlinks are routine, not an edge case. The
+  # target gets formatted on its own if it is also staged.
+  if [ -L "$f" ]; then
+    continue
+  fi
+
   partial=0
   for u in "${unstaged[@]:-}"; do
     [ "$f" = "$u" ] && partial=1 && break
