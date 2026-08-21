@@ -42,7 +42,7 @@ facade is gone (2026-07-03): **every consumer imports the leaf package directly.
 | `@zframes/charts` | D3 base chart layer | nothing |
 | `@zframes/unicorn` | shared Unicorn Studio scene loader + backdrop gates | nothing |
 | `@zframes/frames` | the frames | charts, core, spec |
-| `provider-*` (32) | React-free data adapters | spec, data-primitives |
+| `provider-*` (31) | React-free data adapters | spec, data-primitives |
 | `@zframes/provider-demo` | the synthetic default source: seeded data for every capability, zero network | spec |
 | `@zframes/providers-keyless` | composition leaf: the shipping keyless fleet | the providers, spec |
 
@@ -57,9 +57,9 @@ import siblings by **package subpath**, never relative.
 - Transport, caching or delimited-response parsing (fetch, proxy rewrite, TTL/dedup/persist, CSV rows) → `packages/data-primitives`.
 - New capability hook / renderer chrome → `packages/core` (`hooks.tsx` / `frame-content.tsx`).
 - Authoring-UI behaviour (palette, rail, grid interactions, default-config seeding) → `packages/editor`.
-- Spec read/write or proxy route → `packages/serve`; new proxied provider host → its allowlist in `serve.ts`.
+- Spec read/write or proxy route → `packages/serve`; new proxied provider host → `serve/proxy-allowlist.ts` AND the manifest of the plugin that fetches it, since the relay allows only what its mount names.
 - Store/dashboard-resolution behaviour → `packages/store`; credentials/relay → `packages/account`; orb/harness → `packages/zai`; dev-plugin composition only (no logic) → `packages/vite`.
-- New frame → `packages/frames` (four lists, see `packages/frames/AGENTS.md`); new provider → a new `packages/provider-*` + wiring in the composition roots (`apps/runtime/src/App.tsx`, explorer).
+- New frame → `packages/frames` (four lists, see `packages/frames/AGENTS.md`); new provider → a new `packages/provider-*`, added to `packages/providers-keyless/src/index.ts` (the runtime spreads that factory, so no app edit) and to its manifest.
 
 ## Conventions
 
@@ -70,7 +70,7 @@ import siblings by **package subpath**, never relative.
 - Base charts stay generic: no business logic, no data fetching. Frames own data, charts own rendering.
 - **Every capability is denominated in USD.** A non-USD source converts on the way out; display currency is resolved by `useMoney()` in the frame, never by a provider. Footgun: the board field is an object (`currency: { code: "THB" }`) but the per-card override is a bare string (`currency: "USD"`). → [packages/core/AGENTS.md](packages/core/AGENTS.md)
 - **Provider caching is centralised.** Every request/response endpoint wraps its fetch in `@zframes/data-primitives`' `TtlCache`, never a hand-rolled `memo`/`Map`/`localStorage`. Live WebSocket streams are never TTL-cached. → [packages/providers-keyless/AGENTS.md](packages/providers-keyless/AGENTS.md)
-- **CORS-blocked official sources need `{ proxied: true }`**, and those frames degrade to empty on a static host with no runtime. A new proxied host must be added to the allowlist in `packages/serve/src/serve.ts`. → [packages/providers-keyless/AGENTS.md](packages/providers-keyless/AGENTS.md)
+- **CORS-blocked official sources need `{ proxied: true }`**, and those frames degrade to empty on a static host with no runtime. A new proxied host must be added to `packages/serve/src/proxy-allowlist.ts`; the relay itself allows nothing, so a mount has to pass that list (`tests/proxy-mounts.test.ts` pins that all four do). → [packages/providers-keyless/AGENTS.md](packages/providers-keyless/AGENTS.md)
 - Original assets only. Deliberate exceptions (all Zentry's own IP; public release pends owner sign-off): `packages/charts` (port of zTerminal) and `packages/frames/src/use-countdown.ts` (port of zhive's `useCountdown`, the optimized global-tick/viewport-gated readout that drives the `clock` frame).
 - **A pre-commit hook formats staged files** (`.githooks/pre-commit`, copied into the repo's hooks dir by `.githooks/install.mjs` on `pnpm install`). `pnpm format:check` gates every PR, so an unformatted commit reddens main on push — and with several sessions committing in parallel, the one that goes red is rarely the one that wrote the line. **No formatter is hard-coded:** the hook resolves one at run time — a `format:staged` script wins, else biome, dprint or prettier by config/dependency — so switching is a config swap, not a hook edit. Two footguns. **Never install husky:** it sets `core.hooksPath` on the repo, which overrides a *global* hooks dir, and this machine has one whose dispatcher links `.env*` into new worktrees — every fresh worktree would come up without env files. The hook is **copied, not symlinked**, because `prepare` usually runs from a worktree and a symlink would dangle when that worktree is deleted; the cost is that editing `.githooks/*` needs another `pnpm install` to take effect. Files with *unstaged* changes are skipped rather than formatted, since re-adding them would commit hunks the author left out of the index.
 - **`@zframes/zai` spawns the user's own CLI** (`claude -p` / `codex exec`) inheriting the server env. `ZFRAMES_CLAUDE_CONFIG_DIR` / `ZFRAMES_CODEX_HOME` point **only** zframes's child at a specific account (config/creds dir), so they are safe to export globally and never hijack a bare `claude`/`codex` (`resolveAgentEnv`). Do not reach for `CLAUDE_CONFIG_DIR`/`CODEX_HOME` instead: those would.
@@ -91,7 +91,7 @@ Each is self-contained; read the one for the directory you are working in.
 | [packages/spec/AGENTS.md](packages/spec/AGENTS.md) | the kernel: event markers, nested frame groups, the route contract |
 | [packages/core/AGENTS.md](packages/core/AGENTS.md) | renderer, frame chrome, capability hooks, the full display-currency rule |
 | [packages/frames/AGENTS.md](packages/frames/AGENTS.md) | adding a frame (four lists), size envelopes, the shared primitives, frame footguns |
-| [packages/providers-keyless/AGENTS.md](packages/providers-keyless/AGENTS.md) | the 31-provider fleet with per-provider footguns, caching, the proxy, `source` pinning |
+| [packages/providers-keyless/AGENTS.md](packages/providers-keyless/AGENTS.md) | the 29-provider keyless fleet with per-provider footguns, caching, the proxy, `source` pinning |
 | [packages/editor/AGENTS.md](packages/editor/AGENTS.md) | the authoring UI, default-config seeding, nested GridStack |
 | [packages/charts/AGENTS.md](packages/charts/AGENTS.md) | the D3 base chart layer |
 | [packages/cli/AGENTS.md](packages/cli/AGENTS.md) | CLI commands, the XDG global store, releasing |

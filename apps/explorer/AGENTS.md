@@ -207,7 +207,7 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
 - **`/catalogue` is a Server Component.** It was a `"use client"` page whose whole
   body was a `ssr: false` import, so the most content-dense page on the site served
   the words "Loading catalogue…" and had no `<h1>` and no metadata. The heading,
-  metadata and `FrameIndex` (all 285 frames as text) now render on the server;
+  metadata and `FrameIndex` (all 284 frames as text) now render on the server;
   only the live grid stays client-only, behind `CatalogueClient`. `CatalogueView`
   must therefore **not** render `<main>` or an `<h1>` — the page owns both.
 - **`/gallery` fetches its rows server-side** and passes them as `initial`. The

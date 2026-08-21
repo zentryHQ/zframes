@@ -97,6 +97,7 @@ The contract the agent works against is the **catalogue** (frame names + config 
 | **Prices & Markets** | `price-chart`, `price-liveline`, `price-ticker`, `top-movers`, `price-compare` |
 | **Crypto & On-chain** | `bitcoin-dominance`, `market-cap-treemap`, `tvl-treemap`, `dex-volume-*`, `protocol-tvl-*`, `protocol-fees-treemap`, `coin-movers` |
 | **Bitcoin Network** | `btc-fees`, `btc-mempool`, `btc-blocks`, `btc-hashrate`, `btc-difficulty`, `mining-pools`, `lightning-stats` |
+| **On-chain & Cycle** | `mvrv`, `nupl`, `sopr`, `puell-multiple`, `mayer-multiple`, `pi-cycle`, `ma-multiplier`, `cycle-signals`, `realized-price`, `reserve-risk` |
 | **Derivatives & Options** | `funding-rate-chart`, `funding-heatmap`, `open-interest`, `options-put-call`, `options-iv`, `options-oi-strike`, `order-book-depth` |
 | **Macro & Rates** | `rates-board`, `yield-curve`, `inflation-pulse`, `labor-market`, `national-debt`, `treasury-auctions`, `financial-stress`, `fx-board` |
 | **Metals & Commodities** | `metals-board`, `metal-price`, `metal-price-chart`, `metal-fix-table` (London fixes back to 1968), `gold-silver-ratio`, `us-gold-reserve`, `tokenized-gold` |
@@ -200,10 +201,10 @@ packages/
   frames                   the built-in frames + their AI-facing schemas
   data-primitives          the shared fetch + TTL-cache + CSV-parsing transport every
                            provider uses
-  provider-*               29 keyless data providers (Hyperliquid, Nasdaq, CoinGecko,
+  provider-*               (32 packages) 29 keyless data providers (Hyperliquid, Nasdaq, CoinGecko,
                            DeFiLlama, Deribit, Cboe, mempool, Treasury, NY Fed, OFR, BLS,
                            FINRA, SEC, LBMA metals, FRED, Zillow, FHFA, Bitkub, …) + 2
-                           opt-in keyed providers (binance, wallet)
+                           opt-in keyed providers (binance, wallet), plus provider-demo below
   provider-demo            the synthetic default source — seeded data for every
                            capability, zero network, plainly simulated
   providers-keyless        one factory assembling the keyless set, shared by both apps
