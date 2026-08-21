@@ -1,10 +1,10 @@
 # @zframes/frames
 
-The frame components. Each frame = a Zod meta (in `schemas.ts`) + a component (its own `.tsx`) + an entry in `allFrames` (`index.ts`). Schemas are read by generating agents; components render data through **shared primitives**.
+The frame components. Each frame = a Zod meta (in `schemas/<family>.ts`) + a component (its own `.tsx`) + an entry in `allFrames` (`index.ts`). Schemas are read by generating agents; components render data through **shared primitives**.
 
 ## Cardinal rule: don't hand-roll — route through the shared primitive
 
-These frames are meant to read as **one system**, not a pile of one-offs. Every recurring concern — number formatting, gain/loss color, type scale, loading/empty, scroll, list rows — already has exactly one home. Before you write a compact-`$` formatter, a `#hex`, a `text-[…]`, or a custom spinner, **import the primitive instead**. New divergence is the regression this package was harmonized to remove (see `docs/frame-ui-harmonization.html`).
+These frames are meant to read as **one system**, not a pile of one-offs. Every recurring concern — number formatting, gain/loss color, type scale, loading/empty, scroll, list rows — already has exactly one home. Before you write a compact-`$` formatter, a `#hex`, a `text-[…]`, or a custom spinner, **import the primitive instead**. New divergence is the regression this package was harmonized to remove.
 
 | Concern | Use | Never |
 |---|---|---|
@@ -47,14 +47,14 @@ These intentionally don't go through the generic primitives; don't "harmonize" t
 
 Per-frame metadata lives in **four** lists that must stay in lockstep — `registry-parity.test.ts` fails the build if they drift, and a missing loader/meta makes the frame vanish at runtime as an "Unknown frame" card:
 
-1. `schemas.ts` — add the meta via `defineFrameMeta`. **Set `label`** (required — the human display name; it's the card's default title when an instance sets no `title`, plus the editor-palette / catalogue name. Use Title Case with real acronyms, e.g. `"OI by Strike"`, `"BTC Fees"` — not the raw `frame-id`). **Set `category`** (one of `FRAME_CATEGORIES`' keys in `@zframes/core` — required; groups the editor palette and the AI catalogue) and give **every field a `.describe()`** (read by `catalogueForAI`). React-free — no component imports. Then add the meta to **`allFrameMetas`** (every renderable frame; the runtime registry's source), and — only if the generating agent should be able to pick it — also to **`frameMetas`** (the curated AI catalogue; games/journal/tools/layout frames are deliberately omitted).
+1. `schemas/<family>.ts` — add the meta via `defineFrameMeta`, in the file for its `category` (one per `FRAME_CATEGORIES` family, 14 of them; `crypto.ts` is the largest, `shared.ts` holds the common field helpers). The thin `schemas.ts` barrel re-exports them all, so nothing else needs touching. **Set `label`** (required — the human display name; it's the card's default title when an instance sets no `title`, plus the editor-palette / catalogue name. Use Title Case with real acronyms, e.g. `"OI by Strike"`, `"BTC Fees"` — not the raw `frame-id`). **Set `category`** (one of `FRAME_CATEGORIES`' keys in `@zframes/core` — required; groups the editor palette and the AI catalogue) and give **every field a `.describe()`** (read by `catalogueForAI`). React-free — no component imports. Then add the meta to **`allFrameMetas`** (every renderable frame; the runtime registry's source), and — only if the generating agent should be able to pick it — also to **`frameMetas`** (the curated AI catalogue; games/journal/tools/layout frames are deliberately omitted).
    **Set `layout` — all four bounds.** `{ w, h, minW, minH, maxW?, maxH? }`: the span the frame is added at, and the floor and ceiling the editor's resize handles enforce. Guess it to start, then **measure it**:
 
    ```bash
    pnpm --filter @zframes/storybook build
-   PROBE_FRAMES=<your-frame> pnpm tsx .github/scripts/frame-size-probe.ts   # 96 spans, clipping/legibility/ink
-   pnpm tsx .github/scripts/dump-frame-meta.mts
-   SHEET_FRAMES=<your-frame> pnpm tsx .github/scripts/frame-size-sheet.ts   # the envelope's corners, as a PNG to look at
+   PROBE_FRAMES=<your-frame> pnpm frames:size:probe   # 96 spans, clipping/legibility/ink
+   pnpm frames:meta
+   SHEET_FRAMES=<your-frame> pnpm frames:size:sheet   # the envelope's corners, as a PNG to look at
    ```
 
    Omit `maxW`/`maxH` when the frame genuinely scales — that means unbounded, and is not the same as `12`. `tests/frame-layout-bounds.test.ts` fails the build if a frame ships without a floor or with an incoherent envelope.
@@ -73,6 +73,18 @@ Per-frame metadata lives in **four** lists that must stay in lockstep — `regis
 - **Money on market data goes through `useMoney()`, not `formatPrice`.** A card can be denominated in any of the 146 `CURRENCY_CODES` (dashboard `currency.code`, or a per-card override), and `tests/currency-coverage.test.ts` **fails the build** if a frame touches `formatPrice`/`formatCompactUsd` without declaring `usdOnly` (above). The plain `$` helpers are only for US-macro series, SEC figures as reported, and user-typed numbers. The hook is only callable from a component: for a nested React component (treemap `Leaf`, heatmap `Cell`) call `useMoney()` inside it — before any early return; for a D3 render callback that is NOT a component (`formatTitle`, `formatValue`), call the hook in the frame and let the closure capture `money` (see `market-bubbles`), or pass it down as a prop (see `order-book-depth`).
 - **A time-series chart renders through `TimeSeriesChart` AND sets `annotatable: true` on its meta.** A card's `events` (its own dated markers) reach the chart only through that wrapper, and the meta flag is what makes the editor offer the Events panel + tells the AI catalogue the frame accepts markers. `tests/chart-events-coverage.test.ts` **fails the build** if either drifts — a chart that quietly opted out looks identical to a card nobody annotated, so nobody would catch it in review.
 - **A frame that can source from two exchanges needs `source` plumbed all the way through.** Add `source: sourceField()` to its schema AND pass `config.source` into the hook — capability routing is first-match, so without it the frame silently keeps reading the default provider. Remember symbols are source-native (`xyz:TSLA` exists only on Hyperliquid; Bitkub lists bare tickers) and `quote-stream` is Hyperliquid-only.
-- `schemas.ts` is the single source of truth for frame metadata **and must stay React-free** — the CLI, catalogue export, and the `/zframes` skill import it without charts/liveline/CSS.
+- `src/schemas/` is the single source of truth for frame metadata **and must stay React-free** — the CLI, catalogue export, and the `/zframes` skill import it without charts/liveline/CSS.
 - Frame **chrome** (card, title, hover, source link) is the renderer's job (`@zframes/core` `FrameContent` + injected `.zf-*` CSS). A frame styles only its **interior**.
+- The package also re-exports `AssetLogo`/`assetLogoUrl`/`tickerOf` (keyless CDN logos + HIP-3 prefix stripping) for hosts.
 - Keyless only, stocks-first — see the repo root `../../AGENTS.md` for project-wide scope and commands.
+
+## Where the size bounds come from
+
+The envelope is **measured, not guessed**, and it is surfaced in three places a wrong value shows up: `catalogueForAI` (so the generating agent sizes cards correctly), each explorer catalogue card, and `zframes lint` (which reports a board card sitting outside it). `tests/frame-layout-bounds.test.ts` pins `1 ≤ min ≤ default ≤ max` plus "no shipped board sits outside its frames' bounds".
+
+The numbers come from `.github/scripts/frame-size-probe.ts`, which mounts each frame once and resizes it through all 96 spans (rewriting `--zf-col-span`/`--zf-row-span`), recording clipped content, labels hitting their ellipsis, chart boxes below legibility, visible list rows, and the "ink" fraction of the card that actually paints. `derive-frame-bounds.ts` turns that matrix into bounds and `frame-size-sheet.ts` renders the envelope's corners as a contact sheet to check by eye.
+
+## Two things you do NOT have to touch
+
+- **No Storybook edit needed.** A Default/AllVariants/AllSizes/OutOfBounds/States/Live story set auto-generates per frame (see `apps/storybook/AGENTS.md`).
+- **No hand-kept frame list anywhere.** For the live, grouped list of which family holds which frames, read it from the source: the editor palette or `catalogueForAI` (`@zframes/core`), both driven off `FRAME_CATEGORIES` + the registry.
