@@ -176,7 +176,7 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
                 <span className="caption text-disabled px-2 py-2">
                   {universe.length === 0
                     ? "loading universe…"
-                    : "no Hyperliquid market for that"}
+                    : "no market for that"}
                 </span>
               )}
             </div>

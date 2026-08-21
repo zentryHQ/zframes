@@ -92,8 +92,9 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
 export const topMoversFrame = defineFrame({
   ...topMoversMeta,
   component: TopMovers,
-  // The venue picks the whole universe (Hyperliquid HIP-3 vs Bitkub tickers).
+  // The venue picks the whole universe, so a pinned source is worth naming in
+  // the title; the default one is left unsaid.
   titleContent: ({ config }) => (
-    <>{prettySlug(config.source ?? "hyperliquid")} · Top Movers</>
+    <>{config.source ? `${prettySlug(config.source)} · ` : ""}Top Movers</>
   ),
 });
