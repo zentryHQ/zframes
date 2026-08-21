@@ -28,6 +28,7 @@
     "@zframes/data-primitives": "workspace:*",
     "@zframes/editor": "workspace:*",
     "@zframes/frames": "workspace:*",
+    "@zframes/provider-demo": "workspace:*",
     "@zframes/provider-wallet": "workspace:*",
     "@zframes/providers-keyless": "workspace:*",
     "@zframes/serve": "workspace:*",

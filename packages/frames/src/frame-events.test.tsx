@@ -11,7 +11,7 @@ import {
 } from "@zframes/core";
 import { allFrames } from "./index";
 import { allFrameMetas } from "./schemas";
-import { MockMarketDataProvider } from "./testing/mock-provider";
+import { MockMarketDataProvider } from "@zframes/provider-demo";
 
 /**
  * WHAT THIS PINS — that a card's `events` actually reach its chart, through the

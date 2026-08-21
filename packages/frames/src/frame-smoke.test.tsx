@@ -10,7 +10,7 @@ import {
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
 import { allFrames } from "./index";
-import { MockMarketDataProvider, type MockMode } from "./testing/mock-provider";
+import { MockMarketDataProvider, type MockMode } from "@zframes/provider-demo";
 
 // A crash net for every frame: render each one through the REAL DashboardRenderer
 // (same chrome / error-card / capability routing as production) fed by the

@@ -18,7 +18,7 @@ import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
 import { allFrames } from "./index";
 import { logCall } from "./journal-store";
 import { allFrameMetas } from "./schemas";
-import { MockMarketDataProvider } from "./testing/mock-provider";
+import { MockMarketDataProvider } from "@zframes/provider-demo";
 
 /**
  * WHAT THIS PINS — the display-currency contract for EVERY registered frame.

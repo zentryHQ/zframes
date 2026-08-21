@@ -1,0 +1,26 @@
+{
+  "name": "@zframes/provider-demo",
+  "version": "0.0.0",
+  "description": "Synthetic, zero-network zframes data provider: deterministic seeded data for every capability in four modes (normal/empty/loading/error). No upstream API, no ToS exposure — the honest default so a bare install renders a real-looking, plainly-simulated board.",
+  "license": "MIT",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/provider-demo"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/spec": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

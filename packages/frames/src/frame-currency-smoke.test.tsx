@@ -15,7 +15,7 @@ import {
 } from "@zframes/core";
 import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
 import { allFrames } from "./index";
-import { MockMarketDataProvider } from "./testing/mock-provider";
+import { MockMarketDataProvider } from "@zframes/provider-demo";
 
 // The display-currency contract at the FRAME level: a board declares
 // `currency.code`, providers report USD, and every card's money figures must be

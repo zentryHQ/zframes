@@ -87,7 +87,7 @@ import type {
   EarningsCalendarEntry,
   AnalystRatings,
   InstitutionalOwnership,
-} from "@zframes/core";
+} from "@zframes/spec";
 
 /**
  * What the mock provider should pretend is happening:
@@ -3536,7 +3536,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
 
   getNetworkHashrate(
     window: string,
-  ): Promise<import("@zframes/core").NetworkHashrate> {
+  ): Promise<import("@zframes/spec").NetworkHashrate> {
     const empty = {
       currentHashrate: 0,
       currentDifficulty: 0,

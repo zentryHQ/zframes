@@ -43,7 +43,7 @@ versioned migrations — see below. `drizzle-kit generate` is still useful for
 
 Since **2026-08-14** every frame-rendering surface (landing, `/dashboard/[id]`,
 `/embed/[id]`, `/catalogue`, `/tinker`) renders **simulated data, always** —
-the full-capability `MockMarketDataProvider` from `@zframes/frames/testing`, the
+the full-capability `MockMarketDataProvider` from `@zframes/provider-demo`, the
 same deterministic offline provider the frame smoke tests run on. `app/lib/frames.ts`
 composes providers unconditionally (no branching, no `localStorage` flag); the
 former per-browser live opt-in (`zframes-data-mode`, `DataModeToggle`) was removed.
@@ -62,7 +62,7 @@ number must not carry a real provider's name). Keep that attribute.
 **Footgun:** a mock data gap renders as a *quiet empty card*, not an error — the
 frame smoke test only forbids error cards, so nothing fails when a frame's mock
 method returns a shape the frame filters out. If a card is empty here but fine in
-the CLI runtime, fix the method in `packages/frames/src/testing/mock-provider.ts`
+the CLI runtime, fix the method in `packages/provider-demo/src/mock-provider.ts`
 (e.g. `getNationalDebt` needed per-point `heldByPublic`/`intragovernmental` for
 the composition frame).
 

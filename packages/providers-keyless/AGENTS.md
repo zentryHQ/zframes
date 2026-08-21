@@ -9,6 +9,14 @@ Every provider is a React-free data adapter over `@zframes/spec` +
 both enforce it). Adding one: a new `packages/provider-*`, then wiring in the
 composition roots (`apps/runtime/src/App.tsx`, explorer) and in this package.
 
+`@zframes/provider-demo` is a `packages/provider-*` package but is **deliberately
+not in this fleet** and must never be added to it: it is the synthetic default
+source (seeded data for every capability, zero network, no upstream ToS), so it
+declares no transport dependency and belongs to no venue. Two repo-level guards
+read this package's manifest as the *live* set: `tests/dep-dag.test.ts` pins its
+`@zframes/provider-*` deps by exact equality, and `tests/capability-coverage.test.ts`
+counts them to assert one mounted instance per shipping provider.
+
 ## Two conventions that apply to every provider
 
 ### Caching

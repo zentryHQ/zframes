@@ -82,7 +82,7 @@ import { lintSpec } from "../packages/cli/src/lint";
 import { allFrameMetas } from "../packages/frames/src/schemas";
 import { frameLoaders } from "../packages/frames/src/lazy";
 import { allFrames } from "../packages/frames/src/index";
-import { MockMarketDataProvider } from "../packages/frames/src/testing/mock-provider";
+import { MockMarketDataProvider } from "../packages/provider-demo/src/index";
 import bitkubSpec from "./fixtures/bitkub.dashboard.json";
 import cryptoCommandSpec from "./fixtures/crypto-command.dashboard.json";
 import macroWatchSpec from "./fixtures/macro-watch.dashboard.json";

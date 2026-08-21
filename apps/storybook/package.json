@@ -17,6 +17,7 @@
     "@zframes/core": "workspace:*",
     "@zframes/editor": "workspace:*",
     "@zframes/frames": "workspace:*",
+    "@zframes/provider-demo": "workspace:*",
     "@zframes/providers-keyless": "workspace:*",
     "@zframes/serve": "workspace:*",
     "@zframes/spec": "workspace:*",

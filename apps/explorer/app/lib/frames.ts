@@ -12,7 +12,7 @@
 // CLI's job, not the hosted explorer's.
 import type { AnyFrameDefinition } from "@zframes/core";
 import { createLazyRegistry } from "@zframes/frames/lazy-registry";
-import { MockMarketDataProvider } from "@zframes/frames/testing";
+import { MockMarketDataProvider } from "@zframes/provider-demo";
 
 export const providers = [new MockMarketDataProvider()];
 
