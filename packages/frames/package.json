@@ -18,8 +18,7 @@
     "./schemas": "./src/schemas.ts",
     "./lazy": "./src/lazy.ts",
     "./lazy-registry": "./src/lazy-registry.tsx",
-    "./asset-logo": "./src/asset-logo.tsx",
-    "./testing": "./src/testing/mock-provider.ts"
+    "./asset-logo": "./src/asset-logo.tsx"
   },
   "sideEffects": false,
   "scripts": {
@@ -38,6 +37,7 @@
   "devDependencies": {
     "@types/react": "^19.1.0",
     "@zframes/editor": "workspace:*",
+    "@zframes/provider-demo": "workspace:*",
     "typescript": "^5.8.0"
   }
 }

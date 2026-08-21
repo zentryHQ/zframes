@@ -217,6 +217,9 @@ export default tseslint.config(
   },
   {
     // Providers are React-free data adapters over @zframes/spec + the transport.
+    // The glob covers every provider package, `provider-demo` included: it
+    // serves synthetic seeded data and so needs no transport at all, but the
+    // same ceiling holds — spec, and nothing above it.
     files: ["packages/provider-*/src/**/*.{ts,tsx}"],
     rules: {
       "@typescript-eslint/no-restricted-imports": [

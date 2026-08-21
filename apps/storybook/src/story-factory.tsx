@@ -4,7 +4,7 @@ import type { AnyFrameDefinition, FrameLayout } from "@zframes/core";
 import type { StoryGlobals } from "../.storybook/preview";
 import { FrameCanvas } from "./frame-canvas";
 import { curated } from "./curated";
-import type { MockMode } from "@zframes/frames/testing";
+import type { MockMode } from "@zframes/provider-demo";
 
 type Render = (
   args: Record<string, unknown>,

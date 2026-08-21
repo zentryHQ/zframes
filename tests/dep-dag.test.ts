@@ -35,6 +35,10 @@ const DAG: Record<string, string[]> = {
   cli: [],
   // Composition leaf: aggregates the keyless provider set for the apps. Sits
   // above the providers, below the apps; imports providers + spec (the type).
+  // `provider-demo` is deliberately absent: it is the synthetic default source,
+  // not a keyless upstream, and this exact-equality list is what keeps it from
+  // drifting into the live fleet (and from being counted as one of them by
+  // `tests/capability-coverage.test.ts`, which reads this manifest).
   "providers-keyless": [
     "@zframes/provider-alternativeme",
     "@zframes/provider-bitcoin-data",
@@ -69,7 +73,11 @@ const DAG: Record<string, string[]> = {
   ],
 };
 
-// Providers are uniform: kernel types + transport, nothing else.
+// Providers are uniform: kernel types + transport, nothing else — so they are
+// checked by the glob-driven `it.each` at the bottom of this file rather than by
+// a per-package row in DAG above, and a new `packages/provider-*` needs no edit
+// here. `provider-demo` (synthetic seeded data, zero network) fetches nothing
+// and so declares only `@zframes/spec`; the set is a ceiling, not a floor.
 const PROVIDER_ALLOWED = new Set(["@zframes/spec", "@zframes/data-primitives"]);
 
 // Local-only packages excluded from the workspace (see pnpm-workspace.yaml).

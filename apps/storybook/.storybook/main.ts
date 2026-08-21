@@ -54,6 +54,7 @@ const config: StorybookConfig = {
           "@zframes/editor",
           "@zframes/frames",
           "@zframes/charts",
+          "@zframes/provider-demo",
           "@zframes/providers-keyless",
         ],
       },

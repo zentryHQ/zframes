@@ -204,6 +204,8 @@ packages/
                            DeFiLlama, Deribit, Cboe, mempool, Treasury, NY Fed, OFR, BLS,
                            FINRA, SEC, LBMA metals, FRED, Zillow, FHFA, Bitkub, …) + 2
                            opt-in keyed providers (binance, wallet)
+  provider-demo            the synthetic default source — seeded data for every
+                           capability, zero network, plainly simulated
   providers-keyless        one factory assembling the keyless set, shared by both apps
   serve · store · vite     Node infra — spec read/write + proxy, the XDG dashboard store,
                            the dev plugin

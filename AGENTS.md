@@ -42,7 +42,8 @@ facade is gone (2026-07-03): **every consumer imports the leaf package directly.
 | `@zframes/charts` | D3 base chart layer | nothing |
 | `@zframes/unicorn` | shared Unicorn Studio scene loader + backdrop gates | nothing |
 | `@zframes/frames` | the frames | charts, core, spec |
-| `provider-*` (31) | React-free data adapters | spec, data-primitives |
+| `provider-*` (32) | React-free data adapters | spec, data-primitives |
+| `@zframes/provider-demo` | the synthetic default source: seeded data for every capability, zero network | spec |
 | `@zframes/providers-keyless` | composition leaf: the shipping keyless fleet | the providers, spec |
 
 ESLint `no-restricted-imports` enforces this DAG per directory, `tests/dep-dag.test.ts`
@@ -77,7 +78,8 @@ import siblings by **package subpath**, never relative.
 
 ## Scope
 
-- Keyless by default — the published CLI and all 29 market-data providers are keyless (free public APIs, no key required). An opt-in keyed/account tier exists (`provider-binance` for a connected Binance account, `provider-wallet` for a public on-chain address) but is separate from the default keyless set and not wired into the published CLI. (31 provider packages total: 29 keyless + 2 keyed; the keyless set is composed in one place, `packages/providers-keyless` — trust that file over any count written here.)
+- Keyless by default — the published CLI and all 29 market-data providers are keyless (free public APIs, no key required). An opt-in keyed/account tier exists (`provider-binance` for a connected Binance account, `provider-wallet` for a public on-chain address) but is separate from the default keyless set and not wired into the published CLI. (32 provider packages total: 29 keyless + 2 keyed + `provider-demo`; the keyless set is composed in one place, `packages/providers-keyless` — trust that file over any count written here.)
+- **`@zframes/provider-demo` is not a data source, it is the synthetic default.** It answers every capability with deterministic seeded data and touches no network, so a bare install renders a real-looking board with zero third-party ToS exposure — and the frame smoke suites, Storybook and the explorer all run on it. It must never be added to `packages/providers-keyless`: that manifest is the *live* fleet, and `tests/dep-dag.test.ts` + `tests/capability-coverage.test.ts` both read it as such.
 - Stocks-first — equity perps via Hyperliquid HIP-3 builder dexes (`dex` param, e.g. `xyz:TSLA`), with crypto alongside.
 
 ## Deeper docs

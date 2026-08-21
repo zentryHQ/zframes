@@ -10,7 +10,7 @@ import {
 } from "@zframes/core";
 import type { StoryGlobals } from "../.storybook/preview";
 import { registry } from "./registry";
-import { MockMarketDataProvider, type MockMode } from "@zframes/frames/testing";
+import { MockMarketDataProvider, type MockMode } from "@zframes/provider-demo";
 import { liveProviders } from "./live-providers";
 
 /**

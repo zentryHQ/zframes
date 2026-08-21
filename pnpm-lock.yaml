@@ -94,6 +94,9 @@ importers:
       '@zframes/frames':
         specifier: workspace:*
         version: link:../../packages/frames
+      '@zframes/provider-demo':
+        specifier: workspace:*
+        version: link:../../packages/provider-demo
       '@zframes/provider-wallet':
         specifier: workspace:*
         version: link:../../packages/provider-wallet
@@ -294,6 +297,9 @@ importers:
       '@zframes/frames':
         specifier: workspace:*
         version: link:../../packages/frames
+      '@zframes/provider-demo':
+        specifier: workspace:*
+        version: link:../../packages/provider-demo
       '@zframes/providers-keyless':
         specifier: workspace:*
         version: link:../../packages/providers-keyless
@@ -548,6 +554,9 @@ importers:
       '@zframes/editor':
         specifier: workspace:*
         version: link:../editor
+      '@zframes/provider-demo':
+        specifier: workspace:*
+        version: link:../provider-demo
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
@@ -687,6 +696,16 @@ importers:
       '@zframes/data-primitives':
         specifier: workspace:*
         version: link:../data-primitives
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/provider-demo:
+    dependencies:
       '@zframes/spec':
         specifier: workspace:*
         version: link:../spec
