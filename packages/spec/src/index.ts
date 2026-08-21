@@ -163,3 +163,17 @@ export {
   frameSearchTokens,
   frameMatchesSearch,
 } from "./catalogue";
+// Types only, deliberately. The plugin helpers (`validateProviderPlugin`,
+// `proxyHostsOf`, `sourceCreditsOf`, `capabilitiesOf`) stay behind the
+// `@zframes/spec/provider-plugin` subpath because @zframes/core re-exports THIS
+// barrel: routing them through here would put plugin validation and relay-host
+// derivation on the presentation package's public API, where nothing needs
+// them. Their consumers are all Node-side (serve, cli, store, the fleet), which
+// already import siblings by package subpath.
+export type {
+  ProviderCredit,
+  ProviderHost,
+  ProviderPlugin,
+  ProviderPluginManifest,
+  ProviderPluginValidation,
+} from "./provider-plugin";
