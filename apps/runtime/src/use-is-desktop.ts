@@ -8,7 +8,10 @@ import { useEffect, useState } from "react";
 // through CSS (single column <=640px, two columns 641-1023px; see FRAME_CSS in
 // @zframes/core). This query ONLY decides renderer-vs-editor; it's deliberately
 // distinct from those CSS reflow breakpoints, which need no JS.
-const DESKTOP_QUERY =
+// Exported so App's suite can stub matchMedia against the REAL query instead of
+// a copy of it: a hand-typed duplicate silently stopped matching when this
+// widened past `(min-width: 1024px)`, and the editor then never mounted.
+export const DESKTOP_QUERY =
   "(min-width: 1024px) and (hover: hover) and (pointer: fine)";
 
 export function useMediaQuery(query: string) {
