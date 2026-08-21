@@ -24,17 +24,43 @@ export const sourceField = () =>
     );
 
 /**
- * Stamp each credit with its record key as `id`. Done structurally rather than
- * per entry so a new source cannot forget one — the chrome uses the id to credit
- * only the provider a pick-one card is actually reading, and a missing id would
- * silently fall back to the first-declared entry.
+ * The dashed, lowercase form of a record key: `nyFed` becomes `ny-fed`, and a
+ * single-word key is returned unchanged.
+ *
+ * Two shapes are in play and each is right for its side. The KEY is read as
+ * `SOURCES.nyFed` in dozens of frame metas, where a bracketed
+ * `SOURCES["ny-fed"]` would buy nothing. The ID is JSON-facing: it lands in a
+ * `dashboard.json` a generating agent writes, and in the provider-plugin
+ * manifests that will eventually replace this record, which pin ids to
+ * `/^[a-z0-9][a-z0-9-]*$/`. Deriving one from the other keeps a single source of
+ * truth, so a new credit can neither forget its id nor invent an id shape the
+ * manifest contract rejects.
+ */
+function toSourceId(key: string): string {
+  return key.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+}
+
+/**
+ * Stamp each credit with its `id`, derived from the record key. Done
+ * structurally rather than per entry so a new source cannot forget one — the
+ * chrome uses the id to credit only the provider a pick-one card is actually
+ * reading, and a missing id would silently fall back to the first-declared
+ * entry.
+ *
+ * The id is typed `string`, not the key literal: it is a normalisation of the
+ * key, not the key itself. Every id a card can actually PIN today is a
+ * single-word key (`sourceField()`: hyperliquid, bitkub, nasdaq), so those stay
+ * byte-identical and no existing board repoints.
  */
 export function withSourceIds<
   T extends Record<string, Omit<FrameSource, "id">>,
->(map: T): { [K in keyof T]: T[K] & { id: K & string } } {
+>(map: T): { [K in keyof T]: T[K] & { id: string } } {
   return Object.fromEntries(
-    Object.entries(map).map(([id, source]) => [id, { ...source, id }]),
-  ) as { [K in keyof T]: T[K] & { id: K & string } };
+    Object.entries(map).map(([key, source]) => [
+      key,
+      { ...source, id: toSourceId(key) },
+    ]),
+  ) as { [K in keyof T]: T[K] & { id: string } };
 }
 
 /**
