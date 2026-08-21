@@ -8,6 +8,7 @@ import {
   DASHBOARD_WRITE_ROUTE,
 } from "@zframes/spec/routes";
 import App from "./App";
+import { DESKTOP_QUERY } from "./use-is-desktop";
 
 // App.tsx is the runtime's composition root and the one file in the app with
 // real integration risk: it FETCHES dashboard.json at runtime (the spec is never
@@ -151,7 +152,7 @@ beforeEach(() => {
   vi.stubGlobal("location", { ...window.location, reload });
   vi.stubGlobal("alert", alerts);
   vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: query === "(min-width: 1024px)" ? desktop : false,
+    matches: query === DESKTOP_QUERY ? desktop : false,
     media: query,
     addEventListener: () => {},
     removeEventListener: () => {},
