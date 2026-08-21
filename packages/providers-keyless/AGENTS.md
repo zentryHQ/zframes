@@ -6,8 +6,10 @@ trust that file over any count written in prose.
 
 Every provider is a React-free data adapter over `@zframes/spec` +
 `@zframes/data-primitives` and may import nothing else (ESLint + `tests/dep-dag.test.ts`
-both enforce it). Adding one: a new `packages/provider-*`, then wiring in the
-composition roots (`apps/runtime/src/App.tsx`, explorer) and in this package.
+both enforce it). Adding one: a new `packages/provider-*`, then this package's `src/index.ts`
+(the runtime spreads that factory, so no app edit) and its `src/manifest.ts`. The
+explorer no longer mounts the fleet at all: every frame-rendering surface there
+runs on `@zframes/provider-demo`.
 
 `@zframes/provider-demo` is a `packages/provider-*` package but is **deliberately
 not in this fleet** and must never be added to it: it is the synthetic default
@@ -35,8 +37,12 @@ Provider primitives, React-free and used by every provider: `@zframes/data-primi
 
 **Official-data proxy:** browsers can't fetch CORS-blocked official sources (SEC XBRL, H.15, OFR, halts), so a provider passes `fetchJson(url, schema, { proxied: true })` — in the browser this rewrites to the same-origin `/__zframes/proxy?url=…` route (Node relays it; allowlisted hosts only, https/GET-only, browser UA or `--contact`/`ZFRAMES_CONTACT`); in Node it's a no-op (no CORS there). Proxied frames degrade to empty on a static host with no runtime. See the proxy decision in `docs/decisions/providers/providers.md`.
 
-A new proxied host must be added to the allowlist in `packages/serve/src/serve.ts`,
-or the relay refuses it.
+A new proxied host must be added to `packages/serve/src/proxy-allowlist.ts`
+AND to this package's `src/manifest.ts`, or the relay refuses it. The relay
+itself now allows nothing: each mount passes the list it authorises
+(`ProxyOptions.allowHosts`), which is what makes an install with no adapters
+unable to reach anything. `tests/proxy-mounts.test.ts` pins that every in-repo
+mount still passes one.
 
 ## The fleet
 

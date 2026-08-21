@@ -55,8 +55,9 @@ describe("KEYLESS_MANIFEST", () => {
   });
 
   // `sourceField()` is the only place a card's `source` string is constrained,
-  // and the catalogue's `source` vocabulary now comes from this manifest. If one
-  // of these three ids drifts, every board that pinned it loses its venue.
+  // and the catalogue's vocabulary is meant to come from this manifest once the
+  // fleet is installed rather than bundled. If one of these three ids drifts,
+  // every board that pinned it loses its venue.
   it("keeps the three pinnable venue ids", () => {
     const ids = KEYLESS_MANIFEST.sources.map((credit) => credit.id);
     expect(ids).toContain("hyperliquid");

@@ -3,15 +3,19 @@
  *
  * This module is the `ProviderPlugin` shape (`manifest` + `createProviders`),
  * so the same 29 providers the apps compose today can also be *discovered* by a
- * host that imports nothing about them. Three consumers read the manifest and
- * nothing else: `zframes providers` (what an assembling agent may pin), the
- * serve proxy allowlist (derived from `hosts`, see `proxyHostsOf`), and the
- * per-installation AI catalogue (whose `source` vocabulary comes from
- * `sources`). Every field below is transcribed from the code that does the
- * fetching, never from documentation about it.
+ * host that imports nothing about them. Three consumers WILL read the manifest
+ * and nothing else, none of them built yet: a `zframes providers` command (what
+ * an assembling agent may pin), the serve proxy allowlist (via `proxyHostsOf`,
+ * which today only a test calls, while the mounts still pass the hardcoded
+ * `PROXY_ALLOW_HOSTS`), and a per-installation AI catalogue (whose `source`
+ * vocabulary would come from `sources` instead of the hardcoded enum in
+ * `packages/frames/src/schemas/shared.ts`). Until then this manifest is a
+ * parallel description, held equal to what it describes by the two guards in
+ * repo-level `tests/`. Every field below is transcribed from the code that does
+ * the fetching, never from documentation about it.
  *
- * `termsUrl` is deliberately absent. Twenty-nine independent upstreams have no
- * single terms page, and pointing the install-time notice at one of them (or at
+ * `termsUrl` is deliberately absent. The 30 independent upstreams credited here
+ * have no single terms page, and pointing the install-time notice at one (or at
  * a zframes page pretending to speak for them) would be worse than showing the
  * operator nothing: the host omits the notice rather than misstating it. Per-
  * source terms are reachable from each credit's `url`.
@@ -20,9 +24,10 @@ import type { Capability, ProviderPluginManifest } from "@zframes/spec";
 import { createKeylessProviders } from "./index";
 
 /**
- * The plugin factory. An alias, not a second implementation: the runtime,
- * explorer and Storybook still import `createKeylessProviders` directly, and
- * two factories that could drift is exactly the failure this package exists to
+ * The plugin factory. An alias, not a second implementation: the runtime and
+ * Storybook still import `createKeylessProviders` directly (the explorer no
+ * longer mounts the fleet at all, only the synthetic provider), and two
+ * factories that could drift is exactly the failure this package exists to
  * remove.
  */
 export const createProviders = createKeylessProviders;
