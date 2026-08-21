@@ -51,14 +51,13 @@ This is a ToS-compliance posture, not a performance one: page loads must touch
 **no** upstream market API — live data is the CLI's job, not the hosted
 explorer's (see `docs/decisions/web-explorer/`, local-only).
 
-Two labelling rules keep it honest, and both are load-bearing:
-
-- The header carries the static `DemoDataBadge` pill ("Demo data") — the
-  site-wide label, in `AppShell`, with a popover explaining the posture.
-- `/embed/*` renders bare (no header), so `EmbedBoard` draws its own fixed
-  corner "Demo data" badge — that is what a third-party iframe shows.
-- (Related: the root layout sets `data-zf-demo` on `<html>` statically, which
-  is what hides per-card provider attributions in `globals.css`.)
+The posture is **not surfaced in the UI**: there is no "Demo data" pill,
+corner badge, or explanatory copy anywhere (the former `DemoDataBadge`, the
+`EmbedBoard` corner badge, and the `LiveBoardFrame` "Demo" chip were all
+removed) — the site simply renders. What survives is the machinery, not the
+label: the root layout still sets `data-zf-demo` on `<html>` statically, which
+is what hides per-card provider attributions in `globals.css` (a simulated
+number must not carry a real provider's name). Keep that attribute.
 
 **Footgun:** a mock data gap renders as a *quiet empty card*, not an error — the
 frame smoke test only forbids error cards, so nothing fails when a frame's mock

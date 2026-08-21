@@ -151,8 +151,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
         </h1>
         <p className="mt-3 text-base leading-relaxed text-white/75">
           Curated boards and dashboards published by the community. Preview any
-          one in the browser on demo data, then fork it onto your machine to run
-          it live.
+          one in the browser, then fork it onto your machine to run it live.
         </p>
         <div className="relative mt-6 max-w-md">
           <svg

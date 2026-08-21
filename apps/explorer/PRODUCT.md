@@ -12,7 +12,7 @@ Developers and market-curious builders who drive AI coding agents (Claude Code, 
 
 ## Product Purpose
 
-Prove, in the browser, that an agent-generated market terminal is real and good — then convert the visitor into someone who installs the skill and talks to their agent. It showcases dashboards on clearly-labelled simulated demo data (the real, keyless data arrives when they run the CLI), lets anyone preview/fork/publish, and browse the full frame catalogue. Success = a visitor understands the pitch in one fold, sees a genuinely premium terminal, and copies the install command. It is the shop window for a CLI-first, own-your-`dashboard.json` product — never a hosted SaaS.
+Prove, in the browser, that an agent-generated market terminal is real and good — then convert the visitor into someone who installs the skill and talks to their agent. It showcases dashboards on simulated data (the real, keyless data arrives when they run the CLI), lets anyone preview/fork/publish, and browse the full frame catalogue. Success = a visitor understands the pitch in one fold, sees a genuinely premium terminal, and copies the install command. It is the shop window for a CLI-first, own-your-`dashboard.json` product — never a hosted SaaS.
 
 ## Brand Personality
 

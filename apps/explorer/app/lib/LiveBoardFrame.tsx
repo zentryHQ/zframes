@@ -191,18 +191,11 @@ export const LiveBoardFrame = memo(function LiveBoardFrame({
         className="absolute inset-0 z-10"
       />
 
-      {/* Top bar — DEMO pill + frame count. Visual only. The site is
-          mock-data-only, so the pill always declares the numbers simulated:
-          claiming LIVE over simulated numbers is the exact mislabelling the
-          labelling posture forbids. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between p-4 sm:p-5">
-        {/* Solid fills, deliberately not backdrop-blur: 3 chips × 4 boards =
-            12 blur layers each re-sampling a live, repainting iframe every
+      {/* Top bar — frame count. Visual only. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-end p-4 sm:p-5">
+        {/* Solid fill, deliberately not backdrop-blur: one chip × 4 boards of
+            blur layers would each re-sample a live, repainting iframe every
             frame. Over a dark board the solid is visually equivalent. */}
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/20 bg-black/60 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300/90">
-          <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-          Demo
-        </span>
         <span className="rounded-full border border-white/10 bg-black/60 px-2.5 py-1 font-mono text-[11px] text-white/70">
           {frameCount} {frameCount === 1 ? "frame" : "frames"}
         </span>
