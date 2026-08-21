@@ -3,12 +3,23 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { handleProxy, handleSpecRead, handleSpecWrite } from "./serve";
+import { PROXY_ALLOW_HOSTS } from "./proxy-allowlist";
 
 // The handlers take the structural ReqLike/ResLike (not Node's http types), so
 // tiny fakes are all the tests need. These aliases pull the param types off the
 // exported handlers without re-declaring the internal interfaces.
 type WriteReq = Parameters<typeof handleSpecWrite>[0];
 type ProxyReq = Parameters<typeof handleProxy>[0];
+type ProxyRes = Parameters<typeof handleProxy>[1];
+type ProxyOpts = NonNullable<Parameters<typeof handleProxy>[2]>;
+
+// `handleProxy` allows NOTHING unless its mount names hosts, so every relay
+// test has to bring a list. These run against the in-repo fleet's list, which
+// is what the CLI and vite mounts pass today; the empty default is covered
+// on its own below, since "a fresh install reaches nothing" is a behaviour in
+// its own right rather than a gap in the fixtures.
+const relay = (req: ProxyReq, res: ProxyRes, opts: ProxyOpts = {}) =>
+  handleProxy(req, res, { allowHosts: PROXY_ALLOW_HOSTS, ...opts });
 
 interface FakeRes {
   statusCode: number;
@@ -191,24 +202,21 @@ describe("handleProxy (SSRF allowlist)", () => {
 
   it("rejects non-GET/HEAD with 405", async () => {
     const res = makeRes();
-    await handleProxy(
-      makeProxyReq(proxyUrl("https://data.sec.gov/x"), "POST"),
-      res,
-    );
+    await relay(makeProxyReq(proxyUrl("https://data.sec.gov/x"), "POST"), res);
     await res.done;
     expect(res.statusCode).toBe(405);
   });
 
   it("returns 400 when ?url= is missing", async () => {
     const res = makeRes();
-    await handleProxy(makeProxyReq("/__zframes/proxy"), res);
+    await relay(makeProxyReq("/__zframes/proxy"), res);
     await res.done;
     expect(res.statusCode).toBe(400);
   });
 
   it("returns 400 for a non-https target", async () => {
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl("http://data.sec.gov/x")), res);
+    await relay(makeProxyReq(proxyUrl("http://data.sec.gov/x")), res);
     await res.done;
     expect(res.statusCode).toBe(400);
   });
@@ -217,10 +225,93 @@ describe("handleProxy (SSRF allowlist)", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl("https://evil.com/x")), res);
+    await relay(makeProxyReq(proxyUrl("https://evil.com/x")), res);
     await res.done;
     expect(res.statusCode).toBe(403);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // ── The mount owns the allowlist ───────────────────────────────────────────
+  // zframes ships frames and the assembly layer, not a decision about which
+  // third party a board calls. The relay therefore starts from NOTHING and each
+  // mount names what it may reach, which in the shipped CLI is derived from the
+  // manifests of the adapters the operator installed. These three tests are that
+  // posture: without them a future refactor could quietly reintroduce a
+  // compiled-in default and no other test would notice.
+
+  it("relays nothing at all when the mount names no hosts", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const res = makeRes();
+    // Deliberately NOT the `relay` fixture: no allowHosts, which is exactly
+    // what a fresh install with no adapters looks like. Even the most
+    // uncontroversial official source is unreachable.
+    await handleProxy(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
+    await res.done;
+    expect(res.statusCode).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("reaches only the hosts its own mount named", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: { get: () => "application/json" },
+      text: async () => `{"ok":1}`,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const named = makeRes();
+    await handleProxy(
+      makeProxyReq(proxyUrl("https://one.example.com/x")),
+      named,
+      {
+        allowHosts: ["one.example.com"],
+      },
+    );
+    await named.done;
+    expect(named.statusCode).toBe(200);
+
+    // A host another mount would allow is still refused here: the list is
+    // per-mount, never a union of everything anyone ever authorised.
+    const other = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl("https://data.sec.gov/x")), other, {
+      allowHosts: ["one.example.com"],
+    });
+    await other.done;
+    expect(other.statusCode).toBe(403);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses a redirect off the mount's list without reading the body", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: 302,
+        headers: {
+          get: (name: string) =>
+            name === "location" ? "https://data.sec.gov/x" : null,
+        },
+        text: async () => "should never be read",
+      })
+      .mockResolvedValue({
+        status: 200,
+        headers: { get: () => "application/json" },
+        text: async () => `{"leaked":1}`,
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    const res = makeRes();
+    await handleProxy(
+      makeProxyReq(proxyUrl("https://one.example.com/x")),
+      res,
+      {
+        allowHosts: ["one.example.com"],
+      },
+    );
+    await res.done;
+    expect(res.statusCode).toBe(403);
+    // One call: the hop was refused before it was ever fetched.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(res.body).not.toContain("leaked");
   });
 
   it("relays an allowlisted host's status + body, and sends a browser UA by default", async () => {
@@ -231,7 +322,7 @@ describe("handleProxy (SSRF allowlist)", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
+    await relay(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
     await res.done;
     expect(res.statusCode).toBe(200);
     expect(res.body).toBe(`{"x":1}`);
@@ -249,7 +340,7 @@ describe("handleProxy (SSRF allowlist)", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res, {
+    await relay(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res, {
       userAgent: "zframes (test@example.com)",
     });
     await res.done;
@@ -270,7 +361,7 @@ describe("handleProxy (SSRF allowlist)", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     const res = makeRes();
-    await handleProxy(
+    await relay(
       makeProxyReq(proxyUrl("https://api.nasdaq.com/api/quote/NVDA/info")),
       res,
       { userAgent: "zframes (test@example.com)" },
@@ -289,7 +380,7 @@ describe("handleProxy (SSRF allowlist)", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
+    await relay(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
     await res.done;
     expect(res.statusCode).toBe(502);
   });
@@ -332,7 +423,7 @@ describe("handleProxy (SSRF allowlist)", () => {
       });
       vi.stubGlobal("fetch", fetchMock);
       const res = makeRes();
-      await handleProxy(makeProxyReq(proxyUrl(url)), res);
+      await relay(makeProxyReq(proxyUrl(url)), res);
       await res.done;
       expect(res.statusCode).toBe(200);
       // CSV must survive untouched — the relay never parses the body as JSON.
@@ -362,7 +453,7 @@ describe("handleProxy (SSRF allowlist)", () => {
       const fetchMock = vi.fn();
       vi.stubGlobal("fetch", fetchMock);
       const res = makeRes();
-      await handleProxy(makeProxyReq(proxyUrl(url)), res);
+      await relay(makeProxyReq(proxyUrl(url)), res);
       await res.done;
       expect(res.statusCode).toBe(403);
       expect(fetchMock).not.toHaveBeenCalled();
@@ -373,7 +464,7 @@ describe("handleProxy (SSRF allowlist)", () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error("network"));
     vi.stubGlobal("fetch", fetchMock);
     const res = makeRes();
-    await handleProxy(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
+    await relay(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
     await res.done;
     expect(res.statusCode).toBe(502);
   });

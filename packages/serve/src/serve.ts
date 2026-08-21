@@ -4,9 +4,11 @@ import { readFile, writeFile } from "node:fs/promises";
 // Node config-loader, which can't resolve a relative extensionless path.
 import { DashboardSpecSchema } from "@zframes/spec/spec";
 
-// The proxy's host allowlist (+ per-host justifications) lives in its own
-// module; imported by package subpath for the same Node config-loader reason.
-import { PROXY_ALLOW_HOSTS } from "@zframes/serve/proxy-allowlist";
+// No host allowlist is imported here on purpose. The relay reaches only the
+// hosts its MOUNT names (`ProxyOptions.allowHosts`, empty by default), so this
+// module ships no opinion about which third party a dashboard may call. The
+// transitional list the in-repo fleet still passes lives in
+// `@zframes/serve/proxy-allowlist` and is read by the mounts, not by the relay.
 
 /**
  * The dashboard read/write contract, shared verbatim by the dev Vite plugin
@@ -216,6 +218,20 @@ function proxyError(res: ResLike, status: number, error: string): void {
  */
 export interface ProxyOptions {
   /**
+   * The hosts THIS mount may relay to. **Defaults to none.**
+   *
+   * The relay ships with an empty allowlist on purpose: zframes provides the
+   * frames and the assembly layer, not a decision about which third party a
+   * board calls. A host that wants to reach anything has to name it, and in the
+   * shipped CLI that list is derived from the manifests of the adapters the
+   * operator installed (`proxyHostsOf`, @zframes/spec) rather than compiled in.
+   * An installation with no adapters can therefore reach nothing at all.
+   *
+   * Passing nothing is a valid, useful state, not a misconfiguration: it is
+   * exactly what a fresh install looks like.
+   */
+  allowHosts?: Iterable<string>;
+  /**
    * A polite contact UA (SEC fair-access). The default is a browser UA the
    * official sources accept; `PROXY_FORCE_BROWSER_UA` hosts ignore this.
    */
@@ -237,10 +253,12 @@ export interface ProxyOptions {
 }
 
 /**
- * GET `/__zframes/proxy?url=<encoded https URL>`: relay an allowlisted
- * official-data host to the browser, same-origin, so CORS-blocked or UA-walled
- * sources are reachable client-side without a backend or keys. GET-only,
- * https-only, host-allowlisted (no open-proxy / SSRF), size- and time-bounded.
+ * GET `/__zframes/proxy?url=<encoded https URL>`: relay a host the MOUNT
+ * allowed to the browser, same-origin, so CORS-blocked or UA-walled sources are
+ * reachable client-side without a backend or keys. GET-only, https-only,
+ * host-allowlisted (no open-proxy / SSRF), size- and time-bounded. The
+ * allowlist is per-mount and **empty by default** (`ProxyOptions.allowHosts`):
+ * an installation that has named no host relays nothing.
  * `userAgent` lets the host send a polite contact UA (SEC fair-access); the
  * default is a browser UA the official sources accept. The size and time bounds
  * are per-mount (`ProxyOptions`) so a hosted mount can hold its platform's
@@ -276,7 +294,11 @@ export async function handleProxy(
     proxyError(res, 400, "only https targets are allowed");
     return;
   }
-  if (!PROXY_ALLOW_HOSTS.has(target.hostname)) {
+  // Resolved once, then used for the entry host AND every redirect hop, so a
+  // chain can never be validated against a wider list than it was entered
+  // under.
+  const allowHosts = new Set(opts.allowHosts ?? []);
+  if (!allowHosts.has(target.hostname)) {
     proxyError(res, 403, `host not allowed: ${target.hostname}`);
     return;
   }
@@ -333,7 +355,7 @@ export async function handleProxy(
         );
         return;
       }
-      if (!PROXY_ALLOW_HOSTS.has(next.hostname)) {
+      if (!allowHosts.has(next.hostname)) {
         proxyError(res, 403, `redirect host not allowed: ${next.hostname}`);
         return;
       }
