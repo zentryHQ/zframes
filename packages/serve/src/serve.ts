@@ -46,7 +46,7 @@ const PROXY_MAX_BYTES = 16_000_000;
 const PROXY_TIMEOUT_MS = 20_000;
 /**
  * Redirects are followed by hand (`redirect: "manual"`) so EVERY hop's hostname
- * is re-checked against `PROXY_ALLOW_HOSTS` — `redirect: "follow"` would let an
+ * is re-checked against the mount's `allowHosts` — `redirect: "follow"` would let an
  * allowlisted host with an open redirect land the request on an arbitrary host
  * and relay its body verbatim (SSRF). Real chains are short: the empirically
  * observed ones are single-hop, same-host canonicalisations (Bank of England's

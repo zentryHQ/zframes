@@ -2,9 +2,13 @@
  * TRANSITIONAL: the hosts the IN-REPO provider fleet contacts.
  *
  * The relay itself no longer reads this list. `handleProxy` allows only what
- * its mount passes (`ProxyOptions.allowHosts`, empty by default), and the two
- * mounts that still bundle the fleet pass this constant explicitly, so the
- * choice is visible at the mount instead of compiled into the relay.
+ * its mount passes (`ProxyOptions.allowHosts`, empty by default), and all four
+ * in-repo mounts pass this constant explicitly because all four still bundle
+ * the fleet: the CLI's `serve`, the dev Vite plugin, Storybook's Live-story
+ * middleware and the explorer's Next relay route. The choice is visible at each
+ * mount instead of compiled into the relay, and `tests/proxy-mounts.test.ts`
+ * is what stops a fifth mount forgetting to make it (the symptom would be a
+ * 403 the frames render as an empty card, which reads as a frame bug).
  *
  * Where this is going: each adapter declares the hosts it contacts in its
  * plugin manifest (`ProviderPluginManifest.hosts`, @zframes/spec), and a mount
