@@ -16,9 +16,8 @@ import { DrivenParallax, Reveal, useViewportProgress } from "@/app/lib/motion";
 // REAL frames (LiveFrame →
 // the runtime's own FrameContent on shared providers) drifting at different
 // rates around the family's copy, with a ghosted chapter numeral moving
-// counter-scroll behind. Every specimen renders simulated demo data (the site
-// is mock-only — see frames.ts), but the section doesn't describe the
-// catalogue, it IS the catalogue.
+// counter-scroll behind. The specimens are fed by frames.ts, but the section
+// doesn't describe the catalogue, it IS the catalogue.
 
 type Specimen = {
   frame: string;
