@@ -127,7 +127,7 @@ const CHAPTERS: Chapter[] = [
   {
     key: "equities",
     label: "Equities & Filings",
-    headline: "Straight out of EDGAR.",
+    headline: "On the record.",
     blurb:
       "What a company actually filed and how the street is positioned against it — eighteen years of reported revenue stitched across the tags issuers quietly switch mid-history, its filings feed, and daily reported short-sale volume. Public records, read at terminal speed.",
     // `financials-trend` is the deep-dive lead (fundamentals-history), and
@@ -170,7 +170,7 @@ const CHAPTERS: Chapter[] = [
     label: "Metals & Commodities",
     headline: "Gold, back to 1968.",
     blurb:
-      "The LBMA's own London fix files — the deepest price history in the fleet — plus live spot, month-by-year seasonality, the CFTC's weekly positioning split by trader class, and gold's own implied-vol regime. Half a century of prints, no key, no signup.",
+      "Daily London fixes back to 1968 — the deepest price history in the fleet — plus live spot, month-by-year seasonality, weekly futures positioning split by trader class, and gold's own implied-vol regime. Half a century of prints, no key, no signup.",
     // Two of these pull LBMA fix history (~150 KB gzipped per metal, 6 h TTL and
     // deliberately not persisted), so the chapter costs about one image. Keep it
     // to two history-backed cards.
@@ -266,7 +266,7 @@ const CHAPTERS: Chapter[] = [
     label: "Bitcoin Network",
     headline: "Chain health, block by block.",
     blurb:
-      "Hashrate, mempool depth, the live fee curve, fresh blocks, difficulty epochs, Lightning — mempool.space wired straight into cards.",
+      "Hashrate, mempool depth, the live fee curve, fresh blocks, difficulty epochs, Lightning — the whole network wired straight into cards.",
     specimens: [
       {
         frame: "btc-hashrate",

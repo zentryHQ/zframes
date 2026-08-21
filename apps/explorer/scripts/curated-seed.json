@@ -208,7 +208,7 @@
           },
           "config": {
             "title": "Indices & Volatility",
-            "subtitle": "S&P 500, Nasdaq and the VIX \u2014 read off FRED's own published CSV, still no key"
+            "subtitle": "S&P 500, Nasdaq and the VIX \u2014 published daily closes, still no key"
           }
         },
         {
@@ -324,7 +324,7 @@
           },
           "config": {
             "title": "Macro & Rates",
-            "subtitle": "Treasury, NY Fed, BLS and OFR \u2014 official data through /__zframes/proxy"
+            "subtitle": "Rates, prices, labor and stress \u2014 official data through /__zframes/proxy"
           }
         },
         {
@@ -565,7 +565,7 @@
   {
     "id": "equity-deepdive",
     "title": "Equity Deep Dive",
-    "description": "Everything a company is, on one board: what the market pays for it, what it actually reported, what the street expects, and what the options market is pricing \u2014 SEC EDGAR, Nasdaq and Cboe, all keyless.",
+    "description": "Everything a company is, on one board: what the market pays for it, what it actually reported, what the street expects, and what the options market is pricing \u2014 filings, tape and options chain, all keyless.",
     "tags": ["equities", "fundamentals", "options"],
     "landingOrder": 3,
     "spec": {
@@ -608,7 +608,7 @@
           },
           "config": {
             "title": "Equity Deep Dive",
-            "subtitle": "NVIDIA \u2014 the business behind the ticker, from SEC, Nasdaq and Cboe"
+            "subtitle": "NVIDIA \u2014 the business behind the ticker: filings, tape and chain"
           }
         },
         {
@@ -742,7 +742,7 @@
           },
           "config": {
             "title": "What it actually reported",
-            "subtitle": "SEC EDGAR XBRL company facts \u2014 revenue, margins, cash and the balance sheet"
+            "subtitle": "As-reported XBRL company facts \u2014 revenue, margins, cash and the balance sheet"
           }
         },
         {
@@ -886,7 +886,7 @@
           },
           "config": {
             "title": "What the options market is pricing",
-            "subtitle": "Cboe delayed chains \u2014 implied vol, positioning and the greeks"
+            "subtitle": "Delayed listed chains \u2014 implied vol, positioning and the greeks"
           }
         },
         {
@@ -1109,7 +1109,7 @@
           },
           "config": {
             "title": "Majors",
-            "subtitle": "BTC, ETH and the large caps \u2014 streaming over the Hyperliquid socket"
+            "subtitle": "BTC, ETH and the large caps \u2014 streaming over a live socket"
           }
         },
         {
@@ -1597,7 +1597,7 @@
   {
     "id": "housing-credit",
     "title": "Housing & Credit",
-    "description": "What a home costs, what it costs to borrow, and what the credit market charges for risk \u2014 Zillow, the FHFA and the Fed's own series, all keyless.",
+    "description": "What a home costs, what it costs to borrow, and what the credit market charges for risk \u2014 typical home values, regional indices and the official rate series, all keyless.",
     "tags": ["housing", "credit", "macro"],
     "landingOrder": null,
     "spec": {
@@ -1640,7 +1640,7 @@
           },
           "config": {
             "title": "Housing",
-            "subtitle": "Zillow, the FHFA and Freddie Mac \u2014 no keys, no signup"
+            "subtitle": "Home values, regional indices and the 30-year benchmark \u2014 no keys, no signup"
           }
         },
         {
@@ -2012,7 +2012,7 @@
   {
     "id": "macro-rates",
     "title": "Macro & Rates",
-    "description": "The official-data board \u2014 Treasury yield curve, OFR financial stress, FINRA short volume, and equity perps.",
+    "description": "The official-data board \u2014 the Treasury yield curve, financial stress, reported short volume, and equity perps.",
     "tags": ["macro", "equities"],
     "landingOrder": null,
     "spec": {
@@ -2055,7 +2055,7 @@
           },
           "config": {
             "title": "Policy Rates",
-            "subtitle": "Official US data via the same-origin proxy \u2014 NY Fed, Treasury, OFR"
+            "subtitle": "Official US data via the same-origin proxy \u2014 reference rates, the curve, financial stress"
           }
         },
         {
@@ -2916,7 +2916,7 @@
   {
     "id": "derivatives-desk",
     "title": "Derivatives Desk",
-    "description": "Funding, open interest, and the BTC options surface \u2014 put/call ratio, DVOL, and open interest by strike from Deribit.",
+    "description": "Funding, open interest, and the BTC options surface \u2014 put/call ratio, DVOL, and open interest by strike.",
     "tags": ["derivatives", "options"],
     "landingOrder": null,
     "spec": {
@@ -3065,7 +3065,7 @@
           },
           "config": {
             "title": "Crypto Options",
-            "subtitle": "Deribit \u2014 the level, the strikes and where the book pins"
+            "subtitle": "The options book \u2014 the level, the strikes and where it pins"
           }
         },
         {
@@ -3335,7 +3335,7 @@
   {
     "id": "gold-desk",
     "title": "Gold Desk",
-    "description": "Bullion end to end \u2014 live spot, the LBMA London fix back to 1968, CFTC positioning, and the vaults the US Treasury reports every month.",
+    "description": "Bullion end to end \u2014 live spot, the London fix back to 1968, weekly futures positioning, and the official monthly vault report.",
     "tags": ["metals", "gold", "macro"],
     "landingOrder": 0,
     "spec": {
@@ -3547,7 +3547,7 @@
         {
           "id": "grp-cot",
           "frame": "group",
-          "title": "CFTC positioning \u00b7 gold",
+          "title": "Futures positioning \u00b7 gold",
           "position": {
             "x": 0,
             "y": 14,
@@ -3711,7 +3711,7 @@
           },
           "config": {
             "title": "The Long Record",
-            "subtitle": "Six decades of daily London fixes, LBMA's own files"
+            "subtitle": "Six decades of daily London fixes, exactly as published"
           }
         },
         {
@@ -3954,7 +3954,7 @@
           },
           "config": {
             "title": "FX Desk",
-            "subtitle": "ECB daily reference rates \u2014 no key, no proxy, four keyless sources deep"
+            "subtitle": "Daily reference fixings \u2014 no key, no proxy, four keyless sources deep"
           }
         },
         {
@@ -4407,7 +4407,7 @@
             "h": 3
           },
           "config": {
-            "text": "**These are reference fixings, not tradable quotes.** The ECB publishes one set of rates each working day around 16:00 CET, and every cross on this board is derived from that same snapshot \u2014 so a weekend or a holiday shows the last working day's fixing rather than a stale tick.\n\nzframes resolves them through four keyless sources in order \u2014 Frankfurter/ECB, FXRatesAPI, currency-api and the ECB Data Portal \u2014 so one upstream going down does not blank the board.",
+            "text": "**These are reference fixings, not tradable quotes.** One set of rates is published each working day around 16:00 CET, and every cross on this board is derived from that same snapshot \u2014 so a weekend or a holiday shows the last working day's fixing rather than a stale tick.\n\nzframes resolves them through four keyless sources in order, so one upstream going down does not blank the board.",
             "align": "left"
           }
         }
@@ -4460,7 +4460,7 @@
           },
           "config": {
             "title": "Mempool & Fees",
-            "subtitle": "Live from mempool.space \u2014 keyless, browser-direct"
+            "subtitle": "Live from the network \u2014 keyless, browser-direct"
           }
         },
         {
@@ -4906,7 +4906,7 @@
             "h": 3
           },
           "config": {
-            "text": "**Source: [mempool.space](https://mempool.space), keyless.** Every card above except the BTC chart reads one public API \u2014 no key, no signup, and no same-origin proxy, because mempool.space serves CORS-open. That is why this board still renders on a static host where the SEC, Treasury and FRED boards go empty.\n\nFee tiers are estimates the node derives from what is currently sitting in *its* mempool, so two nodes can disagree during a spike; the projected blocks are a template of what would be mined next, not a promise. Difficulty retargets every 2016 blocks (~2 weeks) and the estimated change drifts until the epoch is most of the way through. Pool attribution comes from coinbase tags, which pools set themselves \u2014 treat concentration figures as a strong hint rather than a measurement.",
+            "text": "**One keyless source, no proxy.** Every card above except the BTC chart reads a single public API \u2014 no key, no signup, and no same-origin proxy, because that API is CORS-open. That is why this board still renders on a static host where the official-data boards go empty.\n\nFee tiers are estimates the node derives from what is currently sitting in *its* mempool, so two nodes can disagree during a spike; the projected blocks are a template of what would be mined next, not a promise. Difficulty retargets every 2016 blocks (~2 weeks) and the estimated change drifts until the epoch is most of the way through. Pool attribution comes from coinbase tags, which pools set themselves \u2014 treat concentration figures as a strong hint rather than a measurement.",
             "align": "left"
           }
         }
@@ -5920,7 +5920,7 @@
   {
     "id": "nft-sectors",
     "title": "NFT & Sector Rotation",
-    "description": "Where crypto capital and attention are rotating \u2014 blue-chip NFT floors, sector market caps, and the coins retail is searching for, all off CoinGecko's keyless tier.",
+    "description": "Where crypto capital and attention are rotating \u2014 blue-chip NFT floors, sector market caps, and the coins retail is searching for, all keyless, no signup.",
     "tags": ["crypto", "nft", "rotation"],
     "landingOrder": null,
     "spec": {
@@ -5963,7 +5963,7 @@
           },
           "config": {
             "title": "Blue-chip NFTs",
-            "subtitle": "Floors, caps and sales for ten curated majors \u2014 keyless CoinGecko"
+            "subtitle": "Floors, caps and sales for ten curated majors \u2014 keyless, no signup"
           }
         },
         {
@@ -6218,7 +6218,7 @@
           },
           "config": {
             "title": "Attention",
-            "subtitle": "What retail is searching for on CoinGecko right now"
+            "subtitle": "What retail is searching for right now"
           }
         },
         {
@@ -6386,7 +6386,7 @@
           },
           "config": {
             "align": "left",
-            "text": "**About the NFT data.** CoinGecko's keyless tier has no bulk NFT endpoint, so the provider walks a hand-picked list of ten majors (Bored Ape, CryptoPunks, Pudgy Penguins, Azuki, \u2026) **one `/nfts/{id}` call at a time**, skipping any collection that fails rather than dropping the whole card. That has three consequences worth knowing before you read a number off this board:\n\n- The set is **curated, not ranked** \u2014 a collection that mooned last night is not here unless it was already on the list.\n- The sequential walk shares this provider's rate limit with the sector and trending rows above, so the NFT cards are cached on a **long ~45 minute TTL** and lag the others.\n- A missing tile means that one collection's call was skipped, not that it went to zero.\n\nThe sector and trending sections have proper bulk endpoints and refresh on a normal short cycle."
+            "text": "**About the NFT data.** The keyless tier behind these cards has no bulk NFT endpoint, so the provider walks a hand-picked list of ten majors (Bored Ape, CryptoPunks, Pudgy Penguins, Azuki, \u2026) **one collection call at a time**, skipping any collection that fails rather than dropping the whole card. That has three consequences worth knowing before you read a number off this board:\n\n- The set is **curated, not ranked** \u2014 a collection that mooned last night is not here unless it was already on the list.\n- The sequential walk shares this provider's rate limit with the sector and trending rows above, so the NFT cards are cached on a **long ~45 minute TTL** and lag the others.\n- A missing tile means that one collection's call was skipped, not that it went to zero.\n\nThe sector and trending sections have proper bulk endpoints and refresh on a normal short cycle."
           }
         },
         {
@@ -6408,7 +6408,7 @@
   {
     "id": "vol-surface",
     "title": "Volatility Surface",
-    "description": "The Deribit options book, read as a surface \u2014 vol indices, the smile, OI across strike and expiry, and where max pain pins each dated book.",
+    "description": "The crypto options book, read as a surface \u2014 vol indices, the smile, OI across strike and expiry, and where max pain pins each dated book.",
     "tags": ["options", "volatility", "derivatives"],
     "landingOrder": null,
     "spec": {
@@ -6451,7 +6451,7 @@
           },
           "config": {
             "title": "Volatility Surface",
-            "subtitle": "Deribit options \u2014 the level, the skew and the term"
+            "subtitle": "Crypto options \u2014 the level, the skew and the term"
           }
         },
         {
@@ -6834,7 +6834,7 @@
             "h": 4
           },
           "config": {
-            "text": "**Max pain** is the settlement strike at which option writers pay out the least \u2014 the point where the most contracts expire worthless. It is an *arithmetic property of the open book*, not a forecast: it moves whenever positioning moves, and it is recomputed from scratch on every poll. Price does drift toward it into a large expiry, but the honest reading is \u201chere is where the book is heaviest\u201d, not \u201chere is where price is going\u201d.\n\n**Skew** is the asymmetry between the call and put sides. On the OI-skew card that is the standing book; on the flow-skew cards it is netted against 24h volume, so the two bases fighting each other is the interesting state \u2014 fresh flow buying calls into a put-heavy book is a different market from one where both agree.\n\n**The smile** is implied vol by strike for one expiry. Its *shape* is the signal: a steep put wing means the market pays up for downside protection, a lifted call wing means it is paying for upside convexity. A flat smile is a market pricing no tail at all.\n\nCaveats worth holding onto: every card here reads **Deribit only**, which is the deepest crypto options venue but not the whole market \u2014 OTC and CME books are invisible. Illiquid far strikes carry wide, stale marks, so the wings of the smile are the least trustworthy part of it. And OI is a *stock*, not a flow: a large number at a strike says a position exists, never who is long it or why.",
+            "text": "**Max pain** is the settlement strike at which option writers pay out the least \u2014 the point where the most contracts expire worthless. It is an *arithmetic property of the open book*, not a forecast: it moves whenever positioning moves, and it is recomputed from scratch on every poll. Price does drift toward it into a large expiry, but the honest reading is \u201chere is where the book is heaviest\u201d, not \u201chere is where price is going\u201d.\n\n**Skew** is the asymmetry between the call and put sides. On the OI-skew card that is the standing book; on the flow-skew cards it is netted against 24h volume, so the two bases fighting each other is the interesting state \u2014 fresh flow buying calls into a put-heavy book is a different market from one where both agree.\n\n**The smile** is implied vol by strike for one expiry. Its *shape* is the signal: a steep put wing means the market pays up for downside protection, a lifted call wing means it is paying for upside convexity. A flat smile is a market pricing no tail at all.\n\nCaveats worth holding onto: every card here reads **one venue only**, the deepest crypto options book but not the whole market \u2014 OTC and listed-exchange books are invisible. Illiquid far strikes carry wide, stale marks, so the wings of the smile are the least trustworthy part of it. And OI is a *stock*, not a flow: a large number at a strike says a position exists, never who is long it or why.",
             "align": "left"
           }
         }
@@ -6844,7 +6844,7 @@
   {
     "id": "funding-carry",
     "title": "Funding & Carry",
-    "description": "What it costs to hold a perp \u2014 funding ranked across the whole Hyperliquid universe, its cross-venue spreads, and the open interest crowded behind them.",
+    "description": "What it costs to hold a perp \u2014 funding ranked across a whole perp universe, its cross-venue spreads, and the open interest crowded behind them.",
     "tags": ["derivatives", "funding", "crypto"],
     "landingOrder": null,
     "spec": {
@@ -6997,7 +6997,7 @@
           },
           "config": {
             "title": "Venue dispersion",
-            "subtitle": "Where Hyperliquid, Binance and Bybit disagree on the price of time"
+            "subtitle": "Where the major perp venues disagree on the price of time"
           }
         },
         {
@@ -7702,7 +7702,7 @@
             "h": 3
           },
           "config": {
-            "text": "**Advertised APY is not risk-adjusted.** Every yield number on this board is a quoted rate, not an expected return: it carries no charge for smart-contract risk, no haircut for the depeg risk in a stablecoin pair, and \u2014 where the reward axis of the composition scatter is doing the work \u2014 no guarantee the emissions funding it survive the next epoch. The impermanent-loss donut splits pools by *exposure*, not by realised loss.\n\nPool, TVL, category and DEX-volume figures come from [DefiLlama](https://defillama.com) (keyless public API, daily granularity on the stacked areas); ETH issuance, burn and staking APR come from ultrasound.money. Nothing here is a recommendation.",
+            "text": "**Advertised APY is not risk-adjusted.** Every yield number on this board is a quoted rate, not an expected return: it carries no charge for smart-contract risk, no haircut for the depeg risk in a stablecoin pair, and \u2014 where the reward axis of the composition scatter is doing the work \u2014 no guarantee the emissions funding it survive the next epoch. The impermanent-loss donut splits pools by *exposure*, not by realised loss.\n\nPool, TVL, category and DEX-volume figures come from a keyless public API, at daily granularity on the stacked areas; the ETH issuance, burn and staking APR come from another. Nothing here is a recommendation.",
             "align": "left"
           }
         }
@@ -7712,7 +7712,7 @@
   {
     "id": "labor-inflation",
     "title": "Labor & Inflation",
-    "description": "Jobs, wages and the price level as the statistical agencies actually publish them \u2014 BLS payrolls, participation and CPI beside the Treasury's own debt books, all keyless.",
+    "description": "Jobs, wages and the price level as the statistical agencies actually publish them \u2014 payrolls, participation and CPI beside the federal debt books, all keyless.",
     "tags": ["macro", "labor", "inflation"],
     "landingOrder": null,
     "spec": {
@@ -7755,7 +7755,7 @@
           },
           "config": {
             "title": "Labor",
-            "subtitle": "The BLS household and establishment surveys \u2014 monthly, revised twice"
+            "subtitle": "The household and establishment surveys \u2014 monthly, revised twice"
           }
         },
         {
@@ -8040,7 +8040,7 @@
           },
           "config": {
             "title": "The Public Ledger",
-            "subtitle": "Treasury debt and what it costs to carry \u2014 daily, official"
+            "subtitle": "Federal debt and what it costs to carry \u2014 daily, official"
           }
         },
         {
@@ -8146,7 +8146,7 @@
             "h": 3
           },
           "config": {
-            "text": "**Everything here is an official published series** \u2014 the Bureau of Labor Statistics' payroll, participation, earnings and CPI prints, the Treasury's Debt to the Penny and average interest rates, and the OFR's stress index. None of it is modelled, estimated or forecast by zframes.\n\n**Read the lag.** The labor and CPI series describe a month that ended weeks ago, and the BLS revises payrolls twice after first publication \u2014 the most recent bar on the payrolls chart is the least trustworthy one on it. Only the Treasury and OFR cards update daily.\n\n**These route through the runtime's proxy.** BLS, Treasury and OFR all refuse cross-origin browser requests, so `zframes serve` relays them same-origin. On a static host with no runtime, every card above blanks."
+            "text": "**Everything here is an official published series** \u2014 the payroll, participation, earnings and CPI prints, the federal debt to the penny and its average interest rates, and the official financial-stress index. None of it is modelled, estimated or forecast by zframes.\n\n**Read the lag.** The labor and CPI series describe a month that ended weeks ago, and payrolls are revised twice after first publication \u2014 the most recent bar on the payrolls chart is the least trustworthy one on it. Only the debt and stress cards update daily.\n\n**These route through the runtime's proxy.** The publishing hosts all refuse cross-origin browser requests, so `zframes serve` relays them same-origin. On a static host with no runtime, every card above blanks."
           }
         }
       ]
@@ -8785,7 +8785,7 @@
   {
     "id": "crowd-signal",
     "title": "Crowd Signal",
-    "description": "What the crowd believes, priced \u2014 live Polymarket odds, the fear & greed mood, the news tape, and the return distribution that eventually settles the argument.",
+    "description": "What the crowd believes, priced \u2014 live prediction-market odds, the fear & greed mood, the news tape, and the return distribution that eventually settles the argument.",
     "tags": ["sentiment", "prediction-markets", "crypto"],
     "landingOrder": null,
     "spec": {
@@ -8828,7 +8828,7 @@
           },
           "config": {
             "title": "The Odds",
-            "subtitle": "Live Polymarket \u2014 real money, staked on what happens next"
+            "subtitle": "Live prediction markets \u2014 real money, staked on what happens next"
           }
         },
         {

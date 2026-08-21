@@ -319,7 +319,7 @@ function MetalCotConcentration({
     return (
       <FrameStatus>
         {config.basis === "net"
-          ? "net concentration isn't published for this market — set this card to gross, which the CFTC always reports."
+          ? "net concentration isn't published for this market — set this card to gross, which is always reported."
           : "this week's report carries no concentration columns."}
       </FrameStatus>
     );
