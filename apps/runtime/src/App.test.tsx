@@ -7,6 +7,7 @@ import {
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
 } from "@zframes/spec/routes";
+import type { LiveCosmetics } from "@zframes/editor/editor";
 import App from "./App";
 import { DESKTOP_QUERY } from "./use-is-desktop";
 
@@ -185,6 +186,26 @@ async function mountBoard() {
 function editorSpec(): DashboardSpec {
   if (!editor.props) throw new Error("the editor never mounted");
   return editor.props.spec;
+}
+
+/**
+ * The cosmetic half of the spec the editor was handed, with an override applied
+ * — the exact shape the editor reports through `onLiveChange`. The editor sends
+ * the WHOLE cosmetic half on every change (one callback, not seven), so a test
+ * that overrode only the field it cares about would be reporting a shape the
+ * editor never emits.
+ */
+function liveCosmetics(over: Partial<LiveCosmetics> = {}): LiveCosmetics {
+  const s = editorSpec();
+  return {
+    grid: s.grid,
+    background: s.background,
+    theme: s.theme,
+    typography: s.typography,
+    appearance: s.appearance,
+    currency: s.currency,
+    ...over,
+  };
 }
 
 /** Fire one of the editor's callbacks the way the real editor would. */
@@ -369,13 +390,20 @@ describe("live cosmetics the editor reports", () => {
     // scale with nothing else.
     expect(root().style.fontSize).toBe("125%");
 
-    await fromEditor((props) => {
-      props.onAccentHueChange?.(40);
-      props.onAccentSatChange?.(10);
-      props.onUpColorChange?.("#111111");
-      props.onDownColorChange?.("#222222");
-      props.onFontScaleChange?.(0.9);
-    });
+    await fromEditor((props) =>
+      props.onLiveChange?.(
+        liveCosmetics({
+          theme: {
+            ...editorSpec().theme,
+            accentHue: 40,
+            accentSat: 10,
+            upColor: "#111111",
+            downColor: "#222222",
+          },
+          typography: { ...editorSpec().typography, scale: 0.9 },
+        }),
+      ),
+    );
 
     // The live report wins over the saved spec while customising, so the header
     // and the tape re-tint with the slider instead of only after a save.
@@ -399,11 +427,15 @@ describe("live cosmetics the editor reports", () => {
     expect(fill()?.style.backgroundColor).toBe("rgb(18, 52, 86)");
 
     await fromEditor((props) =>
-      props.onBackgroundChange?.({
-        ...editorSpec().background,
-        type: "color",
-        color: "#654321",
-      }),
+      props.onLiveChange?.(
+        liveCosmetics({
+          background: {
+            ...editorSpec().background,
+            type: "color",
+            color: "#654321",
+          },
+        }),
+      ),
     );
     expect(fill()?.style.backgroundColor).toBe("rgb(101, 67, 33)");
   });

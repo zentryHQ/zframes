@@ -6,6 +6,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
+import type { LiveCosmetics } from "@zframes/editor/editor";
 import {
   DashboardRenderer,
   DashboardSpecSchema,
@@ -150,46 +151,22 @@ export default function App() {
   const [load, setLoad] = useState<Load>({ status: "loading" });
   const [customiseButtonTarget, setCustomiseButtonTarget] =
     useState<HTMLDivElement | null>(null);
-  // Live accent hue the editor reports while customising (null = not editing →
-  // fall back to the saved spec value). Held here, above the editor, so the
-  // header and :root-scoped tokens re-tint with the slider, not just on reload.
-  const [liveHue, setLiveHue] = useState<number | null>(null);
-  // Same for accent saturation — the editor reports it so the :root chart tokens
-  // and the background scene's saturate() filter follow the slider live, not just
-  // on reload (the editor's own cards already track it via an inline var).
-  const [liveSat, setLiveSat] = useState<number | null>(null);
-  // Live text scale the editor reports while customising (null = not editing →
-  // fall back to the saved spec value). Applied as the root font size below so
-  // the rem-based chart text and titles scale; held here, above the editor, so
-  // it follows the slider live, not just on reload.
-  const [liveScale, setLiveScale] = useState<number | null>(null);
-  // Live semantic up/down colors the editor reports while customising. Pushed to
-  // :root below so host chrome that lives OUTSIDE the dashboard container —
-  // notably the ticker tape — follows them too (the in-grid frames already get
-  // them from the container's inline vars). null = not editing → saved spec.
-  const [liveUp, setLiveUp] = useState<string | null>(null);
-  const [liveDown, setLiveDown] = useState<string | null>(null);
+  // Every cosmetic the editor reports while customising, in ONE object (null =
+  // not editing → fall back to the saved spec). Held here, above the editor,
+  // because all of it paints chrome the editor does not own: the page header and
+  // the :root-scoped chart tokens (accent hue + saturation), the root font size
+  // (chart text is rem-based, so nothing else scales it), the ticker tape's
+  // --zf-up/--zf-down, the full-bleed backdrop, and its dark/light surface. This
+  // was six separate mirrors fed by six separate callbacks, so a seventh knob
+  // meant a seventh pair — and a host wiring five of them looked like a host
+  // wiring all six.
+  const [live, setLive] = useState<LiveCosmetics | null>(null);
   // Live layout mode the editor reports while customising (null = not editing →
   // fall back to the saved spec value). flow-horizontal is full-bleed, so the
   // host's centred max-width has to drop — and that decision lives here, on
   // <main>, above the editor.
   const [liveMode, setLiveMode] = useState<
     DashboardSpec["grid"]["mode"] | null
-  >(null);
-  // Live background the editor reports while customising (null = not editing →
-  // fall back to the saved spec). Held above the editor because the full-bleed
-  // <DashboardBackground> renders here, outside the editor — so a scene swap,
-  // opacity drag, or none/gradient toggle repaints the real backdrop live.
-  const [liveBackground, setLiveBackground] = useState<
-    DashboardSpec["background"] | null
-  >(null);
-  // Live dark/light surface mode the editor reports while customising (null = not
-  // editing → saved spec). Held here because <DashboardBackground> renders
-  // outside the editor: the light-mode toggle must repaint the real backdrop live
-  // (the editor grid already flips via its own inline vars), else the preview is
-  // a light board inside a dark frame until Save.
-  const [liveSurface, setLiveSurface] = useState<
-    DashboardSpec["theme"]["surface"] | null
   >(null);
   // Editing stays a desktop activity: only >=1024px gets the editable GridStack
   // editor. Phones and tablets get the read-only CSS-grid renderer, which
@@ -207,16 +184,14 @@ export default function App() {
   // background comes alive — it cycles its hue and breathes (see background.tsx).
   const [orbThinking, setOrbThinking] = useState(false);
 
-  const accentHue =
-    liveHue ?? (load.status === "ready" ? load.spec.theme.accentHue : null);
-  const accentSat =
-    liveSat ?? (load.status === "ready" ? load.spec.theme.accentSat : null);
-  const fontScale =
-    liveScale ?? (load.status === "ready" ? load.spec.typography.scale : null);
-  const upColor =
-    liveUp ?? (load.status === "ready" ? load.spec.theme.upColor : null);
-  const downColor =
-    liveDown ?? (load.status === "ready" ? load.spec.theme.downColor : null);
+  // The live edit wins while customising, else the saved spec — one resolution
+  // for every token below, so none of them can be left on the stale half.
+  const saved = load.status === "ready" ? load.spec : null;
+  const accentHue = (live ?? saved)?.theme.accentHue ?? null;
+  const accentSat = (live ?? saved)?.theme.accentSat ?? null;
+  const fontScale = (live ?? saved)?.typography.scale ?? null;
+  const upColor = (live ?? saved)?.theme.upColor ?? null;
+  const downColor = (live ?? saved)?.theme.downColor ?? null;
   // --color-highlight (chart layer) is declared in @theme → resolved at :root,
   // so it only follows the accent if :root carries the knobs. Pushing both here
   // lets the heading-frame dots and chart highlights track the sliders live.
@@ -310,13 +285,13 @@ export default function App() {
   // backdrop's authored hue from its projectId so the accent hue-rotate spins
   // the scene relative to its own colour — a preset's paired scene renders as
   // authored, a rolled accent drifts it from there.
-  const background = liveBackground ?? spec.background;
+  const background = live?.background ?? spec.background;
 
   return (
     <FramesProvider providers={providers}>
       <DashboardBackground
         background={background}
-        surface={liveSurface ?? spec.theme.surface}
+        surface={live?.theme.surface ?? spec.theme.surface}
         active={orbOpen}
         thinking={orbThinking}
         accentHue={accentHue ?? spec.theme.accentHue}
@@ -377,14 +352,8 @@ export default function App() {
               registry={registry}
               onSave={persist}
               customiseButtonTarget={customiseButtonTarget}
-              onAccentHueChange={setLiveHue}
-              onAccentSatChange={setLiveSat}
-              onFontScaleChange={setLiveScale}
-              onUpColorChange={setLiveUp}
-              onDownColorChange={setLiveDown}
               onModeChange={setLiveMode}
-              onBackgroundChange={setLiveBackground}
-              onSurfaceChange={setLiveSurface}
+              onLiveChange={setLive}
             />
           </Suspense>
         )}
