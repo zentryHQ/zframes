@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  FRAME_CSS,
-  FrameContent,
-  FramesProvider,
-  type FrameInstance,
-} from "@zframes/core";
-import { buildDefaultConfig } from "@zframes/editor/editor-symbols";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { providers, registry } from "@/app/lib/frames";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 // A single REAL frame rendered live on the landing — the same FrameContent the
 // runtime renders, fed by the app-wide provider singletons (one shared WS, one
@@ -19,6 +11,11 @@ import { providers, registry } from "@/app/lib/frames";
 //   • data cost — the frame only MOUNTS once it nears the viewport
 //     (IntersectionObserver, one-shot), so below-the-fold frames open no
 //     socket subscriptions and start no polls until they're almost visible.
+//   • bundle cost — this shell imports NOTHING from @zframes/*. The frame
+//     engine (registry metas + zod, the mock provider, core's FrameContent)
+//     lives in LiveFrameInner, fetched through the same viewport gate — so the
+//     landing's initial JS ships marketing copy, not the engine, and phones
+//     whose display-hidden hero floaters never intersect never fetch it.
 //
 // Interactive by DEFAULT (changed 2026-08-06). These are D3 charts whose
 // tooltips, crosshairs and hover highlights are most of what makes them worth
@@ -31,15 +28,12 @@ import { providers, registry } from "@/app/lib/frames";
 //     (filings/news lists) still scrolls the PAGE on touch rather than being
 //     trapped by the list.
 
-/** Inject the dashboard's frame stylesheet once per page. Render one instance
- *  near the top of any page that uses <LiveFrame>. Same href/precedence as
- *  DashboardRenderer's copy, so React 19 hoists them into one document tag. */
-export function LiveFrameStyles() {
-  return (
-    <style href="zframes-frame-css" precedence="zframes">
-      {FRAME_CSS}
-    </style>
-  );
+const LiveFrameInner = lazy(() => import("./LiveFrameInner"));
+
+/** Same footprint as the mounted frame, so nothing reflows on mount.
+ *  `.zf-surface` is defined in globals.css — no frame CSS needed pre-mount. */
+function Placeholder() {
+  return <div className="zf-surface h-full w-full opacity-40" />;
 }
 
 export function LiveFrame({
@@ -62,9 +56,6 @@ export function LiveFrame({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
-  // Unique per component instance, so the same frame type can appear twice on
-  // one page (hero + showcase) without instance-id collisions.
-  const uid = useId();
 
   useEffect(() => {
     if (mounted) return;
@@ -83,22 +74,6 @@ export function LiveFrame({
     return () => io.disconnect();
   }, [mounted, rootMargin]);
 
-  // The lazy registry's entries carry the full meta (layout, schema) eagerly;
-  // only the component chunk defers, and FrameContent renders it in Suspense.
-  const def = registry.get(frame);
-  const instance = useMemo<FrameInstance | null>(() => {
-    if (!def) return null;
-    return {
-      id: `landing-${frame}-${uid}`,
-      frame,
-      ...(title ? { title } : {}),
-      position: { x: 0, y: 0, w: def.layout?.w ?? 4, h: def.layout?.h ?? 3 },
-      config: { ...buildDefaultConfig(def), ...(config ?? {}) },
-    };
-  }, [def, frame, title, config, uid]);
-
-  if (!def || !instance) return null;
-
   return (
     <div
       ref={ref}
@@ -111,16 +86,11 @@ export function LiveFrame({
       }${className ?? ""}`}
     >
       {mounted ? (
-        <FramesProvider providers={providers}>
-          <FrameContent
-            instance={instance}
-            registry={registry}
-            className="h-full w-full"
-          />
-        </FramesProvider>
+        <Suspense fallback={<Placeholder />}>
+          <LiveFrameInner frame={frame} config={config} title={title} />
+        </Suspense>
       ) : (
-        // Placeholder with the same footprint so nothing reflows on mount.
-        <div className="zf-surface h-full w-full opacity-40" />
+        <Placeholder />
       )}
     </div>
   );
