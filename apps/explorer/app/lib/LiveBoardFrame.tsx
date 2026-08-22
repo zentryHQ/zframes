@@ -30,6 +30,8 @@ export const LiveBoardFrame = memo(function LiveBoardFrame({
   boardVisible = true,
   mountEnabled = true,
   scrollProgress,
+  onMounted,
+  onLoaded,
 }: {
   id: string;
   title: string;
@@ -60,6 +62,10 @@ export const LiveBoardFrame = memo(function LiveBoardFrame({
    * just shows its top, as before.
    */
   scrollProgress?: MotionValue<number>;
+  /** Fires once, when the iframe actually mounts (parent ratchet feedback). */
+  onMounted?: () => void;
+  /** Fires once, when the mounted iframe's document has loaded. */
+  onLoaded?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -74,6 +80,7 @@ export const LiveBoardFrame = memo(function LiveBoardFrame({
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
           setMounted(true); // one-shot: mount the WS once, keep it after
+          onMounted?.();
           io.disconnect();
         }
       },
@@ -81,7 +88,7 @@ export const LiveBoardFrame = memo(function LiveBoardFrame({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [mounted, mountEnabled]);
+  }, [mounted, mountEnabled, onMounted]);
 
   // Board control channel into the embed (same-origin). Push on every change,
   // and answer the embed's `zf:bg-hello` — sent once it has hydrated and is
@@ -169,7 +176,10 @@ export const LiveBoardFrame = memo(function LiveBoardFrame({
           loading="lazy"
           scrolling="no"
           tabIndex={-1}
-          onLoad={() => setLoaded(true)}
+          onLoad={() => {
+            if (!loaded) onLoaded?.();
+            setLoaded(true);
+          }}
           className="pointer-events-none absolute inset-0 z-0 h-full w-full border-0"
         />
       )}
