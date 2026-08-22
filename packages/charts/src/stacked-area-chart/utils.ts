@@ -1,10 +1,5 @@
 import * as d3 from "d3";
-import type {
-  StackedAreaSeries,
-  CombinedStackedDataPoint,
-  StackOrder,
-  StackOffset,
-} from "./types";
+import type { StackedAreaSeries, CombinedStackedDataPoint } from "./types";
 
 /**
  * Get all unique dates from series data, sorted chronologically
@@ -85,12 +80,7 @@ export function createCombinedDataPoints<T extends StackedAreaSeries>(
  */
 export function calculateStackedYDomain<T extends StackedAreaSeries>(
   series: T[],
-  stackOffset: StackOffset = "none",
 ): [number, number] {
-  if (stackOffset === "expand") {
-    return [0, 1];
-  }
-
   const dates = getAllDates(series);
   const combined = createCombinedDataPoints(series, dates);
 
@@ -98,63 +88,6 @@ export function calculateStackedYDomain<T extends StackedAreaSeries>(
 
   // Add 10% padding to top
   return [0, maxTotal * 1.1];
-}
-
-/**
- * Get D3 stack order function from order name
- */
-export function getStackOrder(order: StackOrder) {
-  switch (order) {
-    case "ascending":
-      return d3.stackOrderAscending;
-    case "descending":
-      return d3.stackOrderDescending;
-    case "insideOut":
-      return d3.stackOrderInsideOut;
-    case "reverse":
-      return d3.stackOrderReverse;
-    case "none":
-    default:
-      return d3.stackOrderNone;
-  }
-}
-
-/**
- * Get D3 stack offset function from offset name
- */
-export function getStackOffset(offset: StackOffset) {
-  switch (offset) {
-    case "expand":
-      return d3.stackOffsetExpand;
-    case "wiggle":
-      return d3.stackOffsetWiggle;
-    case "silhouette":
-      return d3.stackOffsetSilhouette;
-    case "none":
-    default:
-      return d3.stackOffsetNone;
-  }
-}
-
-/**
- * Get curve function from curve type name
- */
-export function getCurveFunction(
-  curveType: "linear" | "monotoneX" | "step" | "natural" | "basis",
-): d3.CurveFactory {
-  switch (curveType) {
-    case "monotoneX":
-      return d3.curveMonotoneX;
-    case "step":
-      return d3.curveStep;
-    case "natural":
-      return d3.curveNatural;
-    case "basis":
-      return d3.curveBasis;
-    case "linear":
-    default:
-      return d3.curveLinear;
-  }
 }
 
 /**

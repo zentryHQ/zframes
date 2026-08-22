@@ -1,11 +1,11 @@
 import * as d3 from "d3";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect } from "react";
 import {
   attachChartTooltip,
   hideChartTooltip,
   type ChartTooltipRow,
 } from "./lib/chart-tooltip";
-import { observeResize } from "./lib/observe-resize";
+import { useChartBox } from "./lib/use-chart-box";
 import { useChartIntro } from "./lib/use-chart-intro";
 
 export interface ScatterDatum {
@@ -94,10 +94,10 @@ const ScatterChart = ({
   yLabel = DEFAULT_Y_LABEL,
   weightLabel,
 }: ScatterChartProps) => {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [width, setWidth] = useState<number | null>(null);
-  const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
+  const { wrapRef, svgRef, width, plotHeight, boxStyle } = useChartBox({
+    height,
+    fill,
+  });
   /**
    * Opens a short grace window at the first real draw, so the entrance survives
    * the re-render burst around first paint and then settles: a later redraw
@@ -105,31 +105,6 @@ const ScatterChart = ({
    * transition, and a 15-minute poll never re-grows the whole cloud from zero.
    */
   const shouldIntro = useChartIntro();
-
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const update = () => {
-      const rect = el.getBoundingClientRect();
-      setWidth((prev) =>
-        prev !== null && Math.abs(prev - rect.width) < 0.5 ? prev : rect.width,
-      );
-      // Only tracked when filling — a pinned wrapper is `height` by
-      // construction, so measuring it would re-render for nothing.
-      if (fill)
-        setMeasuredHeight((prev) =>
-          prev !== null && Math.abs(prev - rect.height) < 0.5
-            ? prev
-            : rect.height,
-        );
-    };
-    update();
-    return observeResize(el, update);
-  }, [fill]);
-
-  // The wrapper can measure 0 before layout settles, so the prop stays the
-  // fallback — a collapsed chart is worse than a slightly-too-tall one.
-  const plotHeight = fill && measuredHeight ? measuredHeight : height;
 
   useEffect(() => {
     const svgEl = svgRef.current;
@@ -374,6 +349,7 @@ const ScatterChart = ({
     // cursor can vanish (poll, resize, unmount) with no pointerleave to follow.
     return hideChartTooltip;
   }, [
+    svgRef,
     data,
     width,
     plotHeight,
@@ -391,11 +367,7 @@ const ScatterChart = ({
   ]);
 
   return (
-    <div
-      ref={wrapRef}
-      className="w-full"
-      style={fill ? { height: "100%", minHeight: 0 } : { height }}
-    >
+    <div ref={wrapRef} className="w-full" style={boxStyle}>
       {width !== null && width > 0 && (
         <svg ref={svgRef} width={width} height={plotHeight} />
       )}

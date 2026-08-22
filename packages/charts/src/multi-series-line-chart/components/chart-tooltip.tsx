@@ -9,8 +9,6 @@ interface ChartTooltipProps {
   tooltipRef: React.RefObject<HTMLDivElement | null>;
   series: MultiSeriesData[];
   seriesColors: { [seriesId: string]: string };
-  unitPrefix?: string | React.ReactNode;
-  unitSuffix?: string | React.ReactNode;
 }
 
 /**
@@ -37,8 +35,6 @@ const ChartTooltipComponent: React.FC<ChartTooltipProps> = ({
   tooltipRef,
   series,
   seriesColors,
-  unitPrefix,
-  unitSuffix,
 }) => {
   // The stylesheet normally lands when the shared tooltip first shows; this
   // tooltip never calls into it, so it has to ask for the styles itself or it
@@ -80,9 +76,7 @@ const ChartTooltipComponent: React.FC<ChartTooltipProps> = ({
               </span>
 
               <div className="zfc-tt-val">
-                {unitPrefix}
                 <span data-tooltip-value={seriesData.id}></span>
-                {unitSuffix}
               </div>
             </React.Fragment>
           ))}
