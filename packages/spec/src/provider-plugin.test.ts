@@ -74,6 +74,54 @@ describe("validateProviderPlugin", () => {
     expect(result.ok).toBe(false);
   });
 
+  // Once a mount derives its allowlist from installed manifests, one of these
+  // in a manifest turns the same-origin relay into a reader for the operator's
+  // own network. 169.254.169.254 is the cloud instance-metadata address, which
+  // is the one that matters most and looks the most innocuous in a diff.
+  it.each([
+    "localhost",
+    "app.localhost",
+    "internal.corp",
+    "db.internal",
+    "printer.local",
+    "service.home.arpa",
+    "127.0.0.1",
+    "10.0.0.5",
+    "192.168.1.1",
+    "172.16.0.1",
+    "172.31.255.254",
+    "169.254.169.254",
+    "0.0.0.0",
+    "..",
+    "-leading.example.com",
+    "trailing-.example.com",
+    "trailing.dot.",
+  ])("rejects %s as a host", (host) => {
+    const result = validateProviderPlugin({
+      manifest: manifest({ hosts: [{ host, proxied: true }] }),
+      createProviders,
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  // Public space that merely looks private-adjacent must still pass, or a real
+  // upstream gets refused for resembling one that should be.
+  it.each([
+    "api.example.com",
+    "cdn.cboe.com",
+    "172.15.0.1",
+    "172.32.0.1",
+    "11.0.0.1",
+    "169.253.0.1",
+    "corporate.example.com",
+  ])("accepts %s as a host", (host) => {
+    const result = validateProviderPlugin({
+      manifest: manifest({ hosts: [{ host, proxied: true }] }),
+      createProviders,
+    });
+    expect(result.ok).toBe(true);
+  });
+
   it("rejects a plugin declaring no capability, which could never route", () => {
     const result = validateProviderPlugin({
       manifest: manifest({ capabilities: [] }),

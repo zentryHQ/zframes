@@ -66,9 +66,14 @@ export function withSourceIds<
 /**
  * Canonical data-source credits. Each frame links its provider from the card
  * chrome (see core's FrameContent); the URL lives here in exactly one place.
- * The record key doubles as the credit's `id`, and for the exchanges it matches
- * `sourceField()`'s enum values — that pairing is what lets a card crediting
- * several exchanges narrow to the one it is reading.
+ * The credit's `id` is the DASHED derivation of the record key (`withSourceIds`
+ * above): identical for a single-word key, `nyFed` becomes `ny-fed`. For the
+ * exchanges the id matches `sourceField()`'s enum values, and that pairing is
+ * what lets a card crediting several exchanges narrow to the one it is reading
+ * — so a NEW pinnable venue must be added with a key whose derivation equals
+ * its enum value (a single-word key guarantees it). Get that wrong and the pin
+ * never matches: the chrome falls back to the first-declared credit, which
+ * looks like a card nobody pinned rather than an error.
  */
 export const SOURCES = withSourceIds({
   hyperliquid: { name: "Hyperliquid", url: "https://hyperliquid.xyz" },

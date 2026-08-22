@@ -10,11 +10,19 @@
  *
  *   1. the loader / `zframes providers`, so an assembling agent can see which
  *      capabilities are actually mounted before it writes a `dashboard.json`;
- *   2. the serve proxy's allowlist, which is DERIVED from `hosts` and ships
- *      empty, so the relay can only reach hosts an install authorised;
+ *   2. the serve proxy's allowlist, derived from `hosts` so the relay can only
+ *      reach hosts an install authorised;
  *   3. the per-installation AI catalogue, whose `source` vocabulary comes from
  *      `sources` rather than a list baked into the frame schemas;
  *   4. the install-time terms notice, via `termsUrl`.
+ *
+ * NONE OF THE FOUR IS BUILT YET. There is no loader, no `zframes providers`
+ * command, the mounts still pass the bundled fleet's hardcoded host list, and
+ * the catalogue's `source` vocabulary is still the enum in
+ * `packages/frames/src/schemas/shared.ts`. This contract is the shape they will
+ * read; until they exist it is held honest only by the drift guards in
+ * repo-level `tests/`, which pin the fleet's manifest equal to the two lists it
+ * is meant to replace.
  *
  * A plugin is a plain module: a `manifest` plus a `createProviders()` factory.
  * No base class, no lifecycle, nothing to inherit. That keeps a hand-written
@@ -81,9 +89,12 @@ export interface ProviderPluginManifest {
   /** Hosts contacted. Empty for a synthetic plugin. */
   hosts: readonly ProviderHost[];
   /**
-   * True when the plugin fabricates its data and contacts nothing. The chrome
-   * watermarks a synthetic board, so this is load-bearing rather than
-   * decorative: an operator must never mistake generated numbers for a market.
+   * True when the plugin fabricates its data and contacts nothing.
+   *
+   * It is a DECLARATION, not a safety mechanism: nothing renders a watermark
+   * off it today, so a host that wants generated numbers to be distinguishable
+   * from a market has to do that itself. Labelling simulated data in the chrome
+   * is the obvious consumer and does not exist yet.
    */
   synthetic?: boolean;
   /**
@@ -105,6 +116,48 @@ export interface ProviderPlugin {
   createProviders(): MarketDataProvider[];
 }
 
+/**
+ * A dotted hostname: at least two labels, each starting and ending
+ * alphanumeric. Requiring the dot is what rejects `localhost` and every other
+ * dotless internal name, and the per-label shape rejects `..`, a leading or
+ * trailing dot, and a label edged with a hyphen.
+ */
+const PUBLIC_HOSTNAME =
+  /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/i;
+
+/** Suffixes reserved for names that only resolve inside a network. */
+const INTERNAL_SUFFIXES = [
+  ".local",
+  ".localhost",
+  ".internal",
+  ".intranet",
+  ".corp",
+  ".home.arpa",
+];
+
+/**
+ * True for a target that can only be inside the operator's own network:
+ * loopback, RFC1918 private space, link-local (which is where cloud instance
+ * metadata lives), the unspecified address, and the reserved internal-only
+ * name suffixes.
+ */
+function isInternalHost(host: string): boolean {
+  const lower = host.toLowerCase();
+  if (INTERNAL_SUFFIXES.some((suffix) => lower.endsWith(suffix))) return true;
+  const octets = lower.split(".");
+  if (octets.length !== 4 || !octets.every((part) => /^\d{1,3}$/.test(part))) {
+    return false;
+  }
+  const [a, b] = octets.map(Number);
+  if (a === undefined || b === undefined) return false;
+  if (a === 0 || a === 127) return true; // unspecified, loopback
+  if (a === 10) return true; // RFC1918
+  if (a === 192 && b === 168) return true; // RFC1918
+  if (a === 172 && b >= 16 && b <= 31) return true; // RFC1918
+  if (a === 169 && b === 254) return true; // link-local, incl. cloud metadata
+  return false;
+}
+
 const CreditSchema = z.object({
   id: z
     .string()
@@ -119,13 +172,25 @@ const CreditSchema = z.object({
 });
 
 const HostSchema = z.object({
-  // Rejects a scheme, a path, a port and a wildcard: the allowlist compares
-  // against URL.hostname, so anything else can never match and would read as
+  // Two different failures are being closed here.
+  //
+  // A scheme, a path, a port or a wildcard can never match, because the
+  // allowlist compares against `URL.hostname`. Left in, such an entry reads as
   // an authorised host that silently never works.
+  //
+  // A loopback, private or link-local target is worse than useless: once a
+  // mount derives its allowlist from installed manifests, an adapter naming
+  // `169.254.169.254` or `internal.corp` turns the same-origin relay into a
+  // reader for the operator's own network, which is exactly the SSRF the
+  // allowlist exists to prevent. A published data programme never lives at one
+  // of these, so refusing them costs nothing real.
   host: z
     .string()
     .min(1)
-    .regex(/^[a-z0-9.-]+$/i, "host must be a bare hostname"),
+    .regex(PUBLIC_HOSTNAME, "host must be a bare public hostname")
+    .refine((host) => !isInternalHost(host), {
+      message: "host is loopback, private, link-local or internal-only",
+    }),
   proxied: z.boolean().optional(),
   reason: z.string().optional(),
 });
@@ -188,9 +253,10 @@ export function validateProviderPlugin(
     errors.push("manifest.capabilities: declares none, so nothing can route");
   }
 
-  // The synthetic flag is what the chrome watermarks on, so a plugin that both
-  // claims to fabricate data and names hosts is a contradiction that has to be
-  // resolved by its author, not guessed at here.
+  // "Fabricates its data and contacts nothing" and "here are the hosts I
+  // contact" cannot both be true. Rejecting is the only honest reading: either
+  // field could be the mistake, so guessing which would silently publish a
+  // manifest its author never meant.
   if (parsed.success && parsed.data.synthetic && parsed.data.hosts.length > 0) {
     errors.push("manifest: synthetic plugins must declare no hosts");
   }

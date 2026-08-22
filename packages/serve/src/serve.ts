@@ -222,13 +222,17 @@ export interface ProxyOptions {
    *
    * The relay ships with an empty allowlist on purpose: zframes provides the
    * frames and the assembly layer, not a decision about which third party a
-   * board calls. A host that wants to reach anything has to name it, and in the
-   * shipped CLI that list is derived from the manifests of the adapters the
-   * operator installed (`proxyHostsOf`, @zframes/spec) rather than compiled in.
-   * An installation with no adapters can therefore reach nothing at all.
+   * board calls. A host that wants to reach anything has to name it.
    *
-   * Passing nothing is a valid, useful state, not a misconfiguration: it is
-   * exactly what a fresh install looks like.
+   * TODAY every in-repo mount names the bundled fleet's list
+   * (`PROXY_ALLOW_HOSTS`), so a default `zframes serve` still relays to all of
+   * those hosts. The INTENDED end state is that a mount derives its list from
+   * the manifests of the adapters the operator installed (`proxyHostsOf`,
+   * @zframes/spec), at which point an installation with no adapters reaches
+   * nothing at all. What this option changes now is only where the decision
+   * lives: at the mount, in the open, instead of compiled into the relay.
+   *
+   * Passing nothing is a valid state, not a misconfiguration.
    */
   allowHosts?: Iterable<string>;
   /**
