@@ -291,8 +291,33 @@ describe("HyperliquidProvider.getDayStats", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("distinct request shapes use distinct cache keys (no cross-contamination)", async () => {
-    // Default-universe call primes key "*"; a concrete call is a different key.
+  it("one download per dex: request shapes on the same dex share the payload", async () => {
+    // The API answers with the dex's whole universe regardless of the request
+    // shape, so the cache holds the per-DEX table: a default-universe call
+    // primes it and a concrete call on the same dex filters from it instead of
+    // re-downloading the identical ~72 KB payload.
+    const fetchMock = vi.fn().mockResolvedValue(
+      okJson(
+        metaAndCtxs([
+          { name: "BTC", markPx: "110", prevDayPx: "100", openInterest: "1" },
+          { name: "ETH", markPx: "90", prevDayPx: "100", openInterest: "2" },
+        ]),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = await freshProvider();
+
+    const all = await provider.getDayStats();
+    const one = await provider.getDayStats(["ETH"]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(all.BTC.markPx).toBe(110);
+    // The concrete request still gets a filtered view, never the whole universe.
+    expect(one.ETH.markPx).toBe(90);
+    expect(one.BTC).toBeUndefined();
+  });
+
+  it("distinct dexes stay distinct cache entries", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -305,21 +330,48 @@ describe("HyperliquidProvider.getDayStats", () => {
       .mockResolvedValueOnce(
         okJson(
           metaAndCtxs([
-            { name: "ETH", markPx: "90", prevDayPx: "100", openInterest: "2" },
+            {
+              name: "TSLA",
+              markPx: "250",
+              prevDayPx: "200",
+              openInterest: "3",
+            },
           ]),
         ),
       );
     vi.stubGlobal("fetch", fetchMock);
     const provider = await freshProvider();
 
-    const all = await provider.getDayStats();
-    const one = await provider.getDayStats(["ETH"]);
+    const crypto = await provider.getDayStats();
+    const equities = await provider.getDayStats(["xyz:*"]);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    // The "*" key did not serve the concrete request's result.
-    expect(all.BTC.markPx).toBe(110);
-    expect(one.ETH.markPx).toBe(90);
-    expect(one.BTC).toBeUndefined();
+    expect(bodyOf(fetchMock, 1)).toEqual({
+      type: "metaAndAssetCtxs",
+      dex: "xyz",
+    });
+    expect(crypto.BTC.markPx).toBe(110);
+    expect(equities.TSLA.markPx).toBe(250);
+  });
+
+  it("day-stats and open-interest share one download per dex", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        okJson(
+          metaAndCtxs([
+            { name: "BTC", markPx: "110", prevDayPx: "100", openInterest: "2" },
+          ]),
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = await freshProvider();
+
+    await provider.getDayStats(["BTC"]);
+    const oi = await provider.getOpenInterest(["BTC"]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(oi).toEqual([{ symbol: "BTC", openInterestUsd: 220 }]);
   });
 
   it("rejects when the info endpoint returns a non-2xx status", async () => {
@@ -480,7 +532,7 @@ describe("HyperliquidProvider.getOpenInterest", () => {
     expect(oi).toEqual([{ symbol: "BTC", openInterestUsd: 200 }]);
   });
 
-  it("caches on the sorted-symbol key: repeat call does not re-fetch", async () => {
+  it("caches the per-dex table: repeat call does not re-fetch", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(

@@ -135,18 +135,18 @@ async function info<T>(body: Record<string, unknown>): Promise<T> {
 // TTL sits just UNDER each hook's poll interval so scheduled background polls
 // still refresh while reloads/extra frames reuse the cache.
 //
-// Day-stats / OI are keyed by the SORTED symbol set so order variants collapse,
-// while the three request shapes (undefined→"*" default universe, "<dex>:*"
-// wildcard, concrete symbols) map to distinct keys — a precise-symbol frame
-// never receives a whole-universe payload. Live snapshots aren't persisted
-// (cold-start fresh, not from a stale blob); candles/funding persist so a cold
-// reload paints last-known immediately.
-const dayStatsCache = new TtlCache<Record<string, DayStats>>({
-  namespace: "zframes:hyperliquid:daystats",
-  ttlMs: 25_000,
-});
-const openInterestCache = new TtlCache<OpenInterestEntry[]>({
-  namespace: "zframes:hyperliquid:oi",
+// Day-stats and OI both read the same per-dex `metaAndAssetCtxs` table and the
+// API always answers with the dex's WHOLE universe (~72 KB uncompressed for the
+// default dex) — every request shape (undefined→default universe, "<dex>:*"
+// wildcard, concrete symbols) is a client-side filter over that one payload.
+// So the cache holds the table itself, keyed by DEX: every distinct symbol set
+// on the board, plus every OI frame, derives from one download per dex per TTL.
+// (Keying by symbol set — the first cut — re-downloaded the identical payload
+// for "BTC", "BTC,ETH", "*", and again for OI: hundreds of KB/min duplicated.)
+// Live snapshots aren't persisted (cold-start fresh, not from a stale blob);
+// candles/funding persist so a cold reload paints last-known immediately.
+const metaCtxsCache = new TtlCache<[PerpMeta, AssetCtx[]]>({
+  namespace: "zframes:hyperliquid:meta-ctxs",
   ttlMs: 25_000,
 });
 const candlesCache = new TtlCache<Candle[]>({
@@ -165,8 +165,30 @@ const fundingComparisonCache = new TtlCache<FundingComparison[]>({
   namespace: "zframes:hyperliquid:funding-comparison",
   ttlMs: 5 * 60_000,
 });
-const sortedKey = (symbols?: readonly string[]): string =>
-  symbols ? [...symbols].sort().join(",") : "*";
+/**
+ * Split a day-stats/OI symbols argument into its three request shapes:
+ * whole-dex wildcards ("<dex>:*"), concrete names, and the set of dexes to
+ * query (no symbols → the default dex "").
+ */
+function resolveDexes(symbols?: string[]): {
+  wholeDexes: Set<string>;
+  concrete: Set<string>;
+  dexes: Set<string>;
+} {
+  const wholeDexes = new Set<string>();
+  const concrete = new Set<string>();
+  if (!symbols) {
+    wholeDexes.add("");
+  } else {
+    for (const s of symbols) {
+      if (s.endsWith(":*")) wholeDexes.add(s.slice(0, -2));
+      else concrete.add(s);
+    }
+  }
+  const dexes = new Set<string>(wholeDexes);
+  for (const s of concrete) dexes.add(dexOf(s));
+  return { wholeDexes, concrete, dexes };
+}
 
 /**
  * Free, no-API-key provider backed by Hyperliquid's public API.
@@ -356,40 +378,31 @@ export class HyperliquidProvider implements MarketDataProvider {
     this.subscribedDexes = new Set();
   }
 
-  getDayStats(symbols?: string[]): Promise<Record<string, DayStats>> {
-    return dayStatsCache.get(sortedKey(symbols), () =>
-      this.fetchDayStats(symbols),
-    );
+  /**
+   * The per-dex `metaAndAssetCtxs` table, cached by dex and shared by
+   * getDayStats and getOpenInterest — both are pure filters over it.
+   */
+  private getMetaCtxs(dex: string): Promise<[PerpMeta, AssetCtx[]]> {
+    return metaCtxsCache.get(dex || "*", () => {
+      const body: Record<string, unknown> = { type: "metaAndAssetCtxs" };
+      if (dex) body.dex = dex;
+      return info<[PerpMeta, AssetCtx[]]>(body);
+    });
   }
 
-  private async fetchDayStats(
-    symbols?: string[],
-  ): Promise<Record<string, DayStats>> {
+  async getDayStats(symbols?: string[]): Promise<Record<string, DayStats>> {
     // Three request shapes, all routed through `metaAndAssetCtxs` per dex:
     //   • no symbols           → the default-dex universe (crypto)
     //   • "<dex>:*" wildcard   → that dex's *entire* universe (e.g. "xyz:*"
     //                            for every HIP-3 equity) — there's otherwise no
     //                            way to enumerate a dex without naming symbols
     //   • concrete symbols     → just those, grouped by their dex
-    const wholeDexes = new Set<string>();
-    const concrete = new Set<string>();
-    if (!symbols) {
-      wholeDexes.add("");
-    } else {
-      for (const s of symbols) {
-        if (s.endsWith(":*")) wholeDexes.add(s.slice(0, -2));
-        else concrete.add(s);
-      }
-    }
-    const dexes = new Set<string>(wholeDexes);
-    for (const s of concrete) dexes.add(dexOf(s));
+    const { wholeDexes, concrete, dexes } = resolveDexes(symbols);
 
     const out: Record<string, DayStats> = {};
     await Promise.all(
       [...dexes].map(async (dex) => {
-        const body: Record<string, unknown> = { type: "metaAndAssetCtxs" };
-        if (dex) body.dex = dex;
-        const [meta, ctxs] = await info<[PerpMeta, AssetCtx[]]>(body);
+        const [meta, ctxs] = await this.getMetaCtxs(dex);
         const wholeDex = wholeDexes.has(dex);
         meta.universe.forEach((asset, i) => {
           if (!wholeDex && !concrete.has(asset.name)) return;
@@ -430,37 +443,17 @@ export class HyperliquidProvider implements MarketDataProvider {
     return out;
   }
 
-  getOpenInterest(symbols?: string[]): Promise<OpenInterestEntry[]> {
-    return openInterestCache.get(sortedKey(symbols), () =>
-      this.fetchOpenInterest(symbols),
-    );
-  }
-
-  private async fetchOpenInterest(
-    symbols?: string[],
-  ): Promise<OpenInterestEntry[]> {
-    // Same `metaAndAssetCtxs`-per-dex resolution as getDayStats; we read
-    // `openInterest` (base units) × `markPx` for USD notional. Live snapshot
-    // only — Hyperliquid exposes no OI history endpoint.
-    const wholeDexes = new Set<string>();
-    const concrete = new Set<string>();
-    if (!symbols) {
-      wholeDexes.add("");
-    } else {
-      for (const s of symbols) {
-        if (s.endsWith(":*")) wholeDexes.add(s.slice(0, -2));
-        else concrete.add(s);
-      }
-    }
-    const dexes = new Set<string>(wholeDexes);
-    for (const s of concrete) dexes.add(dexOf(s));
+  async getOpenInterest(symbols?: string[]): Promise<OpenInterestEntry[]> {
+    // Same `metaAndAssetCtxs`-per-dex resolution as getDayStats — and the same
+    // per-dex cache, so an OI frame never re-downloads what a day-stats frame
+    // just fetched. We read `openInterest` (base units) × `markPx` for USD
+    // notional. Live snapshot only — Hyperliquid exposes no OI history endpoint.
+    const { wholeDexes, concrete, dexes } = resolveDexes(symbols);
 
     const out: OpenInterestEntry[] = [];
     await Promise.all(
       [...dexes].map(async (dex) => {
-        const body: Record<string, unknown> = { type: "metaAndAssetCtxs" };
-        if (dex) body.dex = dex;
-        const [meta, ctxs] = await info<[PerpMeta, AssetCtx[]]>(body);
+        const [meta, ctxs] = await this.getMetaCtxs(dex);
         const wholeDex = wholeDexes.has(dex);
         meta.universe.forEach((asset, i) => {
           if (!wholeDex && !concrete.has(asset.name)) return;
@@ -637,5 +630,10 @@ export class HyperliquidProvider implements MarketDataProvider {
     this.unbindVisibility = null;
     this.suspended = false;
     this.mergedMids = {};
+    // Reset the dex wish-list along with the last listener. Left alone it is
+    // append-only, so every dex any past subscriber ever named would be
+    // re-subscribed on the next socket — each one a continuous allMids stream
+    // merged on every flush for nobody.
+    this.wantedDexes = new Set([""]);
   }
 }
