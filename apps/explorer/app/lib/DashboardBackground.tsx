@@ -7,6 +7,12 @@ import {
   type DashboardBackground as BackgroundConfig,
 } from "@zframes/core";
 import { useLowEndDevice, useReducedMotion } from "@zframes/unicorn";
+import {
+  ACCENT_DEFAULT_HUE,
+  ACCENT_DEFAULT_SAT,
+  accentRotation,
+  accentSaturation,
+} from "@zframes/unicorn/accent";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 // The board's OWN background, rendered behind an embedded/live dashboard (both
@@ -27,18 +33,8 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 const UnicornScene = lazy(() => import("@zframes/unicorn/scene"));
 const SDK_URL = "/unicornStudio.umd.mjs";
 
-const ACCENT_DEFAULT_HUE = 242;
-const ACCENT_DEFAULT_SAT = 90;
-
-// Shortest spin: map the offset into (-180, 180] so the transition never sweeps
-// the long way round the wheel.
-const accentRotation = (accentHue: number, sceneHue: number) => {
-  const d = (((accentHue - sceneHue) % 360) + 360) % 360;
-  return d > 180 ? d - 360 : d;
-};
-// 90 (the spec default) → saturate(1), a no-op; a muted accent desaturates.
-const accentSaturation = (accentSat: number) =>
-  Math.round((accentSat / ACCENT_DEFAULT_SAT) * 1000) / 1000;
+// The accent hue-rotate + saturate numbers are shared with the runtime's
+// backdrop via @zframes/unicorn/accent, so the two hosts cannot drift.
 
 // Fallback Aurora opacity when a board declares no background of its own. Higher
 // than the runtime's ~0.16 dashboard default so the scene clearly reads inside a
