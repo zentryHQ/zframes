@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardEditor } from "@zframes/editor/editor";
+import { DashboardEditor, type LiveCosmetics } from "@zframes/editor/editor";
 import {
   DashboardRenderer,
   DashboardSpecSchema,
@@ -192,11 +192,12 @@ export default function DashboardTinker() {
   // scene swap / opacity drag / gradient toggle in the Cosmetics rail repaints
   // the real backdrop live instead of only after Save + reload. The picked
   // values still land in the spec via the editor's own collectSpec.
-  const [liveBackground, setLiveBackground] = useState<
-    DashboardSpec["background"] | null
-  >(null);
-  const [liveHue, setLiveHue] = useState<number | null>(null);
-  const [liveSat, setLiveSat] = useState<number | null>(null);
+  //
+  // The report carries the whole cosmetic half of the spec; this host uses the
+  // three fields <DashboardBackground> accepts and ignores the rest — the page
+  // has no ticker tape or :root chart tokens to re-tint, so there is nothing
+  // else here for typography or the card surface to paint.
+  const [live, setLive] = useState<LiveCosmetics | null>(null);
 
   const onSave = useCallback(async (next: DashboardSpec) => {
     latest.current = next;
@@ -218,9 +219,9 @@ export default function DashboardTinker() {
           `type:"none"` falls back to the default Aurora inside this component. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-[-1]">
         <DashboardBackground
-          background={liveBackground ?? spec.background}
-          accentHue={liveHue ?? spec.theme.accentHue}
-          accentSat={liveSat ?? spec.theme.accentSat}
+          background={live?.background ?? spec.background}
+          accentHue={live?.theme.accentHue ?? spec.theme.accentHue}
+          accentSat={live?.theme.accentSat ?? spec.theme.accentSat}
         />
       </div>
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 pt-6">
@@ -245,9 +246,7 @@ export default function DashboardTinker() {
             spec={spec}
             registry={registry}
             onSave={onSave}
-            onBackgroundChange={setLiveBackground}
-            onAccentHueChange={setLiveHue}
-            onAccentSatChange={setLiveSat}
+            onLiveChange={setLive}
           />
         ) : (
           <DashboardRenderer spec={spec} registry={registry} />

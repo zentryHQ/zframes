@@ -4,10 +4,12 @@ import { frameSearchTokens } from "@zframes/spec/catalogue";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { BoardListing } from "@/app/lib/board-summary";
+import { BoardGrid } from "@/app/lib/BoardGrid";
 import { DashboardCard } from "@/app/lib/DashboardCard";
 import { synthLayout } from "@/app/lib/DashboardThumb";
+import { EmptyState } from "@/app/lib/EmptyState";
+import { SearchField } from "@/app/lib/SearchField";
 import { SectionHeading } from "@/app/lib/SectionHeading";
-import { Input } from "@/app/components/ui/input";
 
 // Both sections now come from /api/dashboards. Curated boards used to be a static
 // import (`CURATED`); they are rows since 2026-08-05, so the whole gallery is one
@@ -153,29 +155,12 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
           Curated boards and dashboards published by the community. Preview any
           one in the browser, then fork it onto your machine to run it live.
         </p>
-        <div className="relative mt-6 max-w-md">
-          <svg
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-          <Input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search dashboards…"
-            aria-label="Search dashboards"
-            className="border-white/10 py-2.5 pl-10 pr-3 focus:border-indigo-300/50 focus:bg-white/[0.06]"
-          />
-        </div>
+        <SearchField
+          label="Search dashboards"
+          value={query}
+          onChange={setQuery}
+          className="mt-6"
+        />
 
         {/* One control governing BOTH sections — each still sorts within itself.
             Rendered only once there is data: a toggle that looks interactive over
@@ -222,14 +207,11 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
           rather than briefly claiming there are none. */}
       {curated === null ? (
         <section className="mb-16">
-          <div
-            className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
-            aria-hidden
-          >
+          <BoardGrid aria-hidden>
             {Array.from({ length: 3 }, (_, i) => (
               <div key={i} className="zf-surface h-64 animate-pulse" />
             ))}
-          </div>
+          </BoardGrid>
         </section>
       ) : (
         curated.length > 0 && (
@@ -239,7 +221,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
               title="Boards to start from"
               description="Hand-built dashboards spanning crypto majors, on-chain data, and official US macro."
             />
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <BoardGrid>
               {curated.map((d) => (
                 <DashboardCard
                   key={d.id}
@@ -256,7 +238,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
                   likes={d.likes}
                 />
               ))}
-            </div>
+            </BoardGrid>
           </section>
         )
       )}
@@ -278,23 +260,22 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
         />
 
         {community === null ? (
-          <div
-            className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
-            aria-hidden
-          >
+          <BoardGrid aria-hidden>
             {Array.from({ length: 3 }, (_, i) => (
               <div key={i} className="zf-surface h-64 animate-pulse" />
             ))}
-          </div>
+          </BoardGrid>
         ) : community.length === 0 ? (
-          <div className="zf-surface flex flex-col items-center px-6 py-14 text-center">
+          // gap-1 rather than the centred default's gap-4: these are two lines
+          // of one sentence, not a headline and a CTA.
+          <EmptyState align="center" className="gap-1">
             <p className="text-sm text-white/65">
               {searching
                 ? "No community dashboards match your search."
                 : "Nothing here yet."}
             </p>
             {!searching && (
-              <p className="mt-1 text-sm text-white/65">
+              <p className="text-sm text-white/65">
                 Be the first to{" "}
                 <Link
                   href="/tinker"
@@ -305,9 +286,9 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
                 a dashboard.
               </p>
             )}
-          </div>
+          </EmptyState>
         ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <BoardGrid>
             {community.map((d) => (
               <DashboardCard
                 key={d.id}
@@ -320,7 +301,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
                 likes={d.likes}
               />
             ))}
-          </div>
+          </BoardGrid>
         )}
       </section>
     </main>

@@ -35,7 +35,7 @@ import {
 import { LikeButton } from "@/app/lib/LikeButton";
 import { LikeCount } from "@/app/lib/LikeCount";
 import { useFrameLikes } from "@/app/lib/use-frame-likes";
-import { Input } from "@/app/components/ui/input";
+import { SearchField } from "@/app/lib/SearchField";
 import FramePlayground from "./FramePlayground";
 import { MinSize } from "./min-size";
 
@@ -369,29 +369,11 @@ export default function CatalogueView() {
           <main> landmark and the page padding too. */}
       <div>
         <header className="mb-12 max-w-3xl">
-          <div className="relative max-w-md">
-            <svg
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-            <Input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search frames…"
-              aria-label="Search frames"
-              className="border-white/10 py-2.5 pl-10 pr-3 focus:border-indigo-300/50 focus:bg-white/[0.06]"
-            />
-          </div>
+          <SearchField
+            label="Search frames"
+            value={query}
+            onChange={setQuery}
+          />
           <p className="mt-4 font-mono text-xs text-white/60">
             {searching
               ? `${shown} of ${total} frames`

@@ -8,6 +8,7 @@ import { FRAME_CATEGORIES } from "@zframes/spec/frame";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import type { BoardSummary } from "@/app/lib/board-summary";
 import { CopyCommand } from "@/app/lib/CopyCommand";
+import { EmptyState } from "@/app/lib/EmptyState";
 import { FAQ } from "@/app/lib/faq";
 import { FramesShowcase } from "@/app/lib/FramesShowcase";
 import { frameSlotMinHeight } from "@/app/lib/frame-slot";
@@ -412,7 +413,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
       {/* ── Final CTA — build your own ───────────────────────────────────── */}
       <section className="mx-auto max-w-7xl px-6 pb-24 pt-20">
         <Reveal>
-          <div className="zf-surface flex flex-col items-center gap-4 px-6 py-14 text-center">
+          <EmptyState align="center">
             <h2 className="text-balance text-2xl font-bold tracking-tight text-white sm:text-3xl">
               Build your own dashboard
             </h2>
@@ -427,7 +428,7 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
             >
               Build your own dashboard →
             </Link>
-          </div>
+          </EmptyState>
         </Reveal>
       </section>
     </main>
