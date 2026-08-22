@@ -15,7 +15,8 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./scene": "./src/scene.tsx"
+    "./scene": "./src/scene.tsx",
+    "./accent": "./src/accent.ts"
   },
   "sideEffects": false,
   "scripts": {
