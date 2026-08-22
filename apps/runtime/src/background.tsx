@@ -1,5 +1,11 @@
 import type { DashboardBackground as BackgroundConfig } from "@zframes/core";
 import { useLowEndDevice } from "@zframes/unicorn";
+import {
+  ACCENT_DEFAULT_HUE,
+  ACCENT_DEFAULT_SAT,
+  accentRotation,
+  accentSaturation,
+} from "@zframes/unicorn/accent";
 import { lazy, memo, Suspense } from "react";
 
 // Lazy so dashboards with no Unicorn scene never load the (tiny) scene module.
@@ -31,29 +37,13 @@ const ACTIVE_TRANSITION =
 // actually reads, capped so the backdrop never overpowers the cards.
 const activeOpacity = (resting: number) => Math.min(0.42, resting * 2.4);
 
-// The scene's colors are baked into the hosted Unicorn project — the host can't
-// repaint the WebGL, but a CSS hue-rotate on the wrapper spins the whole scene
-// (engine-agnostic, the same trick the orb's "charge" uses). We rotate by how far
-// the dashboard accent has moved from the *loaded scene's* own authored hue
-// (`sceneHue`), so a scene paired to a matching accent — every theme preset pairs
-// one — is a 0° no-op rendered exactly as authored, and any rolled/edited accent
-// spins the backdrop from there, in lockstep with the card accents. The signature
-// aurora scene is authored at 242 (the zframes purple), the default sceneHue, so
-// an unrolled default dashboard is unchanged.
-const ACCENT_DEFAULT_HUE = 242;
+// The accent→filter math (hue-rotate + saturate, relative to the loaded scene's
+// own authored hue) lives in @zframes/unicorn/accent — the explorer's embedded
+// board backdrop applies the identical numbers, and the two drifting apart would
+// show as one host spinning a scene the other left alone. The signature aurora
+// scene is authored at 242 (the zframes purple), the default sceneHue, so an
+// unrolled default dashboard is a 0° no-op rendered exactly as authored.
 const DEFAULT_SCENE_HUE = 242;
-// Shortest spin: map the offset into (-180, 180] so the transition never sweeps
-// the long way round the wheel.
-const accentRotation = (accentHue: number, sceneHue: number) => {
-  const d = (((accentHue - sceneHue) % 360) + 360) % 360;
-  return d > 180 ? d - 360 : d;
-};
-// Accent saturation rides along too: a muted accent (low accentSat) desaturates
-// the scene via a saturate() filter so "muted" reads muted in the backdrop, not
-// just on the cards. 90 (the spec default) maps to saturate(1) — a no-op.
-const ACCENT_DEFAULT_SAT = 90;
-const accentSaturation = (accentSat: number) =>
-  Math.round((accentSat / ACCENT_DEFAULT_SAT) * 1000) / 1000;
 
 /**
  * Full-viewport background behind the dashboard. The spec picks *what* the
