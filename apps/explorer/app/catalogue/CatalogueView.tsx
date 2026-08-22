@@ -43,9 +43,14 @@ const ROW = 96;
 const GAP = 12;
 
 // Mount a frame's live renderer only when it scrolls near the viewport — the
-// whole catalogue rendering + fetching at once would jank the page and hammer
-// the free APIs. Client-only (this whole view is ssr:false), so
-// IntersectionObserver is safe.
+// whole catalogue rendering at once would jank the page. Mounting is NOT
+// one-shot: a card that scrolls far away unmounts again (its chunk stays in
+// React.lazy's cache and the mock provider is deterministic, so remount is
+// cheap), otherwise a full-catalogue browse ends with all ~285 live previews —
+// D3 SVGs included — resident in memory for the rest of the visit. The
+// unmount margin is much larger than the mount margin so a scroll jiggle near
+// the boundary never thrashes a preview. Client-only (this whole view is
+// ssr:false), so IntersectionObserver is safe.
 function LazyMount({
   minHeight,
   onApproach,
@@ -62,17 +67,26 @@ function LazyMount({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(
+    const mountIo = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setShow(true);
-          io.disconnect();
-        }
+        if (entry.isIntersecting) setShow(true);
       },
       { rootMargin: "300px" },
     );
-    io.observe(el);
-    return () => io.disconnect();
+    // Far-side release: only past 1600px. Fires not-intersecting immediately
+    // for far-away cards on observe — a no-op on the already-false state.
+    const unmountIo = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) setShow(false);
+      },
+      { rootMargin: "1600px" },
+    );
+    mountIo.observe(el);
+    unmountIo.observe(el);
+    return () => {
+      mountIo.disconnect();
+      unmountIo.disconnect();
+    };
   }, []);
   useEffect(() => {
     if (!onApproach) return;
