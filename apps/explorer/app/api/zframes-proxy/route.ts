@@ -122,8 +122,10 @@ async function relay(request: Request): Promise<RelayResult> {
   // handleProxy is Node (req,res)-shaped. For the proxy path it reads only
   // `req.method` + `req.url` (a full URL it splits on '?') and writes via
   // `res.statusCode` / `res.setHeader` / `res.end` — so a tiny shim buffers its
-  // output, which we then convert to a Web Response. This reuses core's host
-  // allowlist + https/GET/size/timeout guards verbatim (single source of truth).
+  // output, which we then convert to a Web Response. The https/GET/size/timeout
+  // and redirect guards are serve's, reused verbatim; the HOST LIST is not,
+  // because the relay has none of its own any more. This mount supplies it
+  // below, so narrowing the explorer's reach is an edit HERE, not in serve.
   const reqLike = {
     method: request.method,
     url: request.url,

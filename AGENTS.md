@@ -54,6 +54,7 @@ import siblings by **package subpath**, never relative.
 **Where new code goes** (always import the leaf package):
 
 - New spec field / frame-meta shape / theme preset / catalogue change → `packages/spec` (then the `--zf-*` mapping in core's `frame-content.tsx`/`renderer.tsx` and the editor rail if it's cosmetic).
+- Provider-plugin contract (what an installed adapter declares: capabilities, hosts, credits, terms) → `packages/spec/src/provider-plugin.ts`, reached at the `@zframes/spec/provider-plugin` subpath. **Its helpers must NOT be re-exported through the spec root barrel** — core mirrors that barrel, so a value there lands on the presentation package's public API. → [packages/spec/AGENTS.md](packages/spec/AGENTS.md)
 - Transport, caching or delimited-response parsing (fetch, proxy rewrite, TTL/dedup/persist, CSV rows) → `packages/data-primitives`.
 - New capability hook / renderer chrome → `packages/core` (`hooks.tsx` / `frame-content.tsx`).
 - Authoring-UI behaviour (palette, rail, grid interactions, default-config seeding) → `packages/editor`.
@@ -79,7 +80,7 @@ import siblings by **package subpath**, never relative.
 ## Scope
 
 - Keyless by default — the published CLI and all 29 market-data providers are keyless (free public APIs, no key required). An opt-in keyed/account tier exists (`provider-binance` for a connected Binance account, `provider-wallet` for a public on-chain address) but is separate from the default keyless set and not wired into the published CLI. (32 provider packages total: 29 keyless + 2 keyed + `provider-demo`; the keyless set is composed in one place, `packages/providers-keyless` — trust that file over any count written here.)
-- **`@zframes/provider-demo` is not a data source, it is the synthetic default.** It answers every capability with deterministic seeded data and touches no network, so a bare install renders a real-looking board with zero third-party ToS exposure — and the frame smoke suites, Storybook and the explorer all run on it. It must never be added to `packages/providers-keyless`: that manifest is the *live* fleet, and `tests/dep-dag.test.ts` + `tests/capability-coverage.test.ts` both read it as such.
+- **`@zframes/provider-demo` is not a data source, it is the synthetic one.** It answers every capability with deterministic seeded data and touches no network, which is what the frame smoke suites, Storybook and every explorer surface run on. **The runtime does NOT mount it**: `apps/runtime/src/App.tsx` still composes the keyless fleet plus the keyed tier, so a default `zframes serve` fetches from real upstreams. Making it the shipped default is the intended end state, not current behaviour. It must never be added to `packages/providers-keyless`: that list is the *live* fleet, and `tests/dep-dag.test.ts` + `tests/capability-coverage.test.ts` both read it as such.
 - Stocks-first — equity perps via Hyperliquid HIP-3 builder dexes (`dex` param, e.g. `xyz:TSLA`), with crypto alongside.
 
 ## Deeper docs

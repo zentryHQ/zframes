@@ -1,7 +1,7 @@
 # @zframes/spec
 
 The domain kernel: `types`, `DashboardSpecSchema` (`spec`), `routes`,
-`frame`/registry, `presets`, `catalogue`. Zero `@zframes` dependencies,
+`frame`/registry, `presets`, `catalogue`, `provider-plugin`. Zero `@zframes` dependencies,
 React-runtime-free (a type-only React import for component types is fine,
 `react-dom` is not) and Node-free. It must not import any higher layer;
 ESLint enforces that per-directory and `tests/dep-dag.test.ts` pins it at the
@@ -10,6 +10,22 @@ manifest level.
 Because everything imports this package, a change here is the widest-blast-radius
 change in the repo. The two spec shapes below span the renderer AND the editor, so
 both halves have to move together or the feature half-lands.
+
+## The provider-plugin subpath is types-only in the barrel
+
+`provider-plugin.ts` holds the contract an installed data adapter declares
+itself with (`ProviderPluginManifest` + `createProviders`), its validator, and
+the three derivations that read a manifest (`proxyHostsOf`, `sourceCreditsOf`,
+`capabilitiesOf`). It is reached at `@zframes/spec/provider-plugin`, and the
+**root barrel re-exports its TYPES ONLY** — never the functions.
+
+That is not tidiness. `@zframes/core` re-exports this barrel wholesale, so a
+value exported here lands on the presentation package's public API, which
+`packages/core/src/barrel-surface.test.ts` snapshot-pins. Plugin validation and
+relay-host derivation have no business there: their consumers are all Node-side
+(serve, cli, store, the provider fleet), and those already import siblings by
+package subpath. Add a helper here and import it by subpath; if it appears in
+the core barrel snapshot, that is the mistake, not the snapshot.
 
 ## Event markers
 
