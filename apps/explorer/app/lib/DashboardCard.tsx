@@ -43,13 +43,19 @@ export function DashboardCard({
       <div className="relative overflow-hidden border-b border-white/[0.07] bg-gradient-to-br from-[#0a0a14] to-[#08080f]">
         <div className="pointer-events-none absolute -inset-x-6 -top-10 h-24 bg-[image:radial-gradient(60%_100%_at_50%_0%,hsla(248,90%,62%,0.25),transparent_70%)] opacity-70" />
         <div className="relative aspect-[16/9] p-3">
-          <DashboardThumb frames={frames} gap={3} radius={4} />
-          {thumbSrc && (
+          {/* The mini-map goes THROUGH ThumbImage (as its silhouette) when a
+              screenshot may exist: still server-rendered (children prop), but
+              dropped from the DOM once the screenshot has faded in, instead of
+              sitting permanently occluded underneath it. */}
+          {thumbSrc ? (
             <ThumbImage
               src={thumbSrc}
               alt={`${title} — live preview`}
               className="zf-kenburns"
+              silhouette={<DashboardThumb frames={frames} gap={3} radius={4} />}
             />
+          ) : (
+            <DashboardThumb frames={frames} gap={3} radius={4} />
           )}
         </div>
         {/* No `backdrop-blur` here: this badge is one per gallery card, and it
