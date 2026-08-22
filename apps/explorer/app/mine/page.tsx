@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { EmptyState } from "@/app/lib/EmptyState";
 import { SectionHeading } from "@/app/lib/SectionHeading";
 import { Button } from "@/app/components/ui/button";
 
@@ -80,7 +81,7 @@ export default function MyDashboardsPage() {
       />
 
       {needAuth ? (
-        <div className="zf-surface flex flex-col items-start gap-3 p-6">
+        <EmptyState>
           <p className="text-sm text-white/70">
             Sign in to see the dashboards you've published. Browsing, preview,
             and tinker never need an account — only publishing does.
@@ -88,7 +89,7 @@ export default function MyDashboardsPage() {
           <Button asChild variant="accent" size="sm">
             <Link href="/signin?next=/mine">Sign in</Link>
           </Button>
-        </div>
+        </EmptyState>
       ) : rows === null ? (
         <div className="space-y-2.5" aria-hidden>
           {Array.from({ length: 3 }, (_, i) => (
@@ -96,7 +97,7 @@ export default function MyDashboardsPage() {
           ))}
         </div>
       ) : rows.length === 0 ? (
-        <div className="zf-surface flex flex-col items-start gap-3 p-6">
+        <EmptyState>
           <p className="text-sm text-white/70">
             Nothing published yet — build a board in the tinker editor, then hit
             Publish to get a shareable link.
@@ -104,7 +105,7 @@ export default function MyDashboardsPage() {
           <Button asChild variant="accent" size="sm">
             <Link href="/tinker">Open the tinker editor →</Link>
           </Button>
-        </div>
+        </EmptyState>
       ) : (
         <ul className="space-y-2.5">
           {rows.map((d) => (
