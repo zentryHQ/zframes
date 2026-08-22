@@ -1,11 +1,18 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+// Server-side only (this file is a Server Component): the React-free metas,
+// used to derive the catalogue counts the showcase displays. Passing the four
+// numbers as props keeps the ~285 Zod metas out of the client bundle — the
+// client engine loads lazily through LiveFrame's viewport gate instead.
+import { FRAME_CATEGORIES } from "@zframes/spec/frame";
+import { allFrameMetas } from "@zframes/frames/schemas";
 import type { BoardSummary } from "@/app/lib/board-summary";
 import { CopyCommand } from "@/app/lib/CopyCommand";
 import { FAQ } from "@/app/lib/faq";
 import { FramesShowcase } from "@/app/lib/FramesShowcase";
 import { frameSlotMinHeight } from "@/app/lib/frame-slot";
-import { LiveFrame, LiveFrameStyles } from "@/app/lib/LiveFrame";
+import { CHAPTERS } from "@/app/lib/showcase-chapters";
+import { LiveFrame } from "@/app/lib/LiveFrame";
 import { MouseParallax, Parallax, Reveal, ScrollExit } from "@/app/lib/motion";
 import { SectionHeading } from "@/app/lib/SectionHeading";
 import {
@@ -144,10 +151,22 @@ const HERO_FLOATERS: {
  * would be tens of kilobytes of client payload for data the iframes fetch anyway.
  */
 export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
+  // Frames per family, from the real catalogue — the numbers stay honest as
+  // frames land. Computed here (server) so the client showcase gets counts,
+  // not the metas module.
+  const byFamily: Record<string, number> = {};
+  for (const meta of allFrameMetas)
+    byFamily[meta.category] = (byFamily[meta.category] ?? 0) + 1;
+
+  // Slot floors for the showcase's specimens, also computed server-side —
+  // frame-slot.ts reads the metas, and the showcase is a client module.
+  const slotMinHeights: Record<string, number | undefined> = {};
+  for (const chapter of CHAPTERS)
+    for (const s of chapter.specimens)
+      slotMinHeights[s.frame] = frameSlotMinHeight(s.frame);
+
   return (
     <main className="overflow-x-clip">
-      <LiveFrameStyles />
-
       {/* ── Act I · Hero ─────────────────────────────────────────────────── */}
       <section className="relative flex min-h-[92svh] flex-col justify-center px-6 pb-16 pt-10">
         {/* Backdrop glow — drifts slower than the page for depth. */}
@@ -275,7 +294,12 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
       </section>
 
       {/* ── Act III · The vocabulary — frames, live, by family ───────────── */}
-      <FramesShowcase />
+      <FramesShowcase
+        total={allFrameMetas.length}
+        families={FRAME_CATEGORIES.length}
+        byFamily={byFamily}
+        slotMinHeights={slotMinHeights}
+      />
 
       {/* ── Act IV · How — three beats to your own terminal ──────────────── */}
       {/* Sticky-rail layout: the heading column pins while the steps scroll
