@@ -51,8 +51,12 @@ describe("onHeartbeat", () => {
     while (cleanups.length) cleanups.pop()!();
     setVisibility(false);
     vi.clearAllTimers();
-    vi.useRealTimers();
+    // Restore spies BEFORE swapping the real timers back: the setInterval spy
+    // was installed OVER the fake-timer implementation, so restoring it after
+    // useRealTimers() would clobber the real setInterval with the dead fake —
+    // and every interval created by a later test would silently never fire.
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it("drives many callbacks from a single interval, every second", () => {

@@ -8,7 +8,8 @@ import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
  * 24fps interval drives every registered callback, and each callback writes
  * straight to its node's textContent (no React re-render per frame). It's also
  * viewport-gated — a clock scrolled off-screen costs nothing — using cached
- * scroll/resize values so the hot path never touches layout.
+ * scroll/resize values so the hot path never touches layout. The interval runs
+ * only while a readout is registered and the tab visible (see globalTick).
  */
 
 /** HH:MM:SS:cs (centisecond precision). */
@@ -60,22 +61,34 @@ if (typeof window !== "undefined") {
   );
 }
 
+// The interval exists only while at least one readout is registered — it starts
+// on the first register and is cleared on the last unregister, so a board with
+// no clock card (or one whose clocks were removed) schedules no timer wakes at
+// all. While the tab is hidden the tick is a no-op: browsers clamp the interval
+// to ~1/s anyway, and nobody can see the readout, so the fresh write waits for
+// the first visible tick.
 const globalTick = {
   _callbacks: [] as (() => void)[],
+  _interval: undefined as ReturnType<typeof setInterval> | undefined,
   register(x: () => void) {
     this._callbacks.push(x);
+    if (this._interval !== undefined) return;
+    const fps = 24; // movie fps, more than enough!
+    this._interval = setInterval(() => {
+      // Explicitly "hidden", not `document.hidden`: jsdom (and a real
+      // prerender context) reports hidden with visibilityState "prerender",
+      // and only an actually-backgrounded tab should skip.
+      if (document.visibilityState === "hidden") return;
+      this._callbacks.forEach((cb) => cb());
+    }, 1000 / fps);
   },
   unregister(x: () => void) {
     this._callbacks = this._callbacks.filter((y) => y !== x);
-  },
-  tick() {
-    const fps = 24; // movie fps, more than enough!
-    setInterval(() => {
-      this._callbacks.forEach((x) => x());
-    }, 1000 / fps);
+    if (this._callbacks.length > 0 || this._interval === undefined) return;
+    clearInterval(this._interval);
+    this._interval = undefined;
   },
 };
-if (typeof window !== "undefined") globalTick.tick();
 
 export function useCountdown({
   ref,
