@@ -1,4 +1,6 @@
+import { lookup } from "node:dns/promises";
 import { readFile, writeFile } from "node:fs/promises";
+import { isIP } from "node:net";
 
 // By package subpath, not a relative `./spec` — this file is reached by Vite's
 // Node config-loader, which can't resolve a relative extensionless path.
@@ -82,6 +84,102 @@ function uaFor(hostname: string, contactUa?: string): string {
   if (!contactUa || PROXY_FORCE_BROWSER_UA.has(hostname))
     return PROXY_DEFAULT_UA;
   return contactUa;
+}
+
+/**
+ * IPv4 space that can never be a public data programme: unspecified and
+ * loopback, RFC1918, CGNAT (RFC 6598 — cloud-internal networks live here too),
+ * link-local (cloud instance metadata), benchmarking, multicast and reserved.
+ * An unparseable address refuses rather than guesses.
+ */
+function isPrivateIPv4(address: string): boolean {
+  const parts = address.split(".").map(Number);
+  if (
+    parts.length !== 4 ||
+    parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)
+  ) {
+    return true;
+  }
+  const [a, b] = parts as [number, number];
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    a >= 224
+  );
+}
+
+/**
+ * The IPv6 counterpart: loopback/unspecified, unique-local (fc00::/7),
+ * link-local (fe80::/10), the deprecated site-local range, multicast — and a
+ * v4-mapped address (::ffff:a.b.c.d, either spelling) is judged as the IPv4 it
+ * embeds, or refused when it cannot be read.
+ */
+function isPrivateIPv6(address: string): boolean {
+  const lower = address.toLowerCase();
+  if (lower === "::" || lower === "::1") return true;
+  if (lower.startsWith("::ffff:")) {
+    const rest = lower.slice("::ffff:".length);
+    if (rest.includes(".")) return isPrivateIPv4(rest);
+    const hextets = rest.split(":").map((h) => parseInt(h || "0", 16));
+    if (hextets.length !== 2 || hextets.some(Number.isNaN)) return true;
+    const [hi, lo] = hextets as [number, number];
+    return isPrivateIPv4(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
+  }
+  const first = parseInt(lower.split(":", 1)[0] || "", 16);
+  if (Number.isNaN(first)) return true;
+  if ((first & 0xfe00) === 0xfc00) return true; // fc00::/7 unique-local
+  if ((first & 0xffc0) === 0xfe80) return true; // fe80::/10 link-local
+  if ((first & 0xffc0) === 0xfec0) return true; // fec0::/10 site-local (deprecated)
+  if ((first & 0xff00) === 0xff00) return true; // ff00::/8 multicast
+  return false;
+}
+
+function isPrivateAddress(address: string, family: number): boolean {
+  return family === 4 ? isPrivateIPv4(address) : isPrivateIPv6(address);
+}
+
+/**
+ * The second half of the SSRF boundary. `allowHosts` authorises NAMES, but a
+ * name goes wherever its owner's DNS says — and once mounts derive their
+ * allowlists from installed plugin manifests, that owner is the plugin author.
+ * A manifest naming a public-looking hostname whose A record points at
+ * 169.254.169.254 (cloud instance metadata) or into the operator's own network
+ * would turn the relay into an internal reader that no string check in
+ * `@zframes/spec`'s HostSchema can see. So every hop is resolved BEFORE it is
+ * fetched, and refused unless everything it resolves to (A and AAAA alike) is
+ * public address space. One private record poisons the whole host on purpose:
+ * "mostly public" is exactly what a rebinding setup looks like. An IP-literal
+ * hop is judged directly, no resolver involved.
+ *
+ * Honest limits. This is check-then-fetch — `fetch` re-resolves, so an active
+ * attacker alternating answers under a zero TTL can still slip a private
+ * address between the check and the connect; pinning the connection to the
+ * checked address needs an undici Agent with a custom lookup, which would make
+ * undici the CLI's second runtime dependency. The static case — a manifest
+ * host that simply resolves somewhere internal, which is the realistic attack
+ * — is fully closed here. Split-horizon corporate DNS that answers private
+ * addresses for public names is refused by design: from where the relay
+ * stands, that network's interception proxy IS an internal host.
+ */
+async function resolvesPublicOnly(hostname: string): Promise<boolean> {
+  // URL spells an IPv6 literal in brackets; `isIP` and `lookup` want it bare.
+  const bare =
+    hostname.startsWith("[") && hostname.endsWith("]")
+      ? hostname.slice(1, -1)
+      : hostname;
+  const literal = isIP(bare);
+  if (literal !== 0) return !isPrivateAddress(bare, literal);
+  const addresses = await lookup(bare, { all: true });
+  return (
+    addresses.length > 0 &&
+    addresses.every((entry) => !isPrivateAddress(entry.address, entry.family))
+  );
 }
 
 // Minimal structural shapes satisfied by both Node's http and Vite's connect
@@ -262,7 +360,11 @@ export interface ProxyOptions {
  * reachable client-side without a backend or keys. GET-only, https-only,
  * host-allowlisted (no open-proxy / SSRF), size- and time-bounded. The
  * allowlist is per-mount and **empty by default** (`ProxyOptions.allowHosts`):
- * an installation that has named no host relays nothing.
+ * an installation that has named no host relays nothing. The allowlist
+ * authorises names; addresses are checked separately — every hop must also
+ * RESOLVE entirely into public address space (`resolvesPublicOnly`), so an
+ * allowlisted name pointing at loopback, RFC1918 or the cloud metadata address
+ * is refused before a byte is fetched.
  * `userAgent` lets the host send a polite contact UA (SEC fair-access); the
  * default is a browser UA the official sources accept. The size and time bounds
  * are per-mount (`ProxyOptions`) so a hosted mount can hold its platform's
@@ -271,8 +373,9 @@ export interface ProxyOptions {
  * Redirects are followed, because real official sources use them (Bank of
  * England canonicalises its IADB CSV path, CoinDesk's RSS drops a trailing
  * slash) — but every single hop is re-validated: https-only (an https→http
- * downgrade is refused) and hostname-on-allowlist. A hop that leaves the
- * allowlist answers 403 and NOTHING that host said is read or relayed; a 3xx
+ * downgrade is refused), hostname-on-allowlist, and resolved-to-public-space.
+ * A hop that leaves the allowlist answers 403 and NOTHING that host said is
+ * read or relayed; a 3xx
  * with no usable `Location`, or a chain longer than `PROXY_MAX_REDIRECTS`, is a
  * 502 rather than a partial answer.
  */
@@ -308,6 +411,16 @@ export async function handleProxy(
   }
   const maxBytes = opts.maxBytes ?? PROXY_MAX_BYTES;
   try {
+    // Inside the try on purpose: a name that doesn't resolve at all becomes
+    // the same 502 the fetch itself would have answered.
+    if (!(await resolvesPublicOnly(target.hostname))) {
+      proxyError(
+        res,
+        403,
+        `host resolves to a private or internal address: ${target.hostname}`,
+      );
+      return;
+    }
     // One timeout for the whole chain, so following hops can't extend the
     // bound; each hop shares the same signal. A host may be given a longer
     // bound than the shared default, but only per the ENTRY hostname — reading
@@ -361,6 +474,14 @@ export async function handleProxy(
       }
       if (!allowHosts.has(next.hostname)) {
         proxyError(res, 403, `redirect host not allowed: ${next.hostname}`);
+        return;
+      }
+      if (!(await resolvesPublicOnly(next.hostname))) {
+        proxyError(
+          res,
+          403,
+          `redirect host resolves to a private or internal address: ${next.hostname}`,
+        );
         return;
       }
       current = next;

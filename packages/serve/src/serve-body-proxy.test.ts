@@ -5,6 +5,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { handleProxy, handleSpecWrite } from "./serve";
 import { PROXY_ALLOW_HOSTS } from "./proxy-allowlist";
 
+// `handleProxy` resolves every hop before fetching it (the private-address
+// guard, exercised in serve.test.ts), so the hermetic suite answers DNS itself
+// with a public documentation address — no test here may ride the machine's
+// resolver.
+vi.mock("node:dns/promises", () => ({
+  lookup: vi.fn(async () => [{ address: "203.0.113.10", family: 4 }]),
+}));
+
 /**
  * Two contracts of `@zframes/serve`'s Node handlers, neither reachable from the
  * existing `serve.test.ts` (which only ever emits one ASCII `data` chunk):
