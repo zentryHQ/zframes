@@ -1,9 +1,19 @@
+import { lookup } from "node:dns/promises";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 import { handleProxy, handleSpecRead, handleSpecWrite } from "./serve";
 import { PROXY_ALLOW_HOSTS } from "./proxy-allowlist";
+
+// `handleProxy` resolves every hop before fetching it (the private-address
+// guard), and this suite is hermetic: fetch is stubbed, so DNS must be too, or
+// every test would ride the machine's resolver. Public by default (a TEST-NET-3
+// documentation address); the guard's own suite overrides per test.
+vi.mock("node:dns/promises", () => ({
+  lookup: vi.fn(async () => [{ address: "203.0.113.10", family: 4 }]),
+}));
+const lookupMock = lookup as unknown as Mock;
 
 // The handlers take the structural ReqLike/ResLike (not Node's http types), so
 // tiny fakes are all the tests need. These aliases pull the param types off the
@@ -467,5 +477,164 @@ describe("handleProxy (SSRF allowlist)", () => {
     await relay(makeProxyReq(proxyUrl("https://data.sec.gov/x")), res);
     await res.done;
     expect(res.statusCode).toBe(502);
+  });
+});
+
+/**
+ * The allowlist authorises NAMES; DNS decides where a name actually goes, and
+ * once mounts derive their allowlists from installed plugin manifests the name
+ * is the plugin author's. So every hop must also RESOLVE entirely into public
+ * address space before it is fetched — otherwise a manifest naming an innocent
+ * hostname whose A record points at the cloud metadata address turns the relay
+ * into a reader for the operator's own network. These tests override the
+ * module-level DNS mock per test.
+ */
+describe("handleProxy (resolved-address guard)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("refuses an allowlisted name that resolves to a private address", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    lookupMock.mockResolvedValueOnce([{ address: "10.0.0.5", family: 4 }]);
+    const res = makeRes();
+    await handleProxy(
+      makeProxyReq(proxyUrl("https://rebind.example.com/x")),
+      res,
+      { allowHosts: ["rebind.example.com"] },
+    );
+    await res.done;
+    expect(res.statusCode).toBe(403);
+    expect(res.body).toContain("private");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses when ANY resolved record is private (the rebinding shape)", async () => {
+    // One public record beside the metadata address is not "mostly fine" — a
+    // resolver races them, so the mixed answer is exactly what an attack
+    // looks like and poisons the whole host.
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    lookupMock.mockResolvedValueOnce([
+      { address: "203.0.113.7", family: 4 },
+      { address: "169.254.169.254", family: 4 },
+    ]);
+    const res = makeRes();
+    await handleProxy(
+      makeProxyReq(proxyUrl("https://rebind.example.com/x")),
+      res,
+      { allowHosts: ["rebind.example.com"] },
+    );
+    await res.done;
+    expect(res.statusCode).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a unique-local IPv6 record", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    lookupMock.mockResolvedValueOnce([{ address: "fd00::1", family: 6 }]);
+    const res = makeRes();
+    await handleProxy(
+      makeProxyReq(proxyUrl("https://ula.example.com/x")),
+      res,
+      { allowHosts: ["ula.example.com"] },
+    );
+    await res.done;
+    expect(res.statusCode).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("relays a host resolving to a public IPv6 address only", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: { get: () => "application/json" },
+      text: async () => `{"ok":1}`,
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    lookupMock.mockResolvedValueOnce([
+      { address: "2606:2800:21f:cb07:6820:80da:af6b:8b2c", family: 6 },
+    ]);
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl("https://v6.example.com/x")), res, {
+      allowHosts: ["v6.example.com"],
+    });
+    await res.done;
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("refuses a private IPv4 literal without consulting DNS", async () => {
+    // A manifest can't carry one (HostSchema refuses it), but a hand-written
+    // mount could — and a literal needs no resolver to be judged.
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    lookupMock.mockClear();
+    const res = makeRes();
+    await handleProxy(makeProxyReq(proxyUrl("https://192.168.7.7/x")), res, {
+      allowHosts: ["192.168.7.7"],
+    });
+    await res.done;
+    expect(res.statusCode).toBe(403);
+    expect(lookupMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a redirect hop that resolves private, even when allowlisted", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: 302,
+        headers: {
+          get: (name: string) =>
+            name === "location" ? "https://two.example.com/y" : null,
+        },
+        text: async () => "unread",
+      })
+      .mockResolvedValue({
+        status: 200,
+        headers: { get: () => "application/json" },
+        text: async () => `{"leaked":1}`,
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    // Entry resolves public, the hop resolves into RFC1918 — consumed in
+    // lookup order.
+    lookupMock
+      .mockResolvedValueOnce([{ address: "203.0.113.7", family: 4 }])
+      .mockResolvedValueOnce([{ address: "192.168.1.9", family: 4 }]);
+    const res = makeRes();
+    await handleProxy(
+      makeProxyReq(proxyUrl("https://one.example.com/x")),
+      res,
+      {
+        allowHosts: ["one.example.com", "two.example.com"],
+      },
+    );
+    await res.done;
+    expect(res.statusCode).toBe(403);
+    expect(res.body).toContain("two.example.com");
+    // Only the entry hop was fetched; the poisoned hop never was.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(res.body).not.toContain("leaked");
+  });
+
+  it("answers 502 when the name does not resolve at all", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    lookupMock.mockRejectedValueOnce(
+      Object.assign(new Error("getaddrinfo ENOTFOUND gone.example.com"), {
+        code: "ENOTFOUND",
+      }),
+    );
+    const res = makeRes();
+    await handleProxy(
+      makeProxyReq(proxyUrl("https://gone.example.com/x")),
+      res,
+      { allowHosts: ["gone.example.com"] },
+    );
+    await res.done;
+    // The same 502 the fetch itself would have answered for a dead name.
+    expect(res.statusCode).toBe(502);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
