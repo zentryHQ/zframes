@@ -1256,6 +1256,15 @@ body:has(.ui-draggable-dragging) * {
 .zf-palette-search input::placeholder {
   color: rgba(255, 255, 255, 0.34);
 }
+/* Suppress WebKit's native clear affordance: the box ships its own explicit
+   clear button, and both together put two clear controls in one 34px field.
+   Hiding it here is what lets the input keep `type="search"` — which is what
+   gives the field `role="searchbox"` for a screen reader. Dropping the type to
+   dodge the double control would have traded the semantics for the cosmetics. */
+.zf-palette-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
 .zf-palette-search-clear {
   display: flex;
   align-items: center;
