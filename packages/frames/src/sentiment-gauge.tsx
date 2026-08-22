@@ -1,6 +1,7 @@
 import { RadialGauge } from "@zframes/charts";
 import { defineFrame, useFearGreed } from "@zframes/core";
 import type { z } from "zod";
+import { GaugeCard } from "./chart-card";
 import { sentimentGaugeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -25,20 +26,13 @@ function SentimentGauge(_props: { config: z.output<typeof schema> }) {
 
   const color = indexColor(latest.value);
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1">
+    <GaugeCard>
       <RadialGauge value={latest.value} color={color} fill>
-        <div
-          className="metric-xl leading-none"
-          style={{ color, textShadow: `0 0 28px ${color}55` }}
-        >
-          {latest.value}
-        </div>
-        <div className="caption text-soft mt-1 uppercase tracking-wide">
-          {latest.classification}
-        </div>
+        <GaugeCard.Value tint={color}>{latest.value}</GaugeCard.Value>
+        <GaugeCard.Label>{latest.classification}</GaugeCard.Label>
       </RadialGauge>
-      <div className="caption text-soft">crypto fear &amp; greed</div>
-    </div>
+      <GaugeCard.Caption>crypto fear &amp; greed</GaugeCard.Caption>
+    </GaugeCard>
   );
 }
 

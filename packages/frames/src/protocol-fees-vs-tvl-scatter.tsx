@@ -7,6 +7,7 @@ import {
 } from "@zframes/core";
 import { useCallback, useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { protocolFeesVsTvlScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -53,8 +54,8 @@ function ProtocolFeesVsTvlScatter({
     return <FrameStatus>no matching protocol data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <ScatterChart
           data={data}
           yScale="log"
@@ -63,11 +64,11 @@ function ProtocolFeesVsTvlScatter({
           formatY={money.compact}
           maxLabels={10}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         TVL (x, log) vs 24h fees (y, log) · top {data.length} by fees
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

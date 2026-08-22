@@ -9,22 +9,32 @@ const FRAMES_DIR = join(
 );
 
 /**
- * Every matrix frame prints its cell figures through `cellLabelFits` (frames'
- * `./ui`), never its own `width < 44` check.
+ * Every matrix frame prints its cell figures through the shared fit guard —
+ * either `cellLabelFits` directly, or the `heatmapCellLabel` factory that wraps
+ * it (both in frames' `./ui`) — never its own `width < 44` check.
  *
  * A hand-rolled width-only guard is right about columns and blind to rows, and a
  * heatmap packs rows far tighter: 20 years of monthly returns leaves each cell
  * ~11px, where a caption renders clipped top and bottom across the whole grid.
  * Nothing fails when that happens — the renderer has no idea what the cell was
  * meant to say — so it ships looking like a design mistake instead of a bug.
+ *
+ * Both spellings count because they lead to the same one gate. The factory
+ * exists because five frames had declared a byte-identical `Cell`; requiring the
+ * inner helper's name to appear in the frame would mean the only way to satisfy
+ * this test was to keep hand-rolling the component it replaced.
  */
+const GUARDS = ["cellLabelFits", "heatmapCellLabel"];
+
 describe("heatmap cell labels", () => {
   it("are gated by the shared fit guard in every frame", () => {
     const offenders = readdirSync(FRAMES_DIR)
       .filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx"))
       .filter((f) => {
         const src = readFileSync(join(FRAMES_DIR, f), "utf8");
-        return src.includes("HeatmapChart") && !src.includes("cellLabelFits");
+        return (
+          src.includes("HeatmapChart") && !GUARDS.some((g) => src.includes(g))
+        );
       });
     expect(offenders).toEqual([]);
   });

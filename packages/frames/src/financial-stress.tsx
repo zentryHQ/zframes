@@ -2,6 +2,7 @@ import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useFinancialStress } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { financialStressMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -41,13 +42,17 @@ function FinancialStress({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">OFR FSI</div>
-          <div className="body-sm text-normal">{stress.date}</div>
-        </div>
-        <div className="caption text-soft text-right">daily</div>
-      </div>
+      <CardHeader align="start">
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>OFR FSI</CardHeader.Eyebrow>
+          {/* `ink="normal"`, not the sub-line's default `soft`: the
+              publisher's own print date reads as data here. */}
+          <CardHeader.Sub ink="normal">{stress.date}</CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>daily</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <div className="flex items-end justify-between gap-3">
         <div>

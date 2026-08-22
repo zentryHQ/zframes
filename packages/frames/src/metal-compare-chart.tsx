@@ -5,6 +5,7 @@ import {
 import { defineFrame, useMetalHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatChangePct } from "./format";
 import {
   downsample,
@@ -83,19 +84,19 @@ function MetalCompareChart({ config }: { config: z.output<typeof schema> }) {
   // that metal's window return. A second strip beside it repeated the same four
   // numbers in a second style.
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="min-h-0 flex-1">
+    <ChartCard>
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatChangePct}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         indexed to 0% at {windowStart} · {config.years}y
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

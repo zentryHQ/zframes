@@ -1,3 +1,4 @@
+import { useMoney, type Money } from "@zframes/core";
 import type { ReactNode } from "react";
 
 /**
@@ -40,6 +41,57 @@ export function cellLabelFits(
   minWidth: number,
 ): boolean {
   return width >= minWidth && height >= MIN_CELL_LABEL_HEIGHT;
+}
+
+/**
+ * Builds a heatmap's `CellComponent` from just its figure.
+ *
+ * Five matrix frames — `coin-momentum-heatmap`, `funding-heatmap`,
+ * `fx-cross-heatmap`, `funding-venue-heatmap`, `options-oi-ladder-heatmap` —
+ * declared a byte-identical local `Cell`: the same `cellLabelFits` gate, the
+ * same centring flexbox, the same `caption text-normal tabular-nums` span. Only
+ * the formatter wrapping the datum and the `minWidth` differed.
+ *
+ *     const Cell = heatmapCellLabel<FundingCell>(
+ *       (d) => formatFundingPct(d.rate * 100),
+ *       44,
+ *     );
+ *
+ * The `cellLabelFits` call moves in here, which is why
+ * `tests/heatmap-label-fit.test.ts` accepts this factory as satisfying the same
+ * requirement — a frame is compliant when it routes its figure through EITHER,
+ * because both lead to the one width-AND-height gate.
+ *
+ * A factory, not a compound component: `HeatmapChart` computes each cell's
+ * geometry and renders N instances of what it is handed, so `width`/`height`
+ * can only arrive as props.
+ */
+export function heatmapCellLabel<T>(
+  format: (data: T, money: Money) => string,
+  minWidth = 44,
+) {
+  return function Cell({
+    data,
+    width,
+    height,
+  }: {
+    data: T;
+    width: number;
+    height: number;
+  }) {
+    // Before the fit gate, always: a hook behind an early return is a hook
+    // that sometimes doesn't run, and the gate bails on most cells of a dense
+    // matrix.
+    const money = useMoney();
+    if (!cellLabelFits(width, height, minWidth)) return null;
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <span className="caption text-normal tabular-nums">
+          {format(data, money)}
+        </span>
+      </div>
+    );
+  };
 }
 
 /**

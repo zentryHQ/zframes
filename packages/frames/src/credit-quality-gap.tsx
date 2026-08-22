@@ -5,6 +5,8 @@ import {
 import { defineFrame, useCreditSpreads } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { formatPct } from "./format";
 import {
   downsample,
@@ -87,38 +89,45 @@ function CreditQualityGap({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no spread history yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft truncate uppercase">
-            High Yield − Investment Grade
-          </div>
-          <div className="body-sm text-normal tabular-nums">
+    <ChartCard>
+      <CardHeader align="start">
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>High Yield − Investment Grade</CardHeader.Eyebrow>
+          {/* `ink="normal"` and tabular: the percentile is a figure read
+              alongside the level, not a quiet unit note. */}
+          <CardHeader.Sub ink="normal" className="tabular-nums">
             {stats.percentile.toFixed(0)}th percentile of {config.years}y
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="metric-md text-strong leading-none tabular-nums">
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          {/* `ink="strong"`, same as `SeriesHeader`: this head inverts the
+              columns, so the hero lives in the aside and needs the emphasis its
+              column default would not give it. */}
+          <CardHeader.Value
+            size="metric-md"
+            ink="strong"
+            className="tabular-nums"
+          >
             {formatPct(stats.latest)}
-          </div>
-          <div className="caption text-soft tabular-nums">
+          </CardHeader.Value>
+          <CardHeader.Sub className="tabular-nums">
             {formatSeriesChange(stats.change, "percent")}
-          </div>
-        </div>
-      </div>
-      <div className="min-h-0 flex-1">
+          </CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatGap}
         />
-      </div>
-      <div className="caption text-soft text-center tabular-nums">
+      </ChartCard.Body>
+      <ChartCard.Caption className="tabular-nums">
         window range {formatPct(stats.low)}–{formatPct(stats.high)} · wider =
         less risk appetite
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

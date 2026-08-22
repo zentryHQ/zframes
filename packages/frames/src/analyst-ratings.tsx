@@ -6,6 +6,7 @@ import {
 } from "@zframes/core";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { CardHeader } from "./card-header";
 import { DOWN_COLOR, UP_COLOR, changeColor, formatChangePct } from "./format";
 import { analystRatingsMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -78,34 +79,32 @@ function AnalystRatings({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft truncate uppercase">
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {tickerOf(config.symbol)} · consensus
-          </div>
-          <div
-            className="metric-lg text-strong truncate leading-none"
-            style={tint ? { color: tint } : undefined}
-          >
+          </CardHeader.Eyebrow>
+          {/* `className="truncate"`: the consensus is a WORD, not a figure,
+              and the publisher's vocabulary runs long ("Strong Buy",
+              "Underperform"). */}
+          <CardHeader.Value size="metric-lg" tint={tint} className="truncate">
             {consensus ?? "—"}
-          </div>
+          </CardHeader.Value>
           {meanRating !== undefined && (
-            <div className="caption text-soft tabular-nums">
+            <CardHeader.Sub size="caption" className="tabular-nums">
               mean {meanRating.toFixed(1)} / 5
-            </div>
+            </CardHeader.Sub>
           )}
-        </div>
+        </CardHeader.Main>
         {analystCount !== undefined && (
-          <div className="shrink-0 text-right">
-            <div className="body-md text-normal font-bold tabular-nums">
-              {analystCount}
-            </div>
-            <div className="caption text-soft">
+          <CardHeader.Aside>
+            <CardHeader.Value>{analystCount}</CardHeader.Value>
+            <CardHeader.Sub>
               {analystCount === 1 ? "analyst" : "analysts"}
-            </div>
-          </div>
+            </CardHeader.Sub>
+          </CardHeader.Aside>
         )}
-      </div>
+      </CardHeader>
 
       {target !== undefined && (
         <div className="flex items-end justify-between gap-3 border-t border-white/[0.06] pt-2">

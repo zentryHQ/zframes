@@ -4,34 +4,13 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatCompactUsd } from "./format";
 import { treasuryDebtCompositionAreaMeta } from "./schemas";
+import { SliceLegend } from "./slice-legend";
 import { FrameStatus } from "./ui";
 
 const schema = treasuryDebtCompositionAreaMeta.schema;
 
 function dayLabel(date: Date): string {
   return `${date.getMonth() + 1}/${date.getDate()}`;
-}
-
-/** StackedAreaChart has no built-in legend (unlike MultiSeriesLineChart), so
- *  each frame that uses it draws its own from the same series/color pairs. */
-function SeriesLegend({
-  series,
-}: {
-  series: { id: string; name: string; color: string }[];
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-      {series.map((s) => (
-        <span key={s.id} className="caption text-soft flex items-center gap-1">
-          <span
-            className="h-1.5 w-1.5 shrink-0 rounded-full"
-            style={{ background: s.color }}
-          />
-          {s.name}
-        </span>
-      ))}
-    </div>
-  );
 }
 
 function TreasuryDebtCompositionArea({
@@ -90,7 +69,13 @@ function TreasuryDebtCompositionArea({
           formatValue={formatCompactUsd}
         />
       </div>
-      <SeriesLegend series={series} />
+      {/* Name-only: a stacked band's own share is read off the chart, so the
+          legend just says which colour is which. */}
+      <SliceLegend size="sm">
+        {series.map((s) => (
+          <SliceLegend.Item key={s.id} color={s.color} label={s.name} />
+        ))}
+      </SliceLegend>
     </div>
   );
 }

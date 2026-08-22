@@ -1,7 +1,6 @@
 import { HistogramChart, sampleStats } from "@zframes/charts";
 import { defineFrame, useCoinMovers } from "@zframes/core";
 import { useMemo } from "react";
-import type { ReactNode } from "react";
 import type { z } from "zod";
 import {
   DOWN_COLOR,
@@ -13,6 +12,7 @@ import {
 } from "./format";
 import { percentileRank } from "./metals-shared";
 import { breadthHistogramMeta } from "./schemas";
+import { Stat } from "./stat";
 import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
@@ -30,28 +30,6 @@ function median(values: readonly number[]): number {
   return sorted.length % 2 === 0
     ? (sorted[mid - 1] + sorted[mid]) / 2
     : sorted[mid];
-}
-
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: ReactNode;
-  color?: string;
-}) {
-  return (
-    <div className="min-w-0">
-      <div className="caption text-soft truncate uppercase">{label}</div>
-      <div
-        className="body-sm truncate font-bold tabular-nums"
-        style={color ? { color } : undefined}
-      >
-        {value}
-      </div>
-    </div>
-  );
 }
 
 function BreadthHistogram({ config }: { config: z.output<typeof schema> }) {
@@ -129,27 +107,39 @@ function BreadthHistogram({ config }: { config: z.output<typeof schema> }) {
         />
       </div>
 
-      <div className="grid grid-cols-4 gap-2 border-t border-white/[0.08] pt-1.5">
+      <Stat.Strip
+        cols={4}
+        gap={2}
+        className="border-t border-white/[0.08] pt-1.5"
+      >
         {/* Advancing share is the advance/decline read: 50% is a genuinely
             mixed tape, and a green median with 40% advancing means megacaps
             carried it. */}
-        <Stat
-          label="advancing"
-          value={formatPct(stats.positivePct, 0)}
-          color={changeColor(stats.positivePct - 50)}
-        />
-        <Stat
-          label="median"
-          value={formatChangePct(med)}
-          color={changeColor(med)}
-        />
-        <Stat label="dispersion" value={formatPct(stats.stdev)} />
-        <Stat
-          label={btc ? `BTC · p${btc.percentile.toFixed(0)}` : "BTC"}
-          value={btc ? formatChangePct(btc.change) : "–"}
-          color={btc ? changeColor(btc.change) : undefined}
-        />
-      </div>
+        <Stat>
+          <Stat.Label>advancing</Stat.Label>
+          <Stat.Value tint={changeColor(stats.positivePct - 50)}>
+            {formatPct(stats.positivePct, 0)}
+          </Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>median</Stat.Label>
+          <Stat.Value tint={changeColor(med)}>
+            {formatChangePct(med)}
+          </Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>dispersion</Stat.Label>
+          <Stat.Value>{formatPct(stats.stdev)}</Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>
+            {btc ? `BTC · p${btc.percentile.toFixed(0)}` : "BTC"}
+          </Stat.Label>
+          <Stat.Value tint={btc ? changeColor(btc.change) : undefined}>
+            {btc ? formatChangePct(btc.change) : "–"}
+          </Stat.Value>
+        </Stat>
+      </Stat.Strip>
     </div>
   );
 }

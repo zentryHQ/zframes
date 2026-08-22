@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatPct } from "./format";
 import { stablecoinChainsMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = stablecoinChainsMeta.schema;
@@ -13,26 +13,10 @@ interface ChainNode extends TreeNode {
   usd: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: ChainNode;
-}) {
-  const money = useMoney();
-  const value = money.compact(data.usd);
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={value}
-    />
-  );
-}
+const Leaf = treemapLeaf<ChainNode>(
+  (d) => d.id,
+  (d, money) => money.compact(d.usd),
+);
 
 function StablecoinChains({ config }: { config: z.output<typeof schema> }) {
   const { supply, isLoading } = useStablecoinSupply();

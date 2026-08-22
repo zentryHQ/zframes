@@ -2,6 +2,7 @@ import { BarChart } from "@zframes/charts";
 import { defineFrame, useMacroSeries } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR, formatCompact } from "./format";
 import { payrollsBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -40,8 +41,8 @@ function PayrollsBars({ config }: { config: z.output<typeof schema> }) {
   const latest = data.at(-1)!;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <BarChart
           data={data}
           color={UP_COLOR}
@@ -51,13 +52,13 @@ function PayrollsBars({ config }: { config: z.output<typeof schema> }) {
           showValues={false}
           maxTickLabels={6}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         nonfarm payrolls · monthly net change · latest{" "}
         {latest.value >= 0 ? "+" : ""}
         {formatCompact(latest.value * 1000)}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

@@ -1,10 +1,11 @@
 import { HistogramChart, quantile, sampleStats } from "@zframes/charts";
 import { defineFrame, useYieldPools } from "@zframes/core";
 import { useMemo } from "react";
-import type { ReactNode } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatCompact, formatPct } from "./format";
 import { yieldDistributionMeta } from "./schemas";
+import { Stat } from "./stat";
 import { FrameStatus } from "./ui";
 
 const schema = yieldDistributionMeta.schema;
@@ -18,15 +19,6 @@ function formatAxisWhole(v: number) {
 
 function formatAxisDecimal(v: number) {
   return formatPct(v, 1);
-}
-
-function Stat({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <div className="caption text-soft truncate uppercase">{label}</div>
-      <div className="body-sm truncate font-bold tabular-nums">{value}</div>
-    </div>
-  );
 }
 
 function YieldDistribution({ config }: { config: z.output<typeof schema> }) {
@@ -73,8 +65,8 @@ function YieldDistribution({ config }: { config: z.output<typeof schema> }) {
   const axisDp = stats.max >= 20 ? 0 : 1;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1.5 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1.5} className="text-normal">
+      <ChartCard.Body>
         {/* No negativeColor: APY is one-sided, so a diverging split would imply
             a zero crossing that cannot happen. */}
         <HistogramChart
@@ -84,26 +76,42 @@ function YieldDistribution({ config }: { config: z.output<typeof schema> }) {
           formatCount={formatCompact}
           markers={markers}
         />
-      </div>
+      </ChartCard.Body>
 
       {/* The TVL floor is deliberately not echoed here: it is a USD figure the
           user typed into the rail, and printing it on a card that may be
           denominated in another currency would be the one unconverted "$" on
           the board. The count already says how many pools cleared it. */}
-      <div className="caption text-soft text-center">
+      <ChartCard.Caption>
         {formatCompact(stats.count)}{" "}
         {config.stablecoinOnly ? "stablecoin " : ""}pools · APY distribution
-      </div>
+      </ChartCard.Caption>
 
-      <div className="grid grid-cols-4 gap-2 border-t border-white/[0.08] pt-1.5">
-        <Stat label="median" value={formatPct(median, 1)} />
+      <Stat.Strip
+        cols={4}
+        gap={2}
+        className="border-t border-white/[0.08] pt-1.5"
+      >
+        <Stat>
+          <Stat.Label>median</Stat.Label>
+          <Stat.Value>{formatPct(median, 1)}</Stat.Value>
+        </Stat>
         {/* The top decile is where the yield-scanner list is drawn from — worth
             naming so a headline APY can be placed against it. */}
-        <Stat label="top 10%" value={formatPct(p90, 1)} />
-        <Stat label="best" value={formatPct(stats.max, 1)} />
-        <Stat label="spread" value={formatPct(stats.stdev, 1)} />
-      </div>
-    </div>
+        <Stat>
+          <Stat.Label>top 10%</Stat.Label>
+          <Stat.Value>{formatPct(p90, 1)}</Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>best</Stat.Label>
+          <Stat.Value>{formatPct(stats.max, 1)}</Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>spread</Stat.Label>
+          <Stat.Value>{formatPct(stats.stdev, 1)}</Stat.Value>
+        </Stat>
+      </Stat.Strip>
+    </ChartCard>
   );
 }
 

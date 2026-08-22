@@ -1,6 +1,7 @@
 import { defineFrame, useEquityProfile, useMoney } from "@zframes/core";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { CardHeader } from "./card-header";
 import {
   changeColor,
   formatChangePct,
@@ -80,17 +81,23 @@ function CompanyProfile({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className={`flex h-full flex-col gap-3 ${scrollAreaClass}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <CardHeader align="start">
+        <CardHeader.Main>
+          {/* An identity block, not a figure: the two lines name the filer
+              rather than reading out a number, so they keep their own type
+              (`body-sm` semibold over a `caption`) instead of
+              `CardHeader.Eyebrow`/`Value`. */}
           <div className="body-sm text-strong truncate font-semibold">
             {data.companyName || ticker}
           </div>
           {listing && (
             <div className="caption text-soft truncate">{listing}</div>
           )}
-        </div>
-        <div className="caption text-soft shrink-0">{ticker}</div>
-      </div>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>{ticker}</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       {price !== undefined && (
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">

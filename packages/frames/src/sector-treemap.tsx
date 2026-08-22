@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct, formatPct } from "./format";
 import { sectorTreemapMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = sectorTreemapMeta.schema;
@@ -14,24 +14,10 @@ interface SectorNode extends TreeNode {
   changePct24h: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: SectorNode;
-}) {
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={formatChangePct(data.changePct24h)}
-    />
-  );
-}
+const Leaf = treemapLeaf<SectorNode>(
+  (d) => d.id,
+  (d) => formatChangePct(d.changePct24h),
+);
 
 function SectorTreemap({ config }: { config: z.output<typeof schema> }) {
   const { sectors, isLoading } = useSectorPerformance();

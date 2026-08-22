@@ -2,6 +2,7 @@ import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useMetalHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
 import { changeColor, formatChangePct, formatPct } from "./format";
 import {
   downsample,
@@ -81,26 +82,21 @@ function GoldSilverRatio({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-3">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft uppercase">gold / silver</div>
-          <div className="metric-xl text-strong leading-none">
-            {formatRatio(view.current)}
-          </div>
-          <div className="caption text-soft mt-1">
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>gold / silver</CardHeader.Eyebrow>
+          <CardHeader.Value>{formatRatio(view.current)}</CardHeader.Value>
+          <CardHeader.Sub size="caption" className="mt-1">
             oz of silver per oz of gold
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div
-            className="body-md font-bold tabular-nums"
-            style={{ color: changeColor(view.changePct) }}
-          >
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Value tint={changeColor(view.changePct)}>
             {formatChangePct(view.changePct)}
-          </div>
-          <div className="caption text-soft">{config.years}y change</div>
-        </div>
-      </div>
+          </CardHeader.Value>
+          <CardHeader.Sub>{config.years}y change</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       {/* One point is a dot, not a trend — skip the chart rather than draw an
           empty shell under the headline. */}

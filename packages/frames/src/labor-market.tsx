@@ -2,6 +2,7 @@ import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useMacroSeries } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
 import {
   DOWN_COLOR_HEX,
   changeColor,
@@ -57,39 +58,42 @@ function LaborMarket({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">unemployment rate</div>
-          <div className="body-sm text-normal">{latestRate.date}</div>
-        </div>
-        <div className="caption text-soft text-right">monthly</div>
-      </div>
+      <CardHeader align="start">
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>unemployment rate</CardHeader.Eyebrow>
+          {/* `ink="normal"`, not the sub-line's default `soft`: the
+              publisher's own print date reads as data here. */}
+          <CardHeader.Sub ink="normal">{latestRate.date}</CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>monthly</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="metric-xl text-strong leading-none">
-            {formatPct(latestRate.value, 1)}
-          </div>
-          <div className="caption text-soft mt-1">
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Value>{formatPct(latestRate.value, 1)}</CardHeader.Value>
+          <CardHeader.Sub size="caption" className="mt-1">
             {unemployment.source} · U-3
-          </div>
-        </div>
+          </CardHeader.Sub>
+        </CardHeader.Main>
         {jobsChange !== null && payrollLatest && (
-          <div className="text-right">
-            <div className="caption text-soft">nonfarm payrolls</div>
-            <div
-              className="body-md font-bold tabular-nums"
-              style={{ color: changeColor(jobsChange) }}
-            >
+          <CardHeader.Aside>
+            {/* `caps={false}`: this aside labels its figure in sentence case,
+                where an eyebrow over a hero figure is upper. */}
+            <CardHeader.Eyebrow caps={false}>
+              nonfarm payrolls
+            </CardHeader.Eyebrow>
+            <CardHeader.Value tint={changeColor(jobsChange)}>
               {jobsChange >= 0 ? "+" : ""}
               {formatCompact(jobsChange * 1000)}
-            </div>
-            <div className="caption text-soft mt-1 tabular-nums">
+            </CardHeader.Value>
+            <CardHeader.Sub className="mt-1 tabular-nums">
               {formatCompact(payrollLatest.value * 1000)} jobs
-            </div>
-          </div>
+            </CardHeader.Sub>
+          </CardHeader.Aside>
         )}
-      </div>
+      </CardHeader>
 
       <MiniLineChart
         data={sparkline}

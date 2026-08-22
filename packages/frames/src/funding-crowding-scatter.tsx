@@ -3,6 +3,7 @@ import { defineFrame, useDayStatsState, useOpenInterest } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { ChartCard } from "./chart-card";
 import { changeColor, formatChangePct, formatFundingPct } from "./format";
 import { fundingCrowdingScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -46,8 +47,8 @@ function FundingCrowdingScatter({
   if (data.length === 0) return <FrameStatus>no funding data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <ScatterChart
           data={data}
           zeroXLine
@@ -56,12 +57,12 @@ function FundingCrowdingScatter({
           formatY={formatFundingPct}
           maxLabels={10}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         24h change (x) vs funding rate (y) · bubble = open interest · top{" "}
         {data.length}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

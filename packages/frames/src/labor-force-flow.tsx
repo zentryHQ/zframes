@@ -7,6 +7,7 @@ import { defineFrame, useMacroSeries } from "@zframes/core";
 import type { MacroPoint } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatPct } from "./format";
 import { laborForceFlowMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -60,19 +61,19 @@ function LaborForceFlow({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no labor-force data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-1">
-      <div className="min-h-0 flex-1">
+    <ChartCard gap={1}>
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={ChartTimeframe.YTD}
           fill
           formatValue={formatRate}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         unemployment vs labor-force participation · monthly, BLS
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

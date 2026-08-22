@@ -3,6 +3,8 @@ import { defineFrame, useMacroSeries } from "@zframes/core";
 import type { MacroPoint } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { formatPct } from "./format";
 import { miseryIndexMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -98,19 +100,26 @@ function MiseryIndex({ config }: { config: z.output<typeof schema> }) {
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">misery index</div>
-          <div className="body-sm text-normal">{latest.date}</div>
-        </div>
-        <div className="text-right">
-          <div className="metric-lg text-strong leading-none">
+    <ChartCard>
+      <CardHeader align="start">
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>misery index</CardHeader.Eyebrow>
+          {/* `ink="normal"`, not the sub-line's default `soft`: the
+              publisher's own print date reads as data here. */}
+          <CardHeader.Sub ink="normal">{latest.date}</CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          {/* The hero figure is on the RIGHT on this card, so it asks for
+              `ink="strong"` — a hero reads strong wherever it sits, and the
+              column default would give it a supporting figure's weight. */}
+          <CardHeader.Value size="metric-lg" ink="strong">
             {formatPct(misery, 1)}
-          </div>
-          <div className="caption text-soft mt-1">CPI YoY + unemployment</div>
-        </div>
-      </div>
+          </CardHeader.Value>
+          <CardHeader.Sub className="mt-1">
+            CPI YoY + unemployment
+          </CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
       <StackedAreaChart
         series={series}
         height={200}
@@ -118,10 +127,10 @@ function MiseryIndex({ config }: { config: z.output<typeof schema> }) {
         formatYAxis={formatAxis}
         formatValue={formatPoint}
       />
-      <div className="caption text-soft text-center">
+      <ChartCard.Caption>
         BLS CPI-U + unemployment · {points.length} monthly observations
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

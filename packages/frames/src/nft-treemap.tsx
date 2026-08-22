@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct, formatPct } from "./format";
 import { nftTreemapMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = nftTreemapMeta.schema;
@@ -14,26 +14,10 @@ interface NftNode extends TreeNode {
   floorChangePct24h: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: NftNode;
-}) {
-  const money = useMoney();
-  const floor = money.price(data.floorUsd);
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={floor}
-    />
-  );
-}
+const Leaf = treemapLeaf<NftNode>(
+  (d) => d.id,
+  (d, money) => money.price(d.floorUsd),
+);
 
 function NftTreemap({ config }: { config: z.output<typeof schema> }) {
   const { collections, isLoading } = useNftMarket();
