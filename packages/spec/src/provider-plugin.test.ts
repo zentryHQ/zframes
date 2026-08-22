@@ -61,11 +61,17 @@ describe("validateProviderPlugin", () => {
   // A host carrying a scheme, a port or a path compares against URL.hostname
   // and can therefore never match. Left unchecked it reads as an authorised
   // host that silently never works, which is worse than a rejected install.
+  // The last three are the normalisation cases: URL spells 0x7f.0.0.1 as
+  // 127.0.0.1 (so the entry is both dead AND a disguised loopback) and refuses
+  // the out-of-range and five-part shapes outright.
   it.each([
     "https://api.example.com",
     "api.example.com:443",
     "api.example.com/v1",
     "*.example.com",
+    "0x7f.0.0.1",
+    "999.1.1.1",
+    "1.2.3.4.5",
   ])("rejects %s as a host", (host) => {
     const result = validateProviderPlugin({
       manifest: manifest({ hosts: [{ host, proxied: true }] }),
@@ -85,12 +91,20 @@ describe("validateProviderPlugin", () => {
     "db.internal",
     "printer.local",
     "service.home.arpa",
+    "nas.lan",
+    "ci.test",
+    "box.localdomain",
+    "router.home",
     "127.0.0.1",
     "10.0.0.5",
     "192.168.1.1",
     "172.16.0.1",
     "172.31.255.254",
     "169.254.169.254",
+    "100.64.0.1",
+    "100.127.255.254",
+    "198.18.0.1",
+    "224.0.0.1",
     "0.0.0.0",
     "..",
     "-leading.example.com",
@@ -113,6 +127,11 @@ describe("validateProviderPlugin", () => {
     "172.32.0.1",
     "11.0.0.1",
     "169.253.0.1",
+    "100.63.255.254",
+    "100.128.0.1",
+    "198.17.0.1",
+    "198.20.0.1",
+    "223.255.255.253",
     "corporate.example.com",
   ])("accepts %s as a host", (host) => {
     const result = validateProviderPlugin({

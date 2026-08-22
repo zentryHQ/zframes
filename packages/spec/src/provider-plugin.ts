@@ -55,7 +55,10 @@ export interface ProviderCredit {
 
 /** A host the plugin contacts, and how. */
 export interface ProviderHost {
-  /** Exact hostname, no scheme, no path, no wildcard. */
+  /**
+   * Exact hostname, no scheme, no path, no wildcard — spelled the way
+   * `URL.hostname` reports it, since that is what the allowlist compares.
+   */
   host: string;
   /**
    * True when the browser cannot reach this host directly (no CORS header) and
@@ -125,21 +128,38 @@ export interface ProviderPlugin {
 const PUBLIC_HOSTNAME =
   /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/i;
 
-/** Suffixes reserved for names that only resolve inside a network. */
+/**
+ * Suffixes reserved for, or conventionally used by, names that only resolve
+ * inside a network: the IETF special-use names (`.localhost`, `.local`,
+ * `.test`, `.invalid`, `.home.arpa`), the ICANN name-collision strings
+ * (`.corp`, `.home`, plus `.internal`, reserved 2024), and the router/mDNS
+ * conventions (`.lan`, `.intranet`, `.localdomain`).
+ */
 const INTERNAL_SUFFIXES = [
   ".local",
   ".localhost",
   ".internal",
   ".intranet",
   ".corp",
+  ".home",
   ".home.arpa",
+  ".lan",
+  ".test",
+  ".localdomain",
+  ".invalid",
 ];
 
 /**
  * True for a target that can only be inside the operator's own network:
- * loopback, RFC1918 private space, link-local (which is where cloud instance
- * metadata lives), the unspecified address, and the reserved internal-only
- * name suffixes.
+ * loopback and the unspecified space, RFC1918, CGNAT (RFC 6598), link-local
+ * (which is where cloud instance metadata lives), benchmarking (198.18/15),
+ * multicast and reserved IPv4, and the internal-only name suffixes above.
+ *
+ * A LINT, not the security boundary: a public NAME resolves wherever its owner
+ * points it, which no string check can see. The boundary is serve's relay,
+ * which resolves every hop and refuses one whose addresses are not all public.
+ * This check exists so an honest mistake fails at install time with a readable
+ * error instead of as a 403 at request time.
  */
 function isInternalHost(host: string): boolean {
   const lower = host.toLowerCase();
@@ -152,10 +172,31 @@ function isInternalHost(host: string): boolean {
   if (a === undefined || b === undefined) return false;
   if (a === 0 || a === 127) return true; // unspecified, loopback
   if (a === 10) return true; // RFC1918
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT (RFC 6598)
   if (a === 192 && b === 168) return true; // RFC1918
   if (a === 172 && b >= 16 && b <= 31) return true; // RFC1918
   if (a === 169 && b === 254) return true; // link-local, incl. cloud metadata
+  if (a === 198 && (b === 18 || b === 19)) return true; // benchmarking
+  if (a >= 224) return true; // multicast, reserved, broadcast
   return false;
+}
+
+/**
+ * The spelling `URL.hostname` would report for this host, or null when URL
+ * refuses it outright (`999.1.1.1`, a five-part IPv4 shape).
+ *
+ * The relay compares allowlist entries against `URL.hostname`, so an entry
+ * spelled any way URL would normalise — a hex or octal IPv4 like `0x7f.0.0.1`
+ * most of all — is an entry that can never match: authorised on paper, dead in
+ * practice, and in the hex-IP case a disguise for an address `isInternalHost`
+ * would have refused. Requiring the canonical spelling closes both.
+ */
+function canonicalHostname(host: string): string | null {
+  try {
+    return new URL(`https://${host}`).hostname;
+  } catch {
+    return null;
+  }
 }
 
 const CreditSchema = z.object({
@@ -172,22 +213,26 @@ const CreditSchema = z.object({
 });
 
 const HostSchema = z.object({
-  // Two different failures are being closed here.
+  // Three different failures are being closed here.
   //
   // A scheme, a path, a port or a wildcard can never match, because the
   // allowlist compares against `URL.hostname`. Left in, such an entry reads as
-  // an authorised host that silently never works.
+  // an authorised host that silently never works. The same goes for any
+  // non-canonical spelling URL would normalise away (see `canonicalHostname`).
   //
-  // A loopback, private or link-local target is worse than useless: once a
-  // mount derives its allowlist from installed manifests, an adapter naming
-  // `169.254.169.254` or `internal.corp` turns the same-origin relay into a
-  // reader for the operator's own network, which is exactly the SSRF the
-  // allowlist exists to prevent. A published data programme never lives at one
-  // of these, so refusing them costs nothing real.
+  // A loopback, private, link-local or internal-suffixed target is refused at
+  // install time so the mistake is readable where it was made. It is NOT what
+  // stops the SSRF: a public name can resolve anywhere its owner points it, so
+  // the relay separately resolves every hop and refuses non-public addresses
+  // at fetch time. A published data programme never lives at one of these, so
+  // refusing them here costs nothing real.
   host: z
     .string()
     .min(1)
     .regex(PUBLIC_HOSTNAME, "host must be a bare public hostname")
+    .refine((host) => canonicalHostname(host) === host.toLowerCase(), {
+      message: "host is not in canonical URL.hostname form",
+    })
     .refine((host) => !isInternalHost(host), {
       message: "host is loopback, private, link-local or internal-only",
     }),
