@@ -1,4 +1,6 @@
-import { tickerOf } from "@zframes/frames";
+// Leaf module, not the package index — the index statically pulls in all frame
+// components, which would defeat the per-frame code-split (see ticker-tape.tsx).
+import { tickerOf } from "@zframes/frames/asset-logo";
 import type { Capability, DashboardSpec, FrameRegistry } from "@zframes/core";
 
 // Builds the orb's placeholder suggestions from the frames actually on the
