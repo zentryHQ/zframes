@@ -42,7 +42,7 @@
     "zod": "^4.1.0"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.2.0",
     "@zframes/account": "workspace:*",
     "@zframes/frames": "workspace:*",
     "@zframes/provider-alternativeme": "workspace:*",
