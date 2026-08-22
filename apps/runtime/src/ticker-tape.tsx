@@ -126,6 +126,11 @@ export const TickerTape = memo(function TickerTape() {
     if (!root || !provider?.subscribeMids || symbols.length === 0) return;
     let latest: Record<string, number> = {};
     const flush = () => {
+      // Hidden tab: the WS suspends after its grace period anyway, so `latest`
+      // goes stale — skip the ~400-node querySelectorAll sweep entirely.
+      // (visibilityState, not `document.hidden`: jsdom/prerender report hidden
+      // with state "prerender", and only a backgrounded tab should skip.)
+      if (document.visibilityState === "hidden") return;
       for (const el of root.querySelectorAll<HTMLElement>("[data-zf-px]")) {
         const px = latest[el.dataset.zfPx ?? ""];
         if (px === undefined) continue;
