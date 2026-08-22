@@ -1,7 +1,7 @@
 import * as d3 from "d3";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo } from "react";
 import { attachChartTooltip, hideChartTooltip } from "../lib/chart-tooltip";
-import { observeResize } from "../lib/observe-resize";
+import { useChartBox } from "../lib/use-chart-box";
 import { useChartIntro } from "../lib/use-chart-intro";
 import {
   type BinOptions,
@@ -125,41 +125,16 @@ const HistogramChart = ({
   tailTrim,
   anchorZero,
 }: HistogramChartProps) => {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [width, setWidth] = useState<number | null>(null);
-  const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
+  const { wrapRef, svgRef, width, plotHeight, boxStyle } = useChartBox({
+    height,
+    fill,
+  });
   /**
    * The intro plays only inside a short window that opens at the first real
    * draw — so it survives the re-render burst around first paint, but a data
    * poll or resize minutes later never re-grows the card from zero.
    */
   const shouldIntro = useChartIntro();
-
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const update = () => {
-      const rect = el.getBoundingClientRect();
-      setWidth((prev) =>
-        prev !== null && Math.abs(prev - rect.width) < 0.5 ? prev : rect.width,
-      );
-      // Only tracked when filling — a pinned wrapper is `height` by
-      // construction, so measuring it would re-render for nothing.
-      if (fill)
-        setMeasuredHeight((prev) =>
-          prev !== null && Math.abs(prev - rect.height) < 0.5
-            ? prev
-            : rect.height,
-        );
-    };
-    update();
-    return observeResize(el, update);
-  }, [fill]);
-
-  // The wrapper can measure 0 before layout settles, so the prop stays the
-  // fallback — a collapsed chart is worse than a slightly-too-tall one.
-  const plotHeight = fill && measuredHeight ? measuredHeight : height;
 
   const binned = useMemo(
     () => binSample(values, { targetBins, maxBins, tailTrim, anchorZero }),
@@ -534,6 +509,7 @@ const HistogramChart = ({
     // destroys the mark under the cursor — leaving a tooltip pointing at nothing.
     return hideChartTooltip;
   }, [
+    svgRef,
     binned,
     width,
     plotHeight,
@@ -549,11 +525,7 @@ const HistogramChart = ({
   ]);
 
   return (
-    <div
-      ref={wrapRef}
-      className="w-full"
-      style={fill ? { height: "100%", minHeight: 0 } : { height }}
-    >
+    <div ref={wrapRef} className="w-full" style={boxStyle}>
       {width !== null && width > 0 && binned && (
         <svg ref={svgRef} width={width} height={plotHeight} />
       )}

@@ -26,6 +26,22 @@ export const calculateYDomain = (
   return calculateChartDomain(allDataPoints) as [number, number];
 };
 
+/**
+ * The domain the y-axis is actually drawn on: a caller-supplied one WINS over
+ * the fitted one.
+ *
+ * A frame that pins a domain is making a claim about how its series must be
+ * read — a correlation at [-1, 1], a percentile band at [0, 100], a net
+ * position that must keep zero in frame. Fitting to the data instead rescales
+ * that claim away, and because the chart still draws a perfectly plausible
+ * axis, nothing about the result looks wrong: every series just quietly reads
+ * more dramatic than it is. Resolve the domain here, never at the call site.
+ */
+export const resolveYDomain = (
+  series: MultiSeriesData[],
+  pinned?: [number, number],
+): [number, number] => pinned ?? calculateYDomain(series);
+
 export const getAllDates = (series: MultiSeriesData[]): string[] => {
   const dateSet = new Set<string>();
   series.forEach((s) => {

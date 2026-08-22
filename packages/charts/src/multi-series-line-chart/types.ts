@@ -42,10 +42,7 @@ export interface MultiSeriesLineChartProps {
   className?: string;
   isLoading?: boolean;
   formatValue?: (value: number) => string;
-  unitPrefix?: string | React.ReactNode;
-  unitSuffix?: string | React.ReactNode;
   yDomain?: [number, number];
-  onLabelClick?: (seriesId: string) => void;
   /**
    * Dated annotations to overlay on the time axis. Events outside the plotted
    * window are dropped, and neighbours closer than a flag's width collapse into

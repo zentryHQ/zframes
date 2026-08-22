@@ -10,9 +10,6 @@ interface ChartLegendProps {
   containerWidth?: number;
   hoveredSeriesId: string | null;
   onSeriesHover: (seriesId: string | null) => void;
-  onLabelClick?: (seriesId: string) => void;
-  unitPrefix?: string | React.ReactNode;
-  unitSuffix?: string | React.ReactNode;
   legendRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -21,9 +18,6 @@ const ChartLegendComponent: React.FC<ChartLegendProps> = ({
   containerWidth,
   hoveredSeriesId,
   onSeriesHover,
-  onLabelClick,
-  unitPrefix,
-  unitSuffix,
   legendRef,
 }) => {
   const isLargeScreen = containerWidth && containerWidth > CHART_BREAKPOINTS.sm;
@@ -47,7 +41,6 @@ const ChartLegendComponent: React.FC<ChartLegendProps> = ({
               backgroundColor: hexToRgba(item.color, 0.3),
               opacity: getHoverOpacity(item.id, hoveredSeriesId),
             }}
-            onClick={() => onLabelClick?.(item.id)}
             onPointerEnter={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -83,13 +76,7 @@ const ChartLegendComponent: React.FC<ChartLegendProps> = ({
                 >
                   {item.displayText}
                 </span>
-                {unitPrefix && (
-                  <span className="mr-0.5 [&_svg]:!text-white/70">
-                    {unitPrefix}
-                  </span>
-                )}
                 <span>{item.value}</span>
-                {unitSuffix && <span>{unitSuffix}</span>}
               </div>
             </div>
           </div>
@@ -115,7 +102,6 @@ const ChartLegendComponent: React.FC<ChartLegendProps> = ({
             backgroundColor: hexToRgba(item.color, 0.3),
             opacity: getHoverOpacity(item.id, hoveredSeriesId),
           }}
-          onClick={() => onLabelClick?.(item.id)}
           onPointerEnter={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -153,7 +139,6 @@ const ChartLegendComponent: React.FC<ChartLegendProps> = ({
               </span>
 
               <span data-legend-value={item.id}>{item.value}</span>
-              {unitSuffix && <span>{unitSuffix}</span>}
             </div>
           </div>
         </div>
