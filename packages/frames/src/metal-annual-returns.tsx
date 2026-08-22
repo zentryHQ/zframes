@@ -2,6 +2,7 @@ import { BarChart } from "@zframes/charts";
 import { defineFrame, useMetalHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR, changeColor, formatChangePct } from "./format";
 import { annualReturns, divergingBars, metalName } from "./metals-shared";
 import { metalAnnualReturnsMeta } from "./schemas";
@@ -60,11 +61,11 @@ function MetalAnnualReturns({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no calendar-year returns yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1.5 text-normal">
+    <ChartCard align="center" gap={1.5} className="text-normal">
       {/* Fills, unlike the horizontal bar lists that scroll: bars stand SIDE BY
           SIDE here, so height is the value axis rather than a row count — it can
           shrink with the card without costing a single bar its legibility. */}
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <BarChart
           data={bars}
           orientation="vertical"
@@ -72,8 +73,8 @@ function MetalAnnualReturns({ config }: { config: z.output<typeof schema> }) {
           formatValue={formatChangePct}
           maxTickLabels={Math.min(bars.length, 12)}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         {metalName(config.symbol)} · {bars.length} calendar years
         {partialYear !== null ? ` (${partialYear} YTD)` : ""} ·{" "}
         <span style={{ color: UP_COLOR }}>{upYears} up</span> /{" "}
@@ -81,8 +82,8 @@ function MetalAnnualReturns({ config }: { config: z.output<typeof schema> }) {
         <span style={{ color: changeColor(avgPct) }}>
           {formatChangePct(avgPct)}
         </span>
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

@@ -1,6 +1,7 @@
 import { RadialGauge } from "@zframes/charts";
 import { defineFrame, useOptionsSummary } from "@zframes/core";
 import type { z } from "zod";
+import { GaugeCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { putCallGaugeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -19,20 +20,19 @@ function PutCallGauge({ config }: { config: z.output<typeof schema> }) {
   const color = value > 1 ? DOWN_COLOR : UP_COLOR;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1">
+    <GaugeCard>
       <RadialGauge value={value} min={0} max={2} color={color} fill>
-        <div className="metric-xl leading-none" style={{ color }}>
+        {/* No bloom: this card never drew one, unlike the vol/sentiment gauges. */}
+        <GaugeCard.Value tint={color} glow={false}>
           {value.toFixed(2)}
-        </div>
-        <div className="caption text-soft mt-1 uppercase tracking-wide">
-          put / call
-        </div>
+        </GaugeCard.Value>
+        <GaugeCard.Label>put / call</GaugeCard.Label>
       </RadialGauge>
-      <div className="caption text-soft">
+      <GaugeCard.Caption>
         {config.currency} · by{" "}
         {config.basis === "oi" ? "open interest" : "volume"}
-      </div>
-    </div>
+      </GaugeCard.Caption>
+    </GaugeCard>
   );
 }
 

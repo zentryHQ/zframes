@@ -21,10 +21,16 @@ These frames are meant to read as **one system**, not a pile of one-offs. Every 
 | Body / caption / card title | `body-sm/md/lg` · `caption` · `heading-card-title` | `text-[0.6875rem]` etc. |
 | Text color | `text-strong / text-normal / text-soft / text-disabled / text-highlight` | `text-white`, raw `/opacity` |
 | Loading & empty | `FrameStatus` (`loading` prop → skeleton; children → quiet empty) (`./ui`) | a bespoke spinner / "no data" div |
-| Matrix cell figure (heatmap `CellComponent`) | `cellLabelFits(width, height, minWidth)` (`./ui`) — drops the label when the cell can't hold it | a hand-rolled `if (width < 44) return null` — width-only, so it clips on a dense grid |
+| Matrix cell figure (heatmap `CellComponent`) | `heatmapCellLabel(format, minWidth?)` (`./ui`) — the factory; builds the whole `Cell`, gate included | a hand-rolled `Cell`, or `if (width < 44) return null` — width-only, so it clips on a dense grid |
+| …the fit gate on its own | `cellLabelFits(width, height, minWidth)` (`./ui`) | a width-only check |
 | Vertical / horizontal scroll | `scrollAreaClass` / `scrollAreaXClass` (`./ui`) | raw `overflow-y-auto` + scrollbar CSS |
 | Asset row (logo·ticker·price·Δ) | `MoverRow` (`./mover-row`) — pass `price` in **USD**; the row converts via `useMoney()` itself | a new row layout, or a per-caller price formatter |
-| Treemap tile label | `TreemapLeaf` (`./treemap-leaf`) | per-treemap label code |
+| Treemap tile label | `treemapLeaf(label, secondary?)` (`./treemap-leaf`) — the factory; `secondary` receives `money` | a local `Leaf` adapter, or per-treemap label code |
+| Label/value stat, bare or as an inner tile | `Stat` + `Stat.Label` / `.Value` / `.Hint` / `.Strip` (`./stat`) — **order is the layout**, so value-above-label needs no prop | a local `Stat`/`Tile`, or a fifth tile padding |
+| Chart shell (column · plot body · axis caption) | `ChartCard` + `.Body` / `.Caption` (`./chart-card`) — the chart is a **child**, never a prop | a hand-rolled `flex h-full min-h-0 flex-col` + `min-h-0 flex-1` |
+| Gauge shell (`RadialGauge` + readout + caption) | `GaugeCard` + `.Value` / `.Label` / `.Caption` (`./chart-card`) — `glow` takes a colour string where the tint is an `hsl(var(…))` expression | a per-gauge centred column |
+| Two-column card head (eyebrow · hero figure · aside) | `CardHeader` + `.Main` / `.Aside` / `.Eyebrow` / `.Value` / `.Sub` (`./card-header`) — each column's `Value`/`Sub` size themselves from context | a hand-rolled `flex items-end justify-between gap-3` pair |
+| Share-chart legend (swatch · name · share) | `SliceLegend` + `.Item` (`./slice-legend`) — `size="sm"` is the name-only stacked-area variant | a per-frame legend row |
 | Link-feed row | `FeedRow` (`./feed-row`) — leading · title · subtitle · `timeAgo` meta | a new feed row |
 | Name→value row | `MetricRow` (`./metric-row`) | a new macro-list row |
 | Fee tile + tint | `FeePill` / `feeRateColor` (`./btc-shared`) | — |

@@ -3,6 +3,7 @@ import { defineFrame, useMoney, useYieldPools } from "@zframes/core";
 import { useMemo } from "react";
 import { formatPct } from "./format";
 import { yieldRiskPieMeta } from "./schemas";
+import { SliceLegend } from "./slice-legend";
 import { FrameStatus } from "./ui";
 
 const RISK_LABEL: Record<string, string> = {
@@ -59,23 +60,23 @@ function YieldRiskPie() {
         </PieChart>
       </div>
 
-      <div className="flex w-full max-w-xs flex-wrap justify-center gap-x-5 gap-y-1.5">
+      <SliceLegend>
         {slices.map((slice) => (
-          <div key={slice.name} className="flex items-center gap-1.5">
-            <span
-              className="h-2 w-2 flex-shrink-0 rounded-full"
-              style={{ background: slice.color }}
-            />
-            <span className="body-sm text-soft">{slice.name}</span>
-            <span className="body-sm text-normal font-bold tabular-nums">
-              {formatPct((slice.value / total) * 100, 1)}
-            </span>
-            <span className="caption text-soft tabular-nums">
+          <SliceLegend.Item
+            key={slice.name}
+            color={slice.color}
+            label={slice.name}
+          >
+            {formatPct((slice.value / total) * 100, 1)}
+            {/* The absolute TVL rides inside the share, quieter than it —
+                `SliceLegend.Item` has one value slot, and the share is the
+                figure the legend is for. */}
+            <span className="caption text-soft ml-1.5">
               {money.compact(slice.value)}
             </span>
-          </div>
+          </SliceLegend.Item>
         ))}
-      </div>
+      </SliceLegend>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { defineFrame, useOptionsSummary } from "@zframes/core";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
 import { DOWN_COLOR, UP_COLOR, formatPct } from "./format";
 import { optionsPutCallMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -31,24 +32,20 @@ function OptionsPutCall({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-3">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {config.currency} put/call · {config.basis === "oi" ? "OI" : "vol"}
-          </div>
-          <div className="metric-xl leading-none" style={{ color }}>
-            {primary.toFixed(2)}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="body-md text-normal font-bold tabular-nums">
-            {secondary.toFixed(2)}
-          </div>
-          <div className="caption text-soft">
+          </CardHeader.Eyebrow>
+          <CardHeader.Value tint={color}>{primary.toFixed(2)}</CardHeader.Value>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Value>{secondary.toFixed(2)}</CardHeader.Value>
+          <CardHeader.Sub>
             by {config.basis === "oi" ? "volume" : "OI"}
-          </div>
-        </div>
-      </div>
+          </CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <div>
         <div className="flex h-3 w-full gap-1 overflow-hidden rounded-full">

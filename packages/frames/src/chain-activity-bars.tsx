@@ -2,6 +2,7 @@ import { BarChart } from "@zframes/charts";
 import { defineFrame, useChainActivity } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatCompact } from "./format";
 import { chainActivityBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -25,19 +26,17 @@ function ChainActivityBars({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no chain data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <BarChart
           data={data}
           orientation="horizontal"
           fill
           formatValue={formatCompact}
         />
-      </div>
-      <div className="caption text-soft text-center">
-        transactions · last 24h
-      </div>
-    </div>
+      </ChartCard.Body>
+      <ChartCard.Caption>transactions · last 24h</ChartCard.Caption>
+    </ChartCard>
   );
 }
 

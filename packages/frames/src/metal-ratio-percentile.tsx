@@ -1,7 +1,6 @@
 import { HistogramChart, quantile, sampleStats } from "@zframes/charts";
 import { defineFrame, useMetalHistory } from "@zframes/core";
 import { useMemo } from "react";
-import type { ReactNode } from "react";
 import type { z } from "zod";
 import { formatCompact, formatPct } from "./format";
 import {
@@ -11,6 +10,7 @@ import {
   sliceYears,
 } from "./metals-shared";
 import { metalRatioPercentileMeta } from "./schemas";
+import { Stat } from "./stat";
 import { FrameStatus } from "./ui";
 
 const schema = metalRatioPercentileMeta.schema;
@@ -46,15 +46,6 @@ function readPercentile(
   if (percentile > 30) return "mid-range — neither leg stretched";
   if (percentile > 10) return `${cheap} on the dear side`;
   return `${cheap} historically dear vs ${dear}`;
-}
-
-function Stat({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="min-w-0">
-      <div className="caption text-soft truncate uppercase">{label}</div>
-      <div className="body-sm truncate font-bold tabular-nums">{value}</div>
-    </div>
-  );
 }
 
 function MetalRatioPercentile({ config }: { config: z.output<typeof schema> }) {
@@ -167,11 +158,24 @@ function MetalRatioPercentile({ config }: { config: z.output<typeof schema> }) {
         {formatCompact(stats.count)} daily fixes · {span}
       </div>
 
-      <div className="grid grid-cols-3 gap-2 border-t border-white/[0.08] pt-1.5">
-        <Stat label="low" value={formatRatio(stats.min)} />
-        <Stat label="median" value={formatRatio(median)} />
-        <Stat label="high" value={formatRatio(stats.max)} />
-      </div>
+      <Stat.Strip
+        cols={3}
+        gap={2}
+        className="border-t border-white/[0.08] pt-1.5"
+      >
+        <Stat>
+          <Stat.Label>low</Stat.Label>
+          <Stat.Value>{formatRatio(stats.min)}</Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>median</Stat.Label>
+          <Stat.Value>{formatRatio(median)}</Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>high</Stat.Label>
+          <Stat.Value>{formatRatio(stats.max)}</Stat.Value>
+        </Stat>
+      </Stat.Strip>
     </div>
   );
 }

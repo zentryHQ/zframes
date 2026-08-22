@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct, formatPct } from "./format";
 import { protocolFeesTreemapMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = protocolFeesTreemapMeta.schema;
@@ -14,26 +14,10 @@ interface FeesNode extends TreeNode {
   changePct: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: FeesNode;
-}) {
-  const money = useMoney();
-  const value = money.compact(data.fees24h);
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={value}
-    />
-  );
-}
+const Leaf = treemapLeaf<FeesNode>(
+  (d) => d.id,
+  (d, money) => money.compact(d.fees24h),
+);
 
 function ProtocolFeesTreemap({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useProtocolFees();

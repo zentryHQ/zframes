@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatCompact, formatPct } from "./format";
 import { cryptoDilutionMeta } from "./schemas";
+import { Stat } from "./stat";
 import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = cryptoDilutionMeta.schema;
@@ -125,24 +126,6 @@ function analyse(
   };
 }
 
-function Tile({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className="min-w-0 rounded-md bg-white/[0.04] px-2 py-1.5">
-      <div className="caption text-soft truncate uppercase">{label}</div>
-      <div className="metric-sm text-strong truncate">{value}</div>
-      {hint && <div className="caption text-soft truncate">{hint}</div>}
-    </div>
-  );
-}
-
 function CryptoDilution({ config }: { config: z.output<typeof schema> }) {
   const money = useMoney();
   const { profile, isLoading } = useCryptoProfile(config.symbol);
@@ -224,29 +207,35 @@ function CryptoDilution({ config }: { config: z.output<typeof schema> }) {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5">
-        <Tile
-          label="Market cap"
-          value={marketCap !== undefined ? money.compact(marketCap) : "—"}
-          hint={dilution.marketCapDerived ? "derived" : undefined}
-        />
-        <Tile
-          label="FDV"
-          value={fdv !== undefined ? money.compact(fdv) : "—"}
-          hint={dilution.fdvDerived ? "derived" : undefined}
-        />
-        <Tile
-          label="Not circulating"
-          value={gap !== null ? money.compact(gap) : "—"}
-          hint={
-            gapPct !== null
-              ? `${formatPct(gapPct, 1)} of FDV${
-                  ratio !== null ? ` · ${ratio.toFixed(2)}×` : ""
-                }`
-              : undefined
-          }
-        />
-      </div>
+      <Stat.Strip cols={3} gap={1.5}>
+        <Stat surface="tile">
+          <Stat.Label>Market cap</Stat.Label>
+          <Stat.Value size="metric-sm">
+            {marketCap !== undefined ? money.compact(marketCap) : "—"}
+          </Stat.Value>
+          {dilution.marketCapDerived && <Stat.Hint>derived</Stat.Hint>}
+        </Stat>
+        <Stat surface="tile">
+          <Stat.Label>FDV</Stat.Label>
+          <Stat.Value size="metric-sm">
+            {fdv !== undefined ? money.compact(fdv) : "—"}
+          </Stat.Value>
+          {dilution.fdvDerived && <Stat.Hint>derived</Stat.Hint>}
+        </Stat>
+        <Stat surface="tile">
+          <Stat.Label>Not circulating</Stat.Label>
+          <Stat.Value size="metric-sm">
+            {gap !== null ? money.compact(gap) : "—"}
+          </Stat.Value>
+          {gapPct !== null && (
+            <Stat.Hint>
+              {`${formatPct(gapPct, 1)} of FDV${
+                ratio !== null ? ` · ${ratio.toFixed(2)}×` : ""
+              }`}
+            </Stat.Hint>
+          )}
+        </Stat>
+      </Stat.Strip>
 
       {/* Scrolls rather than shrinks: the chart's height is a COUNT of supply
           segments, each needing its own row to stay readable, so a short card

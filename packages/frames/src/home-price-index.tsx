@@ -5,6 +5,7 @@ import {
 import { defineFrame, useHousingPriceIndex } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatChangePct, formatLevel } from "./format";
 import {
   downsample,
@@ -57,7 +58,7 @@ function HomePriceIndex({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no home-price history yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <ChartCard gap={2}>
       <SeriesHeader
         series={official}
         note={
@@ -66,18 +67,18 @@ function HomePriceIndex({ config }: { config: z.output<typeof schema> }) {
             : undefined
         }
       />
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatIndex}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         Case-Shiller national index · January 2000 = 100
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

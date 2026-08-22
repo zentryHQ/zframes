@@ -2,6 +2,8 @@ import { type MultiSeriesData } from "@zframes/charts";
 import { defineFrame, useMetalHistory, type SeriesPoint } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { changeColor, DOWN_COLOR, DOWN_COLOR_HEX, formatPct } from "./format";
 import {
   downsample,
@@ -63,39 +65,34 @@ function MetalDrawdown({ config }: { config: z.output<typeof schema> }) {
   if (series.length === 0) return <FrameStatus>no fix history yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft uppercase">below record</div>
-          <div
-            className="metric-lg leading-none"
-            style={{ color: changeColor(current) }}
-          >
+    <ChartCard>
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>below record</CardHeader.Eyebrow>
+          <CardHeader.Value size="metric-lg" tint={changeColor(current)}>
             {formatPct(current, 1)}
-          </div>
-        </div>
+          </CardHeader.Value>
+        </CardHeader.Main>
         {worst && (
-          <div className="shrink-0 text-right">
-            <div className="caption text-soft uppercase">
-              worst · {config.years}y
-            </div>
-            <div className="metric-sm" style={{ color: DOWN_COLOR }}>
+          <CardHeader.Aside>
+            <CardHeader.Eyebrow>worst · {config.years}y</CardHeader.Eyebrow>
+            <CardHeader.Value size="metric-sm" tint={DOWN_COLOR}>
               {formatPct(worst.value, 1)}
-            </div>
-            <div className="caption text-soft">{formatMonth(worst.time)}</div>
-          </div>
+            </CardHeader.Value>
+            <CardHeader.Sub>{formatMonth(worst.time)}</CardHeader.Sub>
+          </CardHeader.Aside>
         )}
-      </div>
+      </CardHeader>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatDrawdownValue}
         />
-      </div>
-    </div>
+      </ChartCard.Body>
+    </ChartCard>
   );
 }
 

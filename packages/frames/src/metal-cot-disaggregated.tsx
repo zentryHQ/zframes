@@ -12,6 +12,8 @@ import {
 } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { changeColor, formatCompact, formatPct } from "./format";
 import { MetricRow } from "./metric-row";
 import {
@@ -297,13 +299,16 @@ function MetalCotDisaggregated({
   const units = contractUnits(latest.report.contractUnits);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft uppercase">
+    <ChartCard>
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {metalName(config.symbol)} disaggregated COT
-          </div>
+          </CardHeader.Eyebrow>
           {shortLead ? (
+            // A SENTENCE, not a `CardHeader.Value`: the figure is set inside a
+            // `body-sm` line that has to truncate as a whole, so the shared
+            // value block — one sized element — can't express it.
             <div className="body-sm text-normal truncate">
               <span className="metric-md text-strong tabular-nums">
                 {formatPct(shortLead.pct, 0)}
@@ -313,15 +318,15 @@ function MetalCotDisaggregated({
           ) : (
             <div className="body-sm text-soft">no reported shorts</div>
           )}
-        </div>
-        <div className="caption text-soft shrink-0 text-right">
-          <div>{formatWeek(latest.time)}</div>
-          <div>{durationSince(latest.time)} old</div>
-        </div>
-      </div>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>{formatWeek(latest.time)}</CardHeader.Sub>
+          <CardHeader.Sub>{durationSince(latest.time)} old</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       {history ? (
-        <div className="min-h-0 flex-1">
+        <ChartCard.Body>
           <TimeSeriesChart
             series={history.series}
             timeframe={timeframeFor(history.years)}
@@ -329,7 +334,7 @@ function MetalCotDisaggregated({
             yDomain={history.yDomain}
             formatValue={formatCompact}
           />
-        </div>
+        </ChartCard.Body>
       ) : (
         <>
           {/* The bars keep a pixel height on purpose: it's ten horizontal rows
@@ -364,7 +369,7 @@ function MetalCotDisaggregated({
         </>
       )}
 
-      <div className="caption text-soft text-center">
+      <ChartCard.Caption>
         {history ? (
           <>
             long − short per class, {history.count} weekly reports — producers
@@ -377,8 +382,8 @@ function MetalCotDisaggregated({
             columns, green where the class added
           </>
         )}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

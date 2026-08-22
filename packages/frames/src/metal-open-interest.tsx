@@ -10,6 +10,8 @@ import {
 } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { changeColor, formatChangePct, formatCompact } from "./format";
 import {
   METAL_UNIT,
@@ -128,12 +130,15 @@ function MetalOpenInterest({ config }: { config: z.output<typeof schema> }) {
       : `${formatCompact(contractSize)} ${nativeUnit} per contract`;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft truncate uppercase">
+    <ChartCard>
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {metalName(config.symbol)} open interest
-          </div>
+          </CardHeader.Eyebrow>
+          {/* Its own row, not `CardHeader.Value`: the figure carries a unit word
+              beside it, and the shared value is one sized block — nesting the
+              suffix inside it would set it in the hero's size. */}
           <div className="flex items-baseline gap-1.5">
             <span className="metric-lg text-strong leading-none tabular-nums">
               {headline}
@@ -141,48 +146,49 @@ function MetalOpenInterest({ config }: { config: z.output<typeof schema> }) {
             {suffix && <span className="body-sm text-soft">{suffix}</span>}
           </div>
           {contractSize > 0 && (
-            <div className="caption text-soft mt-0.5">{sub}</div>
+            // `caption`: the metals family's third line is quieter than the main
+            // column's default `body-sm` sub.
+            <CardHeader.Sub size="caption" className="mt-0.5">
+              {sub}
+            </CardHeader.Sub>
           )}
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="caption text-soft">week over week</div>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>week over week</CardHeader.Sub>
           {wow === null ? (
-            <div className="body-md text-disabled">—</div>
+            <CardHeader.Value absent>—</CardHeader.Value>
           ) : (
-            <div
-              className="body-md font-bold tabular-nums"
-              style={{ color: changeColor(wow) }}
-            >
+            <CardHeader.Value tint={changeColor(wow)}>
               {formatChangePct(wow)}
-            </div>
+            </CardHeader.Value>
           )}
           {lastReport !== null && (
-            <div className="caption text-soft">
+            <CardHeader.Sub>
               reported {durationSince(lastReport)} ago
-            </div>
+            </CardHeader.Sub>
           )}
-        </div>
-      </div>
+        </CardHeader.Aside>
+      </CardHeader>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={unit === "notional" ? money.compact : formatCompact}
         />
-      </div>
+      </ChartCard.Body>
 
       {fellBack && (
         // Name the input that's actually missing: a "notional" request can fall
         // back for either reason, and blaming the spot quote when it's the
         // contract size that's absent sends the reader looking in the wrong place.
-        <div className="caption text-soft text-center">
+        <ChartCard.Caption>
           no {contractSize > 0 ? "spot quote" : "contract size"} yet — showing
           contracts
-        </div>
+        </ChartCard.Caption>
       )}
-    </div>
+    </ChartCard>
   );
 }
 

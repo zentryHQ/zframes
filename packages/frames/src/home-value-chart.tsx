@@ -5,6 +5,7 @@ import {
 import { defineFrame, useHomeValueIndex, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import {
   downsample,
   sliceYears,
@@ -53,20 +54,20 @@ function HomeValueChart({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no home-value history yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="min-h-0 flex-1">
+    <ChartCard gap={2}>
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatValue}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         Zillow ZHVI · typical home value · monthly
         {index?.asOf ? ` · through ${index.asOf}` : ""}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

@@ -2,6 +2,8 @@ import { type MultiSeriesData } from "@zframes/charts";
 import { defineFrame, useIndexSeries } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { DOWN_COLOR_HEX, formatChangePct } from "./format";
 import {
   allTimeHigh,
@@ -60,17 +62,20 @@ function IndexDrawdown({ config }: { config: z.output<typeof schema> }) {
   const current = drawdown[drawdown.length - 1]?.value ?? 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft truncate uppercase">
-            {official.label} · below high
-          </div>
-          <div className="body-sm text-normal">
+    <ChartCard>
+      <CardHeader align="start">
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>{official.label} · below high</CardHeader.Eyebrow>
+          {/* `ink="normal"`, not the sub-line's default `soft`: the window's
+              worst print is a figure, read alongside the headline. */}
+          <CardHeader.Sub ink="normal">
             worst in window {formatChangePct(trough)}
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          {/* Bespoke rather than `CardHeader.Value`: the figure carries NO ink
+              class at all, inheriting the card's, and the primitive always
+              lands one (`text-normal` in an aside). */}
           <div
             className="metric-md leading-none tabular-nums"
             // At a new high the drawdown is exactly 0 — that's a good state, so
@@ -80,21 +85,21 @@ function IndexDrawdown({ config }: { config: z.output<typeof schema> }) {
             {formatChangePct(current)}
           </div>
           {peak !== null && (
-            <div className="caption text-soft">
+            <CardHeader.Sub>
               high {new Date(peak.time).toISOString().slice(0, 10)}
-            </div>
+            </CardHeader.Sub>
           )}
-        </div>
-      </div>
-      <div className="min-h-0 flex-1">
+        </CardHeader.Aside>
+      </CardHeader>
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatChangePct}
         />
-      </div>
-    </div>
+      </ChartCard.Body>
+    </ChartCard>
   );
 }
 

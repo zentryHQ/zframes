@@ -1,8 +1,8 @@
 import { HistogramChart, sampleStats } from "@zframes/charts";
 import { defineFrame, useMetalHistory } from "@zframes/core";
 import { useMemo } from "react";
-import type { ReactNode } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import {
   DOWN_COLOR,
   UP_COLOR,
@@ -18,6 +18,7 @@ import {
   sliceYears,
 } from "./metals-shared";
 import { metalReturnDistributionMeta } from "./schemas";
+import { Stat } from "./stat";
 import { FrameStatus } from "./ui";
 
 const schema = metalReturnDistributionMeta.schema;
@@ -33,28 +34,6 @@ const schema = metalReturnDistributionMeta.schema;
  * 58-year daily history has thousands of observations to spare.
  */
 const TAIL_TRIM = 0.005;
-
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: ReactNode;
-  color?: string;
-}) {
-  return (
-    <div className="min-w-0">
-      <div className="caption text-soft truncate uppercase">{label}</div>
-      <div
-        className="body-sm truncate font-bold tabular-nums"
-        style={color ? { color } : undefined}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
 
 function MetalReturnDistribution({
   config,
@@ -93,8 +72,8 @@ function MetalReturnDistribution({
   const { values, stats, span } = sample;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1.5 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1.5} className="text-normal">
+      <ChartCard.Body>
         <HistogramChart
           values={values}
           fill
@@ -105,30 +84,38 @@ function MetalReturnDistribution({
           formatCount={formatCompact}
           markers={[{ value: stats.mean, label: "mean" }]}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         {metalName(config.symbol)} · {formatCompact(stats.count)}{" "}
         {config.period} returns · {span}
-      </div>
-      <div className="grid grid-cols-4 gap-2 border-t border-white/[0.08] pt-1.5">
-        <Stat
-          label="mean"
-          value={formatChangePct(stats.mean)}
-          color={changeColor(stats.mean)}
-        />
-        <Stat label="std dev" value={formatPct(stats.stdev)} />
-        <Stat
-          label="best"
-          value={formatChangePct(stats.max)}
-          color={UP_COLOR}
-        />
-        <Stat
-          label="worst"
-          value={formatChangePct(stats.min)}
-          color={DOWN_COLOR}
-        />
-      </div>
-    </div>
+      </ChartCard.Caption>
+      <Stat.Strip
+        cols={4}
+        gap={2}
+        className="border-t border-white/[0.08] pt-1.5"
+      >
+        <Stat>
+          <Stat.Label>mean</Stat.Label>
+          <Stat.Value tint={changeColor(stats.mean)}>
+            {formatChangePct(stats.mean)}
+          </Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>std dev</Stat.Label>
+          <Stat.Value>{formatPct(stats.stdev)}</Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>best</Stat.Label>
+          <Stat.Value tint={UP_COLOR}>{formatChangePct(stats.max)}</Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>worst</Stat.Label>
+          <Stat.Value tint={DOWN_COLOR}>
+            {formatChangePct(stats.min)}
+          </Stat.Value>
+        </Stat>
+      </Stat.Strip>
+    </ChartCard>
   );
 }
 

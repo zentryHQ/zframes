@@ -3,6 +3,7 @@ import { defineFrame, useFinancialStress } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { ofrStressCategoryAreaMeta } from "./schemas";
+import { SliceLegend } from "./slice-legend";
 import { FrameStatus } from "./ui";
 
 const schema = ofrStressCategoryAreaMeta.schema;
@@ -25,28 +26,6 @@ function dayLabel(date: Date): string {
  *  headline card. */
 function formatIndex(value: number): string {
   return value > 0 ? `+${value.toFixed(1)}` : value.toFixed(1);
-}
-
-/** StackedAreaChart has no built-in legend (unlike MultiSeriesLineChart), so
- *  each frame that uses it draws its own from the same series/color pairs. */
-function SeriesLegend({
-  series,
-}: {
-  series: { id: string; name: string; color: string }[];
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-      {series.map((s) => (
-        <span key={s.id} className="caption text-soft flex items-center gap-1">
-          <span
-            className="h-1.5 w-1.5 shrink-0 rounded-full"
-            style={{ background: s.color }}
-          />
-          {s.name}
-        </span>
-      ))}
-    </div>
-  );
 }
 
 function OfrStressCategoryArea({
@@ -98,7 +77,13 @@ function OfrStressCategoryArea({
           formatValue={formatIndex}
         />
       </div>
-      <SeriesLegend series={series} />
+      {/* Name-only: a stacked band's own share is read off the chart, so the
+          legend just says which colour is which. */}
+      <SliceLegend size="sm">
+        {series.map((s) => (
+          <SliceLegend.Item key={s.id} color={s.color} label={s.name} />
+        ))}
+      </SliceLegend>
     </div>
   );
 }

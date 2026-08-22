@@ -3,6 +3,7 @@ import type { ShortVolumeEntry } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { AssetLogo } from "./asset-logo";
+import { CardHeader } from "./card-header";
 import { formatCompact, formatPct } from "./format";
 import { shortVolumeMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -80,19 +81,23 @@ function ShortVolume({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">short volume</div>
-          <div className="body-sm text-normal">
+      <CardHeader align="start">
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>short volume</CardHeader.Eyebrow>
+          {/* `ink="normal"`, not the sub-line's default `soft`: the
+              publisher's own print date reads as data here. */}
+          <CardHeader.Sub ink="normal">
             {date ? `FINRA · ${date}` : "FINRA"}
-          </div>
-        </div>
-        <div className="caption text-soft text-right">
-          reported volume
-          <br />
-          not short interest
-        </div>
-      </div>
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>
+            reported volume
+            <br />
+            not short interest
+          </CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <div className={scrollAreaClass}>
         {rows.map(({ symbol, entry }) => (

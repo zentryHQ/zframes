@@ -2,6 +2,7 @@ import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useVolatilityIndex } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
 import { changeColor } from "./format";
 import { optionsIvMeta } from "./schemas";
 import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
@@ -51,23 +52,20 @@ function OptionsIv({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-3">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {config.currency} DVOL · implied vol
-          </div>
-          <div className="metric-lg text-strong leading-none">
+          </CardHeader.Eyebrow>
+          <CardHeader.Value size="metric-lg">
             {current.toFixed(1)}
-          </div>
-        </div>
-        <div className="text-right">
-          <div
-            className="body-md font-bold tabular-nums"
-            style={{ color: changeColor(change) }}
-          >
+          </CardHeader.Value>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Value tint={changeColor(change)}>
             {change >= 0 ? "+" : ""}
             {change.toFixed(1)}
-          </div>
+          </CardHeader.Value>
           {/* Was a static "past 1M" caption; now the control itself, so the
               window is adjustable without costing the card any height. */}
           <TimeframeToggle
@@ -77,8 +75,8 @@ function OptionsIv({ config }: { config: z.output<typeof schema> }) {
             label="volatility history window"
             className="mt-0.5 justify-end"
           />
-        </div>
-      </div>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <MiniLineChart
         data={sparkline}

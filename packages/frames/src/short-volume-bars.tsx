@@ -3,6 +3,7 @@ import { defineFrame, useShortVolume } from "@zframes/core";
 import type { ShortVolumeEntry } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatPct } from "./format";
 import { shortVolumeBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -33,19 +34,19 @@ function ShortVolumeBars({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no FINRA short-volume data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <BarChart
           data={bars}
           orientation="horizontal"
           fill
           formatValue={formatShare}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         % of reported volume sold short · FINRA, not short interest
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

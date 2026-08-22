@@ -1,6 +1,7 @@
 import { RadialGauge } from "@zframes/charts";
 import { defineFrame, useIndexSeries } from "@zframes/core";
 import type { z } from "zod";
+import { GaugeCard } from "./chart-card";
 import { formatLevel } from "./format";
 import { vixGaugeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -33,30 +34,22 @@ function VixGauge({ config }: { config: z.output<typeof schema> }) {
 
   const regime = regimeOf(series.latest);
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1">
+    <GaugeCard>
       <RadialGauge
         value={series.latest}
         max={config.max}
         color={regime.color}
         fill
       >
-        <div
-          className="metric-xl leading-none"
-          style={{
-            color: regime.color,
-            textShadow: `0 0 28px ${regime.color}55`,
-          }}
-        >
+        <GaugeCard.Value tint={regime.color}>
           {formatLevel(series.latest)}
-        </div>
-        <div className="caption text-soft mt-1 tracking-wide uppercase">
-          {regime.label}
-        </div>
+        </GaugeCard.Value>
+        <GaugeCard.Label>{regime.label}</GaugeCard.Label>
       </RadialGauge>
-      <div className="caption text-soft">
+      <GaugeCard.Caption>
         30-day implied S&amp;P volatility · {series.date}
-      </div>
-    </div>
+      </GaugeCard.Caption>
+    </GaugeCard>
   );
 }
 

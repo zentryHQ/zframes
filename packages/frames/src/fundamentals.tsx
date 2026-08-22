@@ -2,6 +2,7 @@ import { defineFrame, useCompanyFacts } from "@zframes/core";
 import type { FinancialMetric } from "@zframes/core";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { CardHeader } from "./card-header";
 import { formatCompact, formatCompactUsd, formatPrice } from "./format";
 import { fundamentalsMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -28,17 +29,23 @@ function Fundamentals({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <CardHeader align="start">
+        <CardHeader.Main>
+          {/* An identity block, not a figure: the two lines name the filer
+              rather than reading out a number, so they keep their own type
+              (`body-sm` semibold over a `caption`) instead of
+              `CardHeader.Eyebrow`/`Value`. */}
           <div className="body-sm text-strong truncate font-semibold">
             {data.entityName || tickerOf(config.symbol)}
           </div>
           <div className="caption text-soft truncate">
             SEC EDGAR · XBRL company facts
           </div>
-        </div>
-        <div className="caption text-soft shrink-0 text-right">on filing</div>
-      </div>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>on filing</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <div
         className={`grid grid-cols-2 content-start gap-2 ${scrollAreaClass}`}

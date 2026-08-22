@@ -5,7 +5,7 @@ import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import { formatPct } from "./format";
 import { oiTreemapMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = oiTreemapMeta.schema;
@@ -14,26 +14,10 @@ interface OiNode extends TreeNode {
   oiUsd: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: OiNode;
-}) {
-  const money = useMoney();
-  const value = money.compact(data.oiUsd);
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={value}
-    />
-  );
-}
+const Leaf = treemapLeaf<OiNode>(
+  (d) => d.id,
+  (d, money) => money.compact(d.oiUsd),
+);
 
 function OiTreemap({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useOpenInterest();

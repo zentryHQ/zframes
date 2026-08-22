@@ -2,6 +2,7 @@ import { BarChart } from "@zframes/charts";
 import { defineFrame, useGlobalMarket } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatPct } from "./format";
 import { dominanceBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -28,19 +29,19 @@ function DominanceBars({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no dominance data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <BarChart
           data={data}
           orientation="horizontal"
           fill
           formatValue={formatShare}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         market-cap share · top {data.length}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

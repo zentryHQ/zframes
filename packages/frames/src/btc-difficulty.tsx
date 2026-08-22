@@ -1,5 +1,6 @@
 import { defineFrame, useDifficultyAdjustment } from "@zframes/core";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
 import { changeColor, formatChangePct, formatPct } from "./format";
 import { btcDifficultyMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -33,25 +34,25 @@ function BtcDifficulty({ config }: { config: z.output<typeof schema> }) {
     // middle. The gaps are the only fixed part that can yield — every block
     // below is a single line of type — and 8px of them is enough to fit.
     <div className="flex h-full min-h-0 flex-col justify-center gap-2">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">next adjustment</div>
-          <div className="metric-lg leading-none" style={{ color }}>
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>next adjustment</CardHeader.Eyebrow>
+          <CardHeader.Value size="metric-lg" tint={color}>
             {formatChangePct(difficultyChange)}
-          </div>
-          <div className="body-sm text-soft">
+          </CardHeader.Value>
+          <CardHeader.Sub>
             {difficultyChange >= 0 ? "harder" : "easier"}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="body-md text-normal font-bold tabular-nums">
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Value>
             {untilLabel(adjustment.estimatedRetargetDate)}
-          </div>
-          <div className="caption text-soft">
+          </CardHeader.Value>
+          <CardHeader.Sub>
             {remainingBlocks.toLocaleString("en-US")} blocks left
-          </div>
-        </div>
-      </div>
+          </CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <div>
         <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-white/[0.08]">

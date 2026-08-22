@@ -10,6 +10,8 @@ import {
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import {
   changeColor,
   formatChangePct,
@@ -150,35 +152,35 @@ function FinancialsTrend({ config }: { config: z.output<typeof schema> }) {
   const spanYears = (latest.time - first.time) / YEAR_MS;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft truncate uppercase">
+    <ChartCard>
+      <CardHeader align="start">
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {METRIC_NAME[config.metric]} · {data.entityName || ticker}
-          </div>
-          <div className="metric-sm text-strong tabular-nums">
+          </CardHeader.Eyebrow>
+          {/* The fiscal period rides INSIDE the figure as an inline caption, so
+              it sits on the number's baseline rather than on a line of its own. */}
+          <CardHeader.Value size="metric-sm" className="tabular-nums">
             {format(latest.value)}
             <span className="caption text-soft ml-1.5">
               {latest.fiscalPeriod}
             </span>
-          </div>
-        </div>
+          </CardHeader.Value>
+        </CardHeader.Main>
         {moveText && (
-          <div className="min-w-0 shrink-0 text-right">
-            <div className="caption text-soft truncate">
+          <CardHeader.Aside>
+            {/* `caps={false}`: "since Q3 2024" is a sentence, not an eyebrow. */}
+            <CardHeader.Eyebrow caps={false}>
               since {first.fiscalPeriod}
-            </div>
-            <div
-              className="body-sm font-bold tabular-nums"
-              style={{ color: changeColor(move) }}
-            >
+            </CardHeader.Eyebrow>
+            <CardHeader.Value size="body-sm" tint={changeColor(move)}>
               {moveText}
-            </div>
-          </div>
+            </CardHeader.Value>
+          </CardHeader.Aside>
         )}
-      </div>
+      </CardHeader>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         {series.length > 0 ? (
           <TimeSeriesChart
             series={series}
@@ -191,17 +193,17 @@ function FinancialsTrend({ config }: { config: z.output<typeof schema> }) {
             one reported period so far — no trend to chart yet
           </FrameStatus>
         )}
-      </div>
+      </ChartCard.Body>
 
-      <div className="caption text-soft text-center">
+      <ChartCard.Caption>
         {data.cadence} filings as reported · {picked.unit}
         {/* The series genuinely is spliced where the issuer re-tagged the line
             mid-history; a reader comparing it to a single-tag chart elsewhere
             deserves to know why they differ. */}
         {picked.concepts.length > 1 &&
           ` · stitched across ${picked.concepts.length} XBRL tags`}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

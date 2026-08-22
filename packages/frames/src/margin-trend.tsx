@@ -6,6 +6,7 @@ import { defineFrame, useEquityFinancials } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { ChartCard } from "./chart-card";
 import { formatPct } from "./format";
 import { timeframeFor } from "./metals-shared";
 import { marginTrendMeta } from "./schemas";
@@ -139,7 +140,9 @@ function MarginTrend({ config }: { config: z.output<typeof schema> }) {
     );
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <ChartCard>
+      {/* Not `CardHeader`: one column PER selected margin, so there is no
+          main/aside pair to route through the primitive. */}
       <div className="flex items-start justify-between gap-3">
         {built.latest.map((line) => (
           <div key={line.key} className="min-w-0">
@@ -153,7 +156,7 @@ function MarginTrend({ config }: { config: z.output<typeof schema> }) {
         ))}
       </div>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         {built.series.length > 0 ? (
           <TimeSeriesChart
             series={built.series}
@@ -166,13 +169,13 @@ function MarginTrend({ config }: { config: z.output<typeof schema> }) {
             one reported period so far — no trend to chart yet
           </FrameStatus>
         )}
-      </div>
+      </ChartCard.Body>
 
-      <div className="caption text-soft text-center">
+      <ChartCard.Caption>
         {ticker} · published margins, latest {data.periods[0]}
         {built.missing.length > 0 && ` · no ${built.missing.join(" or ")} row`}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

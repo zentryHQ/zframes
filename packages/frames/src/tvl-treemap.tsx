@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatPct } from "./format";
 import { tvlTreemapMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = tvlTreemapMeta.schema;
@@ -13,26 +13,10 @@ interface TvlNode extends TreeNode {
   tvl: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: TvlNode;
-}) {
-  const money = useMoney();
-  const value = money.compact(data.tvl);
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={value}
-    />
-  );
-}
+const Leaf = treemapLeaf<TvlNode>(
+  (d) => d.id,
+  (d, money) => money.compact(d.tvl),
+);
 
 function TvlTreemap({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useTvlByChain();

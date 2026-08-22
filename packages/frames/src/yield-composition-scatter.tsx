@@ -2,6 +2,7 @@ import { ScatterChart, type ScatterDatum } from "@zframes/charts";
 import { defineFrame, useYieldPools } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatPct } from "./format";
 import { yieldCompositionScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -45,8 +46,8 @@ function YieldCompositionScatter({
   if (data.length === 0) return <FrameStatus>no yield data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <ScatterChart
           data={data}
           fill
@@ -54,11 +55,11 @@ function YieldCompositionScatter({
           formatY={formatAxisPct}
           maxLabels={8}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         base APY (x) vs reward APY (y) · bubble = TVL · top {data.length}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

@@ -11,6 +11,8 @@ import {
 } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { changeColor, formatPct } from "./format";
 import {
   downsample,
@@ -177,45 +179,42 @@ function MetalRealPrice({ config }: { config: z.output<typeof schema> }) {
   const { series, latest, peak, belowPeak } = view;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft truncate uppercase">
+    <ChartCard>
+      <CardHeader align="start">
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {metalName(config.symbol)} in today's money
-          </div>
-          <div className="metric-lg text-strong leading-none tabular-nums">
+          </CardHeader.Eyebrow>
+          <CardHeader.Value size="metric-lg">
             {money.price(latest.real)}
-          </div>
-          <div className="caption text-soft tabular-nums">
+          </CardHeader.Value>
+          {/* A FIGURE, so it asks for `tabular-nums`; `caption` is the metals
+              family's quieter third line. */}
+          <CardHeader.Sub size="caption" className="tabular-nums">
             {money.price(latest.nominal)} as published
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="caption text-soft uppercase">below real record</div>
-          <div
-            className="metric-sm tabular-nums"
-            style={{ color: changeColor(belowPeak) }}
-          >
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Eyebrow>below real record</CardHeader.Eyebrow>
+          <CardHeader.Value size="metric-sm" tint={changeColor(belowPeak)}>
             {formatPct(belowPeak, 1)}
-          </div>
-          <div className="caption text-soft tabular-nums">
+          </CardHeader.Value>
+          <CardHeader.Sub className="tabular-nums">
             {money.price(peak.real)} · {new Date(peak.time).getUTCFullYear()}
-          </div>
-          <div className="caption text-soft">
-            {durationSince(peak.time)} ago
-          </div>
-        </div>
-      </div>
+          </CardHeader.Sub>
+          <CardHeader.Sub>{durationSince(peak.time)} ago</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={money.price}
         />
-      </div>
-    </div>
+      </ChartCard.Body>
+    </ChartCard>
   );
 }
 

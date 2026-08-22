@@ -1,3 +1,5 @@
+import { useMoney, type Money } from "@zframes/core";
+
 /**
  * The label rendered inside every treemap tile (TVL, DEX volume, protocol TVL,
  * protocol fees, market cap). One shrink-threshold pair + one type/color
@@ -39,4 +41,51 @@ export function TreemapLeaf({
       )}
     </div>
   );
+}
+
+/**
+ * Builds a treemap's `LeafComponent` from just the two things that vary.
+ *
+ * Twelve treemap frames declared an identical local `Leaf` whose entire body
+ * was "call `useMoney()`, format one field, forward width/height/label to
+ * `TreemapLeaf`" — about eighteen lines each of pure adapter, and nothing but
+ * the field and its formatter differed:
+ *
+ *     const Leaf = treemapLeaf<TvlNode>(
+ *       (d) => d.id,
+ *       (d, money) => money.compact(d.tvl),
+ *     );
+ *
+ * `secondary` receives `money` rather than resolving anything itself, so the
+ * conversion stays visible in the frame that owns the reading — which is also
+ * what keeps `tests/currency-coverage.test.ts`'s per-frame source scan able to
+ * see it. A factory, not a compound component: `TreeChart` computes each tile's
+ * geometry with `d3-hierarchy` and renders N instances of whatever component it
+ * is handed, so per-tile `width`/`height` can only arrive as props.
+ */
+export function treemapLeaf<T>(
+  label: (data: T) => string,
+  secondary?: (data: T, money: Money) => string | undefined,
+) {
+  return function Leaf({
+    width,
+    height,
+    data,
+  }: {
+    width: number;
+    height: number;
+    data: T;
+  }) {
+    // Unconditionally, before `TreemapLeaf`'s own size gate can bail: a hook
+    // behind an early return is a hook that sometimes doesn't run.
+    const money = useMoney();
+    return (
+      <TreemapLeaf
+        width={width}
+        height={height}
+        label={label(data)}
+        secondary={secondary?.(data, money)}
+      />
+    );
+  };
 }

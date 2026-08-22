@@ -5,6 +5,7 @@ import {
 import { defineFrame, useRegionalHousingPrice } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatChangePct, formatLevel } from "./format";
 import {
   downsample,
@@ -64,21 +65,21 @@ function RegionalHomePrices({ config }: { config: z.output<typeof schema> }) {
   const latest = housing?.series[0]?.period;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="min-h-0 flex-1">
+    <ChartCard gap={2}>
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={config.rebase ? formatRebased : formatIndex}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         FHFA HPI · {config.level} · {config.years}y
         {latest ? ` · through ${latest}` : ""}
         {config.rebase ? " · indexed to 0% at window start" : ""}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

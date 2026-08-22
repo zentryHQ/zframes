@@ -9,6 +9,8 @@ import {
 } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { changeColor, formatChangePct } from "./format";
 import {
   downsample,
@@ -94,36 +96,33 @@ function BtcInGold({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no overlapping days in this window</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="metric-lg text-strong leading-none">
+    <ChartCard>
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Value size="metric-lg">
             {formatOunces(view.current)}
-          </div>
-          <div className="caption text-soft mt-1 truncate">
+          </CardHeader.Value>
+          <CardHeader.Sub size="caption" className="mt-1 truncate">
             oz of gold per BTC{config.logScale ? " · log scale" : ""}
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div
-            className="body-md font-bold tabular-nums"
-            style={{ color: changeColor(view.changePct) }}
-          >
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Value tint={changeColor(view.changePct)}>
             {formatChangePct(view.changePct)}
-          </div>
-          <div className="caption text-soft">{config.years}y change</div>
-        </div>
-      </div>
+          </CardHeader.Value>
+          <CardHeader.Sub>{config.years}y change</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={view.series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatValue}
         />
-      </div>
-    </div>
+      </ChartCard.Body>
+    </ChartCard>
   );
 }
 

@@ -5,6 +5,7 @@ import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import { formatPct } from "./format";
 import { volumeShareDonutMeta } from "./schemas";
+import { SliceLegend } from "./slice-legend";
 import { FrameStatus } from "./ui";
 
 const schema = volumeShareDonutMeta.schema;
@@ -62,20 +63,13 @@ function VolumeShareDonut({ config }: { config: z.output<typeof schema> }) {
         </PieChart>
       </div>
 
-      <div className="flex w-full max-w-xs flex-wrap justify-center gap-x-5 gap-y-1.5">
+      <SliceLegend>
         {slices.map((s) => (
-          <div key={s.name} className="flex items-center gap-1.5">
-            <span
-              className="h-2 w-2 flex-shrink-0 rounded-full"
-              style={{ background: s.color }}
-            />
-            <span className="body-sm text-soft">{s.name}</span>
-            <span className="body-sm text-normal font-bold tabular-nums">
-              {formatPct((s.value / total) * 100, 1)}
-            </span>
-          </div>
+          <SliceLegend.Item key={s.name} color={s.color} label={s.name}>
+            {formatPct((s.value / total) * 100, 1)}
+          </SliceLegend.Item>
         ))}
-      </div>
+      </SliceLegend>
     </div>
   );
 }

@@ -4,36 +4,10 @@ import type { z } from "zod";
 import { AssetLogo } from "./asset-logo";
 import { changeColor, formatChangePct, formatCompact } from "./format";
 import { tokenizedGoldMeta } from "./schemas";
+import { Stat } from "./stat";
 import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = tokenizedGoldMeta.schema;
-
-/**
- * One label → value line inside a tile. Deliberately lighter than `MetricRow`
- * (whose `metric-sm` value would out-shout the tile's own price headline);
- * `color` carries the semantic gain/loss tint for the premium line.
- */
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
-  return (
-    <div className="flex min-w-0 items-baseline justify-between gap-2">
-      <span className="caption text-soft truncate">{label}</span>
-      <span
-        className="body-sm text-normal shrink-0 font-semibold tabular-nums"
-        style={color === undefined ? undefined : { color }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
 
 function TokenTile({
   token,
@@ -75,33 +49,38 @@ function TokenTile({
             </div>
           </div>
 
+          {/* Label beside value, not above it — `orientation="row"` is the
+              horizontal reading these tile lines want. */}
           <div className="flex flex-col gap-1 border-t border-white/[0.06] pt-2">
             {/* Premium is absent (not zero) whenever spot was unavailable. */}
             {showPremium && (
-              <Stat
-                label="vs spot"
-                value={
-                  token.premiumPct === undefined
+              <Stat orientation="row">
+                <Stat.Label>vs spot</Stat.Label>
+                <Stat.Value
+                  tint={
+                    token.premiumPct === undefined
+                      ? undefined
+                      : changeColor(token.premiumPct)
+                  }
+                >
+                  {token.premiumPct === undefined
                     ? "—"
-                    : formatChangePct(token.premiumPct)
-                }
-                color={
-                  token.premiumPct === undefined
-                    ? undefined
-                    : changeColor(token.premiumPct)
-                }
-              />
+                    : formatChangePct(token.premiumPct)}
+                </Stat.Value>
+              </Stat>
             )}
-            <Stat
-              label="mkt cap"
-              value={token.marketCap > 0 ? money.compact(token.marketCap) : "—"}
-            />
-            <Stat
-              label="vaulted"
-              value={
-                token.ounces > 0 ? `${formatCompact(token.ounces)} oz` : "—"
-              }
-            />
+            <Stat orientation="row">
+              <Stat.Label>mkt cap</Stat.Label>
+              <Stat.Value>
+                {token.marketCap > 0 ? money.compact(token.marketCap) : "—"}
+              </Stat.Value>
+            </Stat>
+            <Stat orientation="row">
+              <Stat.Label>vaulted</Stat.Label>
+              <Stat.Value>
+                {token.ounces > 0 ? `${formatCompact(token.ounces)} oz` : "—"}
+              </Stat.Value>
+            </Stat>
           </div>
         </div>
       </div>

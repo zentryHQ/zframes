@@ -5,6 +5,7 @@ import {
 import { defineFrame, useTokenUnlocks } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatCompact, formatPct } from "./format";
 import { timeframeFor, toChartData } from "./metals-shared";
 import { tokenUnlockScheduleMeta } from "./schemas";
@@ -119,7 +120,7 @@ function TokenUnlockSchedule({ config }: { config: z.output<typeof schema> }) {
     insiderPctFinal > insiderPctNow;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <ChartCard gap={2}>
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
           <div className="caption text-soft truncate uppercase">
@@ -163,21 +164,21 @@ function TokenUnlockSchedule({ config }: { config: z.output<typeof schema> }) {
         // `config.events` rows below are content-sized and must stay legible —
         // so it takes the slack and gives it back as the list grows, rather
         // than pinning a floor the card can't shrink under.
-        <div className="min-h-0 flex-1">
+        <ChartCard.Body>
           <TimeSeriesChart
             series={series}
             timeframe={timeframeFor(spanYears)}
             fill
             formatValue={formatCompact}
           />
-        </div>
+        </ChartCard.Body>
       )}
 
       {upcoming.length === 0 ? (
-        <div className="caption text-soft text-center">
+        <ChartCard.Caption>
           nothing left on the documented schedule — the supply this publisher
           tracks is fully unlocked
-        </div>
+        </ChartCard.Caption>
       ) : (
         <div className="flex flex-col gap-1">
           {upcoming.map((e) => (
@@ -200,7 +201,7 @@ function TokenUnlockSchedule({ config }: { config: z.output<typeof schema> }) {
           ))}
         </div>
       )}
-    </div>
+    </ChartCard>
   );
 }
 

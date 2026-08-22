@@ -4,6 +4,7 @@ import type { z } from "zod";
 import { UP_COLOR } from "./format";
 import { AssetLogo, tickerOf } from "./asset-logo";
 import { volumeProfileMeta } from "./schemas";
+import { Stat } from "./stat";
 import { FrameStatus } from "./ui";
 
 const schema = volumeProfileMeta.schema;
@@ -15,17 +16,19 @@ interface Bin {
   volume: number;
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+/**
+ * One price level of the profile. Value above label — the order IS the layout,
+ * no prop for it — and the figure repeats in a `title` because a converted
+ * price can outgrow a half-width tile and `Stat.Value` truncates.
+ */
+function LevelStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 rounded-md bg-white/[0.04] px-2 py-1 text-center">
-      <div
-        className="metric-sm text-strong truncate leading-none tabular-nums"
-        title={value}
-      >
-        {value}
-      </div>
-      <div className="caption text-soft mt-0.5">{label}</div>
-    </div>
+    <Stat surface="tile" align="center" className="gap-0.5">
+      <Stat.Value size="metric-sm">
+        <span title={value}>{value}</span>
+      </Stat.Value>
+      <Stat.Label>{label}</Stat.Label>
+    </Stat>
   );
 }
 
@@ -103,12 +106,12 @@ function VolumeProfile({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="grid grid-cols-2 gap-1.5">
-        <Stat label="Price" value={money.price(price)} />
-        <Stat label="POC" value={money.price(poc)} />
-        <Stat label="VAH" value={money.price(vah)} />
-        <Stat label="VAL" value={money.price(val)} />
-      </div>
+      <Stat.Strip cols={2} gap={1.5}>
+        <LevelStat label="Price" value={money.price(price)} />
+        <LevelStat label="POC" value={money.price(poc)} />
+        <LevelStat label="VAH" value={money.price(vah)} />
+        <LevelStat label="VAL" value={money.price(val)} />
+      </Stat.Strip>
       <div className="flex min-h-0 flex-1 flex-col-reverse gap-px overflow-hidden">
         {bins.map((b, i) => {
           const inVA = i >= loI && i <= hiI;

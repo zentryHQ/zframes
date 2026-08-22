@@ -12,6 +12,7 @@ import {
 } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { changeColor, formatChangePct } from "./format";
 import {
   alignSeries,
@@ -227,7 +228,11 @@ function MetalVsMacro({ config }: { config: z.output<typeof schema> }) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <ChartCard>
+      {/* Not `CardHeader`: the two legs are SYMMETRIC — both are `metric-md`
+          heroes, and the right column has to shrink and truncate its own long
+          series label ("10y TIPS real yield"), where the shared aside is
+          `shrink-0` so the left column absorbs the squeeze. */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="caption text-soft truncate uppercase">
@@ -256,22 +261,24 @@ function MetalVsMacro({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={view.series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatWindowRange}
         />
-      </div>
+      </ChartCard.Body>
 
-      <div className="caption text-soft text-center leading-snug">
+      {/* Two lines on purpose, so `leading-snug` is what keeps the pair inside
+          a short card. */}
+      <ChartCard.Caption className="leading-snug">
         corr {view.corr.toFixed(2)} of {view.observations} {view.cadence}{" "}
         changes — {describeCorrelation(view.corr)}
         <br />
         each leg scaled to its own window range (0 = low, 100 = high)
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

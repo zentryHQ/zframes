@@ -5,6 +5,7 @@ import {
 import { defineFrame, useCreditSpreads } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatPct } from "./format";
 import {
   downsample,
@@ -70,7 +71,9 @@ function CreditSpreadChart({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no spread history yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <ChartCard>
+      {/* Not `CardHeader`: this head is one column PER selected grade, so
+          there is no main/aside pair to route through the primitive. */}
       <div className="flex items-start justify-between gap-3">
         {wanted.map((official) => (
           <div key={official.seriesId} className="min-w-0">
@@ -86,19 +89,19 @@ function CreditSpreadChart({ config }: { config: z.output<typeof schema> }) {
           </div>
         ))}
       </div>
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatSpread}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         option-adjusted spread over Treasuries · wider = more default risk
         priced
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

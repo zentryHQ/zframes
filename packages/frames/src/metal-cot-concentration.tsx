@@ -12,6 +12,8 @@ import {
 } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR, formatPct } from "./format";
 import { MetricRow } from "./metric-row";
 import {
@@ -325,13 +327,16 @@ function MetalCotConcentration({
     );
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft uppercase">
+    <ChartCard>
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {metalName(config.symbol)} · {config.basis} concentration
-          </div>
+          </CardHeader.Eyebrow>
           {peak && (
+            // A SENTENCE, not a `CardHeader.Value`: the figure is set inside a
+            // `body-sm` line that has to truncate as a whole, so the shared
+            // value block — one sized element — can't express it.
             <div className="body-sm text-normal truncate">
               <span className="metric-md text-strong tabular-nums">
                 {formatPct(peak.value, 1)}
@@ -339,12 +344,12 @@ function MetalCotConcentration({
               in {peak.reading.label.toLowerCase()}
             </div>
           )}
-        </div>
-        <div className="caption text-soft shrink-0 text-right">
-          <div>{formatWeek(latest.time)}</div>
-          <div>{durationSince(latest.time)} old</div>
-        </div>
-      </div>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>{formatWeek(latest.time)}</CardHeader.Sub>
+          <CardHeader.Sub>{durationSince(latest.time)} old</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <div className="flex flex-col gap-2">
         {present.map(({ reading, value }) => (
@@ -362,7 +367,7 @@ function MetalCotConcentration({
         // shrink below, so the plot spills out of the body. Here it shares the
         // leftover with the trader-count list below (`scrollAreaClass` is itself
         // `flex-1`), which is what keeps both readable on a short card.
-        <div className="min-h-0 flex-1">
+        <ChartCard.Body>
           <TimeSeriesChart
             series={history.series}
             timeframe={timeframeFor(history.years)}
@@ -370,7 +375,7 @@ function MetalCotConcentration({
             yDomain={history.yDomain}
             formatValue={formatSharePct}
           />
-        </div>
+        </ChartCard.Body>
       )}
 
       {counts.length > 0 && (
@@ -403,13 +408,13 @@ function MetalCotConcentration({
         </div>
       )}
 
-      <div className="caption text-soft text-center">
+      <ChartCard.Caption>
         {config.basis === "gross"
           ? "gross counts each trader's long and short book separately"
           : "net nets each trader's books first, so it reads below gross"}
         {history ? ` · ${history.count} weekly reports` : ""}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 
