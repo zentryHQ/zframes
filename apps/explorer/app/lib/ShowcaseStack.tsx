@@ -64,6 +64,12 @@ const NARROW_INTERVAL_MS = 320;
 // where the 800px rootMargin already catches three panels) mounts several whole
 // documents in a single frame. One at a time; mounting stays one-shot.
 const MOUNT_STAGGER_MS = 320;
+// The ratchet is also LOAD-gated (at most one mounted-but-unloaded embed at a
+// time): each embed is a full document whose parse+hydrate shares this page's
+// main thread, and on a slow device that takes far longer than the fixed
+// stagger — a timer alone still let boots pile up. This is the valve for a
+// stalled embed, so one hung document can't freeze the rest of the stack.
+const LOAD_STALL_MS = 1500;
 // Ceiling on boards rendering simultaneously — see the clamp in the widen below.
 const MAX_LIVE_BOARDS = 3;
 
@@ -90,10 +96,16 @@ export function ShowcaseStack({ boards }: { boards: BoardSummary[] }) {
   // (content-visibility: hidden). The parent owns this: an iframe's own
   // IntersectionObserver can't see that a faded-out sibling is effectively gone.
   const [visibleRange, setVisibleRange] = useState<[number, number]>([0, 1]);
-  // How many boards may have mounted their iframe, ratcheted up one per
-  // MOUNT_STAGGER_MS by the effect below. Board 0 is free — it is the one the
-  // visitor sees first.
+  // How many boards may have mounted their iframe, ratcheted up one at a time
+  // by the effect below. Board 0 is free — it is the one the visitor sees
+  // first. The counts feed the load gate: the budget never runs more than one
+  // slot ahead of the mounts that actually happened, and it waits for the
+  // in-flight embed's `load` (or LOAD_STALL_MS) before opening the next slot.
   const [mountBudget, setMountBudget] = useState(1);
+  const [mountedCount, setMountedCount] = useState(0);
+  const [loadedCount, setLoadedCount] = useState(0);
+  const onBoardMounted = useCallback(() => setMountedCount((c) => c + 1), []);
+  const onBoardLoaded = useCallback(() => setLoadedCount((c) => c + 1), []);
 
   // Which band the scroll is currently sitting in, and the timer that promotes
   // it once it has been held. Refs: this runs on every scroll frame.
@@ -179,16 +191,23 @@ export function ShowcaseStack({ boards }: { boards: BoardSummary[] }) {
   });
 
   // Mount ratchet — one document per tick, up to one slot past the visible
-  // window. Re-arms itself as the budget rises because `mountBudget` is a dep.
+  // window, and never more than one slot past the mounts that actually
+  // happened (a budget raised while the stack is still off-screen would let
+  // the IO burst mount several documents in one frame on arrival). While an
+  // embed is in flight (mounted, not yet loaded) the tick stretches to
+  // LOAD_STALL_MS, so the next boot waits for the previous document to finish
+  // parsing instead of piling onto the same main thread. Re-arms itself as the
+  // counts move because they are all deps.
   useEffect(() => {
-    const want = Math.min(count, visibleRange[1] + 2);
+    const want = Math.min(count, visibleRange[1] + 2, mountedCount + 1);
     if (mountBudget >= want) return;
+    const inFlight = mountedCount - loadedCount;
     const id = setTimeout(
       () => setMountBudget((b) => Math.min(want, b + 1)),
-      MOUNT_STAGGER_MS,
+      inFlight > 0 ? LOAD_STALL_MS : MOUNT_STAGGER_MS,
     );
     return () => clearTimeout(id);
-  }, [count, visibleRange, mountBudget]);
+  }, [count, visibleRange, mountBudget, mountedCount, loadedCount]);
 
   if (count === 0) return null;
 
@@ -239,6 +258,8 @@ export function ShowcaseStack({ boards }: { boards: BoardSummary[] }) {
             active={i === activeIndex}
             boardVisible={i >= visibleRange[0] && i <= visibleRange[1]}
             mountEnabled={i < mountBudget}
+            onMounted={onBoardMounted}
+            onLoaded={onBoardLoaded}
           />
         ))}
       </div>
@@ -259,6 +280,8 @@ const ShowcaseBoard = memo(function ShowcaseBoard({
   active,
   boardVisible,
   mountEnabled,
+  onMounted,
+  onLoaded,
 }: {
   board: BoardSummary;
   progress: MotionValue<number>;
@@ -268,6 +291,9 @@ const ShowcaseBoard = memo(function ShowcaseBoard({
   active: boolean;
   boardVisible: boolean;
   mountEnabled: boolean;
+  /** Ratchet feedback for the parent's load-gated mount budget. */
+  onMounted: () => void;
+  onLoaded: () => void;
 }) {
   const contentScroll = useFocusDwellProgress(progress, index, count);
   return (
@@ -282,6 +308,8 @@ const ShowcaseBoard = memo(function ShowcaseBoard({
         boardVisible={boardVisible}
         mountEnabled={mountEnabled}
         scrollProgress={contentScroll}
+        onMounted={onMounted}
+        onLoaded={onLoaded}
       />
     </FocusPanel>
   );
