@@ -10,6 +10,8 @@ import {
 } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { changeColor, formatCompact } from "./format";
 import {
   METAL_UNIT,
@@ -131,44 +133,43 @@ function MetalSpecNotional({ config }: { config: z.output<typeof schema> }) {
   const netContracts = cotNet(weeks[weeks.length - 1]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft truncate uppercase">
+    <ChartCard>
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {metalName(config.symbol)} spec net notional
-          </div>
-          <div className="metric-lg text-strong leading-none tabular-nums">
+          </CardHeader.Eyebrow>
+          <CardHeader.Value size="metric-lg">
             {latest >= 0 ? "+" : ""}
             {money.compact(latest)}
-          </div>
-          <div className="caption text-soft mt-0.5 truncate">
+          </CardHeader.Value>
+          {/* `caption`: the metals family's third line is quieter than the main
+              column's default `body-sm` sub. */}
+          <CardHeader.Sub size="caption" className="mt-0.5 truncate">
             net {netContracts >= 0 ? "long" : "short"} ·{" "}
             {signedContracts(netContracts)} contracts ×{" "}
             {formatCompact(contractSize)} {nativeUnit}
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="caption text-soft">week over week</div>
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>week over week</CardHeader.Sub>
           {weekChange === null ? (
-            <div className="body-md text-disabled">—</div>
+            <CardHeader.Value absent>—</CardHeader.Value>
           ) : (
-            <div
-              className="body-md font-bold tabular-nums"
-              style={{ color: changeColor(weekChange) }}
-            >
+            <CardHeader.Value tint={changeColor(weekChange)}>
               {weekChange >= 0 ? "+" : ""}
               {money.compact(weekChange)}
-            </div>
+            </CardHeader.Value>
           )}
           {lastReport !== null && (
-            <div className="caption text-soft">
+            <CardHeader.Sub>
               reported {durationSince(lastReport)} ago
-            </div>
+            </CardHeader.Sub>
           )}
-        </div>
-      </div>
+        </CardHeader.Aside>
+      </CardHeader>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
@@ -176,14 +177,14 @@ function MetalSpecNotional({ config }: { config: z.output<typeof schema> }) {
           yDomain={yDomain}
           formatValue={money.compact}
         />
-      </div>
+      </ChartCard.Body>
 
-      <div className="caption text-soft text-center">
+      <ChartCard.Caption>
         every week valued at today's {spot === null ? "" : money.price(spot)}/
         {nativeUnit} spot, so the line moves only when positioning does — not a
         mark-to-market of what the position was worth at the time
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

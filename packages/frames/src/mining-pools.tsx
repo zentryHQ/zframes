@@ -5,7 +5,7 @@ import type { z } from "zod";
 import { formatCompact, formatPct } from "./format";
 import { miningPoolsMeta } from "./schemas";
 import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = miningPoolsMeta.schema;
@@ -16,24 +16,10 @@ interface PoolNode extends TreeNode {
   sharePct: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: PoolNode;
-}) {
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={formatPct(data.sharePct, 1)}
-    />
-  );
-}
+const Leaf = treemapLeaf<PoolNode>(
+  (d) => d.id,
+  (d) => formatPct(d.sharePct, 1),
+);
 
 function MiningPoolsFrame({ config }: { config: z.output<typeof schema> }) {
   const [chartWindow, setChartWindow] = useFrameChoice("window", config.window);

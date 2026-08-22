@@ -2,6 +2,7 @@ import { BarChart } from "@zframes/charts";
 import { defineFrame, useHomeValueIndex, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { homeValueBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -34,20 +35,20 @@ function HomeValueBars({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no home-value data yet</FrameStatus>;
 
   return (
-    <div className="text-normal flex h-full min-h-0 flex-col justify-center gap-1">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <BarChart
           data={data}
           orientation="horizontal"
           fill
           formatValue={formatValue}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         typical home value ({money.code}) · Zillow ZHVI
         {index?.asOf ? ` · ${index.asOf}` : ""}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

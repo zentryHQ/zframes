@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatPct } from "./format";
 import { etfIssuerTreemapMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = etfIssuerTreemapMeta.schema;
@@ -14,26 +14,10 @@ interface IssuerNode extends TreeNode {
   dailyNetInflow: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: IssuerNode;
-}) {
-  const money = useMoney();
-  const aum = money.compact(data.netAssets);
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={aum}
-    />
-  );
-}
+const Leaf = treemapLeaf<IssuerNode>(
+  (d) => d.id,
+  (d, money) => money.compact(d.netAssets),
+);
 
 function EtfIssuerTreemap({ config }: { config: z.output<typeof schema> }) {
   const money = useMoney();

@@ -2,6 +2,7 @@ import { BarChart } from "@zframes/charts";
 import { defineFrame, useFxRates } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR, formatChangePct } from "./format";
 import { fxMoversBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -23,8 +24,8 @@ function FxMoversBars({ config }: { config: z.output<typeof schema> }) {
   if (data.length === 0) return <FrameStatus>no FX data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <BarChart
           data={data}
           orientation="horizontal"
@@ -33,11 +34,11 @@ function FxMoversBars({ config }: { config: z.output<typeof schema> }) {
           fill
           formatValue={formatChangePct}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         {config.base.toUpperCase()} FX movers · day change
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

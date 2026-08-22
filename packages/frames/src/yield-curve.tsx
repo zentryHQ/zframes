@@ -6,6 +6,7 @@ import {
   hoverTip,
   useHideTipOnUnmount,
 } from "./chart-hover";
+import { CardHeader } from "./card-header";
 import { changeColor, formatPct } from "./format";
 import { yieldCurveMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -93,17 +94,19 @@ function YieldCurve({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">
-            Treasury yield curve
-          </div>
-          <div className="body-sm text-normal">
+      <CardHeader align="start">
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>Treasury yield curve</CardHeader.Eyebrow>
+          {/* `ink="normal"`, not the sub-line's default `soft`: the
+              publisher's own print date reads as data here. */}
+          <CardHeader.Sub ink="normal">
             U.S. Treasury · {curve.date}
-          </div>
-        </div>
-        <div className="caption text-soft text-right">daily</div>
-      </div>
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>daily</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       {spreadBps != null && (
         <div className="flex items-baseline gap-2">

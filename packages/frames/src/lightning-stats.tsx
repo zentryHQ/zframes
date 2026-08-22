@@ -2,6 +2,7 @@ import { defineFrame, useLightningStats } from "@zframes/core";
 import type { z } from "zod";
 import { changeColor, formatBtc, formatChangePct } from "./format";
 import { lightningStatsMeta } from "./schemas";
+import { Stat } from "./stat";
 import { FrameStatus } from "./ui";
 
 const schema = lightningStatsMeta.schema;
@@ -11,28 +12,20 @@ function deltaPct(now: number, prev?: number): number | null {
   return ((now - prev) / prev) * 100;
 }
 
-function Stat({
-  label,
-  value,
-  delta,
-}: {
-  label: string;
-  value: string;
-  delta: number | null;
-}) {
+/**
+ * The tile's third line. Not a `Stat.Hint`: the delta is a semantic gain/loss
+ * reading and has to carry `changeColor`, which `Stat.Hint` deliberately does
+ * not take — a hint is a quiet denominator, not a tinted figure.
+ */
+function DeltaLine({ delta }: { delta: number | null }) {
+  if (delta === null) return null;
   return (
-    <div className="flex flex-col items-center justify-center rounded-md bg-white/[0.04] px-2 py-2 text-center">
-      <span className="metric-sm text-strong leading-none">{value}</span>
-      <span className="caption text-soft mt-1">{label}</span>
-      {delta !== null && (
-        <span
-          className="caption mt-0.5 font-bold tabular-nums"
-          style={{ color: changeColor(delta) }}
-        >
-          {formatChangePct(delta)}
-        </span>
-      )}
-    </div>
+    <span
+      className="caption font-bold tabular-nums"
+      style={{ color: changeColor(delta) }}
+    >
+      {formatChangePct(delta)}
+    </span>
   );
 }
 
@@ -44,23 +37,34 @@ function LightningStatsFrame({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-2">
-      <div className="grid grid-cols-3 gap-1.5">
-        <Stat
-          label="nodes"
-          value={stats.nodeCount.toLocaleString("en-US")}
-          delta={deltaPct(stats.nodeCount, stats.prevNodeCount)}
-        />
-        <Stat
-          label="channels"
-          value={stats.channelCount.toLocaleString("en-US")}
-          delta={deltaPct(stats.channelCount, stats.prevChannelCount)}
-        />
-        <Stat
-          label="capacity"
-          value={formatBtc(stats.totalCapacity)}
-          delta={deltaPct(stats.totalCapacity, stats.prevTotalCapacity)}
-        />
-      </div>
+      <Stat.Strip cols={3} gap={1.5}>
+        {/* Value above label — the order IS the layout, no prop for it. */}
+        <Stat surface="tile" align="center" className="justify-center gap-1">
+          <Stat.Value size="metric-sm">
+            {stats.nodeCount.toLocaleString("en-US")}
+          </Stat.Value>
+          <Stat.Label>nodes</Stat.Label>
+          <DeltaLine delta={deltaPct(stats.nodeCount, stats.prevNodeCount)} />
+        </Stat>
+        <Stat surface="tile" align="center" className="justify-center gap-1">
+          <Stat.Value size="metric-sm">
+            {stats.channelCount.toLocaleString("en-US")}
+          </Stat.Value>
+          <Stat.Label>channels</Stat.Label>
+          <DeltaLine
+            delta={deltaPct(stats.channelCount, stats.prevChannelCount)}
+          />
+        </Stat>
+        <Stat surface="tile" align="center" className="justify-center gap-1">
+          <Stat.Value size="metric-sm">
+            {formatBtc(stats.totalCapacity)}
+          </Stat.Value>
+          <Stat.Label>capacity</Stat.Label>
+          <DeltaLine
+            delta={deltaPct(stats.totalCapacity, stats.prevTotalCapacity)}
+          />
+        </Stat>
+      </Stat.Strip>
 
       {config.showSplit && (
         <div className="caption text-soft text-center">

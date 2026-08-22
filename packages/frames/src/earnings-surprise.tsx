@@ -3,6 +3,8 @@ import type { EarningsResult } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import {
   chartTooltipLabel,
   hoverTip,
@@ -163,39 +165,46 @@ function EarningsSurprise({ config }: { config: z.output<typeof schema> }) {
     );
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <ChartCard gap={3}>
+      <CardHeader align="start">
+        <CardHeader.Main>
+          {/* An identity block, not a figure: these lines name the issuer and
+              what the bars are, so they keep their own type instead of
+              `CardHeader.Eyebrow`/`Value`. */}
           <div className="body-sm text-strong truncate font-semibold">
             {tickerOf(config.symbol)}
           </div>
           <div className="caption text-soft truncate">
             reported EPS vs consensus
           </div>
-        </div>
-        <div className="shrink-0 text-right">
+        </CardHeader.Main>
+        <CardHeader.Aside>
           {view.avgSurprise === null ? (
             <>
-              <div className="metric-sm text-disabled">—</div>
-              <div className="caption text-soft">no consensus published</div>
+              {/* `absent`: there is no reading this window, and a dash inked
+                  like a figure reads as data at a glance. */}
+              <CardHeader.Value size="metric-sm" absent>
+                —
+              </CardHeader.Value>
+              <CardHeader.Sub>no consensus published</CardHeader.Sub>
             </>
           ) : (
             <>
-              <div
-                className="metric-sm"
-                style={{ color: changeColor(view.avgSurprise) }}
+              <CardHeader.Value
+                size="metric-sm"
+                tint={changeColor(view.avgSurprise)}
               >
                 {formatChangePct(view.avgSurprise)}
-              </div>
-              <div className="caption text-soft">
+              </CardHeader.Value>
+              <CardHeader.Sub>
                 beat {view.beatCount} of {view.comparedCount}
-              </div>
+              </CardHeader.Sub>
             </>
           )}
-        </div>
-      </div>
+        </CardHeader.Aside>
+      </CardHeader>
 
-      <div className="flex min-h-0 flex-1 items-stretch gap-2">
+      <ChartCard.Body className="flex items-stretch gap-2">
         {view.columns.map((c) => {
           const surpriseColor =
             c.surprisePct === null ? undefined : changeColor(c.surprisePct);
@@ -260,7 +269,7 @@ function EarningsSurprise({ config }: { config: z.output<typeof schema> }) {
             </div>
           );
         })}
-      </div>
+      </ChartCard.Body>
 
       <div className="caption text-soft flex items-center justify-center gap-3">
         <span className="inline-flex items-center gap-1.5">
@@ -284,7 +293,7 @@ function EarningsSurprise({ config }: { config: z.output<typeof schema> }) {
           consensus
         </span>
       </div>
-    </div>
+    </ChartCard>
   );
 }
 

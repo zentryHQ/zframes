@@ -2,6 +2,7 @@ import { HeatmapChart, type CellComponentProps } from "@zframes/charts";
 import { defineFrame, useMetalHistory } from "@zframes/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR, changeColor, formatChangePct } from "./format";
 import {
   MONTH_LABELS,
@@ -185,8 +186,8 @@ function MetalSeasonality({ config }: { config: z.output<typeof schema> }) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-1.5">
-      <div className="min-h-0 flex-1">
+    <ChartCard gap={1.5}>
+      <ChartCard.Body>
         <HeatmapChart<SeasonCell>
           data={cells}
           CellComponent={SeasonalityCell}
@@ -217,7 +218,7 @@ function MetalSeasonality({ config }: { config: z.output<typeof schema> }) {
             };
           }}
         />
-      </div>
+      </ChartCard.Body>
 
       {/* Each month's mean across the window — the seasonal signal the grid is
           read for, aligned column-for-column underneath it. Hidden outright once
@@ -265,10 +266,10 @@ function MetalSeasonality({ config }: { config: z.output<typeof schema> }) {
       {/* The row count, not config.years: a leading partial year is dropped, and
           platinum/palladium fixes only start in 1990, so the grid regularly
           spans fewer years than were asked for. */}
-      <div className="caption text-soft text-center">
+      <ChartCard.Caption>
         {metalName(config.symbol)} · monthly returns · {rowCount}y
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

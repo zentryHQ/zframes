@@ -1,6 +1,7 @@
 import { defineFrame, useMempoolState } from "@zframes/core";
 import type { z } from "zod";
 import { FeePill, feeRateColor } from "./btc-shared";
+import { CardHeader } from "./card-header";
 import { formatCompact } from "./format";
 import { btcMempoolMeta } from "./schemas";
 import { FrameStatus, scrollAreaXClass } from "./ui";
@@ -18,21 +19,19 @@ function BtcMempool({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-3">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">unconfirmed</div>
-          <div className="metric-lg text-strong leading-none">
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>unconfirmed</CardHeader.Eyebrow>
+          <CardHeader.Value size="metric-lg">
             {state.count.toLocaleString("en-US")}
-          </div>
-          <div className="body-sm text-soft">transactions</div>
-        </div>
-        <div className="text-right">
-          <div className="body-md text-normal font-bold tabular-nums">
-            {vMb} MvB
-          </div>
-          <div className="caption text-soft">pending vsize</div>
-        </div>
-      </div>
+          </CardHeader.Value>
+          <CardHeader.Sub>transactions</CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Value>{vMb} MvB</CardHeader.Value>
+          <CardHeader.Sub>pending vsize</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <div className={`flex gap-1.5 ${scrollAreaXClass}`}>
         {blocks.map((b, i) => (

@@ -3,6 +3,7 @@ import type { SecFiling } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
+import { CardHeader } from "./card-header";
 import { FeedRow } from "./feed-row";
 import { timeAgo } from "./format";
 import { filingsFeedMeta } from "./schemas";
@@ -119,20 +120,27 @@ function FilingsFeed({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          {logoSymbol && <AssetLogo symbol={logoSymbol} size={22} />}
-          <div className="min-w-0">
-            <div className="body-sm text-strong truncate font-semibold">
-              {data.name || ticker || tickerOf(config.symbol)}
+      <CardHeader align="start">
+        <CardHeader.Main>
+          {/* A logo beside a two-line identity, not a figure: the head names
+              the filer, so these lines keep their own type instead of
+              `CardHeader.Eyebrow`/`Value`. */}
+          <div className="flex min-w-0 items-center gap-2">
+            {logoSymbol && <AssetLogo symbol={logoSymbol} size={22} />}
+            <div className="min-w-0">
+              <div className="body-sm text-strong truncate font-semibold">
+                {data.name || ticker || tickerOf(config.symbol)}
+              </div>
+              {subtitle && (
+                <div className="caption text-soft truncate">{subtitle}</div>
+              )}
             </div>
-            {subtitle && (
-              <div className="caption text-soft truncate">{subtitle}</div>
-            )}
           </div>
-        </div>
-        <div className="caption text-soft shrink-0 text-right">filings</div>
-      </div>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>filings</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <div className={scrollAreaClass}>
         {shown.length > 0 ? (

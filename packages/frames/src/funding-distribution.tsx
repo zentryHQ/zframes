@@ -1,7 +1,6 @@
 import { HistogramChart, sampleStats } from "@zframes/charts";
 import { defineFrame, useFundingHistory } from "@zframes/core";
 import { useMemo } from "react";
-import type { ReactNode } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import {
@@ -13,6 +12,7 @@ import {
   formatPct,
 } from "./format";
 import { fundingDistributionMeta } from "./schemas";
+import { Stat } from "./stat";
 import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
@@ -23,28 +23,6 @@ const LOOKBACK_OPTIONS = ["7D", "1M", "3M"] as const;
 
 /** Hourly prints, so a year of carry is the mean rate over this many hours. */
 const HOURS_PER_YEAR = 24 * 365;
-
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: ReactNode;
-  color?: string;
-}) {
-  return (
-    <div className="min-w-0">
-      <div className="caption text-soft truncate uppercase">{label}</div>
-      <div
-        className="body-sm truncate font-bold tabular-nums"
-        style={color ? { color } : undefined}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
 
 function FundingDistribution({ config }: { config: z.output<typeof schema> }) {
   const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
@@ -111,26 +89,36 @@ function FundingDistribution({ config }: { config: z.output<typeof schema> }) {
         />
       </div>
 
-      <div className="grid grid-cols-4 gap-2 border-t border-white/[0.08] pt-1.5">
-        <Stat
-          label="mean"
-          value={formatFundingPct(stats.mean)}
-          color={changeColor(stats.mean)}
-        />
+      <Stat.Strip
+        cols={4}
+        gap={2}
+        className="border-t border-white/[0.08] pt-1.5"
+      >
+        <Stat>
+          <Stat.Label>mean</Stat.Label>
+          <Stat.Value tint={changeColor(stats.mean)}>
+            {formatFundingPct(stats.mean)}
+          </Stat.Value>
+        </Stat>
         {/* The headline number for a carry trade: what the mean print is worth
             held for a year, which no single funding reading tells you. */}
-        <Stat
-          label="annualised"
-          value={formatPct(annualisedPct, 1)}
-          color={changeColor(annualisedPct)}
-        />
-        <Stat label="longs pay" value={formatPct(stats.positivePct, 0)} />
-        <Stat
-          label="last"
-          value={formatFundingPct(last)}
-          color={changeColor(last)}
-        />
-      </div>
+        <Stat>
+          <Stat.Label>annualised</Stat.Label>
+          <Stat.Value tint={changeColor(annualisedPct)}>
+            {formatPct(annualisedPct, 1)}
+          </Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>longs pay</Stat.Label>
+          <Stat.Value>{formatPct(stats.positivePct, 0)}</Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>last</Stat.Label>
+          <Stat.Value tint={changeColor(last)}>
+            {formatFundingPct(last)}
+          </Stat.Value>
+        </Stat>
+      </Stat.Strip>
     </div>
   );
 }

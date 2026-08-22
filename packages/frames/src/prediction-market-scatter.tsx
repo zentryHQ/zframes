@@ -2,6 +2,7 @@ import { ScatterChart, type ScatterDatum } from "@zframes/charts";
 import { defineFrame, useMoney, usePredictionMarkets } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatPct } from "./format";
 import { predictionMarketScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -47,8 +48,8 @@ function PredictionMarketScatter({
   if (data.length === 0) return <FrameStatus>no markets yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <ScatterChart
           data={data}
           yScale="log"
@@ -57,11 +58,11 @@ function PredictionMarketScatter({
           formatY={money.compact}
           maxLabels={10}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         top-outcome probability (x) vs 24h volume (y, log) · top {data.length}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

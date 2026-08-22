@@ -10,6 +10,7 @@ import {
 } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatChangePct } from "./format";
 import {
   correlation,
@@ -128,24 +129,26 @@ function MetalPositioningVsPrice({
     return <FrameStatus>no overlapping COT and fix data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="min-h-0 flex-1">
+    <ChartCard>
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatChangePct}
         />
-      </div>
-      <div className="caption text-soft text-center leading-snug">
+      </ChartCard.Body>
+      {/* Two lines on purpose, so `leading-snug` is what keeps the pair inside
+          a short card. */}
+      <ChartCard.Caption className="leading-snug">
         corr {corr.toFixed(2)} over {config.years}y —{" "}
         {describeCorrelation(corr)}
         <br />
         COT is weekly, published Friday for the prior Tuesday
         {netBase < 0 &&
           " · specs opened the window net short, so their line reads against the size of that short"}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

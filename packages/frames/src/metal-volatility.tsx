@@ -5,6 +5,8 @@ import {
 import { defineFrame, useMetalHistory } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR, formatPct } from "./format";
 import {
   downsample,
@@ -83,36 +85,33 @@ function MetalVolatility({ config }: { config: z.output<typeof schema> }) {
   const rank = Math.min(100, Math.max(1, Math.round(percentile)));
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-1.5">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div
-            className="metric-md text-strong leading-none"
-            style={{ color: volatilityColor(percentile) }}
-          >
+    <ChartCard gap={1.5}>
+      <CardHeader>
+        <CardHeader.Main>
+          {/* No tint in the middle of the range — see `volatilityColor` — and
+              the value falls back to its own strong ink there. */}
+          <CardHeader.Value size="metric-md" tint={volatilityColor(percentile)}>
             {formatPct(current, 1)}
-          </div>
-          <div className="caption text-soft mt-1">
+          </CardHeader.Value>
+          <CardHeader.Sub size="caption" className="mt-1">
             {metalName(config.symbol)} · {config.window}d realised, annualised
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="body-md text-strong tabular-nums">
-            {ordinal(rank)} pctile
-          </div>
-          <div className="caption text-soft">of the last {config.years}y</div>
-        </div>
-      </div>
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Value>{ordinal(rank)} pctile</CardHeader.Value>
+          <CardHeader.Sub>of the last {config.years}y</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
           fill
           formatValue={formatVolValue}
         />
-      </div>
-    </div>
+      </ChartCard.Body>
+    </ChartCard>
   );
 }
 

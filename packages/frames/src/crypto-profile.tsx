@@ -1,6 +1,5 @@
 import { defineFrame, useCryptoProfile, useMoney } from "@zframes/core";
 import type { CryptoDeveloperActivity } from "@zframes/core";
-import type { ReactNode } from "react";
 import type { z } from "zod";
 import { AssetLogo } from "./asset-logo";
 import { interactiveSurface } from "./content-shared";
@@ -12,6 +11,7 @@ import {
 } from "./format";
 import { MetricRow } from "./metric-row";
 import { cryptoProfileMeta } from "./schemas";
+import { Stat } from "./stat";
 import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = cryptoProfileMeta.schema;
@@ -47,28 +47,6 @@ function formatWideChangePct(pct: number): string {
 /** A finite, published number — absent fields are the normal case here. */
 const has = (value?: number): value is number => Number.isFinite(value);
 
-function Tile({
-  label,
-  value,
-  hint,
-  color,
-}: {
-  label: string;
-  value: ReactNode;
-  hint?: string;
-  color?: string;
-}) {
-  return (
-    <div className="min-w-0 rounded-md bg-white/[0.04] px-2 py-1.5">
-      <div className="caption text-soft truncate uppercase">{label}</div>
-      <div className="metric-sm text-strong truncate" style={{ color }}>
-        {value}
-      </div>
-      {hint && <div className="caption text-soft truncate">{hint}</div>}
-    </div>
-  );
-}
-
 /**
  * The trailing-window returns, as tiles. Only the windows the publisher covers
  * are rendered — a listing weeks old has no 1-year number, and a tile reading
@@ -89,12 +67,12 @@ function ChangeStrip({
       }}
     >
       {present.map((c) => (
-        <Tile
-          key={c.label}
-          label={c.label}
-          value={formatChangePct(c.pct as number)}
-          color={changeColor(c.pct as number)}
-        />
+        <Stat key={c.label} surface="tile">
+          <Stat.Label>{c.label}</Stat.Label>
+          <Stat.Value size="metric-sm" tint={changeColor(c.pct as number)}>
+            {formatChangePct(c.pct as number)}
+          </Stat.Value>
+        </Stat>
       ))}
     </div>
   );
@@ -229,68 +207,70 @@ function CryptoProfile({ config }: { config: z.output<typeof schema> }) {
       />
 
       <div className={`flex flex-col gap-2 ${scrollAreaClass}`}>
-        <div className="grid grid-cols-3 gap-1.5">
-          <Tile
-            label="Market cap"
-            value={
-              has(profile.marketCap) ? money.compact(profile.marketCap) : "—"
-            }
-          />
-          <Tile
-            label="FDV"
-            value={
-              has(profile.fullyDilutedValuation)
+        <Stat.Strip cols={3} gap={1.5}>
+          <Stat surface="tile">
+            <Stat.Label>Market cap</Stat.Label>
+            <Stat.Value size="metric-sm">
+              {has(profile.marketCap) ? money.compact(profile.marketCap) : "—"}
+            </Stat.Value>
+          </Stat>
+          <Stat surface="tile">
+            <Stat.Label>FDV</Stat.Label>
+            <Stat.Value size="metric-sm">
+              {has(profile.fullyDilutedValuation)
                 ? money.compact(profile.fullyDilutedValuation)
-                : "—"
-            }
-            hint={
-              has(profile.fullyDilutedValuation) ? undefined : "unpublished"
-            }
-          />
-          <Tile
-            label="Volume 24h"
-            value={
-              has(profile.volume24h) ? money.compact(profile.volume24h) : "—"
-            }
-          />
-        </div>
+                : "—"}
+            </Stat.Value>
+            {!has(profile.fullyDilutedValuation) && (
+              <Stat.Hint>unpublished</Stat.Hint>
+            )}
+          </Stat>
+          <Stat surface="tile">
+            <Stat.Label>Volume 24h</Stat.Label>
+            <Stat.Value size="metric-sm">
+              {has(profile.volume24h) ? money.compact(profile.volume24h) : "—"}
+            </Stat.Value>
+          </Stat>
+        </Stat.Strip>
 
-        <div className="grid grid-cols-3 gap-1.5">
-          <Tile
-            label="Circulating"
-            value={
-              has(profile.circulatingSupply)
+        <Stat.Strip cols={3} gap={1.5}>
+          <Stat surface="tile">
+            <Stat.Label>Circulating</Stat.Label>
+            <Stat.Value size="metric-sm">
+              {has(profile.circulatingSupply)
                 ? formatCompact(profile.circulatingSupply)
-                : "—"
-            }
-            hint={ticker}
-          />
-          <Tile
-            label="Total"
-            value={
-              has(profile.totalSupply)
+                : "—"}
+            </Stat.Value>
+            <Stat.Hint>{ticker}</Stat.Hint>
+          </Stat>
+          <Stat surface="tile">
+            <Stat.Label>Total</Stat.Label>
+            <Stat.Value size="metric-sm">
+              {has(profile.totalSupply)
                 ? formatCompact(profile.totalSupply)
-                : "—"
-            }
-            hint={
-              has(profile.totalSupply) && has(profile.circulatingSupply)
-                ? `${formatPct(
-                    (profile.circulatingSupply / profile.totalSupply) * 100,
-                    1,
-                  )} circulating`
-                : undefined
-            }
-          />
+                : "—"}
+            </Stat.Value>
+            {has(profile.totalSupply) && has(profile.circulatingSupply) && (
+              <Stat.Hint>
+                {`${formatPct(
+                  (profile.circulatingSupply / profile.totalSupply) * 100,
+                  1,
+                )} circulating`}
+              </Stat.Hint>
+            )}
+          </Stat>
           {/* An absent max supply means NO CAP, not zero — the one reading this
               card must never invert. An uncapped asset says so in words. */}
-          <Tile
-            label="Max"
-            value={
-              has(profile.maxSupply) ? formatCompact(profile.maxSupply) : "∞"
-            }
-            hint={has(profile.maxSupply) ? "hard cap" : "uncapped"}
-          />
-        </div>
+          <Stat surface="tile">
+            <Stat.Label>Max</Stat.Label>
+            <Stat.Value size="metric-sm">
+              {has(profile.maxSupply) ? formatCompact(profile.maxSupply) : "∞"}
+            </Stat.Value>
+            <Stat.Hint>
+              {has(profile.maxSupply) ? "hard cap" : "uncapped"}
+            </Stat.Hint>
+          </Stat>
+        </Stat.Strip>
 
         <div className="min-w-0">
           {has(profile.ath) && (

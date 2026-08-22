@@ -1,7 +1,6 @@
 import { HistogramChart, sampleStats } from "@zframes/charts";
 import { defineFrame, useMetalPositioning, type CotWeek } from "@zframes/core";
 import { useMemo } from "react";
-import type { ReactNode } from "react";
 import type { z } from "zod";
 import { formatCompact } from "./format";
 import {
@@ -12,6 +11,7 @@ import {
   sliceYears,
 } from "./metals-shared";
 import { metalCotPercentileMeta } from "./schemas";
+import { Stat } from "./stat";
 import { FrameStatus } from "./ui";
 
 const schema = metalCotPercentileMeta.schema;
@@ -96,31 +96,6 @@ function extremity(pct: number): string {
   return "historic low";
 }
 
-function Stat({
-  label,
-  value,
-  meta,
-  color,
-}: {
-  label: string;
-  value: ReactNode;
-  meta: string;
-  color?: string;
-}) {
-  return (
-    <div className="min-w-0">
-      <div className="caption text-soft truncate uppercase">{label}</div>
-      <div
-        className="metric-md truncate leading-none tabular-nums"
-        style={{ color: color ?? undefined }}
-      >
-        {value}
-      </div>
-      <div className="caption text-soft mt-0.5 truncate">{meta}</div>
-    </div>
-  );
-}
-
 function MetalCotPercentile({ config }: { config: z.output<typeof schema> }) {
   const { positioning, isLoading } = useMetalPositioning(config.symbol);
 
@@ -171,20 +146,30 @@ function MetalCotPercentile({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="grid grid-cols-3 gap-3">
-        <Stat label="net" value={signedContracts(latest)} meta={cls.meta} />
-        <Stat
-          label={`percentile · ${config.years}y`}
-          value={Math.round(pct)}
-          meta={extremity(pct)}
-          color={ACCENT}
-        />
-        <Stat
-          label="z-score"
-          value={z === null ? "—" : formatZ(z)}
-          meta={`vs mean ${signedContracts(sample.mean)}`}
-        />
-      </div>
+      {/* The meta line under each figure is a `Stat.Hint`: it qualifies the
+          number ("hedgers · structurally short", "vs mean +12K") rather than
+          being a second figure, which is exactly what a hint is for. */}
+      <Stat.Strip cols={3} gap={3}>
+        <Stat>
+          <Stat.Label>net</Stat.Label>
+          <Stat.Value size="metric-md">{signedContracts(latest)}</Stat.Value>
+          <Stat.Hint>{cls.meta}</Stat.Hint>
+        </Stat>
+        <Stat>
+          <Stat.Label>{`percentile · ${config.years}y`}</Stat.Label>
+          <Stat.Value size="metric-md" tint={ACCENT}>
+            {Math.round(pct)}
+          </Stat.Value>
+          <Stat.Hint>{extremity(pct)}</Stat.Hint>
+        </Stat>
+        <Stat>
+          <Stat.Label>z-score</Stat.Label>
+          <Stat.Value size="metric-md">
+            {z === null ? "—" : formatZ(z)}
+          </Stat.Value>
+          <Stat.Hint>{`vs mean ${signedContracts(sample.mean)}`}</Stat.Hint>
+        </Stat>
+      </Stat.Strip>
 
       <HistogramChart
         values={values}

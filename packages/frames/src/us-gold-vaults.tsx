@@ -8,7 +8,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatCompact, formatPct } from "./format";
 import { usGoldVaultsMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = usGoldVaultsMeta.schema;
@@ -56,26 +56,10 @@ function vaultSharePct(node: VaultNode) {
   return node.sharePct;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: VaultNode;
-}) {
-  const ounces = `${formatCompact(data.ounces)} oz`;
-  const share = formatPct(data.sharePct, 1);
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={`${ounces} · ${share}`}
-    />
-  );
-}
+const Leaf = treemapLeaf<VaultNode>(
+  (d) => d.id,
+  (d) => `${formatCompact(d.ounces)} oz · ${formatPct(d.sharePct, 1)}`,
+);
 
 function UsGoldVaults({ config }: { config: z.output<typeof schema> }) {
   const { reserve, isLoading } = useGoldReserve();

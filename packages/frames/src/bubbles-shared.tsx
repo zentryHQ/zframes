@@ -1,5 +1,6 @@
 import { BubbleChart, type BubbleNode } from "@zframes/charts";
 import type { ReactNode } from "react";
+import { ChartCard } from "./chart-card";
 import { FrameStatus } from "./ui";
 
 /**
@@ -27,13 +28,11 @@ export function BubbleCloud({
   if (nodes.length === 0) return <FrameStatus>{emptyText}</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard gap={1} className="text-normal">
+      <ChartCard.Body>
         <BubbleChart nodes={nodes} formatTitle={formatTitle} />
-      </div>
-      {caption && (
-        <div className="caption text-soft text-center">{caption}</div>
-      )}
-    </div>
+      </ChartCard.Body>
+      {caption && <ChartCard.Caption>{caption}</ChartCard.Caption>}
+    </ChartCard>
   );
 }

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct, formatPct } from "./format";
 import { marketCapTreemapMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = marketCapTreemapMeta.schema;
@@ -14,26 +14,10 @@ interface CoinNode extends TreeNode {
   changePct24h: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: CoinNode;
-}) {
-  const money = useMoney();
-  const value = money.compact(data.marketCapUsd);
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={value}
-    />
-  );
-}
+const Leaf = treemapLeaf<CoinNode>(
+  (d) => d.id,
+  (d, money) => money.compact(d.marketCapUsd),
+);
 
 function MarketCapTreemap({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useCoinMarkets();

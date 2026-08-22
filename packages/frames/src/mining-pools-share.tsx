@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { formatPct } from "./format";
 import { miningPoolsShareMeta } from "./schemas";
+import { SliceLegend } from "./slice-legend";
 import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
@@ -83,20 +84,17 @@ function MiningPoolsShare({ config }: { config: z.output<typeof schema> }) {
         </PieChart>
       </div>
 
-      <div className="flex w-full max-w-xs flex-wrap justify-center gap-x-4 gap-y-1.5">
+      <SliceLegend>
         {slices.map((slice) => (
-          <div key={slice.name} className="flex items-center gap-1.5">
-            <span
-              className="h-2 w-2 flex-shrink-0 rounded-full"
-              style={{ background: slice.color }}
-            />
-            <span className="body-sm text-soft">{slice.name}</span>
-            <span className="body-sm text-normal font-bold tabular-nums">
-              {formatPct(slice.sharePct, 1)}
-            </span>
-          </div>
+          <SliceLegend.Item
+            key={slice.name}
+            color={slice.color}
+            label={slice.name}
+          >
+            {formatPct(slice.sharePct, 1)}
+          </SliceLegend.Item>
         ))}
-      </div>
+      </SliceLegend>
     </div>
   );
 }

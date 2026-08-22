@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct, formatPct } from "./format";
 import { protocolTvlTreemapMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = protocolTvlTreemapMeta.schema;
@@ -14,26 +14,10 @@ interface ProtocolNode extends TreeNode {
   changePct: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: ProtocolNode;
-}) {
-  const money = useMoney();
-  const value = money.compact(data.tvl);
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={value}
-    />
-  );
-}
+const Leaf = treemapLeaf<ProtocolNode>(
+  (d) => d.id,
+  (d, money) => money.compact(d.tvl),
+);
 
 function ProtocolTvlTreemap({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useProtocolTvl();

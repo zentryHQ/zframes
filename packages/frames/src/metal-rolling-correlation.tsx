@@ -6,6 +6,8 @@ import {
 import { defineFrame, useMetalHistory, type SeriesPoint } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import {
   alignSeries,
   correlation,
@@ -249,23 +251,23 @@ function MetalRollingCorrelation({
     : readCorrelation(view.current, base, quote);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-1.5">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="metric-md text-strong leading-none tabular-nums">
+    <ChartCard gap={1.5}>
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Value size="metric-md">
             {formatCoefficient(view.current)}
-          </div>
-          <div className="caption text-soft mt-1 truncate">{read}</div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="body-md text-strong tabular-nums">
-            {formatCoefficient(view.average)}
-          </div>
-          <div className="caption text-soft">avg of {view.spanYears}y</div>
-        </div>
-      </div>
+          </CardHeader.Value>
+          <CardHeader.Sub size="caption" className="mt-1 truncate">
+            {read}
+          </CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Value>{formatCoefficient(view.average)}</CardHeader.Value>
+          <CardHeader.Sub>avg of {view.spanYears}y</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={view.series}
           timeframe={timeframeFor(config.years)}
@@ -273,16 +275,16 @@ function MetalRollingCorrelation({
           yDomain={view.yDomain}
           formatValue={formatCoefficient}
         />
-      </div>
+      </ChartCard.Body>
 
-      <div className="caption text-soft text-center">
+      <ChartCard.Caption>
         {config.window}d rolling {isBeta ? "beta" : "correlation"} of daily log
         returns ·{" "}
         {isBeta
           ? "1.00 is one-for-one"
           : "axis fixed −1…+1, with 0 the middle tick"}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

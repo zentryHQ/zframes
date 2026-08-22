@@ -1,6 +1,7 @@
 import { defineFrame, useInstitutionalOwnership } from "@zframes/core";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { CardHeader } from "./card-header";
 import {
   DOWN_COLOR,
   UP_COLOR,
@@ -62,31 +63,35 @@ function InstitutionalOwnership({
     // flow bar, caveat — sit inside a two-row card instead of being centred
     // over it and clipped at both ends.
     <div className="flex h-full min-h-0 flex-col justify-center gap-2">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft truncate uppercase">
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {tickerOf(config.symbol)} · institutional
-          </div>
-          <div className="metric-xl text-strong leading-none tabular-nums">
+          </CardHeader.Eyebrow>
+          <CardHeader.Value>
             {pct !== undefined ? formatPct(pct, 1) : "—"}
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
+          </CardHeader.Value>
+        </CardHeader.Main>
+        <CardHeader.Aside>
           {holdingsValue !== undefined && (
             <>
-              <div className="body-md text-normal font-bold tabular-nums">
+              <CardHeader.Value>
                 {formatCompactUsd(holdingsValue)}
-              </div>
-              <div className="caption text-soft">held</div>
+              </CardHeader.Value>
+              <CardHeader.Sub>held</CardHeader.Sub>
             </>
           )}
           {sharesOut !== undefined && (
+            // Its own element rather than `CardHeader.Sub`: this line is a
+            // figure, and the shared sub-line deliberately has no
+            // `tabular-nums` — adding it there would retro-fit tabular digits
+            // onto every other frame's word-shaped sub-line.
             <div className="caption text-soft tabular-nums">
               {formatCompact(sharesOut)} shares out
             </div>
           )}
-        </div>
-      </div>
+        </CardHeader.Aside>
+      </CardHeader>
 
       {/* One two-sided bar, so the net direction of last quarter's repositioning
           reads before any of the numbers do. Holder counts support it. */}

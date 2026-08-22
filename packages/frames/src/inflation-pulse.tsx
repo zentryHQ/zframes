@@ -2,6 +2,7 @@ import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useMacroSeries } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
 import { changeColor, formatChangePct } from "./format";
 import { inflationPulseMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -60,13 +61,17 @@ function InflationPulse({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full flex-col justify-center gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">BLS CPI-U</div>
-          <div className="body-sm text-normal">{latest.date}</div>
-        </div>
-        <div className="caption text-soft text-right">monthly</div>
-      </div>
+      <CardHeader align="start">
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>BLS CPI-U</CardHeader.Eyebrow>
+          {/* `ink="normal"`, not the sub-line's default `soft`: the
+              publisher's own print date reads as data here. */}
+          <CardHeader.Sub ink="normal">{latest.date}</CardHeader.Sub>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>monthly</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <div className="flex items-end justify-between gap-3">
         <div>

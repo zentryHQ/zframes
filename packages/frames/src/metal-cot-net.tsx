@@ -5,6 +5,8 @@ import {
 import { defineFrame, useMetalPositioning } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
+import { ChartCard } from "./chart-card";
 import { changeColor, formatChangePct, formatCompact } from "./format";
 import {
   cotNet,
@@ -124,35 +126,32 @@ function MetalCotNet({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no COT positioning yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="caption text-soft uppercase">
+    <ChartCard>
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>
             {metalName(config.symbol)} net spec
-          </div>
-          <div className="metric-lg text-strong leading-none tabular-nums">
+          </CardHeader.Eyebrow>
+          <CardHeader.Value size="metric-lg">
             {signedContracts(latestNet)}
-          </div>
-        </div>
-        <div className="shrink-0 text-right">
-          <div className="caption text-soft">week over week</div>
+          </CardHeader.Value>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Sub>week over week</CardHeader.Sub>
           {weekChange === null ? (
-            <div className="body-md text-disabled">—</div>
+            <CardHeader.Value absent>—</CardHeader.Value>
           ) : (
-            <div
-              className="body-md font-bold tabular-nums"
-              style={{ color: changeColor(weekChange) }}
-            >
+            <CardHeader.Value tint={changeColor(weekChange)}>
               {signedContracts(weekChange)}
-            </div>
+            </CardHeader.Value>
           )}
           {lastReport !== null && (
-            <div className="caption text-soft">{formatWeek(lastReport)}</div>
+            <CardHeader.Sub>{formatWeek(lastReport)}</CardHeader.Sub>
           )}
-        </div>
-      </div>
+        </CardHeader.Aside>
+      </CardHeader>
 
-      <div className="min-h-0 flex-1">
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={timeframeFor(config.years)}
@@ -162,9 +161,9 @@ function MetalCotNet({ config }: { config: z.output<typeof schema> }) {
             config.showOpenInterest ? formatChangePct : formatCompact
           }
         />
-      </div>
+      </ChartCard.Body>
 
-      <div className="caption text-soft text-center">
+      <ChartCard.Caption>
         {config.showOpenInterest ? (
           <>
             net spec and total open interest, both rebased to % from the window
@@ -175,8 +174,8 @@ function MetalCotNet({ config }: { config: z.output<typeof schema> }) {
         ) : (
           "non-commercial long − short, contracts — zero is kept on the axis"
         )}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

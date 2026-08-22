@@ -2,6 +2,7 @@ import { MiniLineChart } from "@zframes/charts";
 import { defineFrame, useNetworkHashrate } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { CardHeader } from "./card-header";
 import { formatCompact, formatHashrate } from "./format";
 import { btcHashrateMeta } from "./schemas";
 import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
@@ -33,20 +34,20 @@ function BtcHashrate({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col justify-center gap-3">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="caption text-soft uppercase">network hashrate</div>
-          <div className="metric-lg text-strong leading-none">
+      <CardHeader>
+        <CardHeader.Main>
+          <CardHeader.Eyebrow>network hashrate</CardHeader.Eyebrow>
+          <CardHeader.Value size="metric-lg">
             {formatHashrate(data.currentHashrate)}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="body-md text-normal font-bold tabular-nums">
+          </CardHeader.Value>
+        </CardHeader.Main>
+        <CardHeader.Aside>
+          <CardHeader.Value>
             {formatCompact(data.currentDifficulty)}
-          </div>
-          <div className="caption text-soft">difficulty</div>
-        </div>
-      </div>
+          </CardHeader.Value>
+          <CardHeader.Sub>difficulty</CardHeader.Sub>
+        </CardHeader.Aside>
+      </CardHeader>
 
       <MiniLineChart
         data={sparkline}

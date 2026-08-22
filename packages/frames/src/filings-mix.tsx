@@ -5,6 +5,7 @@ import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import { formatPct } from "./format";
 import { filingsMixMeta } from "./schemas";
+import { SliceLegend } from "./slice-legend";
 import { FrameStatus } from "./ui";
 
 const schema = filingsMixMeta.schema;
@@ -94,20 +95,17 @@ function FilingsMix({ config }: { config: z.output<typeof schema> }) {
         </PieChart>
       </div>
 
-      <div className="flex w-full max-w-xs flex-wrap justify-center gap-x-5 gap-y-1.5">
+      <SliceLegend>
         {slices.map((slice) => (
-          <div key={slice.id} className="flex items-center gap-1.5">
-            <span
-              className="h-2 w-2 flex-shrink-0 rounded-full"
-              style={{ background: slice.color }}
-            />
-            <span className="body-sm text-soft">{slice.label}</span>
-            <span className="body-sm text-normal font-bold tabular-nums">
-              {formatPct((slice.value / total) * 100, 0)}
-            </span>
-          </div>
+          <SliceLegend.Item
+            key={slice.id}
+            color={slice.color}
+            label={slice.label}
+          >
+            {formatPct((slice.value / total) * 100, 0)}
+          </SliceLegend.Item>
         ))}
-      </div>
+      </SliceLegend>
     </div>
   );
 }

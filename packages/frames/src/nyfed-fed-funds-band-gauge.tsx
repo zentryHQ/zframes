@@ -1,6 +1,7 @@
 import { RadialGauge } from "@zframes/charts";
 import { defineFrame, useReferenceRates } from "@zframes/core";
 import type { z } from "zod";
+import { GaugeCard } from "./chart-card";
 import { formatPct } from "./format";
 import { nyfedFedFundsBandGaugeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -22,7 +23,7 @@ function NyfedFedFundsBandGauge(_props: { config: z.output<typeof schema> }) {
     return <FrameStatus>no fed-funds target data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-1">
+    <GaugeCard>
       <RadialGauge
         value={effr.rate}
         min={effr.targetRateFrom}
@@ -30,20 +31,17 @@ function NyfedFedFundsBandGauge(_props: { config: z.output<typeof schema> }) {
         color={accent()}
         fill
       >
-        <div
-          className="metric-xl leading-none"
-          style={{ color: accent(), textShadow: `0 0 28px ${accent(0.35)}` }}
-        >
+        {/* Own bloom colour: the accent is an hsl(var(…)) expression, so the
+            derived-from-hex default cannot apply. */}
+        <GaugeCard.Value tint={accent()} glow={accent(0.35)}>
           {formatPct(effr.rate)}
-        </div>
-        <div className="caption text-soft mt-1 uppercase tracking-wide">
-          effective fed funds
-        </div>
+        </GaugeCard.Value>
+        <GaugeCard.Label>effective fed funds</GaugeCard.Label>
       </RadialGauge>
-      <div className="caption text-soft">
+      <GaugeCard.Caption>
         target {formatPct(effr.targetRateFrom)}–{formatPct(effr.targetRateTo)}
-      </div>
-    </div>
+      </GaugeCard.Caption>
+    </GaugeCard>
   );
 }
 

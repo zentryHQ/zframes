@@ -2,6 +2,7 @@ import { ScatterChart, type ScatterDatum } from "@zframes/charts";
 import { defineFrame, useDexPools, useMoney } from "@zframes/core";
 import { useCallback, useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { changeColor } from "./format";
 import { dexPoolLiquidityScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -41,8 +42,8 @@ function DexPoolLiquidityScatter({
   if (data.length === 0) return <FrameStatus>no pool data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <ScatterChart
           data={data}
           yScale="log"
@@ -51,12 +52,12 @@ function DexPoolLiquidityScatter({
           formatY={money.compact}
           maxLabels={8}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         {config.network} · liquidity (x, log) vs 24h volume (y, log) · bubble =
         trades
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

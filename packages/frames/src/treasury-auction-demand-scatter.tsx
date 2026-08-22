@@ -2,6 +2,7 @@ import { ScatterChart, type ScatterDatum } from "@zframes/charts";
 import { defineFrame, useTreasuryAuctions } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatPct } from "./format";
 import { treasuryAuctionDemandScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -42,8 +43,8 @@ function TreasuryAuctionDemandScatter({
     return <FrameStatus>no auction-demand data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <ScatterChart
           data={data}
           fill
@@ -51,11 +52,11 @@ function TreasuryAuctionDemandScatter({
           formatY={formatBidToCover}
           maxLabels={data.length}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         awarded rate (x) vs bid-to-cover (y) · last {data.length} auctions
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

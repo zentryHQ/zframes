@@ -1,7 +1,6 @@
 import { HistogramChart, sampleStats } from "@zframes/charts";
 import { defineFrame, useCandles } from "@zframes/core";
 import { useMemo } from "react";
-import type { ReactNode } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import {
@@ -19,6 +18,7 @@ import {
   weeklyReturns,
 } from "./metals-shared";
 import { returnDistributionMeta } from "./schemas";
+import { Stat } from "./stat";
 import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus } from "./ui";
 
@@ -39,28 +39,6 @@ const MIN_OBSERVATIONS = 12;
  * single observation, which barely reins in an outlier.
  */
 const TAIL_TRIM = 0.01;
-
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: ReactNode;
-  color?: string;
-}) {
-  return (
-    <div className="min-w-0">
-      <div className="caption text-soft truncate uppercase">{label}</div>
-      <div
-        className="body-sm truncate font-bold tabular-nums"
-        style={color ? { color } : undefined}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
 
 function ReturnDistribution({ config }: { config: z.output<typeof schema> }) {
   const [lookback, setLookback] = useFrameChoice("lookback", config.lookback);
@@ -147,22 +125,34 @@ function ReturnDistribution({ config }: { config: z.output<typeof schema> }) {
         />
       </div>
 
-      <div className="grid grid-cols-4 gap-2 border-t border-white/[0.08] pt-1.5">
-        <Stat
-          label="mean"
-          value={formatChangePct(stats.mean)}
-          color={changeColor(stats.mean)}
-        />
-        <Stat label="std dev" value={formatPct(stats.stdev)} />
-        <Stat label="positive" value={formatPct(stats.positivePct, 0)} />
+      <Stat.Strip
+        cols={4}
+        gap={2}
+        className="border-t border-white/[0.08] pt-1.5"
+      >
+        <Stat>
+          <Stat.Label>mean</Stat.Label>
+          <Stat.Value tint={changeColor(stats.mean)}>
+            {formatChangePct(stats.mean)}
+          </Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>std dev</Stat.Label>
+          <Stat.Value>{formatPct(stats.stdev)}</Stat.Value>
+        </Stat>
+        <Stat>
+          <Stat.Label>positive</Stat.Label>
+          <Stat.Value>{formatPct(stats.positivePct, 0)}</Stat.Value>
+        </Stat>
         {/* The latest move plus its rank: "+1.2%" alone doesn't say whether that
             is a normal day for this symbol, which is the whole question. */}
-        <Stat
-          label={`last · p${lastPercentile.toFixed(0)}`}
-          value={formatChangePct(last)}
-          color={changeColor(last)}
-        />
-      </div>
+        <Stat>
+          <Stat.Label>{`last · p${lastPercentile.toFixed(0)}`}</Stat.Label>
+          <Stat.Value tint={changeColor(last)}>
+            {formatChangePct(last)}
+          </Stat.Value>
+        </Stat>
+      </Stat.Strip>
     </div>
   );
 }

@@ -91,12 +91,25 @@ describe("chart-event coverage", () => {
     const declared = new Set(
       allFrameMetas.filter((m) => m.annotatable).map((m) => m.name),
     );
+    // Only REAL frames, per the registry — not every module that happens to
+    // live in the frames directory. `frameFiles()` is a plain readdir, so the
+    // shared primitives (`chart-card.tsx`, `series-chart.tsx`, `ui.tsx`, …) are
+    // in it too, and a primitive that so much as names `<TimeSeriesChart` in
+    // its own documentation would otherwise be reported as a frame whose meta
+    // forgot `annotatable` — a frame that does not exist and a meta that cannot
+    // be written. The bypass check above keeps scanning everything on purpose;
+    // it has `RAW_CHART_OK` to describe the shared modules.
+    const realFrames = new Set(allFrameMetas.map((m) => m.name));
     const drawing = new Set(
       frameFiles()
-        .filter((file) =>
-          /<TimeSeriesChart\b/.test(readFileSync(join(srcDir, file), "utf8")),
-        )
-        .map((file) => file.replace(/\.tsx$/, "")),
+        .filter((file) => file.endsWith(".tsx"))
+        .map((file) => file.replace(/\.tsx$/, ""))
+        .filter((name) => realFrames.has(name))
+        .filter((name) =>
+          /<TimeSeriesChart\b/.test(
+            readFileSync(join(srcDir, `${name}.tsx`), "utf8"),
+          ),
+        ),
     );
     const missing = [...drawing].filter((n) => !declared.has(n)).sort();
     const stale = [...declared].filter((n) => !drawing.has(n)).sort();

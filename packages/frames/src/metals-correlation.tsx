@@ -2,6 +2,7 @@ import { HeatmapChart, type CellComponentProps } from "@zframes/charts";
 import { defineFrame, useMetalHistory, type SeriesPoint } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { changeColor, DOWN_COLOR, formatPct, UP_COLOR } from "./format";
 import {
   alignSeries,
@@ -161,8 +162,8 @@ function MetalsCorrelation({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>not enough fix history yet</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-1.5">
-      <div className="min-h-0 flex-1">
+    <ChartCard gap={1.5}>
+      <ChartCard.Body>
         <HeatmapChart<CorrelationCell>
           data={cells}
           CellComponent={MatrixCell}
@@ -208,11 +209,11 @@ function MetalsCorrelation({ config }: { config: z.output<typeof schema> }) {
             };
           }}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         daily-return correlation · {spanYears}y window
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

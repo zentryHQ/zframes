@@ -2,6 +2,7 @@ import { ScatterChart, type ScatterDatum } from "@zframes/charts";
 import { defineFrame, useHomeValueIndex, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { changeColor, formatChangePct } from "./format";
 import { homeValueScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -41,8 +42,8 @@ function HomeValueScatter({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>no home-value data yet</FrameStatus>;
 
   return (
-    <div className="text-normal flex h-full min-h-0 flex-col justify-center gap-1">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <ScatterChart
           data={data}
           // Linear, deliberately. US metro home values span roughly $200k–$1.2M —
@@ -57,12 +58,12 @@ function HomeValueScatter({ config }: { config: z.output<typeof schema> }) {
           formatY={formatY}
           maxLabels={10}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         y/y change (x) vs typical home value (y, {money.code}) · right of the
         line = still appreciating
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

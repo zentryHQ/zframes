@@ -2,6 +2,7 @@ import { BarChart } from "@zframes/charts";
 import { defineFrame, useEtfFlows, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR } from "./format";
 import { etfIssuerBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -27,8 +28,8 @@ function EtfIssuerBars({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>ETF flows unavailable</FrameStatus>;
 
   return (
-    <div className="flex h-full min-h-0 flex-col justify-center gap-1 text-normal">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <BarChart
           data={data}
           orientation="horizontal"
@@ -37,11 +38,11 @@ function EtfIssuerBars({ config }: { config: z.output<typeof schema> }) {
           fill
           formatValue={money.compact}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         {config.asset.toUpperCase()} spot-ETF issuers · today's net flow
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 

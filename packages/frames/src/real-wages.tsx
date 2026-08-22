@@ -7,6 +7,7 @@ import { defineFrame, useMacroSeries } from "@zframes/core";
 import type { MacroPoint } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { formatChangePct, formatPct } from "./format";
 import { realWagesMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -84,22 +85,22 @@ function RealWages({ config }: { config: z.output<typeof schema> }) {
       : null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
-      <div className="min-h-0 flex-1">
+    <ChartCard gap={2}>
+      <ChartCard.Body>
         <TimeSeriesChart
           series={series}
           timeframe={ChartTimeframe.YTD}
           fill
           formatValue={formatChangePct}
         />
-      </div>
+      </ChartCard.Body>
       {gap !== null && (
-        <div className="caption text-soft text-center">
+        <ChartCard.Caption>
           pay {gap >= 0 ? "outrunning" : "trailing"} inflation by{" "}
           {formatPct(Math.abs(gap), 2)}
-        </div>
+        </ChartCard.Caption>
       )}
-    </div>
+    </ChartCard>
   );
 }
 

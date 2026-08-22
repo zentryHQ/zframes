@@ -9,7 +9,7 @@ import {
   networkLabel,
 } from "./format";
 import { dexPoolTreemapMeta } from "./schemas";
-import { TreemapLeaf } from "./treemap-leaf";
+import { treemapLeaf } from "./treemap-leaf";
 import { FrameStatus } from "./ui";
 
 const schema = dexPoolTreemapMeta.schema;
@@ -19,26 +19,10 @@ interface PoolNode extends TreeNode {
   changePct24h: number;
 }
 
-function Leaf({
-  width,
-  height,
-  data,
-}: {
-  width: number;
-  height: number;
-  data: PoolNode;
-}) {
-  const money = useMoney();
-  const vol = money.compact(data.volume24hUsd);
-  return (
-    <TreemapLeaf
-      width={width}
-      height={height}
-      label={data.id}
-      secondary={vol}
-    />
-  );
-}
+const Leaf = treemapLeaf<PoolNode>(
+  (d) => d.id,
+  (d, money) => money.compact(d.volume24hUsd),
+);
 
 function DexPoolTreemap({ config }: { config: z.output<typeof schema> }) {
   const { pools, isLoading } = useDexPools(config.network);

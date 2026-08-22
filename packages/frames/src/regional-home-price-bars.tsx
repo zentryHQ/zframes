@@ -2,6 +2,7 @@ import { BarChart } from "@zframes/charts";
 import { defineFrame, useRegionalHousingPrice } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
+import { ChartCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR, formatChangePct } from "./format";
 import { regionalHomePriceBarsMeta } from "./schemas";
 import { FrameStatus } from "./ui";
@@ -45,8 +46,8 @@ function RegionalHomePriceBars({
   const rising = data.filter((d) => d.value >= 0).length;
 
   return (
-    <div className="text-normal flex h-full min-h-0 flex-col justify-center gap-1">
-      <div className="min-h-0 flex-1">
+    <ChartCard align="center" gap={1} className="text-normal">
+      <ChartCard.Body>
         <BarChart
           data={data}
           orientation="horizontal"
@@ -55,13 +56,13 @@ function RegionalHomePriceBars({
           fill
           formatValue={formatChangePct}
         />
-      </div>
-      <div className="caption text-soft text-center">
+      </ChartCard.Body>
+      <ChartCard.Caption>
         FHFA HPI y/y · {config.level} · {rising} rising / {data.length - rising}{" "}
         falling
         {period ? ` · ${period}` : ""}
-      </div>
-    </div>
+      </ChartCard.Caption>
+    </ChartCard>
   );
 }
 
