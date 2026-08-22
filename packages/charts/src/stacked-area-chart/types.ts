@@ -19,17 +19,13 @@ export interface StackedAreaSeries {
 }
 
 /**
- * Props for the custom area component render prop
+ * Props for one stacked band's path
  */
-export interface AreaComponentProps<T extends StackedAreaSeries> {
-  /** The series data */
-  series: T;
+export interface AreaBandProps {
   /** The D3 path string for the area */
   pathD: string;
   /** The color for this area */
   color: string;
-  /** The series index (0-based, bottom to top) */
-  index: number;
   /** Whether this series is currently hovered */
   isHovered: boolean;
   /** Whether any series is currently hovered */
@@ -68,26 +64,11 @@ export interface StackedAreaChartDimensions {
 }
 
 /**
- * Stacking order options
- */
-export type StackOrder =
-  "none" | "ascending" | "descending" | "insideOut" | "reverse";
-
-/**
- * Stacking offset options
- */
-export type StackOffset = "none" | "expand" | "wiggle" | "silhouette";
-
-/**
  * Props for the StackedAreaChart component
  */
 export interface StackedAreaChartProps<T extends StackedAreaSeries> {
   /** Array of series data */
   series: T[];
-  /** Optional custom area component for rendering each series */
-  AreaComponent?: (props: AreaComponentProps<T>) => React.ReactNode;
-  /** Optional className for the container */
-  className?: string;
   /** Optional height (defaults to 400) */
   height?: number;
   /**
@@ -100,44 +81,12 @@ export interface StackedAreaChartProps<T extends StackedAreaSeries> {
    * output.
    */
   fill?: boolean;
-  /** Chart margins */
-  margin?: {
-    top?: number;
-    right?: number;
-    bottom?: number;
-    left?: number;
-  };
-  /** Custom color palette (uses default if not provided) */
-  colors?: string[];
-  /** Get color for a specific series */
-  getSeriesColor?: (series: T, index: number) => string;
   /** Format function for x-axis ticks */
   formatXAxis?: (date: Date) => string;
   /** Format function for y-axis ticks */
   formatYAxis?: (value: number) => string;
   /** Format function for tooltip values */
   formatValue?: (value: number) => string;
-  /** Stacking order */
-  stackOrder?: StackOrder;
-  /** Stacking offset (use 'expand' for percentage stacking) */
-  stackOffset?: StackOffset;
-  /** Whether to show grid lines */
-  showGrid?: boolean;
-  /** Whether to show x-axis */
-  showXAxis?: boolean;
-  /** Whether to show y-axis */
-  showYAxis?: boolean;
-  /** Curve type for area paths */
-  curveType?: "linear" | "monotoneX" | "step" | "natural" | "basis";
-  /** Loading state */
-  isLoading?: boolean;
-  /** Callback when hovering over a date */
-  onDateHover?: (
-    date: Date | null,
-    values: CombinedStackedDataPoint | null,
-  ) => void;
-  /** Callback when clicking on a series */
-  onSeriesClick?: (series: T) => void;
 }
 
 export type StackedSeriesData = d3.Series<

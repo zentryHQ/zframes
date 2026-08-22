@@ -5,12 +5,6 @@ import type { StackedAreaChartDimensions } from "../types";
 
 interface UseChartDimensionsProps {
   height?: number;
-  margin?: {
-    top?: number;
-    right?: number;
-    bottom?: number;
-    left?: number;
-  };
   containerRef: RefObject<HTMLDivElement | null>;
   /**
    * Size the chart to the CONTAINER's height instead of the `height` prop.
@@ -24,17 +18,11 @@ interface UseChartDimensionsProps {
 
 export function useChartDimensions({
   height = CHART_DEFAULTS.height,
-  margin,
   containerRef,
   fill = false,
 }: UseChartDimensionsProps): StackedAreaChartDimensions {
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [containerHeight, setContainerHeight] = useState<number>(0);
-
-  const marginTop = margin?.top ?? CHART_MARGIN.top;
-  const marginRight = margin?.right ?? CHART_MARGIN.right;
-  const marginBottom = margin?.bottom ?? CHART_MARGIN.bottom;
-  const marginLeft = margin?.left ?? CHART_MARGIN.left;
 
   useLayoutEffect(() => {
     const updateWidth = () => {
@@ -64,27 +52,24 @@ export function useChartDimensions({
     // The container can measure 0 before layout settles, so the prop stays the
     // fallback — a collapsed chart is worse than a slightly-too-tall one.
     const resolvedHeight = fill && containerHeight ? containerHeight : height;
-    const innerWidth = Math.max(0, containerWidth - marginLeft - marginRight);
-    const innerHeight = Math.max(0, resolvedHeight - marginTop - marginBottom);
+    const innerWidth = Math.max(
+      0,
+      containerWidth - CHART_MARGIN.left - CHART_MARGIN.right,
+    );
+    const innerHeight = Math.max(
+      0,
+      resolvedHeight - CHART_MARGIN.top - CHART_MARGIN.bottom,
+    );
 
     return {
       width: containerWidth,
       height: resolvedHeight,
       innerWidth,
       innerHeight,
-      marginTop,
-      marginRight,
-      marginBottom,
-      marginLeft,
+      marginTop: CHART_MARGIN.top,
+      marginRight: CHART_MARGIN.right,
+      marginBottom: CHART_MARGIN.bottom,
+      marginLeft: CHART_MARGIN.left,
     };
-  }, [
-    containerWidth,
-    containerHeight,
-    fill,
-    height,
-    marginTop,
-    marginRight,
-    marginBottom,
-    marginLeft,
-  ]);
+  }, [containerWidth, containerHeight, fill, height]);
 }

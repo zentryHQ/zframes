@@ -8,14 +8,13 @@ import React, {
   useCallback,
 } from "react";
 import * as d3 from "d3";
-import { cn } from "../lib/utils";
 import { useChartIntro } from "../lib/use-chart-intro";
 import { useIsomorphicLayoutEffect } from "../lib/use-isomorphic-layout-effect";
 
 import type {
   StackedAreaSeries,
   StackedAreaChartProps,
-  AreaComponentProps,
+  AreaBandProps,
   StackedSeriesData,
   CombinedStackedDataPoint,
 } from "./types";
@@ -25,9 +24,6 @@ import {
   combineSeriesData,
   createCombinedDataPoints,
   calculateStackedYDomain,
-  getStackOrder,
-  getStackOffset,
-  getCurveFunction,
   formatValueWithSuffix,
   findClosestDataPoint,
 } from "./utils";
@@ -55,14 +51,9 @@ const INTRO_RISE_PX = 12;
 const INTRO_EASING = "cubic-bezier(0.215, 0.61, 0.355, 1)";
 
 /**
- * Default area component - renders a simple filled area
+ * One stacked band - renders a simple filled area
  */
-function DefaultAreaComponent<T extends StackedAreaSeries>({
-  pathD,
-  color,
-  isHovered,
-  hasHover,
-}: AreaComponentProps<T>) {
+function AreaBand({ pathD, color, isHovered, hasHover }: AreaBandProps) {
   const opacity = hasHover
     ? isHovered
       ? AREA.hoverOpacity
@@ -84,24 +75,11 @@ function DefaultAreaComponent<T extends StackedAreaSeries>({
 
 function StackedAreaChartInner<T extends StackedAreaSeries>({
   series,
-  AreaComponent = DefaultAreaComponent,
-  className,
   height = CHART_DEFAULTS.height,
   fill = false,
-  margin,
-  colors = STACKED_AREA_COLORS,
-  getSeriesColor,
   formatXAxis,
   formatYAxis,
   formatValue = formatValueWithSuffix,
-  stackOrder = "none",
-  stackOffset = "none",
-  showGrid = true,
-  showXAxis = true,
-  showYAxis = true,
-  curveType = "monotoneX",
-  isLoading = false,
-  onDateHover,
 }: StackedAreaChartProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -113,28 +91,23 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
   const dimensions = useChartDimensions({
     height,
     fill,
-    margin,
     containerRef,
   });
 
-  // The one style the container, the loading box and the empty box all take:
-  // filling means the card's height decides, not the prop.
+  // The one style both the container and the empty box take: filling means the
+  // card's height decides, not the prop.
   const containerStyle = fill ? { height: "100%", minHeight: 0 } : { height };
 
   // Memoize series colors
   const seriesColors = useMemo(() => {
     const colorMap: { [seriesId: string]: string } = {};
     series.forEach((s, index) => {
-      if (getSeriesColor) {
-        colorMap[s.id] = getSeriesColor(s, index);
-      } else if (s.color) {
-        colorMap[s.id] = s.color;
-      } else {
-        colorMap[s.id] = colors[index % colors.length];
-      }
+      colorMap[s.id] = s.color
+        ? s.color
+        : STACKED_AREA_COLORS[index % STACKED_AREA_COLORS.length];
     });
     return colorMap;
-  }, [series, colors, getSeriesColor]);
+  }, [series]);
 
   // Memoize computed data
   const dates = useMemo(() => getAllDates(series), [series]);
@@ -149,10 +122,7 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
     [series, dates],
   );
 
-  const yDomain = useMemo(
-    () => calculateStackedYDomain(series, stackOffset),
-    [series, stackOffset],
-  );
+  const yDomain = useMemo(() => calculateStackedYDomain(series), [series]);
 
   // Create D3 stack
   const stackedData = useMemo(() => {
@@ -161,11 +131,11 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
     const stack = d3
       .stack<{ date: Date; [key: string]: number | Date }>()
       .keys(series.map((s) => s.id))
-      .order(getStackOrder(stackOrder))
-      .offset(getStackOffset(stackOffset));
+      .order(d3.stackOrderNone)
+      .offset(d3.stackOffsetNone);
 
     return stack(combinedData) as StackedSeriesData[];
-  }, [series, dates, combinedData, stackOrder, stackOffset]);
+  }, [series, dates, combinedData]);
 
   // Create scales
   const scales = useMemo(() => {
@@ -195,9 +165,6 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
    * at all. It also stops the readout being clipped: the old tooltip was
    * `absolute` inside the chart with a hard-coded 180px right clamp, which a
    * narrow card cut off.
-   *
-   * `onDateHover` is unchanged — it is a public prop and some frames drive their
-   * own readout from it.
    */
   const hoverLineRef = useRef<SVGLineElement>(null);
   /** Index currently shown, so content is rebuilt only when the point changes. */
@@ -257,17 +224,15 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
           moveChartTooltip(event.clientX, event.clientY);
         }
       }
-      onDateHover?.(closest.date, point);
     },
-    [scales, dates, combinedDataPoints, tooltipFor, onDateHover],
+    [scales, dates, combinedDataPoints, tooltipFor],
   );
 
   const handlePointerLeave = useCallback(() => {
     hoverIndexRef.current = null;
     hoverLineRef.current?.setAttribute("opacity", "0");
     hideChartTooltip();
-    onDateHover?.(null, null);
-  }, [onDateHover]);
+  }, []);
 
   // A data poll or unmount destroys the point under the cursor; without this the
   // shared tooltip would keep floating over a chart that no longer has it.
@@ -277,23 +242,19 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
   const areaPaths = useMemo(() => {
     if (!scales || stackedData.length === 0) return [];
 
-    const curve = getCurveFunction(curveType);
-
     const areaGenerator = d3
       .area<d3.SeriesPoint<{ date: Date; [key: string]: number | Date }>>()
       .x((d) => scales.xScale(d.data.date))
       .y0((d) => scales.yScale(d[0]))
       .y1((d) => scales.yScale(d[1]))
-      .curve(curve);
+      .curve(d3.curveMonotoneX);
 
-    return stackedData.map((seriesData, index) => ({
+    return stackedData.map((seriesData) => ({
       seriesId: seriesData.key,
       pathD: areaGenerator(seriesData) || "",
       color: seriesColors[seriesData.key] || "#888888",
-      index,
-      series: series.find((s) => s.id === seriesData.key) as T,
     }));
-  }, [scales, stackedData, curveType, seriesColors, series]);
+  }, [scales, stackedData, seriesColors]);
 
   // Draw SVG elements (grid, axes) via D3
   useEffect(() => {
@@ -320,39 +281,18 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
       );
 
     // Draw grid
-    if (showGrid) {
-      createGrid(g, scales.yScale, dimensions.innerWidth);
-    }
+    createGrid(g, scales.yScale, dimensions.innerWidth);
 
     // Draw axes
-    if (showXAxis || showYAxis) {
-      createAxes(
-        g,
-        scales.xScale,
-        scales.yScale,
-        dimensions.innerHeight,
-        showXAxis ? formatXAxis : undefined,
-        showYAxis ? formatYAxis : undefined,
-      );
-
-      // Hide axes as needed
-      if (!showXAxis) {
-        g.select(".x-axis").remove();
-      }
-      if (!showYAxis) {
-        g.select(".y-axis").remove();
-      }
-    }
-  }, [
-    scales,
-    series.length,
-    dimensions,
-    showGrid,
-    showXAxis,
-    showYAxis,
-    formatXAxis,
-    formatYAxis,
-  ]);
+    createAxes(
+      g,
+      scales.xScale,
+      scales.yScale,
+      dimensions.innerHeight,
+      formatXAxis,
+      formatYAxis,
+    );
+  }, [scales, series.length, dimensions, formatXAxis, formatYAxis]);
 
   // Intro animation. This effect re-runs on data polls, resizes, prop and theme
   // changes; `shouldIntro()` only answers true inside the grace window that
@@ -433,25 +373,11 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
     setHoveredSeriesId(null);
   }, []);
 
-  if (isLoading) {
-    return (
-      <div
-        ref={containerRef}
-        className={cn("relative w-full", className)}
-        style={containerStyle}
-      >
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-white/80 motion-reduce:animate-none" />
-        </div>
-      </div>
-    );
-  }
-
   if (series.length === 0) {
     return (
       <div
         ref={containerRef}
-        className={cn("relative w-full", className)}
+        className="relative w-full"
         style={containerStyle}
       >
         <div className="absolute inset-0 flex items-center justify-center text-sm text-white/50">
@@ -462,11 +388,7 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
   }
 
   return (
-    <div
-      ref={containerRef}
-      className={cn("relative w-full", className)}
-      style={containerStyle}
-    >
+    <div ref={containerRef} className="relative w-full" style={containerStyle}>
       {dimensions.width > 0 && scales && (
         <svg
           ref={svgRef}
@@ -474,33 +396,29 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
           height={dimensions.height}
           className="overflow-visible"
         >
-          {/* Render areas using React (allows custom AreaComponent) */}
+          {/* Marks render through React; only grid and axes go through D3. */}
           <g
             transform={`translate(${dimensions.marginLeft},${dimensions.marginTop})`}
           >
             {/* Bands live in their own group: the intro animates these only,
                 never the hover rule or the mouse overlay below. */}
             <g ref={areasGroupRef} className="areas">
-              {areaPaths.map(
-                ({ seriesId, pathD, color, index, series: seriesData }) => (
-                  <g
-                    key={seriesId}
-                    data-series-id={seriesId}
-                    onMouseEnter={() => handleAreaMouseEnter(seriesId)}
-                    onMouseLeave={handleAreaMouseLeave}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <AreaComponent
-                      series={seriesData}
-                      pathD={pathD}
-                      color={color}
-                      index={index}
-                      isHovered={hoveredSeriesId === seriesId}
-                      hasHover={hoveredSeriesId !== null}
-                    />
-                  </g>
-                ),
-              )}
+              {areaPaths.map(({ seriesId, pathD, color }) => (
+                <g
+                  key={seriesId}
+                  data-series-id={seriesId}
+                  onMouseEnter={() => handleAreaMouseEnter(seriesId)}
+                  onMouseLeave={handleAreaMouseLeave}
+                  style={{ cursor: "pointer" }}
+                >
+                  <AreaBand
+                    pathD={pathD}
+                    color={color}
+                    isHovered={hoveredSeriesId === seriesId}
+                    hasHover={hoveredSeriesId !== null}
+                  />
+                </g>
+              ))}
             </g>
 
             {/* Vertical hover line. Always mounted and moved by ref — mounting
@@ -546,35 +464,18 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
  *
  * Features:
  * - Generic data interface with minimal required fields
- * - Render prop pattern for custom area rendering
- * - Multiple stacking strategies (normal, percentage, streamgraph)
  * - Responsive sizing with ResizeObserver
  * - Built-in tooltip with hover interactions
  * - Smooth animations
  *
  * @example
  * ```tsx
- * // Basic usage
  * <StackedAreaChart
  *   series={[
  *     { id: 'a', name: 'Series A', data: [{ date: '2024-01-01', value: 100 }] },
  *     { id: 'b', name: 'Series B', data: [{ date: '2024-01-01', value: 50 }] },
  *   ]}
- * />
- *
- * // Percentage stacking
- * <StackedAreaChart
- *   series={data}
- *   stackOffset="expand"
  *   formatYAxis={(v) => `${(v * 100).toFixed(0)}%`}
- * />
- *
- * // Custom area component
- * <StackedAreaChart
- *   series={data}
- *   AreaComponent={({ pathD, color, isHovered }) => (
- *     <path d={pathD} fill={color} opacity={isHovered ? 1 : 0.7} />
- *   )}
  * />
  * ```
  */

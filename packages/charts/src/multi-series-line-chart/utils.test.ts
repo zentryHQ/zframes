@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import * as d3 from "d3";
-import { combineDateValues, getAllDates, sortSeriesByLastValue } from "./utils";
+import {
+  combineDateValues,
+  getAllDates,
+  resolveYDomain,
+  sortSeriesByLastValue,
+} from "./utils";
 import { calculateLegendPositions } from "./d3-rendering/calculate-legend-positions";
 import { LEGEND } from "./constants";
 import type { ChartScales, LegendItem, MultiSeriesData } from "./types";
@@ -482,5 +487,38 @@ describe("calculateLegendPositions", () => {
 
     expect(items.map((i) => i.id)).toEqual(["a"]);
     expect(layout([])).toEqual([]);
+  });
+});
+
+describe("resolveYDomain", () => {
+  const corr: MultiSeriesData[] = [
+    {
+      id: "corr",
+      name: "Correlation",
+      color: "#000",
+      data: [
+        { date: "2026-01-01", value: 0.1 },
+        { date: "2026-01-02", value: 0.3 },
+      ],
+    },
+  ];
+
+  it("honours a pinned domain instead of fitting to the data", () => {
+    // The regression this guards: `yDomain` was declared as a prop and then
+    // shadowed by the fitted domain, so five frames asked for a scale and
+    // silently got another one. A pinned [-1, 1] must survive data spanning
+    // only 0.1-0.3, or the chart flatters a weak correlation into a strong one.
+    expect(resolveYDomain(corr, [-1, 1])).toEqual([-1, 1]);
+  });
+
+  it("fits the data when no domain is pinned", () => {
+    const [min, max] = resolveYDomain(corr);
+    expect(min).toBeLessThanOrEqual(0.1);
+    expect(max).toBeGreaterThanOrEqual(0.3);
+  });
+
+  it("keeps a pinned domain narrower than the data", () => {
+    // Clamping is the caller's stated intent, not a mistake to correct.
+    expect(resolveYDomain(corr, [0, 0.2])).toEqual([0, 0.2]);
   });
 });

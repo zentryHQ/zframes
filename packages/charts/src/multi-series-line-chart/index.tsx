@@ -27,7 +27,7 @@ import { ChartTooltip } from "./components/chart-tooltip";
 import { EventLayer } from "./components/event-layer";
 
 import {
-  calculateYDomain,
+  resolveYDomain,
   getAllDates,
   combineDateValues,
   getHoverOpacity,
@@ -50,9 +50,7 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
   className,
   isLoading = false,
   formatValue,
-  unitPrefix,
-  unitSuffix,
-  onLabelClick,
+  yDomain: yDomainProp,
   events,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -87,7 +85,14 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
 
   const { seriesColors, isColorLoading } = useSeriesColors(sortedSeries);
 
-  const yDomain = useMemo(() => calculateYDomain(sortedSeries), [sortedSeries]);
+  // A caller-supplied domain WINS over the fitted one. Frames that pin a
+  // meaningful scale (a correlation chart at [-1, 1], a percentile band at
+  // [0, 100]) are making a statement the data must be read against; fitting to
+  // the data instead silently redraws their axis and flatters every series.
+  const yDomain = useMemo(
+    () => resolveYDomain(sortedSeries, yDomainProp),
+    [yDomainProp, sortedSeries],
+  );
 
   /**
    * Reserve whatever chrome sits ABOVE the plot, so `fill` gives the plot only
@@ -350,9 +355,6 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
                   containerWidth={dimensions.width}
                   hoveredSeriesId={hoveredSeriesId}
                   onSeriesHover={handleSeriesHover}
-                  onLabelClick={onLabelClick}
-                  unitPrefix={unitPrefix}
-                  unitSuffix={unitSuffix}
                 />
               </div>
 
@@ -390,8 +392,6 @@ const MultiSeriesLineChartComponent: React.FC<MultiSeriesLineChartProps> = ({
                     tooltipRef={tooltipRef}
                     series={filteredSeries}
                     seriesColors={seriesColors}
-                    unitPrefix={unitPrefix}
-                    unitSuffix={unitSuffix}
                   />
                 </div>
               </div>
