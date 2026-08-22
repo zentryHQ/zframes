@@ -25,7 +25,7 @@ import { DashboardChooser } from "./dashboard-chooser";
 import { createLazyRegistry, prefetchFrames } from "./lazy-registry";
 import { prefetchIdle } from "./prefetch-idle";
 import { TickerTape } from "./ticker-tape";
-import { useIsDesktop, useMediaQuery } from "./use-is-desktop";
+import { DESKTOP_QUERY, useIsDesktop, useMediaQuery } from "./use-is-desktop";
 import { ZaiOrb } from "./zai-orb";
 
 // The GridStack editor is desktop-only and heavy (GridStack + its CSS side-effect
@@ -37,6 +37,16 @@ const DashboardEditor = lazy(() =>
     default: m.DashboardEditor,
   })),
 );
+// On desktop, start that download NOW — in parallel with the spec fetch — not at
+// idle. The Suspense fallback below mounts the whole board through
+// DashboardRenderer and swaps to the editor when its chunk lands, so every ms of
+// chunk latency is a window in which all frames mount twice (poll hooks fire,
+// the entrance cascade replays). Module scope beats first render by the whole
+// spec round-trip; dynamic import dedupes with the lazy() call above.
+// (Optional-chained: jsdom has no matchMedia until the App suite stubs it, and
+// this line runs at import time, before any beforeEach.)
+if (window.matchMedia?.(DESKTOP_QUERY).matches)
+  void loadEditor().catch(() => {});
 
 const registry = createLazyRegistry();
 // Keyless set from the shared factory; the runtime adds the keyed tier
