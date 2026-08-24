@@ -6,6 +6,7 @@ import { catalogue } from "./catalogue";
 import { list, use } from "./dashboards";
 import { init } from "./init";
 import { lintSpec } from "./lint";
+import { providers } from "./providers";
 import { serve } from "./serve";
 import { snapshot } from "./snapshot";
 
@@ -30,6 +31,12 @@ usage:
                                 store dashboards from the in-app header dropdown
   zframes list                  list the dashboards in your store (default *)
   zframes use <name>            set the default store dashboard
+  zframes providers             list data-provider plugins: installed + available.
+                                A bare install renders on built-in DEMO data;
+                                \`providers add keyless\` connects the free live
+                                market-data fleet (\`add\`/\`remove <id>\` manage
+                                the set; adding prints what the plugin contacts
+                                and where its terms live)
   zframes catalogue [frame...]  print the frame catalogue + design vocabulary as
                                 JSON: frames (config as JSON Schema, sizing),
                                 categories, theme presets, background scenes
@@ -115,6 +122,12 @@ async function main(): Promise<number> {
       return list();
     case "use":
       return use(args.slice(1));
+    case "providers": {
+      const result = providers(args.slice(1));
+      if (result.stdout) console.log(result.stdout);
+      if (result.stderr) console.error(result.stderr);
+      return result.code;
+    }
     case "snapshot":
       return snapshot(args.slice(1));
     case "help":
