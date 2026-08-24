@@ -30,14 +30,27 @@ import { useLowEndDevice, useReducedMotion } from "./device";
 //     never pre-renders the downgraded state and then hydrates into the
 //     opposite.
 //
-// `device.ts` holds no module-level state (only its three query constants), so
-// every test shares one import; what does need resetting is the globals it
-// reads. jsdom defines a REAL `navigator.hardwareConcurrency` — the host
+// `device.ts` itself holds no module-level state (only its three query
+// constants), so every test shares one import; the probe it imports DOES hold
+// state (verdict, armed flag), but that lives in `perf-probe.ts`, is reset in
+// its own test file via `vi.resetModules()`, and is mocked file-wide here so
+// the capability-signal cases stay hermetic. What does need resetting is the
+// globals device.ts reads. jsdom defines a REAL `navigator.hardwareConcurrency` — the host
 // machine's core count, so 12 here and possibly 4 on a CI runner — so each case
 // shadows the capability signals with own properties rather than trusting the
 // environment, or the same test would answer differently per machine.
 // `matchMedia` is stubbed with working add/removeEventListener so subscriptions
 // are observable. Nothing here touches the network or a real media query.
+
+// The measured-tier probe, mocked file-wide (vi.mock hoists): `perfLite`
+// answers false by default so every capability-signal case above runs against
+// a no-verdict probe, and `subscribePerfProbe` is a no-op so no timer or rAF
+// ever arms here. The integration case at the bottom flips `perfLite` to true.
+const probeMock = vi.hoisted(() => ({
+  perfLite: vi.fn(() => false),
+  subscribePerfProbe: vi.fn(() => () => {}),
+}));
+vi.mock("./perf-probe", () => probeMock);
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 const REDUCED_DATA = "(prefers-reduced-data: reduce)";
@@ -165,6 +178,9 @@ afterEach(() => {
   clearSignals();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  // Back to the no-verdict default, so a probe answer set by one case can
+  // never leak into the next (restoreAllMocks only covers spies, not vi.fn).
+  probeMock.perfLite.mockReset();
 });
 
 describe("useLowEndDevice — defaults to high-end", () => {
@@ -365,5 +381,17 @@ describe("server snapshot", () => {
     expect(await serverRender(<ReducedMotionProbe />)).toBe(
       "<span>false</span>",
     );
+  });
+});
+
+describe("useLowEndDevice — measured tier (perf-probe)", () => {
+  it("trips on a lite probe verdict even when every capability signal is high-end", () => {
+    // The exact demographic the probe exists for: nothing on the spec sheet
+    // says low-end, only the measured frame rate does.
+    installMatchMedia();
+    setSignals(CAPABLE);
+    probeMock.perfLite.mockReturnValue(true);
+    const { container } = render(<LowEndProbe />);
+    expect(container.textContent).toBe("true");
   });
 });

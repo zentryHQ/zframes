@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { perfLite, subscribePerfProbe } from "./perf-probe";
 
 // The device / preference gates hosts use to skip the full-screen WebGL
 // backdrop — a purely-cosmetic GPU + bandwidth tax a weak or metered device
@@ -23,6 +24,8 @@ interface CapabilityNavigator extends Navigator {
 //     a missing value counts as high-end, so Firefox/Safari never downgrade on
 //     hardware alone)
 //   - a small touch screen (coarse pointer AND <=768px) — a phone, not an iPad
+//   - measured frame rate: a persisted rAF probe (perf-probe.ts) for hardware
+//     the capability signals miss
 function detectLowEnd(): boolean {
   if (typeof window === "undefined") return false;
   const nav = navigator as CapabilityNavigator;
@@ -31,6 +34,7 @@ function detectLowEnd(): boolean {
   if ((nav.deviceMemory ?? 8) <= 4) return true;
   if ((nav.hardwareConcurrency ?? 8) <= 4) return true;
   if (window.matchMedia(SMALL_TOUCH).matches) return true;
+  if (perfLite()) return true;
   return false;
 }
 
@@ -47,8 +51,17 @@ function subscribeToQueries(
 
 const serverSnapshot = () => false;
 
-const subscribeLowEnd = (onChange: () => void) =>
-  subscribeToQueries([REDUCED_DATA, SMALL_TOUCH], onChange);
+const subscribeLowEnd = (onChange: () => void) => {
+  const unsubscribeQueries = subscribeToQueries(
+    [REDUCED_DATA, SMALL_TOUCH],
+    onChange,
+  );
+  const unsubscribeProbe = subscribePerfProbe(onChange);
+  return () => {
+    unsubscribeQueries();
+    unsubscribeProbe();
+  };
+};
 
 /**
  * True when the device is likely too weak or too metered to spend GPU +
