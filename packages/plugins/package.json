@@ -1,0 +1,34 @@
+{
+  "name": "@zframes/plugins",
+  "version": "0.0.0",
+  "description": "The built-in provider-plugin registry: the manifests of the first-party plugins an installation can mount (Node half, pure data — feeds `zframes providers`, the derived proxy allowlist and the providers route) and the loader that dynamic-imports a mounted plugin's code in the browser as its own chunk. A third-party plugin can't exist until the contract ships on npm, so this registry covers everything loadable today.",
+  "license": "MIT",
+  "author": "Zentry",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zentryhq/zframes.git",
+    "directory": "packages/plugins"
+  },
+  "private": true,
+  "type": "module",
+  "main": "src/registry.ts",
+  "types": "src/registry.ts",
+  "exports": {
+    "./registry": "./src/registry.ts",
+    "./load": "./src/load.ts"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zframes/provider-binance": "workspace:*",
+    "@zframes/provider-demo": "workspace:*",
+    "@zframes/provider-wallet": "workspace:*",
+    "@zframes/providers-keyless": "workspace:*",
+    "@zframes/spec": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}

@@ -33,6 +33,18 @@ const DAG: Record<string, string[]> = {
   unicorn: [],
   frames: ["@zframes/charts", "@zframes/core", "@zframes/spec"],
   cli: [],
+  // Composition leaf: the built-in plugin registry (manifests, Node) + loader
+  // (dynamic imports, browser). The one package allowed to see every
+  // first-party plugin — keyless fleet, demo, and the keyed tier — because
+  // naming what CAN be mounted is its whole job. Nothing below the apps/CLI
+  // may depend on it.
+  plugins: [
+    "@zframes/provider-binance",
+    "@zframes/provider-demo",
+    "@zframes/provider-wallet",
+    "@zframes/providers-keyless",
+    "@zframes/spec",
+  ],
   // Composition leaf: aggregates the keyless provider set for the apps. Sits
   // above the providers, below the apps; imports providers + spec (the type).
   // `provider-demo` is deliberately absent: it is the synthetic default source,

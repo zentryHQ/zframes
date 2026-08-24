@@ -304,6 +304,52 @@ export default tseslint.config(
     },
   },
   {
+    // @zframes/plugins is the built-in plugin registry/loader — a React-free
+    // composition leaf one step above providers-keyless: it may import the
+    // first-party plugin packages (fleet, demo, keyed tier) + @zframes/spec,
+    // and must never grow a React or infra dependency.
+    files: ["packages/plugins/src/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "react",
+              message: "the plugin registry is a React-free data layer.",
+            },
+            {
+              name: "react-dom",
+              message: "the plugin registry is a React-free data layer.",
+            },
+          ],
+          patterns: [
+            {
+              group: [
+                "@zframes/core",
+                "@zframes/core/*",
+                "@zframes/editor",
+                "@zframes/editor/*",
+                "@zframes/serve",
+                "@zframes/serve/*",
+                "@zframes/zai",
+                "@zframes/zai/*",
+                "@zframes/account",
+                "@zframes/account/*",
+                "@zframes/store",
+                "@zframes/store/*",
+                "@zframes/vite",
+                "@zframes/vite/*",
+              ],
+              message:
+                "the plugin registry imports the plugin packages + @zframes/spec only.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // @zframes/data-primitives is the React-free provider transport: it may
     // import @zframes/spec (route constants) and nothing else of ours.
     files: ["packages/data-primitives/src/**/*.{ts,tsx}"],

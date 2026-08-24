@@ -221,15 +221,9 @@ importers:
       '@zframes/frames':
         specifier: workspace:*
         version: link:../../packages/frames
-      '@zframes/provider-binance':
+      '@zframes/plugins':
         specifier: workspace:*
-        version: link:../../packages/provider-binance
-      '@zframes/provider-wallet':
-        specifier: workspace:*
-        version: link:../../packages/provider-wallet
-      '@zframes/providers-keyless':
-        specifier: workspace:*
-        version: link:../../packages/providers-keyless
+        version: link:../../packages/plugins
       '@zframes/spec':
         specifier: workspace:*
         version: link:../../packages/spec
@@ -418,6 +412,9 @@ importers:
       '@zframes/frames':
         specifier: workspace:*
         version: link:../frames
+      '@zframes/plugins':
+        specifier: workspace:*
+        version: link:../plugins
       '@zframes/provider-alternativeme':
         specifier: workspace:*
         version: link:../provider-alternativeme
@@ -557,6 +554,28 @@ importers:
       '@zframes/provider-demo':
         specifier: workspace:*
         version: link:../provider-demo
+      typescript:
+        specifier: ^5.8.0
+        version: 5.9.3
+
+  packages/plugins:
+    dependencies:
+      '@zframes/provider-binance':
+        specifier: workspace:*
+        version: link:../provider-binance
+      '@zframes/provider-demo':
+        specifier: workspace:*
+        version: link:../provider-demo
+      '@zframes/provider-wallet':
+        specifier: workspace:*
+        version: link:../provider-wallet
+      '@zframes/providers-keyless':
+        specifier: workspace:*
+        version: link:../providers-keyless
+      '@zframes/spec':
+        specifier: workspace:*
+        version: link:../spec
+    devDependencies:
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
