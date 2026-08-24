@@ -551,11 +551,12 @@ html[data-zf-demo] .zf-frame-source {
  * poster window's overflow-hidden clips the overscan. */
 .zf-kenburns {
   /* Includes opacity so it doesn't clobber ThumbImage's fade-in — an unlayered
-   * `transition` shorthand wins over the Tailwind transition-opacity utility. */
+   * `transition` shorthand wins over the Tailwind transition-opacity utility.
+   * No `will-change`: a permanent hint holds one compositor layer per poster
+   * across the whole grid; the animated transform promotes on hover for free. */
   transition:
     transform 1.1s var(--zf-ease-out),
     opacity 0.5s var(--zf-ease-out);
-  will-change: transform;
 }
 .group:hover .zf-kenburns {
   transform: scale(1.06);
