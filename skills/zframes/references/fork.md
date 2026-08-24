@@ -30,7 +30,9 @@ showroom; forking pulls the artifact home.
    dashboard, so replace, don't merge.
 
 3. **Lint + serve** (SKILL.md steps 5–6): `zframes lint <name>`, then
-   `zframes serve <name>`. Now it's a real file they own, running live.
+   `zframes serve <name>`. Now it's a real file they own, running live. If
+   `serve` reports no data providers installed (the "demo data" fallback), run
+   `zframes providers add keyless` once and serve again — see SKILL.md step 6.
 
 4. **Offer to personalize.** It's now an ordinary "update"
    (`references/design.md` rules) — "want me to swap in your tickers, add a

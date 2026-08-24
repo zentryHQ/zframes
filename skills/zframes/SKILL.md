@@ -21,8 +21,9 @@ runs the full build below.
 The runtime ships as the `zframes` CLI on npm. Always invoke it with
 **`npx --yes zframes@latest <cmd>`** — npx fetches the published CLI (which bundles the
 dashboard runtime) per run, so there's nothing to clone, install, or keep
-current. The commands you'll use below are `init`, `catalogue`, `lint`, and
-`serve` (written `zframes <cmd>` for brevity — always run them through `npx`).
+current. The commands you'll use below are `init`, `providers`, `catalogue`,
+`lint`, and `serve` (written `zframes <cmd>` for brevity — always run them
+through `npx`).
 
 ## 1. Route the request — serve, update, or create
 
@@ -175,8 +176,23 @@ Serve the dashboard and open it for the user:
 npx --yes zframes@latest serve <name>   # the store name; live at http://127.0.0.1:37263
 ```
 
+**Live data is installed once, not assumed.** A bare install ships no data
+providers: it renders plainly-simulated demo numbers, badges the header
+"demo data", and `serve` says so at startup. Before the first serve on a
+machine (or whenever `serve` prints the demo notice / the header shows the
+badge), install the free keyless fleet:
+
+```bash
+npx --yes zframes@latest providers add keyless   # one-time; prints what it contacts + where the terms live
+```
+
+That printout is the point — it is the user's consent surface, so let it show
+rather than suppressing it. `zframes providers` lists what's installed.
+(An older published CLI without this command always streams live data — if
+`providers` errors as unknown, just serve.)
+
 `serve` hosts the prebuilt runtime pointed at that dashboard, streaming live
-keyless data. A bare `zframes serve` (no name) opens the **default** store
+keyless data once the fleet is installed. A bare `zframes serve` (no name) opens the **default** store
 dashboard, and when the store holds several the header title becomes a
 **dashboard chooser** — the user opens it, picks another, and the page reloads
 into it, no restart. The user can drag, resize, add, and configure frames **in the
@@ -190,6 +206,8 @@ see pixels. After serving a *newly built or reshaped* board, if you have a
 browser tool, open `http://127.0.0.1:37263` and sweep once for: error cards
 ("Invalid configuration", "Unknown frame", missing-capability), cards stuck
 empty, rows with holes, and clipped card interiors — fix the spec and reload.
+A **"demo data" pill in the header is not a bug**: it means no data providers
+are installed — run `zframes providers add keyless` and restart the serve.
 (Give live data a few seconds to settle before judging a card empty; a chart's
 draw-in animation is not a bug.) No browser tool? Tell the user exactly what to
 glance for and fix what they report. Skip this sweep for a plain serve or a
@@ -215,6 +233,7 @@ one-field update — the diff is the proof there.
   If the user wants a frame that doesn't exist, say so and list what does.
 - Free data only: 29 keyless sources — Hyperliquid (crypto + HIP-3 stock perps),
   Nasdaq, CoinGecko, DeFiLlama, Deribit, Cboe, mempool.space, the U.S. Treasury,
-  the NY Fed, BLS, SEC EDGAR, FRED, LBMA metals, and more. There are no API keys
-  to configure — never ask for one.
+  the NY Fed, BLS, SEC EDGAR, FRED, LBMA metals, and more. The whole fleet is one
+  `zframes providers add keyless` (step 6); there are no API keys to configure —
+  never ask for one.
 - Re-read the catalogue every session; never trust remembered frame names.
