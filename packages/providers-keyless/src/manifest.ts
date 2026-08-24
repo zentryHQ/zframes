@@ -1,18 +1,16 @@
 /**
- * The keyless fleet as an installable provider plugin.
+ * The keyless fleet's plugin manifest — what an installation that mounts the
+ * fleet declares, discovered by hosts that import nothing about the providers.
  *
- * This module is the `ProviderPlugin` shape (`manifest` + `createProviders`),
- * so the same 29 providers the apps compose today can also be *discovered* by a
- * host that imports nothing about them. Three consumers WILL read the manifest
- * and nothing else, none of them built yet: a `zframes providers` command (what
- * an assembling agent may pin), the serve proxy allowlist (via `proxyHostsOf`,
- * which today only a test calls, while the mounts still pass the hardcoded
- * `PROXY_ALLOW_HOSTS`), and a per-installation AI catalogue (whose `source`
- * vocabulary would come from `sources` instead of the hardcoded enum in
- * `packages/frames/src/schemas/shared.ts`). Until then this manifest is a
- * parallel description, held equal to what it describes by the two guards in
- * repo-level `tests/`. Every field below is transcribed from the code that does
- * the fetching, never from documentation about it.
+ * Three consumers read it and nothing else: `zframes providers` (what an
+ * assembling agent may pin, and the install-time notice), every relay mount's
+ * derived allowlist (`proxyHostsOf` — the hand-kept `PROXY_ALLOW_HOSTS`
+ * constant is retired), and — still to come — the per-installation AI
+ * catalogue, whose `source` vocabulary would come from `sources` instead of
+ * the hardcoded enum in `packages/frames/src/schemas/shared.ts` (held equal by
+ * `tests/keyless-source-credits.test.ts` until it derives). Every field below
+ * is transcribed from the code that does the fetching, never from
+ * documentation about it.
  *
  * `termsUrl` is deliberately absent. The 30 independent upstreams credited here
  * have no single terms page, and pointing the install-time notice at one (or at
@@ -21,16 +19,13 @@
  * source terms are reachable from each credit's `url`.
  */
 import type { Capability, ProviderPluginManifest } from "@zframes/spec";
-import { createKeylessProviders } from "./index";
 
-/**
- * The plugin factory. An alias, not a second implementation: the runtime and
- * Storybook still import `createKeylessProviders` directly (the explorer no
- * longer mounts the fleet at all, only the synthetic provider), and two
- * factories that could drift is exactly the failure this package exists to
- * remove.
- */
-export const createProviders = createKeylessProviders;
+// PURE DATA — no `./index` import. This module is what the Node mounts (the
+// CLI's serve, the dev Vite plugin via its host, Storybook's middleware, the
+// explorer's Next relay route) read to derive their allowlists, and what the
+// plugin registry lists: none of them should load 29 provider classes to read
+// a description. The runnable half (`manifest` + `createProviders`) is
+// `./plugin`, which imports both this file and `./index`.
 
 /**
  * Every capability the fleet advertises, grouped by the provider that serves it
@@ -154,23 +149,21 @@ const CAPABILITIES: readonly Capability[] = [
 /**
  * Hosts the fleet contacts.
  *
- * `proxied` is set on exactly the entries in serve's `PROXY_ALLOW_HOSTS`: those
- * are the hosts that send no `Access-Control-Allow-Origin`, so a browser can
- * only reach them through the relay, and the frames that need them degrade to
- * empty on a static host with no runtime. Everything else is CORS-open and
- * fetched directly, which is why it needs no relay entry.
+ * `proxied` marks the hosts that send no `Access-Control-Allow-Origin`, so a
+ * browser can only reach them through the relay, and the frames that need them
+ * degrade to empty on a static host with no runtime. Everything else is
+ * CORS-open and fetched directly, which is why it needs no relay entry.
  *
- * Two sources of truth were reconciled here: the request URLs in the provider
- * packages, and serve's allowlist. Six allowlisted hosts are NOT requested by
- * any shipping provider today (`efts.sec.gov`, `www.federalreserve.gov`,
- * `www.nasdaqtrader.com`, `www.nyse.com`, `www.bankofengland.co.uk`,
- * `www.rba.gov.au`) and two are requested unproxied even though they are
- * allowlisted (`api.bls.gov`, `markets.newyorkfed.org`). They are all carried
- * with `proxied: true` regardless, because while both lists exist the allowlist
- * is what actually governs the relay, and a manifest that quietly narrowed it
- * would revoke reach the running proxy still grants. `tests/keyless-proxy-hosts.test.ts`
- * pins the two lists equal so neither can drift; when serve switches to the
- * derived allowlist, dropping an entry here is what retires it.
+ * THIS LIST IS THE ALLOWLIST. Every mount derives what the relay may reach
+ * from the manifests it mounts (`proxyHostsOf`), so an entry here is a grant
+ * and dropping one is what retires it. Eight entries are carried wider than
+ * strictly requested, inherited from the retired hand-kept allowlist: six
+ * hosts no shipping provider calls today (`efts.sec.gov`,
+ * `www.federalreserve.gov`, `www.nasdaqtrader.com`, `www.nyse.com`,
+ * `www.bankofengland.co.uk`, `www.rba.gov.au` — possibly redirect targets, so
+ * verify before dropping) and two requested unproxied but still granted
+ * (`api.bls.gov`, `markets.newyorkfed.org`). Narrowing them is a conscious
+ * follow-up, not a cleanup.
  */
 const HOSTS = [
   // Official/open data surfaces. CORS-blocked, hence relayed.

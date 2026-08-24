@@ -4,15 +4,17 @@
 // what it advertises.
 import { describe, expect, it } from "vitest";
 import { validateProviderPlugin } from "@zframes/spec/provider-plugin";
-import { KEYLESS_MANIFEST, createProviders } from "./manifest";
+import { KEYLESS_MANIFEST } from "./manifest";
+import { createProviders, manifest } from "./plugin";
 import { createKeylessProviders } from "./index";
 
 describe("KEYLESS_MANIFEST", () => {
   it("is a plugin the loader would accept", () => {
-    const result = validateProviderPlugin({
-      manifest: KEYLESS_MANIFEST,
-      createProviders,
-    });
+    // `./plugin` is the module the loader actually dynamic-imports, so
+    // validate ITS exports (and that its manifest is the same object, not a
+    // drifted copy).
+    expect(manifest).toBe(KEYLESS_MANIFEST);
+    const result = validateProviderPlugin({ manifest, createProviders });
     // Print the reasons rather than a bare `false`: the failure is always a
     // specific field, and hunting it in a 50-host manifest is the slow part.
     expect(result.ok ? [] : result.errors).toEqual([]);

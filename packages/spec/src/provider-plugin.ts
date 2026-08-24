@@ -16,13 +16,14 @@
  *      `sources` rather than a list baked into the frame schemas;
  *   4. the install-time terms notice, via `termsUrl`.
  *
- * NONE OF THE FOUR IS BUILT YET. There is no loader, no `zframes providers`
- * command, the mounts still pass the bundled fleet's hardcoded host list, and
- * the catalogue's `source` vocabulary is still the enum in
- * `packages/frames/src/schemas/shared.ts`. This contract is the shape they will
- * read; until they exist it is held honest only by the drift guards in
- * repo-level `tests/`, which pin the fleet's manifest equal to the two lists it
- * is meant to replace.
+ * THREE OF THE FOUR ARE BUILT. The loader is `@zframes/plugins` (a registry of
+ * the first-party plugins as lazy browser chunks — a third-party plugin can't
+ * exist until this contract is published to npm, so the registry covers
+ * everything loadable today), `zframes providers` manages the installed set,
+ * and every mount derives its allowlist with `proxyHostsOf`. Still open: the
+ * catalogue's `source` vocabulary is the enum in
+ * `packages/frames/src/schemas/shared.ts`, held equal to the fleet manifest's
+ * credits by `tests/keyless-source-credits.test.ts` until it derives.
  *
  * A plugin is a plain module: a `manifest` plus a `createProviders()` factory.
  * No base class, no lifecycle, nothing to inherit. That keeps a hand-written
@@ -106,6 +107,21 @@ export interface ProviderPluginManifest {
    * it cannot fill.
    */
   requiresCredentials?: boolean;
+}
+
+/**
+ * What GET `PROVIDERS_ROUTE` answers: the plugins this installation mounts, in
+ * mount (= routing-precedence) order. Deliberately just identity + the two
+ * flags the app renders chrome from — the full manifests stay server-side,
+ * where the allowlist and the install-time notice read them.
+ */
+export interface ProvidersRouteBody {
+  plugins: Array<{
+    id: string;
+    name: string;
+    synthetic?: boolean;
+    requiresCredentials?: boolean;
+  }>;
 }
 
 /** An installed data adapter, as the loader sees it. */

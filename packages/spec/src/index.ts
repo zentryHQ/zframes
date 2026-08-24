@@ -176,4 +176,5 @@ export type {
   ProviderPlugin,
   ProviderPluginManifest,
   ProviderPluginValidation,
+  ProvidersRouteBody,
 } from "./provider-plugin";

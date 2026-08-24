@@ -31,6 +31,15 @@ export const DASHBOARD_SWITCH_ROUTE = "/__zframes/switch";
  */
 export const DASHBOARD_PROXY_ROUTE = "/__zframes/proxy";
 /**
+ * GET → the provider plugins THIS installation mounts (see
+ * `ProvidersRouteBody`, `@zframes/spec/provider-plugin`). The server owns the
+ * decision — it read the store config (CLI) or its host's composition (dev) —
+ * and the app loads exactly the plugins named here. Absent (404, e.g. a static
+ * host), the app falls back to the synthetic demo plugin, so a board always
+ * renders.
+ */
+export const PROVIDERS_ROUTE = "/__zframes/providers";
+/**
  * Keyed-account tier. The signed read relay returns a connected account's
  * portfolio (`?source=binance`); the credential route is the in-app connect
  * form's backend (POST connect / GET status / DELETE disconnect). Both are
