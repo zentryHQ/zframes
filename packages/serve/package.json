@@ -15,8 +15,7 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./serve": "./src/serve.ts",
-    "./proxy-allowlist": "./src/proxy-allowlist.ts"
+    "./serve": "./src/serve.ts"
   },
   "sideEffects": false,
   "scripts": {

@@ -4,7 +4,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 import { handleProxy, handleSpecRead, handleSpecWrite } from "./serve";
-import { PROXY_ALLOW_HOSTS } from "./proxy-allowlist";
+
+// A representative slice of real fleet hosts for the fixtures below. A LOCAL
+// list on purpose: the relay has no default allowlist and this package may not
+// import the fleet's manifest (serve depends on spec alone), so the tests
+// bring their own — exactly what any real mount does.
+const PROXY_ALLOW_HOSTS = new Set([
+  "data.sec.gov",
+  "www.sec.gov",
+  "api.fiscaldata.treasury.gov",
+  "api.nasdaq.com",
+  "cdn.finra.org",
+  "fred.stlouisfed.org",
+  "www.bankofengland.co.uk",
+  "www.rba.gov.au",
+  "www.fhfa.gov",
+]);
 
 // `handleProxy` resolves every hop before fetching it (the private-address
 // guard), and this suite is hermetic: fetch is stubbed, so DNS must be too, or

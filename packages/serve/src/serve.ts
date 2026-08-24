@@ -8,9 +8,9 @@ import { DashboardSpecSchema } from "@zframes/spec/spec";
 
 // No host allowlist is imported here on purpose. The relay reaches only the
 // hosts its MOUNT names (`ProxyOptions.allowHosts`, empty by default), so this
-// module ships no opinion about which third party a dashboard may call. The
-// transitional list the in-repo fleet still passes lives in
-// `@zframes/serve/proxy-allowlist` and is read by the mounts, not by the relay.
+// module ships no opinion about which third party a dashboard may call. Every
+// mount derives its list from the plugin manifests it mounts (`proxyHostsOf`,
+// @zframes/spec/provider-plugin) — never from a constant compiled in here.
 
 /**
  * The dashboard read/write contract, shared verbatim by the dev Vite plugin
@@ -32,7 +32,17 @@ export {
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
   DASHBOARD_PROXY_ROUTE,
+  PROVIDERS_ROUTE,
 } from "@zframes/spec/routes";
+// The manifest-derivation helper + shapes, re-exported for the same Node
+// servers: a mount derives its allowlist and its providers-route body from the
+// plugin manifests it mounts, and `@zframes/vite` (whose only spec-side dep is
+// this package) reads them from here.
+export {
+  proxyHostsOf,
+  type ProviderPluginManifest,
+  type ProvidersRouteBody,
+} from "@zframes/spec/provider-plugin";
 
 // Hard cap on the request body — a small spec file, never a large upload.
 const MAX_BODY_BYTES = 2_000_000;
@@ -322,13 +332,12 @@ export interface ProxyOptions {
    * frames and the assembly layer, not a decision about which third party a
    * board calls. A host that wants to reach anything has to name it.
    *
-   * TODAY every in-repo mount names the bundled fleet's list
-   * (`PROXY_ALLOW_HOSTS`), so a default `zframes serve` still relays to all of
-   * those hosts. The INTENDED end state is that a mount derives its list from
-   * the manifests of the adapters the operator installed (`proxyHostsOf`,
-   * @zframes/spec), at which point an installation with no adapters reaches
-   * nothing at all. What this option changes now is only where the decision
-   * lives: at the mount, in the open, instead of compiled into the relay.
+   * Every mount derives its list from the plugin manifests it mounts
+   * (`proxyHostsOf`, @zframes/spec/provider-plugin): the CLI's `serve` from
+   * the operator's installed plugins, the dev Vite plugin from what its host
+   * composed, Storybook and the explorer from the fleet manifest their
+   * surfaces deliberately run. An installation with no plugins reaches
+   * nothing at all.
    *
    * Passing nothing is a valid state, not a misconfiguration.
    */

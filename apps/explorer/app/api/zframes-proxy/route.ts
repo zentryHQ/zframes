@@ -1,5 +1,5 @@
-import { handleProxy } from "@zframes/serve/serve";
-import { PROXY_ALLOW_HOSTS } from "@zframes/serve/proxy-allowlist";
+import { handleProxy, proxyHostsOf } from "@zframes/serve/serve";
+import { KEYLESS_MANIFEST } from "@zframes/providers-keyless/manifest";
 
 // Reached via a next.config rewrite: the browser calls `/__zframes/proxy?url=…`
 // (a shared constant in @zframes/core), which Next rewrites here. It can't live
@@ -151,11 +151,12 @@ async function relay(request: Request): Promise<RelayResult> {
   } as unknown as Parameters<typeof handleProxy>[1];
 
   await handleProxy(reqLike, resLike, {
-    // The relay allows nothing unless its mount names hosts. This route keeps
-    // the fleet's list so the relay behaves as it always did, even though every
-    // frame-rendering surface here mounts the synthetic provider today: the
-    // route is reachable independently of what the pages mount.
-    allowHosts: PROXY_ALLOW_HOSTS,
+    // The relay allows nothing unless its mount names hosts. This route
+    // derives the fleet's list from its manifest so the relay behaves as it
+    // always did, even though every frame-rendering surface here mounts the
+    // synthetic provider today: the route is reachable independently of what
+    // the pages mount.
+    allowHosts: proxyHostsOf([KEYLESS_MANIFEST]),
     userAgent: process.env.ZFRAMES_CONTACT
       ? `zframes (${process.env.ZFRAMES_CONTACT})`
       : undefined,

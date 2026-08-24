@@ -3,7 +3,21 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { handleProxy, handleSpecWrite } from "./serve";
-import { PROXY_ALLOW_HOSTS } from "./proxy-allowlist";
+
+// A representative slice of real fleet hosts for the fixtures below — local on
+// purpose, the same way serve.test.ts brings its own (the relay has no default
+// allowlist, and this package may not import the fleet's manifest).
+const PROXY_ALLOW_HOSTS = new Set([
+  "data.sec.gov",
+  "www.sec.gov",
+  "api.fiscaldata.treasury.gov",
+  "api.nasdaq.com",
+  "cdn.finra.org",
+  "fred.stlouisfed.org",
+  "www.bankofengland.co.uk",
+  "www.rba.gov.au",
+  "www.fhfa.gov",
+]);
 
 // `handleProxy` resolves every hop before fetching it (the private-address
 // guard, exercised in serve.test.ts), so the hermetic suite answers DNS itself

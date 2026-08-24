@@ -6,8 +6,12 @@ import type { Plugin } from "vite";
 // Imported by package subpath, never a relative path: this file runs through
 // Vite's Node config loader, where an extensionless relative import fails (the
 // same contract packages/vite/src/vite.ts documents).
-import { DASHBOARD_PROXY_ROUTE, handleProxy } from "@zframes/serve/serve";
-import { PROXY_ALLOW_HOSTS } from "@zframes/serve/proxy-allowlist";
+import {
+  DASHBOARD_PROXY_ROUTE,
+  handleProxy,
+  proxyHostsOf,
+} from "@zframes/serve/serve";
+import { KEYLESS_MANIFEST } from "@zframes/providers-keyless/manifest";
 
 const here = dirname(fileURLToPath(import.meta.url));
 // .storybook → apps/storybook → apps → repo root
@@ -32,9 +36,11 @@ function officialDataProxy(): Plugin {
         if (req.method !== "GET" && req.method !== "HEAD") return next();
         // The relay allows nothing on its own, so a mount that wants reach has
         // to name it. Storybook's Live story bundles the keyless fleet
-        // (src/live-providers.ts), so it passes that fleet's list, exactly as
-        // the CLI and vite mounts do.
-        void handleProxy(req, res, { allowHosts: PROXY_ALLOW_HOSTS });
+        // (src/live-providers.ts), so this mount derives its list from that
+        // fleet's manifest, exactly as the CLI and vite mounts do.
+        void handleProxy(req, res, {
+          allowHosts: proxyHostsOf([KEYLESS_MANIFEST]),
+        });
       });
     },
   };

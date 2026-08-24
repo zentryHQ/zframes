@@ -115,7 +115,9 @@ beforeAll(async () => {
     keyless = keylessMod.createKeylessProviders();
     binance = new binanceMod.BinanceProvider();
     wallet = new walletMod.WalletProvider();
-    // Exactly how the runtime composes it (apps/runtime/src/App.tsx).
+    // Exactly what the dev host mounts (apps/runtime/vite.config.ts passes
+    // the keyless + keyed manifests; the plugin loader constructs the same
+    // instances via each package's `plugin` module).
     fleet = [...keyless, binance, wallet];
     constructionFetchCalls = fetchMock.mock.calls;
   } finally {
