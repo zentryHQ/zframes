@@ -75,3 +75,8 @@ frame-size-sheets/
 .magi-review/
 .magi-review.lock
 .magi-review-history.jsonl
+
+# plans/ is local-only: audit-round plans that summarize internal findings and
+# landed commit hashes. Kept on disk, stripped from git history 2026-08-24;
+# never push it to origin.
+plans/
