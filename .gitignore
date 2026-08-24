@@ -80,3 +80,6 @@ frame-size-sheets/
 # landed commit hashes. Kept on disk, stripped from git history 2026-08-24;
 # never push it to origin.
 plans/
+
+# stray root scratch image, local-only
+/bk-top.jpg
