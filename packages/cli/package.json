@@ -45,6 +45,7 @@
     "@types/node": "^26.1.1",
     "@zframes/account": "workspace:*",
     "@zframes/frames": "workspace:*",
+    "@zframes/plugins": "workspace:*",
     "@zframes/provider-alternativeme": "workspace:*",
     "@zframes/provider-coingecko": "workspace:*",
     "@zframes/provider-defillama": "workspace:*",

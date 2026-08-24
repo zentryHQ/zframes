@@ -18,9 +18,10 @@ import {
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
 } from "@zframes/spec/routes";
-import { BinanceProvider } from "@zframes/provider-binance";
-import { WalletProvider } from "@zframes/provider-wallet";
-import { createKeylessProviders } from "@zframes/providers-keyless";
+import {
+  resolveRuntimeProviders,
+  type RuntimeProviders,
+} from "@zframes/plugins/load";
 import { DashboardBackground } from "./background";
 import { DashboardChooser } from "./dashboard-chooser";
 import { createLazyRegistry, prefetchFrames } from "./lazy-registry";
@@ -50,13 +51,14 @@ if (window.matchMedia?.(DESKTOP_QUERY).matches)
   void loadEditor().catch(() => {});
 
 const registry = createLazyRegistry();
-// Keyless set from the shared factory; the runtime adds the keyed tier
-// (Binance/Wallet) on top — the public explorer omits them.
-const providers = [
-  ...createKeylessProviders(),
-  new BinanceProvider(),
-  new WalletProvider(),
-];
+// No provider is imported here. The server names what this installation
+// mounts (GET /__zframes/providers — the CLI reads the operator's `zframes
+// providers` set, `vite dev` its host's composition) and
+// resolveRuntimeProviders loads exactly those plugins, each as its own lazy
+// chunk. No server / no route → the synthetic demo, so the board always
+// renders. Kicked off at module scope, in parallel with the spec fetch (the
+// effect below just awaits the memoized promise).
+void resolveRuntimeProviders().catch(() => {});
 
 // The runtime serves the user's dashboard.json at DASHBOARD_READ_ROUTE. Both
 // `vite dev` (via @zframes/vite/vite) and `zframes serve` answer it, so a single
@@ -149,6 +151,11 @@ async function persist(next: DashboardSpec) {
 
 export default function App() {
   const [load, setLoad] = useState<Load>({ status: "loading" });
+  // The mounted data providers, loaded per the server's providers route (see
+  // the module-scope note). Null until resolved; the board renders only once
+  // both the spec and the providers are in, so no frame ever mounts with an
+  // empty provider list and flashes "No data source".
+  const [runtime, setRuntime] = useState<RuntimeProviders | null>(null);
   const [customiseButtonTarget, setCustomiseButtonTarget] =
     useState<HTMLDivElement | null>(null);
   // Every cosmetic the editor reports while customising, in ONE object (null =
@@ -229,6 +236,19 @@ export default function App() {
   }, [downColor]);
 
   useEffect(() => {
+    // Memoized module-wide (StrictMode's double-effect reuses the one
+    // in-flight load, so providers — and their sockets — construct once); the
+    // `cancelled` guard only stops the discarded run's setState.
+    let cancelled = false;
+    void resolveRuntimeProviders().then((resolved) => {
+      if (!cancelled) setRuntime(resolved);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     // Fetch once on mount. StrictMode runs this twice in dev; the `cancelled`
     // guard makes the discarded first run a no-op (a GET is idempotent anyway).
     let cancelled = false;
@@ -275,6 +295,7 @@ export default function App() {
   if (load.status === "loading") return <Splash />;
   if (load.status === "error") return <LoadError message={load.message} />;
   if (load.status === "invalid") return <SpecError issues={load.issues} />;
+  if (!runtime) return <Splash />;
   const spec = load.spec;
   // flow-horizontal is full-bleed: it drops the centred max-width so the board
   // uses the whole viewport width and scrolls sideways. liveMode wins while
@@ -288,7 +309,7 @@ export default function App() {
   const background = live?.background ?? spec.background;
 
   return (
-    <FramesProvider providers={providers}>
+    <FramesProvider providers={runtime.providers}>
       <DashboardBackground
         background={background}
         surface={live?.theme.surface ?? spec.theme.surface}
@@ -335,6 +356,14 @@ export default function App() {
             >
               v{__ZFRAMES_VERSION__}
             </span>
+            {runtime.synthetic && (
+              <span
+                className="caption rounded-full border border-amber-300/30 bg-amber-400/10 px-1.5 py-0.5 font-mono leading-none text-amber-200/90"
+                title="No data providers installed — every number on this board is generated demo data. Run `zframes providers add keyless` to connect free live market data."
+              >
+                demo data
+              </span>
+            )}
           </div>
         </header>
         <div

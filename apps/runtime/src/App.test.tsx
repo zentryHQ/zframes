@@ -20,8 +20,10 @@ import { DESKTOP_QUERY } from "./use-is-desktop";
 //   * the load state machine — splash → ready / read-error / schema-invalid, and
 //     the `cache: "no-store"` on the read (a cached spec means a save is followed
 //     by a reload that re-renders the PRE-save file);
-//   * provider composition — the keyless set with the keyed tier appended, in
-//     order, since capability routing is first-match with no dedup;
+//   * provider mounting — the providers arrive from the plugin loader
+//     (@zframes/plugins/load, mocked) in server order, since capability routing
+//     is first-match with no dedup — and the all-synthetic mount badges the
+//     header with "demo data";
 //   * `persist` — the PUT carries the spec the editor emitted (not the loaded
 //     one), and the reload fires ONLY on a 2xx: reloading after a failed write
 //     silently discards the human's edits, so the failure branch has to keep them
@@ -35,9 +37,10 @@ import { DESKTOP_QUERY } from "./use-is-desktop";
 // the real frame registry (lazy chunks and all), DashboardBackground, the ticker
 // tape and the zAI orb. Stubbed: the GridStack editor (it owns per-item React
 // roots and has its own suite in packages/editor/src/editor.test.tsx — App's
-// contract with it is props-in / callbacks-out) and the provider fleet (the real
-// Hyperliquid provider opens a live WebSocket, and the identity/order of the list
-// is exactly what's asserted here).
+// contract with it is props-in / callbacks-out) and the plugin loader (the real
+// one fetches the providers route and dynamic-imports plugin chunks — the
+// Hyperliquid provider inside would open a live WebSocket — and the
+// identity/order of the provider list is exactly what's asserted here).
 //
 // Two jsdom facts this file depends on, learned the hard way:
 //   1. vitest's jsdom environment aliases `window` to `globalThis`, so
@@ -52,14 +55,19 @@ type EditorProps = Parameters<
   typeof import("@zframes/editor/editor").DashboardEditor
 >[0];
 
-const { editor, KEYLESS_NAMES } = vi.hoisted(() => ({
+const { editor, PROVIDER_NAMES, pluginLoad } = vi.hoisted(() => ({
   editor: {
     props: null as EditorProps | null,
     providerNames: "",
   },
-  // Two entries so "the keyed tier is appended" can't pass by accident on a
-  // single-element list.
-  KEYLESS_NAMES: ["keyless-first", "keyless-second"],
+  // Several entries so "the server's order is preserved" can't pass by
+  // accident on a single-element list.
+  PROVIDER_NAMES: ["keyless-first", "keyless-second", "binance", "wallet"],
+  // Per-test override for what the (mocked) plugin loader resolves; null →
+  // the default live-looking mount built from PROVIDER_NAMES.
+  pluginLoad: {
+    result: null as null | { providers: unknown[]; synthetic: boolean },
+  },
 }));
 
 /** Stands in for the GridStack editor: records the props App hands it, reports
@@ -75,23 +83,18 @@ function EditorStub(props: EditorProps) {
 
 vi.mock("@zframes/editor/editor", () => ({ DashboardEditor: EditorStub }));
 
-// Inert stand-ins: a mock factory runs at App's import, before the module body,
+// Inert stand-in: a mock factory runs at App's import, before the module body,
 // so it may only reference `vi.hoisted` values (and types, which are erased).
-vi.mock("@zframes/providers-keyless", () => ({
-  createKeylessProviders: (): MarketDataProvider[] =>
-    KEYLESS_NAMES.map((name) => ({ name, capabilities: [] })),
-}));
-vi.mock("@zframes/provider-binance", () => ({
-  BinanceProvider: class {
-    name = "binance";
-    capabilities = [];
-  },
-}));
-vi.mock("@zframes/provider-wallet", () => ({
-  WalletProvider: class {
-    name = "wallet";
-    capabilities = [];
-  },
+// App calls this at module scope AND in an effect; the real one is memoized, so
+// the stub resolving fresh objects per call is strictly harsher than reality.
+vi.mock("@zframes/plugins/load", () => ({
+  resolveRuntimeProviders: async () =>
+    pluginLoad.result ?? {
+      providers: PROVIDER_NAMES.map(
+        (name) => ({ name, capabilities: [] }) as unknown,
+      ) as MarketDataProvider[],
+      synthetic: false,
+    },
 }));
 
 /** A raw dashboard.json body — deliberately minimal so the assertions below can
@@ -161,6 +164,7 @@ beforeEach(() => {
 
   editor.props = null;
   editor.providerNames = "";
+  pluginLoad.result = null;
   // App writes the live cosmetic tokens onto <html>, which outlives cleanup().
   document.documentElement.removeAttribute("style");
 });
@@ -293,14 +297,29 @@ describe("loading dashboard.json", () => {
   });
 });
 
-describe("provider composition", () => {
-  it("appends the keyed tier to the keyless set, in routing order", async () => {
+describe("provider mounting", () => {
+  it("hands the loader's providers to the frames, preserving server order", async () => {
     await mountBoard();
-    // Order is load-bearing (useProviderFor is first-match, no dedup) and the
-    // keyed tier belongs LAST, behind the keyless fleet the explorer also ships.
-    expect(editor.providerNames).toBe(
-      [...KEYLESS_NAMES, "binance", "wallet"].join(","),
-    );
+    // Order is load-bearing: useProviderFor is first-match with no dedup, and
+    // mount order is the operator's routing precedence.
+    expect(editor.providerNames).toBe(PROVIDER_NAMES.join(","));
+  });
+
+  it("badges the header when everything mounted is synthetic", async () => {
+    pluginLoad.result = {
+      providers: [{ name: "mock", capabilities: [] }],
+      synthetic: true,
+    };
+    await mountBoard();
+    // The demo fallback must be visibly labelled — generated numbers on a
+    // market dashboard are never allowed to pass as live data.
+    expect(screen.getByText("demo data")).toBeDefined();
+    expect(editor.providerNames).toBe("mock");
+  });
+
+  it("shows no demo badge on a live mount", async () => {
+    await mountBoard();
+    expect(screen.queryByText("demo data")).toBeNull();
   });
 });
 

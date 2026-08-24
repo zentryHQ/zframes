@@ -8,10 +8,12 @@ import {
   dashboardsDir,
   findDashboardFile,
   getDefault,
+  getProviders,
   isValidName,
   listDashboards,
   resolveServeTarget,
   setDefault,
+  setProviders,
   storeHome,
 } from "./store";
 
@@ -64,6 +66,36 @@ describe("isValidName", () => {
     expect(isValidName(".hidden")).toBe(false); // leading dot
     expect(isValidName("")).toBe(false);
     expect(isValidName("a".repeat(65))).toBe(false); // too long
+  });
+});
+
+describe("getProviders / setProviders", () => {
+  it("reads null when the key was never written", () => {
+    expect(getProviders()).toBe(null);
+  });
+
+  it("round-trips the list in order (mount order is routing precedence)", () => {
+    setProviders(["keyless", "binance"]);
+    expect(getProviders()).toEqual(["keyless", "binance"]);
+    setProviders([]);
+    expect(getProviders()).toEqual([]);
+  });
+
+  it("keeps the default-dashboard key intact and drops non-string noise", () => {
+    setDefault("crypto");
+    setProviders(["keyless"]);
+    expect(getDefault()).toBe("crypto");
+    // config.json is hand-editable: a malformed entry is dropped, not fatal.
+    writeFileSync(
+      join(storeHome(), "config.json"),
+      `${JSON.stringify({ default: "crypto", providers: ["keyless", 7, null] })}\n`,
+    );
+    expect(getProviders()).toEqual(["keyless"]);
+    writeFileSync(
+      join(storeHome(), "config.json"),
+      `${JSON.stringify({ providers: "keyless" })}\n`,
+    );
+    expect(getProviders()).toBe(null);
   });
 });
 

@@ -7,11 +7,14 @@ import {
   DASHBOARD_PROXY_ROUTE,
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
+  PROVIDERS_ROUTE,
   handleProxy,
   handleSpecRead,
   handleSpecWrite,
+  proxyHostsOf,
+  type ProviderPluginManifest,
+  type ProvidersRouteBody,
 } from "@zframes/serve/serve";
-import { PROXY_ALLOW_HOSTS } from "@zframes/serve/proxy-allowlist";
 import {
   AGENTS_LIST_ROUTE,
   ASK_ROUTE,
@@ -62,6 +65,16 @@ export interface DashboardWritebackOptions {
    * decoupled from the frame set.
    */
   catalogue?: string;
+  /**
+   * The provider plugins this dev server mounts — the HOST's composition, the
+   * dev mirror of the CLI's operator-installed set. Everything derives from
+   * it: the providers route (which plugins the app loads, each as its own
+   * chunk) and the relay allowlist (`proxyHostsOf`). Omitted → nothing is
+   * mounted and the app falls back to the synthetic demo plugin, same as a
+   * bare `zframes serve`. This package stays composition-only: it never
+   * imports a provider, it mounts what its host names.
+   */
+  plugins?: readonly ProviderPluginManifest[];
 }
 
 export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
@@ -69,6 +82,18 @@ export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
   const writeRoute = options.route ?? DASHBOARD_WRITE_ROUTE;
   const contact = options.contact ?? process.env.ZFRAMES_CONTACT;
   const proxyUserAgent = contact ? `zframes (${contact})` : undefined;
+  const mounted = options.plugins ?? [];
+  // Derived once from the mounted manifests: the relay reaches exactly what
+  // they declare as proxied — nothing at all when the host mounts nothing.
+  const allowHosts = proxyHostsOf(mounted);
+  const providersBody: ProvidersRouteBody = {
+    plugins: mounted.map((manifest) => ({
+      id: manifest.id,
+      name: manifest.name,
+      ...(manifest.synthetic ? { synthetic: true } : {}),
+      ...(manifest.requiresCredentials ? { requiresCredentials: true } : {}),
+    })),
+  };
 
   return {
     name: "zframes:dashboard-writeback",
@@ -104,14 +129,23 @@ export function dashboardWriteback(options: DashboardWritebackOptions = {}) {
       server.middlewares.use(writeRoute, (req, res) => {
         handleSpecWrite(req, res, target());
       });
+      // Which provider plugins this server mounts — the app loads exactly
+      // these, each as its own lazy chunk. The dev mirror of the CLI's route.
+      server.middlewares.use(PROVIDERS_ROUTE, (req, res, next) => {
+        if (req.method !== "GET" && req.method !== "HEAD") return next();
+        res.statusCode = 200;
+        res.setHeader("content-type", "application/json");
+        res.setHeader("cache-control", "no-store");
+        res.end(JSON.stringify(providersBody));
+      });
       // Same-origin data proxy: the dev mirror of the CLI serve route, so
       // frames needing CORS-blocked sources work identically under vite dev.
-      // The dev mount passes the in-repo fleet's list for the same transitional
-      // reason the CLI does (see there); the relay allows nothing on its own.
+      // Derived from the mounted plugins' manifests; the relay allows nothing
+      // on its own.
       server.middlewares.use(DASHBOARD_PROXY_ROUTE, (req, res, next) => {
         if (req.method !== "GET" && req.method !== "HEAD") return next();
         void handleProxy(req, res, {
-          allowHosts: PROXY_ALLOW_HOSTS,
+          allowHosts,
           userAgent: proxyUserAgent,
         });
       });

@@ -16,7 +16,11 @@ import { connect, type AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { ResolvedTarget } from "@zframes/store/store";
+import { setProviders, type ResolvedTarget } from "@zframes/store/store";
+import {
+  resolveInstallation,
+  type Installation,
+} from "@zframes/plugins/registry";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createRequestHandler } from "./serve";
 
@@ -76,6 +80,7 @@ const WRITE_ROUTE = "/__zframes/dashboard";
 const LIST_ROUTE = "/__zframes/dashboards";
 const SWITCH_ROUTE = "/__zframes/switch";
 const PROXY_ROUTE = "/__zframes/proxy";
+const PROVIDERS_ROUTE = "/__zframes/providers";
 
 const JSON_HEADERS = { "content-type": "application/json" };
 
@@ -93,6 +98,7 @@ async function start(opts: {
   target: ResolvedTarget;
   contact?: string;
   canSwitch?: boolean;
+  installation?: Installation;
 }): Promise<string> {
   const server = createServer(createRequestHandler({ bundleDir, ...opts }));
   servers.push(server);
@@ -857,7 +863,13 @@ describe("serve — the official-data proxy is wired, allowlisted, and UA-tagged
     vi.stubGlobal("fetch", upstream);
 
     const { target } = pathTarget();
-    const base = await start({ target, contact: "ops@example.com" });
+    const base = await start({
+      target,
+      contact: "ops@example.com",
+      // The fleet has to be MOUNTED for its hosts to be relayable at all —
+      // the allowlist derives from the installation's manifests.
+      installation: resolveInstallation(["keyless"]),
+    });
     const url = "https://data.sec.gov/api/xbrl/companyfacts/CIK0000320193.json";
     const res = await httpFetch(
       `${base}${PROXY_ROUTE}?url=${encodeURIComponent(url)}`,
@@ -875,7 +887,10 @@ describe("serve — the official-data proxy is wired, allowlisted, and UA-tagged
     const upstream = vi.fn(async () => new Response("{}"));
     vi.stubGlobal("fetch", upstream);
     const { target } = pathTarget();
-    const base = await start({ target });
+    const base = await start({
+      target,
+      installation: resolveInstallation(["keyless"]),
+    });
 
     const res = await httpFetch(
       `${base}${PROXY_ROUTE}?url=${encodeURIComponent("https://evil.example/x")}`,
@@ -884,6 +899,62 @@ describe("serve — the official-data proxy is wired, allowlisted, and UA-tagged
     // Not an open proxy: the local server must never relay to an arbitrary
     // (or internal) host on a page's behalf.
     expect(upstream).not.toHaveBeenCalled();
+  });
+
+  it("relays NOTHING on a bare install — even a fleet host is refused", async () => {
+    // The posture itself: with no plugins installed (the tmpdir store is
+    // empty, so the handler's default resolution lands on the demo fallback),
+    // the derived allowlist is empty and a host the fleet WOULD authorise is
+    // still a 403 with no upstream request. A regression here means the CLI
+    // has grown back a compiled-in opinion about reachable third parties.
+    const upstream = vi.fn(async () => new Response("{}"));
+    vi.stubGlobal("fetch", upstream);
+    const { target } = pathTarget();
+    const base = await start({ target });
+
+    const res = await httpFetch(
+      `${base}${PROXY_ROUTE}?url=${encodeURIComponent("https://data.sec.gov/x")}`,
+    );
+    expect(res.status).toBe(403);
+    expect(upstream).not.toHaveBeenCalled();
+  });
+});
+
+describe("serve — the providers route names what this installation mounts", () => {
+  it("answers the demo fallback on a bare install", async () => {
+    const { target } = pathTarget();
+    const base = await start({ target });
+    const res = await httpFetch(`${base}${PROVIDERS_ROUTE}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(await res.json()).toEqual({
+      plugins: [{ id: "demo", name: "Demo data", synthetic: true }],
+    });
+  });
+
+  it("answers the installed plugins, in mount order, flags included", async () => {
+    const { target } = pathTarget();
+    const base = await start({
+      target,
+      installation: resolveInstallation(["keyless", "binance"]),
+    });
+    const body = (await (
+      await httpFetch(`${base}${PROVIDERS_ROUTE}`)
+    ).json()) as {
+      plugins: Array<Record<string, unknown>>;
+    };
+    expect(body.plugins.map((p) => p.id)).toEqual(["keyless", "binance"]);
+    expect(body.plugins[0].synthetic).toBeUndefined();
+    expect(body.plugins[1].requiresCredentials).toBe(true);
+  });
+
+  it("is GET-only", async () => {
+    const { target } = pathTarget();
+    const base = await start({ target });
+    const res = await httpFetch(`${base}${PROVIDERS_ROUTE}`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(405);
   });
 });
 
@@ -1041,6 +1112,9 @@ function stubUpstream() {
 describe("serve — what argv actually composes into the running server", () => {
   it("binds the store target, its bundle dir, --contact and --port together", async () => {
     storeDashboard("mine", "Mine");
+    // The relay allowlist derives from the INSTALLED plugins, so the fleet has
+    // to be installed in the (tmpdir) store for its hosts to be relayable.
+    setProviders(["keyless"]);
     const userAgentFor = stubUpstream();
 
     const composed = await runComposedServe([
@@ -1070,6 +1144,10 @@ describe("serve — what argv actually composes into the running server", () => 
     // ...and the URL printed for the user to click matches the port bound.
     expect(composed.logs).toContain("http://localhost:37270");
     expect(composed.logs).toContain('"mine" from your store');
+    // The consent surface: what's mounted and what the relay may reach are
+    // printed at every start, not only at install time.
+    expect(composed.logs).toContain("data: keyless");
+    expect(composed.logs).toContain("relay may reach");
 
     // `target` reached the spec routes: the positional resolved to the store
     // dashboard, not to a cwd fallback.
@@ -1106,6 +1184,9 @@ describe("serve — what argv actually composes into the running server", () => 
     expect(composed.listen).toEqual({ port: 37263, host: "127.0.0.1" });
     expect(composed.logs).toContain("http://localhost:37263");
     expect(composed.logs).toContain(file);
+    // Nothing installed in this store → the bare install serves the demo, and
+    // says so out loud.
+    expect(composed.logs).toContain("DEMO data");
 
     const read = await httpFetch(`${composed.base}${READ_ROUTE}`);
     expect((await read.json()).title).toBe("Local");
@@ -1119,6 +1200,8 @@ describe("serve — what argv actually composes into the running server", () => 
 
   it("threads every --contact spelling, and the env default, into the proxy UA", async () => {
     storeDashboard("mine", "Mine");
+    // Installed so the relayed host is authorised at all (see the test above).
+    setProviders(["keyless"]);
     const userAgentFor = stubUpstream();
 
     for (const { env, argv, ua } of [

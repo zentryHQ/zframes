@@ -15,13 +15,22 @@ import {
   handleSpecRead,
   handleSpecWrite,
 } from "@zframes/serve/serve";
-import { PROXY_ALLOW_HOSTS } from "@zframes/serve/proxy-allowlist";
 import {
   DASHBOARD_LIST_ROUTE,
   DASHBOARD_SWITCH_ROUTE,
+  PROVIDERS_ROUTE,
 } from "@zframes/spec/routes";
 import {
+  proxyHostsOf,
+  type ProvidersRouteBody,
+} from "@zframes/spec/provider-plugin";
+import {
+  resolveInstallation,
+  type Installation,
+} from "@zframes/plugins/registry";
+import {
   findDashboardFile,
+  getProviders,
   isValidName,
   listDashboards,
   resolveServeTarget,
@@ -102,6 +111,13 @@ export interface RequestHandlerOptions {
   contact?: string;
   /** Defaults to "only when serving from the store", as `serve()` does. */
   canSwitch?: boolean;
+  /**
+   * The provider plugins this server mounts. Defaults to the operator's
+   * installed set (`zframes providers`, read from the store config), which is
+   * the synthetic demo when nothing is installed. Everything derives from it:
+   * the providers route the app loads plugins from, and the relay's allowlist.
+   */
+  installation?: Installation;
 }
 
 /**
@@ -118,6 +134,19 @@ export function createRequestHandler(
   opts: RequestHandlerOptions,
 ): (req: IncomingMessage, res: ServerResponse) => void {
   const { bundleDir, target, contact } = opts;
+  const installation = opts.installation ?? resolveInstallation(getProviders());
+  // Derived once: what the relay may reach is exactly what the mounted
+  // plugins' manifests declare as proxied. No plugins → an empty set → the
+  // relay refuses everything.
+  const allowHosts = proxyHostsOf(installation.manifests);
+  const providersBody: ProvidersRouteBody = {
+    plugins: installation.manifests.map((manifest) => ({
+      id: manifest.id,
+      name: manifest.name,
+      ...(manifest.synthetic ? { synthetic: true } : {}),
+      ...(manifest.requiresCredentials ? { requiresCredentials: true } : {}),
+    })),
+  };
 
   // The dashboard the server currently hosts. Mutable: the in-app switcher
   // (POST /__zframes/switch) re-points it among store dashboards, and the
@@ -267,6 +296,18 @@ export function createRequestHandler(
       handleSwitch(req, res);
       return;
     }
+    // Which provider plugins this installation mounts — the app loads exactly
+    // these (as its own lazy chunks) and nothing else. Absent on a static
+    // host, where the app falls back to the synthetic demo.
+    if (path === PROVIDERS_ROUTE) {
+      if (req.method === "GET" || req.method === "HEAD") {
+        sendJson(res, 200, providersBody);
+      } else {
+        res.statusCode = 405;
+        res.end();
+      }
+      return;
+    }
     // The zAI orb's keyless agent bridge (opt-in, shells to a local CLI).
     if (path === AGENTS_LIST_ROUTE) {
       if (req.method === "GET") {
@@ -297,12 +338,10 @@ export function createRequestHandler(
     // rather than buried in the relay.
     if (path === DASHBOARD_PROXY_ROUTE) {
       void handleProxy(req, res, {
-        // TRANSITIONAL. Today this is the in-repo fleet's list. Once adapters
-        // are operator-installed plugins it becomes
-        // `proxyHostsOf(installedManifests)`, so a bare install authorises no
-        // host at all and every reachable host traces back to a package the
-        // operator named.
-        allowHosts: PROXY_ALLOW_HOSTS,
+        // Derived from the installed plugins' manifests: a bare install
+        // authorises no host at all, and every reachable host traces back to
+        // a plugin the operator named (`zframes providers`).
+        allowHosts,
         userAgent: contact ? `zframes (${contact})` : undefined,
         // FHFA serves its ~4 MB metro CSV at ~30 KB/s on bad days — far past
         // the default 20s relay timeout. Loopback has no platform duration
@@ -356,6 +395,10 @@ export function serve(args: string[]): Promise<number> {
 
   const canSwitch = target.kind === "store";
 
+  // Resolved once here (not in the handler) so the startup log below and the
+  // running server can never describe two different installations.
+  const installation = resolveInstallation(getProviders());
+
   // The prebuilt runtime ships next to dist/ (see scripts/build-runtime.mjs).
   const bundleDir = fileURLToPath(new URL("../runtime", import.meta.url));
   if (!existsSync(join(bundleDir, "index.html"))) {
@@ -371,6 +414,7 @@ export function serve(args: string[]): Promise<number> {
         target,
         contact: parsed.contact,
         canSwitch,
+        installation,
       }),
     );
 
@@ -402,6 +446,32 @@ export function serve(args: string[]): Promise<number> {
       if (canSwitch && listDashboards().length > 1) {
         console.log(
           "   switch dashboards from the header dropdown in the app.",
+        );
+      }
+      // What this installation mounts, and therefore what the relay may
+      // reach — printed so the operator's consent is visible at every start,
+      // never only at install time.
+      if (installation.unknown.length > 0) {
+        console.warn(
+          `   ⚠ unknown provider plugin(s) in config: ${installation.unknown.join(", ")} — run \`zframes providers\` to see what exists.`,
+        );
+      }
+      if (installation.demoFallback) {
+        console.log(
+          "   data: none installed — rendering the built-in DEMO data (plainly simulated).",
+        );
+        console.log(
+          "   `zframes providers add keyless` connects the free live market-data fleet.",
+        );
+      } else {
+        console.log(
+          `   data: ${installation.manifests.map((m) => m.id).join(", ")}`,
+        );
+        const hosts = proxyHostsOf(installation.manifests);
+        console.log(
+          hosts.length > 0
+            ? `   relay may reach ${hosts.length} host(s): ${hosts.join(", ")}`
+            : "   relay may reach no hosts.",
         );
       }
     });

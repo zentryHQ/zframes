@@ -12,6 +12,8 @@ import {
   DASHBOARD_PROXY_ROUTE,
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
+  PROVIDERS_ROUTE,
+  type ProviderPluginManifest,
 } from "@zframes/serve/serve";
 import { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/zai/agent";
 import {
@@ -112,6 +114,7 @@ describe("dashboardWriteback", () => {
     expect(paths).toEqual([
       DASHBOARD_READ_ROUTE,
       DASHBOARD_WRITE_ROUTE,
+      PROVIDERS_ROUTE,
       DASHBOARD_PROXY_ROUTE,
       AGENTS_LIST_ROUTE,
       ASK_ROUTE,
@@ -123,6 +126,37 @@ describe("dashboardWriteback", () => {
     expect(paths.indexOf(DASHBOARD_READ_ROUTE)).toBeLessThan(
       paths.indexOf(DASHBOARD_WRITE_ROUTE),
     );
+  });
+
+  it("answers the providers route with the host's composition — empty when none", async () => {
+    // The dev mirror of `zframes providers`: the HOST names what this server
+    // mounts, the route reports it, and omitting the option mounts nothing
+    // (the app then falls back to the synthetic demo on its own).
+    const manifest: ProviderPluginManifest = {
+      id: "test-fleet",
+      name: "Test fleet",
+      capabilities: ["day-stats"],
+      sources: [],
+      hosts: [{ host: "data.sec.gov", proxied: true }],
+    };
+    const mounted = register(dashboardWriteback({ plugins: [manifest] }), root);
+    const res = makeRes();
+    mounted.handler(PROVIDERS_ROUTE)({ method: "GET" }, res, () => {
+      throw new Error("providers route must not fall through for a GET");
+    });
+    await res.done;
+    expect(res.headers["cache-control"]).toBe("no-store");
+    expect(JSON.parse(res.body!)).toEqual({
+      plugins: [{ id: "test-fleet", name: "Test fleet" }],
+    });
+
+    const bare = register(dashboardWriteback(), root);
+    const empty = makeRes();
+    bare.handler(PROVIDERS_ROUTE)({ method: "GET" }, empty, () => {
+      throw new Error("providers route must not fall through for a GET");
+    });
+    await empty.done;
+    expect(JSON.parse(empty.body!)).toEqual({ plugins: [] });
   });
 
   it("serves an explicit file, resolved against the Vite root", async () => {

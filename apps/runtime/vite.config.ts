@@ -12,6 +12,11 @@ import { fileURLToPath } from "node:url";
 import { catalogueSummary } from "@zframes/spec/catalogue";
 import { dashboardWriteback } from "@zframes/vite/vite";
 import { frameMetas } from "@zframes/frames/schemas";
+import {
+  BINANCE_MANIFEST,
+  KEYLESS_MANIFEST,
+  WALLET_MANIFEST,
+} from "@zframes/plugins/registry";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -41,6 +46,12 @@ export default defineConfig({
       // the store-default resolution below applies.
       file: process.env.ZFRAMES_DASHBOARD_FILE,
       catalogue: catalogueSummary(frameMetas),
+      // The dev composition: in-repo `pnpm dev` is where the fleet and the
+      // keyed tier are developed, so dev mounts all of them — explicitly,
+      // here, at the host. This is what the providers route answers and what
+      // the relay allowlist derives from; a bare `zframes serve` install
+      // mounts only what its operator added (`zframes providers`).
+      plugins: [KEYLESS_MANIFEST, BINANCE_MANIFEST, WALLET_MANIFEST],
     }),
   ],
   define: {
@@ -58,6 +69,11 @@ export default defineConfig({
       "@zframes/data-primitives",
       "@zframes/editor",
       "@zframes/frames",
+      "@zframes/plugins",
+      "@zframes/provider-demo",
+      "@zframes/provider-binance",
+      "@zframes/provider-wallet",
+      "@zframes/providers-keyless",
       "@zframes/provider-alternativeme",
       "@zframes/provider-bls",
       "@zframes/provider-coingecko",

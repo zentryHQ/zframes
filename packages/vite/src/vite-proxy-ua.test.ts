@@ -5,8 +5,31 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DASHBOARD_PROXY_ROUTE,
   DASHBOARD_READ_ROUTE,
+  type ProviderPluginManifest,
 } from "@zframes/serve/serve";
 import { dashboardWriteback } from "./vite";
+
+/**
+ * A minimal mounted plugin whose manifest authorises the upstream below — the
+ * relay derives its allowlist from `plugins`, so a mount with none relays
+ * nothing and every UA test here would 403 before fetch. Inline (not the real
+ * fleet manifest) because this package may not import a provider.
+ */
+const TEST_PLUGIN: ProviderPluginManifest = {
+  id: "test-fleet",
+  name: "Test fleet",
+  capabilities: ["day-stats"],
+  sources: [],
+  hosts: [{ host: "data.sec.gov", proxied: true }],
+};
+
+/** `dashboardWriteback` options with the test plugin mounted. */
+const withPlugin = (
+  options: Omit<
+    Parameters<typeof dashboardWriteback>[0] & object,
+    "plugins"
+  > = {},
+) => dashboardWriteback({ ...options, plugins: [TEST_PLUGIN] });
 
 // Two things `vite.test.ts` structurally cannot see, pinned here.
 //
@@ -143,7 +166,7 @@ afterEach(() => {
 describe("dashboardWriteback proxy User-Agent", () => {
   it("composes a polite contact UA from the `contact` option", async () => {
     const { fetchMock, res, ua } = await proxyOnce(
-      dashboardWriteback({ contact: "me@x.com" }),
+      withPlugin({ contact: "me@x.com" }),
     );
     // The exact string SEC's fair-access policy is checked against.
     expect(ua).toBe("zframes (me@x.com)");
@@ -156,21 +179,21 @@ describe("dashboardWriteback proxy User-Agent", () => {
 
   it("takes the contact from ZFRAMES_CONTACT when the option is absent", async () => {
     vi.stubEnv("ZFRAMES_CONTACT", "env@zentry.com");
-    const { ua } = await proxyOnce(dashboardWriteback());
+    const { ua } = await proxyOnce(withPlugin());
     expect(ua).toBe("zframes (env@zentry.com)");
   });
 
   it("lets the explicit option win over ZFRAMES_CONTACT", async () => {
     vi.stubEnv("ZFRAMES_CONTACT", "env@zentry.com");
     const { ua } = await proxyOnce(
-      dashboardWriteback({ contact: "option@zentry.com" }),
+      withPlugin({ contact: "option@zentry.com" }),
     );
     expect(ua).toBe("zframes (option@zentry.com)");
     expect(ua).not.toContain("env@zentry.com");
   });
 
   it("sends no UA of its own when neither is set, so the browser default applies", async () => {
-    const { ua } = await proxyOnce(dashboardWriteback());
+    const { ua } = await proxyOnce(withPlugin());
     // handleProxy's PROXY_DEFAULT_UA — a real desktop Chrome UA the official
     // hosts accept. The failure this guards: interpolating an absent contact
     // into the template, which would ship `zframes (undefined)` and earn 403s.
@@ -186,7 +209,7 @@ describe("dashboardWriteback proxy User-Agent", () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ ok: 1 }));
     vi.stubGlobal("fetch", fetchMock);
     const { handler } = register(
-      dashboardWriteback({ file: "d.json", contact: "both@x.com" }),
+      withPlugin({ file: "d.json", contact: "both@x.com" }),
       root,
     );
     const read = makeRes();

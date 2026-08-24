@@ -156,6 +156,8 @@ export function classifyTarget(
 
 interface StoreConfig {
   default?: string;
+  /** Installed provider-plugin ids, in mount (routing-precedence) order. */
+  providers?: string[];
 }
 
 function readConfig(): StoreConfig {
@@ -178,6 +180,28 @@ export function setDefault(name: string): void {
   ensureHome();
   const cfg = readConfig();
   cfg.default = name;
+  writeFileSync(configPath(), `${JSON.stringify(cfg, null, 2)}\n`, "utf8");
+}
+
+/**
+ * The installed provider-plugin ids (`zframes providers add/remove`), in mount
+ * order — mount order is routing precedence, so it is data, not cosmetics.
+ * `null` when the key was never written; the host maps both null and `[]` to
+ * the synthetic demo fallback (`resolveInstallation`, @zframes/plugins).
+ * Non-string entries are dropped rather than crashing: config.json is
+ * hand-editable, and a malformed list must not take `serve` down.
+ */
+export function getProviders(): string[] | null {
+  const providers = readConfig().providers;
+  if (!Array.isArray(providers)) return null;
+  return providers.filter((id): id is string => typeof id === "string");
+}
+
+/** Replace the installed provider-plugin list (merges into config.json). */
+export function setProviders(ids: readonly string[]): void {
+  ensureHome();
+  const cfg = readConfig();
+  cfg.providers = [...ids];
   writeFileSync(configPath(), `${JSON.stringify(cfg, null, 2)}\n`, "utf8");
 }
 
