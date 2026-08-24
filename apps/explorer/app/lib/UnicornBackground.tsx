@@ -8,6 +8,7 @@ import {
 } from "@zframes/unicorn";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { useAuroraStandby } from "@/app/lib/aurora-standby";
 
 /**
  * The living Aurora backdrop — the explorer renders the SAME canvas a generated
@@ -60,6 +61,7 @@ export function UnicornBackground({
   // can flip reduced-motion / reduced-data mid-session).
   const lowEnd = useLowEndDevice();
   const reducedMotion = useReducedMotion();
+  const standby = useAuroraStandby();
   const [ready, setReady] = useState(false);
   const sceneRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -171,6 +173,7 @@ export function UnicornBackground({
           // always pays for. A slow drift at low opacity reads the same at half
           // the frames.
           fps={30}
+          paused={standby}
           onLoad={() => setReady(true)}
         />
       </div>

@@ -97,6 +97,13 @@ interface UnicornSceneProps {
    */
   fps?: number;
   /**
+   * Freeze the engine's render loop without destroying the scene (the GL
+   * context, compiled shaders and fetched scene all survive, so unpausing is
+   * free). Composes with the tab-hidden pause: the scene draws only when the
+   * document is visible AND this is false.
+   */
+  paused?: boolean;
+  /**
    * Fires once the engine is loaded and the scene is about to mount — hosts
    * that fade the backdrop in (the explorer) key their opacity off this.
    */
@@ -126,10 +133,13 @@ export default function UnicornScene({
   scale,
   dpi,
   fps,
+  paused = false,
   onLoad,
   onSceneReady,
 }: UnicornSceneProps) {
   const elementRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<UnicornSceneHandle | null>(null);
+  const pausedRef = useRef(paused);
   const [loaded, setLoaded] = useState(
     typeof window !== "undefined" && Boolean(window.UnicornStudio?.addScene),
   );
@@ -138,6 +148,15 @@ export default function UnicornScene({
   onLoadRef.current = onLoad;
   const onSceneReadyRef = useRef(onSceneReady);
   onSceneReadyRef.current = onSceneReady;
+
+  // Prop-driven pause: ref-held so the addScene effect below never re-runs
+  // on a flip (a re-run would destroy + re-boot the scene, which is exactly
+  // what pausing exists to avoid).
+  useEffect(() => {
+    pausedRef.current = paused;
+    const scene = sceneRef.current;
+    if (scene) scene.paused = document.hidden || paused;
+  }, [paused]);
 
   useEffect(() => {
     let ignore = false;
@@ -161,7 +180,6 @@ export default function UnicornScene({
     const el = elementRef.current;
     if (!loaded || !el || !window.UnicornStudio?.addScene) return;
     if (!el.id) el.id = `zf-unicorn-${(sceneSeq += 1)}`;
-    let scene: UnicornSceneHandle | null = null;
     let ignore = false;
     // Stand the render loop down whenever the tab/window is hidden. A browser
     // suspends `requestAnimationFrame` in a fully-hidden tab on its own, but
@@ -171,7 +189,8 @@ export default function UnicornScene({
     // the most expensive thing either host draws, so it is worth saying so
     // explicitly rather than inheriting whichever policy the browser applies.
     const syncPaused = () => {
-      if (scene) scene.paused = document.hidden;
+      const scene = sceneRef.current;
+      if (scene) scene.paused = document.hidden || pausedRef.current;
     };
     window.UnicornStudio.addScene({
       elementId: el.id,
@@ -187,7 +206,7 @@ export default function UnicornScene({
           s?.destroy?.();
           return;
         }
-        scene = s;
+        sceneRef.current = s;
         // The tab can go hidden during the engine load + addScene round-trip,
         // in which case no `visibilitychange` will fire to pause it later.
         syncPaused();
@@ -200,7 +219,8 @@ export default function UnicornScene({
     return () => {
       ignore = true;
       document.removeEventListener("visibilitychange", syncPaused);
-      scene?.destroy?.();
+      sceneRef.current?.destroy?.();
+      sceneRef.current = null;
     };
   }, [loaded, projectId, scale, dpi, fps]);
 

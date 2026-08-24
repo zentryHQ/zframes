@@ -6,6 +6,7 @@ import {
   useReducedMotion,
   type MotionValue,
 } from "motion/react";
+import { acquireAuroraStandby } from "@/app/lib/aurora-standby";
 import type { BoardSummary } from "@/app/lib/board-summary";
 import { LiveBoardFrame } from "@/app/lib/LiveBoardFrame";
 import {
@@ -72,6 +73,12 @@ const MOUNT_STAGGER_MS = 320;
 const LOAD_STALL_MS = 1500;
 // Ceiling on boards rendering simultaneously — see the clamp in the widen below.
 const MAX_LIVE_BOARDS = 3;
+// Trailing release on the site-Aurora standby (see aurora-standby.ts). The
+// demoted embed's scene fades for 900ms and is destroyed at a 1200ms grace
+// (DashboardBackground), so resuming the chrome scene sooner would put two
+// live scenes back on screen mid-crossfade; a fresh activation inside the
+// window just re-acquires and cancels the release.
+const AURORA_RESUME_DELAY_MS = 1500;
 
 /**
  * The sticky card-stack of live board embeds. Under reduced motion it collapses
@@ -91,6 +98,44 @@ export function ShowcaseStack({ boards }: { boards: BoardSummary[] }) {
   // boots on a fast fly-through. Same-value bailout means scrolling re-renders
   // nothing until the focused board actually changes.
   const [activeIndex, setActiveIndex] = useState(0);
+  // Whether the stack has actually come into play (its scroll progress has
+  // moved). The initial activeIndex of 0 is only the board-0 warm-up: its
+  // scene boots below the fold so the first settle is instant, while the
+  // visitor is still reading the hero on the chrome Aurora, which must keep
+  // drifting. The standby below is therefore gated on engagement, not on
+  // mount state.
+  const [stackEngaged, setStackEngaged] = useState(false);
+  // While an engaged board is active its embed runs its own WebGL scene, so
+  // the site Aurora stands by (paused, not unmounted). The release trails the
+  // demote by AURORA_RESUME_DELAY_MS so the embed's fade-out + teardown grace
+  // finishes first, and dwell-hopping through the stack can't flap the pause.
+  const standbyRelease = useRef<(() => void) | null>(null);
+  const standbyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (activeIndex !== -1 && stackEngaged) {
+      if (standbyTimer.current) {
+        clearTimeout(standbyTimer.current);
+        standbyTimer.current = null;
+      }
+      if (!standbyRelease.current)
+        standbyRelease.current = acquireAuroraStandby();
+      return;
+    }
+    if (!standbyRelease.current || standbyTimer.current) return;
+    standbyTimer.current = setTimeout(() => {
+      standbyTimer.current = null;
+      standbyRelease.current?.();
+      standbyRelease.current = null;
+    }, AURORA_RESUME_DELAY_MS);
+  }, [activeIndex, stackEngaged]);
+  useEffect(
+    () => () => {
+      if (standbyTimer.current) clearTimeout(standbyTimer.current);
+      standbyRelease.current?.();
+      standbyRelease.current = null;
+    },
+    [],
+  );
   // The window of boards whose CONTENT is on show (near enough to `t` to be
   // visible/crossfading). Boards outside it stop rendering + polling entirely
   // (content-visibility: hidden). The parent owns this: an iframe's own
@@ -133,6 +178,7 @@ export function ShowcaseStack({ boards }: { boards: BoardSummary[] }) {
   }, [count, progress]);
 
   useMotionValueEvent(progress, "change", (p) => {
+    setStackEngaged(true); // same-value bailout after the first frame
     const t = focusT(p, count);
 
     // ── Promotion: instant demote, dwell-gated promote ──

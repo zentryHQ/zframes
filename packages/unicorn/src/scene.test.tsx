@@ -586,3 +586,62 @@ describe("hidden-tab pausing", () => {
     expect(scene.paused).toBeUndefined();
   });
 });
+
+// The `paused` prop lets a host freeze the render loop while another surface
+// runs its own scene (the explorer's aurora standby). The whole point is that
+// a flip is free: the scene object, GL context and compiled shaders survive,
+// so the prop must never reach the addScene effect's deps and re-boot the
+// scene. It composes with the tab-hidden pause: draw only when the document
+// is visible AND the prop is false.
+describe("prop-driven pausing", () => {
+  it("arrives paused when mounted with paused={true}, even on a visible tab", async () => {
+    const scene: SceneHandle = { destroy: vi.fn() };
+    installEngine(vi.fn<AddScene>(async () => scene));
+    render(<UnicornScene projectId="p" sdkUrl={SDK} paused />);
+    await flush();
+    // The document is visible (beforeEach), so only the prop can be the cause.
+    expect(document.hidden).toBe(false);
+    expect(scene.paused).toBe(true);
+  });
+
+  it("tracks prop flips without ever destroying or re-adding the scene", async () => {
+    const scene: SceneHandle = { destroy: vi.fn() };
+    const addScene = vi.fn<AddScene>(async () => scene);
+    installEngine(addScene);
+    const { rerender, unmount } = render(
+      <UnicornScene projectId="p" sdkUrl={SDK} paused />,
+    );
+    await flush();
+    expect(scene.paused).toBe(true);
+
+    rerender(<UnicornScene projectId="p" sdkUrl={SDK} paused={false} />);
+    await flush();
+    expect(scene.paused).toBe(false);
+
+    rerender(<UnicornScene projectId="p" sdkUrl={SDK} paused />);
+    await flush();
+    expect(scene.paused).toBe(true);
+
+    // One boot for the whole sequence: a flip that re-ran the addScene effect
+    // would tear down + re-create the WebGL context, exactly what pausing
+    // exists to avoid.
+    expect(addScene).toHaveBeenCalledTimes(1);
+    expect(scene.destroy).not.toHaveBeenCalled();
+
+    unmount();
+    expect(scene.destroy).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays paused on a hidden tab even with paused={false} (hidden wins)", async () => {
+    const scene: SceneHandle = { destroy: vi.fn() };
+    installEngine(vi.fn<AddScene>(async () => scene));
+    render(<UnicornScene projectId="p" sdkUrl={SDK} paused={false} />);
+    await flush();
+    expect(scene.paused).toBe(false);
+
+    hide();
+    // The two pause sources OR together: an unpaused prop must not override
+    // the tab going hidden.
+    expect(scene.paused).toBe(true);
+  });
+});
