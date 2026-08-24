@@ -1,8 +1,13 @@
 # Cross-cutting tests
 
 `pnpm test` is hermetic (stubs fetch) and gates every PR, as does
-`pnpm format:check`. The suites in this directory police the seams that the
-package-level layer DAG cannot.
+`pnpm format:check`. The suites in this directory are the repo-level guards, of
+two kinds: the cross-package seams the layer DAG cannot police, and fleet-wide
+static scans that read frame source as text. The scans stay here rather than in
+`packages/frames` for two reasons: the contract each one enforces is usually
+owned elsewhere (core's `formatPrice`, charts' `TimeSeriesChart`), and reading
+files needs `node:fs`, which a browser-layer package would have to take on as a
+`@types/node` devDependency to keep `pnpm -r typecheck` green.
 
 | Suite | What it pins |
 |---|---|
@@ -11,6 +16,7 @@ package-level layer DAG cannot.
 | `currency-coverage.test.ts` | derives exemptions from each frame's `usdOnly` meta; fails if any other frame touches `formatPrice`/`formatCompactUsd` |
 | `chart-events-coverage.test.ts` | a frame drawing markers renders `TimeSeriesChart` AND sets `annotatable` |
 | `frame-layout-bounds.test.ts` | `1 ≤ min ≤ default ≤ max`, and no shipped board sits outside its frames' bounds |
+| `heatmap-label-fit.test.ts` | every matrix frame prints cell figures through the shared `cellLabelFits` guard (or the `heatmapCellLabel` factory), never a hand-rolled width-only check that clips rows silently |
 | `schema-describe-coverage.test.ts` | every frame schema field carries `.describe()` |
 | `symbol-control-coverage.test.ts` | symbol fields expose the right editor control |
 | `golden-specs.test.tsx` | reference boards still render |
