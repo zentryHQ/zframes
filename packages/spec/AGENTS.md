@@ -22,10 +22,11 @@ the three derivations that read a manifest (`proxyHostsOf`, `sourceCreditsOf`,
 That is not tidiness. `@zframes/core` re-exports this barrel wholesale, so a
 value exported here lands on the presentation package's public API, which
 `packages/core/src/barrel-surface.test.ts` snapshot-pins. Plugin validation and
-relay-host derivation have no business there: their consumers are all Node-side
-(serve, cli, store, the provider fleet), and those already import siblings by
-package subpath. Add a helper here and import it by subpath; if it appears in
-the core barrel snapshot, that is the mistake, not the snapshot.
+relay-host derivation have no business there: their consumers (serve, cli,
+store, the provider fleet, and the runtime's plugin loader in
+`@zframes/plugins/load`) all import by package subpath already. Add a helper
+here and import it by subpath; if it appears in the core barrel snapshot, that
+is the mistake, not the snapshot.
 
 ## Event markers
 

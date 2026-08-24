@@ -21,8 +21,7 @@ files needs `node:fs`, which a browser-layer package would have to take on as a
 | `symbol-control-coverage.test.ts` | symbol fields expose the right editor control |
 | `golden-specs.test.tsx` | reference boards still render |
 | `proxy-mounts.test.ts` | every in-repo `handleProxy` mount names its allowed hosts (the relay allows nothing by default, and a mount that forgets refuses every upstream as an empty card) |
-| `keyless-proxy-hosts.test.ts` | the keyless plugin manifest's proxied hosts equal serve's `PROXY_ALLOW_HOSTS`, both directions |
-| `keyless-source-credits.test.ts` | that manifest's credits equal the frame catalogue's `SOURCES`, ids and display names alike |
+| `keyless-source-credits.test.ts` | the keyless plugin manifest's credits equal the frame catalogue's `SOURCES`, ids and display names alike |
 
 ## e2e, monitors, and release
 

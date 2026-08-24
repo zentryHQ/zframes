@@ -37,12 +37,13 @@ Provider primitives, React-free and used by every provider: `@zframes/data-primi
 
 **Official-data proxy:** browsers can't fetch CORS-blocked official sources (SEC XBRL, H.15, OFR, halts), so a provider passes `fetchJson(url, schema, { proxied: true })` — in the browser this rewrites to the same-origin `/__zframes/proxy?url=…` route (Node relays it; allowlisted hosts only, https/GET-only, browser UA or `--contact`/`ZFRAMES_CONTACT`); in Node it's a no-op (no CORS there). Proxied frames degrade to empty on a static host with no runtime. See the proxy decision in `docs/decisions/providers/providers.md`.
 
-A new proxied host must be added to `packages/serve/src/proxy-allowlist.ts`
-AND to this package's `src/manifest.ts`, or the relay refuses it. The relay
-itself now allows nothing: each mount passes the list it authorises
-(`ProxyOptions.allowHosts`), which is what makes an install with no adapters
-unable to reach anything. `tests/proxy-mounts.test.ts` pins that every in-repo
-mount still passes one. The allowlist authorises *names*; the relay separately
+A new proxied host is declared ONCE, in this package's `src/manifest.ts`
+(`hosts`, with `proxied: true`) — the manifest IS the allowlist. The relay
+itself allows nothing: every mount derives the list it authorises from the
+plugin manifests it mounts (`proxyHostsOf`, `ProxyOptions.allowHosts`), which
+is what makes an install with no adapters unable to reach anything.
+`tests/proxy-mounts.test.ts` pins that every in-repo mount still passes one.
+The allowlist authorises *names*; the relay separately
 resolves every hop and refuses one whose addresses are not all public
 (loopback, RFC1918, CGNAT, link-local/cloud-metadata, unique-local IPv6), so
 an allowlisted name whose DNS points into the operator's own network is a 403,
