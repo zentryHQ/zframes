@@ -8,6 +8,7 @@ import {
   SITE_DESCRIPTION,
   SITE_LONG_DESCRIPTION,
   SITE_NAME,
+  SITE_TAGLINE,
   SITE_URL,
 } from "@/app/lib/site";
 
@@ -47,6 +48,17 @@ export const ORG_ID = `${SITE_URL}/#organization`;
 export const SITE_ID = `${SITE_URL}/#website`;
 export const APP_ID = `${SITE_URL}/#software`;
 
+/**
+ * The publisher. Note `url` is the site ROOT, not a subpage: this field is the
+ * machine-readable answer to "where is this brand's homepage", and pointing it at
+ * anything else is how a brand query ends up returning a subpage above the front
+ * door with no sitelinks under either. The sitemap agrees — exactly one URL there
+ * carries `priority: 1`, and it is the same one.
+ *
+ * `logo` must be a RASTER image: Google's logo guidance rejects SVG, so this
+ * points at the 512px PNG in `public/` rather than the `icon.svg` the browser
+ * tab uses. Declaring width/height saves every consumer a fetch to measure it.
+ */
 export function organizationJsonLd() {
   return {
     "@context": "https://schema.org",
@@ -54,7 +66,17 @@ export function organizationJsonLd() {
     "@id": ORG_ID,
     name: ORG_NAME,
     url: SITE_URL,
-    logo: absoluteUrl("/icon.svg"),
+    // The one tagline, in the one place a machine reads it. Same string as the
+    // hero, the manifest and the share card — see SITE_TAGLINE.
+    slogan: SITE_TAGLINE,
+    description: SITE_LONG_DESCRIPTION,
+    logo: {
+      "@type": "ImageObject",
+      url: absoluteUrl("/zframes-icon-512.png"),
+      width: 512,
+      height: 512,
+      caption: ORG_NAME,
+    },
     sameAs: [REPO_URL, NPM_URL],
   };
 }

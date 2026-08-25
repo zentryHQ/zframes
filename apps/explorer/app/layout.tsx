@@ -5,9 +5,12 @@ import {
   BRAND_BG,
   SITE_DESCRIPTION,
   SITE_NAME,
+  SITE_TAGLINE,
+  SITE_TITLE,
   SITE_TITLE_SUFFIX,
   SITE_URL,
 } from "@/app/lib/site";
+import { pageSocial } from "@/app/lib/social";
 import {
   JsonLd,
   organizationJsonLd,
@@ -32,7 +35,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — free, open-source market terminals your AI agent builds`,
+    default: SITE_TITLE,
     template: `%s · ${SITE_TITLE_SUFFIX}`,
   },
   description: SITE_DESCRIPTION,
@@ -53,18 +56,29 @@ export const metadata: Metadata = {
   creator: "Zentry",
   publisher: "Zentry",
   alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    siteName: SITE_NAME,
-    locale: "en_US",
-    url: SITE_URL,
-    title: `${SITE_NAME} — free, open-source market terminals your AI agent builds`,
+  // The card headline is NOT the `<title>`. A search result's title has one job
+  // (be the keyword-first answer to a query); a share card's has another (be the
+  // line someone reads in a Slack channel), so it carries the tagline instead.
+  // Both come through `pageSocial` so the root cannot lose its own image either.
+  ...pageSocial({
+    path: "/",
+    title: `${SITE_TAGLINE} · ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${SITE_NAME} — free, open-source market terminals your AI agent builds`,
-    description: SITE_DESCRIPTION,
+  }),
+  // Set `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` / `..._BING_SITE_VERIFICATION` to
+  // verify the property without a code change. Omitted entirely when unset — an
+  // empty verification meta tag is worse than none, it fails the check.
+  verification: {
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+      ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+      : {}),
+    ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION
+      ? {
+          other: {
+            "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION,
+          },
+        }
+      : {}),
   },
   // Explicit rather than left to the default: `max-image-preview: large` is what
   // lets the OG card run full width in a result, and `max-snippet: -1` removes
@@ -109,6 +123,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        />
+        {/* `/llms.txt` — the whole site as one plain-text document for a language
+            model. It was reachable only by guessing the URL: nothing on the site
+            and nothing in robots.txt pointed at it, and a file no crawler is told
+            about is a file no crawler reads. A raw <link> rather than
+            `alternates.types` in metadata, because a page setting its own
+            `alternates` (all four of ours do, for the canonical) replaces the
+            root's object outright and would silently drop this. */}
+        <link
+          rel="alternate"
+          type="text/plain"
+          href="/llms.txt"
+          title={`${SITE_NAME} for language models`}
         />
       </head>
       {/* AppShell owns the chrome and hides it on /embed/* (iframed live boards).

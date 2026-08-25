@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { INSTALL_COMMAND, SITE_NAME } from "@/app/lib/site";
+import { INSTALL_COMMAND, SITE_NAME, SITE_TAGLINE } from "@/app/lib/site";
 
 /**
  * The site-wide 1200×630 share card.
@@ -22,7 +22,7 @@ import { INSTALL_COMMAND, SITE_NAME } from "@/app/lib/site";
 export const runtime = "nodejs";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = `${SITE_NAME} — free, open-source market terminals your AI agent builds`;
+export const alt = `${SITE_NAME}: ${SITE_TAGLINE}`;
 
 const INK = "#e7ecf6";
 const MUTED = "rgba(231,236,246,0.62)";
@@ -139,7 +139,7 @@ export default async function Image() {
           <Pill>Free &amp; open source</Pill>
           <Pill>MIT</Pill>
           <Pill>No account</Pill>
-          <Pill>No account</Pill>
+          <Pill>Runs locally</Pill>
         </div>
       </div>
 

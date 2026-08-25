@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import type { BoardListing } from "@/app/lib/board-summary";
 import { listCommunity, listCurated } from "@/app/lib/dashboards";
-import { absoluteUrl, SITE_NAME } from "@/app/lib/site";
+import { absoluteUrl, clampSnippet, SITE_NAME } from "@/app/lib/site";
+import { pageSocial } from "@/app/lib/social";
 import { breadcrumbJsonLd, JsonLd, SITE_ID } from "@/app/lib/structured-data";
 import { GalleryView } from "./GalleryView";
 
@@ -22,14 +23,19 @@ export const revalidate = 300; // 5 minutes
 
 export const metadata: Metadata = {
   title: "Dashboard gallery",
-  description: `Browse curated and community ${SITE_NAME} dashboards — stock, crypto, macro and metals terminals. Preview any one in the browser, then fork it onto your machine with your AI agent to run it on live data. Free, no account.`,
+  // Clamped, not trusted: this ran to 216 characters, so a search result showed
+  // roughly two thirds of it and stopped mid-clause.
+  description: clampSnippet(
+    `Curated and community ${SITE_NAME} dashboards for stocks, crypto, macro and metals. Preview any board in the browser, then fork it onto your own machine.`,
+  ),
   alternates: { canonical: "/gallery" },
-  openGraph: {
+  // Spread, never hand-written: an inline `openGraph` here replaces the root's
+  // object and takes the share card with it. See app/lib/social.ts.
+  ...pageSocial({
+    path: "/gallery",
     title: `Dashboard gallery · ${SITE_NAME}`,
     description: `Market dashboards you can preview in the browser and fork onto your own machine.`,
-    url: absoluteUrl("/gallery"),
-    type: "website",
-  },
+  }),
 };
 
 export default async function GalleryPage() {

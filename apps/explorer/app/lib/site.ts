@@ -31,9 +31,46 @@ export const SITE_NAME = "zframes";
 /** Used as the `%s · zframes` title suffix and the OG/schema `siteName`. */
 export const SITE_TITLE_SUFFIX = SITE_NAME;
 
-/** The one-line pitch. Kept under ~160 chars so it survives as a SERP snippet. */
+/**
+ * The ONE tagline. It is the hero `<h1>`, the share card's headline, the
+ * manifest name, the footer blurb and `Organization.slogan` — five surfaces that
+ * carried three different claims between them until now.
+ *
+ * Why one line matters more than which line: an answer engine quoting the site
+ * repeats whichever phrasing it hit first, and a product described three ways is
+ * a product with no memorable description at all. `seo.test.ts` pins that the
+ * manifest and the Organization node both still spell it.
+ */
+export const SITE_TAGLINE = "Describe your dashboard. An agent builds it.";
+
+/**
+ * The homepage `<title>`, and the default for any page that sets none.
+ *
+ * Two constraints, both from how a result is actually rendered: it stays under
+ * ~60 characters so Google shows it rather than rewriting it, and it leads with
+ * the CATEGORY term someone searches ("market dashboards") rather than assuming
+ * the brand is the category, which an unknown brand cannot. Title Case, because
+ * a lowercase title invites Google to recapitalise it into its own.
+ *
+ * It deliberately covers different ground to `SITE_DESCRIPTION` below: the title
+ * says what class of thing this is and what it costs, the description says how it
+ * works. Saying the same thing twice wastes one of the only two strings we
+ * control in a search result.
+ */
+export const SITE_TITLE = `${SITE_NAME}: AI-Built Market Dashboards, Free and Open Source`;
+
+/**
+ * The meta description: the SERP snippet, and the sentence an answer engine
+ * lifts when asked "what is zframes".
+ *
+ * It opens `zframes is a …` on purpose. Google discards a description it cannot
+ * use as a standalone answer, and marketing phrasing ("describe the dashboard
+ * you want and…") is exactly that — it needs the page around it to mean
+ * anything. A definitional first clause survives being quoted alone, which is
+ * the entire job. Under 160 chars so it is not cut mid-sentence.
+ */
 export const SITE_DESCRIPTION =
-  "Describe the market dashboard you want and your AI coding agent builds it — live stocks and crypto, no account. Free and open source (MIT).";
+  "zframes is a framework for live stock and crypto dashboards: tell your AI coding agent what to watch and it writes a dashboard.json you run yourself.";
 
 /**
  * The longer pitch, for surfaces with room: the OG card body, `llms.txt`, and
@@ -55,6 +92,44 @@ export const INSTALL_COMMAND = "npx skills add zentryhq/zframes";
 /** Brand background, reused by the manifest, `theme-color`, and the OG card. */
 export const BRAND_BG = "#06060b";
 export const BRAND_ACCENT = "#818cf8";
+
+/**
+ * Where a search snippet stops being read. Google's cutoff moves and is measured
+ * in pixels rather than characters, but ~155 is the width that survives on both
+ * desktop and mobile without an ellipsis.
+ */
+export const SNIPPET_MAX = 155;
+
+/**
+ * Trim a description to something that fits in a result.
+ *
+ * A description longer than the cutoff is not "a bit long" — it is cut by Google
+ * mid-sentence, so the last thing a searcher reads is half a clause. Three pages
+ * shipped past it (`/gallery` at 216, `/catalogue` at 174, every board page at
+ * 300) because each was written as a paragraph and nobody counted.
+ *
+ * Prefers to end on a sentence boundary, because a snippet that ends in a full
+ * stop reads as a complete answer and is what an answer engine will lift. Falls
+ * back to a word boundary with an ellipsis when there is no sentence to end on,
+ * which is still better than Google's own mid-word cut.
+ */
+export function clampSnippet(text: string, max = SNIPPET_MAX): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+
+  const head = clean.slice(0, max);
+  // Only accept a sentence break in the back half — ending at 20% of the
+  // intended length is a worse snippet than an ellipsis at 100%.
+  const sentence = Math.max(
+    head.lastIndexOf(". "),
+    head.lastIndexOf("? "),
+    head.lastIndexOf("! "),
+  );
+  if (sentence > max * 0.6) return clean.slice(0, sentence + 1);
+
+  const word = head.lastIndexOf(" ");
+  return `${clean.slice(0, word > 0 ? word : max).replace(/[,;:—-]$/, "")}…`;
+}
 
 /** Absolute URL for a site-relative path — what canonicals and sitemaps need. */
 export function absoluteUrl(path = "/"): string {

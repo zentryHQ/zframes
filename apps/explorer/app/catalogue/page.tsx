@@ -3,7 +3,8 @@ import { allFrameMetas } from "@zframes/frames/schemas";
 import type { Metadata } from "next";
 import CatalogueClient from "@/app/catalogue/CatalogueClient";
 import { FrameIndex } from "@/app/catalogue/FrameIndex";
-import { absoluteUrl, SITE_NAME } from "@/app/lib/site";
+import { absoluteUrl, clampSnippet, SITE_NAME } from "@/app/lib/site";
+import { pageSocial } from "@/app/lib/social";
 import { breadcrumbJsonLd, JsonLd, SITE_ID } from "@/app/lib/structured-data";
 
 /**
@@ -29,14 +30,19 @@ const FAMILY_COUNT = FRAME_CATEGORIES.length;
 
 export const metadata: Metadata = {
   title: "Frame catalogue",
-  description: `Browse all ${FRAME_COUNT} ${SITE_NAME} frames across ${FAMILY_COUNT} families — live price charts, company fundamentals, macro and rates, metals, Bitcoin and on-chain, options, FX, housing and sentiment.`,
+  // Clamped because the counts are interpolated: the tail of this list is the
+  // part a result cuts, and it grew past the snippet width as frames were added.
+  description: clampSnippet(
+    `All ${FRAME_COUNT} ${SITE_NAME} frames across ${FAMILY_COUNT} families: price charts, company fundamentals, macro and rates, metals, on-chain, options, FX and housing.`,
+  ),
   alternates: { canonical: "/catalogue" },
-  openGraph: {
+  // Spread, never hand-written: an inline `openGraph` here replaces the root's
+  // object and takes the share card with it. See app/lib/social.ts.
+  ...pageSocial({
+    path: "/catalogue",
     title: `Frame catalogue · ${SITE_NAME}`,
     description: `All ${FRAME_COUNT} frames a ${SITE_NAME} dashboard can be built from, every one rendered in the browser.`,
-    url: absoluteUrl("/catalogue"),
-    type: "website",
-  },
+  }),
 };
 
 export default function CataloguePage() {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandMark } from "@/app/lib/BrandMark";
+import { SITE_TAGLINE } from "@/app/lib/site";
 
 /** Injected by next.config.ts from packages/cli/package.json at build time. */
 const CLI_VERSION = process.env.ZFRAMES_CLI_VERSION;
@@ -16,10 +17,11 @@ export function Footer() {
               zframes
             </span>
           </div>
+          {/* The tagline from the constant, not retyped: the footer is one of
+              the five surfaces that has to spell it identically. */}
           <p className="mt-3 text-sm text-white/60">
-            Describe your dashboard. An agent builds it. It gets sharper every
-            day — free, open-source market terminals for stocks and crypto,
-            yours to own.
+            {SITE_TAGLINE} It gets sharper every day — free, open-source market
+            dashboards for stocks and crypto, yours to own.
           </p>
         </div>
 
@@ -51,6 +53,16 @@ export function Footer() {
           >
             My dashboards
           </Link>
+          {/* A real, crawlable link to /llms.txt. The <link rel="alternate"> in
+              the root layout tells a machine it exists; this tells a machine that
+              only follows anchors, and tells a developer reading the footer that
+              the site has an agent-readable copy of itself. */}
+          <a
+            href="/llms.txt"
+            className="font-mono text-white/50 transition-colors hover:text-white"
+          >
+            llms.txt
+          </a>
         </nav>
       </div>
       <div className="border-t border-white/[0.06]">

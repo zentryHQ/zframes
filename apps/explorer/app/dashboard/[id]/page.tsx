@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolveDashboard } from "@/app/lib/resolve-dashboard";
-import { absoluteUrl, ORG_NAME, SITE_NAME } from "@/app/lib/site";
+import {
+  absoluteUrl,
+  clampSnippet,
+  ORG_NAME,
+  SITE_NAME,
+  SNIPPET_MAX,
+} from "@/app/lib/site";
 import {
   breadcrumbJsonLd,
   JsonLd,
@@ -64,11 +70,23 @@ export async function generateMetadata({
   // sentence about that board, and it is what a search snippet or an AI summary
   // will quote — the generated fallback below says the same thing about every
   // board on the site.
-  const description = entry
-    ? entry.description?.trim()
-      ? `${entry.description.trim()} A ${frameCount}-frame ${SITE_NAME} dashboard — preview it in the browser, or fork it onto your machine with your AI agent to run it on live data.`
-      : `A ${frameCount}-frame market dashboard on ${SITE_NAME} — preview it in the browser, or fork it onto your machine with your AI agent to run it on live data.`
-    : `A market dashboard on ${SITE_NAME}.`;
+  // Concatenating the editorial line and the boilerplate produced 300-character
+  // descriptions — Google cut them at about half, so the last thing a searcher
+  // read was a severed clause. The editorial sentence is the one worth showing
+  // (it is about THIS board; the boilerplate says the same thing about every
+  // board on the site), so it goes first and the boilerplate is added only when
+  // it fits. `clampSnippet` is the backstop for a long editorial line.
+  const generic = `A ${frameCount}-frame market dashboard on ${SITE_NAME}: preview it in the browser or fork it onto your own machine.`;
+  const editorial = entry?.description?.trim();
+  const description = !entry
+    ? `A market dashboard on ${SITE_NAME}.`
+    : editorial
+      ? clampSnippet(
+          editorial.length + 1 + generic.length <= SNIPPET_MAX
+            ? `${editorial} ${generic}`
+            : editorial,
+        )
+      : clampSnippet(generic);
   const indexable = !!entry && entry.visibility === "listed";
 
   return {

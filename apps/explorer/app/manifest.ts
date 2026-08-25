@@ -4,6 +4,7 @@ import {
   BRAND_BG,
   SITE_DESCRIPTION,
   SITE_NAME,
+  SITE_TITLE,
 } from "@/app/lib/site";
 
 /**
@@ -20,7 +21,10 @@ import {
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${SITE_NAME} — AI-built market terminals`,
+    // The SAME string as the `<title>`, not a fourth phrasing of the pitch. The
+    // manifest is one of the places a crawler and a link-preview UI look for the
+    // site's name, so a variant here is a variant an answer engine may quote.
+    name: SITE_TITLE,
     short_name: SITE_NAME,
     description: SITE_DESCRIPTION,
     start_url: "/",

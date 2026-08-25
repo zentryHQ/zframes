@@ -9,6 +9,7 @@ import {
   REPO_URL,
   SITE_LONG_DESCRIPTION,
   SITE_NAME,
+  SITE_TAGLINE,
 } from "@/app/lib/site";
 
 /**
@@ -58,8 +59,16 @@ export async function GET(): Promise<Response> {
     "",
     `> ${SITE_LONG_DESCRIPTION}`,
     "",
+    // Category placement, stated rather than implied. A model that cannot place
+    // a product in a familiar family describes it in the vendor's own words or
+    // not at all; naming the neighbours is what lets it answer "what is this
+    // like?" — the question that gets a tool mentioned in the first place.
+    // Positioning only: nothing here claims zframes is better than any of them.
+    "It sits in the same family of tools as TradingView, Grafana and a Bloomberg-style market terminal — the difference is that the board is written by your coding agent from a plain-language brief, and it runs on your own machine rather than on someone's hosted service.",
+    "",
     "## Facts",
     "",
+    `- Tagline: ${SITE_TAGLINE}`,
     "- Licence: MIT (free and open source, no paid tier, no account)",
     `- Source: ${REPO_URL}`,
     `- CLI on npm: ${NPM_URL}`,
