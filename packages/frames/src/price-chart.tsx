@@ -1,4 +1,10 @@
-import { defineFrame, useCandles, useMids, useMoney } from "@zframes/core";
+import {
+  defineFrame,
+  useCandles,
+  useLiveUpdatesPaused,
+  useMids,
+  useMoney,
+} from "@zframes/core";
 import { Liveline, type CandlePoint, type LivelinePoint } from "liveline";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
@@ -36,6 +42,9 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
     config.source,
   );
   const money = useMoney();
+  // Freezes the canvas' sliding-window animation while the host scrubs the
+  // board (the tick appends are already stilled via the mids gate).
+  const updatesPaused = useLiveUpdatesPaused();
   // Only Hyperliquid streams quotes, so on another source this asks for nothing
   // and the chart runs on polled candles alone: the forming candle and the line
   // tail fall back to candle closes (see liveCandle / lineData below).
@@ -156,6 +165,7 @@ function PriceChart({ config }: { config: z.output<typeof schema> }) {
         color={config.color}
         theme="dark"
         loading={isLoading}
+        paused={updatesPaused}
         formatValue={money.price}
         formatTime={formatTime}
         padding={PRICE_CHART_PADDING}

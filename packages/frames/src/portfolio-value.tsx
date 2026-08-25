@@ -1,4 +1,9 @@
-import { defineFrame, useMoney, type Portfolio } from "@zframes/core";
+import {
+  defineFrame,
+  useLiveUpdatesPaused,
+  useMoney,
+  type Portfolio,
+} from "@zframes/core";
 import { Liveline, type LivelinePoint, type LivelineSeries } from "liveline";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
@@ -43,6 +48,9 @@ function EquityLine({
   const money = useMoney();
   const { total } = usePricedHoldings(portfolio.holdings);
   const accent = useMemo(() => accentColor(), []);
+  // Freezes the canvas' sliding-window animation while the host scrubs the
+  // board (the appender is already stilled via the shared heartbeat).
+  const updatesPaused = useLiveUpdatesPaused();
   const { ref: rootRef, visibleRef } = useVisibilityRef<HTMLDivElement>();
   const wasHiddenRef = useRef(false);
   const [buffer, setBuffer] = useState<LivelinePoint[]>([]);
@@ -138,6 +146,7 @@ function EquityLine({
           window={activeWindowSecs}
           grid
           loading={buffer.length <= 1}
+          paused={updatesPaused}
           scrub={false}
           badge={false}
           formatValue={money.compact}

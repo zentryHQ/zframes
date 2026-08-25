@@ -1,5 +1,11 @@
 import { CHART_COLORS_MULTI_SERIES } from "@zframes/charts";
-import { defineFrame, useDayStats, useMids, useMoney } from "@zframes/core";
+import {
+  defineFrame,
+  useDayStats,
+  useLiveUpdatesPaused,
+  useMids,
+  useMoney,
+} from "@zframes/core";
 import { Liveline, type LivelinePoint, type LivelineSeries } from "liveline";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
@@ -64,6 +70,9 @@ function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
   const symbolKey = symbols.join("|");
   const mids = useMids(symbols);
   const stats = useDayStats(symbols);
+  // Freezes the canvas' sliding-window animation while the host scrubs the
+  // board (the appenders are already stilled via the shared heartbeat).
+  const updatesPaused = useLiveUpdatesPaused();
   const { ref: rootRef, visibleRef } = useVisibilityRef<HTMLDivElement>();
   const wasHiddenRef = useRef(false);
   const [buffers, setBuffers] = useState<PriceBuffers>({});
@@ -263,6 +272,7 @@ function PriceLiveline({ config }: { config: z.output<typeof schema> }) {
           window={activeWindowSecs}
           grid
           loading={!hasSeries}
+          paused={updatesPaused}
           scrub={false}
           badge={false}
           formatValue={config.normalize ? formatChangePct : money.price}

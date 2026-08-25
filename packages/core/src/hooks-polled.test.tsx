@@ -4,6 +4,7 @@ import { act, cleanup, render } from "@testing-library/react";
 import { FramesProvider, useDayStatsState } from "./hooks";
 import {
   FrameVisibilityContext,
+  setLiveUpdatesPaused,
   type FrameVisibility,
   type FrameVisibilityListener,
 } from "./visibility";
@@ -178,6 +179,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   setVisibility(false);
+  setLiveUpdatesPaused(false); // module-level flag — never leak across tests
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
@@ -383,6 +385,70 @@ describe("usePolled page-visibility gate", () => {
     view.set(true);
     view.publish(true);
     await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("usePolled host pause (setLiveUpdatesPaused)", () => {
+  // The third axis: a host animating the board (the explorer's landing scrub)
+  // suspends every tick source for the motion's duration. Unlike the hidden-tab
+  // gate the loop keeps its cadence — the pause is seconds, not minutes — but a
+  // tick that came DUE mid-pause must refire on resume, or a slow-cadence frame
+  // waits out its whole interval showing a stale value.
+  it("skips due ticks while paused and refires the skipped tick on resume", async () => {
+    pinJitter();
+    const getDayStats = vi.fn<GetDayStats>().mockResolvedValue(STATS_A);
+    render(
+      tree(
+        { symbols: ["BTC"], refreshMs: 10_000 },
+        makeProvider(getDayStats),
+        null,
+      ),
+    );
+    await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(1);
+    expect(state().stats).toEqual(STATS_A);
+
+    act(() => setLiveUpdatesPaused(true));
+    // Two full intervals pass paused: the loop stays alive but fetches nothing,
+    // and the last good value stays on the card.
+    await advance(20_000);
+    expect(getDayStats).toHaveBeenCalledTimes(1);
+    expect(state().stats).toEqual(STATS_A);
+    expect(state().isLoading).toBe(false);
+
+    // Resume refires the skipped tick immediately.
+    getDayStats.mockResolvedValue(STATS_B);
+    act(() => setLiveUpdatesPaused(false));
+    await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(2);
+    expect(state().stats).toEqual(STATS_B);
+  });
+
+  it("a pause that skipped nothing spends no fetch on resume", async () => {
+    pinJitter();
+    const getDayStats = vi.fn<GetDayStats>().mockResolvedValue(STATS_A);
+    render(
+      tree(
+        { symbols: ["BTC"], refreshMs: 10_000 },
+        makeProvider(getDayStats),
+        null,
+      ),
+    );
+    await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(1);
+
+    // A short scrub between polls: nothing came due, so resuming must not
+    // spend a fetch — dwell-hopping through a stack would otherwise turn every
+    // scroll pause into a board-wide refetch burst.
+    act(() => setLiveUpdatesPaused(true));
+    await advance(1_000);
+    act(() => setLiveUpdatesPaused(false));
+    await flush();
+    expect(getDayStats).toHaveBeenCalledTimes(1);
+
+    // …and the normal cadence is intact afterwards.
+    await advance(9_000);
     expect(getDayStats).toHaveBeenCalledTimes(2);
   });
 });

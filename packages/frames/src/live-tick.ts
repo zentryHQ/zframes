@@ -1,5 +1,10 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { isPageHidden, onPageVisibilityChange } from "@zframes/core";
+import {
+  areLiveUpdatesPaused,
+  isPageHidden,
+  onLiveUpdatesPausedChange,
+  onPageVisibilityChange,
+} from "@zframes/core";
 
 /**
  * Shared infrastructure for the live-accumulating liveline frames (price-liveline,
@@ -22,6 +27,7 @@ import { isPageHidden, onPageVisibilityChange } from "@zframes/core";
 const heartbeatCbs = new Set<() => void>();
 let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
 let heartbeatUnsubscribePage: (() => void) | undefined;
+let heartbeatUnsubscribePaused: (() => void) | undefined;
 
 function startHeartbeatTimer(): void {
   if (heartbeatTimer !== undefined || typeof window === "undefined") return;
@@ -48,13 +54,23 @@ function stopHeartbeatTimer(): void {
  * nobody can see. Dropping the timer entirely costs nothing on return: the
  * appenders are time-based, so the first tick after the tab comes back picks up
  * from the current clock rather than replaying the gap.
+ *
+ * And it stops while the HOST has paused live updates (a page scrubbing the
+ * board's content — see `setLiveUpdatesPaused` in @zframes/core): every append
+ * mid-scrub is a repaint the compositor immediately re-rasters. Same
+ * time-based recovery — the first tick after resume needs no replay.
  */
 export function onHeartbeat(cb: () => void): () => void {
   heartbeatCbs.add(cb);
-  if (!isPageHidden()) startHeartbeatTimer();
+  if (!isPageHidden() && !areLiveUpdatesPaused()) startHeartbeatTimer();
   heartbeatUnsubscribePage ??= onPageVisibilityChange((hidden) => {
     if (hidden) stopHeartbeatTimer();
-    else if (heartbeatCbs.size > 0) startHeartbeatTimer();
+    else if (heartbeatCbs.size > 0 && !areLiveUpdatesPaused())
+      startHeartbeatTimer();
+  });
+  heartbeatUnsubscribePaused ??= onLiveUpdatesPausedChange((paused) => {
+    if (paused) stopHeartbeatTimer();
+    else if (heartbeatCbs.size > 0 && !isPageHidden()) startHeartbeatTimer();
   });
   return () => {
     heartbeatCbs.delete(cb);
@@ -62,6 +78,8 @@ export function onHeartbeat(cb: () => void): () => void {
       stopHeartbeatTimer();
       heartbeatUnsubscribePage?.();
       heartbeatUnsubscribePage = undefined;
+      heartbeatUnsubscribePaused?.();
+      heartbeatUnsubscribePaused = undefined;
     }
   };
 }

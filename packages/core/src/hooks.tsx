@@ -83,8 +83,10 @@ import type {
 } from "@zframes/spec/types";
 
 import {
+  areLiveUpdatesPaused,
   FrameVisibilityContext,
   isPageHidden,
+  onLiveUpdatesPausedChange,
   onPageVisibilityChange,
 } from "./visibility";
 
@@ -218,6 +220,7 @@ function usePolled<T>(
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout>;
     let errorStreak = 0;
+    let skippedWhilePaused = false;
     // Every state write here goes through a value-diff: a poll whose payload is
     // structurally identical to the last one must not install a new identity,
     // or every frame re-renders and its memoized chart re-derives on a no-op.
@@ -242,6 +245,15 @@ function usePolled<T>(
       // subscribe() below fires an immediate tick the moment the frame scrolls
       // back into view, so it refreshes on return instead of waiting out the interval.
       if (visibility && !visibility.visibleRef.current) {
+        scheduleNext(refreshMs);
+        return;
+      }
+      // Host-paused (the embedding page is scrubbing the board): same shape as
+      // off-screen — skip the fetch, keep the cadence. The pause subscription
+      // below refires a skipped tick on resume, so a slow-cadence frame that
+      // came due mid-scrub doesn't wait out its whole interval.
+      if (areLiveUpdatesPaused()) {
+        skippedWhilePaused = true;
         scheduleNext(refreshMs);
         return;
       }
@@ -285,11 +297,17 @@ function usePolled<T>(
       if (hidden) clearTimeout(timer);
       else tick();
     });
+    const unsubscribePaused = onLiveUpdatesPausedChange((paused) => {
+      if (cancelled || paused || !skippedWhilePaused) return;
+      skippedWhilePaused = false;
+      tick();
+    });
     return () => {
       cancelled = true;
       clearTimeout(timer);
       unsubscribe?.();
       unsubscribePage();
+      unsubscribePaused();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
@@ -334,6 +352,10 @@ export function useMidsState(symbols: readonly string[]): {
       // fires while still loading rather than on every message.
       setIsLoading((loading) => (loading ? false : loading));
       if (visibility && !visibility.visibleRef.current) return;
+      // Host-paused: drop the state update (the stream stays subscribed); the
+      // next message after resume repaints — mids tick sub-second, so the gap
+      // closes itself without a resume hook.
+      if (areLiveUpdatesPaused()) return;
       setMids((prev) => {
         let changed = false;
         const next: Record<string, number> = {};

@@ -115,4 +115,13 @@ export {
 // Page-level (whole tab/window) visibility — the one home for "is anyone
 // looking at this", so every idle loop in the app stands down on the same
 // signal instead of each host hand-rolling a `visibilitychange` listener.
-export { isPageHidden, onPageVisibilityChange } from "./visibility";
+// Beside it, the host-driven live-updates pause: a page animating the board
+// (the explorer's landing scrub) suspends every tick source for the duration.
+export {
+  areLiveUpdatesPaused,
+  isPageHidden,
+  onLiveUpdatesPausedChange,
+  onPageVisibilityChange,
+  setLiveUpdatesPaused,
+  useLiveUpdatesPaused,
+} from "./visibility";

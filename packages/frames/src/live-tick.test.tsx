@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { useRef } from "react";
+import { setLiveUpdatesPaused } from "@zframes/core";
 import { onHeartbeat, useVisibilityRef } from "./live-tick";
 import { formatCountdownCs, useCountdown } from "./use-countdown";
 
@@ -50,6 +51,7 @@ describe("onHeartbeat", () => {
   afterEach(() => {
     while (cleanups.length) cleanups.pop()!();
     setVisibility(false);
+    setLiveUpdatesPaused(false); // module-level flag — never leak across tests
     vi.clearAllTimers();
     // Restore spies BEFORE swapping the real timers back: the setInterval spy
     // was installed OVER the fake-timer implementation, so restoring it after
@@ -151,6 +153,42 @@ describe("onHeartbeat", () => {
     show();
     vi.advanceTimersByTime(1_000);
     expect(a).toHaveBeenCalledTimes(2);
+  });
+
+  it("drops the interval while the host has paused live updates and restarts on resume", () => {
+    const setInterval = vi.spyOn(globalThis, "setInterval");
+    const clearInterval = vi.spyOn(globalThis, "clearInterval");
+    const a = vi.fn();
+    track(a);
+    expect(setInterval).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1_000);
+    expect(a).toHaveBeenCalledTimes(1);
+
+    // Host pause (the embedding page is scrubbing the board): every append
+    // mid-scrub is a repaint the compositor immediately re-rasters, so the
+    // shared timer must be gone, not merely its appenders gated.
+    setLiveUpdatesPaused(true);
+    expect(clearInterval).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(10_000);
+    expect(a).toHaveBeenCalledTimes(1);
+
+    setLiveUpdatesPaused(false);
+    vi.advanceTimersByTime(1_000);
+    expect(a).toHaveBeenCalledTimes(2);
+  });
+
+  it("registering while paused starts no timer until the pause lifts", () => {
+    const setInterval = vi.spyOn(globalThis, "setInterval");
+    setLiveUpdatesPaused(true); // e.g. a frame mounting mid-scrub
+    const a = vi.fn();
+    track(a);
+    expect(setInterval).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(10_000);
+    expect(a).not.toHaveBeenCalled();
+
+    setLiveUpdatesPaused(false);
+    vi.advanceTimersByTime(1_000);
+    expect(a).toHaveBeenCalledTimes(1);
   });
 
   it("registering while already hidden starts no timer at all", () => {

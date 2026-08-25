@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { FramesProvider, useMids, useMidsState } from "./hooks";
+import { setLiveUpdatesPaused } from "./visibility";
 import type { MarketDataProvider } from "@zframes/spec/types";
 
 // `useMidsState` is the ONLY streaming hook in the repo — every live price card
@@ -113,6 +114,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  setLiveUpdatesPaused(false); // module-level flag — never leak across tests
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
@@ -156,6 +158,26 @@ describe("useMidsState — subscription + projection", () => {
     // A message that carries none of the wanted symbols still counts as the
     // stream speaking, so the card drops out of its skeleton.
     expect(state().isLoading).toBe(false);
+  });
+
+  it("drops state updates while the host has paused live updates, resumes on the next message", async () => {
+    const { provider, subs } = makeStreamProvider();
+    render(tree(["BTC"], provider));
+    await emit(subs[0], { BTC: 100 });
+    expect(state().mids).toEqual({ BTC: 100 });
+
+    // Host pause (the embedding page is scrubbing the board): the stream stays
+    // subscribed but its messages must not become renders — every mids write is
+    // a repaint of a layer the compositor is already re-rastering.
+    setLiveUpdatesPaused(true);
+    await emit(subs[0], { BTC: 101 });
+    expect(state().mids).toEqual({ BTC: 100 });
+
+    // No resume hook needed: mids tick sub-second, so the first message after
+    // the pause lifts closes the gap by itself.
+    setLiveUpdatesPaused(false);
+    await emit(subs[0], { BTC: 102 });
+    expect(state().mids).toEqual({ BTC: 102 });
   });
 });
 

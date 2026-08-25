@@ -1,4 +1,4 @@
-import { createContext } from "react";
+import { createContext, useSyncExternalStore } from "react";
 
 /**
  * Per-frame viewport visibility, published by the card chrome (`FrameContent`)
@@ -77,4 +77,64 @@ export function onPageVisibilityChange(
       pageVisibilityBound = undefined;
     }
   };
+}
+
+/**
+ * HOST-suspended live updates — the third axis of tick gating, next to the
+ * per-frame viewport gate above and the page-visibility gate. A host that is
+ * animating the board (the explorer's landing scrubs an embedded board's
+ * content through a fixed frame on every scroll delta) sets this while the
+ * motion runs: every repaint a tick produces mid-animation is work the
+ * compositor immediately re-rasters, so the tick sources (heartbeat, polls,
+ * mids) stand down and resume when the motion settles. Page-scoped on purpose
+ * — each embedded board is its own document, so a host pauses exactly the
+ * board it is moving. Nothing sets it by default: a standalone board, the
+ * runtime, and third-party framers never pause.
+ */
+const liveUpdatesListeners = new Set<(paused: boolean) => void>();
+let liveUpdatesPaused = false;
+
+/** True while the host has suspended live updates. False in SSR. */
+export function areLiveUpdatesPaused(): boolean {
+  return liveUpdatesPaused;
+}
+
+/** Host-facing switch; no-op when already in the requested state. */
+export function setLiveUpdatesPaused(paused: boolean): void {
+  if (paused === liveUpdatesPaused) return;
+  liveUpdatesPaused = paused;
+  // Snapshot so a callback that unsubscribes mid-notify can't perturb iteration.
+  for (const fn of [...liveUpdatesListeners]) fn(paused);
+}
+
+/**
+ * Run `cb(paused)` on every pause/resume; returns an unsubscribe fn. Fires
+ * only on CHANGE — read the current value with {@link areLiveUpdatesPaused}
+ * first, exactly like the page-visibility subscription above.
+ */
+export function onLiveUpdatesPausedChange(
+  cb: (paused: boolean) => void,
+): () => void {
+  liveUpdatesListeners.add(cb);
+  return () => {
+    liveUpdatesListeners.delete(cb);
+  };
+}
+
+const subscribeLiveUpdates = (onChange: () => void) =>
+  onLiveUpdatesPausedChange(onChange);
+const serverLiveUpdatesSnapshot = () => false;
+
+/**
+ * The pause flag as render state, for the few frames that must pass it into a
+ * child as a prop (the liveline charts' `paused`, which freezes their canvas
+ * animation). Tick sources on hot paths read {@link areLiveUpdatesPaused}
+ * directly instead — a render per flip is only worth paying where a prop needs it.
+ */
+export function useLiveUpdatesPaused(): boolean {
+  return useSyncExternalStore(
+    subscribeLiveUpdates,
+    areLiveUpdatesPaused,
+    serverLiveUpdatesSnapshot,
+  );
 }

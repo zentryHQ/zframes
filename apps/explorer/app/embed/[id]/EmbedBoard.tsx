@@ -1,5 +1,6 @@
 "use client";
 
+import { setLiveUpdatesPaused } from "@zframes/core";
 import { DashboardSpecSchema } from "@zframes/spec/spec";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -63,6 +64,12 @@ function scrollProgressOf(data: unknown): number | null {
 // the iframe minus that, so overflow is measured against it.
 const SHELL_PAD = 32;
 
+// Trailing release on the live-updates pause after the last scroll delta. Long
+// enough to bridge the gap between scroll frames on a throttled main thread
+// (where they can arrive 100ms+ apart), short enough that the board reads as
+// live again the moment the visitor stops.
+const SCRUB_SETTLE_MS = 250;
+
 export function EmbedBoard({ spec }: { spec: unknown }) {
   // Parse only to read the background + accent for the backdrop; DashboardView
   // re-parses and owns the invalid-spec message, so a bad spec just skips the bg.
@@ -103,6 +110,28 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
   useEffect(
     () => () => {
       if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    },
+    [],
+  );
+
+  // While scroll deltas are arriving, every tick-driven repaint (heartbeat
+  // appends, mids updates, poll refreshes, liveline's sliding canvas) lands on
+  // a layer the compositor is re-rastering anyway — pause them all for the
+  // scrub (setLiveUpdatesPaused, page-scoped so only THIS board stands down)
+  // and release on a trailing timer once the motion settles.
+  const scrubIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const markScrubbing = useCallback(() => {
+    setLiveUpdatesPaused(true);
+    if (scrubIdleTimer.current) clearTimeout(scrubIdleTimer.current);
+    scrubIdleTimer.current = setTimeout(() => {
+      scrubIdleTimer.current = null;
+      setLiveUpdatesPaused(false);
+    }, SCRUB_SETTLE_MS);
+  }, []);
+  useEffect(
+    () => () => {
+      if (scrubIdleTimer.current) clearTimeout(scrubIdleTimer.current);
+      setLiveUpdatesPaused(false);
     },
     [],
   );
@@ -147,6 +176,9 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
         setBoard({ sceneActive: e.data.sceneActive, visible: e.data.visible });
       const p = scrollProgressOf(e.data);
       if (p !== null) {
+        // Only a MOVED value marks a scrub — the parent re-sends the last
+        // progress on hello, and an unchanged value must not pause anything.
+        if (p !== progressRef.current) markScrubbing();
         progressRef.current = p;
         applyScroll();
       }
@@ -156,7 +188,7 @@ export function EmbedBoard({ spec }: { spec: unknown }) {
     // state, so a state pushed before this document hydrated is never lost.
     window.parent.postMessage({ type: "zf:bg-hello" }, window.location.origin);
     return () => window.removeEventListener("message", onMessage);
-  }, [applyScroll]);
+  }, [applyScroll, markScrubbing]);
 
   return (
     <div className="relative min-h-screen w-full p-4">
