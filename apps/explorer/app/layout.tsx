@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AppShell } from "@/app/lib/AppShell";
 import {
   BRAND_BG,
+  GOOGLE_SITE_VERIFICATION,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TAGLINE,
@@ -65,21 +66,12 @@ export const metadata: Metadata = {
     title: `${SITE_TAGLINE} · ${SITE_NAME}`,
     description: SITE_DESCRIPTION,
   }),
-  // Set `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` / `..._BING_SITE_VERIFICATION` to
-  // verify the property without a code change. Omitted entirely when unset — an
-  // empty verification meta tag is worse than none, it fails the check.
-  verification: {
-    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
-      ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
-      : {}),
-    ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION
-      ? {
-          other: {
-            "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION,
-          },
-        }
-      : {}),
-  },
+  // Search Console ownership, from the environment. The key is omitted entirely
+  // when unset rather than emitted blank: Google fails an empty `content`, so a
+  // blank tag is worse than none. See the note in site.ts.
+  ...(GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: GOOGLE_SITE_VERIFICATION } }
+    : {}),
   // Explicit rather than left to the default: `max-image-preview: large` is what
   // lets the OG card run full width in a result, and `max-snippet: -1` removes
   // the snippet length cap that otherwise truncates an answer mid-sentence.

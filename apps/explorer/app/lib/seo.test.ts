@@ -386,6 +386,26 @@ describe("one tagline, everywhere", () => {
   });
 });
 
+describe("site ownership", () => {
+  const loadLayout = async (token: string) => {
+    vi.stubEnv("NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION", token);
+    vi.resetModules();
+    return (await import("@/app/layout")).metadata;
+  };
+
+  it("emits the Search Console token from the environment", async () => {
+    const token = "2VFacA901QEy3rp9l5yDczF79598oR6pt7gUDMf5SM";
+    expect((await loadLayout(token)).verification?.google).toBe(token);
+  });
+
+  it("omits the tag entirely when no token is configured", async () => {
+    // Not a blank one: Google fails an empty `content` outright, so emitting
+    // `<meta name="google-site-verification" content="">` un-verifies the
+    // property while looking, in the HTML, like the tag is there.
+    expect((await loadLayout("")).verification).toBeUndefined();
+  });
+});
+
 describe("structured data", () => {
   const graphs = [
     organizationJsonLd(),

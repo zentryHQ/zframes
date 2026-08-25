@@ -258,10 +258,13 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   never traced). It found the three missing `og:image`s and all three over-long
   descriptions. Against a dev server most of its output is red by design — see
   the header in `scripts/seo-audit.ts`.
-- **Verification tokens are env, not code**:
-  `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` / `NEXT_PUBLIC_BING_SITE_VERIFICATION`.
-  Unset means the meta tag is omitted entirely, which is what you want — an empty
-  one fails the check.
+- **The Search Console token is env-only, with no default**:
+  `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`. The token belongs to whoever owns the
+  property, and this repo is public, so a baked-in value is one every fork would
+  also serve. Unset omits the tag entirely — an empty `content` fails Google's
+  check, which is worse than no tag, and a test pins that. **Footgun:**
+  `NEXT_PUBLIC_*` is inlined at *build* time, so changing it in Vercel needs a
+  redeploy, not a restart.
 
 ## Footguns
 

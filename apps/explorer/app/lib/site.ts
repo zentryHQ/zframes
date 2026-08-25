@@ -94,6 +94,23 @@ export const BRAND_BG = "#06060b";
 export const BRAND_ACCENT = "#818cf8";
 
 /**
+ * The Search Console ownership token, served as `<meta
+ * name="google-site-verification">` when set.
+ *
+ * Environment only, with no default: the token belongs to whoever owns the
+ * property, and a value baked into a public repo is one every fork and every
+ * staging clone would also serve. Unset means the tag is omitted entirely — an
+ * empty `content` fails Google's check, which is worse than no tag at all.
+ *
+ * `NEXT_PUBLIC_` rather than a bare name because `site.ts` is imported by client
+ * components too; a server-only var would read as `undefined` in that half of
+ * the bundle. The consequence to remember: the value is inlined at BUILD time,
+ * so changing it in Vercel needs a redeploy, not just a restart.
+ */
+export const GOOGLE_SITE_VERIFICATION =
+  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? "";
+
+/**
  * Where a search snippet stops being read. Google's cutoff moves and is measured
  * in pixels rather than characters, but ~155 is the width that survives on both
  * desktop and mobile without an ellipsis.
