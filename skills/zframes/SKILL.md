@@ -168,13 +168,23 @@ fail with the offending numbers named.
 Renderer-level failures (a frame whose capability no provider covers) show
 up as error cards in the running dashboard; treat those the same way.
 
-## 6. Hand off — serve it
+## 6. Hand off — serve it, then open it
 
-Serve the dashboard and open it for the user:
+Serve the dashboard **and open it in the user's browser** — a printed link is
+not a hand-off. `serve` blocks, so background it (a background shell, a
+multiplexer window — whatever your harness has), wait for the port to answer,
+then open the URL:
 
 ```bash
-npx --yes zframes@latest serve <name>   # the store name; live at http://127.0.0.1:37263
+npx --yes zframes@latest serve <name>   # background this; the store name (or a path)
+until curl -sf http://localhost:37263 >/dev/null; do sleep 1; done
+open http://localhost:37263             # macOS · xdg-open on Linux · start on Windows
 ```
+
+Always write and open the URL as **`http://localhost:37263`**, never the bare
+IP — that's what the CLI prints and what the user expects to click. Poll the
+port rather than sleeping blind: opening before the server binds lands the
+browser on a connection error. If you passed `--port <n>`, open that port.
 
 **Live data is installed once, not assumed.** A bare install ships no data
 providers: it renders plainly-simulated demo numbers, badges the header
@@ -203,7 +213,7 @@ taken.
 
 **Verify it renders designed, not just valid.** Lint proves the JSON; it can't
 see pixels. After serving a *newly built or reshaped* board, if you have a
-browser tool, open `http://127.0.0.1:37263` and sweep once for: error cards
+browser tool, open `http://localhost:37263` and sweep once for: error cards
 ("Invalid configuration", "Unknown frame", missing-capability), cards stuck
 empty, rows with holes, and clipped card interiors — fix the spec and reload.
 A **"demo data" pill in the header is not a bug**: it means no data providers
@@ -219,6 +229,9 @@ one-field update — the diff is the proof there.
   user says start / open / serve (or sends a bare `/zframes`), serve it
   (step 1 → step 6) — no interview, no `init`, no rebuild. Build or re-interview
   only when they're creating a new dashboard or changing an existing one.
+  **Serving means backgrounding `serve` *and* opening `http://localhost:37263`**
+  in their browser — the ask was "open my dashboard", so a printed link isn't
+  the job done.
 - **The interview picks tickers (and at most a look), never frames.** The
   onboarding funnel — asset class → categories → specific tickers, with one
   optional theme-preset question riding along — exists only to choose the
