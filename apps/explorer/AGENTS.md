@@ -15,6 +15,7 @@ pnpm --dir apps/explorer typecheck
 pnpm --dir apps/explorer seed:curated         # upsert the curated showcase into the DB
 pnpm --dir apps/explorer seed:curated --dry-run   # validate the seed, write nothing (no DB needed)
 pnpm --dir apps/explorer validate:dashboards  # re-validate every STORED board
+pnpm --dir apps/explorer seo:audit            # post-deploy SEO/AEO check against LIVE prod
 pnpm --dir apps/explorer thumbs:capture       # nightly screenshot job, run by cron
 pnpm --dir apps/explorer sweep:likes          # drop expired like allowances (nightly cron)
 pnpm --dir apps/explorer migrate              # apply pending drizzle/*.sql (fresh DB or existing)
@@ -221,6 +222,46 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
 - JSON-LD helpers live in `app/lib/structured-data.tsx` and are emitted
   **server-side** — answer-engine crawlers largely do not run JS, so anything
   injected after hydration is invisible to the audience it is for.
+- **Never hand-write `openGraph` in a page. Spread `pageSocial()`**
+  (`app/lib/social.ts`). Next merges metadata one top-level field at a time, so a
+  page exporting its own `openGraph` object **replaces** the resolved one — and
+  the root `app/opengraph-image.tsx` was merged into the object it just discarded.
+  `/gallery`, `/catalogue` and `/tinker` each shipped for weeks with **no
+  `og:image` at all** and nothing said so: they had `og:title`, they type-checked,
+  they rendered. `twitter` fails the same way plus one worse: a page that sets
+  only `openGraph` keeps the ROOT's `twitter:title`, so its X card advertised the
+  homepage under the page's own URL. The one exception is a segment that owns an
+  `opengraph-image.tsx` (`/dashboard/[id]`) — there the file convention should
+  win. `seo.test.ts` enforces exactly that rule. The same trap applies to
+  `alternates`: a page setting `canonical` drops any `types` the root declared,
+  which is why the `/llms.txt` pointer is a raw `<link>` in the layout head.
+- **Descriptions go through `clampSnippet()`.** Past ~155 characters Google cuts
+  a description mid-clause. `/gallery` (216), `/catalogue` (174) and every board
+  page (300) all shipped over it, because each was written as a paragraph and
+  nobody counted. The clamp prefers a sentence boundary and falls back to a word
+  boundary with an ellipsis.
+- **One tagline, five surfaces.** `SITE_TAGLINE` is the hero `<h1>`, the share
+  card, the footer, the manifest and `Organization.slogan`. An answer engine
+  quoting the site repeats whichever phrasing it reaches first, so a second
+  wording is a second product description. `SITE_TITLE` (≤60 chars, Title Case,
+  category-first) and `SITE_DESCRIPTION` (opens `zframes is a …`, ≤160) cover
+  **different** ground on purpose — a test fails if they share a four-word run.
+- **Never add `aggregateRating`.** The Rich Results Test's "Missing field
+  (optional) aggregateRating" warning is correct and must stay. Rating markup has
+  to reflect real reviews we collected and show on the page; inventing it risks a
+  manual action against the whole property in exchange for some stars. A test
+  pins its absence.
+- **`pnpm --dir apps/explorer seo:audit` is the post-deploy check**, run against
+  the LIVE origin. The unit suite pins what the source says; every SEO failure
+  worth catching is a gap between that and what the deployment serves (a red
+  deploy gate, a stale ISR cache, a card route that 404s because its font was
+  never traced). It found the three missing `og:image`s and all three over-long
+  descriptions. Against a dev server most of its output is red by design — see
+  the header in `scripts/seo-audit.ts`.
+- **Verification tokens are env, not code**:
+  `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` / `NEXT_PUBLIC_BING_SITE_VERIFICATION`.
+  Unset means the meta tag is omitted entirely, which is what you want — an empty
+  one fails the check.
 
 ## Footguns
 
