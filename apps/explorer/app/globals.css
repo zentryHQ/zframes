@@ -40,32 +40,53 @@
   --default-transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
 
   /* The FAQ accordion's open/close (ui/accordion.tsx). Local pair instead of
-   * tw-animate's accordion-down/up because the content is force-mounted for
-   * SEO: on a pre-hydration paint Radix hasn't measured the height var yet,
-   * and tw-animate's `up` keyframe falls back to `height: auto` — which plays
-   * a visible every-answer-open flash on page load. Falling back to 0px makes
-   * the un-hydrated animation a no-op (0 → 0). */
+   * tw-animate's accordion-down/up, and animating the content grid's ROW TRACK
+   * rather than its height.
+   *
+   * Height needs a measured pixel target, and the force-mounted content (SEO:
+   * every answer must be in the server HTML) never gets one — Radix reads
+   * `--radix-collapsible-content-height` from a ref during render, and the
+   * re-render that would publish it is exactly the one force-mounting makes
+   * React bail out of. So `to { height: var(…, auto) }` resolved to `auto`,
+   * which Chrome cannot interpolate from 0: opening jumped while closing still
+   * faded on opacity, i.e. an accordion that animated one way only. `0fr → 1fr`
+   * needs no measurement, so both directions run. */
   --animate-zf-accordion-down: zf-accordion-down 0.3s
     cubic-bezier(0.23, 1, 0.32, 1);
   --animate-zf-accordion-up: zf-accordion-up 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   @keyframes zf-accordion-down {
     from {
-      height: 0;
+      grid-template-rows: 0fr;
       opacity: 0;
     }
     to {
-      height: var(--radix-accordion-content-height, auto);
+      grid-template-rows: 1fr;
       opacity: 1;
     }
   }
   @keyframes zf-accordion-up {
     from {
-      height: var(--radix-accordion-content-height, 0px);
+      grid-template-rows: 1fr;
       opacity: 1;
+      /* The closed state is `visibility: hidden` (it keeps collapsed answers out
+       * of the accessibility tree), and that lands the instant the state flips —
+       * Radix pins `transition-duration: 0s` on this node while it measures, so
+       * a visibility TRANSITION never survives to delay it, and the answer used
+       * to blink out before the collapse it was supposed to play through.
+       * Visibility interpolates as "visible if either endpoint is", so declaring
+       * it here holds the text on screen for the whole 300ms and hands back to
+       * the class exactly at the end. Spelled out at 99% as well: with the
+       * endpoint left implicit, Chrome resolved the discrete step to `hidden`
+       * from halfway on, and the collapse played on an empty box. */
+      visibility: visible;
+    }
+    99% {
+      visibility: visible;
     }
     to {
-      height: 0;
+      grid-template-rows: 0fr;
       opacity: 0;
+      visibility: hidden;
     }
   }
 }
