@@ -10,3 +10,20 @@ D3 base chart layer ported from zTerminal (`tree-chart`, `heatmap-chart`, `multi
 
 `loading-orb/` is internal (used by `multi-series-line-chart`), deliberately not
 exported.
+
+## Fitting text a chart cannot see
+
+A chart knows a dimension its caller does not, so it publishes it rather than
+letting frames guess:
+
+- **`measureTextWidth(text, font)`** (`lib/measure-text.ts`, exported) — canvas
+  measurement for label gutters that must be sized before the text is in the
+  DOM. `stacked-area-chart` derives its y-axis margin from it (a fixed 50px
+  clipped `$40.00T`); `scatter-chart` nudges its end x-ticks inward by it.
+- **`--zf-pie-hole` / `--zf-gauge-hole`** — the ring hole's measured diameter,
+  set on `PieChart`'s and `RadialGauge`'s centre slot. Both slots span the whole
+  box (they must, or the arc beneath is unhoverable), so a centre readout has no
+  other way to know how much room the ring left it: `filings-mix` caps its block
+  at `calc(var(--zf-pie-hole) * 0.9)`, and `GaugeCard.Value` shrinks its figure
+  to fit. Deliberately advisory — the charts do NOT clip their own slot, because
+  a hard clip would newly cut headline numbers that overhang by a few px today.

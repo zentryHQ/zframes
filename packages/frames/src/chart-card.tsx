@@ -194,15 +194,46 @@ function GaugeCardValue({
   return (
     <div
       className="metric-xl leading-none"
-      style={
-        tint || shadow
-          ? { color: tint, ...(shadow ? { textShadow: shadow } : null) }
-          : undefined
-      }
+      style={{
+        fontSize: fitFontSize(children),
+        ...(tint ? { color: tint } : null),
+        ...(shadow ? { textShadow: shadow } : null),
+      }}
     >
       {children}
     </div>
   );
+}
+
+/**
+ * `metric-xl` is 48px whatever the card is, and the gauge's centre slot spans
+ * the whole dial — so on a 2x2 card the figure ran out over the arc instead of
+ * sitting in the hole. RadialGauge publishes the hole's measured diameter as
+ * `--zf-gauge-hole`; this caps the type at whatever fits across it, and `min()`
+ * keeps every roomier gauge at exactly the 3rem it has always been.
+ *
+ * The 1.29 is the reciprocal of DM Sans Bold's tabular advance (~0.62em per
+ * glyph) against 80% of the hole — the readout sits a little above centre, so
+ * it does not get the full chord.
+ */
+const GAUGE_FIT_RATIO = 1.29;
+
+function fitFontSize(children: ReactNode): string | undefined {
+  const chars = charCount(children);
+  // Unknown content (an element, not text) keeps the fixed scale: guessing a
+  // width for arbitrary children would shrink type that fits.
+  if (chars === 0) return undefined;
+  return `min(3rem, calc(var(--zf-gauge-hole, 999px) * ${(
+    GAUGE_FIT_RATIO / chars
+  ).toFixed(4)}))`;
+}
+
+function charCount(node: ReactNode): number {
+  if (typeof node === "string" || typeof node === "number")
+    return String(node).length;
+  if (Array.isArray(node))
+    return node.reduce((sum: number, child) => sum + charCount(child), 0);
+  return 0;
 }
 
 /** The regime word under the figure ("elevated", "greed", "backwardation"). */

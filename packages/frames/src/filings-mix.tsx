@@ -85,12 +85,22 @@ function FilingsMix({ config }: { config: z.output<typeof schema> }) {
           outerRadius={92}
           colors={colors}
         >
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="caption text-soft">
-              {data?.name || tickerOf(config.symbol)}
+          {/* Bounded to the ring's hole (published by PieChart, since `fill`
+              scales the radii): at 2x2 the hole is ~75px and anything wider
+              slid under the arcs and read as clipped text. The ticker, not
+              `data.name`, for the same reason — "Tesla, Inc." does not fit a
+              donut hole, and the frame's own header carries no symbol. */}
+          <div
+            className="flex flex-col items-center gap-0.5"
+            style={{ maxWidth: "calc(var(--zf-pie-hole, 100%) * 0.9)" }}
+          >
+            <span className="caption text-soft w-full truncate text-center">
+              {tickerOf(config.symbol)}
             </span>
             <span className="metric-lg text-strong">{total}</span>
-            <span className="caption text-soft">filings</span>
+            <span className="caption text-soft w-full truncate text-center">
+              filings
+            </span>
           </div>
         </PieChart>
       </div>

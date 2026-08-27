@@ -355,6 +355,10 @@ A steady upward drift across the bars means the government's overall interest bi
 
 export const treasuryAuctionDemandScatterMeta = defineFrameMeta({
   name: "treasury-auction-demand-scatter",
+  // Stays in USD whatever the board asks for: US-macro: Treasury auction sizes
+  // as offered (the bubble weight, named in the hover tooltip) — the same
+  // figure, and the same reason, as treasury-auction-size-bars.
+  usdOnly: true,
   label: "Treasury Auction Demand",
   category: "macro",
   iconUrl: widgetIcon("treasury-auction-demand-scatter"),

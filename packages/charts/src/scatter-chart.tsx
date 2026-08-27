@@ -5,6 +5,7 @@ import {
   hideChartTooltip,
   type ChartTooltipRow,
 } from "./lib/chart-tooltip";
+import { measureTextWidth } from "./lib/measure-text";
 import { useChartBox } from "./lib/use-chart-box";
 import { useChartIntro } from "./lib/use-chart-intro";
 
@@ -55,6 +56,12 @@ export interface ScatterChartProps {
    * bubble area, so it only earns a tooltip row when the caller names it.
    */
   weightLabel?: string;
+  /**
+   * Formats the weight in the tooltip. Defaults to thousands separators only,
+   * which is unreadable for a magnitude like a USD offering size
+   * ("70,000,000,000"), so a caller weighting by money passes a compact one.
+   */
+  formatWeight?: (value: number) => string;
 }
 
 const FONT = "10px 'DM Sans', sans-serif";
@@ -68,6 +75,7 @@ const DEFAULT_FORMAT = (v: number) => String(v);
 const DEFAULT_RADIUS_RANGE: [number, number] = [3, 14];
 const DEFAULT_X_LABEL = "x";
 const DEFAULT_Y_LABEL = "y";
+const DEFAULT_FORMAT_WEIGHT = (v: number) => v.toLocaleString();
 /**
  * Floor for the invisible hit circle. The visible bubbles bottom out at r 3,
  * which no pointer can reliably land on.
@@ -93,6 +101,7 @@ const ScatterChart = ({
   xLabel = DEFAULT_X_LABEL,
   yLabel = DEFAULT_Y_LABEL,
   weightLabel,
+  formatWeight = DEFAULT_FORMAT_WEIGHT,
 }: ScatterChartProps) => {
   const { wrapRef, svgRef, width, plotHeight, boxStyle } = useChartBox({
     height,
@@ -186,11 +195,22 @@ const ScatterChart = ({
       .attr("fill-opacity", 0.5)
       .style("font", FONT)
       .text((t) => formatY(t));
+    // The extreme ticks sit at the ends of the plot, where a centred label
+    // overhangs the margin and the card clips it ("5.00%" → "5.00"). Nudged
+    // inward by however much it overhangs — the label stays centred on its tick
+    // everywhere there is room for it.
+    const tickX = (t: number) => {
+      const half = measureTextWidth(formatX(t), FONT) / 2;
+      return Math.min(
+        Math.max(x(t), half - margin.left),
+        innerWidth + margin.right - half,
+      );
+    };
     g.selectAll("text.tick-x")
       .data(xTicks)
       .enter()
       .append("text")
-      .attr("x", (t) => x(t))
+      .attr("x", tickX)
       .attr("y", innerHeight + 15)
       .attr("text-anchor", "middle")
       .attr("fill", "currentColor")
@@ -338,10 +358,8 @@ const ScatterChart = ({
         { label: xLabel, value: formatX(d.x) },
         { label: yLabel, value: formatY(d.y) },
       ];
-      // Caller-supplied units with no formatter of their own, so the weight is
-      // only thousands-separated, never rescaled.
       if (d.weight !== undefined && weightLabel)
-        rows.push({ label: weightLabel, value: d.weight.toLocaleString() });
+        rows.push({ label: weightLabel, value: formatWeight(d.weight) });
       return { title: d.label, rows };
     });
 
@@ -363,6 +381,7 @@ const ScatterChart = ({
     xLabel,
     yLabel,
     weightLabel,
+    formatWeight,
     shouldIntro,
   ]);
 

@@ -18,7 +18,8 @@ import type {
   StackedSeriesData,
   CombinedStackedDataPoint,
 } from "./types";
-import { CHART_DEFAULTS, STACKED_AREA_COLORS, AREA } from "./constants";
+import { AXIS, CHART_DEFAULTS, STACKED_AREA_COLORS, AREA } from "./constants";
+import { measureTextWidth } from "../lib/measure-text";
 import {
   getAllDates,
   combineSeriesData,
@@ -49,6 +50,12 @@ const INTRO_STAGGER_MAX_MS = 70;
 const INTRO_RISE_PX = 12;
 /** ≈ d3.easeCubicOut — arriving, not sweeping. */
 const INTRO_EASING = "cubic-bezier(0.215, 0.61, 0.355, 1)";
+
+/** What `createAxes` paints the y ticks with — measured against, so the gutter
+ *  matches the glyphs that actually land in it. */
+const Y_TICK_FONT = `500 ${AXIS.fontSize}px "DM Sans", sans-serif`;
+/** d3's tick mark plus its default 3px text padding, plus a hair of slack. */
+const Y_TICK_GAP = AXIS.tickSize + 3 + 2;
 
 /**
  * One stacked band - renders a simple filled area
@@ -88,10 +95,36 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
   const [hoveredSeriesId, setHoveredSeriesId] = useState<string | null>(null);
   const shouldIntro = useChartIntro();
 
+  const yDomain = useMemo(() => calculateStackedYDomain(series), [series]);
+
+  /**
+   * The y gutter, measured from the labels this chart will actually print.
+   * `.ticks()` reads only the domain and the count — never the range — so the
+   * tick values here are the same ones `createAxes` renders, and the margin is
+   * known before any layout exists. Without it a fixed 50px gutter clipped the
+   * leading glyph of a wide compact label ("$40.00T" → "40.00T").
+   */
+  const yGutter = useMemo(() => {
+    const ticks = d3.scaleLinear().domain(yDomain).ticks(AXIS.yTicks);
+    const widest = ticks.reduce(
+      (max, tick) =>
+        Math.max(
+          max,
+          measureTextWidth(
+            formatYAxis ? formatYAxis(tick) : String(tick),
+            Y_TICK_FONT,
+          ),
+        ),
+      0,
+    );
+    return Math.ceil(widest) + Y_TICK_GAP;
+  }, [yDomain, formatYAxis]);
+
   const dimensions = useChartDimensions({
     height,
     fill,
     containerRef,
+    leftMargin: yGutter,
   });
 
   // The one style both the container and the empty box take: filling means the
@@ -121,8 +154,6 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
     () => createCombinedDataPoints(series, dates),
     [series, dates],
   );
-
-  const yDomain = useMemo(() => calculateStackedYDomain(series), [series]);
 
   // Create D3 stack
   const stackedData = useMemo(() => {

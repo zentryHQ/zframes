@@ -1,6 +1,10 @@
-import { HeatmapChart, type CellComponentProps } from "@zframes/charts";
+import {
+  HeatmapChart,
+  measureTextWidth,
+  type CellComponentProps,
+} from "@zframes/charts";
 import { defineFrame, useMetalHistory } from "@zframes/core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod";
 import { ChartCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR, changeColor, formatChangePct } from "./format";
@@ -27,29 +31,56 @@ const CELL_GAP = 3;
  *  is shared — see `cellLabelFits`. */
 const MIN_LABEL_WIDTH = 46;
 
-/** Per-column widths at which the averages strip can still print each form
- *  without ellipsing. `+1.23%` needs ~40px at caption size; below that the sign
- *  and the unit are dropped in that order — the colour already carries the sign,
- *  and the row is labelled "avg" of a percent grid, so the `%` is redundant
- *  before the digits are. Under the last threshold the strip is dropped
- *  entirely: a row of `+…` is not a number, it's noise. */
-const AVG_FULL_WIDTH = 40;
-const AVG_SHORT_WIDTH = 26;
-const AVG_MIN_WIDTH = 18;
+/** The averages strip in descending verbosity: below the full form the sign and
+ *  the unit are dropped in that order — the colour already carries the sign, and
+ *  the row is labelled "avg" of a percent grid, so the `%` is redundant before
+ *  the digits are. If not even the last form fits, the strip is dropped
+ *  entirely: a row of `+…` is not a number, it's noise.
+ *
+ *  Which form a column gets is MEASURED, not thresholded. The constants this
+ *  replaces (40 / 26 / 18px) were sized against a representative string, so a
+ *  window whose averages ran to two digits ("+12.34%" against the same 40px
+ *  that "+1.04%" clears) printed a clipped figure — the exact `+1.(` the
+ *  gutter-clipping bug report showed. */
+const AVG_FORMS: ((pct: number) => string)[] = [
+  (pct) => formatChangePct(pct),
+  (pct) => `${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}`,
+  (pct) => Math.abs(pct).toFixed(1),
+];
 
-/** Observed content-box width of an element, 0 until first measure. */
+/** What the strip prints with — `caption` is 0.6875rem at weight 500. */
+const AVG_FONT = '500 11px "DM Sans", sans-serif';
+/** Side air, so "fits" never means glyph-tight against the next column. */
+const AVG_SIDE_PAD = 3;
+
+/**
+ * Observed content-box width of an element, 0 until first measure.
+ *
+ * A CALLBACK ref, not a mount effect. This frame returns `<FrameStatus
+ * loading>` before it ever renders the measured box, so a `useEffect(…, [])`
+ * ran while the ref was still null: it bailed, never attached a
+ * ResizeObserver, and — with no deps to re-fire it — the width stayed 0 for the
+ * life of the card even though the box was 566px wide. The averages strip read
+ * that 0 as "unmeasured" and printed its widest form into a 40px column, which
+ * is the clipped `+1.(` this hook exists to prevent. A callback ref fires when
+ * the node actually attaches, however many renders later that is.
+ */
 function useWidth<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null);
   const [width, setWidth] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
+  const observerRef = useRef<ResizeObserver | null>(null);
+  const ref = useCallback((el: T | null) => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
     if (!el) return;
     setWidth(el.offsetWidth);
     if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => setWidth(el.offsetWidth));
-    ro.observe(el);
-    return () => ro.disconnect();
+    const observer = new ResizeObserver(() => setWidth(el.offsetWidth));
+    observer.observe(el);
+    observerRef.current = observer;
   }, []);
+  // The ref callback tears down its own observer when the node detaches; this
+  // only covers unmount, where React may drop the node without calling back.
+  useEffect(() => () => observerRef.current?.disconnect(), []);
   return [ref, width] as const;
 }
 
@@ -176,14 +207,20 @@ function MetalSeasonality({ config }: { config: z.output<typeof schema> }) {
     months > 0 && gridWidth > 0
       ? (gridWidth - CELL_GAP * (months - 1)) / months
       : 0;
-  const showAvg = stripWidth === 0 || columnWidth >= AVG_MIN_WIDTH;
-  const formatAvg = (pct: number) => {
-    if (columnWidth === 0 || columnWidth >= AVG_FULL_WIDTH)
-      return formatChangePct(pct);
-    if (columnWidth >= AVG_SHORT_WIDTH)
-      return `${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}`;
-    return Math.abs(pct).toFixed(1);
-  };
+  // The widest form whose OWN widest average still fits a column. Before the
+  // first measure nothing is known, so the narrowest form is used: it can only
+  // be shorter than the column, and the very next frame corrects it upward —
+  // whereas guessing the widest is what puts clipped digits on screen.
+  const avgFits = (form: (pct: number) => string) =>
+    monthMeans.every(
+      (mean) =>
+        mean.pct === null ||
+        measureTextWidth(form(mean.pct), AVG_FONT) + AVG_SIDE_PAD <=
+          columnWidth,
+    );
+  const avgForm = columnWidth === 0 ? null : AVG_FORMS.find(avgFits);
+  const showAvg = columnWidth === 0 || avgForm !== undefined;
+  const formatAvg = avgForm ?? AVG_FORMS[AVG_FORMS.length - 1];
 
   return (
     <ChartCard gap={1.5}>

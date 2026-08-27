@@ -57,17 +57,23 @@ function BitcoinDominance({ config }: { config: z.output<typeof schema> }) {
         ))}
       </div>
 
-      <div className="grid w-full max-w-sm grid-cols-3">
+      {/* Name over figure, not name-then-figure: three dot+name+percent rows on
+          one line need more width than a third of the card gives them, and a
+          grid cell does not clip — every label ran into its neighbour's dot.
+          Stacked, each cell needs only its widest single token. */}
+      <div className="grid w-full max-w-sm grid-cols-3 gap-x-1">
         {segments.map((item) => (
           <div
             key={item.type}
-            className="flex items-center justify-center gap-1.5"
+            className="flex min-w-0 flex-col items-center gap-0.5"
           >
-            <div
-              className="h-2 w-2 flex-shrink-0 rounded-full"
-              style={{ background: SEGMENT_STYLE[item.type] }}
-            />
-            <span className="body-sm text-soft">{item.type}</span>
+            <div className="flex min-w-0 items-center gap-1.5">
+              <div
+                className="h-2 w-2 flex-shrink-0 rounded-full"
+                style={{ background: SEGMENT_STYLE[item.type] }}
+              />
+              <span className="body-sm text-soft truncate">{item.type}</span>
+            </div>
             <span className="body-sm text-normal font-bold tabular-nums">
               {formatPct(item.value, 1)}
             </span>

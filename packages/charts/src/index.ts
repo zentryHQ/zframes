@@ -70,6 +70,10 @@ export type { RadialGaugeProps } from "./radial-gauge";
 
 export { ChartTimeframe } from "./lib/timeframe";
 export { parseMarketData } from "./lib/format";
+// Canvas text measurement. Used internally to size axis gutters before the
+// labels exist in the DOM; exported for frames that lay out their own label
+// rows and would otherwise guess a per-glyph width.
+export { measureTextWidth } from "./lib/measure-text";
 export { CHART_COLORS_MULTI_SERIES } from "./chart-utils";
 
 // The shared hover tooltip. Every chart above wires itself up internally, so a

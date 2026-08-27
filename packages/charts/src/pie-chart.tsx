@@ -297,7 +297,21 @@ const PieChart = ({
         className="relative z-10"
       />
 
-      <div className="absolute inset-0 flex items-center justify-center">
+      {/* The slot spans the whole box, so a caption wider than the ring's hole
+          runs under the arcs (the svg is stacked above with z-10) and reads as
+          clipped text. The hole's diameter is published as a CSS var — it is
+          only knowable here, since `fill` scales the radii — so a centre block
+          can bound itself against it. Not bounded FOR the caller: a hard clip
+          at the hole would newly cut headline numbers that today overhang the
+          inner edge by a few px and read fine. */}
+      <div
+        className="absolute inset-0 flex items-center justify-center"
+        style={
+          {
+            "--zf-pie-hole": `${ringInner * 2}px`,
+          } as React.CSSProperties
+        }
+      >
         {children}
       </div>
       <div

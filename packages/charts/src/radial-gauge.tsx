@@ -245,8 +245,21 @@ const RadialGauge = ({
           centre slot swallows every pointer event and the arc beneath it can
           never be hovered. The slot is a readout, not a control — it has nothing
           to catch. (PieChart avoids the same trap the other way round, by
-          stacking its svg above with `z-10`.) */}
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          stacking its svg above with `z-10`.)
+
+          Spanning the ring is also why the hole's diameter is published as a
+          CSS var: a fixed-size readout in an inset-0 box has no idea how much
+          room the dial actually left it, and on a small card a 48px figure runs
+          out over the arc. Only knowable here — the dial is measured, not
+          given. */}
+      <div
+        className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+        style={
+          {
+            "--zf-gauge-hole": `${Math.max(0, dial - 4 - thickness * 2)}px`,
+          } as React.CSSProperties
+        }
+      >
         {children}
       </div>
     </div>

@@ -14,12 +14,21 @@ interface UseChartDimensionsProps {
    * keeps its fixed height and pixel-identical output.
    */
   fill?: boolean;
+  /**
+   * Y-axis gutter in px, when the caller has measured its own tick labels.
+   * `CHART_MARGIN.left` is a guess that fits `$40.0M` and clips `$40.00T`, so
+   * the consumer measures the widest label it will actually draw and passes it
+   * here. Never narrower than the constant — a chart whose labels are short
+   * keeps the gutter it has always had, so existing cards don't reflow.
+   */
+  leftMargin?: number;
 }
 
 export function useChartDimensions({
   height = CHART_DEFAULTS.height,
   containerRef,
   fill = false,
+  leftMargin,
 }: UseChartDimensionsProps): StackedAreaChartDimensions {
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [containerHeight, setContainerHeight] = useState<number>(0);
@@ -52,9 +61,10 @@ export function useChartDimensions({
     // The container can measure 0 before layout settles, so the prop stays the
     // fallback — a collapsed chart is worse than a slightly-too-tall one.
     const resolvedHeight = fill && containerHeight ? containerHeight : height;
+    const marginLeft = Math.max(CHART_MARGIN.left, leftMargin ?? 0);
     const innerWidth = Math.max(
       0,
-      containerWidth - CHART_MARGIN.left - CHART_MARGIN.right,
+      containerWidth - marginLeft - CHART_MARGIN.right,
     );
     const innerHeight = Math.max(
       0,
@@ -69,7 +79,7 @@ export function useChartDimensions({
       marginTop: CHART_MARGIN.top,
       marginRight: CHART_MARGIN.right,
       marginBottom: CHART_MARGIN.bottom,
-      marginLeft: CHART_MARGIN.left,
+      marginLeft,
     };
-  }, [containerWidth, containerHeight, fill, height]);
+  }, [containerWidth, containerHeight, fill, height, leftMargin]);
 }
