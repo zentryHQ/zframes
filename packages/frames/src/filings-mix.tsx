@@ -3,6 +3,7 @@ import { defineFrame, useCompanyFilings } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
+import { holeFontSize } from "./fit-text";
 import { formatPct } from "./format";
 import { filingsMixMeta } from "./schemas";
 import { SliceLegend } from "./slice-legend";
@@ -85,23 +86,23 @@ function FilingsMix({ config }: { config: z.output<typeof schema> }) {
           outerRadius={92}
           colors={colors}
         >
-          {/* Bounded to the ring's hole (published by PieChart, since `fill`
-              scales the radii): at 2x2 the hole is ~75px and anything wider
-              slid under the arcs and read as clipped text. The ticker, not
-              `data.name`, for the same reason — "Tesla, Inc." does not fit a
-              donut hole, and the frame's own header carries no symbol. */}
-          <div
-            className="flex flex-col items-center gap-0.5"
-            style={{ maxWidth: "calc(var(--zf-pie-hole, 100%) * 0.9)" }}
+          {/* The count alone. A donut hole is widest across its middle, so every
+              extra line pushes text out to where the chord has narrowed: the
+              company name went to the card title (`titleContent` below, which
+              has a whole row for it) and the word "filings" went with it, since
+              the title now says so. What is left scales to the hole PieChart
+              measured (`--zf-pie-hole`; the radii scale with `fill`, so only
+              the chart knows it) — a 4-digit filer prints "1001", and 36px of
+              that is wider than a small card's hole. */}
+          <span
+            className="metric-lg text-strong leading-none"
+            style={{
+              fontSize: holeFontSize(String(total), "--zf-pie-hole", "2.25rem"),
+              maxWidth: "calc(var(--zf-pie-hole, 100%) * 0.86)",
+            }}
           >
-            <span className="caption text-soft w-full truncate text-center">
-              {tickerOf(config.symbol)}
-            </span>
-            <span className="metric-lg text-strong">{total}</span>
-            <span className="caption text-soft w-full truncate text-center">
-              filings
-            </span>
-          </div>
+            {total}
+          </span>
         </PieChart>
       </div>
 
@@ -123,4 +124,8 @@ function FilingsMix({ config }: { config: z.output<typeof schema> }) {
 export const filingsMixFrame = defineFrame({
   ...filingsMixMeta,
   component: FilingsMix,
+  // Which company, in the header rather than the donut hole. The ticker is the
+  // config, so this needs no data: a card whose SEC fetch is still in flight
+  // still says whose filings it is.
+  titleContent: ({ config }) => <>{tickerOf(config.symbol)} · Filings Mix</>,
 });

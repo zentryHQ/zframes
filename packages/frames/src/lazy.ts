@@ -280,6 +280,7 @@ export const frameLoaders: Record<string, FrameLoader> = {
   },
   "filings-mix": {
     load: () => import("./filings-mix").then((m) => m.filingsMixFrame),
+    titleContent: true,
   },
   "financial-stress": {
     load: () =>
