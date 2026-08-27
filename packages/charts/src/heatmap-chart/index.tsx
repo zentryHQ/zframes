@@ -13,6 +13,7 @@ import {
   delegateChartTooltip,
   type ChartTooltipContent,
 } from "../lib/chart-tooltip";
+import { measureTextWidth } from "../lib/measure-text";
 import { observeResize } from "../lib/observe-resize";
 import { cn, prefersReducedMotion } from "../lib/utils";
 
@@ -62,6 +63,9 @@ const CELL_BORDER_RADIUS = "4px";
 const DEFAULT_GAP = 6;
 const DEFAULT_ROW_LABEL_WIDTH = 80;
 const DEFAULT_COLUMN_LABEL_HEIGHT = 24;
+/** What the label rows are painted at (`text-xs`, inherited weight), so the
+ *  thinning below measures the glyphs it will actually draw. */
+const LABEL_FONT = '400 12px "DM Sans", sans-serif';
 
 /**
  * Fallback tooltip content, built from the `HeatmapCell` fields every cell is
@@ -139,6 +143,35 @@ function introCellStyle(
       `opacity ${INTRO_CELL_MS}ms ${INTRO_EASE} ${delay}ms, ` +
       `transform ${INTRO_CELL_MS}ms ${INTRO_EASE} ${delay}ms`,
   };
+}
+
+/**
+ * How many columns apart the kept column labels are.
+ *
+ * A kept label centres over its column and is free to spill into its dropped
+ * neighbours, so the room it has is `step` cells plus the gaps between them.
+ * This returns the smallest step whose kept labels fit the widest label the
+ * grid will actually draw.
+ *
+ * Measured rather than assumed: the 34px constant this replaces was wider than
+ * any three-letter code, so an fx-cross card whose columns came out 28px wide
+ * dropped every other label ("EUR GBP JPY CHF CAD USD" rendering as "EUR _ JPY
+ * _ CAD _") while its ~22px of text had room to spare. A grid of long labels
+ * ("December", "2024-Q3") still thins, now for the right reason.
+ */
+export function columnLabelStep(
+  columns: string[],
+  cellWidth: number,
+  gap: number,
+): number {
+  const widest = columns.reduce(
+    (max, column) => Math.max(max, measureTextWidth(column, LABEL_FONT)),
+    0,
+  );
+  let step = 1;
+  while (step < columns.length && widest > step * cellWidth + (step - 1) * gap)
+    step += 1;
+  return step;
 }
 
 /**
@@ -517,8 +550,11 @@ function HeatmapChartInner<T extends HeatmapCell>({
     // When columns are too narrow to hold a label, show every Nth one in full
     // rather than truncating every column to an indistinct "7…". The kept
     // labels centre over their column and are free to spill into the (now
-    // label-less) neighbours.
-    const step = Math.max(1, Math.ceil(34 / Math.max(cellWidth, 1)));
+    // label-less) neighbours — which is why a kept label's room is `step`
+    // cells plus the gaps between them, not one cell.
+    //
+    // MEASURED, not assumed — see `columnLabelStep`.
+    const step = columnLabelStep(uniqueColumns, cellWidth, gap);
 
     return uniqueColumns.map((column, index) => {
       if (index % step !== 0) return null;
@@ -537,7 +573,7 @@ function HeatmapChartInner<T extends HeatmapCell>({
         </div>
       );
     });
-  }, [showLabels, uniqueColumns, layout, chartArea, columnLabelHeight]);
+  }, [showLabels, uniqueColumns, layout, chartArea, columnLabelHeight, gap]);
 
   return (
     <div className={cn("h-full w-full", className)} ref={containerRef}>
