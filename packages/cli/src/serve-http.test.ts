@@ -68,9 +68,11 @@ import { createRequestHandler } from "./serve";
 // ABSENT in CI, so nothing here may depend on it), a tmpdir XDG_CONFIG_HOME for
 // every store read, port 0 for the bind, and no network — the one proxy test
 // stubs global fetch and asserts the non-allowlisted case never reaches it.
-// The zAI (`/__zframes/ask`, `/__zframes/agents`) and keyed-account routes are
-// out of scope on purpose: they shell out / read credentials and are covered in
-// their own packages.
+// The zAI (`/__zframes/ask`, `/__zframes/agents`) and keyed-account routes'
+// BEHAVIOUR is out of scope on purpose: they shell out / read credentials and
+// are covered in their own packages. Their loopback guard IS pinned here,
+// though — it is this file's routing layer that mounts it, and it precedes any
+// shell-out, so a rebound Host is refused before handleAsk ever spawns.
 
 /** The real fetch, captured before any test stubs the global. */
 const httpFetch: typeof fetch = globalThis.fetch.bind(globalThis);
@@ -81,6 +83,8 @@ const LIST_ROUTE = "/__zframes/dashboards";
 const SWITCH_ROUTE = "/__zframes/switch";
 const PROXY_ROUTE = "/__zframes/proxy";
 const PROVIDERS_ROUTE = "/__zframes/providers";
+const AGENTS_ROUTE = "/__zframes/agents";
+const ASK_ROUTE = "/__zframes/ask";
 
 const JSON_HEADERS = { "content-type": "application/json" };
 
@@ -840,6 +844,91 @@ describe("serve — the in-app dashboard switcher", () => {
     });
     expect(res.status).toBe(409);
     expect((await res.json()).error).toContain("only available");
+  });
+});
+
+describe("serve — the loopback guard on every side-effect route (DNS rebinding)", () => {
+  // The JSON content-type/method guard stops an ORDINARY cross-origin write
+  // (the browser preflights it and gets no CORS headers back), but it does not
+  // stop DNS rebinding: a page whose hostname has been rebound to 127.0.0.1
+  // reaches the server SAME-ORIGIN, so no preflight fires and the response body
+  // is readable. The only thing that distinguishes such a request is its `Host`
+  // header, still the attacker's name — which is exactly what isLocalRequest
+  // rejects. The switcher routes were already guarded (see the switcher
+  // describe); these four are the rest of the side-effect surface: the spec
+  // READ (leaks the local board), the spec WRITE (overwrites it on disk), and
+  // the zAI `agents`/`ask` pair (recon for, then invocation of, the user's
+  // authenticated local agent CLI). A rebound Host must 403 before any of them
+  // runs — for `ask` that means before it ever shells out.
+
+  it("403s the spec read on a non-loopback Host, without leaking the spec", async () => {
+    const { target } = pathTarget({
+      version: "0.1.0",
+      title: "Local-Only Board",
+      frames: [],
+    });
+    const base = await start({ target });
+
+    const res = await rawRequest(base, {
+      path: READ_ROUTE,
+      host: "dashboard.evil.example",
+    });
+    expect(res.status).toBe(403);
+    expect(res.body).not.toContain("Local-Only Board");
+    // Control: the same route on loopback still serves, so this pins the guard
+    // and not a broken route.
+    expect((await (await httpFetch(`${base}${READ_ROUTE}`)).json()).title).toBe(
+      "Local-Only Board",
+    );
+  });
+
+  it("403s the spec write on a non-loopback Host, leaving the file untouched", async () => {
+    const { target, file } = pathTarget();
+    const base = await start({ target });
+    const before = readFileSync(file, "utf8");
+
+    const res = await rawRequest(base, {
+      method: "PUT",
+      path: WRITE_ROUTE,
+      host: "dashboard.evil.example",
+      headers: JSON_HEADERS,
+      bodyChunks: [
+        Buffer.from('{"version":"0.1.0","title":"attacker","frames":[]}'),
+      ],
+    });
+    expect(res.status).toBe(403);
+    // The whole point of guarding the write: a rebound page cannot rewrite the
+    // operator's dashboard.
+    expect(readFileSync(file, "utf8")).toBe(before);
+  });
+
+  it("403s the zAI agents recon route on a non-loopback Host", async () => {
+    const { target } = pathTarget();
+    const base = await start({ target });
+
+    const res = await rawRequest(base, {
+      path: AGENTS_ROUTE,
+      host: "dashboard.evil.example",
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("403s the zAI ask route on a non-loopback Host, before it shells out", async () => {
+    // The guard is the first statement in the branch, so a rebound POST is
+    // refused before handleAsk reads the body or spawns any agent CLI — the
+    // reason this assertion is safe to make with no agent installed and no
+    // child-process stub.
+    const { target } = pathTarget();
+    const base = await start({ target });
+
+    const res = await rawRequest(base, {
+      method: "POST",
+      path: ASK_ROUTE,
+      host: "dashboard.evil.example",
+      headers: JSON_HEADERS,
+      bodyChunks: [Buffer.from('{"question":"run something for me"}')],
+    });
+    expect(res.status).toBe(403);
   });
 });
 

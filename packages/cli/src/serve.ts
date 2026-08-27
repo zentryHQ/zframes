@@ -252,8 +252,14 @@ export function createRequestHandler(
 
     // 1. Reserved routes — the spec read/write contract (shared with dev). All
     //    spec routes act on `current.file`, so a mid-session switch is picked
-    //    up by the very next request.
+    //    up by the very next request. Loopback-guarded (defeats DNS-rebinding,
+    //    which the JSON content-type/CSRF check alone can't): the read leaks the
+    //    local board spec, the write mutates the operator's dashboard on disk.
     if (path === DASHBOARD_READ_ROUTE) {
+      if (!isLocalRequest(req)) {
+        sendJson(res, 403, { ok: false, error: "loopback only" });
+        return;
+      }
       if (req.method === "GET" || req.method === "HEAD") {
         void handleSpecRead(current.file, res);
       } else {
@@ -263,6 +269,10 @@ export function createRequestHandler(
       return;
     }
     if (path === DASHBOARD_WRITE_ROUTE) {
+      if (!isLocalRequest(req)) {
+        sendJson(res, 403, { ok: false, error: "loopback only" });
+        return;
+      }
       handleSpecWrite(req, res, current.file);
       return;
     }
@@ -309,7 +319,14 @@ export function createRequestHandler(
       return;
     }
     // The zAI orb's keyless agent bridge (opt-in, shells to a local CLI).
+    // Both loopback-guarded: `ask` spawns the user's authenticated agent CLI on
+    // the request's prompt and streams the answer back, and `agents` is its
+    // recon step — leaving either open lets a rebound page drive the local agent.
     if (path === AGENTS_LIST_ROUTE) {
+      if (!isLocalRequest(req)) {
+        sendJson(res, 403, { ok: false, error: "loopback only" });
+        return;
+      }
       if (req.method === "GET") {
         void handleAgents(res);
       } else {
@@ -319,6 +336,10 @@ export function createRequestHandler(
       return;
     }
     if (path === ASK_ROUTE) {
+      if (!isLocalRequest(req)) {
+        sendJson(res, 403, { ok: false, error: "loopback only" });
+        return;
+      }
       handleAsk(req, res, current.file, FRAME_CATALOGUE);
       return;
     }
