@@ -2,22 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const LINKS = [
-  { href: "/boards", label: "Boards" },
-  { href: "/frames", label: "Frames" },
-  { href: "/editor", label: "Editor" },
-];
+import { NAV_LINKS } from "@/app/lib/nav-links";
 
 // Primary nav with an active-route highlight. Client-only for usePathname; the
 // surrounding header shell stays in the (server) layout.
 export function NavLinks() {
   const pathname = usePathname();
   return (
-    // order-last + w-full wraps the links onto their own header row below sm
-    // (the header nav is flex-wrap) — hiding them left phones with no nav.
-    <div className="order-last -mx-3 flex w-full items-center gap-1 sm:order-none sm:mx-0 sm:w-auto">
-      {LINKS.map((l) => {
+    // Hidden below sm — the same links are in MobileNav's hamburger there. This
+    // row used to wrap onto a second header line on phones instead, which is
+    // what the hamburger replaced (2026-08-29).
+    <div className="hidden items-center gap-1 sm:flex">
+      {NAV_LINKS.map((l) => {
         const active =
           l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
         return (

@@ -76,11 +76,13 @@ export function AuthNav() {
   return (
     <>
       {/* Same shape as NavLinks' items, active state included: it reads as one
-          nav row with Boards / Frames / Editor, just anchored on the right. */}
+          nav row with Boards / Frames / Editor, just anchored on the right.
+          Hidden below sm alongside those links — it is nav, so on phones it
+          lives in MobileNav's hamburger, not next to the avatar. */}
       <Link
         href="/mine"
         aria-current={onMine ? "page" : undefined}
-        className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors ${
+        className={`hidden whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors sm:block ${
           onMine
             ? "bg-white/[0.06] text-white"
             : "text-white/55 hover:bg-white/[0.04] hover:text-white"

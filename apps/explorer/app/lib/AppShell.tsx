@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import { AuthNav } from "@/app/lib/AuthNav";
 import { BrandMark } from "@/app/lib/BrandMark";
 import { Footer } from "@/app/lib/Footer";
+import { MobileNav } from "@/app/lib/MobileNav";
 import { NavLinks } from "@/app/lib/NavLinks";
 import { UnicornBackground } from "@/app/lib/UnicornBackground";
 
@@ -42,9 +43,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             rubber-bands with the page on overscroll. Content is offset by the
             header height below. */}
         <header className="glass fixed inset-x-0 top-0 z-50 border-b border-white/[0.07]">
-          {/* flex-wrap: below sm the NavLinks (order-last w-full) wrap onto a
-              second row; the content offset below matches both heights. */}
-          <nav className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 text-sm sm:px-6">
+          {/* ONE row at every width. Below sm the three nav links collapse
+              into MobileNav's hamburger rather than wrapping onto a second
+              header row, so the offset below is a single constant. */}
+          <nav className="mx-auto flex max-w-7xl items-center gap-x-4 px-4 py-3 text-sm sm:px-6">
             <Link href="/" className="group flex items-center gap-2.5">
               <BrandMark idKey="hdr" className="zf-grow h-7 w-7" />
               <span className="text-[15px] font-semibold tracking-tight text-white">
@@ -55,16 +57,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="ml-2 hidden h-5 w-px bg-white/10 sm:block" />
             <NavLinks />
 
-            {/* Right slot: the auth controls, once a session exists. No
-                persistent sign-in CTA: auth prompts live at the gated actions
-                themselves. (The GitHub link lives in the footer.) */}
-            <div className="ml-auto flex items-center gap-3">
+            {/* Right slot: the auth controls, plus the hamburger on phones.
+                The hamburger goes LAST — the auth control is the corner a person
+                reaches for, and it should not move between breakpoints.
+                (The GitHub link lives in the footer.) */}
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
               <AuthNav />
+              <MobileNav />
             </div>
           </nav>
         </header>
 
-        <div className="flex-1 pt-[95px] sm:pt-[57px]">{children}</div>
+        <div className="flex-1 pt-[57px]">{children}</div>
 
         <Footer />
       </div>
