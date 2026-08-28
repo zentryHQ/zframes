@@ -108,12 +108,22 @@ export const dashboards = pgTable(
     // from the gallery AND its preview/raw-spec 404 (see dashboards.ts filters).
     status: text("status").notNull().default("approved"), // approved | removed
     tags: text("tags").array().notNull().default([]),
+    // DEAD COLUMNS, kept only until a follow-up migration drops them. Declared in
+    // 0000_baseline and never wired: nothing ever incremented `forks`, and the one
+    // `bumpViews` helper had no callers, so both read 0 on every row. Every code
+    // reference was removed on 2026-08-28; they stay declared HERE because
+    // `check:schema` diffs this file against the migrations, so deleting them
+    // without the DDL reds the CI gate.
+    //
+    // The drop is a SEPARATE release on purpose: db-deploy.yml migrates while the
+    // previous release is still serving, and that release still selects both
+    // columns in `listCommunity` — dropping them in the same push 500s the live
+    // gallery until Vercel catches up.
     views: integer("views").notNull().default(0),
     forks: integer("forks").notNull().default(0),
-    // Public likes. Unlike `views`/`forks` above — which were declared and never
-    // wired — this one is live: `/api/likes` increments it, the gallery sorts on it.
-    // A column rather than a separate table BECAUSE the gallery already selects full
-    // rows, so ordering by popularity costs no join.
+    // Public likes — the live counter: `/api/likes` increments it, the gallery
+    // sorts on it. A column rather than a separate table BECAUSE the gallery
+    // already selects full rows, so ordering by popularity costs no join.
     likes: integer("likes").notNull().default(0),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

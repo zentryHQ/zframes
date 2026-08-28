@@ -38,7 +38,7 @@ export type LikeResult =
  * is recoverable after the fact, because there is no identity to reconcile against.
  *
  * The increment is a single `likes = likes + 1` — never fetch-then-write, which
- * loses concurrent likes. It follows the shape `bumpViews` already established.
+ * loses concurrent likes.
  */
 export async function claimLike(args: {
   kind: LikeKind;

@@ -88,7 +88,6 @@ export async function listByOwner(ownerId: string): Promise<
     title: string;
     visibility: string;
     tags: string[];
-    views: number;
     createdAt: Date;
     frameCount: number;
   }[]
@@ -99,7 +98,6 @@ export async function listByOwner(ownerId: string): Promise<
       title: dashboards.title,
       visibility: dashboards.visibility,
       tags: dashboards.tags,
-      views: dashboards.views,
       createdAt: dashboards.createdAt,
       frameCount,
     })
@@ -112,8 +110,6 @@ export async function listByOwner(ownerId: string): Promise<
 // is load-bearing — curated rows are also listed+approved, so without it every
 // showcase board would appear in BOTH gallery sections.
 export type CommunityListing = BoardListing & {
-  views: number;
-  forks: number;
   createdAt: Date;
 };
 
@@ -121,8 +117,6 @@ export async function listCommunity(limit = 48): Promise<CommunityListing[]> {
   return db
     .select({
       ...listingColumns,
-      views: dashboards.views,
-      forks: dashboards.forks,
       createdAt: dashboards.createdAt,
     })
     .from(dashboards)
@@ -252,8 +246,8 @@ export async function upsertCurated(input: {
     .values(values)
     .onConflictDoUpdate({
       target: dashboards.id,
-      // Deliberately does NOT touch views/forks/createdAt: a re-seed is an edit to
-      // the board, not a reset of what the board has accumulated.
+      // Deliberately does NOT touch likes/createdAt: a re-seed is an edit to the
+      // board, not a reset of what the board has accumulated.
       set: {
         title: values.title,
         description: values.description,
@@ -289,11 +283,4 @@ export async function deleteDashboard(
   await db
     .delete(dashboards)
     .where(and(eq(dashboards.id, id), eq(dashboards.ownerId, ownerId)));
-}
-
-export async function bumpViews(id: string): Promise<void> {
-  await db
-    .update(dashboards)
-    .set({ views: sql`${dashboards.views} + 1` })
-    .where(eq(dashboards.id, id));
 }

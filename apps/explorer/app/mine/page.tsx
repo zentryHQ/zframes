@@ -12,7 +12,6 @@ type Row = {
   title: string;
   visibility: "listed" | "unlisted";
   tags: string[];
-  views: number;
   frameCount: number;
 };
 
@@ -134,7 +133,6 @@ export default function MyDashboardsPage() {
                     {d.visibility}
                   </span>
                   <span>· {d.frameCount} frames</span>
-                  <span>· {d.views} views</span>
                   <code className="break-all text-white/55">
                     /dashboard/{d.id}
                   </code>
