@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/app/lib/auth-session";
 import {
@@ -109,6 +110,12 @@ export async function POST(request: Request) {
     visibility,
     tags,
   });
+
+  // /boards is ISR (`revalidate = 300`) and seeds its rows on the server, so a
+  // board published a second ago was invisible there for up to five minutes —
+  // long enough to read as "publishing didn't list it". Publishing is exactly
+  // the event that invalidates that page, so say so.
+  if (visibility === "listed") revalidatePath("/boards");
 
   return NextResponse.json({ id }, { status: 201 });
 }

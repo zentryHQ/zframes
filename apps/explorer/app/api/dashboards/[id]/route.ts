@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/app/lib/auth-session";
 import { deleteDashboard, setVisibility } from "@/app/lib/dashboards";
@@ -20,6 +21,7 @@ export async function DELETE(
   }
   const { id } = await params;
   await deleteDashboard(id, user.id);
+  revalidatePath("/boards");
   return NextResponse.json({ ok: true });
 }
 
@@ -43,5 +45,8 @@ export async function PATCH(
   }
   const { id } = await params;
   await setVisibility(id, user.id, body.visibility);
+  // Same reason as the publish path: /boards is ISR, and a flip that takes five
+  // minutes to show up reads as a flip that did not work.
+  revalidatePath("/boards");
   return NextResponse.json({ ok: true });
 }

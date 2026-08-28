@@ -47,7 +47,6 @@ export function PublishDialog({
 }) {
   const { data } = authClient.useSession();
   const [title, setTitle] = useState(getSpec().title || "My dashboard");
-  const [listed, setListed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ id: string } | null>(null);
 
@@ -59,7 +58,13 @@ export function PublishDialog({
       body: JSON.stringify({
         title,
         spec: getSpec(),
-        visibility: listed ? "listed" : "unlisted",
+        // Publishing ALWAYS lists. There was a "list in the gallery" checkbox
+        // here, unticked by default, so the obvious path — hit Publish, hit
+        // Publish — minted a link-only board and the author then had to find
+        // /mine and click "List" to get the thing they thought they had already
+        // done. Publishing IS the act of sharing. Unlisting stays possible, but
+        // as an after-the-fact choice on /mine, not a gate on the happy path.
+        visibility: "listed",
         tags: [],
       }),
     });
@@ -108,8 +113,8 @@ export function PublishDialog({
           <>
             <h2 className="text-lg font-semibold text-white">Published 🎉</h2>
             <p className="mt-1 mb-4 text-sm text-white/55">
-              Immutable snapshot — anyone with the link can view it live or fork
-              it.
+              Listed in the board gallery. Immutable snapshot — anyone can view
+              it live or fork it.
             </p>
             <div className="space-y-4">
               <CopyRow label="Share link" value={shareUrl} />
@@ -139,15 +144,13 @@ export function PublishDialog({
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-white/70">
-                <input
-                  type="checkbox"
-                  className="accent-indigo-500"
-                  checked={listed}
-                  onChange={(e) => setListed(e.target.checked)}
-                />
-                List in the community gallery (otherwise unlisted — link-only)
-              </label>
+              <p className="text-sm text-white/55">
+                Published boards appear in the{" "}
+                <Link href="/boards" className="text-white/80 underline">
+                  board gallery
+                </Link>{" "}
+                right away. You can unlist one later from your boards.
+              </p>
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={onClose}>
