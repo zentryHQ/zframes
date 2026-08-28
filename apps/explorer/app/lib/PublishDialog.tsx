@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { DashboardSpec } from "@zframes/core";
 import { authClient } from "@/app/lib/auth-client";
 import { Dialog } from "@/app/lib/Dialog";
+import { GoogleSignInButton } from "@/app/lib/SignInPanel";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 
@@ -121,11 +122,17 @@ export function PublishDialog({
               Publishing needs an account (browsing and editing don't). Your
               edits stay saved in this browser meanwhile.
             </p>
-            <div className="mt-4 flex gap-2">
-              <Button asChild variant="accent" size="sm">
-                <Link href="/signin?next=/editor">Sign in</Link>
-              </Button>
-              <Button variant="ghost" size="sm" onClick={onClose}>
+            {/* The Google button INLINE, not a nested <SignInDialog>: this is
+                already a modal, and stacking a second one over it dims the
+                panel twice and moves the focus trap for one button. */}
+            <div className="mt-4 space-y-2">
+              <GoogleSignInButton next="/editor" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="w-full"
+              >
                 Cancel
               </Button>
             </div>

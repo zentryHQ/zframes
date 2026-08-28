@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { authClient } from "@/app/lib/auth-client";
+import { SignInDialog } from "@/app/lib/SignInPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +16,9 @@ import {
 
 // Header auth widget — rendered inside the (server) layout nav.
 //
-// Signed out it is a "Sign in" button in the top-right corner (2026-08-28). The
+// Signed out it is a "Sign in" button in the top-right corner (2026-08-28) that
+// opens the sign-in dialog — there is no sign-in page to navigate to, so the
+// page you are on stays underneath and Google returns to it. The
 // chrome carried NO auth CTA before that, on the reasoning that an account is
 // the price of writing (publish, My dashboards) and never of using the product,
 // so the prompt should surface only at those gated moments (PublishDialog,
@@ -47,24 +50,23 @@ export function AuthNav() {
   // A Google avatar URL can 404 (rotated/expired) long after the session row
   // stored it, which would leave a broken-image glyph in the header forever.
   const [imageBroken, setImageBroken] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
 
   if (isPending) return null;
 
   if (!data?.user) {
-    // The sign-in page IS the CTA — a button pointing at the page you are on
-    // reads as broken.
-    if (pathname === "/signin") return null;
-    // Come back to where they were. Path only, no query string: reading the
-    // query needs useSearchParams, and this component renders inside the root
-    // layout's header on EVERY route — one call there opts the whole site out
-    // of static prerendering.
     return (
-      <Link
-        href={`/signin?next=${encodeURIComponent(pathname || "/")}`}
-        className="zf-press whitespace-nowrap rounded-lg border border-white/15 bg-white/[0.06] px-3 py-1.5 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.1] hover:text-white"
-      >
-        Sign in
-      </Link>
+      <>
+        <button
+          type="button"
+          onClick={() => setSignInOpen(true)}
+          className="zf-press cursor-pointer whitespace-nowrap rounded-lg border border-white/15 bg-white/[0.06] px-3 py-1.5 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.1] hover:text-white"
+        >
+          Sign in
+        </button>
+        {/* No `next`: the dialog defaults to the page you are already on. */}
+        {signInOpen && <SignInDialog onClose={() => setSignInOpen(false)} />}
+      </>
     );
   }
 

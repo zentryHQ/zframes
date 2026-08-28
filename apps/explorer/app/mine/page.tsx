@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/app/lib/EmptyState";
 import { SectionHeading } from "@/app/lib/SectionHeading";
+import { SignInDialog } from "@/app/lib/SignInPanel";
 import { Button } from "@/app/components/ui/button";
 
 type Row = {
@@ -20,6 +21,7 @@ export default function MyDashboardsPage() {
   const [needAuth, setNeedAuth] = useState(false);
   // Two-step destructive action: first click arms this id, second click deletes.
   const [armed, setArmed] = useState<string | null>(null);
+  const [signInOpen, setSignInOpen] = useState(false);
 
   const load = useCallback(async () => {
     const r = await fetch("/api/dashboards/mine");
@@ -85,9 +87,18 @@ export default function MyDashboardsPage() {
             Sign in to see the dashboards you've published. Browsing, preview,
             and editing never need an account — only publishing does.
           </p>
-          <Button asChild variant="accent" size="sm">
-            <Link href="/signin?next=/mine">Sign in</Link>
+          <Button
+            variant="accent"
+            size="sm"
+            onClick={() => setSignInOpen(true)}
+          >
+            Sign in
           </Button>
+          {/* Opens over this page rather than navigating away — Google returns
+              here, and the empty state is still behind the dialog. */}
+          {signInOpen && (
+            <SignInDialog onClose={() => setSignInOpen(false)} next="/mine" />
+          )}
         </EmptyState>
       ) : rows === null ? (
         <div className="space-y-2.5" aria-hidden>
