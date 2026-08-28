@@ -11,7 +11,7 @@ export default function SignInPage() {
 
   async function signInWithGoogle() {
     setBusy(true);
-    // Return to the gated action that sent the user here (?next=/tinker from
+    // Return to the gated action that sent the user here (?next=/editor from
     // Publish, ?next=/mine, …). Same-site paths only — never an external URL.
     const next = new URLSearchParams(window.location.search).get("next");
     const callbackURL =
@@ -39,7 +39,7 @@ export default function SignInPage() {
           <p className="mt-2 text-sm leading-relaxed text-white/60">
             An account is only needed to{" "}
             <strong className="text-white/70">publish</strong> or save
-            dashboards — browsing, preview, and tinker stay open.
+            dashboards — browsing, preview, and editing stay open.
           </p>
         </div>
 

@@ -14,29 +14,29 @@ import { breadcrumbJsonLd, JsonLd } from "@/app/lib/structured-data";
  * homepage under the site's default title.
  */
 export const metadata: Metadata = {
-  title: "Tinker — edit a dashboard in the browser",
+  title: "Editor — edit a dashboard in the browser",
   description: `Open a ${SITE_NAME} dashboard spec in the browser editor: drag, resize and reconfigure frames. No install, no account.`,
-  alternates: { canonical: "/tinker" },
+  alternates: { canonical: "/editor" },
   // Spread, never hand-written: an inline `openGraph` here replaces the root's
   // object and takes the share card with it. See app/lib/social.ts.
   ...pageSocial({
-    path: "/tinker",
-    title: `Tinker · ${SITE_NAME}`,
+    path: "/editor",
+    title: `Editor · ${SITE_NAME}`,
     description: `Edit a market dashboard in the browser — drag, resize and reconfigure frames.`,
   }),
 };
 
-export default function TinkerLayout({ children }: { children: ReactNode }) {
+export default function EditorLayout({ children }: { children: ReactNode }) {
   return (
     <>
       {/* The breadcrumb lives in the layout because `page.tsx` here is
           `"use client"` — and structured data injected after hydration is missed
           by every answer-engine crawler that does not run JS, which is most of
-          them. `/tinker` was the one indexable page on the site without a trail. */}
+          them. `/editor` was the one indexable page on the site without a trail. */}
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", path: "/" },
-          { name: "Tinker", path: "/tinker" },
+          { name: "Editor", path: "/editor" },
         ])}
       />
       {children}

@@ -201,5 +201,5 @@ export const STATIC_ROUTES: {
   { path: "/", changeFrequency: "daily", priority: 1 },
   { path: "/boards", changeFrequency: "daily", priority: 0.9 },
   { path: "/frames", changeFrequency: "weekly", priority: 0.9 },
-  { path: "/tinker", changeFrequency: "monthly", priority: 0.5 },
+  { path: "/editor", changeFrequency: "monthly", priority: 0.5 },
 ];

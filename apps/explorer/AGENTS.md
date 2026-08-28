@@ -1,7 +1,7 @@
 # @zframes/explorer
 
 The public front door — landing page, the board gallery (`/boards`), the frame
-catalogue (`/frames`), live board previews, browser editor (`/tinker`), and the
+catalogue (`/frames`), live board previews, the browser editor (`/editor`), and the
 moderation surfaces. Next 16 (App Router) + Postgres (Neon in prod, Postgres 18
 in Docker in dev) + Better Auth. `CLAUDE.md` is a symlink to this file.
 
@@ -10,11 +10,12 @@ likes, a thumbnail and a share link. **A *dashboard* is the `dashboard.json`** y
 run and own on your own machine. Forking a board gives you a dashboard. The copy
 used both words for the same object until 2026-08-28; keep them distinct.
 
-**Route names follow that split.** `/boards` and `/frames` are house nav, short
-and parallel. `/dashboard/[id]` deliberately keeps the *public* noun because that
-URL travels — into a tweet, a Slack message, an agent prompt — where "board"
-means Trello. Renamed from `/gallery` and `/catalogue` on 2026-08-28; the 308s
-live in `next.config.ts` and must stay.
+**Route names follow that split.** `/boards`, `/frames` and `/editor` are house
+nav: short, parallel, and each named for the thing it holds rather than the place
+it is. `/dashboard/[id]` deliberately keeps the *public* noun because that URL
+travels — into a tweet, a Slack message, an agent prompt — where "board" means
+Trello. Renamed from `/gallery`, `/catalogue` and `/tinker` on 2026-08-28; the
+308s live in `next.config.ts` and must stay.
 
 ## Commands
 
@@ -54,7 +55,7 @@ versioned migrations — see below. `drizzle-kit generate` is still useful for
 ## Mock data only — there is no live mode
 
 Since **2026-08-14** every frame-rendering surface (landing, `/dashboard/[id]`,
-`/embed/[id]`, `/frames`, `/tinker`) renders **simulated data, always** —
+`/embed/[id]`, `/frames`, `/editor`) renders **simulated data, always** —
 the full-capability `MockMarketDataProvider` from `@zframes/provider-demo`, the
 same deterministic offline provider the frame smoke tests run on. `app/lib/frames.ts`
 composes providers unconditionally (no branching, no `localStorage` flag); the
@@ -237,7 +238,7 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   (`app/lib/social.ts`). Next merges metadata one top-level field at a time, so a
   page exporting its own `openGraph` object **replaces** the resolved one — and
   the root `app/opengraph-image.tsx` was merged into the object it just discarded.
-  `/boards`, `/frames` and `/tinker` each shipped for weeks with **no
+  `/boards`, `/frames` and `/editor` each shipped for weeks with **no
   `og:image` at all** and nothing said so: they had `og:title`, they type-checked,
   they rendered. `twitter` fails the same way plus one worse: a page that sets
   only `openGraph` keeps the ROOT's `twitter:title`, so its X card advertised the
@@ -311,7 +312,7 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   specificity. So `.zf-surface { position: relative }` silently overrides a
   `fixed`/`absolute`/`sticky` class on the *same* element — which is how the
   Publish/Fork dialog ended up laid out in normal flow at the end of `<body>`
-  (y≈46,500px on `/tinker`): overlay dimmed, panel nowhere, no error anywhere.
+  (y≈46,500px on `/editor`): overlay dimmed, panel nowhere, no error anywhere.
   Keep positioning classes and `.zf-*` surface classes on **separate nodes**.
 - **`/embed/*` is the only framable path.** `next.config.ts` sets
   `X-Frame-Options: DENY` everywhere else, which is why the chrome-less embed route

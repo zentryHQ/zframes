@@ -4,7 +4,7 @@ export const runtime = "nodejs";
 
 // GET /dashboard/<id>/dashboard.json — the raw DashboardSpec. This is the ONE fetchable
 // primitive every fork path pulls from: the AI agent (`npx skills add
-// zentryhq/zframes` → fetch this), and the in-browser preview/tinker. Public for
+// zentryhq/zframes` → fetch this), and the in-browser preview/editor. Public for
 // any non-removed dashboard (unlisted = anyone-with-link). Immutable-per-publish,
 // so it caches hard at the edge.
 export async function GET(

@@ -22,17 +22,26 @@ import { DESKTOP_EDIT_QUERY, useMediaQuery } from "@/app/lib/use-media-query";
 // (GridStack) + localStorage both run in the browser.
 // Bumped from v1 (the old 3-frame starter) so the new all-frames default
 // surfaces past any spec a returning browser had saved under the old key.
-const STORAGE_KEY = "zframes:tinker-spec-v3";
+const STORAGE_KEY = "zframes:editor-spec-v3";
+
+// The same slot under the route's old name (`/tinker`, renamed 2026-08-28).
+// Read-only fallback so a visitor who saved a board before the rename still
+// finds it; the next Save writes it under STORAGE_KEY. Deletable once nobody
+// plausibly holds a pre-rename save — this is a browser-local key, so "when"
+// is a guess, not a migration you can run.
+const LEGACY_STORAGE_KEY = "zframes:tinker-spec-v3";
 
 // One-shot handoff slot written by /dashboard/[id]'s "Edit this board" button
-// (must match TINKER_HANDOFF_KEY there). Read before the saved board, cleared
+// (must match HANDOFF_KEY there). Read before the saved board, cleared
 // after mount — a reload returns to the visitor's own saved board unless they
-// saved the fork over it.
-const HANDOFF_KEY = "zframes:tinker-handoff";
+// saved the fork over it. Not versioned and not migrated: it is written and
+// consumed across one navigation, so a rename can only ever miss a fork that
+// was in flight, which falls back to the saved board.
+const HANDOFF_KEY = "zframes:editor-handoff";
 
 const COLS = 12;
 
-// The default tinker board is a showcase: every registered frame, grouped by
+// The default editor board is a showcase: every registered frame, grouped by
 // category (a full-width heading per section), each seeded at its own natural
 // `layout` size (falling back to 4×3). Frames are skyline bin-packed so the
 // 12-col width fills cleanly with no ragged trailing holes: tallest-first, each
@@ -84,7 +93,7 @@ function buildStarter() {
     settle(0, COLS, y + 1);
   };
 
-  banner("tinker-intro", {
+  banner("editor-intro", {
     title: "All frames",
     subtitle:
       "Every zframes frame at its natural size — drag, resize, tweak, then Save or Publish.",
@@ -127,7 +136,7 @@ function buildStarter() {
 
   return {
     version: "1.0.0",
-    title: "Tinker board",
+    title: "Starter board",
     author: "you",
     background: { type: "none" as const },
     // A touch more gutter between card borders than the 12px default.
@@ -151,21 +160,24 @@ function loadSpec(): { spec: DashboardSpec; handoff: boolean } {
   } catch {
     // Storage unavailable / corrupt JSON — fall through to the saved board.
   }
-  // Then the saved spec: buildStarter() packs ~285 default configs, so it is
-  // built lazily, only when this browser has nothing usable saved.
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = DashboardSpecSchema.safeParse(JSON.parse(raw));
-      if (parsed.success) return { spec: parsed.data, handoff: false };
+  // Then the saved spec, current key first and the pre-rename key after it:
+  // buildStarter() packs ~285 default configs, so it is built lazily, only when
+  // this browser has nothing usable saved under either.
+  for (const key of [STORAGE_KEY, LEGACY_STORAGE_KEY]) {
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (raw) {
+        const parsed = DashboardSpecSchema.safeParse(JSON.parse(raw));
+        if (parsed.success) return { spec: parsed.data, handoff: false };
+      }
+    } catch {
+      // Storage unavailable / corrupt JSON — try the next key, then the starter.
     }
-  } catch {
-    // Storage unavailable / corrupt JSON — fall through to the starter.
   }
   return { spec: DashboardSpecSchema.parse(buildStarter()), handoff: false };
 }
 
-export default function DashboardTinker() {
+export default function EditorView() {
   const [{ spec, handoff }] = useState(loadSpec);
   // Consume the handoff AFTER mount (see loadSpec for why not in the
   // initializer): from here on, a reload shows the visitor's own saved board.
@@ -215,7 +227,7 @@ export default function DashboardTinker() {
       {/* The board's own background (live edit wins, else the saved spec) —
           same z-[-1] wrapper as /dashboard/[id]: below the header/footer
           chrome, pointer-events-none so a fixed inset-0 layer never swallows
-          clicks. AppShell suppresses the site Aurora on /tinker; a board with
+          clicks. AppShell suppresses the site Aurora on /editor; a board with
           `type:"none"` falls back to the default Aurora inside this component. */}
       <div aria-hidden className="pointer-events-none fixed inset-0 z-[-1]">
         <DashboardBackground
@@ -226,7 +238,7 @@ export default function DashboardTinker() {
       </div>
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 pt-6">
         <div>
-          <h1 className="text-lg font-semibold text-white">Tinker</h1>
+          <h1 className="text-lg font-semibold text-white">Editor</h1>
           <p className="text-xs text-white/55">
             {!canEdit
               ? "Editing needs a desktop browser — this is a read-only preview."

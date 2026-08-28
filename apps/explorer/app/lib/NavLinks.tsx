@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const LINKS = [
   { href: "/boards", label: "Boards" },
   { href: "/frames", label: "Frames" },
-  { href: "/tinker", label: "Tinker" },
+  { href: "/editor", label: "Editor" },
 ];
 
 // Primary nav with an active-route highlight. Client-only for usePathname; the

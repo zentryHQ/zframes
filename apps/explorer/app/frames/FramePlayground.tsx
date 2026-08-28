@@ -20,7 +20,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { frameDefs, providers, registry } from "@/app/lib/frames";
 import { useMediaQuery } from "@/app/lib/use-media-query";
 
-// Same GridStack tuning the real editor/Tinker uses, so drag + resize feel
+// Same GridStack tuning the real editor uses, so drag + resize feel
 // IDENTICAL here: 12 responsive columns, a fixed row height, half-gap margins,
 // float (keep explicit placement, don't gravity-pack) and animated moves.
 const COLUMNS = 12;

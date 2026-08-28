@@ -42,10 +42,10 @@ export function Footer() {
             Frames
           </Link>
           <Link
-            href="/tinker"
+            href="/editor"
             className="text-white/65 transition-colors hover:text-white"
           >
-            Tinker
+            Editor
           </Link>
           <Link
             href="/mine"

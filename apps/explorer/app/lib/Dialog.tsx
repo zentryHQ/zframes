@@ -24,7 +24,7 @@ import {
 // so `.zf-surface { position: relative }` beats DialogContent's `fixed` — the
 // panel then lays out in normal flow at the end of <body> instead of centred in
 // the viewport. On a tall page that is thousands of pixels below the fold: the
-// overlay dims, the dialog is nowhere (on /tinker it landed at y=46541px), and
+// overlay dims, the dialog is nowhere (on /editor it landed at y=46541px), and
 // nothing errors. Keep positioning classes and surface classes on separate nodes.
 //
 // FOOTGUN: `min-w-0` on that inner div is load-bearing. DialogContent is a

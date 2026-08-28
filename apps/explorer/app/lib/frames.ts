@@ -1,7 +1,7 @@
 "use client";
 
 // Shared, app-wide singletons for every client frame-rendering surface
-// (dashboard preview, catalogue, tinker). Module scope = ONE instance for the
+// (dashboard preview, the frame catalogue, the editor). Module scope = ONE instance for the
 // whole app. "use client" keeps this out of any server render.
 //
 // The explorer renders MOCK DATA ONLY: one deterministic offline provider
@@ -34,6 +34,6 @@ export const PUBLIC_DEMO_ADDRESS = "0xF977814e90dA44bFA03b6295A0616a897441acec";
 export const registry = createLazyRegistry();
 
 /** Every frame definition, for surfaces that enumerate the catalogue
- *  (catalogue grid, playground picker, tinker starter). Full metas, lazy
+ *  (catalogue grid, playground picker, editor starter). Full metas, lazy
  *  components — a drop-in replacement for iterating the eager `allFrames`. */
 export const frameDefs: AnyFrameDefinition[] = [...registry.values()];

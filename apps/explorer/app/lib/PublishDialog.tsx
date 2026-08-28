@@ -118,12 +118,12 @@ export function PublishDialog({
               Sign in to publish
             </h2>
             <p className="mt-2 text-sm text-white/55">
-              Publishing needs an account (browsing and tinker don't). Your
+              Publishing needs an account (browsing and editing don't). Your
               edits stay saved in this browser meanwhile.
             </p>
             <div className="mt-4 flex gap-2">
               <Button asChild variant="accent" size="sm">
-                <Link href="/signin?next=/tinker">Sign in</Link>
+                <Link href="/signin?next=/editor">Sign in</Link>
               </Button>
               <Button variant="ghost" size="sm" onClick={onClose}>
                 Cancel

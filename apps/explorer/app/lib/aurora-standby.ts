@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 // Standby holds for the site's chrome Aurora (UnicornBackground). While any
 // surface holds one, the chrome scene freezes its render loop (paused, not
 // destroyed) so the page never runs two live WebGL scenes at once. Same
-// reason AppShell unmounts the chrome backdrop on /dashboard and /tinker,
+// reason AppShell unmounts the chrome backdrop on /dashboard and /editor,
 // applied to the landing's showcase, where the second scene lives inside an
 // iframe AppShell can't see.
 

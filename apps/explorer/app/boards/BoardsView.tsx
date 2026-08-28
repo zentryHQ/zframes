@@ -252,7 +252,7 @@ export function BoardsView({ initial }: { initial?: BoardsResponse }) {
           description="Dashboards shared by others. Preview any one in the browser, or fork it onto your machine with your AI agent."
           action={
             <Link
-              href="/tinker"
+              href="/editor"
               className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
             >
               Build &amp; publish yours →
@@ -279,7 +279,7 @@ export function BoardsView({ initial }: { initial?: BoardsResponse }) {
               <p className="text-sm text-white/65">
                 Be the first to{" "}
                 <Link
-                  href="/tinker"
+                  href="/editor"
                   className="text-indigo-300 underline-offset-2 hover:underline"
                 >
                   build &amp; publish

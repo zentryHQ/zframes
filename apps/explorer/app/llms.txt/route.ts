@@ -85,7 +85,7 @@ export async function GET(): Promise<Response> {
     `- [Home](${absoluteUrl("/")}): what zframes is, live example boards, and the install command.`,
     `- [Boards](${absoluteUrl("/boards")}): curated and community boards, each previewable live and forkable into a dashboard of your own.`,
     `- [Frames](${absoluteUrl("/frames")}): every frame a dashboard can be built from, grouped by family.`,
-    `- [Tinker](${absoluteUrl("/tinker")}): edit a dashboard spec in the browser without installing anything.`,
+    `- [Editor](${absoluteUrl("/editor")}): edit a dashboard spec in the browser without installing anything.`,
     "",
     "## Frame families",
     "",

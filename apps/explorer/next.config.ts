@@ -77,7 +77,8 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/__zframes/proxy", destination: "/api/zframes-proxy" }];
   },
-  // `/gallery` → `/boards` and `/catalogue` → `/frames` (renamed 2026-08-28).
+  // `/gallery` → `/boards`, `/catalogue` → `/frames` and `/tinker` → `/editor`
+  // (all renamed 2026-08-28).
   //
   // `permanent: true` (308) rather than a temporary redirect: these paths are
   // retired, not moved for a season, and only a permanent redirect passes link
@@ -92,6 +93,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/gallery", destination: "/boards", permanent: true },
       { source: "/catalogue", destination: "/frames", permanent: true },
+      { source: "/tinker", destination: "/editor", permanent: true },
     ];
   },
   // Non-breaking security headers (defense-in-depth alongside the publish-time

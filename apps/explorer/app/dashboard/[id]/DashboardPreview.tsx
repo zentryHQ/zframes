@@ -15,11 +15,11 @@ const DashboardView = dynamic(() => import("@/app/lib/DashboardView"), {
   ssr: false,
 });
 
-// One-shot handoff slot: /tinker reads this FIRST (before its own saved board),
+// One-shot handoff slot: /editor reads this FIRST (before its own saved board),
 // then clears it — so "Edit this board" always opens THIS board, without
-// silently overwriting the visitor's saved tinker work until they hit Save.
-// Must match HANDOFF_KEY in app/tinker/DashboardTinker.tsx.
-const TINKER_HANDOFF_KEY = "zframes:tinker-handoff";
+// silently overwriting the visitor's saved work until they hit Save.
+// Must match HANDOFF_KEY in app/editor/EditorView.tsx.
+const EDITOR_HANDOFF_KEY = "zframes:editor-handoff";
 
 export function DashboardPreview({
   id,
@@ -44,11 +44,11 @@ export function DashboardPreview({
   // editor. Snapshot-and-fork — no server write, the recipient owns a copy.
   const fork = useCallback(() => {
     try {
-      window.localStorage.setItem(TINKER_HANDOFF_KEY, JSON.stringify(spec));
+      window.localStorage.setItem(EDITOR_HANDOFF_KEY, JSON.stringify(spec));
     } catch {
       /* localStorage unavailable — the editor still opens with its own default */
     }
-    router.push("/tinker");
+    router.push("/editor");
   }, [spec, router]);
 
   return (

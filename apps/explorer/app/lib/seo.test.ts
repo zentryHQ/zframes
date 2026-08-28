@@ -258,7 +258,7 @@ describe("share cards", () => {
    * Next merges `metadata` one top-level field at a time, so a page exporting its
    * own `openGraph` object REPLACES the resolved one — including the `images`
    * that `app/opengraph-image.tsx` merged in at the root segment. `/boards`,
-   * `/frames` and `/tinker` each shipped for weeks with no `og:image` at all,
+   * `/frames` and `/editor` each shipped for weeks with no `og:image` at all,
    * and nothing anywhere said so: they had `og:title` and `og:description`, they
    * type-checked, they rendered.
    *

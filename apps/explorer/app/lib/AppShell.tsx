@@ -20,13 +20,13 @@ import { UnicornBackground } from "@/app/lib/UnicornBackground";
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const bare = pathname?.startsWith("/embed/") ?? false;
-  // /dashboard/[id] and /tinker render the BOARD's own declared background (its
+  // /dashboard/[id] and /editor render the BOARD's own declared background (its
   // unicorn scene / gradient / image, via DashboardBackground in
-  // DashboardPreview / DashboardTinker) — mounting the site Aurora underneath it
+  // DashboardPreview / EditorView) — mounting the site Aurora underneath it
   // would run a second WebGL scene for nothing, so the chrome backdrop yields on
   // those routes.
   const boardBackdrop =
-    (pathname?.startsWith("/dashboard/") ?? false) || pathname === "/tinker";
+    (pathname?.startsWith("/dashboard/") ?? false) || pathname === "/editor";
 
   if (bare) return <>{children}</>;
 

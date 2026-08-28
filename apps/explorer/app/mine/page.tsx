@@ -83,7 +83,7 @@ export default function MyDashboardsPage() {
         <EmptyState>
           <p className="text-sm text-white/70">
             Sign in to see the dashboards you've published. Browsing, preview,
-            and tinker never need an account — only publishing does.
+            and editing never need an account — only publishing does.
           </p>
           <Button asChild variant="accent" size="sm">
             <Link href="/signin?next=/mine">Sign in</Link>
@@ -98,11 +98,11 @@ export default function MyDashboardsPage() {
       ) : rows.length === 0 ? (
         <EmptyState>
           <p className="text-sm text-white/70">
-            Nothing published yet — build a board in the tinker editor, then hit
+            Nothing published yet — build a board in the editor, then hit
             Publish to get a shareable link.
           </p>
           <Button asChild variant="accent" size="sm">
-            <Link href="/tinker">Open the tinker editor →</Link>
+            <Link href="/editor">Open the editor →</Link>
           </Button>
         </EmptyState>
       ) : (
