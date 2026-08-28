@@ -9,21 +9,42 @@ import { Dialog } from "@/app/lib/Dialog";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 
-function CopyRow({ label, value }: { label: string; value: string }) {
+// `multiline` values wrap and show in full; short ones stay a single truncated
+// line. Both need `min-w-0` on the <code> and `shrink-0` on the button: a flex
+// item's automatic minimum size is its min-content width, so a nowrap value
+// becomes the row's minimum, the row becomes the dialog panel's minimum, and the
+// panel overflows the dialog sideways — taking the copy button with it.
+function CopyRow({
+  label,
+  value,
+  multiline = false,
+}: {
+  label: string;
+  value: string;
+  multiline?: boolean;
+}) {
   const [copied, setCopied] = useState(false);
   return (
-    <div>
+    <div className="min-w-0">
       <div className="mb-1 text-xs uppercase tracking-wide text-white/55">
         {label}
       </div>
-      <div className="flex items-center gap-2">
-        <code className="flex-1 truncate rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white/80">
+      <div
+        className={`flex gap-2 ${multiline ? "items-start" : "items-center"}`}
+      >
+        <code
+          className={`min-w-0 flex-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white/80 ${
+            multiline
+              ? "leading-relaxed break-words whitespace-pre-wrap"
+              : "truncate"
+          }`}
+        >
           {value}
         </code>
         <Button
           variant="outline"
           size="sm"
-          className="text-xs"
+          className="shrink-0 text-xs"
           onClick={() => {
             navigator.clipboard?.writeText(value);
             setCopied(true);
@@ -118,7 +139,11 @@ export function PublishDialog({
             </p>
             <div className="space-y-4">
               <CopyRow label="Share link" value={shareUrl} />
-              <CopyRow label="Fork with any AI agent" value={forkPrompt} />
+              <CopyRow
+                label="Fork with any AI agent"
+                value={forkPrompt}
+                multiline
+              />
             </div>
             <div className="mt-5 flex justify-end gap-2">
               <Button asChild variant="outline" size="sm">
