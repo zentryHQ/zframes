@@ -15,11 +15,17 @@ import {
 
 // Header auth widget — rendered inside the (server) layout nav.
 //
-// Deliberately NO persistent "Sign in" CTA: an account is the price of writing
-// (publish, My dashboards), never of using the product, so the prompt surfaces
-// in-context at those gated moments (PublishDialog, /mine) instead of nagging
-// from the chrome. Logged-out (and while the session resolves) this renders
-// nothing.
+// Signed out it is a "Sign in" button in the top-right corner (2026-08-28). The
+// chrome carried NO auth CTA before that, on the reasoning that an account is
+// the price of writing (publish, My dashboards) and never of using the product,
+// so the prompt should surface only at those gated moments (PublishDialog,
+// /mine). That still holds for the GATE — nothing new is behind a login — but it
+// left a returning author with no way to reach their own account except by
+// walking back into the action that happens to prompt. The corner is where a
+// person looks for it; the in-context prompts stay exactly as they are.
+//
+// While the session is still resolving this renders nothing rather than
+// guessing: flashing "Sign in" at someone who is signed in reads as a logout.
 //
 // Signed in this is TWO things, not one: "My dashboards" as a plain nav link,
 // and the avatar as the account menu. The link used to be buried a click deep
@@ -42,7 +48,26 @@ export function AuthNav() {
   // stored it, which would leave a broken-image glyph in the header forever.
   const [imageBroken, setImageBroken] = useState(false);
 
-  if (isPending || !data?.user) return null;
+  if (isPending) return null;
+
+  if (!data?.user) {
+    // The sign-in page IS the CTA — a button pointing at the page you are on
+    // reads as broken.
+    if (pathname === "/signin") return null;
+    // Come back to where they were. Path only, no query string: reading the
+    // query needs useSearchParams, and this component renders inside the root
+    // layout's header on EVERY route — one call there opts the whole site out
+    // of static prerendering.
+    return (
+      <Link
+        href={`/signin?next=${encodeURIComponent(pathname || "/")}`}
+        className="zf-press whitespace-nowrap rounded-lg border border-white/15 bg-white/[0.06] px-3 py-1.5 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:bg-white/[0.1] hover:text-white"
+      >
+        Sign in
+      </Link>
+    );
+  }
+
   const user = data.user;
   const onMine = pathname?.startsWith("/mine") ?? false;
 
