@@ -20,6 +20,8 @@ type SortKey = "newest" | "liked";
 
 /**
  * Sorting happens CLIENT-SIDE and WITHIN a section, never across the two.
+ * **"Most liked" is the default** — the gallery leads with what people actually
+ * kept, and "Newest" is the opt-in (it is the mode that carries `?sort=` now).
  *
  * Client-side because the view already holds every row THE API RETURNED, so ordering
  * is free and needs no round trip per toggle.
@@ -28,7 +30,8 @@ type SortKey = "newest" | "liked";
  * `createdAt desc` (app/lib/dashboards.ts), so "Most liked" ranks the newest 48
  * community boards, NOT all of them. Below 48 published boards the two are the same
  * list and this is exactly right; past it, an older well-liked board silently cannot
- * appear above a newer zero-like one. The fix at that point is a server-side
+ * appear above a newer zero-like one — and since 2026-08-28 that is the DEFAULT
+ * view, so the day it matters it is the front door that is wrong, not a toggle. The fix at that point is a server-side
  * `ORDER BY likes` for this mode, not a bigger client fetch — tracked in the map's
  * fog rather than pre-built here. Curated is unaffected (`listCurated()` is
  * unlimited).
@@ -97,16 +100,18 @@ export function BoardsView({ initial }: { initial?: BoardsResponse }) {
   }, [query]);
 
   // Sort follows search's convention exactly: seeded from the URL, synced back to
-  // it, so a "most liked" view is shareable and survives a refresh.
+  // it, so a sorted view is shareable and survives a refresh. The param encodes
+  // the NON-default mode, so a bare /boards URL is the liked ranking and only
+  // ?sort=newest is spelled out.
   const [sort, setSort] = useState<SortKey>(() => {
-    if (typeof window === "undefined") return "newest";
-    return new URLSearchParams(window.location.search).get("sort") === "liked"
-      ? "liked"
-      : "newest";
+    if (typeof window === "undefined") return "liked";
+    return new URLSearchParams(window.location.search).get("sort") === "newest"
+      ? "newest"
+      : "liked";
   });
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (sort === "liked") url.searchParams.set("sort", "liked");
+    if (sort === "newest") url.searchParams.set("sort", "newest");
     else url.searchParams.delete("sort");
     window.history.replaceState(null, "", url);
   }, [sort]);
@@ -174,8 +179,8 @@ export function BoardsView({ initial }: { initial?: BoardsResponse }) {
           >
             {(
               [
-                ["newest", "Newest"],
                 ["liked", "Most liked"],
+                ["newest", "Newest"],
               ] as const
             ).map(([key, label]) => (
               <button
