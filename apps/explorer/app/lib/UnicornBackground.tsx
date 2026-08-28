@@ -37,7 +37,7 @@ const SDK_URL = "/unicornStudio.umd.mjs";
 // magenta). Keep in sync with the `unicorn-scroll-hue` keyframes in globals.css
 // — the CSS scroll-timeline path and this JS fallback must land on the same
 // angle or the two paths would look different per browser.
-const SCROLL_HUE_DEG = 90;
+const SCROLL_HUE_DEG = 18;
 
 // The scroll-hue drift belongs to the landing page's long narrative scroll
 // alone — every other route (gallery, catalogue, dashboard, …) keeps the scene

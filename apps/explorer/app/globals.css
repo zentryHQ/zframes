@@ -628,7 +628,7 @@ html[data-zf-demo] .zf-frame-source {
     filter: hue-rotate(0deg);
   }
   to {
-    filter: hue-rotate(90deg);
+    filter: hue-rotate(18deg);
   }
 }
 @supports (animation-timeline: scroll()) {
