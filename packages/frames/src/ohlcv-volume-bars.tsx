@@ -69,7 +69,7 @@ function OhlcvVolumeBars({ config }: { config: z.output<typeof schema> }) {
         fill
         formatValue={formatCompact}
         showValues={false}
-        maxTickLabels={6}
+        maxTickLabels={4}
       />
       <div className="caption text-soft text-center">
         {tickerOf(config.symbol)} volume · {config.interval} candles

@@ -30,11 +30,11 @@ function BtcFees({ config }: { config: z.output<typeof schema> }) {
   if (!fees) return <FrameStatus>no fee data yet</FrameStatus>;
 
   return (
-    <div className="flex h-full flex-wrap content-center items-stretch justify-center gap-2">
+    <div className="flex h-full items-stretch justify-center gap-2">
       {config.tiers.map((tier) => (
         <FeePill
           key={tier}
-          className="min-w-[64px] flex-1"
+          className="min-w-0 flex-1"
           color={TIER_COLOR[tier]}
           value={fees[tier]}
           caption={TIER_LABEL[tier]}

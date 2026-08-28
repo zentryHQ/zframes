@@ -55,8 +55,10 @@ function TreasuryDebtCompositionArea({
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="flex items-baseline justify-between gap-3">
-        <div className="caption text-soft uppercase">debt composition</div>
-        <div className="caption text-soft text-right">
+        <div className="caption text-soft min-w-0 truncate uppercase">
+          debt composition
+        </div>
+        <div className="caption text-soft shrink-0 text-right">
           {debt ? `as of ${debt.date}` : ""}
         </div>
       </div>

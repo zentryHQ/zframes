@@ -51,10 +51,17 @@ function Fundamentals({ config }: { config: z.output<typeof schema> }) {
         className={`grid grid-cols-2 content-start gap-2 ${scrollAreaClass}`}
       >
         {data.metrics.map((m) => (
-          <div key={m.label} className="rounded bg-white/[0.04] px-3 py-2">
+          <div key={m.label} className="rounded bg-white/[0.04] px-2 py-1.5">
             <div className="caption text-soft truncate">{m.label}</div>
-            <div className="metric-sm text-strong">{formatValue(m)}</div>
-            <div className="caption text-soft truncate">{m.fiscalPeriod}</div>
+            {/* The fiscal period rides INSIDE the figure as an inline caption
+                (same convention as financials-trend's headline value) rather
+                than its own line — a third line per tile is what pushed a
+                5-tile grid to 3 rows and clipped the last one at the card's
+                minH floor. */}
+            <div className="metric-sm text-strong truncate">
+              {formatValue(m)}
+              <span className="caption text-soft ml-1.5">{m.fiscalPeriod}</span>
+            </div>
           </div>
         ))}
       </div>

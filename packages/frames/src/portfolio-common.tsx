@@ -279,11 +279,13 @@ function BinanceConnect({ onConnected }: { onConnected: () => void }) {
     // `justify-center`) does the centring while it fits: in a scroll container
     // `justify-content` pushes the overflow past the scrollable start, so the
     // heading would be both cut off AND unreachable.
-    <div className={`${scrollAreaClass} flex w-full flex-col px-1`}>
-      <div className="my-auto flex flex-col gap-2">
-        <div className="flex items-center gap-1.5">
+    <div className={`${scrollAreaClass} flex w-full min-w-0 flex-col px-1`}>
+      <div className="my-auto flex min-w-0 flex-col gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
           <AssetLogo symbol="BNB" size={18} />
-          <span className="text-strong text-sm font-bold">Connect Binance</span>
+          <span className="text-strong truncate text-sm font-bold">
+            Connect Binance
+          </span>
         </div>
         <p className="caption text-soft">
           Use a <strong>read-only</strong> key + secret — create them in Binance{" "}
@@ -340,11 +342,13 @@ function WalletConnect({ current }: { current?: string }) {
   return (
     // Scrolls rather than clips, and centres with `my-auto` — same reason as
     // `BinanceConnect` above.
-    <div className={`${scrollAreaClass} flex w-full flex-col px-1`}>
-      <div className="my-auto flex flex-col gap-2">
-        <div className="flex items-center gap-1.5">
+    <div className={`${scrollAreaClass} flex w-full min-w-0 flex-col px-1`}>
+      <div className="my-auto flex min-w-0 flex-col gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
           <AssetLogo symbol="ETH" size={18} />
-          <span className="text-strong text-sm font-bold">Track a wallet</span>
+          <span className="text-strong truncate text-sm font-bold">
+            Track a wallet
+          </span>
         </div>
         <p className="caption text-soft">
           Enter a public Ethereum address or ENS name. No keys — it&rsquo;s

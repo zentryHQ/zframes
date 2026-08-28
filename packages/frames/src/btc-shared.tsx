@@ -50,13 +50,17 @@ export function FeePill({
       // while btc-fees' warm ramp drew a hard box around every tier. Dropping
       // them is a no-op on mempool (its boxes were already invisible) and is what
       // actually makes the two cards read as a pair.
-      className={`flex flex-col items-center justify-center px-2 py-2 ${className}`}
+      className={`flex flex-col items-center justify-center overflow-hidden px-2 py-2 ${className}`}
     >
       <span className="metric-md leading-none" style={{ color }}>
         {value}
       </span>
-      <span className="caption text-soft mt-0.5">sat/vB</span>
-      <span className="caption text-soft mt-1 text-center">{caption}</span>
+      <span className="caption text-soft mt-0.5 block w-full break-words text-center">
+        sat/vB
+      </span>
+      <span className="caption text-soft mt-1 block w-full break-words text-center">
+        {caption}
+      </span>
     </div>
   );
 }
