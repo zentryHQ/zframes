@@ -1,8 +1,13 @@
 import { and, desc, eq, isNotNull, ne, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import type { BoardListing, BoardSummary } from "@/app/lib/board-summary";
+import type {
+  BoardAuthor,
+  BoardListing,
+  BoardSummary,
+} from "@/app/lib/board-summary";
 import { db } from "@/app/lib/db";
-import { dashboards, type DashboardRow } from "@/app/lib/db/schema";
+import { dashboards, type DashboardRow, user } from "@/app/lib/db/schema";
+import { HOUSE_USER } from "@/app/lib/house-account";
 
 export type Visibility = "listed" | "unlisted";
 
@@ -47,7 +52,21 @@ const summaryColumns = {
   likes: dashboards.likes,
 };
 
-const listingColumns = { ...summaryColumns, layout };
+// The board's byline, built in SQL off the `user` LEFT JOIN so a list query still
+// costs one round trip. Two fields only: `user.email` is on a public page here,
+// so it never leaves the server (see BoardAuthor).
+//
+// The `case` is what keeps a missing owner as `null` instead of
+// `{name: null, image: null}` — jsonb_build_object over an unmatched join row
+// happily builds an object full of nulls, which every consumer would then have to
+// re-check field by field.
+const author = sql<BoardAuthor | null>`case when ${user.id} is null then null else
+  jsonb_build_object('name', ${user.name}, 'image', ${user.image}) end`;
+
+// ⚠️ Any query selecting these MUST `.leftJoin(user, …)` — `author` names a column
+// on a table this object does not itself bring into the FROM clause. That is why
+// `summaryColumns` (used by the join-less `listLandingBoards`) does not carry it.
+const listingColumns = { ...summaryColumns, layout, author };
 
 // Immutable-per-publish: every publish mints a NEW id, so a shared link is a
 // stable snapshot (an "update" is a new publish → new link). Spec is validated
@@ -106,46 +125,73 @@ export async function listByOwner(ownerId: string): Promise<
     .orderBy(desc(dashboards.createdAt));
 }
 
-// The public community gallery: listed + approved, newest first. `curated: false`
-// is load-bearing — curated rows are also listed+approved, so without it every
-// showcase board would appear in BOTH gallery sections.
-export type CommunityListing = BoardListing & {
-  createdAt: Date;
-};
+/**
+ * THE gallery: every listed, approved board, in one list.
+ *
+ * There were two of these until 2026-08-28 — `listCurated` and `listCommunity`,
+ * split on the `curated` flag, rendered as two sections. Likes are what retired
+ * the split: the grid has a real, earned ranking now, and a hand-built board
+ * pinned above a community one that out-scored it makes that ranking decorative.
+ * A house board competes on the same axis as everyone else's.
+ *
+ * `curated` still exists — it orders the landing page's card stack and marks the
+ * rows the seeder upserts by slug — it just no longer decides where a board
+ * appears here or how high.
+ *
+ * ORDERING IS SQL'S JOB, deliberately. The old view fetched the newest 48 and
+ * sorted them in the browser, which meant "most liked" ranked *the newest 48*:
+ * past that many boards, an older well-liked one could not reach the top of the
+ * page no matter how many likes it had. Harmless while it was one of two
+ * sections and the non-default sort; not harmless as the front door's only
+ * ranking. Ordering here makes the limit a page of the RANKED list rather than a
+ * window the ranking is trapped inside.
+ *
+ * The `liked` tie-break is newest-first, and it carries the day-one grid: almost
+ * every board sits at 0 likes, so likes alone would leave the order to the
+ * planner and read as broken.
+ */
+export type BoardSort = "liked" | "newest";
 
-export async function listCommunity(limit = 48): Promise<CommunityListing[]> {
-  return db
-    .select({
-      ...listingColumns,
-      createdAt: dashboards.createdAt,
-    })
-    .from(dashboards)
-    .where(
-      and(
-        eq(dashboards.visibility, "listed"),
-        eq(dashboards.status, "approved"),
-        eq(dashboards.curated, false),
-      ),
-    )
-    .orderBy(desc(dashboards.createdAt))
-    .limit(limit);
+export async function listBoards(
+  sort: BoardSort = "liked",
+  limit = 48,
+): Promise<BoardListing[]> {
+  return (
+    db
+      .select(listingColumns)
+      .from(dashboards)
+      // LEFT, not inner: `ownerId` is nullable, and an inner join would silently
+      // drop any board whose owner row is missing rather than show it unattributed.
+      .leftJoin(user, eq(user.id, dashboards.ownerId))
+      .where(
+        and(
+          eq(dashboards.visibility, "listed"),
+          eq(dashboards.status, "approved"),
+        ),
+      )
+      .orderBy(
+        ...(sort === "liked"
+          ? [desc(dashboards.likes), desc(dashboards.createdAt)]
+          : [desc(dashboards.createdAt)]),
+      )
+      .limit(limit)
+  );
 }
 
 /**
- * Every board that may appear in `sitemap.xml` — curated AND community, in one
- * query, projected down to the four columns a sitemap entry needs.
+ * Every board that may appear in `sitemap.xml`, projected down to the four
+ * columns a sitemap entry needs.
  *
- * Separate from `listCurated`/`listCommunity` rather than a union of them for one
- * reason: **`visibility` is filtered here explicitly**. `listCurated` never
- * mentions it, relying on the fact that `upsertCurated` always writes `"listed"`
- * — true today, and an implicit invariant that a sitemap must not inherit. An
- * unlisted board is a private link, and submitting one to Google is how a link
- * that was only ever handed to a colleague ends up in search results.
+ * Shares `listBoards`' predicate but is NOT a page of it, for two reasons:
  *
- * No `limit`. A sitemap that silently stops at the newest 48 boards is worse than
- * no sitemap, because it reads as a complete inventory. The 50,000-URL / 50 MB
- * sitemap ceiling is far above any plausible board count here; `sitemap.ts` logs
- * if it is ever approached.
+ * - **No `limit`.** A sitemap that silently stops at the newest 48 boards is
+ *   worse than no sitemap, because it reads as a complete inventory. The
+ *   50,000-URL / 50 MB ceiling is far above any plausible board count here;
+ *   `sitemap.ts` logs if it is ever approached.
+ * - **`visibility` is spelled out rather than inherited.** An unlisted board is
+ *   a private link, and submitting one to Google is how a link that was only
+ *   ever handed to a colleague ends up in search results. That guarantee should
+ *   not depend on another query keeping its WHERE clause.
  */
 export async function listIndexableBoards(): Promise<
   { id: string; updatedAt: Date; createdAt: Date; curated: boolean }[]
@@ -171,17 +217,6 @@ export async function listIndexableBoards(): Promise<
 // These rows were TypeScript literals until 2026-08-05 (`curated-dashboards.ts`).
 // They are now ordinary rows distinguished by `curated: true`, seeded/updated by
 // `scripts/seed-curated.ts` and validated on the way in by `validateDashboardSpec`.
-
-// The gallery's curated section. Ordered by `landingOrder` first so the boards the
-// front door leads with also lead the gallery, then by title for a stable rest —
-// NOT by createdAt, which for a seeded set is an accident of insertion order.
-export async function listCurated(): Promise<BoardListing[]> {
-  return db
-    .select(listingColumns)
-    .from(dashboards)
-    .where(and(eq(dashboards.curated, true), eq(dashboards.status, "approved")))
-    .orderBy(sql`${dashboards.landingOrder} nulls last`, dashboards.title);
-}
 
 // The curated set as bare link metadata (id/title/description) — for consumers
 // like /llms.txt that render a link list and need neither spec nor geometry.
@@ -218,6 +253,22 @@ export async function listLandingBoards(): Promise<BoardSummary[]> {
     .orderBy(dashboards.landingOrder);
 }
 
+/**
+ * Make sure the house account exists. Called by the seeder before its first
+ * upsert, because `ownerId` is a real FK now — a missing row fails the write
+ * outright rather than degrading to an unattributed board.
+ *
+ * Idempotent, and deliberately duplicated by drizzle/0005_house_author.sql:
+ * production gets the row from the migration (which also back-fills the existing
+ * boards), a fresh database gets it from whichever of the two runs first.
+ */
+export async function ensureHouseUser(): Promise<void> {
+  await db
+    .insert(user)
+    .values({ ...HOUSE_USER })
+    .onConflictDoNothing();
+}
+
 // Upsert by id — the seeder's write. Curated boards are addressed by slug
 // (`/d/gold-desk`), so unlike a community publish this MUST reuse the id rather
 // than minting a new one, or every re-seed would break every shared link.
@@ -231,7 +282,11 @@ export async function upsertCurated(input: {
 }): Promise<void> {
   const values = {
     id: input.id,
-    ownerId: null,
+    // The house account (app/lib/house-account.ts) — every board in the merged
+    // gallery carries a byline, so these carry ours. Re-asserted on conflict
+    // below, which is what brings a database seeded before 2026-08-28 forward
+    // without waiting for drizzle/0005_house_author.sql to be the thing that ran.
+    ownerId: HOUSE_USER.id,
     title: input.title,
     description: input.description,
     spec: input.spec,
@@ -249,6 +304,7 @@ export async function upsertCurated(input: {
       // Deliberately does NOT touch likes/createdAt: a re-seed is an edit to the
       // board, not a reset of what the board has accumulated.
       set: {
+        ownerId: values.ownerId,
         title: values.title,
         description: values.description,
         spec: values.spec,

@@ -86,14 +86,46 @@ Since **2026-08-05** there is exactly one place a dashboard can be: a row in
 `app/lib/curated-dashboards.ts`; that file is gone. See
 `docs/decisions/web-explorer/` for why.
 
-- **Curated** rows: `curated: true`, `ownerId: null`, a readable slug for an id
-  (`gold-desk`), a `description`, and `landingOrder` — non-null puts the board in
-  the landing page's sticky card stack, in that order. Upserted **by id** so a
-  shared `/dashboard/<slug>` link survives an edit.
-- **Community** rows: a nanoid id, a real `ownerId`, immutable-per-publish (an
-  "update" mints a new id, so a shared link is a stable snapshot).
+- **Curated** rows: `curated: true`, a readable slug for an id (`gold-desk`), a
+  `description`, and `landingOrder` — non-null puts the board in the landing
+  page's sticky card stack, in that order. Upserted **by id** so a shared
+  `/dashboard/<slug>` link survives an edit.
+- **Community** rows: a nanoid id, immutable-per-publish (an "update" mints a new
+  id, so a shared link is a stable snapshot).
 - Editing a curated board is a `update dashboards set spec = …`. **No deploy.**
   That was the point.
+
+### The gallery is ONE list (2026-08-28)
+
+`/boards` had a "Curated" section above a "Community" one. It doesn't any more:
+**every row is a board**, ranked together. Likes are what retired the split — the
+grid ranks on something people actually did, and a house board pinned above a
+community board that out-scored it makes that ranking decorative.
+
+`curated` survives as a **flag, not a kind**: it still orders the landing stack
+(`landingOrder`) and marks the rows `seed:curated` upserts by slug. It no longer
+decides where a board appears in the gallery or how high.
+
+Three things follow, and each is load-bearing:
+
+- **Every board has an author, so the house boards needed an account.**
+  `HOUSE_USER` (`app/lib/house-account.ts`) is a real `user` row with **no
+  `account` row**, so it cannot be signed into; its address is on a `.invalid`
+  domain so the unique `email` can never collide with a real Google sign-in.
+  `drizzle/0005_house_author.sql` inserts it and back-fills the curated rows;
+  `upsertCurated` re-asserts it on every seed. The byline (`app/lib/Byline.tsx`)
+  renders `name` + `image` and nothing else — **`user.email` must never reach a
+  board listing**, which is why `BoardAuthor` has two fields.
+- **Sorting moved into SQL** (`listBoards(sort)`, `/api/dashboards?sort=`). The
+  client used to sort the newest 48 rows it had, so "most liked" ranked *the
+  newest 48* rather than the top 48 — invisible while it was the non-default sort
+  of one of two sections, wrong as the front door's only ranking. Each ordering is
+  a separate query and a separate CDN entry; `BoardsView` caches per sort so
+  toggling back costs nothing.
+- **`/api/dashboards` returns `{ boards }`**, not `{ curated, community }`. Its
+  shape has now changed twice; a client from before this release throws on the new
+  body. Accepted deliberately — the old view only refetched when its server seed
+  came up empty.
 
 ### The write gate replaces a build-time test
 
@@ -223,8 +255,12 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   metadata and `FrameIndex` (all 284 frames as text) now render on the server;
   only the live grid stays client-only, behind `FramesClient`. `FramesView`
   must therefore **not** render `<main>` or an `<h1>` — the page owns both.
-- **`/boards` fetches its rows server-side** and passes them as `initial`. The
-  client refetches on mount only when that seed is empty (DB blip recovery).
+- **`/boards` fetches its rows server-side** and passes them as `initial` — the
+  DEFAULT ("most liked") ordering only. `?sort=newest` is fetched by the client
+  rather than read as a `searchParam`, because a page that reads searchParams is
+  dynamic: honouring the toggle server-side would cost every visitor the ISR hit
+  to serve one opt-in ranking. The client also refetches when that seed is empty
+  (DB blip recovery).
 - **`/llms.txt`** (`app/llms.txt/route.ts`) is fully derived — frames from the
   registry, boards from the table, Q&A from `app/lib/faq.ts`. It cannot go stale
   on its own.

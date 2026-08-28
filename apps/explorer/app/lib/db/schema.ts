@@ -81,10 +81,18 @@ export const dashboards = pgTable(
   "dashboards",
   {
     id: text("id").primaryKey(), // community: nanoid · curated: a readable slug
-    // Nullable BECAUSE of curated rows: a showcase board has no user behind it, and
-    // inventing a synthetic "zframes" row in Better Auth's `user` table to satisfy
-    // a FK would put a fake account in the auth system to model authorship that
-    // doesn't exist. `listByOwner` filters by a real id, so null rows never match.
+    // EVERY listed board has one now. Curated rows carried `null` until
+    // 2026-08-28, on the reasoning that a showcase board has no user behind it —
+    // which held for as long as the gallery had a separate curated section that
+    // never showed an author. It has one merged list now, every card carries a
+    // byline, and a blank byline on the house boards is worse than the synthetic
+    // account it was avoiding. They are owned by `HOUSE_USER` (a `user` row with
+    // no `account`, so it cannot be signed into) — see app/lib/house-account.ts
+    // and drizzle/0005_house_author.sql, which back-fills them.
+    //
+    // Still NULLABLE rather than notNull: making it required is a separate
+    // migration that has to run when no null row is left anywhere, including
+    // unlisted ones, and nothing needs it. Read it as "always set in practice".
     ownerId: text("owner_id").references(() => user.id, {
       onDelete: "cascade",
     }),
@@ -116,9 +124,9 @@ export const dashboards = pgTable(
     // without the DDL reds the CI gate.
     //
     // The drop is a SEPARATE release on purpose: db-deploy.yml migrates while the
-    // previous release is still serving, and that release still selects both
-    // columns in `listCommunity` — dropping them in the same push 500s the live
-    // gallery until Vercel catches up.
+    // previous release is still serving, and that release's gallery query still
+    // selects both columns — dropping them in the same push 500s the live gallery
+    // until Vercel catches up.
     views: integer("views").notNull().default(0),
     forks: integer("forks").notNull().default(0),
     // Public likes — the live counter: `/api/likes` increments it, the gallery
@@ -131,6 +139,21 @@ export const dashboards = pgTable(
   (t) => [
     // One index per list query, matching its filter + order (partial where the
     // query filters on constants). Mirrored in drizzle/0004_dashboard_indexes.sql.
+    // The merged gallery's two orderings — same predicate, one per sort key.
+    // `listBoards` orders in SQL rather than in the client precisely so the
+    // "most liked" ranking covers every board and not just the newest page of
+    // them, which means the sort needs an index it can walk.
+    index("dashboards_listed_recent_idx")
+      .on(t.createdAt.desc())
+      .where(sql`${t.visibility}='listed' and ${t.status}='approved'`),
+    index("dashboards_listed_liked_idx")
+      .on(t.likes.desc(), t.createdAt.desc())
+      .where(sql`${t.visibility}='listed' and ${t.status}='approved'`),
+    // SUPERSEDED by the two above (the gallery stopped filtering `curated=false`
+    // when the sections merged) and dead — kept declared, like `views`/`forks`,
+    // because the drop belongs in its own release: migrations apply while the
+    // PREVIOUS release is still serving, and that release still runs the
+    // community-only query this serves.
     index("dashboards_gallery_idx")
       .on(t.createdAt.desc())
       .where(

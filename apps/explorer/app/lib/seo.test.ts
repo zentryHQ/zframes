@@ -186,8 +186,8 @@ describe("sitemap", () => {
   it("lists listed boards and never an unlisted one", async () => {
     vi.doMock("@/app/lib/dashboards", () => ({
       // The query itself filters on visibility; this asserts the sitemap uses
-      // THAT function rather than re-deriving a list from listCurated /
-      // listCommunity, where the visibility filter is implicit.
+      // THAT function rather than re-deriving a list from the gallery's
+      // `listBoards`, which is capped to a page of boards.
       listIndexableBoards: () =>
         Promise.resolve([
           {

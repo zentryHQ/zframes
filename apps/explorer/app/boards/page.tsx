@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BoardsView } from "./BoardsView";
 import type { BoardListing } from "@/app/lib/board-summary";
-import { listCommunity, listCurated } from "@/app/lib/dashboards";
+import { listBoards } from "@/app/lib/dashboards";
 import { absoluteUrl, clampSnippet, SITE_NAME } from "@/app/lib/site";
 import { pageSocial } from "@/app/lib/social";
 import { breadcrumbJsonLd, JsonLd, SITE_ID } from "@/app/lib/structured-data";
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   // Clamped, not trusted: this ran to 216 characters, so a search result showed
   // roughly two thirds of it and stopped mid-clause.
   description: clampSnippet(
-    `Curated and community-published ${SITE_NAME} boards for stocks, crypto, macro and metals. Preview any board in the browser, then fork it into a dashboard on your own machine.`,
+    `Live ${SITE_NAME} boards for stocks, crypto, macro and metals, hand-built and community-published. Preview any board in the browser, then fork it into a dashboard on your own machine.`,
   ),
   alternates: { canonical: "/boards" },
   // Spread, never hand-written: an inline `openGraph` here replaces the root's
@@ -45,24 +45,19 @@ export const metadata: Metadata = {
 };
 
 export default async function BoardsPage() {
-  let initial: { curated: BoardListing[]; community: BoardListing[] } = {
-    curated: [],
-    community: [],
-  };
+  // The DEFAULT ordering only. `?sort=newest` is fetched by the client instead of
+  // read here as a searchParam, and that is what keeps this page cacheable: a
+  // page that reads searchParams is dynamic, so honouring the toggle server-side
+  // would cost every visitor the ISR hit to serve one opt-in ranking.
+  let boards: BoardListing[] = [];
   try {
-    // Both queries project the listing shape in SQL — no specs over the wire.
-    const [curated, community] = await Promise.all([
-      listCurated(),
-      listCommunity(),
-    ]);
-    initial = { curated, community };
+    // Projects the listing shape in SQL — no specs over the wire.
+    boards = await listBoards("liked");
   } catch (err) {
     // The client fetch on mount is the recovery path — an unreachable database
     // costs the server-rendered copy, not the page.
     console.error("[boards] could not load boards:", err);
   }
-
-  const boards = [...initial.curated, ...initial.community];
 
   return (
     <>
@@ -79,7 +74,7 @@ export default async function BoardsPage() {
             "@type": "CollectionPage",
             name: `${SITE_NAME} board gallery`,
             url: absoluteUrl("/boards"),
-            description: `Curated and community-published ${SITE_NAME} market dashboards.`,
+            description: `Hand-built and community-published ${SITE_NAME} market dashboards.`,
             isPartOf: { "@id": SITE_ID },
             mainEntity: {
               "@type": "ItemList",
@@ -94,7 +89,7 @@ export default async function BoardsPage() {
           }}
         />
       )}
-      <BoardsView initial={initial} />
+      <BoardsView initial={boards} />
     </>
   );
 }

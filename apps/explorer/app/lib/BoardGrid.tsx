@@ -2,10 +2,10 @@ import type { ComponentProps } from "react";
 import { cn } from "@/app/lib/utils";
 
 /**
- * The gallery's board grid: 1 → 2 → 3 columns. Both real sections and both
- * loading skeletons used it, so the four copies could drift a breakpoint apart
- * and the skeletons would simply reflow differently from the cards they stand in
- * for — a thing nobody notices in review.
+ * The gallery's board grid: 1 → 2 → 3 columns. The real grid and its loading
+ * skeleton both use it, so the two cannot drift a breakpoint apart and leave the
+ * skeleton reflowing differently from the cards it stands in for — a thing nobody
+ * notices in review. (It was four copies when the gallery had two sections.)
  *
  * Spreads the rest of the div props (the skeletons pass `aria-hidden`) and merges
  * `className` through `cn`, so a caller can still override a utility.

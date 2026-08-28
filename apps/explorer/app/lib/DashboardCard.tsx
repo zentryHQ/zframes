@@ -1,11 +1,14 @@
 import Link from "next/link";
+import type { BoardAuthor } from "@/app/lib/board-summary";
+import { Byline } from "@/app/lib/Byline";
 import { DashboardThumb, type ThumbFrame } from "@/app/lib/DashboardThumb";
 import { LikeCount } from "@/app/lib/LikeCount";
 import { ThumbImage } from "@/app/lib/ThumbImage";
 
 // Shared gallery card — a live-preview link with a mini-map of the board, its
-// title, frame count, and tag chips. Presentational and server-safe; used by
-// both the curated grid and the community grid. When a nightly screenshot
+// title, byline, frame count, and tag chips. Presentational and server-safe (the
+// byline is the one client child, for its avatar's onError); used by the gallery
+// grid, which has been ONE grid since 2026-08-28. When a nightly screenshot
 // exists (`thumbSrc`), it fades in over the SVG mini-map and drifts (Ken-Burns)
 // on hover; otherwise (404 — no capture yet) the silhouette stays. The blurb +
 // an "Open live preview" affordance live in a caption that reveals over the
@@ -19,6 +22,7 @@ export function DashboardCard({
   frames,
   thumbSrc,
   likes,
+  author,
 }: {
   href: string;
   title: string;
@@ -27,6 +31,11 @@ export function DashboardCard({
   frameCount: number;
   frames: ThumbFrame[];
   thumbSrc?: string;
+  /** Who published it. Required for the same reason `likes` is: the grid is one
+   *  list now, so a card without a byline is not a different KIND of board, it
+   *  is a board missing its author. `null` is the degraded case, not the
+   *  house-board case — see Byline. */
+  author: BoardAuthor | null;
   /** Read-only — the button itself lives on the board's own page. Required: both call
    *  sites are the gallery's two grids and both have the number, so an optional prop
    *  only bought a way to render a card with no count by accident. (The landing card
@@ -95,9 +104,14 @@ export function DashboardCard({
             white/60 keeps a `0` — which most boards show on day one — reading as
             "no likes yet" rather than as a verdict. */}
         <div className="flex items-start justify-between gap-3">
-          <h3 className="font-semibold text-white transition-colors group-hover:text-indigo-200">
-            {title}
-          </h3>
+          {/* min-w-0 so a long title truncates the BYLINE rather than shoving the
+              like count off the card — the flex child needs it, not the text. */}
+          <div className="min-w-0">
+            <h3 className="font-semibold text-white transition-colors group-hover:text-indigo-200">
+              {title}
+            </h3>
+            <Byline author={author} className="mt-1.5" />
+          </div>
           <LikeCount total={likes} className="mt-1 shrink-0" />
         </div>
         {tags.length > 0 && (

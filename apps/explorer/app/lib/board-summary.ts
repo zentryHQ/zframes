@@ -54,7 +54,21 @@ export function toBoardSummary(row: DashboardRow): BoardSummary {
  */
 export type BoardListing = BoardSummary & {
   layout: { id: string; frame: string; position: FramePosition }[];
+  /** Who published it, or null for a curated board. See {@link BoardAuthor}. */
+  author: BoardAuthor | null;
 };
+
+/**
+ * The public half of a board's owner — the two fields a byline renders, and
+ * deliberately not one more. `user.email` is a real address on a public page, so
+ * it never leaves the server: the display name and the provider avatar are the
+ * whole projection.
+ *
+ * `null` (rather than a name) is what a CURATED board carries. Those rows have no
+ * `ownerId` at all — the showcase is not published by a user — so the card
+ * substitutes the house byline rather than inventing an account (see Byline).
+ */
+export type BoardAuthor = { name: string; image: string | null };
 
 type FramePosition = { x: number; y: number; w: number; h: number };
 
@@ -66,6 +80,10 @@ function framesOf(spec: unknown): unknown[] {
 export function toBoardListing(row: DashboardRow): BoardListing {
   return {
     ...toBoardSummary(row),
+    // A bare row cannot answer this: the name and avatar live in `user`, which
+    // only the list queries join. A caller that holds one row and needs a byline
+    // has to look the owner up itself.
+    author: null,
     layout: framesOf(row.spec).flatMap((f) => {
       const frame = f as { id?: unknown; frame?: unknown; position?: unknown };
       const p = frame.position as Partial<FramePosition> | undefined;

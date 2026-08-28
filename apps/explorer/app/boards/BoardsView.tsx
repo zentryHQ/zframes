@@ -9,84 +9,37 @@ import { DashboardCard } from "@/app/lib/DashboardCard";
 import { synthLayout } from "@/app/lib/DashboardThumb";
 import { EmptyState } from "@/app/lib/EmptyState";
 import { SearchField } from "@/app/lib/SearchField";
-import { SectionHeading } from "@/app/lib/SectionHeading";
 
-// Both sections now come from /api/dashboards. Curated boards used to be a static
-// import (`CURATED`); they are rows since 2026-08-05, so the whole listing is one
-// fetch and the two sections differ only in which array they came from.
-type BoardsResponse = { curated: BoardListing[]; community: BoardListing[] };
-
-type SortKey = "newest" | "liked";
+type SortKey = "liked" | "newest";
 
 /**
- * Sorting happens CLIENT-SIDE and WITHIN a section, never across the two.
- * **"Most liked" is the default** — the gallery leads with what people actually
- * kept, and "Newest" is the opt-in (it is the mode that carries `?sort=` now).
+ * The board gallery: ONE list, every board.
  *
- * Client-side because the view already holds every row THE API RETURNED, so ordering
- * is free and needs no round trip per toggle.
+ * It was two sections — "Curated" above "Community" — until 2026-08-28. Likes
+ * retired the split: the grid ranks by something people actually did now, and a
+ * house board sitting permanently above a community board that out-scored it
+ * makes that ranking decorative. Every board is a board; the `curated` flag lives
+ * on only as the landing stack's ordering and the seeder's marker.
  *
- * ⚠️ AND THAT WINDOW IS CAPPED. `listCommunity()` takes `limit = 48` ordered by
- * `createdAt desc` (app/lib/dashboards.ts), so "Most liked" ranks the newest 48
- * community boards, NOT all of them. Below 48 published boards the two are the same
- * list and this is exactly right; past it, an older well-liked board silently cannot
- * appear above a newer zero-like one — and since 2026-08-28 that is the DEFAULT
- * view, so the day it matters it is the front door that is wrong, not a toggle. The fix at that point is a server-side
- * `ORDER BY likes` for this mode, not a bigger client fetch — tracked in the map's
- * fog rather than pre-built here. Curated is unaffected (`listCurated()` is
- * unlimited).
+ * **Sorting is the server's, not this component's.** It used to be a client-side
+ * `[...rows].sort()` over whatever the API returned — which meant "most liked"
+ * ranked the newest 48 rows rather than the top 48 boards, and past that many
+ * publishes an older well-liked board could not reach the grid at all. That was
+ * survivable as one of two sections; as the front door's only ranking it is the
+ * page being wrong. `/api/dashboards?sort=` orders in SQL, so the limit is a page
+ * of the ranking instead of a cage around it.
  *
- * Within a section because curated boards get landing-page exposure community
- * publishes never see. Ranked together they would hold the top of the grid
- * permanently, and the community section — the one that rewards publishing —
- * would be where the showcase isn't.
+ * The cost of that is a round trip per ordering, which is what `bySort` absorbs:
+ * each ranking is fetched at most once, and toggling back to one already held is
+ * instant. Search stays client-side over the rows in hand — it is a filter, not
+ * a ranking, so it cannot pull in a board the ordering didn't.
  *
- * The tie-break is what makes a day-one grid look deliberate: almost everything
- * is at 0 likes, so ordering by likes alone would scramble the layout into
- * arbitrary order and read as broken. Falling back to the section's OWN natural
- * order keeps it stable — and for curated that is `landingOrder`, an editorial
- * sequence the API already returns in order, so a date tie-break would silently
- * discard it.
+ * Search and sort are both seeded from and synced to the URL (`?q=`, `?sort=`),
+ * so a filtered or re-ranked view is shareable and survives a refresh. `?sort=`
+ * spells out only the NON-default mode: a bare /boards URL is the liked ranking,
+ * which is also the one the server pre-renders.
  */
-function sortBoards(rows: BoardListing[], sort: SortKey): BoardListing[] {
-  if (sort === "newest") return rows; // the API's own order — do not re-sort
-  // Stable sort (guaranteed since ES2019), so equal likes preserve arrival order.
-  return [...rows].sort((a, b) => b.likes - a.likes);
-}
-
-// The board gallery: curated + community boards behind ONE free-text search box.
-// A client component so the search stays interactive, but it renders on the
-// server first like any other — and since 2026-08-07 it is HANDED its rows by
-// the server page rather than starting empty. Search is seeded from and synced
-// to the URL (?q=…) — shareable, refresh-persistent — and reuses the frame
-// tokenizer from @zframes/spec so the whole explorer filters consistently.
-export function BoardsView({ initial }: { initial?: BoardsResponse }) {
-  // Seeded from the server render. Before that this always started `null`, so
-  // the server HTML for this page was three pulsing skeletons and the board
-  // titles, descriptions and links existed only after a client fetch — invisible
-  // to any crawler that does not run JavaScript, which is most answer engines.
-  const [data, setData] = useState<BoardsResponse | null>(initial ?? null);
-  // Fetches on mount ONLY when the server seed is empty (a DB blip at render
-  // time — the client fetch is the recovery path). A seeded render skips it:
-  // the page is ISR with revalidate=300, so the seed is at most minutes old and
-  // refetching the same list on every mount doubled this page's query load.
-  useEffect(() => {
-    if (initial && (initial.curated.length > 0 || initial.community.length > 0))
-      return;
-    fetch("/api/dashboards")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: BoardsResponse | null) => {
-        if (!d) return; // a failed refresh keeps the server-rendered rows
-        // Defensive: an older cached response was a bare array (community only).
-        setData(Array.isArray(d) ? { curated: [], community: d } : d);
-      })
-      .catch(() => {
-        // Likewise: only fall back to empty if we never had anything to show.
-        setData((prev) => prev ?? { curated: [], community: [] });
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+export function BoardsView({ initial }: { initial?: BoardListing[] }) {
   const [query, setQuery] = useState(() => {
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("q") ?? "";
@@ -99,10 +52,6 @@ export function BoardsView({ initial }: { initial?: BoardsResponse }) {
     window.history.replaceState(null, "", url);
   }, [query]);
 
-  // Sort follows search's convention exactly: seeded from the URL, synced back to
-  // it, so a sorted view is shareable and survives a refresh. The param encodes
-  // the NON-default mode, so a bare /boards URL is the liked ranking and only
-  // ?sort=newest is spelled out.
   const [sort, setSort] = useState<SortKey>(() => {
     if (typeof window === "undefined") return "liked";
     return new URLSearchParams(window.location.search).get("sort") === "newest"
@@ -116,200 +65,183 @@ export function BoardsView({ initial }: { initial?: BoardsResponse }) {
     window.history.replaceState(null, "", url);
   }, [sort]);
 
+  // One entry per ordering fetched. The server seed is the DEFAULT ordering, so
+  // it lands under "liked" — an empty seed (a DB blip at render time) is left
+  // unset rather than cached as an empty list, which is what makes the fetch
+  // below the recovery path instead of a no-op.
+  const [bySort, setBySort] = useState<
+    Partial<Record<SortKey, BoardListing[]>>
+  >(() => (initial && initial.length > 0 ? { liked: initial } : {}));
+
+  useEffect(() => {
+    if (bySort[sort]) return; // already held — no round trip
+    let cancelled = false;
+    const fill = (rows: BoardListing[]) =>
+      setBySort((prev) => ({ ...prev, [sort]: rows }));
+    fetch(`/api/dashboards?sort=${sort}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { boards?: BoardListing[] } | null) => {
+        // A failed request leaves the key UNSET on purpose: an empty array here
+        // would cache "there are no boards" from what was a network error, and
+        // the effect would never try again. Unset keeps the other ordering on
+        // screen (see `shown`) and lets a sort toggle retry.
+        if (!cancelled && Array.isArray(d?.boards)) fill(d.boards);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [sort, bySort]);
+
+  const rows = bySort[sort];
+  // While the other ordering is in flight — or after it failed — keep the rows
+  // we have rather than blanking a grid that was full a moment ago. They are in
+  // the wrong order for the selected sort, so the grid says so by dimming.
+  const fallback = bySort[sort === "liked" ? "newest" : "liked"];
+  const shown = rows ?? fallback ?? null;
+  const reordering = rows === undefined && fallback !== undefined;
+
   const tokens = useMemo(() => frameSearchTokens(query), [query]);
   const searching = tokens.length > 0;
-  // A board matches when every query token appears in its title, tags, or
-  // (curated only) description.
-  const matches = (haystack: string) =>
-    tokens.every((token) => haystack.includes(token));
 
-  const curated = useMemo(() => {
-    if (data === null) return null;
-    const rows = searching
-      ? data.curated.filter((d) =>
-          matches(
-            `${d.title} ${d.tags.join(" ")} ${d.description}`.toLowerCase(),
-          ),
-        )
-      : data.curated;
-    return sortBoards(rows, sort);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, searching, tokens, sort]);
-
-  const community = useMemo(() => {
-    if (data === null) return null;
-    const rows = searching
-      ? data.community.filter((d) =>
-          matches(`${d.title} ${d.tags.join(" ")}`.toLowerCase()),
-        )
-      : data.community;
-    return sortBoards(rows, sort);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, searching, tokens, sort]);
-
-  const noResults =
-    searching && (curated?.length ?? 0) === 0 && (community?.length ?? 0) === 0;
+  // A board matches when every query token appears in its title, tags or
+  // description. Description is searched for EVERY board now — it used to be
+  // curated-only, back when it was structurally impossible for a community board
+  // to have one.
+  const boards = useMemo(() => {
+    if (shown === null) return null;
+    if (!searching) return shown;
+    return shown.filter((d) => {
+      const haystack =
+        `${d.title} ${d.tags.join(" ")} ${d.description}`.toLowerCase();
+      return tokens.every((token) => haystack.includes(token));
+    });
+  }, [shown, searching, tokens]);
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
-      <header className="mb-10 max-w-3xl">
-        <h1 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          The <span className="text-indigo-200">board</span> gallery
-        </h1>
-        <p className="mt-3 text-base leading-relaxed text-white/75">
-          Boards hand-built by us and published by the community. Preview any
-          one in the browser, then fork it onto your machine as a dashboard you
-          own.
-        </p>
-        <SearchField
-          label="Search boards"
-          value={query}
-          onChange={setQuery}
-          className="mt-6"
-        />
+      <header className="mb-10">
+        <div className="max-w-3xl">
+          <h1 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            The <span className="text-indigo-200">board</span> gallery
+          </h1>
+          <p className="mt-3 text-base leading-relaxed text-white/75">
+            Boards hand-built by us and published by the community, ranked
+            together. Preview any one in the browser, then fork it onto your
+            machine as a dashboard you own.
+          </p>
+          <SearchField
+            label="Search boards"
+            value={query}
+            onChange={setQuery}
+            className="mt-6"
+          />
+        </div>
 
-        {/* One control governing BOTH sections — each still sorts within itself.
-            Rendered only once there is data: a toggle that looks interactive over
-            three skeleton cards invites a click that does nothing. */}
-        {data !== null && (
-          <div
-            className="mt-4 inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-0.5"
-            role="group"
-            aria-label="Sort boards"
+        {/* Sort on the left, the publish CTA on the right — the two controls the
+            list has, on one row. The toggle waits for data: a control that looks
+            interactive over three skeleton cards invites a click that does
+            nothing. The CTA does not — it leads somewhere real regardless. */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          {boards !== null ? (
+            <div
+              className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-0.5"
+              role="group"
+              aria-label="Sort boards"
+            >
+              {(
+                [
+                  ["liked", "Most liked"],
+                  ["newest", "Newest"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSort(key)}
+                  aria-pressed={sort === key}
+                  className={
+                    sort === key
+                      ? "zf-press rounded-md bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-100"
+                      : "zf-press cursor-pointer rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:text-white/85"
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span />
+          )}
+          <Link
+            href="/editor"
+            className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
           >
-            {(
-              [
-                ["liked", "Most liked"],
-                ["newest", "Newest"],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setSort(key)}
-                aria-pressed={sort === key}
-                className={
-                  sort === key
-                    ? "zf-press rounded-md bg-indigo-500/20 px-3 py-1 text-xs font-medium text-indigo-100"
-                    : "zf-press cursor-pointer rounded-md px-3 py-1 text-xs font-medium text-white/55 transition-colors hover:text-white/85"
-                }
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
+            Build &amp; publish yours →
+          </Link>
+        </div>
       </header>
 
-      {noResults && (
-        <p className="text-sm text-white/55">
-          No boards match “{query.trim()}”.
-        </p>
-      )}
-
-      {/* ── Curated ──────────────────────────────────────────────────────── */}
-      {/* `curated === null` is the pre-fetch state — it used to be impossible
-          (the boards were compiled in), so the section renders a skeleton now
-          rather than briefly claiming there are none. */}
-      {curated === null ? (
-        <section className="mb-16">
-          <BoardGrid aria-hidden>
-            {Array.from({ length: 3 }, (_, i) => (
-              <div key={i} className="zf-surface h-64 animate-pulse" />
-            ))}
-          </BoardGrid>
-        </section>
-      ) : (
-        curated.length > 0 && (
-          <section className="mb-16">
-            <SectionHeading
-              eyebrow="Curated"
-              title="Boards to start from"
-              description="Hand-built boards spanning crypto majors, on-chain data, and official US macro."
-            />
-            <BoardGrid>
-              {curated.map((d) => (
-                <DashboardCard
-                  key={d.id}
-                  href={`/dashboard/${d.id}`}
-                  title={d.title}
-                  description={d.description}
-                  tags={d.tags}
-                  frameCount={d.frameCount}
-                  // The board's REAL geometry, projected server-side — a curated
-                  // thumbnail still mirrors its actual layout rather than falling
-                  // back to the synthesised one community boards use.
-                  frames={d.layout}
-                  thumbSrc={`/api/thumbs/${d.id}`}
-                  likes={d.likes}
-                />
-              ))}
-            </BoardGrid>
-          </section>
-        )
-      )}
-
-      {/* ── Community ────────────────────────────────────────────────────── */}
-      <section>
-        <SectionHeading
-          eyebrow="Community"
-          title="Published by people"
-          description="Dashboards shared by others. Preview any one in the browser, or fork it onto your machine with your AI agent."
-          action={
-            <Link
-              href="/editor"
-              className="rounded-xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white/85 transition-colors hover:border-white/30 hover:text-white"
-            >
-              Build &amp; publish yours →
-            </Link>
-          }
-        />
-
-        {community === null ? (
-          <BoardGrid aria-hidden>
-            {Array.from({ length: 3 }, (_, i) => (
-              <div key={i} className="zf-surface h-64 animate-pulse" />
-            ))}
-          </BoardGrid>
-        ) : community.length === 0 ? (
-          // gap-1 rather than the centred default's gap-4: these are two lines
-          // of one sentence, not a headline and a CTA.
-          <EmptyState align="center" className="gap-1">
+      {/* `boards === null` is the pre-fetch state — a skeleton rather than an
+          empty state, which would briefly claim there are no boards at all. */}
+      {boards === null ? (
+        <BoardGrid aria-hidden>
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="zf-surface h-64 animate-pulse" />
+          ))}
+        </BoardGrid>
+      ) : boards.length === 0 ? (
+        // gap-1 rather than the centred default's gap-4: these are two lines of
+        // one sentence, not a headline and a CTA.
+        <EmptyState align="center" className="gap-1">
+          <p className="text-sm text-white/65">
+            {searching
+              ? `No boards match “${query.trim()}”.`
+              : "Nothing here yet."}
+          </p>
+          {!searching && (
             <p className="text-sm text-white/65">
-              {searching
-                ? "No community boards match your search."
-                : "Nothing here yet."}
+              Be the first to{" "}
+              <Link
+                href="/editor"
+                className="text-indigo-300 underline-offset-2 hover:underline"
+              >
+                build &amp; publish
+              </Link>{" "}
+              a board.
             </p>
-            {!searching && (
-              <p className="text-sm text-white/65">
-                Be the first to{" "}
-                <Link
-                  href="/editor"
-                  className="text-indigo-300 underline-offset-2 hover:underline"
-                >
-                  build &amp; publish
-                </Link>{" "}
-                a board.
-              </p>
-            )}
-          </EmptyState>
-        ) : (
-          <BoardGrid>
-            {community.map((d) => (
-              <DashboardCard
-                key={d.id}
-                href={`/dashboard/${d.id}`}
-                title={d.title}
-                tags={d.tags}
-                frameCount={d.frameCount}
-                frames={synthLayout(d.id, d.frameCount)}
-                thumbSrc={`/api/thumbs/${d.id}`}
-                likes={d.likes}
-              />
-            ))}
-          </BoardGrid>
-        )}
-      </section>
+          )}
+        </EmptyState>
+      ) : (
+        <BoardGrid
+          aria-busy={reordering}
+          className={
+            reordering ? "opacity-60 transition-opacity" : "transition-opacity"
+          }
+        >
+          {boards.map((d) => (
+            <DashboardCard
+              key={d.id}
+              href={`/dashboard/${d.id}`}
+              title={d.title}
+              description={d.description}
+              tags={d.tags}
+              frameCount={d.frameCount}
+              // The board's REAL geometry, projected server-side, for every card
+              // — community rows carry it too, and did well before the sections
+              // merged; this grid was still synthesising theirs. `synthLayout` is
+              // the fallback for a board whose frames failed the projection's
+              // shape filter, where the alternative is an empty silhouette.
+              frames={
+                d.layout.length > 0 ? d.layout : synthLayout(d.id, d.frameCount)
+              }
+              thumbSrc={`/api/thumbs/${d.id}`}
+              likes={d.likes}
+              author={d.author}
+            />
+          ))}
+        </BoardGrid>
+      )}
     </main>
   );
 }

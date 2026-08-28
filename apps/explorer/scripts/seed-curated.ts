@@ -96,7 +96,14 @@ async function main() {
 
   // Imported here, not at the top: see the DATABASE_URL note above. A --dry-run
   // therefore needs no database at all, which is what makes it usable in CI.
-  const { upsertCurated } = await import("../app/lib/dashboards");
+  const { ensureHouseUser, upsertCurated } =
+    await import("../app/lib/dashboards");
+
+  // These boards are published UNDER an account now (`ownerId` is a real FK, and
+  // the merged gallery gives every card a byline), so the account has to exist
+  // before the first upsert. The migration inserts the same row; this is what
+  // keeps the seeder runnable on its own.
+  await ensureHouseUser();
 
   for (const { entry, spec } of validated) {
     await upsertCurated({

@@ -2,8 +2,8 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/app/lib/auth-session";
 import {
-  listCommunity,
-  listCurated,
+  type BoardSort,
+  listBoards,
   publishDashboard,
   type Visibility,
 } from "@/app/lib/dashboards";
@@ -12,26 +12,34 @@ import { formatProblems, validateDashboardSpec } from "@/app/lib/validate-spec";
 
 export const runtime = "nodejs";
 
-// GET /api/dashboards — everything the gallery lists, in its two sections.
+// GET /api/dashboards[?sort=newest] — the gallery's one list, ordered.
 //
-// Was community-only: the curated boards were a module the client imported
-// directly. They are rows now (2026-08-05), so both sections come from here, and
-// the response gained a `curated` array rather than changing the existing shape —
-// an older client reading the top-level array still works.
+// `{ boards }`, replacing the `{ curated, community }` pair the two-section
+// gallery read (2026-08-28). The response shape has changed twice now, so: a
+// client from before this release reads `d.curated` off the new body, gets
+// undefined and throws. That path is narrow enough to accept — the old view only
+// refetched when its server seed came up empty — and the alternative is shipping
+// both shapes forever.
+//
+// `sort` is a whole different QUERY, not a re-order of one: it is `ORDER BY` in
+// SQL so that "most liked" ranks every board rather than the newest page of them.
+// Unknown values fall back to the default rather than 400ing — it is a display
+// preference arriving from a URL people edit and share.
 //
 // Lightweight by design: `layout` is the bare {id, frame, position} per card that
-// the thumbnail draws, never the spec. A curated spec is tens of KB and the
-// gallery shows eighteen of them.
-export async function GET() {
-  const [curated, community] = await Promise.all([
-    listCurated(),
-    listCommunity(),
-  ]);
+// the thumbnail draws, never the spec. A curated spec is tens of KB.
+export async function GET(request: Request) {
+  const sort: BoardSort =
+    new URL(request.url).searchParams.get("sort") === "newest"
+      ? "newest"
+      : "liked";
+  const boards = await listBoards(sort);
   return NextResponse.json(
-    { curated, community },
+    { boards },
     {
       // The list changes on publish, not on visit — a minute of shared cache
-      // absorbs the gallery's on-mount refetch across visitors.
+      // absorbs the gallery's on-mount refetch across visitors. Cached per URL,
+      // so the two orderings do not share an entry.
       headers: {
         "cache-control": "public, s-maxage=60, stale-while-revalidate=300",
       },
