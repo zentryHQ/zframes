@@ -240,6 +240,17 @@ body::before {
   background-color: var(--zf-scrollbar-thumb-hover);
 }
 
+/* While a modal locks body scroll (radix Dialog → react-remove-scroll) the page
+ * scrollbar is removed and the viewport widens by its width. The lock pads
+ * <body> back, so page content holds still — but `position: fixed` elements are
+ * measured against the viewport, so the site header silently grows and its
+ * contents jog sideways on every dialog open (Publish, Fork, Sign in). The lock
+ * publishes exactly how much it took on `body[data-scroll-locked]`; give it
+ * back. Dropdowns don't need this — they run `modal={false}` and never lock. */
+body[data-scroll-locked] header.glass {
+  padding-right: var(--removed-body-scroll-bar-size, 0px);
+}
+
 /* ── Utilities ──────────────────────────────────────────────────────────── */
 .font-mono {
   font-family: var(--font-mono);
