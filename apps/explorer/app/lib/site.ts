@@ -182,7 +182,6 @@ export const PRIVATE_PATHS = [
   "/api/",
   "/embed/", // chrome-less duplicate of /dashboard/<id>, for iframes only
   "/mine", // the signed-in user's own boards
-  "/signin",
 ] as const;
 
 /**

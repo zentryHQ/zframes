@@ -73,7 +73,6 @@ describe("static route inventory", () => {
     "api", // JSON endpoints
     "embed", // chrome-less duplicate of /dashboard/[id]
     "mine", // per-user
-    "signin", // auth
     "dashboard", // dynamic; enumerated from the database in sitemap.ts
     "components", // not a route (colocated UI)
     "lib", // not a route (colocated helpers)

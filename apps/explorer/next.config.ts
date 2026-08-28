@@ -94,6 +94,13 @@ const nextConfig: NextConfig = {
       { source: "/gallery", destination: "/boards", permanent: true },
       { source: "/catalogue", destination: "/frames", permanent: true },
       { source: "/tinker", destination: "/editor", permanent: true },
+      // /signin was retired on 2026-08-28 — sign-in is a dialog now, opened in
+      // place from the header, /mine and Publish. /mine is the destination
+      // because signed out it IS a sign-in prompt (its empty state opens the
+      // same dialog), so an old bookmark still leads somewhere that works.
+      // Next forwards the query string, so `/signin?next=/editor` arrives as
+      // `/mine?next=/editor` and the dialog still returns to the editor.
+      { source: "/signin", destination: "/mine", permanent: true },
     ];
   },
   // Non-breaking security headers (defense-in-depth alongside the publish-time
