@@ -177,6 +177,24 @@
  * measurement and iframe re-raster on the way (the single worst jank moment on
  * the site, triggered by the primary CTA). Long in-page jumps are instant. */
 html {
+  /* Reserve the scrollbar's width on every page, scrollable or not. Without it,
+   * navigating from a tall page (the landing, a board) to one that fits the
+   * viewport (/mine signed out, an empty gallery filter) drops the classic
+   * scrollbar, the viewport widens by exactly that much, and every centred
+   * container plus the fixed header's contents jog sideways on the click. It is
+   * a navigation-time shift, so it never lands in CLS, yet it is the one the eye
+   * actually catches.
+   *
+   * NOT `scrollbar-gutter: stable`, which is the textbook answer and does not
+   * work here: Chrome (checked on 150) honours it on an ordinary scroll
+   * container but ignores it on the VIEWPORT, so the root reserves nothing on a
+   * page that does not overflow, `CSS.supports` reports true, and the shift
+   * survives silently. `overflow-y: scroll` reserves in every engine. It costs
+   * nothing visually because the track is transparent and an unscrollable page
+   * draws no thumb, and it is what keeps the width stable under modal
+   * scroll-lock too, hence the note further down. Where scrollbars are overlay
+   * (macOS default, iOS) nothing is reserved and nothing ever shifts anyway. */
+  overflow-y: scroll;
   scrollbar-width: thin;
   scrollbar-color: var(--zf-scrollbar-thumb) transparent;
 }
@@ -240,15 +258,26 @@ body::before {
   background-color: var(--zf-scrollbar-thumb-hover);
 }
 
-/* While a modal locks body scroll (radix Dialog → react-remove-scroll) the page
- * scrollbar is removed and the viewport widens by its width. The lock pads
- * <body> back, so page content holds still — but `position: fixed` elements are
- * measured against the viewport, so the site header silently grows and its
- * contents jog sideways on every dialog open (Publish, Fork, Sign in). The lock
- * publishes exactly how much it took on `body[data-scroll-locked]`; give it
- * back. Dropdowns don't need this — they run `modal={false}` and never lock. */
-body[data-scroll-locked] header.glass {
-  padding-right: var(--removed-body-scroll-bar-size, 0px);
+/* A modal locks body scroll (radix Dialog → react-remove-scroll), and the lock
+ * assumes locking DESTROYS the page scrollbar: it measures
+ * `innerWidth - documentElement.clientWidth` up front and hands that width back
+ * as `margin-right` on <body> so page content holds still.
+ *
+ * With `overflow-y: scroll` on <html> that premise is false. The lock only sets
+ * `overflow: hidden` on <body>, so the root scroller keeps its reserved track,
+ * the viewport never changes width, and the compensation IS the shift: every
+ * dialog open (Publish, Fork, Sign in) pushed the page left by a scrollbar.
+ * Take it back. The doubled attribute selector is load-bearing:
+ * react-remove-scroll writes `margin-right: <gap>px !important` into a <style>
+ * it appends to <head> at run time, which beats this stylesheet on order at
+ * equal specificity, so this rule has to out-specify it, not out-order it.
+ *
+ * The fixed header used to need `padding-right` here for the same reason and no
+ * longer does: the ICB excludes the reserved track before AND during the lock,
+ * so the header cannot grow. Dropdowns never needed any of this: they run
+ * `modal={false}` and never lock. */
+body[data-scroll-locked][data-scroll-locked] {
+  margin-right: 0 !important;
 }
 
 /* ── Utilities ──────────────────────────────────────────────────────────── */
