@@ -64,13 +64,16 @@ This is a ToS-compliance posture, not a performance one: page loads must touch
 **no** upstream market API — live data is the CLI's job, not the hosted
 explorer's (see `docs/decisions/web-explorer/`, local-only).
 
-The posture is **not surfaced in the UI**: there is no "Demo data" pill,
-corner badge, or explanatory copy anywhere (the former `DemoDataBadge`, the
-`EmbedBoard` corner badge, and the `LiveBoardFrame` "Demo" chip were all
-removed) — the site simply renders. What survives is the machinery, not the
-label: the root layout still sets `data-zf-demo` on `<html>` statically, which
-is what hides per-card provider attributions in `globals.css` (a simulated
-number must not carry a real provider's name). Keep that attribute.
+The posture is surfaced as **plain copy, not chrome** (2026-08-28): one muted
+line under the board title on `/dashboard/[id]` ("Simulated preview — live data
+comes from running this board on your machine") and one sentence of small print
+in the shared `Footer`, which covers every page that renders it. There is no
+pill, corner badge, or dialog — the former `DemoDataBadge`, `EmbedBoard` corner
+badge, and `LiveBoardFrame` "Demo" chip (removed 2026-08-21) stay removed, and
+`/embed/*` stays unlabelled. The machinery also survives: the root layout still
+sets `data-zf-demo` on `<html>` statically, which is what hides per-card
+provider attributions in `globals.css` (a simulated number must not carry a
+real provider's name). Keep that attribute.
 
 **Footgun:** a mock data gap renders as a *quiet empty card*, not an error — the
 frame smoke test only forbids error cards, so nothing fails when a frame's mock

@@ -23,6 +23,13 @@ export function Footer() {
             {SITE_TAGLINE} It gets sharper every day — free, open-source market
             dashboards for stocks and crypto, yours to own.
           </p>
+          {/* The site-wide mock-data disclosure. Every frame-rendering surface
+              is simulated (AGENTS.md § Mock data only); the footer is the one
+              piece of chrome every page shares, so the fact lives here once. */}
+          <p className="mt-2 text-xs text-white/45">
+            Every number on this site is simulated. Live market data comes from
+            running zframes on your own machine.
+          </p>
         </div>
 
         {/* One column, three house routes. It stays deliberately short: /mine

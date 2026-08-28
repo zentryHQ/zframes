@@ -76,6 +76,13 @@ export function DashboardPreview({
             </Link>
           </div>
           <h1 className="text-xl font-semibold text-white">{title}</h1>
+          {/* The mock-data disclosure for a deep-linked visitor: every number
+              on this page is simulated (see AGENTS.md § Mock data only), and
+              this line is where they learn it — stated plainly, no badge. */}
+          <p className="mt-1 text-xs text-white/55">
+            Simulated preview — live data comes from running this board on your
+            machine.
+          </p>
         </div>
         {/* Like sits LEFT of the fork pair and stays outline-quiet: this page's
             conversion goal is "fork it onto your machine", and a like button that
