@@ -49,13 +49,13 @@ afterEach(() => {
 describe("site config", () => {
   it("is an https origin with no trailing slash", () => {
     // A trailing slash here doubles up in every absoluteUrl() call
-    // (`https://x.com//gallery`), which is a different URL to every crawler.
+    // (`https://x.com//boards`), which is a different URL to every crawler.
     expect(SITE_URL).toMatch(/^https:\/\/[^/]+$/);
   });
 
   it("builds absolute URLs and leaves absolute ones alone", () => {
-    expect(absoluteUrl("/gallery")).toBe(`${SITE_URL}/gallery`);
-    expect(absoluteUrl("gallery")).toBe(`${SITE_URL}/gallery`);
+    expect(absoluteUrl("/boards")).toBe(`${SITE_URL}/boards`);
+    expect(absoluteUrl("boards")).toBe(`${SITE_URL}/boards`);
     expect(absoluteUrl("/")).toBe(`${SITE_URL}/`);
     expect(absoluteUrl("https://example.com/x")).toBe("https://example.com/x");
   });
@@ -257,8 +257,8 @@ describe("share cards", () => {
    *
    * Next merges `metadata` one top-level field at a time, so a page exporting its
    * own `openGraph` object REPLACES the resolved one — including the `images`
-   * that `app/opengraph-image.tsx` merged in at the root segment. `/gallery`,
-   * `/catalogue` and `/tinker` each shipped for weeks with no `og:image` at all,
+   * that `app/opengraph-image.tsx` merged in at the root segment. `/boards`,
+   * `/frames` and `/tinker` each shipped for weeks with no `og:image` at all,
    * and nothing anywhere said so: they had `og:title` and `og:description`, they
    * type-checked, they rendered.
    *
@@ -415,7 +415,7 @@ describe("structured data", () => {
     faqJsonLd(),
     breadcrumbJsonLd([
       { name: "Home", path: "/" },
-      { name: "Gallery", path: "/gallery" },
+      { name: "Boards", path: "/boards" },
     ]),
   ] as Record<string, unknown>[];
 

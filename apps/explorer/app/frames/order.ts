@@ -9,8 +9,8 @@ import { FRAME_CATEGORIES, type FrameCategory } from "@zframes/spec/frame";
  * catalogue) is deliberately left untouched.
  *
  * Lives in its own module, imported from `@zframes/spec/frame` rather than
- * `@zframes/core`, because BOTH halves of `/catalogue` need it: the client-only
- * live grid (`CatalogueView`) and the server-rendered text index (`FrameIndex`).
+ * `@zframes/core`, because BOTH halves of `/frames` need it: the client-only
+ * live grid (`FramesView`) and the server-rendered text index (`FrameIndex`).
  * `@zframes/spec` is React-free, so a Server Component can import this without
  * pulling the presentation layer into the server graph.
  */

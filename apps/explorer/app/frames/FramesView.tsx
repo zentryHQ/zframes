@@ -25,7 +25,7 @@ import {
 // The stocks-first section order + its "every family is ranked" typecheck guard
 // moved to ./order so the server-rendered FrameIndex can share them — a Server
 // Component cannot import this file (it is `ssr: false`) or @zframes/core.
-import { ORDERED_CATEGORIES } from "@/app/catalogue/order";
+import { ORDERED_CATEGORIES } from "@/app/frames/order";
 import {
   PUBLIC_DEMO_ADDRESS,
   frameDefs,
@@ -295,7 +295,7 @@ function MostLikedStrip({ likes }: { likes: Record<string, number> }) {
   );
 }
 
-export default function CatalogueView() {
+export default function FramesView() {
   const { likes, bump, loaded } = useFrameLikes();
   const byCategory = useMemo(() => {
     const map = new Map<string, AnyFrameDefinition[]>();

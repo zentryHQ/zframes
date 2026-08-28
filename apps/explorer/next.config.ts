@@ -77,6 +77,23 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/__zframes/proxy", destination: "/api/zframes-proxy" }];
   },
+  // `/gallery` → `/boards` and `/catalogue` → `/frames` (renamed 2026-08-28).
+  //
+  // `permanent: true` (308) rather than a temporary redirect: these paths are
+  // retired, not moved for a season, and only a permanent redirect passes link
+  // equity on and gets the old URL dropped from the index instead of kept as a
+  // duplicate. They were in `sitemap.xml` and `llms.txt`, so a crawler and any
+  // agent that read either still holds them.
+  //
+  // Keep these. They cost one config entry and are the only thing standing
+  // between an old bookmark, an old share link or a cached SERP result and a
+  // 404.
+  async redirects() {
+    return [
+      { source: "/gallery", destination: "/boards", permanent: true },
+      { source: "/catalogue", destination: "/frames", permanent: true },
+    ];
+  },
   // Non-breaking security headers (defense-in-depth alongside the publish-time
   // URL sanitizer). A full script/connect-src CSP is a tracked follow-up — it
   // needs browser testing against the live WS + cross-origin provider fetches.

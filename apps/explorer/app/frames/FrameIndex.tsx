@@ -1,7 +1,7 @@
 import { FRAME_CATEGORIES } from "@zframes/spec/frame";
 import { allFrameMetas } from "@zframes/frames/schemas";
-import { CATALOGUE_CATEGORY_ORDER } from "@/app/catalogue/order";
-import { describeSize } from "@/app/catalogue/min-size";
+import { CATALOGUE_CATEGORY_ORDER } from "@/app/frames/order";
+import { describeSize } from "@/app/frames/min-size";
 
 /**
  * The catalogue as plain server-rendered text: every frame's name, display label

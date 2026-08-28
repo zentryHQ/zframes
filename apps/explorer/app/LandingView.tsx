@@ -286,10 +286,10 @@ export default function GalleryHome({ boards }: { boards: BoardSummary[] }) {
       <section className="mx-auto max-w-5xl px-6 pb-8 pt-12 text-center">
         <Reveal>
           <Link
-            href="/gallery"
+            href="/boards"
             className="glow-brand zf-cta inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg"
           >
-            See every board in the gallery →
+            See every board →
           </Link>
         </Reveal>
       </section>

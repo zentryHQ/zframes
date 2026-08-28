@@ -128,7 +128,7 @@ export default async function PreviewPage({
           <JsonLd
             data={breadcrumbJsonLd([
               { name: "Home", path: "/" },
-              { name: "Gallery", path: "/gallery" },
+              { name: "Boards", path: "/boards" },
               { name: entry.title, path: `/dashboard/${entry.id}` },
             ])}
           />

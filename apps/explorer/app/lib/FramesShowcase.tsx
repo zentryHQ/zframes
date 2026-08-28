@@ -245,7 +245,7 @@ export function FramesShowcase({
             the market sleeps.
           </p>
           <Link
-            href="/catalogue"
+            href="/frames"
             className="glow-brand zf-cta mt-6 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-indigo-500 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg"
           >
             Browse all {total} frames — drag one around live →

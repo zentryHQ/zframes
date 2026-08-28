@@ -76,7 +76,7 @@ export default function SignInPage() {
           href="/"
           className="text-white/55 transition-colors hover:text-white/70"
         >
-          ← Back to gallery
+          ← Back home
         </Link>
       </p>
     </main>

@@ -7,15 +7,15 @@ test("landing renders its hero and site chrome", async ({ page }) => {
   await expect(page.locator("header")).toBeVisible();
 });
 
-test("gallery lists the seeded curated boards", async ({ page }) => {
-  await page.goto("/gallery");
+test("boards page lists the seeded curated boards", async ({ page }) => {
+  await page.goto("/boards");
   await expect(
     page.locator(`a[href*="/dashboard/${SEEDED_BOARD}"]`).first(),
   ).toBeVisible();
 });
 
-test("catalogue serves its heading server-side", async ({ page }) => {
-  await page.goto("/catalogue");
+test("frames page serves its heading server-side", async ({ page }) => {
+  await page.goto("/frames");
   await expect(page.locator("h1")).toBeVisible();
 });
 

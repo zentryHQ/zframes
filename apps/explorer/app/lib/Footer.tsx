@@ -30,16 +30,16 @@ export function Footer() {
             Explore
           </span>
           <Link
-            href="/gallery"
+            href="/boards"
             className="text-white/65 transition-colors hover:text-white"
           >
-            Gallery
+            Boards
           </Link>
           <Link
-            href="/catalogue"
+            href="/frames"
             className="text-white/65 transition-colors hover:text-white"
           >
-            Catalogue
+            Frames
           </Link>
           <Link
             href="/tinker"

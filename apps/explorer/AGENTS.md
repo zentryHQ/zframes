@@ -1,9 +1,20 @@
 # @zframes/explorer
 
-The public front door — landing page, dashboard gallery, frame catalogue, live
-board previews, browser editor (`/tinker`), and the moderation surfaces. Next 16
-(App Router) + Postgres (Neon in prod, Postgres 18 in Docker in dev) + Better
-Auth. `CLAUDE.md` is a symlink to this file.
+The public front door — landing page, the board gallery (`/boards`), the frame
+catalogue (`/frames`), live board previews, browser editor (`/tinker`), and the
+moderation surfaces. Next 16 (App Router) + Postgres (Neon in prod, Postgres 18
+in Docker in dev) + Better Auth. `CLAUDE.md` is a symlink to this file.
+
+**Vocabulary: a *board* is a published listing here** — a `dashboards` row with
+likes, a thumbnail and a share link. **A *dashboard* is the `dashboard.json`** you
+run and own on your own machine. Forking a board gives you a dashboard. The copy
+used both words for the same object until 2026-08-28; keep them distinct.
+
+**Route names follow that split.** `/boards` and `/frames` are house nav, short
+and parallel. `/dashboard/[id]` deliberately keeps the *public* noun because that
+URL travels — into a tweet, a Slack message, an agent prompt — where "board"
+means Trello. Renamed from `/gallery` and `/catalogue` on 2026-08-28; the 308s
+live in `next.config.ts` and must stay.
 
 ## Commands
 
@@ -34,7 +45,7 @@ container down after. `E2E_KEEP_DB=1` keeps the database up to debug a failure.
 
 **First run on a machine:** `db:up` → `migrate` → `seed:curated`. That is also the
 recovery path after `db:reset`, and the only way to get boards into a fresh
-database — an empty gallery on a new checkout means one of the three was skipped.
+database — an empty `/boards` on a new checkout means one of the three was skipped.
 
 **Do not run `drizzle-kit push`.** It was retired on 2026-08-05 in favour of
 versioned migrations — see below. `drizzle-kit generate` is still useful for
@@ -43,7 +54,7 @@ versioned migrations — see below. `drizzle-kit generate` is still useful for
 ## Mock data only — there is no live mode
 
 Since **2026-08-14** every frame-rendering surface (landing, `/dashboard/[id]`,
-`/embed/[id]`, `/catalogue`, `/tinker`) renders **simulated data, always** —
+`/embed/[id]`, `/frames`, `/tinker`) renders **simulated data, always** —
 the full-capability `MockMarketDataProvider` from `@zframes/provider-demo`, the
 same deterministic offline provider the frame smoke tests run on. `app/lib/frames.ts`
 composes providers unconditionally (no branching, no `localStorage` flag); the
@@ -195,7 +206,7 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   (`isProductionDeployment()`).
 - **`metadataBase` lives in the root layout.** It used to be on `/dashboard/[id]`
   alone, so every other page shipped no usable OG image. The root layout also owns
-  the `%s · zframes` title template — **pages set a BARE title** (`"Gallery"`), never
+  the `%s · zframes` title template — **pages set a BARE title** (`"Board gallery"`), never
   one ending in the brand.
 - **Adding a public page means adding it to `STATIC_ROUTES`.** `app/lib/seo.test.ts`
   enumerates `app/`'s route directories and fails if one is neither listed nor in
@@ -205,13 +216,13 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   `listIndexableBoards()` filters `visibility` explicitly so `sitemap.xml` can't
   submit them, and `/dashboard/[id]` emits `robots: noindex` for them. `robots.txt`
   alone is a *crawl* directive — a linked URL can still be listed unfetched.
-- **`/catalogue` is a Server Component.** It was a `"use client"` page whose whole
+- **`/frames` is a Server Component.** It was a `"use client"` page whose whole
   body was a `ssr: false` import, so the most content-dense page on the site served
   the words "Loading catalogue…" and had no `<h1>` and no metadata. The heading,
   metadata and `FrameIndex` (all 284 frames as text) now render on the server;
-  only the live grid stays client-only, behind `CatalogueClient`. `CatalogueView`
+  only the live grid stays client-only, behind `FramesClient`. `FramesView`
   must therefore **not** render `<main>` or an `<h1>` — the page owns both.
-- **`/gallery` fetches its rows server-side** and passes them as `initial`. The
+- **`/boards` fetches its rows server-side** and passes them as `initial`. The
   client refetches on mount only when that seed is empty (DB blip recovery).
 - **`/llms.txt`** (`app/llms.txt/route.ts`) is fully derived — frames from the
   registry, boards from the table, Q&A from `app/lib/faq.ts`. It cannot go stale
@@ -226,7 +237,7 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   (`app/lib/social.ts`). Next merges metadata one top-level field at a time, so a
   page exporting its own `openGraph` object **replaces** the resolved one — and
   the root `app/opengraph-image.tsx` was merged into the object it just discarded.
-  `/gallery`, `/catalogue` and `/tinker` each shipped for weeks with **no
+  `/boards`, `/frames` and `/tinker` each shipped for weeks with **no
   `og:image` at all** and nothing said so: they had `og:title`, they type-checked,
   they rendered. `twitter` fails the same way plus one worse: a page that sets
   only `openGraph` keeps the ROOT's `twitter:title`, so its X card advertised the
@@ -236,7 +247,7 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   `alternates`: a page setting `canonical` drops any `types` the root declared,
   which is why the `/llms.txt` pointer is a raw `<link>` in the layout head.
 - **Descriptions go through `clampSnippet()`.** Past ~155 characters Google cuts
-  a description mid-clause. `/gallery` (216), `/catalogue` (174) and every board
+  a description mid-clause. `/boards` (216), `/frames` (174) and every board
   page (300) all shipped over it, because each was written as a paragraph and
   nobody counted. The clamp prefers a sentence boundary and falls back to a word
   boundary with an ellipsis.
@@ -277,7 +288,7 @@ copy, `PRIVATE_PATHS` and `STATIC_ROUTES`. Everything else derives from it.
   at boot, and `app/lib/db` caches its pool on `globalThis` across hot reloads — so
   after changing `DATABASE_URL` the app keeps dialling the old one and every board
   query fails (`password authentication failed`) while the page still renders 200
-  with an empty gallery.
+  with an empty board list.
 - **`/dashboard/[id]` and `/embed/[id]` are not prerendered, on purpose.**
   Prerendering mutable rows is wrong here — an edited board wouldn't appear until
   the next deploy. Both routes and `/` use `revalidate`. (This *also* used to be

@@ -12,9 +12,9 @@ import { SearchField } from "@/app/lib/SearchField";
 import { SectionHeading } from "@/app/lib/SectionHeading";
 
 // Both sections now come from /api/dashboards. Curated boards used to be a static
-// import (`CURATED`); they are rows since 2026-08-05, so the whole gallery is one
+// import (`CURATED`); they are rows since 2026-08-05, so the whole listing is one
 // fetch and the two sections differ only in which array they came from.
-type GalleryResponse = { curated: BoardListing[]; community: BoardListing[] };
+type BoardsResponse = { curated: BoardListing[]; community: BoardListing[] };
 
 type SortKey = "newest" | "liked";
 
@@ -51,28 +51,28 @@ function sortBoards(rows: BoardListing[], sort: SortKey): BoardListing[] {
   return [...rows].sort((a, b) => b.likes - a.likes);
 }
 
-// The gallery: Curated + Community dashboards behind ONE free-text search box.
+// The board gallery: curated + community boards behind ONE free-text search box.
 // A client component so the search stays interactive, but it renders on the
 // server first like any other — and since 2026-08-07 it is HANDED its rows by
 // the server page rather than starting empty. Search is seeded from and synced
 // to the URL (?q=…) — shareable, refresh-persistent — and reuses the frame
 // tokenizer from @zframes/spec so the whole explorer filters consistently.
-export function GalleryView({ initial }: { initial?: GalleryResponse }) {
+export function BoardsView({ initial }: { initial?: BoardsResponse }) {
   // Seeded from the server render. Before that this always started `null`, so
-  // the server HTML for the gallery was three pulsing skeletons and the board
+  // the server HTML for this page was three pulsing skeletons and the board
   // titles, descriptions and links existed only after a client fetch — invisible
   // to any crawler that does not run JavaScript, which is most answer engines.
-  const [data, setData] = useState<GalleryResponse | null>(initial ?? null);
+  const [data, setData] = useState<BoardsResponse | null>(initial ?? null);
   // Fetches on mount ONLY when the server seed is empty (a DB blip at render
   // time — the client fetch is the recovery path). A seeded render skips it:
   // the page is ISR with revalidate=300, so the seed is at most minutes old and
-  // refetching the same list on every mount doubled the gallery's query load.
+  // refetching the same list on every mount doubled this page's query load.
   useEffect(() => {
     if (initial && (initial.curated.length > 0 || initial.community.length > 0))
       return;
     fetch("/api/dashboards")
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: GalleryResponse | null) => {
+      .then((d: BoardsResponse | null) => {
         if (!d) return; // a failed refresh keeps the server-rendered rows
         // Defensive: an older cached response was a bare array (community only).
         setData(Array.isArray(d) ? { curated: [], community: d } : d);
@@ -113,7 +113,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
 
   const tokens = useMemo(() => frameSearchTokens(query), [query]);
   const searching = tokens.length > 0;
-  // A dashboard matches when every query token appears in its title, tags, or
+  // A board matches when every query token appears in its title, tags, or
   // (curated only) description.
   const matches = (haystack: string) =>
     tokens.every((token) => haystack.includes(token));
@@ -149,14 +149,15 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
     <main className="mx-auto max-w-7xl px-6 py-12">
       <header className="mb-10 max-w-3xl">
         <h1 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
-          The dashboard <span className="text-indigo-200">gallery</span>
+          The <span className="text-indigo-200">board</span> gallery
         </h1>
         <p className="mt-3 text-base leading-relaxed text-white/75">
-          Curated boards and dashboards published by the community. Preview any
-          one in the browser, then fork it onto your machine to run it live.
+          Boards hand-built by us and published by the community. Preview any
+          one in the browser, then fork it onto your machine as a dashboard you
+          own.
         </p>
         <SearchField
-          label="Search dashboards"
+          label="Search boards"
           value={query}
           onChange={setQuery}
           className="mt-6"
@@ -169,7 +170,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
           <div
             className="mt-4 inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-0.5"
             role="group"
-            aria-label="Sort dashboards"
+            aria-label="Sort boards"
           >
             {(
               [
@@ -197,7 +198,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
 
       {noResults && (
         <p className="text-sm text-white/55">
-          No dashboards match “{query.trim()}”.
+          No boards match “{query.trim()}”.
         </p>
       )}
 
@@ -219,7 +220,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
             <SectionHeading
               eyebrow="Curated"
               title="Boards to start from"
-              description="Hand-built dashboards spanning crypto majors, on-chain data, and official US macro."
+              description="Hand-built boards spanning crypto majors, on-chain data, and official US macro."
             />
             <BoardGrid>
               {curated.map((d) => (
@@ -271,7 +272,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
           <EmptyState align="center" className="gap-1">
             <p className="text-sm text-white/65">
               {searching
-                ? "No community dashboards match your search."
+                ? "No community boards match your search."
                 : "Nothing here yet."}
             </p>
             {!searching && (
@@ -283,7 +284,7 @@ export function GalleryView({ initial }: { initial?: GalleryResponse }) {
                 >
                   build &amp; publish
                 </Link>{" "}
-                a dashboard.
+                a board.
               </p>
             )}
           </EmptyState>

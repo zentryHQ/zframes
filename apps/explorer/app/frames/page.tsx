@@ -1,8 +1,8 @@
 import { FRAME_CATEGORIES } from "@zframes/spec/frame";
 import { allFrameMetas } from "@zframes/frames/schemas";
 import type { Metadata } from "next";
-import CatalogueClient from "@/app/catalogue/CatalogueClient";
-import { FrameIndex } from "@/app/catalogue/FrameIndex";
+import FramesClient from "@/app/frames/FramesClient";
+import { FrameIndex } from "@/app/frames/FrameIndex";
 import { absoluteUrl, clampSnippet, SITE_NAME } from "@/app/lib/site";
 import { pageSocial } from "@/app/lib/social";
 import { breadcrumbJsonLd, JsonLd, SITE_ID } from "@/app/lib/structured-data";
@@ -18,7 +18,7 @@ import { breadcrumbJsonLd, JsonLd, SITE_ID } from "@/app/lib/structured-data";
  * It is a Server Component now. The heading, the intro, the structured data and
  * the full text index of every frame render on the server; only the live grid
  * (which mounts real frames against browser APIs) stays client-only, behind the
- * thin `CatalogueClient` boundary.
+ * thin `FramesClient` boundary.
  *
  * `allFrameMetas` comes from `@zframes/frames/schemas`, the React-free metadata
  * twin of the registry — the only frames import that is safe here. Importing
@@ -35,23 +35,23 @@ export const metadata: Metadata = {
   description: clampSnippet(
     `All ${FRAME_COUNT} ${SITE_NAME} frames across ${FAMILY_COUNT} families: price charts, company fundamentals, macro and rates, metals, on-chain, options, FX and housing.`,
   ),
-  alternates: { canonical: "/catalogue" },
+  alternates: { canonical: "/frames" },
   // Spread, never hand-written: an inline `openGraph` here replaces the root's
   // object and takes the share card with it. See app/lib/social.ts.
   ...pageSocial({
-    path: "/catalogue",
+    path: "/frames",
     title: `Frame catalogue · ${SITE_NAME}`,
     description: `All ${FRAME_COUNT} frames a ${SITE_NAME} dashboard can be built from, every one rendered in the browser.`,
   }),
 };
 
-export default function CataloguePage() {
+export default function FramesPage() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-12">
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", path: "/" },
-          { name: "Frame catalogue", path: "/catalogue" },
+          { name: "Frames", path: "/frames" },
         ])}
       />
       <JsonLd
@@ -59,7 +59,7 @@ export default function CataloguePage() {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
           name: `${SITE_NAME} frame catalogue`,
-          url: absoluteUrl("/catalogue"),
+          url: absoluteUrl("/frames"),
           description: `All ${FRAME_COUNT} frames a ${SITE_NAME} dashboard can be built from, grouped into ${FAMILY_COUNT} families.`,
           isPartOf: { "@id": SITE_ID },
           // The FAMILIES, not the 255 individual frames. Every frame's name and
@@ -79,7 +79,7 @@ export default function CataloguePage() {
         }}
       />
 
-      {/* Server-rendered: the page's only <h1> and its intro. CatalogueView
+      {/* Server-rendered: the page's only <h1> and its intro. FramesView
           renders neither — it cannot, being client-only. */}
       <header className="mb-10 max-w-3xl">
         <h1 className="text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -93,7 +93,7 @@ export default function CataloguePage() {
         </p>
       </header>
 
-      <CatalogueClient />
+      <FramesClient />
       <FrameIndex />
     </main>
   );

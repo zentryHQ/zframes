@@ -122,7 +122,7 @@ export const SNIPPET_MAX = 155;
  *
  * A description longer than the cutoff is not "a bit long" — it is cut by Google
  * mid-sentence, so the last thing a searcher reads is half a clause. Three pages
- * shipped past it (`/gallery` at 216, `/catalogue` at 174, every board page at
+ * shipped past it (`/boards` at 216, `/frames` at 174, every board page at
  * 300) because each was written as a paragraph and nobody counted.
  *
  * Prefers to end on a sentence boundary, because a snippet that ends in a full
@@ -199,7 +199,7 @@ export const STATIC_ROUTES: {
   priority: number;
 }[] = [
   { path: "/", changeFrequency: "daily", priority: 1 },
-  { path: "/gallery", changeFrequency: "daily", priority: 0.9 },
-  { path: "/catalogue", changeFrequency: "weekly", priority: 0.9 },
+  { path: "/boards", changeFrequency: "daily", priority: 0.9 },
+  { path: "/frames", changeFrequency: "weekly", priority: 0.9 },
   { path: "/tinker", changeFrequency: "monthly", priority: 0.5 },
 ];

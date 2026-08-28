@@ -72,7 +72,7 @@ export function DashboardPreview({
         <div>
           <div className="flex items-center gap-3">
             <Link href="/" className="text-xs text-white/55 hover:text-white">
-              ← Gallery
+              ← Home
             </Link>
           </div>
           <h1 className="text-xl font-semibold text-white">{title}</h1>
