@@ -25,11 +25,28 @@ export interface RuntimeProviders {
   /** Constructed providers in mount (routing-precedence) order. */
   providers: MarketDataProvider[];
   /**
-   * True when everything mounted fabricates its data (the bare-install demo
-   * fallback) — what the host chrome labels, so simulated numbers are never
-   * mistaken for a market.
+   * How much of what is mounted fabricates its data — what the host chrome
+   * labels, so simulated numbers are never mistaken for a market. "all" is the
+   * bare-install demo fallback (or an operator who installed only synthetic
+   * plugins); "some" is a demo co-mounted with live plugins, which still puts
+   * generated numbers on cards no live provider covers and so still has to be
+   * disclosed. Deliberately NOT a boolean: it used to be `allSynthetic`, and
+   * one real plugin cleared the badge for the whole installation.
+   * Footgun: every value is a truthy string — test `!== "none"`, never `if (…)`.
    */
-  synthetic: boolean;
+  synthetic: "all" | "some" | "none";
+  /**
+   * Ids of the mounted plugins that fabricate their data, in mount order — the
+   * disclosure copy names them (`zframes providers remove <id>`).
+   */
+  syntheticPlugins: string[];
+  /**
+   * True when nothing the operator named could be mounted and the demo plugin
+   * stood in, rather than the operator having installed it on purpose. The two
+   * cases need different advice ("no providers installed" vs "remove demo"),
+   * and only this one is the product's own default.
+   */
+  demoFallback: boolean;
 }
 
 /**
@@ -42,8 +59,15 @@ export async function loadPluginProviders(
   ids: readonly string[],
   modules: Record<string, () => Promise<unknown>> = PLUGIN_MODULES,
 ): Promise<RuntimeProviders> {
-  const providers: MarketDataProvider[] = [];
-  let allSynthetic = true;
+  // Two buckets, concatenated live-first below. Capability routing is
+  // first-match on array order (`useProviderFor` returns the first mounted
+  // provider covering the capability) and a synthetic plugin answers EVERY
+  // capability, so mounting one ahead of a real plugin silently hands it the
+  // whole board. Sorting it last regardless of install order leaves it doing
+  // only what it is for: standing in where nothing live is mounted.
+  const live: MarketDataProvider[] = [];
+  const simulated: MarketDataProvider[] = [];
+  const syntheticPlugins: string[] = [];
   for (const id of ids) {
     const load = modules[id];
     if (!load) {
@@ -58,19 +82,31 @@ export async function loadPluginProviders(
         );
         continue;
       }
-      providers.push(...result.plugin.createProviders());
-      if (!result.plugin.manifest.synthetic) allSynthetic = false;
+      const synthetic = result.plugin.manifest.synthetic === true;
+      (synthetic ? simulated : live).push(...result.plugin.createProviders());
+      if (synthetic) syntheticPlugins.push(id);
     } catch (error) {
       console.warn(`zframes: provider plugin "${id}" failed to load`, error);
     }
   }
+  const providers = [...live, ...simulated];
   if (providers.length === 0 && !ids.includes("demo")) {
     // Nothing mounted (empty list, or every named plugin failed): fall back to
     // the synthetic demo so the board renders rather than showing every card
-    // as "No data source".
-    return loadPluginProviders(["demo"], modules);
+    // as "No data source". Flagged as a fallback, since the chrome's advice for
+    // an accidental demo board differs from one the operator chose.
+    return {
+      ...(await loadPluginProviders(["demo"], modules)),
+      demoFallback: true,
+    };
   }
-  return { providers, synthetic: providers.length > 0 && allSynthetic };
+  return {
+    providers,
+    synthetic:
+      simulated.length === 0 ? "none" : live.length === 0 ? "all" : "some",
+    syntheticPlugins,
+    demoFallback: false,
+  };
 }
 
 /**

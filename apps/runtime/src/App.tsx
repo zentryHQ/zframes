@@ -18,6 +18,9 @@ import {
   DASHBOARD_READ_ROUTE,
   DASHBOARD_WRITE_ROUTE,
 } from "@zframes/spec/routes";
+// Not from the @zframes/spec root barrel: @zframes/core mirrors that barrel, so
+// anything added there lands on the presentation package's public API.
+import { surfaceModeVars } from "@zframes/spec/spec";
 import {
   resolveRuntimeProviders,
   type RuntimeProviders,
@@ -66,12 +69,28 @@ void resolveRuntimeProviders().catch(() => {});
 // never compiled in. The route strings come from @zframes/spec/routes so the
 // app and the servers can't drift apart.
 
+// The shell's ink, at whatever lightness the surface mode publishes on <html>
+// (see the surfaceModeVars effect). Every literal `white/[…]` in the header was
+// a token theme.surface could never reach, so a light board kept near-white
+// text and hairlines over a light backdrop. The fallback reproduces the old
+// dark values exactly.
+const ink = (alpha: number) => `hsl(0 0% var(--zf-ink-l, 100%) / ${alpha})`;
+
 type SpecIssue = { path: PropertyKey[]; message: string };
 type Load =
   | { status: "loading" }
   | { status: "error"; message: string }
+  | { status: "unparsable"; message: string }
   | { status: "invalid"; issues: SpecIssue[] }
   | { status: "ready"; spec: DashboardSpec };
+
+/**
+ * The file was served but is not JSON at all — a trailing comma, a truncated
+ * write, a half-saved edit. Carried as its own error type so the screen names
+ * the syntax problem instead of sending the reader after the server, which is
+ * where "make sure you're running `zframes serve`" used to point them.
+ */
+class SpecSyntaxError extends Error {}
 
 function Centered({ children }: { children: ReactNode }) {
   return <main className="mx-auto max-w-2xl px-6 py-16">{children}</main>;
@@ -94,6 +113,27 @@ function LoadError({ message }: { message: string }) {
       <p className="body-sm text-soft mb-4">
         The zframes runtime couldn&rsquo;t read <code>dashboard.json</code>.
         Make sure you&rsquo;re running <code>zframes serve</code> next to it.
+      </p>
+      <p className="caption text-soft">
+        <code>{message}</code>
+      </p>
+    </Centered>
+  );
+}
+
+// The file arrived but isn't JSON. Deliberately says nothing about `zframes
+// serve`: the server answered, so pointing at it is the wrong problem — the
+// only thing to fix is the syntax the parser choked on.
+function SpecSyntaxScreen({ message }: { message: string }) {
+  return (
+    <Centered>
+      <h1 className="font-dmsans text-strong mb-2 text-lg font-extrabold">
+        dashboard.json is not valid JSON
+      </h1>
+      <p className="body-sm text-soft mb-4">
+        The runtime read <code>dashboard.json</code> but couldn&rsquo;t parse
+        it. Fix the syntax below (a trailing comma or an unclosed bracket is the
+        usual cause), then reload.
       </p>
       <p className="caption text-soft">
         <code>{message}</code>
@@ -126,27 +166,91 @@ function SpecError({ issues }: { issues: SpecIssue[] }) {
   );
 }
 
-// Persist editor changes back to the real dashboard.json via the runtime's
-// write-back endpoint (the @zframes/vite/vite plugin in dev, the `zframes serve`
-// http server in prod). On success we reload so the editor re-renders from the
-// file it just wrote — the round-trip is the proof. The endpoint is always
-// hosted, so a failure is unexpected: surface it and keep the edits on screen
-// (the editor's own "Export JSON" stays as a manual escape hatch).
-async function persist(next: DashboardSpec) {
+// A refused write explains itself in the response body: the write route answers
+// 400 with { error, issues } for a spec the schema rejected, and a bare status
+// for the transport-level refusals (405 wrong method, 413 too large, 415 wrong
+// content-type). Fold whichever arrived into one line, because that line is the
+// only path by which the server's reason reaches the human — it used to reach
+// the console and nowhere else.
+const MAX_REASON_CHARS = 300;
+
+async function writeFailureReason(res: Response): Promise<string> {
+  const raw = await res.text().catch(() => "");
+  let reason = raw.trim();
   try {
-    const res = await fetch(DASHBOARD_WRITE_ROUTE, {
+    const body = JSON.parse(raw) as { error?: unknown; issues?: unknown };
+    const parts = [
+      typeof body.error === "string" ? body.error : "",
+      // The first few field paths; a spec can fail on dozens and the pill has
+      // one line. `zframes lint` prints the full set.
+      ...(Array.isArray(body.issues)
+        ? body.issues.slice(0, 3).map(String)
+        : []),
+    ].filter(Boolean);
+    if (parts.length > 0) reason = parts.join(" — ");
+  } catch {
+    // Not JSON (405/413/415 send no body at all) — keep whatever text arrived.
+  }
+  return reason.slice(0, MAX_REASON_CHARS);
+}
+
+/**
+ * PUT the spec to the runtime's write-back endpoint (the @zframes/vite/vite
+ * plugin in dev, the `zframes serve` http server in prod).
+ *
+ * THROWS on anything but a 2xx, and that is the contract: the editor awaits
+ * this promise and only leaves customise mode + re-bases its history when it
+ * fulfils, so swallowing a failure presented a refused write as a completed one
+ * and discarded the very state that would have recovered the file. The thrown
+ * message is what the editor renders in its save-failure pill.
+ */
+async function writeSpec(next: DashboardSpec): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(DASHBOARD_WRITE_ROUTE, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(next),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    window.location.reload();
   } catch (error) {
+    // A rejected fetch means nothing answered — a stopped server or a dropped
+    // connection, never a refused spec, so this is the one case where pointing
+    // at `zframes serve` is the right advice.
     console.error("zframes: failed to save dashboard.json", error);
-    window.alert(
-      "Couldn't save dashboard.json — is `zframes serve` still running? Your edits are still on screen; try Save again.",
+    throw new Error(
+      "Couldn't reach the write-back endpoint — is `zframes serve` still running?",
+      { cause: error },
     );
   }
+  if (!res.ok) {
+    const reason = await writeFailureReason(res);
+    console.error(
+      `zframes: failed to save dashboard.json (HTTP ${res.status})`,
+      reason,
+    );
+    throw new Error(
+      `Save refused (HTTP ${res.status})${reason ? `: ${reason}` : "."}`,
+    );
+  }
+}
+
+// The editor's Save. On success we reload so the editor re-renders from the
+// file it just wrote — the round-trip is the proof. On failure the error
+// propagates: the editor stays in customise mode with the board still dirty and
+// the reason in its pill (and its "Export JSON" stays as a manual escape
+// hatch). No alert: a native dialog can't say which field was refused, and it
+// used to be dismissed after the mode had already closed behind it.
+async function persist(next: DashboardSpec): Promise<void> {
+  await writeSpec(next);
+  window.location.reload();
+}
+
+// The editor's autosave: the same write, quietly. No reload (it would throw
+// away the session mid-edit) and no dialog — a change the user never asked to
+// save must not interrupt them. Rejects like `persist` so the editor can log it
+// and keep the board dirty.
+async function autoSave(next: DashboardSpec): Promise<void> {
+  await writeSpec(next);
 }
 
 export default function App() {
@@ -175,6 +279,10 @@ export default function App() {
   const [liveMode, setLiveMode] = useState<
     DashboardSpec["grid"]["mode"] | null
   >(null);
+  // Whether the editor holds edits that aren't on disk. Held here because the
+  // host chrome outside the editor can discard them: the dashboard chooser
+  // reloads the page on a switch, and it must ask first.
+  const [editorDirty, setEditorDirty] = useState(false);
   // Editing stays a desktop activity: only >=1024px gets the editable GridStack
   // editor. Phones and tablets get the read-only CSS-grid renderer, which
   // reflows itself (single column <=640px, two columns 641-1023px).
@@ -199,6 +307,11 @@ export default function App() {
   const fontScale = (live ?? saved)?.typography.scale ?? null;
   const upColor = (live ?? saved)?.theme.upColor ?? null;
   const downColor = (live ?? saved)?.theme.downColor ?? null;
+  const surface = (live ?? saved)?.theme.surface ?? null;
+  // The editor only exists on desktop, and losing the gate unmounts it along
+  // with its history — so its last dirty report must not outlive it, or the
+  // chooser would keep warning about edits nothing is holding any more.
+  const dirty = isDesktop && editorDirty;
   // --color-highlight (chart layer) is declared in @theme → resolved at :root,
   // so it only follows the accent if :root carries the knobs. Pushing both here
   // lets the heading-frame dots and chart highlights track the sliders live.
@@ -234,6 +347,18 @@ export default function App() {
     if (downColor == null) return;
     document.documentElement.style.setProperty("--zf-down", downColor);
   }, [downColor]);
+  // theme.surface's ink + card-lightness vars, at the document root. The
+  // renderer/editor set the same vars on the grid container, which is all the
+  // cards need — but every piece of host chrome is a SIBLING of that container
+  // (header, ticker tape) or a body portal (the chooser), so on a light board
+  // they stayed near-white over a light backdrop. Publishing them here is what
+  // lets any of that chrome tint itself with hsl(0 0% var(--zf-ink-l) / α).
+  // Dark writes exactly the baked-in fallbacks, so it's a no-op.
+  useEffect(() => {
+    if (surface == null) return;
+    for (const [name, value] of Object.entries(surfaceModeVars(surface)))
+      document.documentElement.style.setProperty(name, value);
+  }, [surface]);
 
   useEffect(() => {
     // Memoized module-wide (StrictMode's double-effect reuses the one
@@ -253,9 +378,18 @@ export default function App() {
     // guard makes the discarded first run a no-op (a GET is idempotent anyway).
     let cancelled = false;
     fetch(DASHBOARD_READ_ROUTE, { cache: "no-store" })
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
+        // Parsed by hand rather than res.json() so a syntax error is
+        // distinguishable from a transport one: both used to land on the same
+        // screen, whose advice ("make sure you're running `zframes serve`") is
+        // wrong for a file the server read out fine and JSON.parse rejected.
+        const text = await res.text();
+        try {
+          return JSON.parse(text) as unknown;
+        } catch (error) {
+          throw new SpecSyntaxError(String(error));
+        }
       })
       .then((json) => {
         if (cancelled) return;
@@ -268,7 +402,11 @@ export default function App() {
       })
       .catch((error) => {
         if (cancelled) return;
-        setLoad({ status: "error", message: String(error) });
+        setLoad(
+          error instanceof SpecSyntaxError
+            ? { status: "unparsable", message: error.message }
+            : { status: "error", message: String(error) },
+        );
       });
     return () => {
       cancelled = true;
@@ -294,6 +432,8 @@ export default function App() {
 
   if (load.status === "loading") return <Splash />;
   if (load.status === "error") return <LoadError message={load.message} />;
+  if (load.status === "unparsable")
+    return <SpecSyntaxScreen message={load.message} />;
   if (load.status === "invalid") return <SpecError issues={load.issues} />;
   if (!runtime) return <Splash />;
   const spec = load.spec;
@@ -307,6 +447,27 @@ export default function App() {
   // the scene relative to its own colour — a preset's paired scene renders as
   // authored, a rolled accent drifts it from there.
   const background = live?.background ?? spec.background;
+  // The demo disclosure, in three cases because the advice differs: nothing
+  // installed (the product's own default), the demo installed on purpose as the
+  // only source, and the demo co-mounted with live plugins — where only the
+  // capabilities no live provider covers are generated, and the fix is to
+  // remove it rather than to add keyless. Any synthetic plugin at all is
+  // disclosed: a market dashboard must never pass generated numbers off as
+  // live, and "all mounted plugins are synthetic" used to be the bar.
+  const demo =
+    runtime.synthetic === "none"
+      ? null
+      : runtime.synthetic === "some"
+        ? {
+            label: "demo data mixed in",
+            detail: `Demo data is mounted alongside live providers — every reading no live provider covers is generated. Run \`zframes providers remove ${runtime.syntheticPlugins.join(" ")}\` to drop it.`,
+          }
+        : {
+            label: "demo data",
+            detail: runtime.demoFallback
+              ? "No data providers installed — every number on this board is generated demo data. Run `zframes providers add keyless` to connect free live market data."
+              : "Demo data is the only data source installed — every number on this board is generated. Run `zframes providers add keyless` to connect free live market data.",
+          };
 
   return (
     <FramesProvider providers={runtime.providers}>
@@ -332,13 +493,22 @@ export default function App() {
           } as CSSProperties
         }
       >
+        {/* role="banner": a <header> inside <main> is NOT a banner landmark, so
+            screen-reader landmark navigation had no way to reach the page's own
+            chrome. Kept inside <main> because the entrance animation selector
+            (main > header, styles.css) is what makes it lead the frame cascade. */}
         <header
-          className={`mb-5 flex flex-col gap-2 border-b border-white/[0.06] pb-4 sm:flex-row sm:items-center lg:pr-28 ${
+          role="banner"
+          className={`mb-5 flex flex-col gap-2 border-b pb-4 sm:flex-row sm:items-center lg:pr-28 ${
             isHorizontal ? "px-4 sm:px-6" : ""
           }`}
+          style={{ borderBottomColor: ink(0.06) }}
         >
           <div className="flex min-w-0 flex-wrap items-baseline gap-3">
-            <h1 className="font-dmsans text-strong text-lg font-extrabold tracking-tight">
+            <h1
+              className="font-dmsans text-lg font-extrabold tracking-tight"
+              style={{ color: ink(0.95) }}
+            >
               /
               <span
                 style={{
@@ -349,19 +519,33 @@ export default function App() {
                 zframes
               </span>
             </h1>
-            <DashboardChooser currentTitle={spec.title} />
+            <DashboardChooser currentTitle={spec.title} dirty={dirty} />
             <span
-              className="caption text-soft rounded-full border border-white/[0.08] px-1.5 py-0.5 font-mono leading-none"
+              className="caption rounded-full border px-1.5 py-0.5 font-mono leading-none"
+              style={{ color: ink(0.6), borderColor: ink(0.08) }}
               title="zframes runtime version"
             >
-              v{__ZFRAMES_VERSION__}
+              {/* The title attribute is pointer-only, so the pill announced as
+                  a bare version string. The visually-hidden copy is what a
+                  screen reader gets instead. */}
+              <span className="sr-only">zframes runtime version </span>v
+              {__ZFRAMES_VERSION__}
             </span>
-            {runtime.synthetic && (
+            {demo && (
               <span
-                className="caption rounded-full border border-amber-300/30 bg-amber-400/10 px-1.5 py-0.5 font-mono leading-none text-amber-200/90"
-                title="No data providers installed — every number on this board is generated demo data. Run `zframes providers add keyless` to connect free live market data."
+                className={`caption rounded-full border border-amber-300/30 px-1.5 py-0.5 font-mono leading-none ${
+                  // Amber on amber-tinted glass reads on a dark board and
+                  // disappears on a light one, so the ink flips with the surface.
+                  surface === "light"
+                    ? "bg-amber-400/20 text-amber-800"
+                    : "bg-amber-400/10 text-amber-200/90"
+                }`}
+                title={demo.detail}
               >
-                demo data
+                {demo.label}
+                {/* Same pointer-only problem as the version pill, and this one
+                    carries the whole disclosure plus the command that fixes it. */}
+                <span className="sr-only"> — {demo.detail}</span>
               </span>
             )}
           </div>
@@ -380,6 +564,8 @@ export default function App() {
               spec={spec}
               registry={registry}
               onSave={persist}
+              onAutoSave={autoSave}
+              onDirtyChange={setEditorDirty}
               customiseButtonTarget={customiseButtonTarget}
               onModeChange={setLiveMode}
               onLiveChange={setLive}
@@ -393,6 +579,10 @@ export default function App() {
         onThinkingChange={setOrbThinking}
         spec={spec}
         registry={registry}
+        // The header badge is not visible inside the answer the user is
+        // reading, so the digest has to say the readings are simulated too —
+        // otherwise zAI analyses generated prices as a market.
+        synthetic={runtime.synthetic !== "none"}
       />
     </FramesProvider>
   );

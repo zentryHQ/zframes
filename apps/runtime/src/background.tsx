@@ -192,6 +192,12 @@ export const DashboardBackground = memo(function DashboardBackground({
   // recolor is scene-only, so it's a no-op here — acceptable on weak hardware.
   if (isLowEnd) return lightFill;
 
+  // An invisible scene is still a full engine + project download and a
+  // permanent full-viewport WebGL context, rendering every frame for the whole
+  // session behind nothing. Opacity 0 means "no backdrop", so take the same
+  // exit as type "none".
+  if (background.opacity <= 0) return lightFill;
+
   // Compose the accent spin + desaturation with the orb's "charge" filter: the
   // rolled/muted scene is the base, the orb's invert/rotate/saturate stacks on
   // top when it's open. Default hue 242 + sat 90 collapse to no filter at all.
@@ -209,69 +215,77 @@ export const DashboardBackground = memo(function DashboardBackground({
     : ACTIVE_FILTER;
 
   return (
-    <div
-      aria-hidden
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 0,
-        overflow: "hidden",
-        pointerEvents: "none",
-      }}
-    >
+    <>
+      {/* The scene is translucent (~0.15) over whatever is behind it, so on a
+          light board it needs the same light fill underneath that every other
+          "no scene" exit above returns — without it this was the one path that
+          left a light board with dark gutters, i.e. a capable machine rendered
+          light mode wrongly and a weak one rendered it correctly. */}
+      {lightFill}
       <div
+        aria-hidden
         style={{
-          position: "absolute",
+          position: "fixed",
           inset: 0,
-          opacity: active
-            ? activeOpacity(background.opacity)
-            : background.opacity,
-          filter: active ? activeFilter : restFilter,
-          transition: ACTIVE_TRANSITION,
-          // Only hint the compositor while something is actually animating
-          // opacity/filter (orb active or thinking). Held permanently it pins a
-          // full-viewport layer backing store for the whole session — pure tax
-          // in the common idle state.
-          willChange: active || thinking ? "opacity, filter" : "auto",
+          zIndex: 0,
+          overflow: "hidden",
+          pointerEvents: "none",
         }}
       >
-        {/* Two nested layers so the hue cycle and the breathe pulse — both of
-            which animate `filter` — don't clobber each other, and both compose
-            ON TOP of the accent tint above. The animations live in styles.css
-            (.zf-bg-hue + .zf-bg-breathe), gated on prefers-reduced-motion, so
-            these classNames are no-ops when thinking is off or motion is reduced. */}
         <div
-          className={thinking ? "zf-bg-hue" : undefined}
-          style={{ position: "absolute", inset: 0 }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            opacity: active
+              ? activeOpacity(background.opacity)
+              : background.opacity,
+            filter: active ? activeFilter : restFilter,
+            transition: ACTIVE_TRANSITION,
+            // Only hint the compositor while something is actually animating
+            // opacity/filter (orb active or thinking). Held permanently it pins
+            // a full-viewport layer backing store for the whole session — pure
+            // tax in the common idle state.
+            willChange: active || thinking ? "opacity, filter" : "auto",
+          }}
         >
+          {/* Two nested layers so the hue cycle and the breathe pulse — both of
+              which animate `filter` — don't clobber each other, and both compose
+              ON TOP of the accent tint above. The animations live in styles.css
+              (.zf-bg-hue + .zf-bg-breathe), gated on prefers-reduced-motion, so
+              these classNames are no-ops when thinking is off or motion is reduced. */}
           <div
-            className={thinking ? "zf-bg-breathe" : undefined}
+            className={thinking ? "zf-bg-hue" : undefined}
             style={{ position: "absolute", inset: 0 }}
           >
-            <Suspense fallback={null}>
-              {/* key on projectId so switching scenes (e.g. from the editor's
-                  Background gallery) fully remounts the WebGL scene rather than
-                  trying to mutate a live one. */}
-              <UnicornScene
-                key={background.projectId}
-                projectId={background.projectId}
-                width="100vw"
-                height="100vh"
-                scale={background.scale}
-                dpi={background.dpi}
-                // A slow-drifting backdrop at 16% opacity behind opaque cards
-                // reads identically at 30fps and costs half the GPU — and this
-                // is the single most expensive thing the dashboard draws
-                // (full-viewport, every frame, for the whole session). The
-                // explorer already renders the same scene this way; the runtime
-                // was left on the engine's 60fps default.
-                fps={30}
-                sdkUrl={SDK_URL}
-              />
-            </Suspense>
+            <div
+              className={thinking ? "zf-bg-breathe" : undefined}
+              style={{ position: "absolute", inset: 0 }}
+            >
+              <Suspense fallback={null}>
+                {/* key on projectId so switching scenes (e.g. from the editor's
+                    Background gallery) fully remounts the WebGL scene rather than
+                    trying to mutate a live one. */}
+                <UnicornScene
+                  key={background.projectId}
+                  projectId={background.projectId}
+                  width="100vw"
+                  height="100vh"
+                  scale={background.scale}
+                  dpi={background.dpi}
+                  // A slow-drifting backdrop at 16% opacity behind opaque cards
+                  // reads identically at 30fps and costs half the GPU — and this
+                  // is the single most expensive thing the dashboard draws
+                  // (full-viewport, every frame, for the whole session). The
+                  // explorer already renders the same scene this way; the runtime
+                  // was left on the engine's 60fps default.
+                  fps={30}
+                  sdkUrl={SDK_URL}
+                />
+              </Suspense>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 });

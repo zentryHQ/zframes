@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef } from "react";
 import { useDayStats, useProviderFor } from "@zframes/core";
+import { useLowEndDevice } from "@zframes/unicorn";
 // Import from the leaf module, not the package index — the index statically
 // pulls in all 76 frame components, which would defeat the per-frame code-split
 // (the runtime registry loads components lazily via @zframes/frames/lazy).
@@ -19,6 +20,17 @@ const EQUITY_DEX_WILDCARDS = ["xyz:*"];
 // Cap the DOM at a sane bound — equities + the ~190-symbol crypto universe,
 // and the track is duplicated for the seamless loop (~2× nodes).
 const MAX_SYMBOLS = 200;
+// A weak / metered / small-touch device gets a much shorter strip. The full
+// tape is the most expensive always-on work on the page — ~400 nodes (the
+// marquee needs the track twice for its -50% loop), a live price subscription,
+// and a sweep of every node on an interval — on exactly the phones the low-end
+// gate exists to protect. It keeps the tape rather than dropping it: the strip
+// is finger-scrollable, so a shorter one is still fully readable.
+const LOW_END_SYMBOLS = 40;
+// …and the mids flush goes to a slow cadence there, since a static strip has no
+// scroll animation for a stale price to compete with.
+const FLUSH_MS = 1500;
+const LOW_END_FLUSH_MS = 6000;
 
 // Resolve the semantic gain/loss colors (spec.theme.upColor/downColor) the host
 // pushes to :root, with the original green/red as the fallback. Applied via
@@ -34,6 +46,11 @@ function formatPrice(value: number): string {
   return `$${value.toPrecision(4)}`;
 }
 
+// Colours come from the surface mode's lightness vars (--zf-ink-l /
+// --zf-surf-l3, published on <html> by App from spec.theme.surface) rather than
+// the literal white/near-black they used to be: the tape is host chrome, a
+// sibling of the grid container theme.surface reaches, so a light board left it
+// a dark bar across the bottom. The fallbacks are the previous dark values.
 const TAPE_CSS = `
 .zf-tape {
   position: fixed;
@@ -45,8 +62,8 @@ const TAPE_CSS = `
   display: flex;
   align-items: center;
   overflow: hidden;
-  background: rgba(10, 11, 17, 0.86);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: hsl(232 26% var(--zf-surf-l3, 5.3%) / 0.86);
+  border-top: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.08);
   font-family: var(--font-dmsans, system-ui, sans-serif);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 2.5%, #000 97.5%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 2.5%, #000 97.5%, transparent);
@@ -67,12 +84,12 @@ const TAPE_CSS = `
   align-items: center;
   gap: 7px;
   padding: 0 15px;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.06);
   font-size: 12px;
   line-height: 1;
 }
-.zf-tape-sym { font-weight: 700; color: rgba(255, 255, 255, 0.92); letter-spacing: 0.02em; }
-.zf-tape-px { color: rgba(255, 255, 255, 0.58); font-variant-numeric: tabular-nums; }
+.zf-tape-sym { font-weight: 700; color: hsl(0 0% var(--zf-ink-l, 100%) / 0.92); letter-spacing: 0.02em; }
+.zf-tape-px { color: hsl(0 0% var(--zf-ink-l, 100%) / 0.58); font-variant-numeric: tabular-nums; }
 .zf-tape-chg { font-weight: 600; font-variant-numeric: tabular-nums; }
 @keyframes zf-tape-scroll {
   from { transform: translateX(0); }
@@ -85,6 +102,10 @@ const TAPE_CSS = `
   .zf-tape { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
   .zf-tape-track { animation: none; }
 }
+/* The same static strip, chosen in JS rather than by media query, for the
+   low-end-device gate (see LOW_END_SYMBOLS). */
+.zf-tape-static { overflow-x: auto; -webkit-mask-image: none; mask-image: none; }
+.zf-tape-static .zf-tape-track { animation: none; }
 `;
 
 // Memoized (and prop-less) so a cosmetics slider re-rendering App never
@@ -93,6 +114,9 @@ const TAPE_CSS = `
 export const TickerTape = memo(function TickerTape() {
   const equityStats = useDayStats(EQUITY_DEX_WILDCARDS, 60_000);
   const cryptoStats = useDayStats(undefined, 60_000);
+  // The same gate the animated backdrop consults (@zframes/unicorn) — the tape
+  // never asked it, so the cheapest device got the most expensive tape.
+  const isLowEnd = useLowEndDevice();
 
   const { symbols, stats } = useMemo(() => {
     const live = (s: Record<string, { markPx: number; prevDayPx: number }>) =>
@@ -104,10 +128,10 @@ export const TickerTape = memo(function TickerTape() {
     // alphabetically so the tape doesn't reshuffle on every poll.
     const ordered = [...live(equityStats), ...live(cryptoStats)].slice(
       0,
-      MAX_SYMBOLS,
+      isLowEnd ? LOW_END_SYMBOLS : MAX_SYMBOLS,
     );
     return { symbols: ordered, stats: { ...cryptoStats, ...equityStats } };
-  }, [equityStats, cryptoStats]);
+  }, [equityStats, cryptoStats, isLowEnd]);
 
   const provider = useProviderFor("quote-stream");
   const trackRef = useRef<HTMLDivElement>(null);
@@ -146,7 +170,10 @@ export const TickerTape = memo(function TickerTape() {
     // decoupled from the WS push rate, keeps it live without ever competing with
     // the scroll animation.
     const first = window.setTimeout(flush, 400);
-    const interval = window.setInterval(flush, 1500);
+    const interval = window.setInterval(
+      flush,
+      isLowEnd ? LOW_END_FLUSH_MS : FLUSH_MS,
+    );
     return () => {
       unsubscribe();
       clearTimeout(first);
@@ -155,7 +182,7 @@ export const TickerTape = memo(function TickerTape() {
     // symbols is derived from symbolsKey; listing the key keeps the effect from
     // re-subscribing on every render (symbols is a fresh array each time).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [provider, symbolsKey]);
+  }, [provider, symbolsKey, isLowEnd]);
 
   if (symbols.length === 0) return null;
 
@@ -189,18 +216,25 @@ export const TickerTape = memo(function TickerTape() {
   return (
     <>
       <style>{TAPE_CSS}</style>
-      <div className="zf-tape" aria-label="live ticker tape">
+      <div
+        className={`zf-tape${isLowEnd ? " zf-tape-static" : ""}`}
+        aria-label="live ticker tape"
+      >
         {/* Two identical tracks; the loop translates by -50% so the second
-            copy seamlessly takes over. The duplicate is decorative. */}
+            copy seamlessly takes over. The duplicate is decorative — and it
+            only exists for the animation, so the static low-end strip renders
+            the symbols once. */}
         <div
           ref={trackRef}
           className="zf-tape-track"
-          style={{ animationDuration: `${duration}s` }}
+          style={isLowEnd ? undefined : { animationDuration: `${duration}s` }}
         >
           {renderItems("a")}
-          <span aria-hidden style={{ display: "contents" }}>
-            {renderItems("b")}
-          </span>
+          {!isLowEnd && (
+            <span aria-hidden style={{ display: "contents" }}>
+              {renderItems("b")}
+            </span>
+          )}
         </div>
       </div>
     </>
