@@ -52,6 +52,10 @@ export {
 export { resolveAgentEnv } from "@zframes/zai/agent-env";
 export { buildPrompt, type HistoryTurn } from "@zframes/zai/agent-prompt";
 
+// The hard cap on a request body. It covers the question PLUS the board digest
+// and the replayed thread, so the client trims those to fit before sending
+// (apps/runtime's ask-payload.ts) and this stays the backstop — which is why the
+// 413 blames the context rather than the question.
 const MAX_BODY_BYTES = 64_000; // a question, never an upload
 const RUN_TIMEOUT_MS = 120_000; // bound latency/cost — kill a runaway agent
 
@@ -69,9 +73,16 @@ interface ResLike {
   setHeader(name: string, value: string): unknown;
   write(chunk: string): unknown;
   end(body?: string): unknown;
+  /** Optional so a test double needn't provide it; real Node/connect responses
+      always do. Used for one thing: noticing the client went away mid-run. */
+  on?(event: "close", cb: () => void): unknown;
 }
 
-type RunResult = { ok: true; answer: string } | { ok: false; error: string };
+type RunResult =
+  | { ok: true; answer: string }
+  // `cancelled` marks a run we killed ourselves because the client hung up —
+  // there is nobody left to send an error event to.
+  | { ok: false; error: string; cancelled?: boolean };
 
 let askCounter = 0;
 function runAgent(
@@ -80,6 +91,8 @@ function runAgent(
   cwd: string,
   onDelta?: (text: string) => void,
   onStatus?: (text: string) => void,
+  /** Handed a `cancel()` once the child is up — kills the run on demand. */
+  registerCancel?: (cancel: () => void) => void,
 ): Promise<RunResult> {
   const outFile = join(
     tmpdir(),
@@ -116,6 +129,19 @@ function runAgent(
       child.kill("SIGKILL");
       finish({ ok: false, error: `${runner.label} timed out` });
     }, RUN_TIMEOUT_MS);
+    // The run is billed to the user's OWN agent account, so a question they
+    // cancelled must stop costing them: the orb aborts its fetch, that closes
+    // the response, and the handler calls this. Without it the child kept
+    // working for up to the full RUN_TIMEOUT_MS with nobody listening.
+    registerCancel?.(() => {
+      if (settled) return;
+      child.kill("SIGKILL");
+      finish({
+        ok: false,
+        cancelled: true,
+        error: `${runner.label} cancelled`,
+      });
+    });
     // Relay token deltas + tool-status live for streaming runners; non-streaming
     // ones (codex, kimi) skip this and deliver the whole answer once on close.
     const streaming = Boolean(
@@ -175,11 +201,13 @@ export async function handleAgents(res: ResLike): Promise<void> {
 }
 
 /**
- * POST { question, agent?, context?, history? } — CSRF-guarded (JSON
- * content-type) and size-capped like the spec write. Picks the requested runner
- * if installed, else the first available, runs it read-only, and returns
+ * POST { question, agent?, context?, history?, synthetic? } — CSRF-guarded
+ * (JSON content-type) and size-capped like the spec write. Picks the requested
+ * runner if installed, else the first available, runs it read-only, and returns
  * { ok, agent, answer }. `history` is the orb's ephemeral thread, replayed for
- * follow-up context (bounded to the last MAX_HISTORY_TURNS turns).
+ * follow-up context (bounded to the last MAX_HISTORY_TURNS turns). `synthetic`
+ * flags a `context` whose readings are the demo provider's generated numbers,
+ * which the answer has to disclose. Closing the response mid-run cancels it.
  */
 export function handleAsk(
   req: ReqLike,
@@ -205,7 +233,20 @@ export function handleAsk(
     if (body.length > MAX_BODY_BYTES) {
       aborted = true;
       res.statusCode = 413;
-      res.end();
+      // Name what was actually oversized. The cap covers the board digest and
+      // the replayed thread as well as the question, so "that question was too
+      // long" was routinely wrong — and the client trims those before sending,
+      // so getting here means the context itself couldn't be made to fit. The
+      // body is best-effort (the socket is torn down straight after); the
+      // client carries the same wording as its status-code fallback.
+      res.setHeader("content-type", "application/json");
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error:
+            "too much board context to send with that question — try it on a smaller board",
+        }),
+      );
       req.destroy();
     }
   });
@@ -222,12 +263,14 @@ export function handleAsk(
     let requested: string | undefined;
     let clientContext: string | undefined;
     let history: HistoryTurn[] | undefined;
+    let synthetic: boolean;
     try {
       const parsed = JSON.parse(body) as {
         question?: unknown;
         agent?: unknown;
         context?: unknown;
         history?: unknown;
+        synthetic?: unknown;
       };
       if (typeof parsed.question !== "string" || !parsed.question.trim())
         throw new Error("missing question");
@@ -235,6 +278,10 @@ export function handleAsk(
       requested = typeof parsed.agent === "string" ? parsed.agent : undefined;
       clientContext =
         typeof parsed.context === "string" ? parsed.context : undefined;
+      // The page tells us when its readings are the demo provider's generated
+      // numbers — it is the only side that knows which plugins actually
+      // mounted. Absent flag == live, so an older client is never mislabelled.
+      synthetic = parsed.synthetic === true;
       // Validate the client-sent thread defensively, then keep only the tail.
       if (Array.isArray(parsed.history))
         history = parsed.history
@@ -266,6 +313,7 @@ export function handleAsk(
       clientContext,
       catalogue,
       history,
+      synthetic,
     );
     // Commit to a streamed NDJSON response: one JSON object per line. The orb
     // appends `delta` chunks live, then replaces them with the canonical `done`
@@ -282,13 +330,37 @@ export function handleAsk(
         /* client disconnected — let the run finish and unwind */
       }
     };
+    // A cancelled ask (the orb's Stop control, or closing the orb) aborts the
+    // fetch, which closes this response. There is no cancel ROUTE — the socket
+    // closing IS the signal — so kill the child here rather than letting it
+    // spend the user's own agent quota for the rest of RUN_TIMEOUT_MS.
+    // `runFinished` distinguishes the two ways a response closes: an early
+    // close is the client leaving, a close afterwards is the response ending.
+    let runFinished = false;
+    let cancelRun: (() => void) | null = null;
+    res.on?.("close", () => {
+      if (!runFinished) cancelRun?.();
+    });
     const result = await runAgent(
       runner,
       prompt,
       dirname(specFile),
       (text) => send({ type: "delta", text }),
       (text) => send({ type: "status", text }),
+      (cancel) => {
+        cancelRun = cancel;
+      },
     );
+    runFinished = true;
+    // Nothing to report to a client that hung up; just unwind.
+    if (!result.ok && result.cancelled) {
+      try {
+        res.end();
+      } catch {
+        /* already torn down */
+      }
+      return;
+    }
     if (result.ok)
       send({ type: "done", agent: runner.id, answer: result.answer });
     else send({ type: "error", agent: runner.id, error: result.error });

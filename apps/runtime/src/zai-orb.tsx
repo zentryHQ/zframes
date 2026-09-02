@@ -6,13 +6,15 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
+import { useEscapeLayer } from "@zframes/core";
 import type { DashboardSpec, FrameRegistry } from "@zframes/core";
-import { useReducedMotion } from "@zframes/unicorn";
+import { useLowEndDevice, useReducedMotion } from "@zframes/unicorn";
 import { AGENTS_LIST_ROUTE, ASK_ROUTE } from "@zframes/spec/routes";
 import { OrbCanvas } from "./unicorn/orb-scene";
 import { useScreenSnapshot } from "./screen-context";
 import { MarkdownAnswer } from "./markdown-answer";
 import { suggestionsFor } from "./orb-suggestions";
+import { fitAskBody } from "./ask-payload";
 import type { UnicornSceneType } from "./unicorn/types";
 
 // The zAI orb — host chrome (not a frame), pinned bottom-right above the ticker
@@ -26,7 +28,9 @@ import type { UnicornSceneType } from "./unicorn/types";
 //
 // The orb itself is Nexus's WebGL zAI scene (lifted into ./unicorn — Zentry IP),
 // rendered into the button and sped up while thinking. If the SDK/scene fails
-// to load it falls back to the CSS orb baked into the button below.
+// to load — or the low-end device gate says a second permanent WebGL engine is
+// not worth booting here — it falls back to the CSS orb baked into the button
+// below, which is a full-fidelity resting sphere, just not an animated one.
 
 // Animation speed of the orb's effect layer: gentle at rest, a small bump on
 // hover (anticipation — it "leans in" before you click), fast while thinking
@@ -73,12 +77,16 @@ interface Message {
 
 // The orb's chips are user-facing, so a transport failure should read as plain
 // language, not a raw "request failed (HTTP 500)". The server's own { error }
-// messages (e.g. "no agent CLI found") are preferred over these when present;
-// this is the fallback when all we have is a status code.
+// messages are preferred over these when present, EXCEPT for the conditions
+// listed in OWN_COPY_STATUSES below, where this file's copy is the polished one.
 function friendlyError(status: number): string {
   if (status === 503)
     return "No assistant is set up to answer yet — install Claude, Codex, or Kimi.";
-  if (status === 413) return "That question was too long — try a shorter one.";
+  // Never "that question was too long": the cap covers the board digest and the
+  // replayed thread too, and the request is trimmed to fit before it is sent
+  // (see ./ask-payload), so reaching this means the context genuinely didn't fit.
+  if (status === 413)
+    return "There was too much board context to send with that question — try it on a smaller board.";
   if (status >= 500)
     return "zAI ran into a problem answering — give it another try.";
   // A 200 we couldn't read as a stream usually means the server is older than
@@ -86,6 +94,30 @@ function friendlyError(status: number): string {
   if (status === 200)
     return "zAI sent back an unexpected response. If you just updated zframes, restart the server.";
   return `zAI couldn't answer right now (error ${status}).`;
+}
+
+// Statuses where the page's own copy WINS over the server's { error } text. Both
+// describe the same condition, and the server's is the terse lower-case
+// developer string ("no agent CLI found — install claude, codex, or kimi"): two
+// strings for one condition, and the worse one was the one the user saw.
+// Preferring locally also keeps the good copy on an older/mismatched server.
+const OWN_COPY_STATUSES = new Set([503]);
+
+function errorFor(status: number, serverError?: string): string {
+  if (OWN_COPY_STATUSES.has(status)) return friendlyError(status);
+  return serverError ?? friendlyError(status);
+}
+
+// Answers render as markdown, but the announcement is read aloud, where the
+// marks are noise and a citation would be announced as its whole URL. Flatten
+// just the three constructs the answers actually use (links, bold, code) rather
+// than stripping punctuation wholesale, which would mangle ordinary prose.
+function announceable(answer: string): string {
+  return answer
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .trim();
 }
 
 const ORB_CSS = `
@@ -238,6 +270,55 @@ const ORB_CSS = `
   transition: background 0.15s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
 }
 .zai-agent:hover { background: hsla(263, 80%, 60%, 0.28); }
+
+/* Stop control: only while an answer is in flight, sitting where the eye
+   already is (inside the pill, left of the agent tag). A run spends the user's
+   OWN agent quota for up to two minutes, so cancelling has to be one visible
+   click, not a reload. Square glyph = the universal "stop", not a ✕ (which
+   would read as "close the orb"). */
+.zai-stop {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1px solid hsla(263, 80%, 72%, 0.34);
+  background: hsla(263, 80%, 60%, 0.18);
+  color: hsla(263, 90%, 88%, 0.95);
+  cursor: pointer;
+  transition:
+    background 0.15s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1)),
+    border-color 0.15s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.zai-stop:hover {
+  background: hsla(263, 80%, 60%, 0.34);
+  border-color: hsla(263, 85%, 78%, 0.55);
+}
+.zai-stop:active { transition-duration: 0s; transform: scale(0.94); }
+.zai-stop-glyph {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+/* Screen-reader-only announcement region. The streaming thread is NOT a live
+   region (a bubble rewritten several times a second hands a reader a moving
+   target rather than an answer); the finished answer is announced here, once. */
+.zai-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* Idle attention nudge: after a stretch of inactivity the orb floats a single
    tailored suggestion beside itself ("here's something you could ask"), then
@@ -547,6 +628,7 @@ export function ZaiOrb({
   onThinkingChange,
   spec,
   registry,
+  synthetic = false,
 }: {
   /** Notified whenever the orb expands/collapses, so host chrome (e.g. the
       dashboard background) can react to the orb being opened. */
@@ -559,6 +641,12 @@ export function ZaiOrb({
       and attached to every question (see ./screen-context). */
   spec: DashboardSpec;
   registry: FrameRegistry;
+  /** True when every mounted provider is the synthetic demo one — the same flag
+      that badges the header. It marks the grounding digest as simulated and
+      tells the agent to disclose it, so a generated price is never analysed as
+      a real one (optional so a host that hasn't wired it stays on the honest
+      default: unmarked == live). */
+  synthetic?: boolean;
 }) {
   const [agents, setAgents] = useState<Agent[] | null>(null);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
@@ -570,6 +658,8 @@ export function ZaiOrb({
   // reads as work rather than a hung "thinking…". Cleared once tokens arrive.
   const [status, setStatus] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  // The finished answer, announced once to assistive tech (see `.zai-sr`).
+  const [announcement, setAnnouncement] = useState("");
   const [webglReady, setWebglReady] = useState(false);
   const [webglFailed, setWebglFailed] = useState(false);
   const [phIndex, setPhIndex] = useState(0);
@@ -589,12 +679,26 @@ export function ZaiOrb({
   // Every orb-aliveness animation self-disables under reduced motion: the scene
   // speed stays flat, the heartbeat is skipped, and the CSS motion is gated too.
   const reduceMotion = useReducedMotion();
+  // The orb is the SECOND permanent WebGL engine on the page, drawing from first
+  // paint for the whole session whether or not it is ever opened. On a weak or
+  // metered device that is the most expensive always-on work here, so the same
+  // gate the backdrop uses skips it and the CSS gradient sphere is drawn instead
+  // (already a shipping code path — the WebGL-failure fallback).
+  const lowEndDevice = useLowEndDevice();
   const inputRef = useRef<HTMLInputElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<UnicornSceneType | null>(null);
+  // The in-flight answer's abort handle: Stop, closing the orb, and unmount all
+  // pull it. Null whenever nothing is running.
+  const abortRef = useRef<AbortController | null>(null);
+  // `open` read from outside the render that started an ask: the completion
+  // handler runs up to two minutes later, and the closure's `open` is whatever
+  // it was when the question was sent.
+  const openRef = useRef(open);
+  openRef.current = open;
   // Snapshots what's on the dashboard right now — attached to every question so
   // zAI answers about the live screen, not in the abstract. Lazy: runs on ask.
-  const captureContext = useScreenSnapshot(spec, registry);
+  const captureContext = useScreenSnapshot(spec, registry, synthetic);
   // Placeholder hints tailored to the frames on this dashboard; recomputed only
   // when the spec changes (a dashboard edit), never per render.
   const suggestions = useMemo(
@@ -647,6 +751,13 @@ export function ZaiOrb({
     setWebglFailed(true);
   }, []);
 
+  // The CSS gradient sphere: the WebGL scene failed, or the device gate never
+  // let it boot. Either way the button is a visible, clickable orb rather than
+  // an invisible one.
+  const cssSphere = webglFailed || lowEndDevice;
+  // A sphere is on screen, drawn by whichever path. Gates the idle nudge.
+  const orbDrawn = webglReady || cssSphere;
+
   // Re-tune the orb whenever the desired speed changes (thinking / hover /
   // reduced-motion), and keep speedRef current so a scene loading later picks up
   // the right speed from the start.
@@ -681,16 +792,23 @@ export function ZaiOrb({
 
   // Esc closes the orb from anywhere while it's open. The input's own keydown
   // can't carry this alone — it's disabled while zAI is thinking (so no key
-  // events fire there) and focus can drift to the agent tag or a citation link —
-  // so a window-level listener guarantees Esc always dismisses.
+  // events fire there) and focus can drift to the agent tag or a citation link.
+  // Registered as a LAYER on the shared Escape stack rather than as its own
+  // window listener: with the orb and (say) the dashboard chooser both open,
+  // two independent listeners answered one press and closed both surfaces.
+  // Topmost-only is the rule; the stack enforces it (see @zframes/core).
+  useEscapeLayer(open, () => setOpen(false));
+
+  // Closing the orb also cancels the run. Otherwise the agent keeps working for
+  // up to two minutes on the user's own quota, streaming into a hidden thread,
+  // with the background still cycling — covers Escape, the toggle and the
+  // click-away scrim in one place, since all three just flip `open`.
   useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    if (!open) abortRef.current?.abort();
   }, [open]);
+
+  // Never leave a run going after the orb unmounts (a dashboard switch/reload).
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   // Cmd/Ctrl+K opens (and toggles) the orb without reaching for the mouse — the
   // near-universal "open the command/AI surface" chord. Only wired once a runner
@@ -757,8 +875,14 @@ export function ZaiOrb({
   // for NUDGE_VISIBLE_MS, then hides and re-arms. Suppressed once any question has
   // been asked (messages present) so it stays a first-run affordance, not a nag;
   // hovering or opening the orb clears it (the hover handler + this guard).
+  //
+  // Armed once the sphere is DRAWN, by either path — WebGL ready, the CSS
+  // gradient fallback after a scene failure, or the low-end gate that skips
+  // WebGL outright. Gating on `webglReady` alone meant the one affordance that
+  // tells a first-time user zAI exists never appeared on those machines, and
+  // nothing about a suggestion bubble needs a WebGL context.
   useEffect(() => {
-    if (open || busy || !webglReady || messages.length > 0) return;
+    if (open || busy || !orbDrawn || messages.length > 0) return;
     let showT: ReturnType<typeof setTimeout>;
     let hideT: ReturnType<typeof setTimeout>;
     const schedule = () => {
@@ -783,7 +907,7 @@ export function ZaiOrb({
       clearTimeout(hideT);
       setNudge(false);
     };
-  }, [open, busy, webglReady, messages.length, suggestions]);
+  }, [open, busy, orbDrawn, messages.length, suggestions]);
 
   // Surface the open/closed state to the host (App lifts it to the background).
   useEffect(() => {
@@ -799,6 +923,11 @@ export function ZaiOrb({
   const push = (msg: Message) =>
     setMessages((prev) => [...prev, msg].slice(-MAX_MESSAGES));
 
+  /** Cancel the run in flight (the Stop control, and closing the orb). */
+  function stop() {
+    abortRef.current?.abort();
+  }
+
   async function ask() {
     const question = value.trim();
     if (!question || busy) return;
@@ -812,11 +941,17 @@ export function ZaiOrb({
     setValue("");
     setBusy(true);
     setStatus(null);
+    setAnnouncement(""); // the previous answer is no longer the news
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     // The zai reply is appended once (empty) on the first event, then grows in
     // place as deltas stream in. `replaceZai` rewrites that last zai bubble.
     let zaiOpen = false;
     let streamed = "";
+    // Set once the canonical answer has landed, so a Stop that races the last
+    // read can't relabel a complete answer as cut short.
+    let completed = false;
     const openZai = () => {
       if (zaiOpen) return;
       zaiOpen = true;
@@ -841,14 +976,24 @@ export function ZaiOrb({
       const res = await fetch(ASK_ROUTE, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          question,
-          agent: activeAgent,
-          context: context ?? undefined,
-          // The ephemeral thread so far, so follow-ups ("what about ETH?",
-          // "why?") have context — the orb is otherwise stateless per ask.
-          history: history.length ? history : undefined,
-        }),
+        // Trimmed to fit the server's body cap before it goes out — thread
+        // history first, then the digest, never the question. The cap covers
+        // the whole request, so an unfitted body meant a three-word question
+        // from a big board came back "too long" (see ./ask-payload).
+        body: JSON.stringify(
+          fitAskBody({
+            question,
+            agent: activeAgent,
+            context: context ?? undefined,
+            // The ephemeral thread so far, so follow-ups ("what about ETH?",
+            // "why?") have context — the orb is otherwise stateless per ask.
+            history,
+            // Marks the digest's readings as generated demo data, so the answer
+            // discloses it too (the header badge isn't in the answer).
+            synthetic: synthetic && Boolean(context),
+          }),
+        ),
+        signal: controller.signal,
       });
 
       // A streamed answer comes back as NDJSON. Anything else is either a
@@ -866,12 +1011,14 @@ export function ZaiOrb({
         // it, so an older/stale build degrades to a working (un-streamed) reply
         // instead of a baffling "request failed (HTTP 200)".
         if (res.ok && typeof json?.answer === "string" && json.answer.trim()) {
-          push({ role: "zai", text: json.answer.trim() });
+          const answer = json.answer.trim();
+          push({ role: "zai", text: answer });
+          setAnnouncement(announceable(answer));
           return;
         }
         push({
           role: "zai",
-          text: json?.error ?? friendlyError(res.status),
+          text: errorFor(res.status, json?.error),
           error: true,
         });
         return;
@@ -922,7 +1069,12 @@ export function ZaiOrb({
             }
           } else if (evt.type === "done") {
             openZai();
-            replaceZai(evt.answer || streamed);
+            const answer = evt.answer || streamed;
+            completed = true;
+            replaceZai(answer);
+            // The one announcement for this answer: the thread itself is not a
+            // live region, so the reader gets the finished text once here.
+            setAnnouncement(announceable(answer));
           } else if (evt.type === "error") {
             openZai();
             replaceZai(
@@ -940,6 +1092,14 @@ export function ZaiOrb({
           error: true,
         });
     } catch {
+      // A cancelled run is not a failure: no error bubble, no announcement.
+      // Whatever streamed before Stop stays on screen, marked as cut short so
+      // a sentence that ends mid-word doesn't read as the whole answer.
+      if (controller.signal.aborted) {
+        if (zaiOpen && !completed)
+          replaceZai(streamed ? `${streamed}\n\n_(stopped)_` : "");
+        return;
+      }
       // fetch/stream threw — server unreachable or the connection dropped.
       const msg =
         "zAI couldn't be reached — check that the zframes server is running.";
@@ -948,7 +1108,12 @@ export function ZaiOrb({
     } finally {
       setBusy(false);
       setStatus(null);
-      inputRef.current?.focus();
+      if (abortRef.current === controller) abortRef.current = null;
+      // Only pull focus back into the pill if the pill is still on screen: the
+      // closed panel is `width: 0; overflow: hidden`, so focusing it there sent
+      // every subsequent keystroke into a field nobody can see. Read through a
+      // ref — a run outlives the render that started it by up to two minutes.
+      if (openRef.current) inputRef.current?.focus();
     }
   }
 
@@ -956,20 +1121,29 @@ export function ZaiOrb({
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void ask();
-    } else if (e.key === "Tab" && !e.shiftKey && !busy && !value) {
+    } else if (e.key === "Tab" && !e.shiftKey && !busy && !value && phShow) {
       // Accept the currently-shown suggestion as the query (ghost-text style):
       // Tab fills the input with the hint the placeholder is cycling instead of
       // moving focus out of the orb. Only when the field is empty and idle —
       // once there's text (or while thinking) Tab falls back to normal focus
       // movement, and Shift+Tab always tabs back out for accessibility.
+      //
+      // `phShow` is what makes "the hint you can see" true: through the 320ms
+      // cross-fade the hint element is at zero opacity while still holding the
+      // OUTGOING text, so completing there filled the pill with a question the
+      // user was not looking at. Mid-fade there is no visible hint to accept,
+      // so Tab does what Tab normally does and moves focus on.
       const suggestion = suggestions[phIndex % suggestions.length];
       if (suggestion) {
         e.preventDefault();
         setValue(suggestion);
       }
     }
-    // Escape is handled by a window-level listener (see effect above) so it
-    // closes the orb even while thinking (input disabled) or when focus drifted.
+    // Escape is deliberately NOT handled here: it goes to the shared Escape
+    // layer (see the effect above), which closes the orb even while thinking
+    // (input disabled) or when focus has drifted out of the input. The stack
+    // listens in the bubble phase, so this handler must never stopPropagation
+    // an Escape it hasn't consumed — that would swallow the close.
   }
 
   function cycleAgent() {
@@ -1007,13 +1181,19 @@ export function ZaiOrb({
         data-busy={busy}
         data-nudge={nudge}
       >
+        {/* The finished answer, announced once. Deliberately OUTSIDE the thread
+            and always mounted: a live region on the thread container was
+            rewritten on every token burst, so a screen reader was handed a
+            continuously changing region instead of one settled answer. */}
+        <div className="zai-sr" role="status" aria-live="polite">
+          {announcement}
+        </div>
         {open && messages.length > 0 && (
           <div
             className="zai-history"
             ref={historyRef}
             data-masked={historyMasked}
             onScroll={(e) => setHistoryMasked(e.currentTarget.scrollTop > 1)}
-            aria-live="polite"
           >
             {messages.map((m, i) =>
               m.role === "zai" && !m.error ? (
@@ -1030,6 +1210,9 @@ export function ZaiOrb({
                       ? "zai-msg zai-msg-user"
                       : "zai-msg zai-msg-zai zai-msg-error"
                   }
+                  // A failure is the one thing that still interrupts: it's
+                  // written once, not streamed, so an alert can't thrash.
+                  role={m.error ? "alert" : undefined}
                 >
                   {m.text}
                 </div>
@@ -1075,6 +1258,20 @@ export function ZaiOrb({
                   : (suggestions[phIndex % suggestions.length] ?? "")}
               </span>
             </div>
+            {/* Stop: the only way to cancel a run, which spends the user's own
+                agent quota for up to two minutes. Shown only while one is in
+                flight, so the resting pill is unchanged. */}
+            {busy && (
+              <button
+                type="button"
+                className="zai-stop"
+                onClick={stop}
+                aria-label="Stop zAI"
+                title="Stop"
+              >
+                <span className="zai-stop-glyph" aria-hidden="true" />
+              </button>
+            )}
             <span
               className="zai-agent"
               onClick={cycleAgent}
@@ -1092,7 +1289,7 @@ export function ZaiOrb({
           type="button"
           className="zai-orb"
           data-webgl={webglReady}
-          data-fallback={webglFailed}
+          data-fallback={cssSphere}
           onClick={() => setOpen((o) => !o)}
           onMouseEnter={() => {
             setHovered(true);
@@ -1103,11 +1300,17 @@ export function ZaiOrb({
           title={open ? "Close zAI" : `Ask zAI · ${shortcutHint}`}
           aria-expanded={open}
         >
-          <OrbCanvas
-            className="zai-orb-canvas"
-            onScene={handleScene}
-            onError={handleSceneError}
-          />
+          {/* Not mounted at all on a low-end device: the engine loads, compiles
+              shaders and then draws forever, so gating the render is the only
+              thing that actually saves the cost. The CSS gradient sphere above
+              (data-fallback) is what the button shows instead. */}
+          {!lowEndDevice && (
+            <OrbCanvas
+              className="zai-orb-canvas"
+              onScene={handleScene}
+              onError={handleSceneError}
+            />
+          )}
           {/* Streaming heartbeat ring — key on the beat counter so each pulse
               remounts + replays the one-shot animation. */}
           {beat > 0 && (

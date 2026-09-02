@@ -119,11 +119,17 @@ interface FakeRes {
   setHeader(name: string, value: string): void;
   write(chunk: string): boolean;
   end(body?: string): void;
+  on(event: "close", cb: () => void): void;
+  /** Simulate the client hanging up (the orb aborting its fetch). */
+  fireClose(): void;
+  /** Run on every res.write — lets a test hang up mid-stream, deterministically. */
+  onWrite?: (chunk: string) => void;
   done: Promise<void>;
 }
 function makeRes(): FakeRes {
   let resolve!: () => void;
   const done = new Promise<void>((r) => (resolve = r));
+  const closeCbs: Array<() => void> = [];
   return {
     statusCode: 0,
     headers: {},
@@ -133,10 +139,17 @@ function makeRes(): FakeRes {
     },
     write(chunk) {
       this.chunks.push(chunk);
+      this.onWrite?.(chunk);
       return true;
     },
     end() {
       resolve();
+    },
+    on(_event, cb) {
+      closeCbs.push(cb);
+    },
+    fireClose() {
+      for (const cb of closeCbs) cb();
     },
     done,
   };
@@ -184,6 +197,7 @@ async function ask(
     agent?: string;
     context?: unknown;
     history?: unknown;
+    synthetic?: unknown;
   },
 ): Promise<FakeRes> {
   const { handleAsk } = await freshAgent(pathDir);
@@ -368,6 +382,33 @@ describe("handleAsk — request-body validation", () => {
     expect(String(done.answer)).not.toContain("DROPME_ROLE");
   }, 15_000);
 
+  it("carries the synthetic flag into the prompt as a demo-data disclosure", async () => {
+    const d = binDir();
+    kimiEchoStub(d);
+    const res = await ask(d, {
+      question: "what's moving in BTC?",
+      agent: "kimi",
+      context: "Live readings right now:\nPrices: BTC $60,000.00 (+1.2%)",
+      synthetic: true,
+    });
+    const done = events(res).at(-1)!;
+    expect(done.type).toBe("done");
+    expect(String(done.answer)).toContain("SIMULATED demo data");
+  }, 15_000);
+
+  it("treats a non-boolean synthetic flag as live (no disclosure)", async () => {
+    const d = binDir();
+    kimiEchoStub(d);
+    const res = await ask(d, {
+      question: "hi",
+      agent: "kimi",
+      context: "Prices: BTC $60,000.00",
+      synthetic: "yes", // only a literal `true` marks a board as demo
+    });
+    const done = events(res).at(-1)!;
+    expect(String(done.answer)).not.toContain("SIMULATED");
+  }, 15_000);
+
   it("ignores a non-array history without crashing (Array.isArray guard)", async () => {
     const d = binDir();
     kimiEchoStub(d);
@@ -380,5 +421,62 @@ describe("handleAsk — request-body validation", () => {
     expect(done.type).toBe("done");
     // No history survived, so no transcript block is embedded in the prompt.
     expect(String(done.answer)).not.toContain("Conversation so far");
+  }, 15_000);
+});
+
+describe("handleAsk — cancellation", () => {
+  it("kills the runner when the client hangs up mid-stream, and sends nothing after", async () => {
+    const d = binDir();
+    // Emits one delta then blocks. `exec` replaces the shell with the sleep, so
+    // the SIGKILL lands on the process actually holding the run open (no
+    // orphaned child, no pipe held past the kill). Absolute path for the same
+    // reason as `/bin/sh`: PATH is the stub dir only.
+    stub(
+      d,
+      "claude",
+      `${printfLines(claudeDeltaLine("partial"))}\nexec /bin/sleep 20`,
+    );
+    const { handleAsk } = await freshAgent(d);
+    const res = makeRes();
+    // The orb aborting its fetch closes the response — that IS the cancel
+    // signal, since there is no cancel route. Fire it on the first token so the
+    // hang-up lands while the child is still running, deterministically.
+    res.onWrite = () => {
+      res.onWrite = undefined;
+      res.fireClose();
+    };
+    const { req, fire } = makeAskReq({ question: "why?", agent: "claude" });
+    const started = Date.now();
+    handleAsk(req, res, specFile);
+    fire();
+    await res.done;
+    // Returned promptly — the 20s sleep was killed, not waited out (and this is
+    // well under the runner's own 120s timeout).
+    expect(Date.now() - started).toBeLessThan(10_000);
+    const evts = events(res);
+    // The delta that was already in flight is all that was written: a client
+    // that left gets no `done` and no `error` event after it.
+    expect(evts).toEqual([{ type: "delta", text: "partial" }]);
+  }, 20_000);
+
+  it("still completes normally when the response closes only after the run", async () => {
+    const d = binDir();
+    stub(
+      d,
+      "claude",
+      printfLines(claudeDeltaLine("hi "), claudeResultLine("hi there")),
+    );
+    const { handleAsk } = await freshAgent(d);
+    const res = makeRes();
+    const { req, fire } = makeAskReq({ question: "hi", agent: "claude" });
+    handleAsk(req, res, specFile);
+    fire();
+    await res.done;
+    // A normal response closes too; that must not read as a cancellation.
+    res.fireClose();
+    expect(events(res).at(-1)).toMatchObject({
+      type: "done",
+      answer: "hi there",
+    });
   }, 15_000);
 });

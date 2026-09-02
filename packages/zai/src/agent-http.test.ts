@@ -158,6 +158,24 @@ describe("handleAsk — pre-spawn guards", () => {
     expect(res.statusCode).toBe(413);
   });
 
+  it("blames the board context, not the question, in the 413 body", () => {
+    const ctl = makeAskReq();
+    const res = makeRes();
+    handleAsk(ctl.req, res, specFile);
+    ctl.emitData(Buffer.alloc(64_001, 0x61));
+    // The cap covers the digest and the replayed thread as well as the
+    // question, so a three-word question from a huge board used to be told it
+    // was too long. The status now carries a body that names the real cause.
+    expect(res.headers["content-type"]).toBe("application/json");
+    const payload = JSON.parse(res.body ?? "{}") as {
+      ok?: boolean;
+      error?: string;
+    };
+    expect(payload.ok).toBe(false);
+    expect(payload.error).toContain("board context");
+    expect(payload.error).not.toContain("question was too long");
+  });
+
   it("returns 400 on malformed JSON", async () => {
     const ctl = makeAskReq();
     const res = makeRes();
