@@ -36,15 +36,27 @@ function Checklist({ config }: { config: Config }) {
           {done}/{config.items.length}
         </div>
       </div>
-      <div className={`min-h-0 flex-1 ${scrollAreaClass}`}>
+      {/* `role="checkbox"` + `aria-checked`, not a bare button: the tick is
+          drawn as a styled span, so a listener heard the item's label and was
+          never told whether it was checked — the one fact the row carries. The
+          glyph is decorative once the state is announced. `role="group"` names
+          the set so the rows aren't read as four loose checkboxes. */}
+      <div
+        role="group"
+        aria-label={title || "Checklist"}
+        className={`min-h-0 flex-1 ${scrollAreaClass}`}
+      >
         {config.items.map((item, i) => (
           <button
             key={i}
             type="button"
+            role="checkbox"
+            aria-checked={!!checked[i]}
             onClick={() => toggle(i)}
             className="flex w-full items-center gap-2 py-1 text-left"
           >
             <span
+              aria-hidden="true"
               className="caption flex h-4 w-4 shrink-0 items-center justify-center rounded border leading-none"
               style={{
                 borderColor: checked[i]
@@ -59,7 +71,9 @@ function Checklist({ config }: { config: Config }) {
               ✓
             </span>
             <span
-              className={`body-sm ${checked[i] ? "text-disabled line-through" : "text-normal"}`}
+              className={`body-sm ${
+                checked[i] ? "text-disabled line-through" : "text-normal"
+              }`}
             >
               {item}
             </span>

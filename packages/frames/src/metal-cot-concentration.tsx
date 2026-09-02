@@ -398,9 +398,22 @@ function MetalCotConcentration({
               meta="traders long / short"
               value={
                 <span className="flex items-baseline justify-end gap-1.5 tabular-nums">
-                  <span style={{ color: UP_COLOR }}>{c.long ?? "—"}</span>
+                  {/* An absent count has no side, so it must not arrive in
+                      the long or the short colour — greyed, like every other
+                      missing figure. */}
+                  <span
+                    className={c.long == null ? "text-disabled" : undefined}
+                    style={c.long == null ? undefined : { color: UP_COLOR }}
+                  >
+                    {c.long ?? "—"}
+                  </span>
                   <span className="text-disabled">/</span>
-                  <span style={{ color: DOWN_COLOR }}>{c.short ?? "—"}</span>
+                  <span
+                    className={c.short == null ? "text-disabled" : undefined}
+                    style={c.short == null ? undefined : { color: DOWN_COLOR }}
+                  >
+                    {c.short ?? "—"}
+                  </span>
                 </span>
               }
             />

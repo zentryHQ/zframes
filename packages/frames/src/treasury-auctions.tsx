@@ -22,6 +22,7 @@ function AuctionRow({ auction }: { auction: TreasuryAuction }) {
           : "")
       }
       value={auction.rate !== null ? formatPct(auction.rate) : "—"}
+      absent={auction.rate === null}
     />
   );
 }

@@ -153,6 +153,7 @@ function CycleSignals({ config }: { config: z.output<typeof schema> }) {
             key={s.name}
             label={s.name}
             meta={`fires ${s.threshold}`}
+            absent={s.value === null}
             value={
               <span style={{ color: s.fired ? fireColor : undefined }}>
                 {s.fired ? "● " : ""}

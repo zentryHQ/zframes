@@ -20,6 +20,33 @@ import { changeColor, formatChangePct } from "./format";
  * wrong for most callers is a hole you can fall into by writing nothing, so the
  * row now owns the currency and there is nothing left to omit.
  */
+/**
+ * Split a change-sorted list into the two columns a movers card shows —
+ * `count` gainers on the left, `count` losers on the right, worst first.
+ *
+ * WHY IT IS SHARED. Both two-column movers frames took `rows.slice(0, count)`
+ * against `rows.slice(-count).reverse()`, which are the same rows twice on a
+ * universe smaller than 2 × count: the middle of the tape appeared in BOTH
+ * columns, and on a very small universe the losers column was the gainers
+ * column upside down. Nothing errors, so it reads as data. The split point is
+ * clamped to the midpoint instead, which drops nothing — whatever the gainers
+ * column doesn't take is exactly what the losers column reads. (The bar and
+ * bubble variants clamp their own single-list halves the same way.)
+ */
+export function splitMovers<T>(
+  rows: T[],
+  count: number,
+): { gainers: T[]; losers: T[] } {
+  if (count <= 0) return { gainers: [], losers: [] };
+  const split = Math.min(count, Math.ceil(rows.length / 2));
+  return {
+    gainers: rows.slice(0, split),
+    // `slice(-count)` on the remainder, so a large universe still shows the
+    // worst `count` rather than everything below the gainers.
+    losers: rows.slice(split).slice(-count).reverse(),
+  };
+}
+
 export function MoverRow({
   symbol,
   label,

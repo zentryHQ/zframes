@@ -3,6 +3,24 @@ import { z } from "zod";
 import { validateCustomUrl } from "../custom-data-shared";
 import { widgetIcon } from "./shared";
 
+/**
+ * What "the frame saves its own state" actually means, stated once.
+ *
+ * A frame that writes back to its own card (the stopwatch's timer, the
+ * checklist's ticks) can only do so where the host offers it a patcher: a
+ * desktop-width board whose server can write the dashboard file, which is
+ * `zframes serve` or the in-repo `pnpm dev`. There the write is durable and
+ * quiet — the file is saved for you, with no reload and no visit to customise
+ * mode. Everywhere else (a static or hosted page, or a window under the
+ * desktop gate) the state is real but in-page: it lasts until the reload.
+ *
+ * These strings are shipped copy AND the text a generating agent reads, so
+ * they are kept in one place — five of them used to promise a flat "persists
+ * across reloads" that the product did not provide.
+ */
+const SELF_PATCH_NOTE =
+  "Written back by the frame itself: saved into the dashboard file automatically on a desktop board served with a write-back server (`zframes serve` or `pnpm dev`), and in-page only anywhere else (a static or hosted page, or a window under the desktop gate), where it lasts until the reload.";
+
 export const clockMeta = defineFrameMeta({
   name: "clock",
   label: "Clock",
@@ -274,7 +292,7 @@ export const stopwatchMeta = defineFrameMeta({
   category: "tools",
   iconUrl: widgetIcon("stopwatch"),
   description:
-    "A count-up stopwatch — time-in-trade, a focus session, how long a setup has been live. Start / Pause / Reset, ticking up in H:MM:SS, and it persists across reloads (the running state is saved into the dashboard, so it keeps counting where it left off). Runs entirely client-side — needs no data provider.",
+    "A count-up stopwatch — time-in-trade, a focus session, how long a setup has been live. Start / Pause / Reset, ticking up in H:MM:SS. On a desktop board served with a write-back server (`zframes serve` or `pnpm dev`) the running state is saved into the dashboard file for you, so it keeps counting where it left off across a reload; on a static or hosted page (or under the desktop gate) it runs for the life of the page instead. Runs entirely client-side — needs no data provider.",
   capabilities: [],
   schema: z.object({
     label: z.string().default("Session").describe("Caption above the timer."),
@@ -282,13 +300,13 @@ export const stopwatchMeta = defineFrameMeta({
       .number()
       .default(0)
       .describe(
-        "Epoch ms when the timer was last started; 0 = paused. Persisted automatically by the frame.",
+        `Epoch ms when the timer was last started; 0 = paused. ${SELF_PATCH_NOTE}`,
       ),
     accumulatedMs: z
       .number()
       .default(0)
       .describe(
-        "Milliseconds banked before the current run. Persisted automatically by the frame.",
+        `Milliseconds banked before the current run. ${SELF_PATCH_NOTE}`,
       ),
   }),
 });
@@ -459,7 +477,7 @@ export const checklistMeta = defineFrameMeta({
   iconUrl: widgetIcon("checklist"),
   layout: { w: 3, h: 3, minW: 1, minH: 2, maxH: 4 },
   description:
-    "A tickable checklist — a pre-trade routine, a daily ritual, anything. Tap items to check them off; the checked state persists across reloads (saved into the dashboard). Client-side only, no data provider.",
+    "A tickable checklist — a pre-trade routine, a daily ritual, anything. Tap items to check them off. On a desktop board served with a write-back server (`zframes serve` or `pnpm dev`) the checked state is saved into the dashboard file for you and survives a reload; on a static or hosted page (or under the desktop gate) the ticks last until the page reloads. Client-side only, no data provider.",
   capabilities: [],
   schema: z.object({
     title: z
@@ -477,9 +495,7 @@ export const checklistMeta = defineFrameMeta({
     checked: z
       .array(z.boolean())
       .default([])
-      .describe(
-        "Per-item checked state (by index); persisted automatically by the frame.",
-      ),
+      .describe(`Per-item checked state (by index). ${SELF_PATCH_NOTE}`),
   }),
 });
 

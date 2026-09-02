@@ -33,6 +33,7 @@ function TrendingCoins({ config }: { config: z.output<typeof schema> }) {
               "—"
             )
           }
+          absent={c.changePct24h == null && c.price == null}
         />
       ))}
     </div>

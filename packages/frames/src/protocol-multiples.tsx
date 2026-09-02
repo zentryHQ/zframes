@@ -56,6 +56,7 @@ function MultipleRow({
 }) {
   const cell = (value: Cell) => (
     <div
+      role="cell"
       className={`metric-sm truncate ${
         value.muted ? "text-soft" : "text-strong"
       }`}
@@ -63,9 +64,13 @@ function MultipleRow({
       {value.text}
     </div>
   );
+  // `display: contents` (`contents`), not a fragment: the row needs an element
+  // to carry `role="row"` for a screen reader, and `contents` generates no box,
+  // so its three cells stay direct grid items of the matrix and every column
+  // still sizes across both rows.
   return (
-    <>
-      <div className="min-w-0">
+    <div role="row" className="contents">
+      <div role="rowheader" className="min-w-0">
         <div className="body-sm text-normal truncate font-semibold">
           {label}
         </div>
@@ -73,7 +78,7 @@ function MultipleRow({
       </div>
       {cell(perRevenue)}
       {cell(perFees)}
-    </>
+    </div>
   );
 }
 
@@ -145,19 +150,30 @@ function ProtocolMultiples({ config }: { config: z.output<typeof schema> }) {
           the reader nothing. Kept a flex column so the notes keep their
           `mt-auto` footing whenever there IS room. */}
       <div className={`${scrollAreaClass} flex flex-col gap-3`}>
-        <div className="grid grid-cols-3 items-baseline gap-x-3 gap-y-2">
-          <div />
-          <div className="min-w-0">
-            <div className="caption text-normal truncate font-semibold">
-              ÷ REVENUE
+        {/* A real matrix for a screen reader too: three columns, a header row
+            and a row header per line, so a figure is announced as "FDV, ÷
+            FEES" rather than as a loose number in a run of six. */}
+        <div
+          role="table"
+          aria-label="Valuation multiples"
+          className="grid grid-cols-3 items-baseline gap-x-3 gap-y-2"
+        >
+          <div role="row" className="contents">
+            <div role="columnheader" />
+            <div role="columnheader" className="min-w-0">
+              <div className="caption text-normal truncate font-semibold">
+                ÷ REVENUE
+              </div>
+              <div className="caption text-soft truncate">
+                what it kept · P/S
+              </div>
             </div>
-            <div className="caption text-soft truncate">what it kept · P/S</div>
-          </div>
-          <div className="min-w-0">
-            <div className="caption text-normal truncate font-semibold">
-              ÷ FEES
+            <div role="columnheader" className="min-w-0">
+              <div className="caption text-normal truncate font-semibold">
+                ÷ FEES
+              </div>
+              <div className="caption text-soft truncate">users paid · P/F</div>
             </div>
-            <div className="caption text-soft truncate">users paid · P/F</div>
           </div>
 
           <MultipleRow

@@ -126,7 +126,11 @@ function TokenUnlockSchedule({ config }: { config: z.output<typeof schema> }) {
           <div className="caption text-soft truncate uppercase">
             {unlocks.protocol} insider share
           </div>
-          <div className="metric-lg text-strong leading-none tabular-nums">
+          <div
+            className={`metric-lg leading-none tabular-nums ${
+              insiderPctNow === undefined ? "text-disabled" : "text-strong"
+            }`}
+          >
             {insiderPctNow === undefined ? "—" : formatPct(insiderPctNow, 1)}
             {stillVesting && (
               <span className="body-md text-soft">

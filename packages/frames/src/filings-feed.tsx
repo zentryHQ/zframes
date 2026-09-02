@@ -64,6 +64,18 @@ function formLabel(filing: SecFiling): string {
     : form;
 }
 
+/** How long ago a filing landed — or nothing at all.
+ *
+ *  EDGAR's dates arrive as provider strings ("2026-07-23"), and a value that
+ *  doesn't parse has no age: passing its `NaN` timestamp straight through
+ *  printed the literal "Invalid Date" in the row's meta slot. A row with no
+ *  readable date says nothing there instead. */
+function filingAge(filingDate: string | undefined): string | undefined {
+  if (!filingDate) return undefined;
+  const ms = new Date(filingDate).getTime();
+  return Number.isFinite(ms) ? timeAgo(ms) : undefined;
+}
+
 function FilingRow({ filing }: { filing: SecFiling }) {
   return (
     <FeedRow
@@ -82,11 +94,7 @@ function FilingRow({ filing }: { filing: SecFiling }) {
             ? `items ${filing.items}`
             : filing.accessionNumber
       }
-      meta={
-        filing.filingDate
-          ? timeAgo(new Date(filing.filingDate).getTime())
-          : undefined
-      }
+      meta={filingAge(filing.filingDate)}
     />
   );
 }

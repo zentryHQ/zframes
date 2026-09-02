@@ -21,8 +21,18 @@ function Note({ config }: { config: z.output<typeof schema> }) {
     if (editing) textareaRef.current?.focus();
   }, [editing]);
 
+  // A BLANK commit is refused, and reverts to the previous note exactly as
+  // Escape does. The schema requires a non-empty string, so writing "" turned
+  // the card into an "Invalid configuration" error card — and because an error
+  // card replaces the frame's whole interior, the click-to-edit affordance went
+  // with it: the only way back was the config dialog in customise mode, which
+  // is not a route a user clicking inside a note has any reason to know about.
   const commit = useCallback(() => {
-    if (draft !== config.text) patch?.({ text: draft });
+    const next = draft.trim() ? draft : config.text;
+    if (next !== config.text) patch?.({ text: next });
+    // Re-seed the box: `config.text` didn't change on a refused commit, so the
+    // effect that mirrors it wouldn't clear the blank draft on the next open.
+    setDraft(next);
     setEditing(false);
   }, [patch, draft, config.text]);
 

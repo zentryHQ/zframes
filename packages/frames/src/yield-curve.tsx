@@ -142,7 +142,11 @@ function YieldCurve({ config }: { config: z.output<typeof schema> }) {
               className="rounded bg-white/[0.04] px-1.5 py-1 text-center"
             >
               <div className="caption text-soft">{label}</div>
-              <div className="body-sm text-strong font-bold tabular-nums">
+              <div
+                className={`body-sm font-bold tabular-nums ${
+                  r != null ? "text-strong" : "text-disabled"
+                }`}
+              >
                 {r != null ? formatPct(r) : "—"}
               </div>
             </div>

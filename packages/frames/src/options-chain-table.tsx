@@ -276,19 +276,37 @@ function OptionsChainTable({ config }: { config: z.output<typeof schema> }) {
       </div>
 
       {/* One scroll box for the whole ladder, so the column heads stay in step
-          with the columns when a greek-carrying chain overflows sideways. */}
-      <div className={`${scrollAreaClass} ${scrollAreaXClass} flex flex-col`}>
-        <div className="grid" style={gridStyle}>
+          with the columns when a greek-carrying chain overflows sideways.
+          It also IS the table: the two head rows and every strike row are
+          already their own grid elements, so a screen reader gets rows,
+          column headers and header association from `role` alone — no extra
+          markup, no CSS change. The chain is the densest table in the package
+          (up to 23 columns), and read as a flat run of numbers it says
+          nothing about which side or which greek a figure belongs to. */}
+      <div
+        role="table"
+        aria-label={`${config.symbol.toUpperCase()} option chain`}
+        aria-rowcount={rows.length + 2}
+        className={`${scrollAreaClass} ${scrollAreaXClass} flex flex-col`}
+      >
+        <div role="row" className="grid" style={gridStyle}>
           <span
+            role="columnheader"
+            aria-colspan={sideSpan}
             className="caption uppercase"
             style={{ gridColumn: `span ${sideSpan}`, color: UP_COLOR }}
           >
             calls
           </span>
-          <span className="caption text-disabled text-center uppercase">
+          <span
+            role="columnheader"
+            className="caption text-disabled text-center uppercase"
+          >
             strike
           </span>
           <span
+            role="columnheader"
+            aria-colspan={sideSpan}
             className="caption text-right uppercase"
             style={{ gridColumn: `span ${sideSpan}`, color: DOWN_COLOR }}
           >
@@ -296,25 +314,83 @@ function OptionsChainTable({ config }: { config: z.output<typeof schema> }) {
           </span>
         </div>
 
-        <div className="grid border-b border-white/[0.08]" style={gridStyle}>
+        <div
+          role="row"
+          className="grid border-b border-white/[0.08]"
+          style={gridStyle}
+        >
           {greeks.map((greek) => (
-            <span key={`c-${greek}`} className={HEAD} title={greek}>
+            <span
+              key={`c-${greek}`}
+              role="columnheader"
+              className={HEAD}
+              title={`call ${greek}`}
+              aria-label={`call ${greek}`}
+            >
               {GREEK_LABEL[greek]}
             </span>
           ))}
-          <span className={HEAD}>vol</span>
-          <span className={HEAD}>oi</span>
-          <span className={HEAD}>iv</span>
-          <span className={HEAD}>bid</span>
-          <span className={HEAD}>ask</span>
-          <span className={`${HEAD} text-center`}>{money.code}</span>
-          <span className={HEAD}>bid</span>
-          <span className={HEAD}>ask</span>
-          <span className={HEAD}>iv</span>
-          <span className={HEAD}>oi</span>
-          <span className={HEAD}>vol</span>
+          <span role="columnheader" className={HEAD} aria-label="call volume">
+            vol
+          </span>
+          <span
+            role="columnheader"
+            className={HEAD}
+            aria-label="call open interest"
+          >
+            oi
+          </span>
+          <span
+            role="columnheader"
+            className={HEAD}
+            aria-label="call implied volatility"
+          >
+            iv
+          </span>
+          <span role="columnheader" className={HEAD} aria-label="call bid">
+            bid
+          </span>
+          <span role="columnheader" className={HEAD} aria-label="call ask">
+            ask
+          </span>
+          <span
+            role="columnheader"
+            className={`${HEAD} text-center`}
+            aria-label={`strike in ${money.code}`}
+          >
+            {money.code}
+          </span>
+          <span role="columnheader" className={HEAD} aria-label="put bid">
+            bid
+          </span>
+          <span role="columnheader" className={HEAD} aria-label="put ask">
+            ask
+          </span>
+          <span
+            role="columnheader"
+            className={HEAD}
+            aria-label="put implied volatility"
+          >
+            iv
+          </span>
+          <span
+            role="columnheader"
+            className={HEAD}
+            aria-label="put open interest"
+          >
+            oi
+          </span>
+          <span role="columnheader" className={HEAD} aria-label="put volume">
+            vol
+          </span>
           {[...greeks].reverse().map((greek) => (
-            <span key={`p-${greek}`} className={HEAD} title={greek}>
+            <span
+              key={`p-${greek}`}
+              role="columnheader"
+              className={HEAD}
+              title={`put ${greek}`}
+              aria-label={`put ${greek}`}
+            >
               {GREEK_LABEL[greek]}
             </span>
           ))}
@@ -323,33 +399,55 @@ function OptionsChainTable({ config }: { config: z.output<typeof schema> }) {
         {rows.map(({ strike, call, put }) => (
           <div
             key={strike}
+            role="row"
             className={`grid items-baseline ${
               strike === atm ? "bg-white/[0.05]" : ""
             }`}
             style={gridStyle}
           >
             {greeks.map((greek) => (
-              <span key={`c-${greek}`} className={CELL}>
+              <span key={`c-${greek}`} role="cell" className={CELL}>
                 {greekCell(greek, call?.[greek])}
               </span>
             ))}
-            <span className={CELL}>{countCell(call?.volume)}</span>
-            <span className={CELL}>{countCell(call?.openInterest)}</span>
-            <span className={CELL}>{ivCell(call?.iv)}</span>
-            <span className={CELL}>{moneyCell(money, call?.bid)}</span>
-            <span className={CELL}>{moneyCell(money, call?.ask)}</span>
+            <span role="cell" className={CELL}>
+              {countCell(call?.volume)}
+            </span>
+            <span role="cell" className={CELL}>
+              {countCell(call?.openInterest)}
+            </span>
+            <span role="cell" className={CELL}>
+              {ivCell(call?.iv)}
+            </span>
+            <span role="cell" className={CELL}>
+              {moneyCell(money, call?.bid)}
+            </span>
+            <span role="cell" className={CELL}>
+              {moneyCell(money, call?.ask)}
+            </span>
             <span
+              role="rowheader"
               className={`caption text-strong truncate py-[0.15rem] text-center font-bold tabular-nums`}
             >
               {moneyCell(money, strike)}
             </span>
-            <span className={CELL}>{moneyCell(money, put?.bid)}</span>
-            <span className={CELL}>{moneyCell(money, put?.ask)}</span>
-            <span className={CELL}>{ivCell(put?.iv)}</span>
-            <span className={CELL}>{countCell(put?.openInterest)}</span>
-            <span className={CELL}>{countCell(put?.volume)}</span>
+            <span role="cell" className={CELL}>
+              {moneyCell(money, put?.bid)}
+            </span>
+            <span role="cell" className={CELL}>
+              {moneyCell(money, put?.ask)}
+            </span>
+            <span role="cell" className={CELL}>
+              {ivCell(put?.iv)}
+            </span>
+            <span role="cell" className={CELL}>
+              {countCell(put?.openInterest)}
+            </span>
+            <span role="cell" className={CELL}>
+              {countCell(put?.volume)}
+            </span>
             {[...greeks].reverse().map((greek) => (
-              <span key={`p-${greek}`} className={CELL}>
+              <span key={`p-${greek}`} role="cell" className={CELL}>
                 {greekCell(greek, put?.[greek])}
               </span>
             ))}

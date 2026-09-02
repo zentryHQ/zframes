@@ -84,7 +84,9 @@ function ReturnsProjector({ config }: { config: Config }) {
       )}
       <div className="shrink-0">
         <div className="caption text-soft">projected value</div>
-        <div className="metric-lg text-strong">
+        <div
+          className={`metric-lg ${finite ? "text-strong" : "text-disabled"}`}
+        >
           {finite ? formatCompactUsd(ending) : "—"}
         </div>
         <div className="body-sm" style={{ color: changeColor(gainPct) }}>

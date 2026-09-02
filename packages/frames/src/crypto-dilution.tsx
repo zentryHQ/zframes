@@ -210,21 +210,21 @@ function CryptoDilution({ config }: { config: z.output<typeof schema> }) {
       <Stat.Strip cols={3} gap={1.5}>
         <Stat surface="tile">
           <Stat.Label>Market cap</Stat.Label>
-          <Stat.Value size="metric-sm">
+          <Stat.Value size="metric-sm" absent={marketCap === undefined}>
             {marketCap !== undefined ? money.compact(marketCap) : "—"}
           </Stat.Value>
           {dilution.marketCapDerived && <Stat.Hint>derived</Stat.Hint>}
         </Stat>
         <Stat surface="tile">
           <Stat.Label>FDV</Stat.Label>
-          <Stat.Value size="metric-sm">
+          <Stat.Value size="metric-sm" absent={fdv === undefined}>
             {fdv !== undefined ? money.compact(fdv) : "—"}
           </Stat.Value>
           {dilution.fdvDerived && <Stat.Hint>derived</Stat.Hint>}
         </Stat>
         <Stat surface="tile">
           <Stat.Label>Not circulating</Stat.Label>
-          <Stat.Value size="metric-sm">
+          <Stat.Value size="metric-sm" absent={gap === null}>
             {gap !== null ? money.compact(gap) : "—"}
           </Stat.Value>
           {gapPct !== null && (

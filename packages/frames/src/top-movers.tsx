@@ -2,7 +2,7 @@ import { defineFrame, useDayStatsState } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
-import { MoverRow } from "./mover-row";
+import { MoverRow, splitMovers } from "./mover-row";
 import { prettySlug } from "./format";
 import { topMoversMeta } from "./schemas";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -42,10 +42,7 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
           row.prevDayPx > 0,
       )
       .sort((a, b) => b.changePct - a.changePct);
-    return {
-      gainers: rows.slice(0, config.count),
-      losers: rows.slice(-config.count).reverse(),
-    };
+    return splitMovers(rows, config.count);
   }, [stats, config.count, hyperliquid]);
 
   if (isLoading) return <FrameStatus loading>loading movers…</FrameStatus>;

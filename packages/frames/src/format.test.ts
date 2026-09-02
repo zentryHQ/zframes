@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  ABSENT,
   DOWN_COLOR,
   DOWN_COLOR_HEX,
   UP_COLOR,
@@ -20,9 +21,11 @@ import {
 } from "./format";
 
 describe("formatPrice", () => {
-  it("uses 4-significant-digit precision below $1 (zero branch)", () => {
-    // value < 1 → toPrecision(4); 0 formats as "0.000".
-    expect(formatPrice(0)).toBe("$0.000");
+  it("gives zero the currency's own minor units, not the sub-unit band", () => {
+    // Zero is not a sub-unit price: through the < 1 `toPrecision(4)` branch it
+    // printed "$0.000", three decimals no currency asked for. The money kernel
+    // sends it to `currencyDigits` instead (`packages/core/src/money.ts`).
+    expect(formatPrice(0)).toBe("$0.00");
   });
 
   it("uses toPrecision(4) for a sub-dollar fraction", () => {
@@ -352,11 +355,21 @@ describe("timeAgo", () => {
     expect(at(59_000)).toBe("now");
   });
 
-  it("clamps a future timestamp to 'now'", () => {
+  it("keeps a sub-minute future timestamp as 'now'", () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
-    // ms is in the future → sec is clamped to >= 0.
-    expect(timeAgo(NOW + 60_000)).toBe("now");
+    expect(timeAgo(NOW + 30_000)).toBe("now");
+  });
+
+  it("marks a future timestamp as ahead rather than clamping it to 'now'", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    // A scheduled release or a skewed provider clock lands here. Reading it as
+    // "now" was a claim about the present; the sign is the whole information.
+    expect(timeAgo(NOW + 60_000)).toBe("in 1m");
+    expect(timeAgo(NOW + 2 * 60 * 60_000)).toBe("in 2h");
+    expect(timeAgo(NOW + 24 * 60 * 60_000)).toBe("in 1d");
+    expect(timeAgo(NOW + 2 * 7 * 24 * 60 * 60_000)).toBe("in 2w");
   });
 
   it("renders minutes below an hour", () => {
@@ -383,17 +396,70 @@ describe("timeAgo", () => {
     expect(at(4 * 7 * 24 * 60 * 60_000)).toBe("4w");
   });
 
-  it("falls back to a short date past five weeks", () => {
+  it("falls back to a short in-year date past five weeks, with no year", () => {
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
-    // 10 weeks back → beyond the wk < 5 branch → localized "Mon D".
+    // 10 weeks back, same calendar year → localized "Mon D", unchanged: an
+    // in-year feed stays as compact as it was.
     const past = NOW - 10 * 7 * 24 * 60 * 60_000;
     const expected = new Date(past).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     });
+    expect(new Date(past).getFullYear()).toBe(new Date(NOW).getFullYear());
     expect(timeAgo(past)).toBe(expected);
     // Guard: the fallback is a date label, not one of the relative tokens.
     expect(expected).not.toMatch(/^\d+[mhdw]$/);
+  });
+
+  it("carries the year once the date is in a different one", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    // The slip this pins: without the year a 2019 filing read exactly like a
+    // this-year one, and a feed of filings is mostly cross-year.
+    const old = Date.UTC(2019, 6, 23, 12);
+    expect(timeAgo(old)).toContain("2019");
+  });
+
+  it("renders an unparseable timestamp as the absent placeholder", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    // Never the literal "Invalid Date": a date-shaped string reads as data.
+    expect(timeAgo(Number.NaN)).toBe(ABSENT);
+    expect(timeAgo(Number.NaN)).not.toContain("Invalid");
+    expect(timeAgo(Number.POSITIVE_INFINITY)).toBe(ABSENT);
+  });
+});
+
+// ── non-finite input is an ABSENT figure, never a confident numeral ──────────
+
+describe("non-finite guards", () => {
+  it("renders every numeric formatter as the em-dash placeholder", () => {
+    // The unguarded versions printed "NaN", "$NaN", "InfinityT" and "NaN%" —
+    // a failed computation dressed as a reading. One convention, everywhere.
+    for (const bad of [
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+    ]) {
+      expect(formatPrice(bad)).toBe(ABSENT);
+      expect(formatChangePct(bad)).toBe(ABSENT);
+      expect(formatRate(bad)).toBe(ABSENT);
+      expect(formatLevel(bad)).toBe(ABSENT);
+      expect(formatPct(bad)).toBe(ABSENT);
+      expect(formatFundingPct(bad)).toBe(ABSENT);
+      expect(formatCompact(bad)).toBe(ABSENT);
+      expect(formatCompactUsd(bad)).toBe(ABSENT);
+      expect(formatBtc(bad)).toBe(ABSENT);
+      expect(formatHashrate(bad)).toBe(ABSENT);
+    }
+  });
+
+  it("tints a non-finite change neutral, not loss-red", () => {
+    // `NaN >= 0` is false, so the plain comparison painted every failed
+    // computation red — the most confident thing a number can wear.
+    expect(changeColor(Number.NaN)).toBe("currentColor");
+    expect(changeColor(Number.NaN)).not.toBe(DOWN_COLOR);
+    expect(changeColor(Number.POSITIVE_INFINITY)).toBe("currentColor");
   });
 });

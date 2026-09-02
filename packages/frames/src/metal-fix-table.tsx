@@ -1,5 +1,5 @@
 import { defineFrame, useMetalHistory, useMoney } from "@zframes/core";
-import { Fragment, useMemo } from "react";
+import { useMemo } from "react";
 import type { z } from "zod";
 import { changeColor, formatChangePct } from "./format";
 import { formatFixPrice, metalName, pctChange } from "./metals-shared";
@@ -19,6 +19,17 @@ function formatFixDate(time: number): string {
 
 /** One shared column template so the header labels sit over their numerals. */
 const COLUMNS = "grid grid-cols-[minmax(0,1fr)_auto_4.25rem] items-baseline";
+
+/**
+ * `display: contents` on each row — the row element generates no box, so its
+ * three cells stay direct grid items of the body grid and the columns still
+ * size across every row (per-row grids would let the `auto` fix column drift
+ * row to row). That is what lets this be a real table for a screen reader
+ * without moving a pixel: rows emitted as fragments have no element to carry
+ * `role="row"`, so a listener got a flat run of dates and numbers with no
+ * header association.
+ */
+const ROW = "contents";
 
 function MetalFixTable({ config }: { config: z.output<typeof schema> }) {
   const money = useMoney();
@@ -75,37 +86,64 @@ function MetalFixTable({ config }: { config: z.output<typeof schema> }) {
         <div className="caption text-soft text-right">daily</div>
       </div>
 
+      {/* The head is pinned outside the scroll box, so the table role goes on
+          a wrapper holding both — same gaps, same flex behaviour. */}
       <div
-        className={`${COLUMNS} caption text-disabled gap-x-3 border-b border-white/[0.08] pr-1 pb-1 uppercase`}
+        role="table"
+        aria-label={`${metalName(config.symbol)} London fix history`}
+        aria-rowcount={rows.length + 1}
+        className="flex min-h-0 flex-1 flex-col gap-2"
       >
-        <span>date</span>
-        <span className="text-right">fix</span>
-        <span className="text-right">chg</span>
-      </div>
+        <div
+          role="row"
+          className={`${COLUMNS} caption text-disabled gap-x-3 border-b border-white/[0.08] pr-1 pb-1 uppercase`}
+        >
+          <span role="columnheader">date</span>
+          <span role="columnheader" className="text-right">
+            fix
+          </span>
+          <span role="columnheader" className="text-right">
+            chg
+          </span>
+        </div>
 
-      <div className={`${scrollAreaClass} ${COLUMNS} content-start gap-x-3`}>
-        {rows.map((row) => (
-          <Fragment key={row.time}>
-            <span className="body-sm text-soft truncate py-1">
-              {formatFixDate(row.time)}
-            </span>
-            <span className="body-sm text-strong py-1 text-right tabular-nums">
-              {formatFixPrice(row.value, config.currency, money)}
-            </span>
-            {row.changePct === null ? (
-              <span className="body-sm text-disabled py-1 text-right tabular-nums">
-                —
-              </span>
-            ) : (
+        <div
+          role="rowgroup"
+          className={`${scrollAreaClass} ${COLUMNS} content-start gap-x-3`}
+        >
+          {rows.map((row) => (
+            <div key={row.time} role="row" className={ROW}>
               <span
-                className="body-sm py-1 text-right font-bold tabular-nums"
-                style={{ color: changeColor(row.changePct) }}
+                role="rowheader"
+                className="body-sm text-soft truncate py-1"
               >
-                {formatChangePct(row.changePct)}
+                {formatFixDate(row.time)}
               </span>
-            )}
-          </Fragment>
-        ))}
+              <span
+                role="cell"
+                className="body-sm text-strong py-1 text-right tabular-nums"
+              >
+                {formatFixPrice(row.value, config.currency, money)}
+              </span>
+              {row.changePct === null ? (
+                <span
+                  role="cell"
+                  className="body-sm text-disabled py-1 text-right tabular-nums"
+                >
+                  —
+                </span>
+              ) : (
+                <span
+                  role="cell"
+                  className="body-sm py-1 text-right font-bold tabular-nums"
+                  style={{ color: changeColor(row.changePct) }}
+                >
+                  {formatChangePct(row.changePct)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

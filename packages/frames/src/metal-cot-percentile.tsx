@@ -164,7 +164,7 @@ function MetalCotPercentile({ config }: { config: z.output<typeof schema> }) {
         </Stat>
         <Stat>
           <Stat.Label>z-score</Stat.Label>
-          <Stat.Value size="metric-md">
+          <Stat.Value size="metric-md" absent={z === null}>
             {z === null ? "—" : formatZ(z)}
           </Stat.Value>
           <Stat.Hint>{`vs mean ${signedContracts(sample.mean)}`}</Stat.Hint>

@@ -48,20 +48,28 @@ function PredictionMarketsBubble({
     () =>
       markets
         .filter((m) => m.volume24h > 0)
-        .map((m, i) => {
-          const top = [...m.outcomes].sort((a, b) => b.prob - a.prob)[0];
+        // A market can come back with an empty `outcomes` array; the bubble's
+        // tint and label are both its leading outcome, so one without an
+        // outcome is dropped rather than read off the end of the sorted list —
+        // which threw and replaced the card with "Frame crashed". `BubbleCloud`
+        // renders its own empty state when nothing survives the filter.
+        .flatMap((m, i) => {
+          const [top] = [...m.outcomes].sort((a, b) => b.prob - a.prob);
+          if (!top) return [];
           const color = confidenceColor(top.prob);
-          return {
-            id: `${i}-${m.question}`,
-            label: shortLabel(m.question),
-            value: m.volume24h,
-            color,
-            borderColor: color,
-            question: m.question,
-            topLabel: top.label,
-            topProb: top.prob,
-            volume24h: m.volume24h,
-          };
+          return [
+            {
+              id: `${i}-${m.question}`,
+              label: shortLabel(m.question),
+              value: m.volume24h,
+              color,
+              borderColor: color,
+              question: m.question,
+              topLabel: top.label,
+              topProb: top.prob,
+              volume24h: m.volume24h,
+            },
+          ];
         }),
     [markets],
   );
@@ -69,7 +77,10 @@ function PredictionMarketsBubble({
   const formatTitle = useCallback(
     (n: BubbleNode) => {
       const m = n as MarketBubble;
-      return `${m.question} — ${m.topLabel} ${formatPct(m.topProb * 100, 0)} · vol ${money.compact(m.volume24h)}`;
+      return `${m.question} — ${m.topLabel} ${formatPct(
+        m.topProb * 100,
+        0,
+      )} · vol ${money.compact(m.volume24h)}`;
     },
     [money],
   );

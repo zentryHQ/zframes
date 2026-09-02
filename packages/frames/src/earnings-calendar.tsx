@@ -1,5 +1,5 @@
 import { defineFrame, useEarningsCalendar } from "@zframes/core";
-import { Fragment, useMemo } from "react";
+import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
 import { formatCompactUsd, formatPrice } from "./format";
@@ -10,6 +10,13 @@ const schema = earningsCalendarMeta.schema;
 
 /** One shared column template so the header labels sit over their numerals. */
 const COLUMNS = "grid grid-cols-[minmax(0,1fr)_5rem_4.5rem] items-start";
+
+/** `display: contents` on each row, so the row element carries `role="row"`
+ *  for a screen reader while its three cells stay direct grid items of the
+ *  body grid — the columns keep sizing across every row, which a per-row grid
+ *  would break. Rows emitted as fragments have no element to put the role on,
+ *  and a listener got a flat run of tickers and numbers instead of a table. */
+const ROW = "contents";
 
 /**
  * Format a bare `YYYY-MM-DD` as a readable session, parsing it at LOCAL
@@ -94,63 +101,83 @@ function EarningsCalendar({ config }: { config: z.output<typeof schema> }) {
         </div>
       </div>
 
+      {/* The head is pinned outside the scroll box, so the table role goes on
+          a wrapper holding both — same gaps, same flex behaviour. */}
       <div
-        className={`${COLUMNS} caption text-disabled gap-x-3 border-b border-white/[0.08] pr-1 pb-1 uppercase`}
+        role="table"
+        aria-label="Earnings calendar"
+        aria-rowcount={rows.length + 1}
+        className="flex min-h-0 flex-1 flex-col gap-2"
       >
-        <span>company</span>
-        <span className="text-right">est. eps</span>
-        <span className="text-right">mkt cap</span>
-      </div>
+        <div
+          role="row"
+          className={`${COLUMNS} caption text-disabled gap-x-3 border-b border-white/[0.08] pr-1 pb-1 uppercase`}
+        >
+          <span role="columnheader">company</span>
+          <span role="columnheader" className="text-right">
+            est. eps
+          </span>
+          <span role="columnheader" className="text-right">
+            mkt cap
+          </span>
+        </div>
 
-      <div className={`${scrollAreaClass} ${COLUMNS} content-start gap-x-3`}>
-        {rows.map((e) => {
-          const side = sessionSide(e.time);
-          return (
-            <Fragment key={`${e.symbol}-${e.date}`}>
-              <div className="min-w-0 py-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="body-sm text-strong truncate font-semibold">
-                    {tickerOf(e.symbol)}
-                  </span>
-                  {side && (
-                    <span
-                      title={side.title}
-                      className="caption text-soft shrink-0 rounded-full bg-white/[0.07] px-1.5 py-[1px] uppercase tracking-[0.08em]"
-                    >
-                      {side.label}
+        <div
+          role="rowgroup"
+          className={`${scrollAreaClass} ${COLUMNS} content-start gap-x-3`}
+        >
+          {rows.map((e) => {
+            const side = sessionSide(e.time);
+            return (
+              <div key={`${e.symbol}-${e.date}`} role="row" className={ROW}>
+                <div role="rowheader" className="min-w-0 py-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="body-sm text-strong truncate font-semibold">
+                      {tickerOf(e.symbol)}
                     </span>
+                    {side && (
+                      <span
+                        title={side.title}
+                        className="caption text-soft shrink-0 rounded-full bg-white/[0.07] px-1.5 py-[1px] uppercase tracking-[0.08em]"
+                      >
+                        {side.label}
+                      </span>
+                    )}
+                  </div>
+                  <div className="caption text-soft truncate">
+                    {e.companyName || tickerOf(e.symbol)}
+                  </div>
+                </div>
+
+                <div role="cell" className="py-1 text-right">
+                  <div className="body-sm text-strong tabular-nums">
+                    {e.consensusEps == null ? (
+                      <span className="text-disabled">—</span>
+                    ) : (
+                      formatEps(e.consensusEps)
+                    )}
+                  </div>
+                  {e.estimateCount != null && (
+                    <div className="caption text-soft tabular-nums">
+                      {e.estimateCount} est
+                    </div>
                   )}
                 </div>
-                <div className="caption text-soft truncate">
-                  {e.companyName || tickerOf(e.symbol)}
-                </div>
-              </div>
 
-              <div className="py-1 text-right">
-                <div className="body-sm text-strong tabular-nums">
-                  {e.consensusEps == null ? (
+                <div
+                  role="cell"
+                  className="body-sm text-normal py-1 text-right tabular-nums"
+                >
+                  {e.marketCap == null ? (
                     <span className="text-disabled">—</span>
                   ) : (
-                    formatEps(e.consensusEps)
+                    formatCompactUsd(e.marketCap)
                   )}
                 </div>
-                {e.estimateCount != null && (
-                  <div className="caption text-soft tabular-nums">
-                    {e.estimateCount} est
-                  </div>
-                )}
               </div>
-
-              <div className="body-sm text-normal py-1 text-right tabular-nums">
-                {e.marketCap == null ? (
-                  <span className="text-disabled">—</span>
-                ) : (
-                  formatCompactUsd(e.marketCap)
-                )}
-              </div>
-            </Fragment>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

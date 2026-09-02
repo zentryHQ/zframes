@@ -68,7 +68,7 @@ function InstitutionalOwnership({
           <CardHeader.Eyebrow>
             {tickerOf(config.symbol)} · institutional
           </CardHeader.Eyebrow>
-          <CardHeader.Value>
+          <CardHeader.Value absent={pct === undefined}>
             {pct !== undefined ? formatPct(pct, 1) : "—"}
           </CardHeader.Value>
         </CardHeader.Main>

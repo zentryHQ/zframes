@@ -45,18 +45,31 @@ export function StatTile({
   value,
   sub,
   color,
+  absent,
 }: {
   label: string;
   value: string;
   sub?: string;
   color?: string;
+  /**
+   * There is no reading yet — an em dash, not a figure. Renders in disabled
+   * ink so it can't be mistaken for data, the same treatment
+   * `CardHeader.Value`'s `absent` gives an absent figure, and it beats any
+   * `color` the caller passes: a greyed placeholder must not arrive tinted
+   * green because the tile's populated state is a good one.
+   */
+  absent?: boolean;
 }) {
   return (
     <div className={`flex flex-col gap-0.5 px-2.5 py-2 ${interactiveSurface}`}>
       <span className="caption text-soft uppercase tracking-wide">{label}</span>
       <span
         className="metric-sm font-bold leading-none tabular-nums"
-        style={{ color: color ?? "var(--color-strong)" }}
+        style={{
+          color: absent
+            ? "var(--color-disabled)"
+            : (color ?? "var(--color-strong)"),
+        }}
       >
         {value}
       </span>
@@ -150,8 +163,11 @@ export function OpenCard({
 
 export function ResolvedCard({ call }: { call: ResolvedCall }) {
   const verdictColor = call.verdict === "hit" ? UP_COLOR : DOWN_COLOR;
-  // Mechanism axis only when we have it (seeded examples). Return-graded calls
-  // show the hard number; the softer "did the thesis play out" comes later.
+  // Mechanism axis only when a grader supplied it. Nothing does yet: the
+  // mechanical return grade never sets `signalsFired`, and the four seeded
+  // examples that used to carry it were fabricated calls and are gone. So
+  // every real call reads its verdict and its return, and the softer "did the
+  // thesis actually play out" arrives with the AI-assisted grade.
   const attr = call.signalsFired === undefined ? null : attribution(call);
   return (
     <div className="flex flex-col gap-1.5 rounded-md border border-white/[0.04] px-3 py-2">

@@ -210,13 +210,16 @@ function CryptoProfile({ config }: { config: z.output<typeof schema> }) {
         <Stat.Strip cols={3} gap={1.5}>
           <Stat surface="tile">
             <Stat.Label>Market cap</Stat.Label>
-            <Stat.Value size="metric-sm">
+            <Stat.Value size="metric-sm" absent={!has(profile.marketCap)}>
               {has(profile.marketCap) ? money.compact(profile.marketCap) : "—"}
             </Stat.Value>
           </Stat>
           <Stat surface="tile">
             <Stat.Label>FDV</Stat.Label>
-            <Stat.Value size="metric-sm">
+            <Stat.Value
+              size="metric-sm"
+              absent={!has(profile.fullyDilutedValuation)}
+            >
               {has(profile.fullyDilutedValuation)
                 ? money.compact(profile.fullyDilutedValuation)
                 : "—"}
@@ -227,7 +230,7 @@ function CryptoProfile({ config }: { config: z.output<typeof schema> }) {
           </Stat>
           <Stat surface="tile">
             <Stat.Label>Volume 24h</Stat.Label>
-            <Stat.Value size="metric-sm">
+            <Stat.Value size="metric-sm" absent={!has(profile.volume24h)}>
               {has(profile.volume24h) ? money.compact(profile.volume24h) : "—"}
             </Stat.Value>
           </Stat>
@@ -236,7 +239,10 @@ function CryptoProfile({ config }: { config: z.output<typeof schema> }) {
         <Stat.Strip cols={3} gap={1.5}>
           <Stat surface="tile">
             <Stat.Label>Circulating</Stat.Label>
-            <Stat.Value size="metric-sm">
+            <Stat.Value
+              size="metric-sm"
+              absent={!has(profile.circulatingSupply)}
+            >
               {has(profile.circulatingSupply)
                 ? formatCompact(profile.circulatingSupply)
                 : "—"}
@@ -245,7 +251,7 @@ function CryptoProfile({ config }: { config: z.output<typeof schema> }) {
           </Stat>
           <Stat surface="tile">
             <Stat.Label>Total</Stat.Label>
-            <Stat.Value size="metric-sm">
+            <Stat.Value size="metric-sm" absent={!has(profile.totalSupply)}>
               {has(profile.totalSupply)
                 ? formatCompact(profile.totalSupply)
                 : "—"}

@@ -102,12 +102,16 @@ function AggregateColumn({
   value,
   sub,
   hint,
+  absent,
 }: {
   label: string;
   color?: string;
   value: string;
   sub: string;
   hint: string;
+  /** No figure this period — greys the placeholder rather than setting it in
+   *  the column's own ink, where an em dash reads as a reading. */
+  absent?: boolean;
 }) {
   return (
     <div className="min-w-0">
@@ -117,7 +121,13 @@ function AggregateColumn({
       >
         {label}
       </div>
-      <div className="metric-sm text-strong truncate">{value}</div>
+      <div
+        className={`metric-sm truncate ${
+          absent ? "text-disabled" : "text-strong"
+        }`}
+      >
+        {value}
+      </div>
       <div className="caption text-soft truncate">{sub}</div>
       <div className="caption text-soft truncate">{hint}</div>
     </div>
@@ -234,12 +244,14 @@ function ProtocolRevenue({ config }: { config: z.output<typeof schema> }) {
           label="REVENUE · 1Y"
           color={REVENUE_COLOR}
           value={unpublished ? "n/a" : amount(revenue365)}
+          absent={unpublished || revenue365 == null}
           sub={unpublished ? "not published" : `30d ${amount(revenue30)}`}
           hint={unpublished ? "no revenue line" : "what the protocol kept"}
         />
         <AggregateColumn
           label="TAKE RATE"
           value={takeRate == null ? "—" : formatPct(takeRate * 100, 1)}
+          absent={takeRate == null}
           sub={takeRate == null ? "needs both lines" : "of fees kept"}
           hint={
             takeRate == null

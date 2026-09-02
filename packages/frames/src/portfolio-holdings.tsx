@@ -45,24 +45,43 @@ function HoldingsTable({
         <span className="metric-sm text-strong">{money.compact(total)}</span>
       </div>
       <div className={scrollAreaClass}>
+        {/* A real table with NO header row: the five columns were unlabelled,
+            so a screen reader announced five numbers per holding with nothing
+            saying which was the value and which the weight. The head is
+            visually hidden (the card's columns are legible by position) and
+            each row names its asset with a `scope="row"` header, so every cell
+            is announced with both of its labels. */}
         <table className="w-full text-xs">
+          <thead className="sr-only">
+            <tr>
+              <th scope="col">Asset</th>
+              <th scope="col">Amount held</th>
+              <th scope="col">Value</th>
+              <th scope="col">Weight</th>
+              <th scope="col">24h change</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((h) => {
               const pct = total > 0 ? ((h.value ?? 0) / total) * 100 : 0;
               return (
                 <tr key={h.symbol} className="border-b border-white/[0.04]">
-                  <td className="py-1.5">
+                  <th scope="row" className="py-1.5 text-left font-normal">
                     <div className="flex items-center gap-1.5">
                       <AssetLogo symbol={h.symbol} size={16} />
                       <span className="text-normal font-semibold">
                         {tickerOf(h.symbol)}
                       </span>
                     </div>
-                  </td>
+                  </th>
                   <td className="text-soft py-1.5 text-right tabular-nums">
                     {formatAmount(h.amount)}
                   </td>
-                  <td className="text-normal py-1.5 text-right font-semibold tabular-nums">
+                  <td
+                    className={`py-1.5 text-right font-semibold tabular-nums ${
+                      h.value !== undefined ? "text-normal" : "text-disabled"
+                    }`}
+                  >
                     {h.value !== undefined ? money.compact(h.value) : "—"}
                   </td>
                   <td className="text-soft py-1.5 text-right tabular-nums">

@@ -2,7 +2,7 @@ import { defineFrame } from "@zframes/core";
 import { useMemo, useState } from "react";
 import type { z } from "zod";
 import { interactiveSurface } from "./content-shared";
-import { changeColor, formatChangePct, formatPrice } from "./format";
+import { ABSENT, changeColor, formatChangePct, formatPrice } from "./format";
 import { breakevenMeta } from "./schemas";
 import { scrollAreaClass } from "./ui";
 
@@ -41,8 +41,14 @@ function Breakeven({ config }: { config: Config }) {
       )}
       <div className="shrink-0">
         <div className="caption text-soft">break-even (avg cost)</div>
-        <div className="metric-lg text-strong">
-          {totalSize > 0 ? formatPrice(avg) : "—"}
+        {/* No fills, no break-even: the placeholder is greyed rather than set
+            in the figure's own ink, where it read as a value. */}
+        <div
+          className={`metric-lg ${
+            totalSize > 0 ? "text-strong" : "text-disabled"
+          }`}
+        >
+          {totalSize > 0 ? formatPrice(avg) : ABSENT}
         </div>
         <div className="caption text-soft">
           {totalSize > 0 ? `${totalSize} units` : "add fills below"}

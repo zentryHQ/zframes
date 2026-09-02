@@ -6,11 +6,12 @@ import { interactiveSurface } from "./content-shared";
 import { DOWN_COLOR, UP_COLOR, changeColor, formatChangePct } from "./format";
 import {
   CLASS_LABEL,
-  CLASS_RECORD,
   type Dir,
   type ThesisClass,
+  classRecord,
   dirColor,
   logCall,
+  useJournal,
 } from "./journal-store";
 import { journalLogMeta } from "./schemas";
 import { scrollAreaClass } from "./ui";
@@ -80,7 +81,13 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
   const change = stats[sym]?.changePct;
 
   const reason = reasonIdx != null ? REASONS[reasonIdx] : null;
-  const mirror = reason ? CLASS_RECORD[reason.cls] : null;
+  // The pre-decision mirror is the user's OWN record in the class they just
+  // picked, computed from the graded ledger — it used to come from a hard-coded
+  // table, so it told a first-time user about calls they never made. A class
+  // with nothing graded in it has no mirror to show, and shows none.
+  const { resolved } = useJournal();
+  const record = useMemo(() => classRecord(resolved), [resolved]);
+  const mirror = reason && record[reason.cls].n > 0 ? record[reason.cls] : null;
   const mirrorGood = mirror ? mirror.hits / mirror.n >= 0.55 : true;
 
   const matches = useMemo(() => {
@@ -92,18 +99,24 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
   }, [query, universe]);
 
   function submit() {
-    if (!reason) return;
+    // No live price, no call: the entry is what every later grade is measured
+    // against, so `logCall` refuses one it would have to invent. The button is
+    // disabled in that state too — this guard is for the note field's Enter.
+    if (!reason || price == null) return;
     const claim = note.trim()
       ? `${reason.label} — ${note.trim()}`
       : reason.label;
-    logCall({
-      sym,
-      dir,
-      confidence: conf,
-      claim,
-      cls: reason.cls,
-      entry: price,
-    });
+    if (
+      !logCall({
+        sym,
+        dir,
+        confidence: conf,
+        claim,
+        cls: reason.cls,
+        entry: price,
+      })
+    )
+      return;
     setReasonIdx(null);
     setNote("");
     setFlash(true);
@@ -276,7 +289,12 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
         <button
           type="button"
           onClick={submit}
-          disabled={!reason}
+          disabled={!reason || price == null}
+          title={
+            price == null
+              ? "waiting for a live price for this symbol"
+              : undefined
+          }
           className="caption rounded px-3 py-1.5 font-bold uppercase tracking-wide transition-opacity disabled:opacity-40"
           style={{
             color: "var(--color-strong)",

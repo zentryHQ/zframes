@@ -87,7 +87,12 @@ function AnalystRatings({ config }: { config: z.output<typeof schema> }) {
           {/* `className="truncate"`: the consensus is a WORD, not a figure,
               and the publisher's vocabulary runs long ("Strong Buy",
               "Underperform"). */}
-          <CardHeader.Value size="metric-lg" tint={tint} className="truncate">
+          <CardHeader.Value
+            size="metric-lg"
+            tint={tint}
+            absent={consensus === undefined}
+            className="truncate"
+          >
             {consensus ?? "—"}
           </CardHeader.Value>
           {meanRating !== undefined && (

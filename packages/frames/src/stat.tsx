@@ -79,12 +79,28 @@ const VALUE_SIZES = {
   /** `body-sm` weight+figures — the dense multi-stat strip. */
   body: "body-sm font-bold tabular-nums truncate",
   /** `metric-sm` (text-xl) — a tile's headline figure. */
-  "metric-sm": "metric-sm text-strong truncate",
+  "metric-sm": "metric-sm truncate",
   /** `metric-md` (text-2xl) — a card's single hero figure. */
-  "metric-md": "metric-md text-strong truncate",
+  "metric-md": "metric-md truncate",
 } as const;
 
 export type StatValueSize = keyof typeof VALUE_SIZES;
+
+/**
+ * Figure ink, split OUT of the size class so an `absent` placeholder replaces
+ * it rather than stacking a second ink utility on the same element — with two
+ * present, which one wins is decided by the order they happen to sit in the
+ * stylesheet instead of by the caller. `card-header.tsx` documents the same
+ * split for the same reason.
+ *
+ * `body` carries no ink on purpose: the dense strip inherits the card's, which
+ * is what its call sites were written against.
+ */
+const VALUE_INKS: Record<StatValueSize, string> = {
+  body: "",
+  "metric-sm": " text-strong",
+  "metric-md": " text-strong",
+};
 
 /**
  * Every span and gap the strip can take, written out literally.
@@ -136,7 +152,9 @@ export function Stat({
   return (
     <StatAlignContext.Provider value={align}>
       <div
-        className={`${SURFACES[surface]} ${layout}${className ? ` ${className}` : ""}`}
+        className={`${SURFACES[surface]} ${layout}${
+          className ? ` ${className}` : ""
+        }`}
       >
         {children}
       </div>
@@ -163,17 +181,26 @@ function StatLabel({ children }: { children: ReactNode }) {
 function StatValue({
   size = "body",
   tint,
+  absent,
   children,
 }: {
   size?: StatValueSize;
   tint?: string;
+  /**
+   * There is no reading — an em dash, not a figure. Renders in disabled ink so
+   * it cannot be mistaken for data, and beats `tint`: an absent value must not
+   * arrive wearing a gain/loss colour it has no direction for. Same contract as
+   * `CardHeader.Value`'s `absent`.
+   */
+  absent?: boolean;
   children: ReactNode;
 }) {
   const align = useAlignClass();
+  const ink = absent ? " text-disabled" : VALUE_INKS[size];
   return (
     <div
-      className={`${VALUE_SIZES[size]}${align}`}
-      style={tint ? { color: tint } : undefined}
+      className={`${VALUE_SIZES[size]}${ink}${align}`}
+      style={tint && !absent ? { color: tint } : undefined}
     >
       {children}
     </div>
@@ -220,7 +247,9 @@ function StatStrip({
 }) {
   return (
     <div
-      className={`grid ${STRIP_COLS[cols]} ${STRIP_GAPS[gap]}${className ? ` ${className}` : ""}`}
+      className={`grid ${STRIP_COLS[cols]} ${STRIP_GAPS[gap]}${
+        className ? ` ${className}` : ""
+      }`}
     >
       {children}
     </div>

@@ -4,16 +4,33 @@ import {
   formatMoneyCompact,
 } from "@zframes/core";
 
+/**
+ * The placeholder for a figure that does not exist — the package-wide
+ * convention for an absent reading (see `CardHeader.Value`'s `absent`, which
+ * also greys it so it can't be mistaken for data).
+ *
+ * WHY EVERY FORMATTER HERE GUARDS ON IT. A non-finite input means the
+ * computation behind the figure failed — a divide-by-zero on a missing supply,
+ * a ratio against a zero denominator — and left unguarded each formatter
+ * printed the failure as a confident numeral: `NaN`, `$NaN`, `InfinityT`, and
+ * `NaN%` in the LOSS colour, because a `>= 0` test is false for `NaN`. A
+ * made-up number is worse than no number, so a non-finite value renders as
+ * this and tints neutral.
+ */
+export const ABSENT = "—";
+
 /** A USD price/level: "$20.66", "$2,160,387". Delegates to the money kernel in
  *  `@zframes/core` so a dollar board and a converted board round identically.
  *  For market data on a card that may be denominated in another currency, use
  *  the `useMoney()` primitive instead — it takes USD in and renders the card's
  *  display currency. */
 export function formatPrice(value: number): string {
+  if (!Number.isFinite(value)) return ABSENT;
   return formatMoney(value, "USD");
 }
 
 export function formatChangePct(changePct: number): string {
+  if (!Number.isFinite(changePct)) return ABSENT;
   return `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%`;
 }
 
@@ -21,6 +38,7 @@ export function formatChangePct(changePct: number): string {
  *  "0.8776". Use for unit-less ratios like an FX cross where a "$" would be
  *  wrong; for a dollar *price* use {@link formatPrice}. */
 export function formatRate(value: number): string {
+  if (!Number.isFinite(value)) return ABSENT;
   const dp = value >= 100 ? 2 : 4;
   return value.toLocaleString("en-US", {
     minimumFractionDigits: dp,
@@ -36,6 +54,7 @@ export function formatRate(value: number): string {
  *  up. Never wrap it in a currency symbol: an index level has no currency, which
  *  is exactly why it doesn't go through {@link formatPrice} or `useMoney()`. */
 export function formatLevel(value: number): string {
+  if (!Number.isFinite(value)) return ABSENT;
   return value.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -46,12 +65,14 @@ export function formatLevel(value: number): string {
  *  yields, ratios, shares — where there's no positive/negative semantics. For a
  *  signed delta use {@link formatChangePct}; for funding use {@link formatFundingPct}. */
 export function formatPct(value: number, dp = 2): string {
+  if (!Number.isFinite(value)) return ABSENT;
   return `${value.toFixed(dp)}%`;
 }
 
 /** Funding rate as a signed, high-precision percentage: "+0.0125%", "-0.0030%".
  *  Pass a value already expressed in percent (multiply raw rates by 100 first). */
 export function formatFundingPct(percent: number): string {
+  if (!Number.isFinite(percent)) return ABSENT;
   return `${percent >= 0 ? "+" : ""}${percent.toFixed(4)}%`;
 }
 
@@ -75,7 +96,13 @@ export const DOWN_COLOR = "var(--zf-down, #ff6b81)";
 export const UP_COLOR_HEX = "#3fd08f";
 export const DOWN_COLOR_HEX = "#ff6b81";
 
+/** Gain/loss tint for a change figure — and NEUTRAL for a non-finite one.
+ *  `NaN >= 0` is false, so the plain comparison painted every failed
+ *  computation loss-red: a confident red number saying nothing. `currentColor`
+ *  leaves the figure in whatever ink it inherits, which is what an unknown
+ *  direction should look like. */
 export function changeColor(changePct: number): string {
+  if (!Number.isFinite(changePct)) return "currentColor";
   return changePct >= 0 ? UP_COLOR : DOWN_COLOR;
 }
 
@@ -85,6 +112,7 @@ export function changeColor(changePct: number): string {
  *  the charts-layer `parseMarketData` in frame code. For a currency value, wrap
  *  with {@link formatCompactUsd}; for an exact price use {@link formatPrice}. */
 export function formatCompact(value: number): string {
+  if (!Number.isFinite(value)) return ABSENT;
   return formatMagnitude(value);
 }
 
@@ -92,6 +120,7 @@ export function formatCompact(value: number): string {
  *  helper for aggregate dollar figures (market cap, TVL, volume, open interest,
  *  debt). The minus sign leads the `$` so negatives read naturally. */
 export function formatCompactUsd(value: number): string {
+  if (!Number.isFinite(value)) return ABSENT;
   return formatMoneyCompact(value, "USD");
 }
 
@@ -126,6 +155,7 @@ export function prettySlug(slug: string): string {
 
 /** Format sats as BTC with sensible precision: "1.23 BTC", "0.0042 BTC". */
 export function formatBtc(sats: number): string {
+  if (!Number.isFinite(sats)) return ABSENT;
   const btc = sats / 1e8;
   if (btc >= 100) return `${btc.toFixed(0)} BTC`;
   if (btc >= 1) return `${btc.toFixed(2)} BTC`;
@@ -135,6 +165,7 @@ export function formatBtc(sats: number): string {
 
 /** Format a hashrate in H/s with a binary-ish SI suffix, e.g. "612 EH/s". */
 export function formatHashrate(hs: number): string {
+  if (!Number.isFinite(hs)) return ABSENT;
   const units = ["H/s", "kH/s", "MH/s", "GH/s", "TH/s", "PH/s", "EH/s", "ZH/s"];
   let v = hs;
   let i = 0;
@@ -145,20 +176,39 @@ export function formatHashrate(hs: number): string {
   return `${v.toFixed(v >= 100 ? 0 : v >= 10 ? 1 : 2)} ${units[i]}`;
 }
 
-/** Compact "time since" label for feeds: "now", "5m", "3h", "2d", "4w", then a date. */
+/**
+ * Compact "time since" label for feeds: "now", "5m", "3h", "2d", "4w", then a
+ * date — and "in 5m" / "in 2d" for a timestamp that hasn't happened yet.
+ *
+ * Three things it deliberately does NOT do, each having been a slip:
+ *
+ * - It does not clamp the future to `now`. A headline or filing dated ahead of
+ *   the reader's clock (a scheduled release, a skewed provider timestamp) read
+ *   as "now", which is a claim about the present rather than a missing sign.
+ * - It does not drop the year on the date fallback. Past ~5 weeks the label is
+ *   an absolute date, and without the year a 2019 filing read exactly like a
+ *   this-year one. The year is added only when it differs from the current
+ *   one, so an in-year feed stays as short as it was.
+ * - It never prints `Invalid Date`. An unparseable timestamp is an absent
+ *   figure, not a date-shaped string, so it renders as {@link ABSENT}.
+ */
 export function timeAgo(ms: number): string {
-  const sec = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (!Number.isFinite(ms)) return ABSENT;
+  const delta = Date.now() - ms;
+  const ahead = delta < 0;
+  const sec = Math.round(Math.abs(delta) / 1000);
   if (sec < 60) return "now";
+  const relative = (label: string) => (ahead ? `in ${label}` : label);
   const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m`;
+  if (min < 60) return relative(`${min}m`);
   const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr}h`;
+  if (hr < 24) return relative(`${hr}h`);
   const day = Math.round(hr / 24);
-  if (day < 7) return `${day}d`;
+  if (day < 7) return relative(`${day}d`);
   const wk = Math.round(day / 7);
-  if (wk < 5) return `${wk}w`;
-  return new Date(ms).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  if (wk < 5) return relative(`${wk}w`);
+  const date = new Date(ms);
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  if (date.getFullYear() !== new Date().getFullYear()) opts.year = "numeric";
+  return date.toLocaleDateString("en-US", opts);
 }

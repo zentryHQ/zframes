@@ -5,8 +5,12 @@ import { widgetIcon, SOURCES } from "./shared";
 // The decision-journal frames are a FAMILY sharing one journal: Log captures a
 // read, Open tracks the live calls, Results shows them graded, Scoreboard reads
 // the aggregate. Split apart (not one mega-frame) so each does one calm job and
-// the user composes the ones they want. (Scaffold: backed by a shared in-memory
-// mock store; production round-trips a journal.json like the daily brief.)
+// the user composes the ones they want.
+//
+// The journal holds the user's own calls and nothing else — no seeded examples,
+// no sample performance figures — and it lives in `localStorage` under one key
+// shared by the family (`journal-store.ts` says why not the dashboard file).
+// Every frame here shows an empty state until there is something real to read.
 export const journalLogMeta = defineFrameMeta({
   name: "journal-log",
   label: "Journal · Log",
@@ -48,7 +52,7 @@ export const journalResultsMeta = defineFrameMeta({
   iconUrl: widgetIcon("journal-results"),
   layout: { w: 4, h: 4, minW: 2, minH: 3, maxH: 7 },
   description:
-    "Your resolved calls from the decision journal, graded on TWO axes: did it hit, AND did the thesis actually play out — so a lucky hit reads differently from earned skill, and a near-miss from a clean miss. The reflection frame. Reads the journal you write with Journal · Log.",
+    "Your resolved calls from the decision journal: direction, confidence, the claim you made and the realized % return that graded it. The reflection frame. Where a mechanism grade exists for a call it reads on a second axis too — whether the thesis actually played out, so a lucky hit reads differently from earned skill — and the mechanical return grade alone does not set one. Reads the journal you write with Journal · Log; empty until a call resolves.",
   capabilities: [],
   schema: z.object({
     max: z
@@ -68,7 +72,7 @@ export const journalScoreMeta = defineFrameMeta({
   iconUrl: widgetIcon("journal-score"),
   layout: { w: 4, h: 3, minW: 3, minH: 2, maxH: 3 },
   description:
-    "The decision-journal scoreboard — a story, not a spreadsheet: where your judgment has an edge, where it leaks, and how calibrated your confidence is, plus a one-line read from zAI. Aggregates the calls logged via Journal · Log.",
+    "The decision-journal scoreboard — a story, not a spreadsheet: where your judgment has an edge, where it leaks, how calibrated your confidence is, and a one-line read of the record. Every figure is computed from your own graded calls, so each reads 'no graded calls yet' until one resolves. Aggregates the calls logged via Journal · Log.",
   capabilities: [],
   schema: z.object({}),
 });

@@ -1,7 +1,7 @@
 import { defineFrame, useCoinMovers } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
-import { MoverRow } from "./mover-row";
+import { MoverRow, splitMovers } from "./mover-row";
 import { coinMoversMeta } from "./schemas";
 import { TimeframeToggle, useFrameChoice } from "./timeframe-toggle";
 import { FrameStatus, scrollAreaClass } from "./ui";
@@ -24,10 +24,7 @@ function CoinMovers({ config }: { config: z.output<typeof schema> }) {
         chg: e.changePct[moversWindow] ?? 0,
       }))
       .sort((a, b) => b.chg - a.chg);
-    return {
-      gainers: rows.slice(0, config.count),
-      losers: rows.slice(-config.count).reverse(),
-    };
+    return splitMovers(rows, config.count);
   }, [entries, moversWindow, config.count, config.minRank]);
 
   if (isLoading) return <FrameStatus loading>loading movers…</FrameStatus>;

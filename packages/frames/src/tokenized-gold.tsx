@@ -57,6 +57,7 @@ function TokenTile({
               <Stat orientation="row">
                 <Stat.Label>vs spot</Stat.Label>
                 <Stat.Value
+                  absent={token.premiumPct === undefined}
                   tint={
                     token.premiumPct === undefined
                       ? undefined
@@ -71,13 +72,13 @@ function TokenTile({
             )}
             <Stat orientation="row">
               <Stat.Label>mkt cap</Stat.Label>
-              <Stat.Value>
+              <Stat.Value absent={!(token.marketCap > 0)}>
                 {token.marketCap > 0 ? money.compact(token.marketCap) : "—"}
               </Stat.Value>
             </Stat>
             <Stat orientation="row">
               <Stat.Label>vaulted</Stat.Label>
-              <Stat.Value>
+              <Stat.Value absent={!(token.ounces > 0)}>
                 {token.ounces > 0 ? `${formatCompact(token.ounces)} oz` : "—"}
               </Stat.Value>
             </Stat>

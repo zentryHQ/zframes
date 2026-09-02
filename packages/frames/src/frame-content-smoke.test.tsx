@@ -767,11 +767,13 @@ const usdBoard = new Map<string, Rendered>();
 const thbBoard = new Map<string, Rendered>();
 
 /**
- * The journal's shared store starts with no OPEN calls (only graded examples),
- * so `journal-open` renders "no open calls" and its money — the entry→now→target
- * row — never mounts. Seed one call, in USD, the way the Log frame does: entry is
- * the price at log time, and `now` is whatever the quote stream says. Without
- * this the frame's classification would be asserting the empty state.
+ * The journal's shared store starts EMPTY — it holds the user's own calls and
+ * nothing else — so `journal-open` renders "no open calls" and its money (the
+ * entry→now→target row) never mounts. Log one call, in USD, the way the Log
+ * frame does: entry is the price at log time, and `now` is whatever the quote
+ * stream says. Without this the frame's classification would be asserting the
+ * empty state. `logCall` refuses a call with no finite entry price, so passing
+ * one explicitly is required, not decorative.
  */
 const SEEDED_ENTRY = 60_000;
 /** `logCall` derives a long's target as entry × 1.03 (journal-store). */
