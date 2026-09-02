@@ -3,10 +3,23 @@ import { defineFrame, useOptionsSummary } from "@zframes/core";
 import type { z } from "zod";
 import { GaugeCard } from "./chart-card";
 import { DOWN_COLOR, UP_COLOR } from "./format";
+import { GaugeReading, gaugeRingValue } from "./gauge-scale";
 import { putCallGaugeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = putCallGaugeMeta.schema;
+
+/** The dial covers a call-heavy 0 to a put-heavy 2; a ratio can exceed either. */
+const MIN = 0;
+const MAX = 2;
+
+/**
+ * Two decimals, the same as the centre figure. Hoisted so the ring's draw
+ * effect keeps one `formatValue` identity across renders.
+ */
+function formatRatio(value: number): string {
+  return value.toFixed(2);
+}
 
 function PutCallGauge({ config }: { config: z.output<typeof schema> }) {
   const { summary, isLoading } = useOptionsSummary(config.currency);
@@ -21,12 +34,24 @@ function PutCallGauge({ config }: { config: z.output<typeof schema> }) {
 
   return (
     <GaugeCard>
-      <RadialGauge value={value} min={0} max={2} color={color} fill>
+      <RadialGauge
+        value={gaugeRingValue(value, MIN)}
+        min={MIN}
+        max={MAX}
+        color={color}
+        formatValue={formatRatio}
+        fill
+      >
         {/* No bloom: this card never drew one, unlike the vol/sentiment gauges. */}
-        <GaugeCard.Value tint={color} glow={false}>
-          {value.toFixed(2)}
-        </GaugeCard.Value>
-        <GaugeCard.Label>put / call</GaugeCard.Label>
+        <GaugeReading
+          value={value}
+          min={MIN}
+          max={MAX}
+          format={formatRatio}
+          tint={color}
+          glow={false}
+          label="put / call"
+        />
       </RadialGauge>
       <GaugeCard.Caption>
         {config.currency} · by{" "}

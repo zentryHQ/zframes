@@ -57,6 +57,10 @@ function HomeValueScatter({ config }: { config: z.output<typeof schema> }) {
           formatX={formatChangePct}
           formatY={formatY}
           maxLabels={10}
+          xLabel="y/y change"
+          yLabel="typical home value"
+          // No `weightLabel`: the bubble area IS the home value, already in the
+          // y row, so naming it would print the same figure twice.
         />
       </ChartCard.Body>
       <ChartCard.Caption>

@@ -42,6 +42,12 @@ function ChainActivityScatter(_props: { config: z.output<typeof schema> }) {
           formatX={formatChangePct}
           formatY={formatCompact}
           maxLabels={10}
+          // The names the caption already uses; the backlog is a transaction
+          // count, so the compact magnitude and not a money formatter.
+          xLabel="24h price change"
+          yLabel="24h transactions"
+          weightLabel="mempool backlog"
+          formatWeight={formatCompact}
         />
       </ChartCard.Body>
       <ChartCard.Caption>

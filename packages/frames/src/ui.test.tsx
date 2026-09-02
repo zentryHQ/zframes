@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import { FrameStatus, cellLabelFits } from "./ui";
+import {
+  FrameStatus,
+  cellLabelFits,
+  scrollAreaClass,
+  scrollAreaXClass,
+} from "./ui";
 
 afterEach(cleanup);
 
@@ -63,5 +68,43 @@ describe("cellLabelFits", () => {
 
   it("still rejects a narrow cell", () => {
     expect(cellLabelFits(30, 40, 44)).toBe(false);
+  });
+});
+
+/**
+ * The scroll area's gutter (`pr-1` / `pb-1`) is sized for a six-pixel thumb,
+ * which is a promise only the `-webkit-` pseudo-elements were keeping: Firefox
+ * painted its full-width OS scrollbar into that gutter and the last column of
+ * every list sat under the track.
+ */
+describe("the shared scroll area", () => {
+  it("styles the scrollbar for browsers with no -webkit- pseudo-elements", () => {
+    for (const cls of [scrollAreaClass, scrollAreaXClass]) {
+      expect(cls).toContain("[scrollbar-width:thin]");
+      expect(cls).toContain("scrollbar-color:");
+    }
+  });
+
+  it("colours the thumb from the board's ink rather than a literal white", () => {
+    // `--zf-ink-l` is 100% on a dark board and 16% on a light one, so a
+    // hard-coded white thumb is invisible on half the surfaces we ship.
+    for (const cls of [scrollAreaClass, scrollAreaXClass]) {
+      expect(cls).toContain("--zf-ink-l");
+      expect(cls).not.toContain("bg-white");
+    }
+  });
+});
+
+describe("the loading skeleton's fill", () => {
+  it("draws its bars against the board's ink, not a literal white", () => {
+    // Four percent of white over a near-white Light surface is nothing at all:
+    // the card read as empty rather than as loading.
+    const { container } = render(<FrameStatus loading>loading…</FrameStatus>);
+    const styled = [...container.querySelectorAll("span[style]")].map(
+      (el) => el.getAttribute("style") ?? "",
+    );
+    const inked = styled.filter((style) => style.includes("--zf-ink-l"));
+    expect(inked.length).toBe(6);
+    expect(container.innerHTML).not.toContain("bg-white");
   });
 });

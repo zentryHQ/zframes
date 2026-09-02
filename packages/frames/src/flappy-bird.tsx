@@ -8,6 +8,7 @@ import {
 } from "react";
 import { GAME_HUD, accentColor, drawScore } from "./game-ui";
 import { flappyBirdMeta } from "./schemas";
+import { useFrameActivity } from "./use-frame-active";
 
 // Flappy-bird style game on canvas. Bird holds a fixed x; tap / SPACE flaps it
 // up against gravity through gaps in scrolling pipes. No external assets.
@@ -38,7 +39,18 @@ interface Pipe {
   passed: boolean;
 }
 
-type GameState = "idle" | "playing" | "gameover";
+/**
+ * `paused` is what a run becomes when nobody can see it — off-screen card, or
+ * background tab. A state and not merely a cancelled animation frame because
+ * gravity does not wait: a bird frozen mid-fall and restarted the instant the
+ * card returns is a bird already through the floor.
+ *
+ * REDUCED MOTION is deliberately untouched here, same as the sibling games and
+ * the breathing pacer: the motion is the game, it starts only when the player
+ * asks, and the card holds a still frame until then. The pause is the stop
+ * control that was missing — before it, a started run could only end by dying.
+ */
+type GameState = "idle" | "playing" | "paused" | "gameover";
 
 function drawBird(
   ctx: CanvasRenderingContext2D,
@@ -85,6 +97,17 @@ function drawStatic(
       canvas.width / 2,
       canvas.height / 2 - 40,
     );
+  } else if (gameState === "paused") {
+    ctx.fillStyle = GAME_HUD.text;
+    ctx.font = 'bold 20px "DM Sans", sans-serif';
+    ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2 - 50);
+    ctx.fillStyle = GAME_HUD.textSoft;
+    ctx.font = 'bold 14px "DM Sans", sans-serif';
+    ctx.fillText(
+      "Press SPACE or tap to resume",
+      canvas.width / 2,
+      canvas.height / 2 - 22,
+    );
   } else {
     ctx.fillStyle = GAME_HUD.gameOver;
     ctx.font = 'bold 20px "DM Sans", sans-serif';
@@ -116,6 +139,8 @@ function FlappyBird() {
     return 0;
   });
   const [, setCanvasReady] = useState(false);
+  // The run is only worth animating while someone can see it.
+  const { active } = useFrameActivity(containerRef);
 
   const scoreRef = useRef(0);
   const highScoreRef = useRef(highScore);
@@ -161,15 +186,26 @@ function FlappyBird() {
     setScore(0);
   }, [newGap]);
 
+  useEffect(() => {
+    if (!active) setGameState((s) => (s === "playing" ? "paused" : s));
+  }, [active]);
+
   const flap = useCallback(() => {
     containerRef.current?.focus();
+    // Resume, not restart: the run is still in `dataRef`. Gated on `active` so
+    // a container that kept keyboard focus after scrolling away cannot restart
+    // a loop nobody can see.
+    if (gameStateRef.current === "paused") {
+      if (active) setGameState("playing");
+      return;
+    }
     if (gameStateRef.current !== "playing") {
       resetGame();
       setGameState("playing");
       return;
     }
     dataRef.current.birdVel = FLAP;
-  }, [resetGame]);
+  }, [resetGame, active]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

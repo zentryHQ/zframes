@@ -63,6 +63,10 @@ function ProtocolFeesVsTvlScatter({
           formatX={formatX}
           formatY={money.compact}
           maxLabels={10}
+          xLabel="TVL"
+          yLabel="24h fees"
+          // No `weightLabel`: the bubble area IS the 24h fees, already in the y
+          // row, so naming it would print the same figure twice.
         />
       </ChartCard.Body>
       <ChartCard.Caption>

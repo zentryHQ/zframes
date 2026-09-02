@@ -3,6 +3,7 @@ import { defineFrame, useIndexSeries } from "@zframes/core";
 import type { z } from "zod";
 import { GaugeCard } from "./chart-card";
 import { formatLevel } from "./format";
+import { GaugeReading, gaugeRingValue } from "./gauge-scale";
 import { vixGaugeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -10,6 +11,9 @@ const schema = vixGaugeMeta.schema;
 
 /** FRED's series id for the VIX close — this frame is about one index only. */
 const VIX_SERIES = "VIXCLS";
+
+/** The dial opens at zero; only its ceiling is configurable. */
+const MIN = 0;
 
 /**
  * The volatility-regime ramp. A deliberate exception to the up/down semantic
@@ -35,16 +39,25 @@ function VixGauge({ config }: { config: z.output<typeof schema> }) {
   const regime = regimeOf(series.latest);
   return (
     <GaugeCard>
+      {/* A VIX print above the configured ceiling is the live case the off-scale
+          marker exists for: a panic reading fills the ring either way, so
+          without it a 55 and a 42 draw the same dial. */}
       <RadialGauge
-        value={series.latest}
+        value={gaugeRingValue(series.latest, MIN)}
+        min={MIN}
         max={config.max}
         color={regime.color}
+        formatValue={formatLevel}
         fill
       >
-        <GaugeCard.Value tint={regime.color}>
-          {formatLevel(series.latest)}
-        </GaugeCard.Value>
-        <GaugeCard.Label>{regime.label}</GaugeCard.Label>
+        <GaugeReading
+          value={series.latest}
+          min={MIN}
+          max={config.max}
+          format={formatLevel}
+          tint={regime.color}
+          label={regime.label}
+        />
       </RadialGauge>
       <GaugeCard.Caption>
         30-day implied S&amp;P volatility · {series.date}

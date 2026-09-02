@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { z } from "zod";
 import { imageGalleryMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { useReducedMotion } from "./use-reduced-motion";
 
 const schema = imageGalleryMeta.schema;
 
@@ -11,6 +12,17 @@ type LoadState = "loading" | "loaded" | "error";
 function ImageGallery({ config }: { config: z.output<typeof schema> }) {
   const { images, intervalSec, fit } = config;
   const [idx, setIdx] = useState(0);
+  /**
+   * Under reduced motion the slideshow holds on the image it is showing and the
+   * cross-fade lands instantly.
+   *
+   * Holding is not an invented state: `intervalSec: 0` is already the frame's
+   * supported "one image, no rotation" mode, so this puts the card into a shape
+   * it can be configured into anyway. An image swapping itself out every few
+   * seconds is exactly the un-asked-for movement the preference is about, and
+   * unlike the bubble cloud's drag there is no interaction to lose.
+   */
+  const reduced = useReducedMotion();
   const [states, setStates] = useState<LoadState[]>(() =>
     images.map(() => "loading"),
   );
@@ -38,13 +50,13 @@ function ImageGallery({ config }: { config: z.output<typeof schema> }) {
   }, [imagesKey]);
 
   useEffect(() => {
-    if (intervalSec <= 0 || images.length <= 1) return;
+    if (reduced || intervalSec <= 0 || images.length <= 1) return;
     const id = window.setInterval(
       () => setIdx((i) => (i + 1) % images.length),
       intervalSec * 1000,
     );
     return () => window.clearInterval(id);
-  }, [intervalSec, images.length]);
+  }, [intervalSec, images.length, reduced]);
 
   const cur = Math.min(idx, images.length - 1);
   const setState = (i: number, s: LoadState) =>
@@ -70,7 +82,9 @@ function ImageGallery({ config }: { config: z.output<typeof schema> }) {
           }}
           src={img.url}
           alt={img.alt}
-          className="absolute inset-0 h-full w-full transition-opacity duration-700"
+          className={`absolute inset-0 h-full w-full transition-opacity ${
+            reduced ? "duration-0" : "duration-700"
+          }`}
           style={{
             objectFit: fit,
             opacity: i === cur && states[i] === "loaded" ? 1 : 0,

@@ -3,11 +3,29 @@ import { defineFrame, useMetalPositioning } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { DOWN_COLOR, UP_COLOR, formatCompact } from "./format";
+import {
+  GaugeAbsent,
+  GaugeOffScale,
+  gaugeRingValue,
+  gaugeScale,
+} from "./gauge-scale";
 import { cotNet, metalName, percentileRank, sliceYears } from "./metals-shared";
 import { metalCotGaugeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = metalCotGaugeMeta.schema;
+
+/** A percentile, so the dial is the whole rank range. */
+const MIN = 0;
+const MAX = 100;
+
+/**
+ * A whole-number rank, as the centre prints it — also handed to the ring so its
+ * hover tooltip stops printing the raw float. Hoisted for a stable identity.
+ */
+function formatRank(value: number): string {
+  return String(Math.round(value));
+}
 
 /** Mid-range readings carry no signal, so they take the dashboard accent rather
  *  than either half of the semantic pair. */
@@ -69,18 +87,53 @@ function MetalCotGauge({ config }: { config: z.output<typeof schema> }) {
     return <FrameStatus>not enough COT positioning history yet</FrameStatus>;
 
   const color = gaugeColor(stats.pct);
+  // This card lays out its own centre (a tinted pill, not `GaugeCard.Label`),
+  // so it composes the two gauge guards itself rather than via `GaugeReading`.
+  const scale = gaugeScale(stats.pct, MIN, MAX);
+  const absent = scale === "absent";
 
   return (
     <div className="flex h-full min-h-0 flex-col items-center justify-center gap-1">
-      <RadialGauge value={stats.pct} min={0} max={100} color={color} fill>
-        <div className="metric-xl leading-none tabular-nums" style={{ color }}>
-          {Math.round(stats.pct)}
-        </div>
+      <RadialGauge
+        value={gaugeRingValue(stats.pct, MIN)}
+        min={MIN}
+        max={MAX}
+        color={color}
+        formatValue={formatRank}
+        fill
+      >
+        {absent ? (
+          <GaugeAbsent />
+        ) : (
+          <div
+            className="metric-xl leading-none tabular-nums"
+            style={{ color }}
+          >
+            {formatRank(stats.pct)}
+          </div>
+        )}
         <div
-          className="caption mt-1 rounded-full bg-white/[0.07] px-2 py-0.5 uppercase tracking-wide"
-          style={{ color }}
+          className="caption mt-1 rounded-full px-2 py-0.5 uppercase tracking-wide"
+          style={{
+            color,
+            // The board's ink, not a literal white: the pill is invisible on a
+            // Light surface otherwise.
+            background: "hsl(0 0% var(--zf-ink-l, 100%) / 0.07)",
+          }}
         >
-          {classify(stats.pct)}
+          {absent ? (
+            "no reading"
+          ) : (
+            <>
+              {classify(stats.pct)}
+              <GaugeOffScale
+                scale={scale}
+                min={MIN}
+                max={MAX}
+                format={formatRank}
+              />
+            </>
+          )}
         </div>
       </RadialGauge>
 

@@ -3,7 +3,7 @@ import { defineFrame, useDexPools, useMoney } from "@zframes/core";
 import { useCallback, useMemo } from "react";
 import type { z } from "zod";
 import { ChartCard } from "./chart-card";
-import { changeColor } from "./format";
+import { changeColor, formatCompact } from "./format";
 import { dexPoolLiquidityScatterMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
@@ -51,6 +51,12 @@ function DexPoolLiquidityScatter({
           formatX={formatX}
           formatY={money.compact}
           maxLabels={8}
+          // The names the caption already uses; trades are a count, so the
+          // compact magnitude rather than a money formatter.
+          xLabel="liquidity"
+          yLabel="24h volume"
+          weightLabel="trades"
+          formatWeight={formatCompact}
         />
       </ChartCard.Body>
       <ChartCard.Caption>

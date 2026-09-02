@@ -2,6 +2,7 @@ import { defineFrame } from "@zframes/core";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
 import { quoteMeta } from "./schemas";
+import { useReducedMotion } from "./use-reduced-motion";
 
 const schema = quoteMeta.schema;
 type Config = z.output<typeof schema>;
@@ -11,18 +12,23 @@ const accent = "var(--color-highlight)";
 function Quote({ config }: { config: Config }) {
   const quotes = config.quotes;
   const [idx, setIdx] = useState(0);
+  // Under reduced motion the card holds the quote it is showing. Same reasoning
+  // as the gallery's: `intervalSec: 0` is already the frame's supported static
+  // mode, and text replacing itself on a timer is movement nobody asked for.
+  // The dots below stay, so it still reads as one of several.
+  const reduced = useReducedMotion();
 
   // Restart from the top whenever the quote list changes (config-rail edit).
   useEffect(() => setIdx(0), [config.quotes]);
 
   useEffect(() => {
-    if (config.intervalSec <= 0 || quotes.length <= 1) return;
+    if (reduced || config.intervalSec <= 0 || quotes.length <= 1) return;
     const id = window.setInterval(
       () => setIdx((i) => (i + 1) % quotes.length),
       config.intervalSec * 1000,
     );
     return () => window.clearInterval(id);
-  }, [config.intervalSec, quotes.length]);
+  }, [config.intervalSec, quotes.length, reduced]);
 
   const text = quotes[Math.min(idx, quotes.length - 1)] ?? "";
 

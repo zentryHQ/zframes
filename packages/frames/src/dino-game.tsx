@@ -8,6 +8,7 @@ import {
 } from "react";
 import { GAME_HUD, accentColor, drawScore } from "./game-ui";
 import { dinoGameMeta } from "./schemas";
+import { useFrameActivity } from "./use-frame-active";
 
 // Chrome-dino style runner on canvas. The obstacle sprite is drawn (a pixel
 // cactus) so the build ships no external image asset.
@@ -38,7 +39,21 @@ interface Obstacle {
   height: number;
 }
 
-type GameState = "idle" | "playing" | "gameover";
+/**
+ * `paused` is what a run becomes when nobody can see it — the card scrolled
+ * off-screen, or the tab went to the background. It is a real state rather than
+ * just a cancelled animation frame because resuming has to wait for the player:
+ * a runner frozen mid-stride and restarted the instant the card comes back
+ * lands the reader straight into whatever obstacle had reached the dino.
+ *
+ * REDUCED MOTION is deliberately not wired to any of this, on the same footing
+ * as the breathing pacer: the motion IS the game, it only ever starts because
+ * the player asked it to, and the card sits on a still frame until they do.
+ * There is no un-requested animation here to suppress, and suppressing the
+ * requested kind would remove the frame's function rather than its decoration.
+ * The pause above is the stop control the game did not previously have.
+ */
+type GameState = "idle" | "playing" | "paused" | "gameover";
 
 function drawDinoSprite(
   ctx: CanvasRenderingContext2D,
@@ -105,6 +120,17 @@ function drawStaticGameFrame(
       canvas.width / 2,
       canvas.height / 2 - 30,
     );
+  } else if (gameState === "paused") {
+    ctx.fillStyle = GAME_HUD.text;
+    ctx.font = 'bold 20px "DM Sans", sans-serif';
+    ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2 - 40);
+    ctx.fillStyle = GAME_HUD.textSoft;
+    ctx.font = 'bold 14px "DM Sans", sans-serif';
+    ctx.fillText(
+      "Press SPACE or tap to resume",
+      canvas.width / 2,
+      canvas.height / 2 - 10,
+    );
   } else {
     ctx.fillStyle = GAME_HUD.gameOver;
     ctx.font = 'bold 20px "DM Sans", sans-serif';
@@ -137,6 +163,8 @@ function DinoGame() {
     return 0;
   });
   const [canvasReady, setCanvasReady] = useState(false);
+  // The run is only worth animating while someone can see it.
+  const { active } = useFrameActivity(containerRef);
 
   // The RAF game loop reads live score/highScore from refs so they needn't be
   // in its effect deps — otherwise each score tick would tear down and restart
@@ -184,8 +212,19 @@ function DinoGame() {
     setScore(0);
   }, []);
 
+  useEffect(() => {
+    if (!active) setGameState((s) => (s === "playing" ? "paused" : s));
+  }, [active]);
+
   const jump = useCallback(() => {
     containerRef.current?.focus();
+    // Resume, not restart: the run is still in `gameDataRef`. Gated on `active`
+    // so a container that kept keyboard focus after scrolling away cannot
+    // restart a loop nobody can see.
+    if (gameState === "paused") {
+      if (active) setGameState("playing");
+      return;
+    }
     if (gameState !== "playing") {
       resetGame();
       setGameState("playing");
@@ -196,7 +235,7 @@ function DinoGame() {
       data.dinoVelocity = JUMP_FORCE;
       data.isJumping = true;
     }
-  }, [gameState, resetGame]);
+  }, [gameState, resetGame, active]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

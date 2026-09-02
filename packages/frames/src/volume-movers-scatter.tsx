@@ -45,6 +45,10 @@ function VolumeMoversScatter({ config }: { config: z.output<typeof schema> }) {
           formatX={formatChangePct}
           formatY={money.compact}
           maxLabels={10}
+          xLabel="24h change"
+          yLabel="24h notional volume"
+          // No `weightLabel`: the bubble area IS the notional volume, already in
+          // the y row, so naming it would print the same figure twice.
         />
       </ChartCard.Body>
       <ChartCard.Caption>

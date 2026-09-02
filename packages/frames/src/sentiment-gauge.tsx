@@ -2,10 +2,24 @@ import { RadialGauge } from "@zframes/charts";
 import { defineFrame, useFearGreed } from "@zframes/core";
 import type { z } from "zod";
 import { GaugeCard } from "./chart-card";
+import { GaugeReading, gaugeRingValue } from "./gauge-scale";
 import { sentimentGaugeMeta } from "./schemas";
 import { FrameStatus } from "./ui";
 
 const schema = sentimentGaugeMeta.schema;
+
+/** The index is published on a 0–100 scale. */
+const MIN = 0;
+const MAX = 100;
+
+/**
+ * The index is a whole number, and the centre prints it bare — so the ring's
+ * tooltip must too, rather than falling back to `String(v)`. Hoisted for a
+ * stable identity across the ring's draw effect.
+ */
+function formatIndex(value: number): string {
+  return String(Math.round(value));
+}
 
 /** The fear & greed mood ramp (same deliberate exception as the fear-greed
  *  frame — a sentiment scale, NOT the up/down semantic pair). */
@@ -27,9 +41,22 @@ function SentimentGauge(_props: { config: z.output<typeof schema> }) {
   const color = indexColor(latest.value);
   return (
     <GaugeCard>
-      <RadialGauge value={latest.value} color={color} fill>
-        <GaugeCard.Value tint={color}>{latest.value}</GaugeCard.Value>
-        <GaugeCard.Label>{latest.classification}</GaugeCard.Label>
+      <RadialGauge
+        value={gaugeRingValue(latest.value, MIN)}
+        min={MIN}
+        max={MAX}
+        color={color}
+        formatValue={formatIndex}
+        fill
+      >
+        <GaugeReading
+          value={latest.value}
+          min={MIN}
+          max={MAX}
+          format={formatIndex}
+          tint={color}
+          label={latest.classification}
+        />
       </RadialGauge>
       <GaugeCard.Caption>crypto fear &amp; greed</GaugeCard.Caption>
     </GaugeCard>

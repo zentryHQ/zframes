@@ -1,5 +1,5 @@
 import { ScatterChart, type ScatterDatum } from "@zframes/charts";
-import { defineFrame, useCoinMovers } from "@zframes/core";
+import { defineFrame, useCoinMovers, useMoney } from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { ChartCard } from "./chart-card";
@@ -11,6 +11,8 @@ const schema = coinMomentumScatterMeta.schema;
 
 function CoinMomentumScatter({ config }: { config: z.output<typeof schema> }) {
   const { entries, isLoading } = useCoinMovers();
+  // Only for the tooltip's weight row: a market cap is money, so it converts.
+  const money = useMoney();
 
   const data: ScatterDatum[] = useMemo(
     () =>
@@ -47,6 +49,12 @@ function CoinMomentumScatter({ config }: { config: z.output<typeof schema> }) {
           formatX={formatChangePct}
           formatY={formatChangePct}
           maxLabels={10}
+          // The names the caption already uses: "x: +1.2%" on its own is not a
+          // reading, and the bubble's third dimension went unnamed entirely.
+          xLabel="24h change"
+          yLabel="7d change"
+          weightLabel="market cap"
+          formatWeight={money.compact}
         />
       </ChartCard.Body>
       <ChartCard.Caption>

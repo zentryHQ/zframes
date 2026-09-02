@@ -1,22 +1,50 @@
 import { useMoney, type Money } from "@zframes/core";
 import type { ReactNode } from "react";
+import { useReducedMotion } from "./use-reduced-motion";
+
+/**
+ * The standard-property half of the scrollbar treatment, for the browsers that
+ * implement none of the `-webkit-` pseudo-elements.
+ *
+ * Without it Firefox painted its full-width OS scrollbar into a gutter sized
+ * for a six-pixel thumb, so the last column of every list sat under the track —
+ * exactly what the gutter (`pr-1` / `pb-1`) exists to prevent.
+ *
+ * `hsla()`'s legacy comma syntax, not the modern `hsl(… / α)` slash form: these
+ * are Tailwind arbitrary properties, where a `/` reads as the start of an
+ * opacity modifier. `var()` substitution is textual, so the legacy function
+ * resolves the same way. The lightness comes from the board's `--zf-ink-l` so
+ * the thumb darkens with a Light surface instead of staying white-on-white.
+ *
+ * Written out in full, never composed from parts: Tailwind finds class
+ * candidates by scanning the SOURCE TEXT, so a name assembled at runtime
+ * generates no CSS at all.
+ */
+const SCROLLBAR = [
+  "[scrollbar-width:thin]",
+  "[scrollbar-color:hsla(0,0%,var(--zf-ink-l,100%),0.08)_transparent]",
+  "hover:[scrollbar-color:hsla(0,0%,var(--zf-ink-l,100%),0.15)_transparent]",
+  "[&::-webkit-scrollbar-track]:bg-transparent",
+  "[&::-webkit-scrollbar-thumb]:rounded-full",
+  "[&::-webkit-scrollbar-thumb]:bg-[hsla(0,0%,var(--zf-ink-l,100%),0.08)]",
+  "hover:[&::-webkit-scrollbar-thumb]:bg-[hsla(0,0%,var(--zf-ink-l,100%),0.15)]",
+].join(" ");
 
 /**
  * Shared scroll-area styling for list/feed frames: claims the remaining height,
  * scrolls vertically, and renders a thin, quiet scrollbar that brightens on
- * hover (webkit). `pr-1` keeps row content off the scrollbar track so the last
- * column never sits under the thumb.
+ * hover (webkit pseudo-elements plus the standard properties above). `pr-1`
+ * keeps row content off the scrollbar track so the last column never sits under
+ * the thumb.
  */
-export const scrollAreaClass =
-  "min-h-0 flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/[0.08] hover:[&::-webkit-scrollbar-thumb]:bg-white/15";
+export const scrollAreaClass = `min-h-0 flex-1 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 ${SCROLLBAR}`;
 
 /**
  * Horizontal counterpart to {@link scrollAreaClass} for strips that scroll on
  * the x-axis (e.g. a row of projected-block / candle tiles). Same quiet, thin
  * thumb that brightens on hover; `pb-1` keeps content off the scrollbar track.
  */
-export const scrollAreaXClass =
-  "min-w-0 overflow-x-auto pb-1 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/[0.08] hover:[&::-webkit-scrollbar-thumb]:bg-white/15";
+export const scrollAreaXClass = `min-w-0 overflow-x-auto pb-1 [&::-webkit-scrollbar]:h-1.5 ${SCROLLBAR}`;
 
 /**
  * Line box a `caption`-sized figure needs before it starts clipping against the
@@ -95,8 +123,23 @@ export function heatmapCellLabel<T>(
 }
 
 /**
+ * The skeleton's bars, against the board's ink rather than a literal white: the
+ * surface rule flips `--zf-ink-l` to 16% on a Light board, and four percent of
+ * white over a near-white card is nothing at all.
+ */
+const barFill = (alpha: number) => ({
+  background: `hsl(0 0% var(--zf-ink-l, 100%) / ${alpha})`,
+});
+
+/**
  * Shared loading / empty placeholder for frames. Loading gets a real widget
  * skeleton instead of text-only pulse; empty states stay quiet and readable.
+ *
+ * The pulse and the ping are gated on the live reduced-motion preference. The
+ * equivalent fill in the card chrome (`@zframes/core`'s `.zf-frame-skeleton`)
+ * is CSS and gates itself with a media query; this one is Tailwind's
+ * `animate-*`, so the gate has to be the hook. It reads the query live, so
+ * flipping the setting reaches a card that is already on screen.
  */
 export function FrameStatus({
   loading = false,
@@ -105,6 +148,9 @@ export function FrameStatus({
   loading?: boolean;
   children: ReactNode;
 }) {
+  const reduced = useReducedMotion();
+  const pulse = reduced ? "" : "animate-pulse";
+
   if (loading) {
     return (
       <div
@@ -123,24 +169,32 @@ export function FrameStatus({
                   "0 0 12px hsl(var(--zf-accent-hue, 242) 90% 76% / 0.72)",
               }}
             >
-              <span
-                className="absolute inset-0 animate-ping rounded-full opacity-60"
-                style={{
-                  background: "hsl(var(--zf-accent-hue, 242) 90% 76%)",
-                }}
-              />
+              {!reduced && (
+                <span
+                  className="absolute inset-0 animate-ping rounded-full opacity-60"
+                  style={{
+                    background: "hsl(var(--zf-accent-hue, 242) 90% 76%)",
+                  }}
+                />
+              )}
             </span>
             <span className="body-sm text-soft truncate">{children}</span>
           </div>
           <div className="grid min-h-0 grid-cols-4 gap-2">
-            <span className="h-11 animate-pulse rounded bg-white/[0.07]" />
-            <span className="h-11 animate-pulse rounded bg-white/[0.05]" />
-            <span className="h-11 animate-pulse rounded bg-white/[0.08]" />
-            <span className="h-11 animate-pulse rounded bg-white/[0.04]" />
+            <span className={`h-11 rounded ${pulse}`} style={barFill(0.07)} />
+            <span className={`h-11 rounded ${pulse}`} style={barFill(0.05)} />
+            <span className={`h-11 rounded ${pulse}`} style={barFill(0.08)} />
+            <span className={`h-11 rounded ${pulse}`} style={barFill(0.04)} />
           </div>
           <div className="flex flex-col gap-2">
-            <span className="h-2.5 w-11/12 animate-pulse rounded-full bg-white/[0.07]" />
-            <span className="h-2.5 w-7/12 animate-pulse rounded-full bg-white/[0.05]" />
+            <span
+              className={`h-2.5 w-11/12 rounded-full ${pulse}`}
+              style={barFill(0.07)}
+            />
+            <span
+              className={`h-2.5 w-7/12 rounded-full ${pulse}`}
+              style={barFill(0.05)}
+            />
           </div>
         </div>
       </div>

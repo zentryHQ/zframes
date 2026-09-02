@@ -57,6 +57,10 @@ function PredictionMarketScatter({
           formatX={formatProbPct}
           formatY={money.compact}
           maxLabels={10}
+          xLabel="top-outcome probability"
+          yLabel="24h volume"
+          // No `weightLabel`: the bubble area IS the 24h volume, already in the
+          // y row, so naming it would print the same figure twice.
         />
       </ChartCard.Body>
       <ChartCard.Caption>

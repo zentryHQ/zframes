@@ -3,12 +3,16 @@ import { useEffect, useRef, useState } from "react";
 import type { z } from "zod";
 import { imageMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { useReducedMotion } from "./use-reduced-motion";
 
 const schema = imageMeta.schema;
 
 function ImageFrame({ config }: { config: z.output<typeof schema> }) {
   const [state, setState] = useState<"loading" | "loaded" | "error">("loading");
   const imgRef = useRef<HTMLImageElement>(null);
+  // The reveal is decoration — the image is what the card is for — so under
+  // reduced motion it lands instantly rather than fading. Nothing is lost.
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     setState("loading");
@@ -32,9 +36,9 @@ function ImageFrame({ config }: { config: z.output<typeof schema> }) {
         ref={imgRef}
         src={config.url}
         alt={config.alt}
-        className={`h-full w-full transition-opacity duration-300 ${
-          state === "loaded" ? "opacity-100" : "opacity-0"
-        }`}
+        className={`h-full w-full transition-opacity ${
+          reduced ? "duration-0" : "duration-300"
+        } ${state === "loaded" ? "opacity-100" : "opacity-0"}`}
         style={{ objectFit: config.fit }}
         onLoad={() => setState("loaded")}
         onError={() => setState("error")}

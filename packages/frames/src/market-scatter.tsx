@@ -43,6 +43,10 @@ function MarketScatter({ config }: { config: z.output<typeof schema> }) {
           formatX={formatChangePct}
           formatY={money.compact}
           maxLabels={10}
+          xLabel="24h change"
+          yLabel="market cap"
+          // No `weightLabel`: the bubble area IS the market cap, which the y row
+          // already gives, so naming it would print the same figure twice.
         />
       </ChartCard.Body>
       <ChartCard.Caption>

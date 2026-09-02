@@ -51,6 +51,12 @@ function NftScatter({ config }: { config: z.output<typeof schema> }) {
           formatX={formatChangePct}
           formatY={money.compact}
           maxLabels={10}
+          // The names the caption already uses, plus the bubble's own
+          // dimension, which the caption never mentioned at all.
+          xLabel="24h floor change"
+          yLabel="24h volume"
+          weightLabel="market cap"
+          formatWeight={money.compact}
         />
       </ChartCard.Body>
       <ChartCard.Caption>

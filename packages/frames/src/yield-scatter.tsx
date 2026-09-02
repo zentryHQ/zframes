@@ -53,6 +53,10 @@ function YieldScatter({ config }: { config: z.output<typeof schema> }) {
           formatX={formatApy}
           formatY={money.compact}
           maxLabels={8}
+          xLabel="APY"
+          yLabel="TVL"
+          // No `weightLabel`: the bubble area IS the TVL, already in the y row,
+          // so naming it would print the same figure twice.
         />
       </ChartCard.Body>
       <ChartCard.Caption>

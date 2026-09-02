@@ -1,5 +1,10 @@
 import { ScatterChart, type ScatterDatum } from "@zframes/charts";
-import { defineFrame, useDayStatsState, useOpenInterest } from "@zframes/core";
+import {
+  defineFrame,
+  useDayStatsState,
+  useMoney,
+  useOpenInterest,
+} from "@zframes/core";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
@@ -18,6 +23,8 @@ function FundingCrowdingScatter({
   const { stats, isLoading: statsLoading } = useDayStatsState();
   const { entries: oiEntries, isLoading: oiLoading } = useOpenInterest();
   const isLoading = statsLoading || oiLoading;
+  // Only for the tooltip's weight row: open interest is money, so it converts.
+  const money = useMoney();
 
   const oiBySymbol = useMemo(() => {
     const map = new Map<string, number>();
@@ -56,6 +63,11 @@ function FundingCrowdingScatter({
           formatX={formatChangePct}
           formatY={formatFundingPct}
           maxLabels={10}
+          // The names the caption already uses.
+          xLabel="24h change"
+          yLabel="funding rate"
+          weightLabel="open interest"
+          formatWeight={money.compact}
         />
       </ChartCard.Body>
       <ChartCard.Caption>

@@ -4,6 +4,7 @@ import type { z } from "zod";
 import { interactiveSurface } from "./content-shared";
 import { diceMeta } from "./schemas";
 import { FrameStatus } from "./ui";
+import { useReducedMotion } from "./use-reduced-motion";
 
 const schema = diceMeta.schema;
 type Config = z.output<typeof schema>;
@@ -56,6 +57,10 @@ function Dice({ config }: { config: Config }) {
 
   const [result, setResult] = useState(() => pick(mode, options));
   const [rolling, setRolling] = useState(false);
+  // The shuffle is pure theatre: the result is drawn the same either way, so
+  // under reduced motion the roll settles on it at once and the punch-out scale
+  // is dropped. The card stays fully usable.
+  const reduced = useReducedMotion();
 
   // Re-roll a fresh value whenever the mode or options change via the rail.
   useEffect(() => {
@@ -79,8 +84,12 @@ function Dice({ config }: { config: Config }) {
 
   const reroll = useCallback(() => {
     if (empty) return;
+    if (reduced) {
+      setResult(pick(mode, options));
+      return;
+    }
     setRolling(true);
-  }, [empty]);
+  }, [empty, reduced, mode, options]);
 
   if (empty) {
     return <FrameStatus>add options to decide</FrameStatus>;
@@ -106,10 +115,12 @@ function Dice({ config }: { config: Config }) {
 
       <span
         aria-live="polite"
-        className={`${resultClass} max-w-full break-words text-center leading-none transition-transform`}
+        className={`${resultClass} max-w-full break-words text-center leading-none ${
+          reduced ? "" : "transition-transform"
+        }`}
         style={{
           color: accent,
-          transform: rolling ? "scale(1.08)" : undefined,
+          transform: rolling && !reduced ? "scale(1.08)" : undefined,
         }}
       >
         {result}

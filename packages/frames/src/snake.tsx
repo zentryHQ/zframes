@@ -8,6 +8,7 @@ import {
 } from "react";
 import { GAME_HUD, accentColor, drawScore } from "./game-ui";
 import { snakeMeta } from "./schemas";
+import { useFrameActivity } from "./use-frame-active";
 
 // Classic grid snake on canvas. The board fills the frame; cell count is derived
 // from the frame size, so it scales with the grid item. No external assets.
@@ -42,7 +43,18 @@ interface SnakeData {
   stepCounter: number;
 }
 
-type GameState = "idle" | "playing" | "gameover";
+/**
+ * `paused` is what a run becomes when nobody can see it — off-screen card, or
+ * background tab. A state and not merely a cancelled animation frame, so that
+ * resuming waits for the player: the snake would otherwise carry straight on in
+ * the direction it was travelling the moment the card reappeared.
+ *
+ * REDUCED MOTION is deliberately untouched here, same as the sibling games and
+ * the breathing pacer: the motion is the game, it starts only when the player
+ * asks, and the card holds a still frame until then. The pause is the stop
+ * control that was missing — before it, a started run could only end by dying.
+ */
+type GameState = "idle" | "playing" | "paused" | "gameover";
 
 function fillCell(
   ctx: CanvasRenderingContext2D,
@@ -94,6 +106,17 @@ function drawStatic(
       canvas.width / 2,
       canvas.height / 2,
     );
+  } else if (gameState === "paused") {
+    ctx.fillStyle = GAME_HUD.text;
+    ctx.font = 'bold 20px "DM Sans", sans-serif';
+    ctx.fillText("PAUSED", canvas.width / 2, canvas.height / 2 - 14);
+    ctx.fillStyle = GAME_HUD.textSoft;
+    ctx.font = 'bold 14px "DM Sans", sans-serif';
+    ctx.fillText(
+      "Press an arrow or tap to resume",
+      canvas.width / 2,
+      canvas.height / 2 + 14,
+    );
   } else {
     ctx.fillStyle = GAME_HUD.gameOver;
     ctx.font = 'bold 20px "DM Sans", sans-serif';
@@ -125,6 +148,8 @@ function SnakeGame() {
     return 0;
   });
   const [, setCanvasReady] = useState(false);
+  // The run is only worth animating while someone can see it.
+  const { active } = useFrameActivity(containerRef);
 
   const scoreRef = useRef(0);
   const highScoreRef = useRef(highScore);
@@ -197,6 +222,19 @@ function SnakeGame() {
     setGameState("playing");
   }, [resetGame]);
 
+  useEffect(() => {
+    if (!active) setGameState((s) => (s === "playing" ? "paused" : s));
+  }, [active]);
+
+  /**
+   * Pick the run back up without resetting it — the board is still in
+   * `dataRef`. Gated on `active` so a container that kept keyboard focus after
+   * scrolling away cannot restart a loop nobody can see.
+   */
+  const resume = useCallback(() => {
+    if (active) setGameState("playing");
+  }, [active]);
+
   const turn = useCallback((nx: number, ny: number) => {
     const d = dataRef.current;
     // Can't reverse straight back onto the neck.
@@ -214,30 +252,34 @@ function SnakeGame() {
       )
         return;
       const playing = gameStateRef.current === "playing";
+      const paused = gameStateRef.current === "paused";
+      // A key from a paused run resumes it rather than restarting it; from idle
+      // or game-over it still starts a fresh one.
+      const wake = paused ? resume : start;
       let handled = true;
       switch (e.code) {
         case "ArrowUp":
         case "KeyW":
           if (playing) turn(0, -1);
-          else start();
+          else wake();
           break;
         case "ArrowDown":
         case "KeyS":
           if (playing) turn(0, 1);
-          else start();
+          else wake();
           break;
         case "ArrowLeft":
         case "KeyA":
           if (playing) turn(-1, 0);
-          else start();
+          else wake();
           break;
         case "ArrowRight":
         case "KeyD":
           if (playing) turn(1, 0);
-          else start();
+          else wake();
           break;
         case "Space":
-          if (!playing) start();
+          if (!playing) wake();
           break;
         default:
           handled = false;
@@ -248,7 +290,7 @@ function SnakeGame() {
     if (!el) return;
     el.addEventListener("keydown", onKey);
     return () => el.removeEventListener("keydown", onKey);
-  }, [turn, start]);
+  }, [turn, start, resume]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -360,7 +402,8 @@ function SnakeGame() {
     const t = e.changedTouches[0];
     containerRef.current?.focus();
     if (gameStateRef.current !== "playing") {
-      start();
+      if (gameStateRef.current === "paused") resume();
+      else start();
       return;
     }
     if (!from || !t) return;
