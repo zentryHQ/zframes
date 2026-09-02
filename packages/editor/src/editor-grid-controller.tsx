@@ -25,6 +25,7 @@ import {
 } from "./editor-grid";
 import {
   buildGroupChildEl,
+  collectGroupChildren,
   decorateGroupHost,
   pinGroupOuterGutter,
   subGridOptions,
@@ -38,10 +39,11 @@ import {
   FramesProvider,
   useProviders,
 } from "@zframes/core";
-import type {
-  DashboardSpec,
-  FrameInstance,
-  GridPosition,
+import {
+  MAX_GROUP_CHILDREN,
+  type DashboardSpec,
+  type FrameInstance,
+  type GridPosition,
 } from "@zframes/spec/spec";
 
 // ── GridStack wiring: grid init, nested groups, per-item React roots ──
@@ -75,6 +77,149 @@ function unmountRootSoon(root: Root): void {
  *  torn-down group takes its entry with it. */
 const appliedCellPx = new WeakMap<GridStack, number>();
 
+/**
+ * What the one toast surface is currently saying.
+ *
+ * Two variants rather than two surfaces: a delete offers its own undo, and a
+ * refused drop states a reason — both are the same "the board just did
+ * something you should know about" slot at the bottom of the screen, and a
+ * silent refusal is indistinguishable from a drop that missed.
+ */
+export type EditorToast =
+  | {
+      kind: "removed";
+      id: string;
+      label: string;
+      /** The frame exactly as it was, children and all, so the toast's Undo can
+       *  put back THAT card rather than walking the shared history back a step
+       *  (which reversed whatever happened last instead). */
+      instance: FrameInstance;
+      /** The group it was inside, when it was a child rather than a board frame. */
+      parentId?: string;
+    }
+  | { kind: "refused"; reason: string };
+
+/** Elements that can hold focus inside a card — the set B-15's focus rescue
+ *  indexes into, so an undo doesn't drop the keyboard user on `<body>`. */
+const FOCUSABLE_IN_CARD =
+  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+/** Which frame held focus, and where inside it. Ids survive a rebuild; DOM
+ *  nodes do not, so the position is recorded as an index into the card's
+ *  focusable descendants (the rebuilt card is the same component rendering the
+ *  same markup, so the index lands on the same control). */
+interface FocusMemo {
+  id: string;
+  index: number | null;
+}
+
+/**
+ * Whether the machine has asked for reduced motion, read live.
+ *
+ * A local subscription rather than a shared hook because the layer DAG allows
+ * this package `@zframes/core` + `@zframes/spec` only — the frames' and the
+ * charts' equivalents are off-limits here — and the grid engine is the one
+ * thing in the editor that animates from JS rather than from CSS.
+ */
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
+  );
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function captureFocusMemo(): FocusMemo | null {
+  if (typeof document === "undefined") return null;
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement)) return null;
+  const item = active.closest<HTMLElement>(".grid-stack-item");
+  const id = item?.getAttribute("gs-id");
+  if (!item || !id) return null;
+  const index = [
+    ...item.querySelectorAll<HTMLElement>(FOCUSABLE_IN_CARD),
+  ].indexOf(active);
+  return { id, index: index < 0 ? null : index };
+}
+
+/**
+ * Undo a drop the editor refuses, leaving the board exactly as it was.
+ *
+ * Two cases, and they must not be confused: a palette card has nothing behind
+ * it yet, so removing the item IS the undo. A card dragged in from the board (or
+ * another group) is a live frame whose React root, nested grid and instance all
+ * ride inside the element GridStack just re-parented — removing it would delete
+ * the user's card. That one is handed back to the grid it came from, with the
+ * placement it had, since GridStack has already overwritten the `gs-*`
+ * attributes with the slot it was about to take inside the group.
+ */
+function refuseDrop(
+  sub: GridStack,
+  el: GridItemHTMLElement,
+  origin: GridStackNode | undefined,
+): void {
+  const back = origin?.grid;
+  if (!back) {
+    sub.removeWidget(el, true);
+    return;
+  }
+  // Quiet removal (no event): this is a gesture being rolled back, not a card
+  // leaving the board.
+  sub.removeWidget(el, false, false);
+  el.setAttribute("gs-x", String(origin.x ?? 0));
+  el.setAttribute("gs-y", String(origin.y ?? 0));
+  el.setAttribute("gs-w", String(origin.w ?? 1));
+  el.setAttribute("gs-h", String(origin.h ?? 1));
+  back.el.appendChild(el);
+  back.makeWidget(el);
+}
+
+/**
+ * Compute the first free `w`×`h` slot among `taken`, so a frame added in one
+ * layout mode gets a real placement in the other one too.
+ *
+ * `rows` bounds the scan for the horizontal board (fixed bands, scanned
+ * column-major, matching `seedHorizontal`); without it the vertical board is
+ * scanned row-major and grows downwards, which is where a new card belongs.
+ */
+function firstFreeSlot(
+  taken: readonly GridPosition[],
+  opts: { cols: number; rows?: number; w: number; h: number },
+): GridPosition {
+  const cols = Math.max(1, opts.cols);
+  const w = Math.min(Math.max(1, opts.w), cols);
+  const h = opts.rows
+    ? Math.min(Math.max(1, opts.h), opts.rows)
+    : Math.max(1, opts.h);
+  const cells = new Set<string>();
+  let maxY = 0;
+  for (const p of taken) {
+    maxY = Math.max(maxY, p.y + p.h);
+    for (let i = 0; i < p.w; i++)
+      for (let j = 0; j < p.h; j++) cells.add(`${p.x + i},${p.y + j}`);
+  }
+  const free = (x: number, y: number) => {
+    for (let i = 0; i < w; i++)
+      for (let j = 0; j < h; j++)
+        if (cells.has(`${x + i},${y + j}`)) return false;
+    return true;
+  };
+  if (opts.rows) {
+    const rows = opts.rows;
+    for (let x = 0; x <= cols - w; x++)
+      for (let y = 0; y <= rows - h; y++) if (free(x, y)) return { x, y, w, h };
+    // Every band is full — the horizontal grid grows sideways, so park it past
+    // the end rather than on top of something.
+    return { x: cols, y: 0, w, h };
+  }
+  for (let y = 0; y <= maxY; y++)
+    for (let x = 0; x <= cols - w; x++) if (free(x, y)) return { x, y, w, h };
+  return { x: 0, y: maxY, w, h };
+}
+
 export interface EditorGridControllerDeps {
   spec: DashboardSpec;
   providers: ReturnType<typeof useProviders>;
@@ -106,9 +251,17 @@ export interface EditorGridControllerDeps {
    *  init and must reach the *current* commitHistory (owned by the editor, since
    *  it depends on collectSpec). */
   commitHistoryRef: MutableRefObject<(() => void) | null>;
+  /** Called after a frame patched its OWN config through `useFramePatch`. The
+   *  editor decides what that write means (a durable edit, a host auto-save, or
+   *  a transient one it reverts when customise mode opens) — the controller
+   *  only reports that it happened. */
+  selfPatchRef: MutableRefObject<((id: string) => void) | null>;
   setCount: Dispatch<SetStateAction<number>>;
   setEditingId: Dispatch<SetStateAction<string | null>>;
-  setRemoved: Dispatch<SetStateAction<{ id: string; label: string } | null>>;
+  setToast: Dispatch<SetStateAction<EditorToast | null>>;
+  /** Write into the editor's polite live region. What a pointer user reads off
+   *  the moving card, a keyboard user has to be told. */
+  setAnnouncement: Dispatch<SetStateAction<string>>;
 }
 
 export function useEditorGridController({
@@ -126,9 +279,11 @@ export function useEditorGridController({
   columnsRef,
   rowHeightRef,
   commitHistoryRef,
+  selfPatchRef,
   setCount,
   setEditingId,
-  setRemoved,
+  setToast,
+  setAnnouncement,
 }: EditorGridControllerDeps) {
   const gridInstanceRef = useRef<GridStack | null>(null);
   const gridReadyRef = useRef(false);
@@ -185,10 +340,69 @@ export function useEditorGridController({
     ((id: string, patch: Record<string, unknown>) => void) | null
   >(null);
 
+  // Ref-held because the container apply path below is defined ABOVE the fit
+  // itself (which needs the sub-grid machinery), and both have to stay
+  // []-deps stable — the same indirection commitHistoryRef uses.
+  const fitSubGridRef = useRef<
+    ((item: HTMLElement, host: HTMLElement, sub: GridStack) => void) | null
+  >(null);
+
+  // Re-state a group's own geometry and look on its LIVE nested grid.
+  //
+  // A container has no React root — its content box IS the grid — so there is
+  // nothing to re-render when its config changes, and the "apply" the dialog
+  // fires used to fall off the end of renderInstance: Columns, Rows, Gap, Panel
+  // and the title were stored and then appeared only after a Save + reload, or
+  // whenever an unrelated undo happened to rebuild the board. The one remaining
+  // dead control in customise mode's live preview.
+  //
+  // Pushed into the existing grid rather than remounting it, deliberately:
+  // rebuilding the sub-grid would unmount every child's React root and replay
+  // its first render (and its subscriptions) on each step of a slider.
+  const applyGroupGeometry = useCallback(
+    (instance: FrameInstance, sub: GridStack) => {
+      const geo = containerGeometry(
+        registryRef.current.get(instance.frame),
+        instance.config,
+      );
+      if (!geo) return;
+      const host = sub.el;
+      const item = host.closest<GridItemHTMLElement>(".grid-stack-item");
+      if (!item) return;
+      // Panel + title + the stashed row count, all read off the instance.
+      decorateGroupHost(item, host, instance, geo);
+      // `margin` works here where it silently didn't at init: the setter clears
+      // the per-side values first, so `_initMargin` re-expands the new gap into
+      // all four (see subGridOptions for the init-time footgun). maxRow also
+      // compacts any child left past a shrunken row count.
+      sub.updateOptions({
+        column: geo.columns,
+        maxRow: geo.rows,
+        margin: geo.gap / 2,
+      });
+      // The nested row height is derived from the group's box and its row
+      // count, so a Rows change has to re-fit or the children keep the old
+      // pitch. A change that leaves the pitch identical (columns, gap, panel)
+      // costs nothing: fitSubGrid's own memo skips the stylesheet write, which
+      // is what makes this safe to call on every apply.
+      fitSubGridRef.current?.(item, host, sub);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
   const renderInstance = useCallback((id: string) => {
-    const content = contentRef.current.get(id);
     const instance = instancesRef.current.get(id);
-    if (!content || !instance) return;
+    if (!instance) return;
+    // A container's "render" is its grid geometry (see applyGroupGeometry) —
+    // it deliberately owns no content root.
+    const sub = subGridsRef.current.get(id);
+    if (sub) {
+      applyGroupGeometry(instance, sub);
+      return;
+    }
+    const content = contentRef.current.get(id);
+    if (!content) return;
     let root = rootsRef.current.get(id);
     if (!root) {
       content.innerHTML = "";
@@ -283,10 +497,37 @@ export function useEditorGridController({
         config: { ...inst.config, ...patch },
       });
       renderInstance(id);
+      // A frame writing its own config used to land in the working copy with no
+      // history entry, no dirty dot and no way back — and then an unrelated
+      // Save, minutes later, wrote it to disk. Report it instead: the editor
+      // makes the write either durable or transient, never laundered.
+      selfPatchRef.current?.(id);
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [renderInstance],
   );
   patchInstanceRef.current = patchInstance;
+
+  /**
+   * How a card is named to the user: its own title, else the frame's label,
+   * else the frame name made readable.
+   *
+   * One source for all four places that need it — the removal toast, the two
+   * pills' accessible names, and the keyboard geometry announcements — because
+   * a control named differently from the card it acts on is worse than one with
+   * no name at all.
+   */
+  const labelOf = useCallback((el: GridItemHTMLElement | string): string => {
+    const id = typeof el === "string" ? el : (el.getAttribute("gs-id") ?? "");
+    const inst = instancesRef.current.get(id);
+    return (
+      inst?.title ??
+      registryRef.current.get(inst?.frame ?? "")?.label ??
+      inst?.frame.replace(/-/g, " ") ??
+      "Frame"
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const deleteItem = useCallback((el: GridItemHTMLElement) => {
     // The owning grid, which for a frame inside a group is that group's NESTED
@@ -299,11 +540,44 @@ export function useEditorGridController({
       // Name the removal before the instance is gone, so the toast can say what
       // was deleted rather than "a frame".
       const inst = instancesRef.current.get(id);
-      const label =
-        inst?.title ??
-        registryRef.current.get(inst?.frame ?? "")?.label ??
-        inst?.frame.replace(/-/g, " ") ??
-        "Frame";
+      const label = labelOf(id);
+      // The frame exactly as it stood, so the toast's Undo can re-insert THIS
+      // card instead of stepping the shared history back one entry (which
+      // reversed whatever the user did next, under a button naming the card).
+      // Its live position, not the loaded one — the card goes back where it was
+      // sitting — and a group's children come off its live nested grid, or the
+      // cluster would come back empty.
+      const node = el.gridstackNode;
+      const livePos: GridPosition | undefined = node
+        ? {
+            x: node.x ?? 0,
+            y: node.y ?? 0,
+            w: node.w ?? 1,
+            h: node.h ?? 1,
+          }
+        : undefined;
+      const sub = subGridsRef.current.get(id);
+      // A child of a group: its position is its slot INSIDE the group, and a
+      // child never carries per-board-mode layouts, so the mode doesn't apply.
+      const parentId =
+        el.parentElement
+          ?.closest<HTMLElement>('.grid-stack-item[data-container="true"]')
+          ?.getAttribute("gs-id") ?? undefined;
+      const removedInstance: FrameInstance | undefined = inst
+        ? {
+            ...inst,
+            ...(livePos
+              ? parentId || modeRef.current !== "flow-horizontal"
+                ? { position: livePos }
+                : { layouts: { ...inst.layouts, "flow-horizontal": livePos } }
+              : {}),
+            ...(sub
+              ? {
+                  children: collectGroupChildren(sub, instancesRef.current),
+                }
+              : {}),
+          }
+        : undefined;
       const root = rootsRef.current.get(id);
       if (root) unmountRootSoon(root);
       rootsRef.current.delete(id);
@@ -316,7 +590,6 @@ export function useEditorGridController({
       // Deleting a group takes its children with it — they exist only inside it.
       // Their instances have to go too, or the next save would still carry them
       // (and the recoverable-delete snapshot is what puts them all back).
-      const sub = subGridsRef.current.get(id);
       if (sub) {
         for (const childEl of sub.getGridItems()) {
           const childId = childEl.getAttribute("gs-id");
@@ -334,7 +607,15 @@ export function useEditorGridController({
         subObserversRef.current.delete(id);
       }
       if (editingIdRef.current === id) setEditingId(null);
-      setRemoved({ id, label });
+      if (removedInstance) {
+        setToast({
+          kind: "removed",
+          id,
+          label,
+          instance: removedInstance,
+          ...(parentId ? { parentId } : {}),
+        });
+      }
     }
     grid.removeWidget(el, true);
     setCount(gridInstanceRef.current?.getGridItems().length ?? 0);
@@ -354,12 +635,15 @@ export function useEditorGridController({
   // cluster with no delete of its own whenever a child got decorated first.
   const decorateItem = useCallback(
     (el: GridItemHTMLElement) => {
+      const named = labelOf(el);
       if (!el.querySelector(":scope > .zf-cfg-btn")) {
         const cfg = document.createElement("button");
         cfg.className = "zf-cfg-btn";
         cfg.type = "button";
         cfg.title = "Edit frame";
-        cfg.setAttribute("aria-label", "Edit frame");
+        // Named after the card, because there is one of these per card and a
+        // list of eleven "Edit frame" buttons says nothing about which is which.
+        cfg.setAttribute("aria-label", `Edit ${named}`);
         cfg.innerHTML = GEAR_SVG;
         cfg.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -372,8 +656,13 @@ export function useEditorGridController({
         const btn = document.createElement("button");
         btn.className = "zf-del-btn";
         btn.type = "button";
+        // The `title` is load-bearing beyond the tooltip: the runtime's e2e test
+        // finds this button by it. The accessible NAME is the aria-label, which
+        // outranks both the title and the glyph — without it the button
+        // announced as "×", since name-from-content beats a title.
         btn.title = "Remove frame";
-        btn.innerHTML = "&times;";
+        btn.setAttribute("aria-label", `Remove ${named}`);
+        btn.innerHTML = '<span aria-hidden="true">&times;</span>';
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
           deleteItem(el);
@@ -382,7 +671,7 @@ export function useEditorGridController({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [deleteItem],
+    [deleteItem, labelOf],
   );
 
   // `:scope >` for the same reason decorateItem uses it: stripping a group must
@@ -393,8 +682,14 @@ export function useEditorGridController({
   }, []);
 
   // The items that currently carry the affordances — at most the hovered card
-  // and the group holding it.
+  // and the focused card, plus the group holding either.
   const decoratedRef = useRef(new Set<GridItemHTMLElement>());
+  // The two things that can call for the affordances, tracked separately and
+  // decorated as a UNION. One shared "current target" would mean hovering card
+  // A strips card B's pills while B still has focus — and if the focus was ON
+  // one of those pills, removing it drops the keyboard user onto <body>.
+  const hoverTargetRef = useRef<Element | null>(null);
+  const focusTargetRef = useRef<Element | null>(null);
 
   // Move the gear + delete onto the item under the pointer, and off everything
   // else. They are a HOVER affordance (both are opacity:0 until their item is
@@ -411,20 +706,29 @@ export function useEditorGridController({
   // The chain, not just the innermost item: hovering a frame inside a group
   // hovers the group as well, so both used to show their pills. Walking up
   // keeps a cluster deletable while the pointer sits on one of its children.
-  const decorateChain = useCallback(
-    (target: Element | null, force = false) => {
+  //
+  // Driven by FOCUS as well as the pointer, which is what makes a card
+  // operable without one: nothing on a card existed until a pointer was over
+  // it, so a keyboard user could tab through the bar, the rail and the palette
+  // and find no control on any card at all.
+  const refreshDecoration = useCallback(
+    (force = false) => {
       // Mid-drag the pointer sweeps across every card it passes over; letting
       // the affordances chase it would flicker them across the board for the
       // whole gesture. The dragged item keeps whatever it had. `force` is the
       // leave-customise path, which must strip them whatever is in flight.
       if (!force && document.body.classList.contains("zf-dragging")) return;
       const chain = new Set<GridItemHTMLElement>();
-      let node: Element | null = target;
-      while (node) {
-        const item = node.closest<GridItemHTMLElement>(".grid-stack-item");
-        if (!item) break;
-        chain.add(item);
-        node = item.parentElement;
+      for (const target of force
+        ? []
+        : [hoverTargetRef.current, focusTargetRef.current]) {
+        let node: Element | null = target;
+        while (node) {
+          const item = node.closest<GridItemHTMLElement>(".grid-stack-item");
+          if (!item) break;
+          chain.add(item);
+          node = item.parentElement;
+        }
       }
       for (const el of decoratedRef.current) {
         if (chain.has(el)) continue;
@@ -439,6 +743,121 @@ export function useEditorGridController({
       }
     },
     [decorateItem, undecorateItem],
+  );
+
+  /** Set the hovered target (null = the pointer left the board) and re-decorate.
+   *  `force` strips everything regardless, for the leave-customise path. */
+  const decorateChain = useCallback(
+    (target: Element | null, force = false) => {
+      hoverTargetRef.current = target;
+      if (force) focusTargetRef.current = null;
+      refreshDecoration(force);
+    },
+    [refreshDecoration],
+  );
+
+  /**
+   * Make every card a keyboard stop while customising, and name it.
+   *
+   * Without this there is nothing on the board to Tab TO: the pills are the only
+   * per-card controls and they only exist once something in the card has focus,
+   * which is a loop with no way in. A `tabindex` on the card container is the
+   * way in, and it is also what the geometry keys below hang off — so it is
+   * granted with the mode and taken away with it, never left on a viewing board.
+   */
+  const setKeyboardAffordance = useCallback(
+    (root: HTMLElement, on: boolean) => {
+      const items = [
+        ...(root.classList.contains("grid-stack-item") ? [root] : []),
+        ...root.querySelectorAll<HTMLElement>(".grid-stack-item"),
+      ];
+      for (const el of items) {
+        if (on) {
+          el.setAttribute("tabindex", "0");
+          // A bare focusable div announces nothing; `role` is what lets the
+          // label be read at all.
+          el.setAttribute("role", "group");
+          el.setAttribute("aria-label", labelOf(el as GridItemHTMLElement));
+        } else {
+          el.removeAttribute("tabindex");
+          el.removeAttribute("role");
+          el.removeAttribute("aria-label");
+        }
+      }
+    },
+    [labelOf],
+  );
+
+  /**
+   * The keyboard equivalent of a drag and of a resize: one cell per press.
+   *
+   * Geometry had no keyboard path of any kind — `enableMove`/`enableResize`
+   * toggle GridStack's POINTER handles and nothing else — so on a board a user
+   * could otherwise fully theme and save, no existing card could be moved or
+   * resized at all. Returns whether the key was ours, so the caller only
+   * suppresses the ones it handled.
+   */
+  const nudgeItem = useCallback(
+    (el: GridItemHTMLElement, key: string, resize: boolean): boolean => {
+      const node = el.gridstackNode;
+      const grid = node?.grid ?? gridInstanceRef.current;
+      if (!node || !grid) return false;
+      const back = key === "ArrowLeft" || key === "ArrowUp";
+      const sideways = key === "ArrowLeft" || key === "ArrowRight";
+      const step = back ? -1 : 1;
+      const cols = grid.getColumn();
+      const x = node.x ?? 0;
+      const y = node.y ?? 0;
+      const w = node.w ?? 1;
+      const h = node.h ?? 1;
+      if (resize) {
+        // The frame's own size envelope, which GridStack already carries per
+        // node from the gs-min-*/gs-max-* attributes buildItemEl wrote — so a
+        // keyboard resize cannot take a card outside the bounds a drag respects.
+        const minW = node.minW ?? 1;
+        const minH = node.minH ?? 1;
+        const maxW = Math.max(minW, Math.min(node.maxW ?? cols, cols - x));
+        const maxH = Math.max(minH, node.maxH ?? Number.MAX_SAFE_INTEGER);
+        grid.update(
+          el,
+          sideways
+            ? { w: clamp(w + step, minW, maxW) }
+            : { h: clamp(h + step, minH, maxH) },
+        );
+      } else {
+        grid.update(
+          el,
+          sideways
+            ? { x: clamp(x + step, 0, Math.max(0, cols - w)) }
+            : { y: Math.max(0, y + step) },
+        );
+      }
+      // Read back off the node rather than echoing the request: the engine has
+      // the last word on where an item can actually sit (row caps, collisions).
+      const after = el.gridstackNode;
+      setAnnouncement(
+        `${labelOf(el)}: column ${(after?.x ?? x) + 1}, row ${
+          (after?.y ?? y) + 1
+        }, ${after?.w ?? w} by ${after?.h ?? h}`,
+      );
+      // One press, one undo step — the same contract a completed drag has.
+      commitHistoryRef.current?.();
+      return true;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [labelOf],
+  );
+
+  /** Set the focused target and re-decorate. Called from `focusin` and from
+   *  `focusout`'s `relatedTarget`, which is the element ABOUT to take focus —
+   *  reading it there is what lets a Tab from a card's gear to its own delete
+   *  keep the pills in place instead of destroying the button being tabbed to. */
+  const decorateFocus = useCallback(
+    (target: Element | null) => {
+      focusTargetRef.current = target;
+      refreshDecoration();
+    },
+    [refreshDecoration],
   );
 
   // Ref-held so the []-deps GridStack callbacks (the drop handlers) can reach
@@ -546,6 +965,7 @@ export function useEditorGridController({
     },
     [],
   );
+  fitSubGridRef.current = fitSubGrid;
 
   // Turn a container item into a real nested GridStack and mount its children.
   //
@@ -592,56 +1012,93 @@ export function useEditorGridController({
         deferRender(el, child.id);
       }
 
+      // Every refusal gets ONE visible form: the toast the deletes already use.
+      // A silently-removed card is indistinguishable from a drop that missed, so
+      // the user had no way to learn the rule they had just broken.
+      const refuse = (
+        dropped: GridItemHTMLElement,
+        origin: GridStackNode | undefined,
+        reason: string,
+      ) => {
+        refuseDrop(sub, dropped, origin);
+        // The origin grid fired its own `removed` mid-drag, so the board's count
+        // is one short until the card is back in it.
+        setCount(gridInstanceRef.current?.getGridItems().length ?? 0);
+        setToast({ kind: "refused", reason });
+      };
+
       // A drop lands in whichever grid the pointer was over, so the nested grid
       // needs the same new-frame handling the board has — otherwise a palette card
       // dropped into a group becomes a GridStack item with no instance behind it
       // and saves as nothing.
-      sub.on("dropped", (_event, _prev, node?: GridStackNode) => {
-        const dropped = node?.el as GridItemHTMLElement | undefined;
-        if (!dropped) return;
-        const content = dropped.querySelector<HTMLElement>(
-          ".grid-stack-item-content",
-        );
-        const frame = dropped.getAttribute("data-frame");
-        if (!content || !frame) return;
-        const existing = dropped.getAttribute("gs-id");
-        // A card dragged in from the board (or another group) already has an
-        // instance, a content node and a live React root — GridStack moved the
-        // whole item element, so all of that came with it and there is nothing to
-        // register. Its new parentage is simply where its DOM now sits.
-        if (existing && instancesRef.current.has(existing)) {
+      sub.on(
+        "dropped",
+        (_event, origin: GridStackNode | undefined, node?: GridStackNode) => {
+          const dropped = node?.el as GridItemHTMLElement | undefined;
+          if (!dropped) return;
+          const content = dropped.querySelector<HTMLElement>(
+            ".grid-stack-item-content",
+          );
+          const frame = dropped.getAttribute("data-frame");
+          if (!content || !frame) return;
+          const existing = dropped.getAttribute("gs-id");
+          // A card dragged in from the board (or another group) already has an
+          // instance, a content node and a live React root — GridStack moved the
+          // whole item element, so all of that came with it and there is nothing
+          // to register. Its new parentage is simply where its DOM now sits.
+          const known = !!existing && instancesRef.current.has(existing);
+          const def = registryRef.current.get(frame);
+          // BOTH refusals run before that early return, deliberately. A GROUP
+          // dragged off the board is a *known* frame, so checking the container
+          // rule after the return let it land — and since a child can carry no
+          // `children`, Save then wrote the inner group as an empty box and every
+          // card inside it was gone from the file, silently.
+          if (def?.container) {
+            refuse(
+              dropped,
+              known ? origin : undefined,
+              "Groups can't be nested",
+            );
+            return;
+          }
+          // The 24-child cap lived only in the schema, so the 25th card dropped
+          // in happily and the whole spec was refused by the server at Save —
+          // after the work, with a message that may not name the group. The
+          // dropped item is already in the grid, hence the strict `>`.
+          if (sub.getGridItems().length > MAX_GROUP_CHILDREN) {
+            refuse(
+              dropped,
+              known ? origin : undefined,
+              `A group holds at most ${MAX_GROUP_CHILDREN} cards`,
+            );
+            return;
+          }
+          if (known) {
+            commitHistoryRef.current?.();
+            return;
+          }
+          const id = existing || uniqueId(frame);
+          dropped.setAttribute("gs-id", id);
+          instancesRef.current.set(id, {
+            id,
+            frame,
+            position: {
+              x: node?.x ?? 0,
+              y: node?.y ?? 0,
+              w: node?.w ?? def?.layout?.w ?? 1,
+              h: node?.h ?? def?.layout?.h ?? 1,
+            },
+            config: defaultConfig(def),
+          });
+          contentRef.current.set(id, content);
+          renderInstance(id);
+          // The pointer released over this card, so it is the hovered one — give
+          // it the affordances now rather than waiting for the next pointerover.
+          decorateChainRef.current(dropped);
           commitHistoryRef.current?.();
-          return;
-        }
-        const def = registryRef.current.get(frame);
-        // A group holds frames, not more groups — the spec makes a nested group
-        // unrepresentable, so refuse the drop here rather than saving something
-        // that won't parse.
-        if (def?.container) {
-          sub.removeWidget(dropped, true);
-          return;
-        }
-        const id = existing || uniqueId(frame);
-        dropped.setAttribute("gs-id", id);
-        instancesRef.current.set(id, {
-          id,
-          frame,
-          position: {
-            x: node?.x ?? 0,
-            y: node?.y ?? 0,
-            w: node?.w ?? def?.layout?.w ?? 1,
-            h: node?.h ?? def?.layout?.h ?? 1,
-          },
-          config: defaultConfig(def),
-        });
-        contentRef.current.set(id, content);
-        renderInstance(id);
-        // The pointer released over this card, so it is the hovered one — give
-        // it the affordances now rather than waiting for the next pointerover.
-        decorateChainRef.current(dropped);
-        commitHistoryRef.current?.();
-        setEditingId(id);
-      });
+          setEditingId(id);
+        },
+      );
 
       sub.on("dragstop", () => commitHistoryRef.current?.());
       sub.on("resizestop", () => commitHistoryRef.current?.());
@@ -697,17 +1154,75 @@ export function useEditorGridController({
         instance.config,
       );
       if (geo) mountSubGrid(grid, el, instance, geo);
+      // Every add and every restore comes through here, so this is the one place
+      // a newly-built card (and, for a group, its children) can be given the
+      // keyboard affordance without each caller remembering to.
+      if (editingRef.current) setKeyboardAffordance(el, true);
       return el;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [buildItemEl, mountSubGrid],
+    [buildItemEl, mountSubGrid, setKeyboardAffordance],
   );
+
+  // Where focus was before a rebuild, when the rebuild is a mode switch:
+  // teardownGrid runs first and destroys the item DOM, so by the time restore()
+  // looks, `document.activeElement` is already `<body>`.
+  const pendingFocusRef = useRef<FocusMemo | null>(null);
+
+  /**
+   * Put focus back where the rebuild found it.
+   *
+   * Two steps on purpose. The card's own element exists the moment the grid is
+   * rebuilt, so focus lands inside the right card immediately and the tab
+   * position is never lost. The control *inside* it is rendered by a React root
+   * that has only just been asked to render, so the index lookup is retried on
+   * the next frame, once that commit has happened. If the control is gone for
+   * good (a config the undo removed, a delete pill that belonged to the old
+   * element) focus stays on the card, which is the recoverable place to be.
+   */
+  const restoreFocus = useCallback((memo: FocusMemo | null) => {
+    if (!memo) return;
+    const find = () =>
+      gridInstanceRef.current?.el.querySelector<HTMLElement>(
+        `.grid-stack-item[gs-id="${memo.id}"]`,
+      ) ?? null;
+    const item = find();
+    if (!item) return;
+    const focusInner = (target: HTMLElement) => {
+      const inner = [
+        ...target.querySelectorAll<HTMLElement>(FOCUSABLE_IN_CARD),
+      ];
+      const control = memo.index === null ? undefined : inner[memo.index];
+      if (control) control.focus();
+      return !!control;
+    };
+    if (!focusInner(item)) {
+      // A grid item is a plain div, so it needs to be made programmatically
+      // focusable to hold the rescue. The element is thrown away by the next
+      // rebuild, so the attribute never accumulates.
+      if (!item.hasAttribute("tabindex")) item.setAttribute("tabindex", "-1");
+      item.focus();
+    }
+    if (typeof requestAnimationFrame !== "function") return;
+    requestAnimationFrame(() => {
+      const settled = find();
+      // Only chase the inner control while focus is still where we left it —
+      // the user may have tabbed on in the meantime.
+      if (!settled || !settled.contains(document.activeElement)) return;
+      focusInner(settled);
+    });
+  }, []);
 
   // Tears down all items + roots and rebuilds the grid from a frame list.
   const restore = useCallback(
     (frames: FrameInstance[]) => {
       const grid = gridInstanceRef.current;
       if (!grid) return;
+      // Every card element is destroyed below, so whatever held focus would
+      // otherwise fall to <body> silently — on every undo, redo, Cancel and
+      // mode switch.
+      const focusMemo = pendingFocusRef.current ?? captureFocusMemo();
+      pendingFocusRef.current = null;
       rootsRef.current.forEach(unmountRootSoon);
       rootsRef.current.clear();
       contentRef.current.clear();
@@ -749,9 +1264,40 @@ export function useEditorGridController({
       decoratedRef.current.clear();
       grid.batchUpdate(false);
       setCount(frames.length);
+      restoreFocus(focusMemo);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [addItemEl, clearDeferred, deferRender],
+    [addItemEl, clearDeferred, deferRender, restoreFocus],
+  );
+
+  /**
+   * The VERTICAL slot a frame added while the board is sideways should occupy.
+   *
+   * The two layouts are meant to be independently editable and losslessly
+   * switchable, and this was the one place that broke: a frame added in
+   * flow-horizontal kept (0,0) as its vertical position, so switching back
+   * piled every one of them into the top-left corner for the grid to resolve —
+   * silently, and looking exactly like the board had lost the layout.
+   *
+   * The other direction needs no seed: a frame added in flow-vertical simply
+   * has no horizontal layout yet, and `seedHorizontal` first-fit packs exactly
+   * those the first time the board goes sideways.
+   */
+  const seedVerticalPosition = useCallback(
+    (w: number, h: number): GridPosition => {
+      const taken: GridPosition[] = [];
+      // Board-level items only. instancesRef is flat, so a group's children are
+      // in it too — but their positions are slots inside their group and would
+      // block board cells that are actually free.
+      for (const el of gridInstanceRef.current?.getGridItems() ?? []) {
+        const id = el.getAttribute("gs-id");
+        const inst = id ? instancesRef.current.get(id) : undefined;
+        if (inst) taken.push(inst.position);
+      }
+      return firstFreeSlot(taken, { cols: columnsRef.current, w, h });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
   );
 
   // Click-to-add: append a new frame to the grid in the first free slot.
@@ -763,15 +1309,18 @@ export function useEditorGridController({
       if (!grid) return;
       const def = registryRef.current.get(frameName);
       const id = uniqueId(frameName);
+      const w = def?.layout?.w ?? 4;
+      const h = def?.layout?.h ?? 3;
       const instance: FrameInstance = {
         id,
         frame: frameName,
-        position: {
-          x: 0,
-          y: 0,
-          w: def?.layout?.w ?? 4,
-          h: def?.layout?.h ?? 3,
-        },
+        // Sideways, the live grid position is written to the horizontal slot
+        // only, so `position` is what a mode switch will read: seed it. In
+        // flow-vertical it is the active slot and `autoPosition` below fills it.
+        position:
+          modeRef.current === "flow-horizontal"
+            ? seedVerticalPosition(w, h)
+            : { x: 0, y: 0, w, h },
         config: defaultConfig(def),
       };
       instancesRef.current.set(id, instance);
@@ -786,7 +1335,7 @@ export function useEditorGridController({
       setEditingId(id);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [addItemEl, defaultConfig, renderInstance, uniqueId],
+    [addItemEl, defaultConfig, renderInstance, seedVerticalPosition, uniqueId],
   );
 
   // Pixel size of one horizontal band: the height left below the chrome / row
@@ -811,6 +1360,9 @@ export function useEditorGridController({
   const teardownGrid = useCallback(() => {
     const grid = gridInstanceRef.current;
     if (!grid) return;
+    // A mode switch tears down before it restores, so the focused element is
+    // gone by the time restore() would look for it. Hand the memo over.
+    pendingFocusRef.current = captureFocusMemo();
     const el = grid.el;
     grid.off("dropped");
     grid.off("removed");
@@ -861,7 +1413,10 @@ export function useEditorGridController({
           ...(horizontal
             ? { maxRow: spec.grid.rows, minRow: spec.grid.rows }
             : {}),
-          animate: true,
+          // Off when the machine has asked for reduced motion: the engine's
+          // own reflow transition is the animation, and nothing overrides it in
+          // CSS. Re-applied live by the media-query effect below.
+          animate: !prefersReducedMotion(),
           // The drop accept check is `el.matches('.grid-stack-item')`, so the
           // palette cards carry that class (see the `.zf-newwidget` markup) —
           // else GridStack silently rejects the drag and nothing lands.
@@ -908,7 +1463,9 @@ export function useEditorGridController({
             ? {
                 id,
                 frame,
-                position: { x: 0, y: 0, w, h },
+                // Not (0,0): that is the vertical slot, and it is what a switch
+                // back to flow-vertical reads (see seedVerticalPosition).
+                position: seedVerticalPosition(w, h),
                 layouts: { "flow-horizontal": dropPos },
                 config: defaultConfig(def),
               }
@@ -1007,6 +1564,7 @@ export function useEditorGridController({
       defaultConfig,
       renderInstance,
       mountSubGrid,
+      seedVerticalPosition,
     ],
   );
 
@@ -1092,6 +1650,7 @@ export function useEditorGridController({
       g.enableMove(editing);
       g.enableResize(editing);
     }
+    setKeyboardAffordance(grid.el, editing);
     if (!editing) {
       decorateChain(null, true);
       return;
@@ -1107,15 +1666,99 @@ export function useEditorGridController({
     // Leaving the editor entirely (out to the header, the tape, the orb) has no
     // hovered card, so nothing should keep wearing the pills.
     const onLeave = () => decorateChain(null);
+    // focusin is the keyboard's pointerover. focusout reads `relatedTarget` —
+    // the element ABOUT to take focus — because acting on "focus left" alone
+    // would strip a card's pills at the exact moment a Tab was travelling
+    // between two of them, and removing the button being tabbed to drops focus
+    // on <body>.
+    const onFocusIn = (e: FocusEvent) =>
+      decorateFocus(e.target instanceof Element ? e.target : null);
+    const onFocusOut = (e: FocusEvent) =>
+      decorateFocus(
+        e.relatedTarget instanceof Element ? e.relatedTarget : null,
+      );
+    /**
+     * Geometry from the keyboard, on the focused CARD only.
+     *
+     * The class check is the whole guard: an arrow key inside a frame's own
+     * input, or on the gear pill, has to keep its ordinary meaning, and only the
+     * card container itself is a nudge target. Modifier chords are left alone
+     * too — ⌘Z belongs to the editor's own shortcut handler.
+     */
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (!target.classList.contains("grid-stack-item")) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = target as GridItemHTMLElement;
+      if (e.key.startsWith("Arrow")) {
+        // Shift is the resize modifier, matching the two things a pointer can
+        // do to a card: move it, or drag its corner.
+        if (nudgeItem(el, e.key, e.shiftKey)) e.preventDefault();
+        return;
+      }
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        const id = el.getAttribute("gs-id");
+        if (id) setEditingId(id);
+        return;
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        // Deleting the focused element would drop focus on <body>, so hand it
+        // to a neighbour first — the same rescue restore() does for a rebuild.
+        const owner = el.parentElement;
+        const neighbour =
+          el.nextElementSibling ?? el.previousElementSibling ?? null;
+        deleteItem(el);
+        const next =
+          neighbour instanceof HTMLElement &&
+          neighbour.classList.contains("grid-stack-item")
+            ? neighbour
+            : (owner?.querySelector<HTMLElement>(".grid-stack-item") ?? null);
+        next?.focus();
+      }
+    };
     root.addEventListener("pointerover", onOver);
     root.addEventListener("pointerleave", onLeave);
+    root.addEventListener("focusin", onFocusIn);
+    root.addEventListener("focusout", onFocusOut);
+    root.addEventListener("keydown", onKeyDown);
     return () => {
       root.removeEventListener("pointerover", onOver);
       root.removeEventListener("pointerleave", onLeave);
+      root.removeEventListener("focusin", onFocusIn);
+      root.removeEventListener("focusout", onFocusOut);
+      root.removeEventListener("keydown", onKeyDown);
       decorateChain(null, true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, decorateChain]);
+  }, [editing, decorateChain, decorateFocus, nudgeItem, setKeyboardAffordance]);
+
+  /**
+   * Reduced motion, applied to the grid ENGINE and re-applied live.
+   *
+   * GridStack was handed `animate: true` unconditionally, and its stock
+   * `.grid-stack-animate` transition is never overridden anywhere — so on a
+   * machine that had asked for reduced motion, every card displaced by a drag
+   * still slid across the board. `setAnimation` is the engine's own switch, and
+   * it has to reach the nested grids too or a cluster's children keep animating
+   * inside a board that has stopped.
+   */
+  useEffect(() => {
+    const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (!mq) return;
+    const apply = () => {
+      const grid = gridInstanceRef.current;
+      if (!grid) return;
+      for (const g of [grid, ...subGridsRef.current.values()]) {
+        g.setAnimation(!mq.matches);
+      }
+    };
+    apply();
+    mq.addEventListener?.("change", apply);
+    return () => mq.removeEventListener?.("change", apply);
+  }, [editing]);
 
   // flow-horizontal is height-locked, but the customise toolbar is a row above
   // the grid that shrinks/grows the available height as it appears/disappears.

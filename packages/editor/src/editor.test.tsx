@@ -480,6 +480,44 @@ describe("Save in flow-horizontal mode", () => {
     expect(savedSpec(board.onSave).grid.mode).toBe("flow-horizontal");
   });
 
+  it("gives a frame added sideways a real vertical position too", async () => {
+    // The two layouts are independently editable and meant to be losslessly
+    // switchable. A frame added while the board was sideways kept (0,0) as its
+    // vertical position — the drop path wrote only the active mode's slot — so
+    // switching back piled every one of them into the top-left corner, silently,
+    // looking exactly as though the board had lost its layout.
+    const onSave = vi.fn();
+    const view = mountWith(
+      parseSpec(
+        [
+          {
+            id: "a",
+            position: { x: 0, y: 0, w: 4, h: 3 },
+            layouts: { "flow-horizontal": { x: 0, y: 0, w: 4, h: 3 } },
+          },
+        ],
+        { mode: "flow-horizontal", rows: 3 },
+      ),
+      onSave,
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(paletteCard(view.container));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+
+    const saved = onSave.mock.calls[0][0] as DashboardSpec;
+    const added = saved.frames.find((f) => f.id !== "a");
+    expect(added).toBeDefined();
+    // The first free 4×3 slot on the 12-column vertical board, beside the frame
+    // already at the origin — not on top of it.
+    expect(added!.position).toEqual({ x: 4, y: 0, w: 4, h: 3 });
+    // …and the sideways placement it was actually dropped into is its own.
+    expect(added!.layouts?.["flow-horizontal"]).toBeDefined();
+  });
+
   it("still sorts by the vertical position, not the horizontal layout", async () => {
     const { provider } = fxProvider({});
     // Input (= DOM, = horizontal reading) order is c, a, b; the vertical y order
@@ -650,6 +688,16 @@ function itemIds(container: HTMLElement): (string | null)[] {
   return domOrder(container);
 }
 
+/** A palette card — the click-to-add path. The first category is expanded by
+ *  default and this registry holds one frame, so there is exactly one. */
+function paletteCard(container: HTMLElement, frame = "probe"): HTMLElement {
+  const el = container.querySelector<HTMLElement>(
+    `.zf-newwidget[data-frame="${frame}"]`,
+  );
+  if (!el) throw new Error(`no palette card for "${frame}"`);
+  return el;
+}
+
 describe("recoverable delete", () => {
   it("offers an undo toast naming what was removed", async () => {
     const view = mount(
@@ -723,6 +771,94 @@ describe("recoverable delete", () => {
     expect(a.events).toEqual([{ date: "2026-01-02", label: "halving" }]);
   });
 
+  it("restores the card it names, not whatever happened last", async () => {
+    // The button was a plain history step, so an unrelated edit made inside the
+    // seven seconds the offer is up became what it reversed: the card stayed
+    // deleted and the OTHER edit silently went away, under a label naming the
+    // card. One control doing two different things depending on timing.
+    const onSave = vi.fn();
+    const view = mountWith(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      onSave,
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    // The unrelated edit: click-to-add pushes its own history entry.
+    await act(async () => {
+      fireEvent.click(paletteCard(view.container));
+    });
+    const added = itemIds(view.container).find((id) => id !== "b");
+    expect(added).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(
+        view.getByRole("button", { name: "Undo removing Probe" }),
+      );
+    });
+    const ids = itemIds(view.container);
+    expect(ids).toContain("a");
+    expect(ids).toContain(added);
+    // …and the restore is itself one undo step, so ⌘Z still takes it back out
+    // without also undoing the add.
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Undo" }));
+    });
+    const rewound = itemIds(view.container);
+    expect(rewound).not.toContain("a");
+    expect(rewound).toContain(added);
+  });
+
+  it("spends its own offer once the card is already back", async () => {
+    // The user reached for ⌘Z instead. Pressing the toast's Undo afterwards must
+    // not put a second copy of the card on the board.
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Undo" }));
+    });
+    await act(async () => {
+      fireEvent.click(
+        view.getByRole("button", { name: "Undo removing Probe" }),
+      );
+    });
+    expect(itemIds(view.container).sort()).toEqual(["a", "b"]);
+    expect(view.queryByRole("status")).toBeNull();
+  });
+
+  it("dismisses on Escape, like every other dismissable surface", async () => {
+    // Through the shared Escape stack, so the toast being on screen doesn't mean
+    // one press closes it AND the dialog behind it.
+    const view = mount(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    expect(view.getByRole("status")).toBeTruthy();
+    await act(async () => {
+      fireEvent.keyDown(document.body, { key: "Escape" });
+    });
+    expect(view.queryByRole("status")).toBeNull();
+    // Dismissing is not restoring.
+    expect(itemIds(view.container)).toEqual([]);
+  });
+
   it("dismisses the toast without restoring anything", async () => {
     const view = mount(
       parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
@@ -737,6 +873,200 @@ describe("recoverable delete", () => {
     });
     expect(view.queryByRole("status")).toBeNull();
     expect(itemIds(view.container)).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Keyboard operability. Customise mode is the mode the product exists for, and
+// none of it reached a card without a pointer: the gear and the delete pill were
+// the only per-card controls and they were built on `pointerover`, so a Tab
+// never caused a decorate pass and the buttons never entered the DOM at all.
+// Geometry had no keyboard path either — `enableMove`/`enableResize` toggle
+// GridStack's pointer handles and nothing more.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function itemEl(container: HTMLElement, id: string): HTMLElement {
+  const el = container.querySelector<HTMLElement>(
+    `.grid-stack-item[gs-id="${id}"]`,
+  );
+  if (!el) throw new Error(`no item "${id}"`);
+  return el;
+}
+
+function liveText(container: HTMLElement): string {
+  return container.querySelector(".zf-sr-live")?.textContent ?? "";
+}
+
+describe("a card is operable from the keyboard", () => {
+  it("builds the card's controls on focus, not only on hover", async () => {
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      [],
+    );
+    await enterCustomise(view);
+    // Idle board: nothing hovered, nothing focused, and so no pills anywhere.
+    // That scoping is why entering customise mode on a 247-frame board no
+    // longer promotes 512 compositing layers, and it has to survive this fix.
+    expect(view.container.querySelectorAll(".zf-del-btn")).toHaveLength(0);
+
+    // The way IN: without a focusable card there is nothing to Tab to, and the
+    // pills only exist once something in the card has focus.
+    const a = itemEl(view.container, "a");
+    expect(a.getAttribute("tabindex")).toBe("0");
+    await act(async () => {
+      a.focus();
+    });
+    expect(a.querySelector(":scope > .zf-del-btn")).not.toBeNull();
+    expect(a.querySelector(":scope > .zf-cfg-btn")).not.toBeNull();
+    expect(view.container.querySelectorAll(".zf-del-btn")).toHaveLength(1);
+
+    // Hover and focus are a UNION, not one shared target: hovering another card
+    // must not strip the pills off the card that holds focus — if it did, and
+    // the focus was on one of those pills, the keyboard user would land on
+    // <body> for moving the mouse.
+    await act(async () => {
+      fireEvent.pointerOver(itemEl(view.container, "b"));
+    });
+    expect(a.querySelector(":scope > .zf-del-btn")).not.toBeNull();
+    expect(
+      itemEl(view.container, "b").querySelector(":scope > .zf-del-btn"),
+    ).not.toBeNull();
+
+    // And leaving customise mode takes the whole affordance away again.
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Cancel" }));
+    });
+    expect(itemEl(view.container, "a").hasAttribute("tabindex")).toBe(false);
+    expect(view.container.querySelectorAll(".zf-del-btn")).toHaveLength(0);
+  });
+
+  it("names the delete pill after the card rather than after its glyph", async () => {
+    const spec = DashboardSpecSchema.parse({
+      title: "editor-test",
+      currency: { code: "USD" },
+      grid: { columns: 12, rowHeight: 90, rows: 3, gap: 12 },
+      frames: [
+        {
+          id: "a",
+          frame: "probe",
+          title: "Order Book",
+          position: { x: 0, y: 0, w: 3, h: 2 },
+          config: {},
+        },
+      ],
+    });
+    const view = mountWith(spec, vi.fn());
+    await enterCustomise(view);
+    await act(async () => {
+      itemEl(view.container, "a").focus();
+    });
+
+    // It announced as "×" before: it carried a title but no accessible name,
+    // and name-from-content beats a title.
+    expect(
+      view.getByRole("button", { name: "Remove Order Book" }),
+    ).toBeTruthy();
+    expect(view.getByRole("button", { name: "Edit Order Book" })).toBeTruthy();
+    // The title stays: the runtime's own e2e finds this button by it.
+    expect(
+      view.container.querySelector('button[title="Remove frame"]'),
+    ).not.toBeNull();
+  });
+
+  it("moves and resizes a focused card, one undo step per press", async () => {
+    const onSave = vi.fn();
+    const view = mountWith(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      onSave,
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      itemEl(view.container, "a").focus();
+    });
+
+    await act(async () => {
+      fireEvent.keyDown(itemEl(view.container, "a"), { key: "ArrowRight" });
+    });
+    // A keyboard user cannot see the card move, so the new geometry is spoken.
+    expect(liveText(view.container)).toBe("Probe: column 2, row 1, 3 by 2");
+    expect(
+      view.getByRole("button", { name: "Undo" }).hasAttribute("disabled"),
+    ).toBe(false);
+
+    // Shift is the resize modifier — the second thing a pointer can do to a card.
+    await act(async () => {
+      fireEvent.keyDown(itemEl(view.container, "a"), {
+        key: "ArrowRight",
+        shiftKey: true,
+      });
+    });
+    expect(liveText(view.container)).toBe("Probe: column 2, row 1, 4 by 2");
+
+    // One press, one entry: undoing takes back the resize and leaves the move.
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Undo" }));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    expect(
+      (onSave.mock.calls[0][0] as DashboardSpec).frames[0].position,
+    ).toEqual({ x: 1, y: 0, w: 3, h: 2 });
+  });
+
+  it("leaves an arrow key alone unless the card itself has focus", async () => {
+    // An arrow inside a frame's own control, or on the gear pill, keeps its
+    // ordinary meaning — only the card container is a nudge target.
+    const onSave = vi.fn();
+    const view = mountWith(
+      parseSpec([{ id: "a", position: { x: 0, y: 0, w: 3, h: 2 } }]),
+      onSave,
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      itemEl(view.container, "a").focus();
+    });
+    const gear = view.container.querySelector<HTMLElement>(".zf-cfg-btn")!;
+    await act(async () => {
+      fireEvent.keyDown(gear, { key: "ArrowRight" });
+    });
+    expect(liveText(view.container)).not.toContain("column");
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    expect(
+      (onSave.mock.calls[0][0] as DashboardSpec).frames[0].position,
+    ).toEqual({ x: 0, y: 0, w: 3, h: 2 });
+  });
+
+  it("opens the config dialog on Enter and deletes on Delete", async () => {
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      itemEl(view.container, "a").focus();
+    });
+    await act(async () => {
+      fireEvent.keyDown(itemEl(view.container, "a"), { key: "Enter" });
+    });
+    expect(document.querySelector(".zf-dialog")).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.keyDown(itemEl(view.container, "a"), { key: "Delete" });
+    });
+    // The same recoverable path the pill uses, toast included.
+    expect(itemIds(view.container)).toEqual(["b"]);
+    expect(view.getByRole("status").textContent).toContain("Removed");
+    // Focus went to a neighbour rather than to <body>.
+    expect(document.activeElement).toBe(itemEl(view.container, "b"));
   });
 });
 
@@ -863,6 +1193,83 @@ describe("undo / redo", () => {
     expect(itemIds(view.container)).toEqual(["b"]);
   });
 
+  it("records a gesture that lands immediately after an undo", async () => {
+    // The write-back suppression used to be a 600ms clock read inside
+    // commitHistory, so ANY gesture finished in that window was applied to the
+    // board and never recorded: the next ⌘Z skipped past it, the dirty dot could
+    // be absent while the board differed from the baseline, and a delete made in
+    // the window had no entry for its own toast to step back to.
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Dismiss" }));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Undo" }));
+    });
+    expect(itemIds(view.container).sort()).toEqual(["a", "b"]);
+
+    // Well inside the old window — this whole test runs in milliseconds.
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "b"));
+    });
+    expect(itemIds(view.container)).toEqual(["a"]);
+    expect(isDirty(view.container)).toBe(true);
+    expect(
+      view.getByRole("button", { name: "Undo" }).hasAttribute("disabled"),
+    ).toBe(false);
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Undo" }));
+    });
+    expect(itemIds(view.container).sort()).toEqual(["a", "b"]);
+  });
+
+  it("keeps focus inside the card a rebuild replaced", async () => {
+    // restore() unmounts every root, removes every item node and builds new
+    // ones, so whatever held focus is destroyed and focus fell to <body>,
+    // silently, on every undo — for a keyboard user, the tab position gone with
+    // no way back to where they were.
+    const view = mount(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      [],
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Dismiss" }));
+    });
+    // Focus something inside a card that SURVIVES the undo.
+    configBtn(view.container, "b").focus();
+    expect(document.activeElement).toBe(
+      view.container.querySelector('.grid-stack-item[gs-id="b"] .zf-cfg-btn'),
+    );
+
+    await act(async () => {
+      fireEvent.keyDown(document, { key: "z", metaKey: true });
+    });
+    // The pills belonged to the old element and are not re-decorated until the
+    // next hover, so the rescue lands on the card itself — which is the
+    // recoverable place to be, and is not <body>.
+    const holder = (document.activeElement as HTMLElement | null)?.closest(
+      ".grid-stack-item",
+    );
+    expect(holder?.getAttribute("gs-id")).toBe("b");
+  });
+
   it("reverts a delete on Cancel", async () => {
     const view = mount(
       parseSpec([
@@ -947,6 +1354,53 @@ describe("honest save", () => {
     expect(
       view.getByRole("button", { name: "Undo" }).hasAttribute("disabled"),
     ).toBe(false);
+  });
+
+  it("ignores ⌘Z while the write is in flight", async () => {
+    // The toolbar's Undo/Redo are disabled from the moment Save is pressed, but
+    // the keyboard path was not — so the board could be rewound while the spec
+    // collected before the press was already on its way to disk, after which the
+    // editor re-based its history on what it sent and believed the rewound board
+    // was saved.
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const onSave = vi.fn(() => pending);
+    const view = mountWith(
+      parseSpec([
+        { id: "a", position: { x: 0, y: 0, w: 3, h: 2 } },
+        { id: "b", position: { x: 3, y: 0, w: 3, h: 2 } },
+      ]),
+      onSave,
+    );
+    await enterCustomise(view);
+    await act(async () => {
+      fireEvent.click(deleteBtn(view.container, "a"));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Dismiss" }));
+    });
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+
+    await act(async () => {
+      fireEvent.keyDown(document, { key: "z", metaKey: true });
+    });
+    expect(itemIds(view.container)).toEqual(["b"]);
+    await act(async () => {
+      fireEvent.keyDown(document, { key: "z", metaKey: true, shiftKey: true });
+    });
+    expect(itemIds(view.container)).toEqual(["b"]);
+
+    await act(async () => {
+      release();
+      await pending;
+    });
+    // The board that was written is the board on screen.
+    expect(view.getByRole("button", { name: "Customize" })).toBeTruthy();
+    expect(itemIds(view.container)).toEqual(["b"]);
   });
 
   it("marks the saved state clean, so re-entering has nothing to revert", async () => {

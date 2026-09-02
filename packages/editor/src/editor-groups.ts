@@ -1,5 +1,9 @@
 import type { GridItemHTMLElement, GridStack } from "gridstack";
-import type { ChildFrameInstance, FrameInstance } from "@zframes/spec/spec";
+import type {
+  ChildFrameInstance,
+  FrameInstance,
+  GridPosition,
+} from "@zframes/spec/spec";
 import type { ContainerGeometry } from "./editor-grid";
 
 // ── Group nesting: the pure half of the container-frame machinery ──
@@ -36,6 +40,21 @@ export function decorateGroupHost(
   if (instance.title) {
     host.classList.add("zf-group-host--titled");
     host.setAttribute("data-group-title", instance.title);
+    // The label above is CSS generated content, which is not in the
+    // accessibility tree at all — so a cluster was announced as a bare run of
+    // its children with nothing naming it. `role` is what lets the label be
+    // read; without it an aria-label on a plain div is dropped.
+    host.setAttribute("role", "group");
+    host.setAttribute("aria-label", instance.title);
+  } else {
+    // Cleared rather than left alone, because this runs again when a group's
+    // config is applied (the container branch of the controller's
+    // renderInstance): a title deleted in the dialog has to leave the live host
+    // too, or the label survives its own removal until the next rebuild.
+    host.classList.remove("zf-group-host--titled");
+    host.removeAttribute("data-group-title");
+    host.removeAttribute("role");
+    host.removeAttribute("aria-label");
   }
   // `config.panel` has to be restated here too: the editor never renders the
   // renderer's `.zf-group--panel`, so without this the surrounding surface
@@ -71,7 +90,13 @@ export function subGridOptions(geo: ContainerGeometry, editing: boolean) {
     // Same reasoning as the board grid: explicit placements are preserved
     // rather than gravity-packed, so a child stays where it was dropped.
     float: true,
-    animate: true,
+    // Matches the board grid: a nested grid created after the mode was already
+    // set has to start in the right state, and the controller's media-query
+    // effect re-applies it to every live grid on a change.
+    animate: !(
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
+    ),
     acceptWidgets: true,
     disableDrag: !editing,
     disableResize: !editing,
@@ -125,6 +150,32 @@ export function buildGroupChildEl(
 }
 
 /**
+ * A board-level instance narrowed to what a group's child may carry.
+ *
+ * Built field by field rather than spread, because a child carries neither
+ * `layouts` nor `children` — a group holds one arrangement for every board
+ * mode, and groups don't nest — and a frame dragged in from the board arrives
+ * still carrying its `layouts`. Spreading would smuggle that into the saved
+ * child (where the schema strips it on the next read, so the junk would be
+ * invisible until someone diffed the file).
+ */
+export function toGroupChild(
+  instance: FrameInstance,
+  position: GridPosition = instance.position,
+): ChildFrameInstance {
+  return {
+    id: instance.id,
+    frame: instance.frame,
+    config: instance.config,
+    ...(instance.title !== undefined ? { title: instance.title } : {}),
+    ...(instance.style !== undefined ? { style: instance.style } : {}),
+    ...(instance.currency !== undefined ? { currency: instance.currency } : {}),
+    ...(instance.events !== undefined ? { events: instance.events } : {}),
+    position,
+  };
+}
+
+/**
  * Read a group's children back off its LIVE nested grid, so a child
  * dragged/resized inside the group is saved from the same source of truth as a
  * board-level move.
@@ -141,32 +192,12 @@ export function collectGroupChildren(
         const childInst = childId ? instances.get(childId) : undefined;
         if (!childInst) return null;
         const cn = childEl.gridstackNode;
-        // Built field by field rather than spread, because a child carries
-        // neither `layouts` nor `children` — a group holds one arrangement
-        // for every board mode, and groups don't nest — and a frame
-        // dragged in from the board arrives still carrying its `layouts`.
-        // Spreading would smuggle that into the saved child (where the
-        // schema strips it on the next read, so the junk would be
-        // invisible until someone diffed the file).
-        return {
-          id: childInst.id,
-          frame: childInst.frame,
-          config: childInst.config,
-          ...(childInst.title !== undefined ? { title: childInst.title } : {}),
-          ...(childInst.style !== undefined ? { style: childInst.style } : {}),
-          ...(childInst.currency !== undefined
-            ? { currency: childInst.currency }
-            : {}),
-          ...(childInst.events !== undefined
-            ? { events: childInst.events }
-            : {}),
-          position: {
-            x: cn?.x ?? childInst.position.x,
-            y: cn?.y ?? childInst.position.y,
-            w: cn?.w ?? childInst.position.w,
-            h: cn?.h ?? childInst.position.h,
-          },
-        };
+        return toGroupChild(childInst, {
+          x: cn?.x ?? childInst.position.x,
+          y: cn?.y ?? childInst.position.y,
+          w: cn?.w ?? childInst.position.w,
+          h: cn?.h ?? childInst.position.h,
+        });
       })
       .filter((c): c is NonNullable<typeof c> => c !== null)
       // Same reason the board sorts: keep the written JSON diff-friendly.

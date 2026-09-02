@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import type { GridItemHTMLElement, GridStack, GridStackNode } from "gridstack";
 import { z } from "zod";
 import { DashboardEditor } from "./editor";
 import { createRegistry, defineFrame } from "@zframes/spec/frame";
@@ -135,6 +136,91 @@ async function clickSave(view: ReturnType<typeof mount>) {
   await act(async () => {
     fireEvent.click(view.getByRole("button", { name: "Save" }));
   });
+}
+
+async function enterCustomise(view: ReturnType<typeof mount>) {
+  await act(async () => {
+    fireEvent.click(view.getByRole("button", { name: "Customize" }));
+  });
+}
+
+/** The live GridStack behind an element (the engine hangs itself off its own
+ *  root, which is the only handle a test has on a nested grid). */
+function gridOf(el: HTMLElement): GridStack {
+  const grid = (el as unknown as { gridstack?: GridStack }).gridstack;
+  if (!grid) throw new Error("element is not a live GridStack");
+  return grid;
+}
+
+function boardGrid(container: HTMLElement): GridStack {
+  const el = container.querySelector<HTMLElement>(
+    ".zf-editor-grid > .grid-stack",
+  );
+  if (!el) throw new Error("board grid never initialised");
+  return gridOf(el);
+}
+
+function boardItem(container: HTMLElement, id: string): GridItemHTMLElement {
+  const el = container.querySelector<GridItemHTMLElement>(
+    `.zf-editor-grid > .grid-stack > .grid-stack-item[gs-id="${id}"]`,
+  );
+  if (!el) throw new Error(`no board item "${id}"`);
+  return el;
+}
+
+/** A palette drag helper, as `setupDragIn` builds it: the item class GridStack
+ *  accepts, the frame name, a content box — and no `gs-id`, because nothing is
+ *  behind it yet. */
+function paletteItem(frame: string): GridItemHTMLElement {
+  const el = document.createElement("div") as GridItemHTMLElement;
+  el.className = "grid-stack-item";
+  el.setAttribute("data-frame", frame);
+  el.setAttribute("gs-w", "1");
+  el.setAttribute("gs-h", "1");
+  const content = document.createElement("div");
+  content.className = "grid-stack-item-content";
+  el.appendChild(content);
+  return el;
+}
+
+/**
+ * Fire a nested grid's own `dropped` handler the way the engine does.
+ *
+ * GridStack drags cannot be synthesized (in jsdom or through a headless
+ * browser, per prior attempts), so this drives the exact function the engine
+ * calls, having first put the element where the engine puts it before calling
+ * it: appended to the nested grid and registered as one of its widgets.
+ *
+ * `from` is the grid a LIVE card was dragged out of. The engine hands the
+ * original node as the handler's second argument (with its source grid and its
+ * pre-drag placement on it), and that is the whole basis on which a refusal can
+ * put the card back rather than delete it.
+ */
+function simulateDrop(
+  sub: GridStack,
+  el: GridItemHTMLElement,
+  from?: GridStack,
+): void {
+  let origin: GridStackNode | undefined;
+  if (from) {
+    // Snapshot before the removal: removeWidget drops `el.gridstackNode`.
+    const node = el.gridstackNode;
+    origin = { ...node, grid: from, el } as GridStackNode;
+    from.removeWidget(el, false, false);
+  }
+  sub.el.appendChild(el);
+  sub.makeWidget(el);
+  const handlers = (
+    sub as unknown as {
+      _gsEventHandler: Record<
+        string,
+        ((e: unknown, prev: unknown, node: unknown) => void) | undefined
+      >;
+    }
+  )._gsEventHandler;
+  const dropped = handlers.dropped;
+  if (!dropped) throw new Error("nested grid registered no dropped handler");
+  dropped({ type: "dropped" }, origin, el.gridstackNode);
 }
 
 function savedSpec(onSave: ReturnType<typeof vi.fn>): DashboardSpec {
@@ -377,6 +463,117 @@ describe("Save reassembles the nested tree", () => {
     expect(
       saved.frames.find((f) => f.id === "board")?.children,
     ).toBeUndefined();
+  });
+});
+
+describe("what a group refuses, and how", () => {
+  it("refuses a group from the palette, and says why", async () => {
+    // The rule is right (the file format cannot represent a nested group) but
+    // the refusal was invisible: the card was removed at the moment of release
+    // with no message and nothing in the board to show for it, which is
+    // indistinguishable from a drop that missed.
+    const view = mount(specWith([group("g", { x: 0, y: 0, w: 6, h: 4 }, [])]));
+    await enterCustomise(view);
+    const el = paletteItem("cluster");
+    await act(async () => {
+      simulateDrop(gridOf(subGridEl(view.container, "g")), el);
+    });
+
+    expect(el.isConnected).toBe(false);
+    expect(view.getByRole("status").textContent).toContain(
+      "Groups can't be nested",
+    );
+  });
+
+  it("refuses an existing group and hands it back to the board", async () => {
+    // The container check used to sit AFTER the known-frame early return, so a
+    // group dragged off the board was accepted: it rendered with its children,
+    // and at Save the inner group was written as a childless frame — every card
+    // inside it gone from the file, silently, visible only after the reload.
+    const view = mount(
+      specWith([
+        group("outer", { x: 0, y: 0, w: 6, h: 4 }, [
+          leaf("c1", { x: 0, y: 0, w: 1, h: 1 }),
+        ]),
+        group("inner", { x: 6, y: 0, w: 6, h: 4 }, [
+          leaf("c2", { x: 0, y: 0, w: 1, h: 1 }),
+          leaf("c3", { x: 1, y: 0, w: 1, h: 1 }),
+        ]),
+      ]),
+    );
+    await enterCustomise(view);
+    const board = boardGrid(view.container);
+    const innerEl = boardItem(view.container, "inner");
+    await act(async () => {
+      simulateDrop(gridOf(subGridEl(view.container, "outer")), innerEl, board);
+    });
+
+    // Handed back rather than deleted: it is a live card with mounted React
+    // roots and a nested grid of its own inside it.
+    expect(innerEl.parentElement).toBe(board.el);
+    expect(view.getByRole("status").textContent).toContain(
+      "Groups can't be nested",
+    );
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    const saved = savedSpec(view.onSave);
+    expect(saved.frames.map((f) => f.id).sort()).toEqual(["inner", "outer"]);
+    const inner = saved.frames.find((f) => f.id === "inner");
+    expect(inner?.children?.map((c) => c.id)).toEqual(["c2", "c3"]);
+    expect(() => DashboardSpecSchema.parse(saved)).not.toThrow();
+  });
+
+  it("refuses the 25th card at drop time rather than at Save", async () => {
+    // The cap lived only in the schema, so the 25th dropped in happily, rendered
+    // and dragged like the others — and then the server refused the WHOLE spec at
+    // Save, writing nothing, with a message that may not even name the group.
+    const children = Array.from({ length: 24 }, (_, i) => ({
+      id: `c${i}`,
+      frame: "probe",
+      config: {},
+      position: { x: i % 6, y: Math.floor(i / 6), w: 1, h: 1 },
+    }));
+    const view = mount(
+      specWith([
+        {
+          id: "g",
+          frame: "cluster",
+          position: { x: 0, y: 0, w: 12, h: 8 },
+          config: { columns: 6, rows: 8 },
+          children,
+        },
+      ]),
+    );
+    await enterCustomise(view);
+    const sub = gridOf(subGridEl(view.container, "g"));
+    expect(childItems(view.container, "g")).toHaveLength(24);
+
+    const el = paletteItem("probe");
+    await act(async () => {
+      simulateDrop(sub, el);
+    });
+    expect(el.isConnected).toBe(false);
+    expect(childItems(view.container, "g")).toHaveLength(24);
+    expect(view.getByRole("status").textContent).toContain("at most 24 cards");
+  });
+
+  it("still accepts an ordinary frame from the palette", async () => {
+    // The guard rails above must not make the normal path a refusal.
+    const view = mount(specWith([group("g", { x: 0, y: 0, w: 6, h: 4 }, [])]));
+    await enterCustomise(view);
+    const el = paletteItem("probe");
+    await act(async () => {
+      simulateDrop(gridOf(subGridEl(view.container, "g")), el);
+    });
+
+    expect(el.isConnected).toBe(true);
+    expect(el.getAttribute("gs-id")).toBeTruthy();
+    expect(view.queryByRole("status")).toBeNull();
+    await act(async () => {
+      fireEvent.click(view.getByRole("button", { name: "Save" }));
+    });
+    expect(savedSpec(view.onSave).frames[0].children).toHaveLength(1);
   });
 });
 

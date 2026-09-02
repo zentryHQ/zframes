@@ -27,6 +27,46 @@
   position: relative;
 }
 
+/* Announced but not drawn: the editor's polite live region and the Save button's
+   dirty-state description. `clip` over `display:none` / `visibility:hidden`,
+   both of which take the text out of the accessibility tree entirely — which
+   would make this element pure decoration, the exact thing it exists to fix. */
+.zf-sr-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A card focused from the keyboard is the only thing on screen saying "the
+   arrow keys act here now", so it gets the selection ring rather than the
+   browser's default outline on a box GridStack has already inset. */
+.zf-editor.zf-customise .grid-stack-item:focus-visible {
+  outline: none;
+}
+.zf-editor.zf-customise .grid-stack-item:focus-visible > .zf-frame,
+.zf-editor.zf-customise
+  .grid-stack-item:focus-visible
+  > .grid-stack-item-content {
+  outline: 2px solid hsl(var(--zf-accent-hue, 242) 90% 76% / 0.9);
+  outline-offset: 1px;
+}
+
+/* Reduced motion: GridStack's engine animation is switched off in JS
+   (setAnimation), and this covers the stock stylesheet's own transition in case
+   a grid is built before that runs. */
+@media (prefers-reduced-motion: reduce) {
+  .zf-editor .grid-stack.grid-stack-animate .grid-stack-item,
+  .zf-editor .grid-stack.grid-stack-animate > .grid-stack-item {
+    transition: none !important;
+  }
+}
+
 .zf-editor-main {
   display: flex;
   align-items: flex-start;
@@ -185,6 +225,17 @@
     .grid-stack-item-content:hover
     > .zf-frame:not(.zf-frame--error)::after {
     opacity: 1;
+  }
+}
+/* The card's own stylesheet resets its hover lift under reduced motion, but
+   that rule is `.zf-frame:hover` (specificity 0,2,0) and the one above is
+   (0,4,0) — and neither file uses `@layer`, so specificity decides and the lift
+   won. On a desktop the served dashboard is ALWAYS this grid, so a stated
+   accessibility preference was being ignored on the main surface. Only the
+   transform goes: the border/glow are not motion. */
+@media (prefers-reduced-motion: reduce) {
+  .zf-editor:not(.zf-customise) .grid-stack-item-content:hover > .zf-frame {
+    transform: none;
   }
 }
 .zf-fill {
@@ -353,11 +404,14 @@ body.zf-dragging * {
   animation-delay: 0.15s;
   animation-duration: 0.26s;
 }
+/* `ui-resizable-resizing` is the class the grid engine actually puts on the item
+   (dd-resizable.js); the rule named `ui-resizing`, which nothing sets, so the
+   drag half worked and a card being RESIZED went on jiggling under the pointer. */
 .zf-editor.zf-customise
   .grid-stack-item.ui-draggable-dragging
   > .grid-stack-item-content,
 .zf-editor.zf-customise
-  .grid-stack-item.ui-resizing
+  .grid-stack-item.ui-resizable-resizing
   > .grid-stack-item-content {
   animation: none;
 }
@@ -404,7 +458,17 @@ body.zf-dragging * {
     background 0.2s var(--zf-ease-out),
     border-color 0.2s var(--zf-ease-out),
     box-shadow 0.2s var(--zf-ease-out);
-  z-index: 100;
+  /* Above the sticky editor bar (110), not under it. The bar is drawn over the
+     board, so the × of a card scrolled up behind it used to be unreachable —
+     the click landed on the bar with nothing to show for it, and the repo's own
+     e2e test works around it by only ever deleting the LAST card. Safe to sit on
+     top because the pills exist only on the hovered card (decorateChain), and
+     moving the pointer onto the bar strips them from every card first, so they
+     can never intercept a Save. Still under the toast (1100) and the dialog. */
+  z-index: 120;
+  /* Not hit-testable until it is actually visible: the fade-out window is the
+     one moment a card carries a pill nobody can see. */
+  pointer-events: none;
   font-size: 14px;
   font-weight: 700;
   line-height: 1;
@@ -432,6 +496,7 @@ body.zf-dragging * {
 .zf-editor.zf-customise .grid-stack-item:hover > .zf-del-btn {
   opacity: 1;
   transform: scale(1);
+  pointer-events: auto;
 }
 
 /* Per-frame gear — opens this frame's settings dialog. Sibling of content (like
@@ -468,7 +533,9 @@ body.zf-dragging * {
     color 0.2s var(--zf-ease-out),
     border-color 0.2s var(--zf-ease-out),
     box-shadow 0.2s var(--zf-ease-out);
-  z-index: 100;
+  /* Same stacking + hit-testing story as .zf-del-btn above. */
+  z-index: 120;
+  pointer-events: none;
   padding: 0;
 }
 .zf-cfg-btn:hover {
@@ -492,6 +559,7 @@ body.zf-dragging * {
 .zf-editor.zf-customise .grid-stack-item:hover > .zf-cfg-btn {
   opacity: 1;
   transform: scale(1);
+  pointer-events: auto;
 }
 
 /* Drop placeholder while dragging a new frame in. */
@@ -520,19 +588,29 @@ body.zf-dragging * {
   padding: 0 14px;
   direction: ltr;
   border-radius: 12px;
+  /* Expressed off the surface ladder rather than hard-coded dark: this is the
+     one piece of chrome dragged across the whole page, and on a light board it
+     was a black tile with white text. The vars are copied onto the helper inline
+     (see the setupDragIn helper in editor.tsx) because it lives on <body>. */
   background: linear-gradient(
     165deg,
-    rgba(34, 35, 50, 0.95),
-    rgba(13, 14, 21, 0.96)
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l1, 12.5%) /
+        0.95
+    ),
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l3, 5.3%) /
+        0.96
+    )
   );
   border: 1px solid
     hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.55);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 hsl(0 0% var(--zf-ink-l, 100%) / 0.08),
     0 22px 50px -20px rgba(0, 0, 0, 0.85),
     0 0 0 1px
       hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.22);
-  color: #eef1f8;
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.94);
   font-family: var(--font-dmsans, "DM Sans", system-ui, sans-serif);
   -webkit-backdrop-filter: blur(10px) saturate(140%);
   backdrop-filter: blur(10px) saturate(140%);
@@ -578,8 +656,10 @@ body:has(.ui-draggable-dragging) * {
    away — so Save/Cancel/Undo become unreachable exactly on the long boards where
    editing takes the most scrolling. Sticky rather than fixed so it stays inside
    the editor's own padding and can't collide with the host header.
-   z-index clears the per-card delete/config buttons (100) and stays under the
-   undo toast (120) and the config dialog (1000). */
+   z-index sits under the per-card delete/config pills (120) — they have to be
+   clickable on a card scrolled behind the bar — and under the toast (1100) and
+   the config dialog (1000). Nothing is lost by yielding to the pills: they are
+   only ever on the hovered card, and hovering the bar strips them. */
 .zf-editor.zf-customise .zf-editor-bar {
   position: sticky;
   top: 8px;
@@ -595,8 +675,14 @@ body:has(.ui-draggable-dragging) * {
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: linear-gradient(
     180deg,
-    rgba(30, 31, 44, 0.72),
-    rgba(16, 17, 26, 0.78)
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+        calc(var(--zf-surf-l1, 12.5%) + 2%) / 0.72
+    ),
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+        calc(var(--zf-surf-l3, 5.3%) + 2.9%) / 0.78
+    )
   );
   -webkit-backdrop-filter: blur(14px) saturate(150%);
   backdrop-filter: blur(14px) saturate(150%);
@@ -621,13 +707,24 @@ body:has(.ui-draggable-dragging) * {
      dashboard background (light gradient, dark scene, busy unicorn animation),
      so each control carries its own dark tint + blur instead of leaning on an
      assumed-dark backdrop — translucent-white-on-light just washed out. */
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.14);
+  /* Control fills ride the surface ladder with a fixed offset TOWARD the ink,
+     rather than a literal dark tint: a control has to sit slightly proud of the
+     surface it is on, and that is one step lighter on a dark board and one step
+     lighter again on a light one. Every offset is chosen so the dark value is
+     byte-for-byte what it was. */
   background: linear-gradient(
     180deg,
-    rgba(38, 40, 56, 0.72),
-    rgba(19, 20, 31, 0.78)
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+        calc(var(--zf-surf-l1, 12.5%) + 6.5%) / 0.72
+    ),
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+        calc(var(--zf-surf-l3, 5.3%) + 4.5%) / 0.78
+    )
   );
-  color: rgba(255, 255, 255, 0.92);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.92);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
   backdrop-filter: blur(14px) saturate(150%);
   box-shadow:
@@ -644,10 +741,16 @@ body:has(.ui-draggable-dragging) * {
 .zf-btn:hover:not(:disabled) {
   background: linear-gradient(
     180deg,
-    rgba(50, 52, 71, 0.82),
-    rgba(26, 27, 41, 0.86)
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+        calc(var(--zf-surf-l1, 12.5%) + 11.2%) / 0.82
+    ),
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+        calc(var(--zf-surf-l3, 5.3%) + 7.8%) / 0.86
+    )
   );
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: hsl(0 0% var(--zf-ink-l, 100%) / 0.22);
   transform: translateY(-1px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
@@ -719,19 +822,37 @@ body:has(.ui-draggable-dragging) * {
   gap: 10px;
   padding: 10px 10px 10px 16px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  /* Off the surface ladder, like the card it sits over: on a light board the
+     toast was the one bit of chrome that stayed dark. */
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.16);
   background: linear-gradient(
     180deg,
-    rgba(40, 42, 58, 0.94),
-    rgba(20, 21, 33, 0.96)
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l1, 12.5%) /
+        0.94
+    ),
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l3, 5.3%) /
+        0.96
+    )
   );
-  color: rgba(255, 255, 255, 0.94);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.94);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
   backdrop-filter: blur(16px) saturate(150%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 1px 0 hsl(0 0% var(--zf-ink-l, 100%) / 0.09),
     0 18px 40px -18px rgba(0, 0, 0, 0.9);
   animation: zf-toast-in 0.22s var(--zf-ease-out) both;
+}
+/* A refused drop, not a completed one: the same surface, tinted so it doesn't
+   read as a confirmation of something that did happen. No Undo button — there
+   is nothing to take back, which is the whole point of saying so. */
+.zf-toast--refused {
+  border-color: hsl(2 80% 62% / 0.45);
+  box-shadow:
+    inset 0 1px 0 hsl(0 0% var(--zf-ink-l, 100%) / 0.09),
+    0 18px 40px -18px rgba(0, 0, 0, 0.9),
+    0 0 0 1px hsl(2 80% 62% / 0.18);
 }
 @keyframes zf-toast-in {
   from {
@@ -776,6 +897,19 @@ body:has(.ui-draggable-dragging) * {
   transition-duration: 0s;
   transform: scale(0.96);
 }
+/* The accent ink above is chosen to read on a dark tile; at that lightness it
+   is unreadable on the light one. The surface ladder is deliberately neutral
+   (four lightness vars, no accent), so this is one scoped override rather than
+   a fifth token nothing else would use. */
+.zf-editor[data-surface="light"] .zf-toast-action {
+  border-color: hsl(var(--zf-accent-hue, 242) 70% 52% / 0.5);
+  background: hsl(var(--zf-accent-hue, 242) 80% 60% / 0.14);
+  color: hsl(var(--zf-accent-hue, 242) 72% 38%);
+}
+.zf-editor[data-surface="light"] .zf-toast-action:hover {
+  background: hsl(var(--zf-accent-hue, 242) 80% 60% / 0.24);
+  border-color: hsl(var(--zf-accent-hue, 242) 70% 48% / 0.75);
+}
 .zf-toast-close {
   display: inline-flex;
   align-items: center;
@@ -786,14 +920,14 @@ body:has(.ui-draggable-dragging) * {
   border-radius: 7px;
   cursor: pointer;
   background: transparent;
-  color: rgba(255, 255, 255, 0.5);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.5);
   transition:
     background 0.16s var(--zf-ease-out),
     color 0.16s var(--zf-ease-out);
 }
 .zf-toast-close:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
+  background: hsl(0 0% var(--zf-ink-l, 100%) / 0.1);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.9);
 }
 .zf-toast-action:focus-visible,
 .zf-toast-close:focus-visible {
@@ -836,16 +970,22 @@ body:has(.ui-draggable-dragging) * {
 /* Ghost (Cancel) — the quietest dismiss: same frosted base, dialed down so it
    recedes behind Save without going invisible on light backgrounds. */
 .zf-btn--ghost {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: hsl(0 0% var(--zf-ink-l, 100%) / 0.1);
   background: linear-gradient(
     180deg,
-    rgba(30, 31, 44, 0.5),
-    rgba(16, 17, 26, 0.58)
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+        calc(var(--zf-surf-l1, 12.5%) + 2%) / 0.5
+    ),
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+        calc(var(--zf-surf-l3, 5.3%) + 2.9%) / 0.58
+    )
   );
-  color: rgba(255, 255, 255, 0.78);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.78);
 }
 .zf-btn--ghost:hover {
-  color: rgba(255, 255, 255, 0.95);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.95);
 }
 
 /* Icon-only buttons for compact toolbar actions. */
@@ -854,7 +994,7 @@ body:has(.ui-draggable-dragging) * {
   width: 38px;
   height: 38px;
   border-radius: 11px;
-  color: rgba(255, 255, 255, 0.85);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.85);
 }
 .zf-btn--icon:hover {
   color: hsl(var(--zf-accent-hue, 242) 96% 82%);
@@ -887,8 +1027,18 @@ body:has(.ui-draggable-dragging) * {
       hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 72% / 0.28),
       transparent 62%
     ),
-    linear-gradient(180deg, rgba(32, 34, 49, 0.9), rgba(11, 12, 20, 0.92));
-  color: rgba(255, 255, 255, 0.96);
+    linear-gradient(
+      180deg,
+      hsl(
+        var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+          calc(var(--zf-surf-l1, 12.5%) + 3.4%) / 0.9
+      ),
+      hsl(
+        var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+          calc(var(--zf-surf-l3, 5.3%) + 0.8%) / 0.92
+      )
+    );
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.96);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
     0 2px 8px rgba(0, 0, 0, 0.4),
@@ -901,7 +1051,7 @@ body:has(.ui-draggable-dragging) * {
   border-color: hsl(
     var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 82% / 0.85
   );
-  color: #fff;
+  color: hsl(0 0% var(--zf-ink-l, 100%));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.2),
     0 3px 10px rgba(0, 0, 0, 0.42),
@@ -1196,8 +1346,8 @@ body:has(.ui-draggable-dragging) * {
   gap: 6px;
   padding: 9px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: hsl(0 0% var(--zf-ink-l, 100%) / 0.03);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.08);
 }
 .zf-event-head {
   display: flex;
@@ -1213,15 +1363,15 @@ body:has(.ui-draggable-dragging) * {
   width: 26px;
   height: 26px;
   border-radius: 7px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.25);
-  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.12);
+  background: hsl(0 0% calc(100% - var(--zf-ink-l, 100%)) / 0.25);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.55);
   font-size: 11px;
   line-height: 1;
   cursor: pointer;
 }
 .zf-event-del:hover {
-  color: rgba(255, 255, 255, 0.9);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.9);
   border-color: rgba(255, 120, 140, 0.5);
 }
 
@@ -1487,9 +1637,9 @@ body:has(.ui-draggable-dragging) * {
 .zf-textarea {
   font: inherit;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.9);
+  background: hsl(0 0% calc(100% - var(--zf-ink-l, 100%)) / 0.3);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.12);
   border-radius: 7px;
   padding: 7px 9px;
   width: 100%;
@@ -1561,7 +1711,7 @@ body:has(.ui-draggable-dragging) * {
 .zf-style-panel {
   margin-top: 6px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.08);
 }
 .zf-style-head {
   display: flex;
@@ -1574,11 +1724,11 @@ body:has(.ui-draggable-dragging) * {
   font: inherit;
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.7);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.7);
   cursor: pointer;
 }
 .zf-style-head:hover {
-  color: rgba(255, 255, 255, 0.92);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.92);
 }
 .zf-style-chevron {
   flex: none;
@@ -1606,7 +1756,7 @@ body:has(.ui-draggable-dragging) * {
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.38);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.38);
   cursor: pointer;
 }
 .zf-style-clear:hover {
@@ -1635,9 +1785,9 @@ body:has(.ui-draggable-dragging) * {
 .zf-select {
   font: inherit;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.9);
+  background: hsl(0 0% calc(100% - var(--zf-ink-l, 100%)) / 0.3);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.12);
   border-radius: 7px;
   padding: 7px 28px 7px 9px;
   width: 100%;
@@ -1964,10 +2114,10 @@ body:has(.ui-draggable-dragging) * {
     linear-gradient(
       135deg,
       hsl(var(--zf-accent-hue, 242) 90% 76% / 0.1),
-      rgba(255, 255, 255, 0.035) 45%,
-      rgba(0, 0, 0, 0.16)
+      hsl(0 0% var(--zf-ink-l, 100%) / 0.035) 45%,
+      hsl(0 0% calc(100% - var(--zf-ink-l, 100%)) / 0.16)
     ),
-    rgba(255, 255, 255, 0.03);
+    hsl(0 0% var(--zf-ink-l, 100%) / 0.03);
 }
 .zf-symbol-head,
 .zf-holding-row,
@@ -1987,25 +2137,25 @@ body:has(.ui-draggable-dragging) * {
   font-weight: 700;
   letter-spacing: 0.11em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.46);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.46);
 }
 .zf-symbol-detail {
   margin-top: 2px;
   font-size: 13px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.88);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.88);
 }
 .zf-symbol-source {
   flex: none;
   padding: 4px 7px;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.09);
+  background: hsl(0 0% calc(100% - var(--zf-ink-l, 100%)) / 0.2);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.48);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.48);
 }
 .zf-symbol-source.is-loading {
   color: var(--zf-accent);
@@ -2016,8 +2166,8 @@ body:has(.ui-draggable-dragging) * {
   gap: 8px;
   padding: 7px 8px;
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.08);
+  background: hsl(0 0% calc(100% - var(--zf-ink-l, 100%)) / 0.22);
 }
 .zf-selected-symbol.is-compact {
   gap: 6px;
@@ -2038,7 +2188,7 @@ body:has(.ui-draggable-dragging) * {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.9);
 }
 .zf-selected-symbol-text em,
 .zf-symbol-option-main em {
@@ -2048,14 +2198,14 @@ body:has(.ui-draggable-dragging) * {
   white-space: nowrap;
   font-style: normal;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.4);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.4);
 }
 .zf-selected-symbol-price {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
   font-size: 12px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.72);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.72);
 }
 .zf-symbol-avatar {
   flex: none;
@@ -2105,8 +2255,8 @@ body:has(.ui-draggable-dragging) * {
   max-width: 100%;
   padding: 6px 6px 6px 7px;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.08);
+  background: hsl(0 0% calc(100% - var(--zf-ink-l, 100%)) / 0.22);
 }
 .zf-symbol-remove {
   flex: none;
@@ -2119,8 +2269,8 @@ body:has(.ui-draggable-dragging) * {
   border-radius: 9999px;
   padding: 0;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.5);
+  background: hsl(0 0% var(--zf-ink-l, 100%) / 0.06);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.5);
 }
 .zf-symbol-remove:hover {
   background: rgba(239, 68, 68, 0.18);
@@ -2129,8 +2279,8 @@ body:has(.ui-draggable-dragging) * {
 .zf-symbol-empty {
   padding: 7px 8px;
   border-radius: 8px;
-  border: 1px dashed rgba(255, 255, 255, 0.09);
-  color: rgba(255, 255, 255, 0.36);
+  border: 1px dashed hsl(0 0% var(--zf-ink-l, 100%) / 0.09);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.36);
   font-size: 11px;
 }
 .zf-symbol-combo {
@@ -2141,9 +2291,9 @@ body:has(.ui-draggable-dragging) * {
   height: 34px;
   border-radius: 9px;
   padding: 0 9px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  background: rgba(0, 0, 0, 0.28);
-  color: rgba(255, 255, 255, 0.48);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.11);
+  background: hsl(0 0% calc(100% - var(--zf-ink-l, 100%)) / 0.28);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.48);
 }
 .zf-symbol-search:focus-within {
   border-color: var(--zf-accent);
@@ -2159,12 +2309,12 @@ body:has(.ui-draggable-dragging) * {
   outline: 0;
   padding: 0;
   background: transparent;
-  color: rgba(255, 255, 255, 0.9);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.9);
   font: inherit;
   font-size: 12px;
 }
 .zf-symbol-search input::placeholder {
-  color: rgba(255, 255, 255, 0.34);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.34);
 }
 .zf-symbol-menu {
   position: absolute;
@@ -2179,8 +2329,11 @@ body:has(.ui-draggable-dragging) * {
   overflow-y: auto;
   padding: 6px;
   border-radius: 11px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(11, 12, 19, 0.96);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.12);
+  background: hsl(
+    var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+      calc(var(--zf-surf-l3, 5.3%) + 0.6%) / 0.96
+  );
   box-shadow:
     0 18px 36px rgba(0, 0, 0, 0.46),
     0 0 0 1px rgba(0, 0, 0, 0.3);
@@ -2205,7 +2358,14 @@ body:has(.ui-draggable-dragging) * {
 .zf-symbol-option:hover,
 .zf-symbol-option:focus-visible {
   outline: none;
-  background: rgba(255, 255, 255, 0.075);
+  background: hsl(0 0% var(--zf-ink-l, 100%) / 0.075);
+}
+/* The ACTIVE option under arrow-key navigation. It is not `:focus-visible` —
+   focus stays in the input so typing keeps working, so the listbox moves a
+   `data-active` marker instead, and without this rule the keyboard user had no
+   idea which option they were on. */
+.zf-symbol-option[data-active="true"] {
+  background: hsl(0 0% var(--zf-ink-l, 100%) / 0.075);
 }
 .zf-symbol-option:disabled {
   cursor: default;
@@ -2215,7 +2375,7 @@ body:has(.ui-draggable-dragging) * {
   background: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.1);
 }
 .zf-symbol-option--custom {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.06);
   border-radius: 0 0 8px 8px;
 }
 .zf-symbol-option-main {
@@ -2231,7 +2391,7 @@ body:has(.ui-draggable-dragging) * {
   gap: 1px;
   font-variant-numeric: tabular-nums;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.44);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.44);
 }
 .zf-symbol-change {
   font-size: 10px;
@@ -2250,12 +2410,12 @@ body:has(.ui-draggable-dragging) * {
   align-items: center;
   justify-content: center;
   border-radius: 7px;
-  background: rgba(255, 255, 255, 0.07);
+  background: hsl(0 0% var(--zf-ink-l, 100%) / 0.07);
   color: var(--zf-accent);
 }
 .zf-symbol-menu-status {
   padding: 10px 8px;
-  color: rgba(255, 255, 255, 0.38);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.38);
   font-size: 11px;
 }
 .zf-holding-list {
@@ -2607,7 +2767,14 @@ body:has(.ui-draggable-dragging) * {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(6, 7, 12, 0.62);
+  /* The dialog is portaled to <body>, so it inherits the surface ladder from
+     <html> (where the host writes surfaceModeVars) rather than from .zf-editor.
+     Every fallback below is the dark value it had before, so an unthemed host
+     renders exactly as it used to. */
+  background: hsl(
+    var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+      calc(100% - var(--zf-ink-l, 100%)) / 0.62
+  );
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   animation: zf-dialog-fade 0.16s var(--zf-ease-out);
@@ -2618,11 +2785,21 @@ body:has(.ui-draggable-dragging) * {
   display: flex;
   flex-direction: column;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* Load-bearing `color`: .zf-ccy-option and .zf-symbol-option both set
+     `color: inherit`, so without an ink colour here every option row in the
+     dialog's dropdowns renders in the document's default black. */
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.9);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.1);
   background: linear-gradient(
     180deg,
-    rgba(20, 22, 34, 0.98),
-    rgba(11, 12, 19, 0.99)
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l1, 12.5%) /
+        0.98
+    ),
+    hsl(
+      var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l3, 5.3%) /
+        0.99
+    )
   );
   box-shadow:
     0 30px 80px -20px rgba(0, 0, 0, 0.8),
@@ -2635,7 +2812,7 @@ body:has(.ui-draggable-dragging) * {
   justify-content: space-between;
   gap: 12px;
   padding: 15px 16px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.07);
 }
 .zf-dialog-title {
   margin: 0;
@@ -2643,7 +2820,7 @@ body:has(.ui-draggable-dragging) * {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.62);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.62);
 }
 .zf-dialog-close {
   flex: none;
@@ -2653,9 +2830,9 @@ body:has(.ui-draggable-dragging) * {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.1);
+  background: hsl(0 0% var(--zf-ink-l, 100%) / 0.04);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.7);
   cursor: pointer;
   transition:
     background 0.15s var(--zf-ease-out),
@@ -2664,9 +2841,9 @@ body:has(.ui-draggable-dragging) * {
     transform 0.15s var(--zf-ease-out);
 }
 .zf-dialog-close:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.18);
-  color: #fff;
+  background: hsl(0 0% var(--zf-ink-l, 100%) / 0.09);
+  border-color: hsl(0 0% var(--zf-ink-l, 100%) / 0.18);
+  color: hsl(0 0% var(--zf-ink-l, 100%));
 }
 .zf-dialog-close:active {
   transform: scale(0.94);
@@ -2693,7 +2870,7 @@ body:has(.ui-draggable-dragging) * {
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.07);
 }
 @keyframes zf-dialog-fade {
   from {
@@ -2736,16 +2913,16 @@ body:has(.ui-draggable-dragging) * {
   height: 34px;
   padding: 0 9px;
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.3);
-  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.12);
+  background: hsl(0 0% calc(100% - var(--zf-ink-l, 100%)) / 0.3);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.9);
   font: inherit;
   font-size: 12px;
   text-align: left;
   cursor: pointer;
 }
 .zf-ccy-trigger:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: hsl(0 0% var(--zf-ink-l, 100%) / 0.2);
 }
 /* Shown but inert, on a frame whose figures never convert (`usdOnly` frame
    meta). Greyed rather than removed: a control that disappears on some cards
@@ -2768,7 +2945,7 @@ body:has(.ui-draggable-dragging) * {
 }
 .zf-ccy-trigger svg {
   flex: none;
-  color: rgba(255, 255, 255, 0.55);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.55);
 }
 .zf-ccy-pop {
   position: absolute;
@@ -2781,8 +2958,11 @@ body:has(.ui-draggable-dragging) * {
   gap: 6px;
   padding: 6px;
   border-radius: 11px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(11, 12, 19, 0.96);
+  border: 1px solid hsl(0 0% var(--zf-ink-l, 100%) / 0.12);
+  background: hsl(
+    var(--zf-base-hue, 233) var(--zf-base-sat, 20%)
+      calc(var(--zf-surf-l3, 5.3%) + 0.6%) / 0.96
+  );
   box-shadow:
     0 18px 36px rgba(0, 0, 0, 0.46),
     0 0 0 1px rgba(0, 0, 0, 0.3);
@@ -2812,7 +2992,7 @@ body:has(.ui-draggable-dragging) * {
   cursor: pointer;
 }
 .zf-ccy-option[data-active="true"] {
-  background: rgba(255, 255, 255, 0.075);
+  background: hsl(0 0% var(--zf-ink-l, 100%) / 0.075);
 }
 .zf-ccy-option.is-selected {
   background: hsl(var(--zf-accent-hue, 242) 90% 76% / 0.1);
@@ -2821,7 +3001,7 @@ body:has(.ui-draggable-dragging) * {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.9);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.9);
 }
 .zf-ccy-name {
   min-width: 0;
@@ -2829,9 +3009,9 @@ body:has(.ui-draggable-dragging) * {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.5);
 }
 .zf-ccy-symbol {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.72);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.72);
 }

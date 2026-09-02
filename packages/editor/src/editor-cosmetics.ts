@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   BACKGROUND_SCENES,
@@ -391,6 +391,17 @@ export function useCosmetics({
   useEffect(() => {
     onLiveChange?.(slices);
   }, [slices, onLiveChange]);
+  // Reported through a ref so this cleanup fires ONLY on unmount: hanging it off
+  // the effect above would flash `null` at the host between every slider step
+  // and the value replacing it.
+  //
+  // Losing the editor mid-session (the desktop gate narrows past 1024px) used to
+  // strand the page on the abandoned edit's cosmetics — accent hue, font scale,
+  // gain/loss colours and the backdrop all stayed on values the board itself had
+  // just reverted, until a reload. The host treats null as "use the saved spec".
+  const onLiveChangeRef = useRef(onLiveChange);
+  onLiveChangeRef.current = onLiveChange;
+  useEffect(() => () => onLiveChangeRef.current?.(null), []);
 
   return {
     values,

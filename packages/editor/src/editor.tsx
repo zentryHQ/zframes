@@ -21,8 +21,11 @@ import {
   seedHorizontal,
   type LayoutMode,
 } from "./editor-grid";
-import { useEditorGridController } from "./editor-grid-controller";
-import { collectGroupChildren } from "./editor-groups";
+import {
+  useEditorGridController,
+  type EditorToast,
+} from "./editor-grid-controller";
+import { collectGroupChildren, toGroupChild } from "./editor-groups";
 import { useSymbolUniverse } from "./editor-symbols";
 import {
   baselineOf,
@@ -47,9 +50,13 @@ import { frameMatchesSearch, frameSearchTokens } from "@zframes/spec/catalogue";
 import {
   DashboardCurrencyProvider,
   FRAME_CSS,
+  isPageHidden,
+  onPageVisibilityChange,
+  useEscapeLayer,
   useProviders,
 } from "@zframes/core";
 import {
+  MAX_GROUP_CHILDREN,
   type DashboardSpec,
   type FrameInstance,
   type GridPosition,
@@ -60,8 +67,15 @@ import {
  *  tweaks stay separately undoable. */
 const COMMIT_DEBOUNCE_MS = 400;
 
-/** How long the "Frame removed — Undo" toast stays up. */
+/** How long the "Frame removed — Undo" toast stays up. Spent only while the page
+ *  is visible: an offer that expires in a background tab is one the user never
+ *  got. */
 const UNDO_TOAST_MS = 7000;
+
+/** Trailing window for the host auto-save of a viewing-mode self-patch. Long
+ *  enough to coalesce a burst (ticking four checklist rows, dragging a
+ *  timeframe), short enough that a reload right after the last tick keeps it. */
+const AUTO_SAVE_DEBOUNCE_MS = 600;
 
 /**
  * Interactive, in-browser dashboard editor — a drag/resize/add/delete
@@ -81,20 +95,41 @@ export function DashboardEditor({
   spec,
   registry,
   onSave,
+  onAutoSave,
   customiseButtonTarget,
   onModeChange,
   onLiveChange,
+  onDirtyChange,
 }: {
   spec: DashboardSpec;
   registry: FrameRegistry;
   /** Persist the edited spec. If omitted, Save downloads a dashboard.json. */
   onSave?: (next: DashboardSpec) => void | Promise<void>;
+  /**
+   * Persist a change a frame made to its OWN config from its interior (a
+   * checklist tick, a chart's timeframe, a note's text — `useFramePatch`,
+   * which only fires in viewing mode in practice).
+   *
+   * Wiring this makes such a change **durable**: it is written on a short
+   * debounce, without a history entry or a dirty dot, because there is no
+   * customise session for it to belong to. Leaving it out makes the change
+   * **transient**: it lives in memory until the page reloads, and entering
+   * customise mode reverts those cards to what the file says *before* the
+   * session baseline is taken.
+   *
+   * The one thing it must never be is what it used to be — kept out of the
+   * history, out of the dirty state and out of Cancel, and then written to disk
+   * by whatever unrelated Save the user pressed next.
+   */
+  onAutoSave?: (next: DashboardSpec) => Promise<void>;
   /** Optional host slot for the collapsed Customise icon. */
   customiseButtonTarget?: HTMLElement | null;
   /** Notified on every layout-mode change so the host can react to it live —
    *  flow-horizontal goes full-bleed, which means dropping the page's centred
-   *  max-width, and that lives on the host's <main>, not the editor. */
-  onModeChange?: (mode: DashboardSpec["grid"]["mode"]) => void;
+   *  max-width, and that lives on the host's <main>, not the editor. `null` on
+   *  unmount, so a host that loses the editor mid-session (the desktop gate)
+   *  falls back to the saved mode instead of keeping the abandoned edit's. */
+  onModeChange?: (mode: DashboardSpec["grid"]["mode"] | null) => void;
   /**
    * Notified on every cosmetic change — the live drag, a Reset, a preset, an
    * undo, a Cancel-restore — with the whole cosmetic half of the spec.
@@ -110,6 +145,16 @@ export function DashboardEditor({
    * Layout MODE keeps its own callback: it isn't a repaint, it's a grid rebuild.
    */
   onLiveChange?: (cosmetics: LiveCosmetics | null) => void;
+  /**
+   * Notified whenever the session's unsaved state flips, and with `false` on
+   * leaving customise mode or unmounting.
+   *
+   * The editor guards the reload and the tab close itself (`beforeunload`), but
+   * the app's own doors out of a session — switching dashboards, losing the
+   * desktop gate — are the host's, and it can't ask before discarding work it
+   * doesn't know exists.
+   */
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const providers = useProviders();
 
@@ -145,9 +190,17 @@ export function DashboardEditor({
       dirty: isDirty(h),
     });
   }, []);
-  // Timestamp until which commits are ignored — applySpec sets it so writing an
-  // undone snapshot back isn't recorded as a fresh edit.
-  const suppressCommitUntilRef = useRef(0);
+  // Set while a snapshot is being written back, and consumed by the debounced
+  // cosmetics watcher below — which is the ONE commit source that has to be
+  // suppressed, because applySpec rewrites every cosmetic and would otherwise
+  // look to it like a fresh edit (truncating the redo tail).
+  //
+  // This used to be a 600ms clock read inside `commitHistory` itself, which
+  // dropped every OTHER commit source in the window too: a card dropped,
+  // resized or deleted within half a second of a ⌘Z landed on the board and was
+  // never recorded, so the next ⌘Z skipped past it and a delete made in the
+  // window had no entry for its toast to step back to.
+  const applyingSnapshotRef = useRef(false);
   // Indirection for the GridStack handlers, which are registered once at grid
   // init and must reach the *current* commitHistory (defined far below, since it
   // depends on collectSpec).
@@ -160,11 +213,14 @@ export function DashboardEditor({
   // Why the last save failed, if it did — shown in the toolbar so a rejected
   // write is visible instead of looking exactly like a successful one.
   const [saveError, setSaveError] = useState<string | null>(null);
-  // The frame the last delete removed, kept so it can be put back with one click.
-  // The history already holds the state to undo to; this only drives the toast.
-  const [removed, setRemoved] = useState<{ id: string; label: string } | null>(
-    null,
-  );
+  // What the toast is saying: a frame was removed (with the snapshot that puts
+  // exactly THAT frame back), or a drop was refused (with the reason).
+  const [toast, setToast] = useState<EditorToast | null>(null);
+  // Ids whose config a frame patched from its own interior (`useFramePatch`)
+  // outside customise mode, while no host was wired to persist it. Tracked so
+  // entering customise mode can put those cards back to what the file says
+  // before the session baseline is taken — see startCustomise.
+  const selfPatchedRef = useRef<Set<string>>(new Set());
   // Mirror for the []-deps callbacks (rebuildGrid, the keyboard handler) that
   // must read the *current* mode without being re-created on every toggle.
   const editingRef = useRef(editing);
@@ -190,9 +246,8 @@ export function DashboardEditor({
   // dissolve through, per the design-eng "blur to mask imperfect transitions").
   const [switching, setSwitching] = useState(false);
   // Which rail panel is showing: dashboard-wide cosmetics (accent/layout/
-  // appearance), the add-a-frame palette, or the board's event markers. The
-  // rail used to stack both; the tabs split them so theme knobs and frame
-  // management each get the full panel.
+  // appearance) or the add-a-frame palette. The rail used to stack both; the
+  // tabs split them so theme knobs and frame management each get the full panel.
   const [railTab, setRailTab] = useState<"cosmetics" | "frames">("frames");
   // Which Cosmetics sections are expanded. Presets opens by default — it's the
   // one-click route to a whole look, so it should be the first thing offered;
@@ -216,6 +271,15 @@ export function DashboardEditor({
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingIdRef = useRef<string | null>(null);
   editingIdRef.current = editingId;
+  // Bumped every time a snapshot is applied, and mixed into the config dialog's
+  // React key so the open form re-reads the card an undo may have rewound under
+  // it (see applySpec).
+  const [configRevision, setConfigRevision] = useState(0);
+  // ONE polite live region for the whole editor, mounted in both modes.
+  // Everything a pointer user reads off the board directly — a card sliding to
+  // a new cell, the mode changing under them, the dirty dot appearing — has to
+  // be said out loud for anyone who cannot see it happen.
+  const [announcement, setAnnouncement] = useState("");
 
   // Mirror the live layout mode up to the host: flow-horizontal is full-bleed,
   // which means the host's centred max-width has to drop. Reports on the initial
@@ -226,6 +290,15 @@ export function DashboardEditor({
     modeRef.current = cos.mode;
     onModeChange?.(cos.mode);
   }, [cos.mode, onModeChange]);
+  // Reported through a ref so the cleanup below fires ONLY on unmount: hanging
+  // it off the effect above would flash `null` at the host between every mode
+  // change and its replacement.
+  const onModeChangeRef = useRef(onModeChange);
+  onModeChangeRef.current = onModeChange;
+  // Losing the editor mid-session (the desktop gate narrows past 1024px) used to
+  // strand the host on the abandoned edit's mode: the board reverted to the
+  // saved spec while the page stayed full-bleed. Report null so it falls back.
+  useEffect(() => () => onModeChangeRef.current?.(null), []);
 
   // Stable closure for the GridStack callbacks captured by the controller's
   // mount effect.
@@ -236,6 +309,10 @@ export function DashboardEditor({
   columnsRef.current = cos.columns;
   const rowHeightRef = useRef(cos.rowHeight);
   rowHeightRef.current = cos.rowHeight;
+  // Indirection for the controller's patchInstance, which is registered once and
+  // must reach the current self-patch policy (defined below, since it depends on
+  // collectSpec).
+  const selfPatchRef = useRef<((id: string) => void) | null>(null);
 
   // All the imperative GridStack machinery — item DOM, per-frame React roots,
   // nested group grids, the drop/drag handlers, and the init/teardown lifecycle
@@ -267,9 +344,11 @@ export function DashboardEditor({
     columnsRef,
     rowHeightRef,
     commitHistoryRef,
+    selfPatchRef,
     setCount,
     setEditingId,
-    setRemoved,
+    setToast,
+    setAnnouncement,
   });
 
   // The palette, grouped by category in FRAME_CATEGORIES order (frames sorted
@@ -353,10 +432,16 @@ export function DashboardEditor({
     });
   }, []);
 
-  // Register palette cards as GridStack drag sources while customising. The
-  // palette only mounts on the Frames tab, and each category's cards only mount
-  // while that section is expanded — so re-run when the tab opens or the set of
-  // open categories changes, else freshly-mounted cards wouldn't be draggable.
+  // Register palette cards as GridStack drag sources while customising.
+  //
+  // `setupDragIn` resolves its selector once per call rather than delegating, so
+  // this has to re-run whenever the set of MOUNTED palette cards changes: the
+  // tab opening, a category expanding — and a search, which force-opens matching
+  // categories in the render without touching `expandedCats`. Watching only the
+  // open-category set left every search result inert to dragging while still
+  // adding fine on a click, with a category-header click as the accidental
+  // workaround. `filteredGroups` is the query's own signal (it IS `paletteGroups`
+  // when there is no query, so nothing re-runs on an unfiltered board).
   useEffect(() => {
     if (!editing || railTab !== "frames" || !gridInstanceRef.current) return;
     GridStack.setupDragIn(".zf-newwidget", {
@@ -376,14 +461,23 @@ export function DashboardEditor({
         if (layout?.maxW) helper.setAttribute("gs-max-w", String(layout.maxW));
         if (layout?.maxH) helper.setAttribute("gs-max-h", String(layout.maxH));
         // The helper is appended to <body>, outside .zf-editor, so it can't
-        // inherit the accent/font vars — copy the live ones onto it so the drag
-        // ghost reads in-theme. (See .zf-drag-ghost in editor.css.)
+        // inherit the accent/font/surface vars — copy the live ones onto it so
+        // the drag ghost reads in-theme. (See .zf-drag-ghost in editor.css.)
+        // The surface ladder is in the list because the ghost was hard-coded
+        // dark with white text: on a light board it was the one thing dragged
+        // across the page that ignored the surface entirely.
         const editorEl = gridRef.current?.closest(".zf-editor");
         if (editorEl) {
           const cs = getComputedStyle(editorEl);
           for (const v of [
             "--zf-accent-hue",
             "--zf-accent-sat",
+            "--zf-base-hue",
+            "--zf-base-sat",
+            "--zf-ink-l",
+            "--zf-surf-l1",
+            "--zf-surf-l2",
+            "--zf-surf-l3",
             "--font-dmsans",
           ]) {
             const value = cs.getPropertyValue(v).trim();
@@ -400,7 +494,14 @@ export function DashboardEditor({
         return helper;
       },
     });
-  }, [editing, railTab, paletteGroups, expandedCats, gridInstanceRef]);
+  }, [
+    editing,
+    railTab,
+    filteredGroups,
+    paletteSearching,
+    expandedCats,
+    gridInstanceRef,
+  ]);
 
   const collectSpec = useCallback((): DashboardSpec => {
     const grid = gridInstanceRef.current;
@@ -480,14 +581,102 @@ export function DashboardEditor({
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }, []);
 
+  // Mirrors for the []-deps self-patch policy below, which is registered once
+  // with the controller and must reach the current collectSpec / host callback.
+  const collectSpecRef = useRef(collectSpec);
+  collectSpecRef.current = collectSpec;
+  const onAutoSaveRef = useRef(onAutoSave);
+  onAutoSaveRef.current = onAutoSave;
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** Persist a viewing-mode self-patch through the host, coalescing a burst. */
+  const queueAutoSave = useCallback(() => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      autoSaveTimerRef.current = null;
+      const persist = onAutoSaveRef.current;
+      if (!persist) return;
+      void persist(collectSpecRef.current()).catch((err: unknown) => {
+        // Deliberately not the editor-bar alert: the user is *viewing*, they
+        // pressed no Save, and interrupting them over a background write they
+        // never asked for would be worse than the write not landing. The change
+        // stays in memory and the next patch tries again.
+        console.warn("zframes: could not auto-save the change", err);
+      });
+    }, AUTO_SAVE_DEBOUNCE_MS);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    },
+    [],
+  );
+
+  /**
+   * What a frame writing its own config means, decided at the moment it happens.
+   *
+   * Three cases, and the point is that none of them is the old middle position
+   * (no history entry, no dirty dot, and yet written to disk by the next
+   * unrelated Save):
+   *  - inside customise mode it is an ordinary edit — undoable, dirty, saved by
+   *    the Save the user chooses to press;
+   *  - outside it with a host wired, it is durable on its own terms (debounced
+   *    auto-save, no session to belong to);
+   *  - outside it with no host, it is transient, and the id is remembered so
+   *    entering customise mode can revert the card first.
+   */
+  selfPatchRef.current = (id: string) => {
+    if (editingRef.current) {
+      commitHistoryRef.current?.();
+      return;
+    }
+    if (onAutoSaveRef.current) {
+      queueAutoSave();
+      return;
+    }
+    selfPatchedRef.current.add(id);
+  };
+
+  /** The config each frame LOADED with, board frames and group children alike —
+   *  what a transient self-patch is reverted to. */
+  const loadedConfigs = useMemo(() => {
+    const map = new Map<string, Record<string, unknown>>();
+    for (const frame of spec.frames) {
+      map.set(frame.id, frame.config);
+      for (const child of frame.children ?? []) map.set(child.id, child.config);
+    }
+    return map;
+  }, [spec]);
+
   const startCustomise = useCallback(() => {
+    // A transient self-patch has to go BEFORE the baseline is taken. Otherwise
+    // it is inside the baseline, which means Cancel restores *to* it and any
+    // Save writes it — a change the user was never shown as pending, made
+    // permanent by an action about something else.
+    if (!onAutoSaveRef.current && selfPatchedRef.current.size > 0) {
+      for (const id of selfPatchedRef.current) {
+        const loaded = loadedConfigs.get(id);
+        const inst = instancesRef.current.get(id);
+        if (!loaded || !inst) continue;
+        instancesRef.current.set(id, { ...inst, config: loaded });
+        renderInstance(id);
+      }
+      selfPatchedRef.current.clear();
+    }
     // The session baseline. Everything else — undo's floor, Cancel's target, the
     // dirty flag — is derived from this one entry.
     historyRef.current = initHistory(collectSpec());
     publishHistory();
     setSaveError(null);
     setEditing(true);
-  }, [collectSpec, publishHistory]);
+  }, [
+    collectSpec,
+    instancesRef,
+    loadedConfigs,
+    publishHistory,
+    renderInstance,
+  ]);
 
   // Reclaim empty space in the ACTIVE grid (float:true otherwise preserves gaps).
   // Mode-aware: the vertical column grid reflows top-left to fill any hole
@@ -592,12 +781,14 @@ export function DashboardEditor({
    */
   const applySpec = useCallback(
     (next: DashboardSpec) => {
-      // Suppress the debounced cosmetics watcher for longer than its own window,
-      // so writing this snapshot back can't be mistaken for a fresh edit. Without
-      // it, any tiny non-round-trip between collectSpec and applySpec (a frame
-      // re-sort, an omitted-vs-undefined key) would push a new entry and silently
-      // truncate the redo tail.
-      suppressCommitUntilRef.current = Date.now() + COMMIT_DEBOUNCE_MS + 200;
+      // Arm the write-back guard. `applyCosmetics` below always produces a new
+      // cosmetic-state object, so the debounced watcher is guaranteed to re-run
+      // once off the back of this call and consume the flag — which is what
+      // makes "the grid has settled" a real event rather than a guessed delay.
+      // Without the guard, any tiny non-round-trip between collectSpec and
+      // applySpec (a frame re-sort, an omitted-vs-undefined key) would push a
+      // new entry and silently truncate the redo tail.
+      applyingSnapshotRef.current = true;
 
       // Every cosmetic in one write — the snapshot IS the cosmetic state. This
       // was 30 setters in a row, and a knob missing from the list meant Cancel
@@ -619,8 +810,35 @@ export function DashboardEditor({
       if (openId && !next.frames.some((f) => f.id === openId)) {
         setEditingId(null);
       }
+      // A dialog on a SURVIVING frame kept its pre-undo drafts, so the form and
+      // the card behind it disagreed — and the next keystroke wrote the stale
+      // draft back over the state the undo had just restored. The dialog is
+      // keyed on this counter, so applying a snapshot makes it re-read the card.
+      setConfigRevision((n) => n + 1);
     },
     [applyCosmetics, collectSpec, rebuildGrid, restore],
+  );
+
+  /**
+   * Apply a snapshot AND record it as a fresh edit.
+   *
+   * `applySpec` on its own is the undo/redo/Cancel mechanism: it moves the
+   * history index rather than adding to it. A targeted restore (the toast's
+   * Undo) is a new state that has never been seen before, so it needs an entry
+   * of its own — pushed here rather than through `commitHistory`, whose
+   * write-back guard exists precisely to ignore what applySpec just did.
+   */
+  const applyAsEdit = useCallback(
+    (next: DashboardSpec) => {
+      applySpec(next);
+      historyRef.current = pushHistory(
+        historyRef.current,
+        next,
+        historyLimitFor(next.frames.length),
+      );
+      publishHistory();
+    },
+    [applySpec, publishHistory],
   );
 
   const undo = useCallback(() => {
@@ -638,6 +856,57 @@ export function DashboardEditor({
     applySpec(step.snapshot);
     publishHistory();
   }, [applySpec, publishHistory]);
+
+  /**
+   * Put back the frame the toast names — and only that frame.
+   *
+   * The button used to call `undo()`, so it walked the shared history back by
+   * exactly one step whatever was at the top of it: delete a card, move another
+   * one within the seven seconds the offer is up, and pressing "Undo removing
+   * Order Book Depth" left the card deleted and silently reversed the move. One
+   * control doing two different things depending on timing, with the wrong one
+   * destructive in the opposite direction from its own label.
+   *
+   * Re-inserting from the delete's own snapshot is what the label already
+   * promises, and it lands as a NEW history entry, so ⌘Z still takes it back out.
+   */
+  const restoreRemoved = useCallback(() => {
+    const removed = toast?.kind === "removed" ? toast : null;
+    setToast(null);
+    if (!removed) return;
+    const current = collectSpec();
+    // Already back — the user reached for ⌘Z instead, and the offer is spent
+    // rather than a second copy of the card.
+    const present = current.frames.some(
+      (f) =>
+        f.id === removed.id || f.children?.some((c) => c.id === removed.id),
+    );
+    if (present) return;
+    if (removed.parentId) {
+      const parent = current.frames.find((f) => f.id === removed.parentId);
+      // The group it lived in is gone too (deleting a group takes its children
+      // with it), so there is nowhere to put it back — and that delete recorded
+      // its own offer, which is the one that restores the whole cluster.
+      if (!parent) return;
+      if ((parent.children?.length ?? 0) >= MAX_GROUP_CHILDREN) return;
+      applyAsEdit({
+        ...current,
+        frames: current.frames.map((f) =>
+          f.id === removed.parentId
+            ? {
+                ...f,
+                children: [
+                  ...(f.children ?? []),
+                  toGroupChild(removed.instance),
+                ],
+              }
+            : f,
+        ),
+      });
+      return;
+    }
+    applyAsEdit({ ...current, frames: [...current.frames, removed.instance] });
+  }, [applyAsEdit, collectSpec, toast]);
 
   const cancel = useCallback(() => {
     applySpec(baselineOf(historyRef.current));
@@ -678,9 +947,12 @@ export function DashboardEditor({
       setEditing(false);
       setEditingId(null);
     } catch (err) {
-      setSaveError(
-        err instanceof Error ? err.message : "Could not save the dashboard.",
-      );
+      // The host's own explanation, when it has one: the server answers a
+      // refused spec with a per-field reason, and that is the only thing that
+      // tells the user what to change. The baseline, the dirty state and the
+      // mode are all deliberately left alone — a failed write must not look
+      // like a completed one, and Cancel has to keep meaning "the file".
+      setSaveError(err instanceof Error ? err.message : "Couldn't save");
     } finally {
       setSaving(false);
     }
@@ -696,7 +968,6 @@ export function DashboardEditor({
    */
   const commitHistory = useCallback(() => {
     if (!editingRef.current) return;
-    if (Date.now() < suppressCommitUntilRef.current) return;
     const snapshot = collectSpec();
     // Fewer retained entries on very large boards, so undo depth × board size
     // stays bounded (see MAX_RETAINED_FRAMES).
@@ -717,9 +988,16 @@ export function DashboardEditor({
    * cosmetic moved" signal without wiring a commit into all ~35 rail controls.
    * The trailing window is what collapses a continuous slider drag into a single
    * undo step instead of one per pixel.
+   *
+   * This is also the ONE commit source `applySpec` has to suppress, and the flag
+   * is consumed on every run (before the `editing` bail, so a Cancel — which
+   * applies the baseline and leaves the mode in the same breath — can't leave it
+   * armed for the next session).
    */
   useEffect(() => {
-    if (!editing) return;
+    const wasApplying = applyingSnapshotRef.current;
+    applyingSnapshotRef.current = false;
+    if (!editing || wasApplying) return;
     const t = setTimeout(
       () => commitHistoryRef.current?.(),
       COMMIT_DEBOUNCE_MS,
@@ -727,18 +1005,48 @@ export function DashboardEditor({
     return () => clearTimeout(t);
   }, [collectSpec, editing]);
 
-  /** The undo toast is a time-limited offer, and it's scoped to customise mode —
-   *  a stale "Undo" after leaving would rewind an edit the user has moved on
-   *  from. Keyed on the removed id so each delete restarts the countdown. */
+  /**
+   * The toast is a time-limited offer, and it's scoped to customise mode — a
+   * stale "Undo" after leaving would rewind an edit the user has moved on from.
+   * Keyed on the toast object so each delete (or refusal) restarts the countdown.
+   *
+   * The countdown is spent only while the page is VISIBLE. A plain timer let a
+   * seven-second offer expire in a background tab, so the user came back to a
+   * card that was gone with its undo already withdrawn — the one case where the
+   * offer is the only thing standing between them and re-configuring the card
+   * from scratch.
+   */
   useEffect(() => {
-    if (!removed) return;
+    if (!toast) return;
     if (!editing) {
-      setRemoved(null);
+      setToast(null);
       return;
     }
-    const t = setTimeout(() => setRemoved(null), UNDO_TOAST_MS);
-    return () => clearTimeout(t);
-  }, [removed, editing]);
+    let remaining = UNDO_TOAST_MS;
+    let startedAt = Date.now();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const arm = () => {
+      startedAt = Date.now();
+      timer = setTimeout(() => setToast(null), remaining);
+    };
+    const hold = () => {
+      if (!timer) return;
+      clearTimeout(timer);
+      timer = null;
+      remaining = Math.max(0, remaining - (Date.now() - startedAt));
+    };
+    if (!isPageHidden()) arm();
+    const off = onPageVisibilityChange((hidden) => (hidden ? hold() : arm()));
+    return () => {
+      if (timer) clearTimeout(timer);
+      off();
+    };
+  }, [toast, editing]);
+
+  /** The toast joins the one Escape stack, so it dismisses like every other
+   *  dismissable surface — and being the most recently opened layer, one press
+   *  closes it WITHOUT also closing the config dialog behind it. */
+  useEscapeLayer(editing && toast !== null, () => setToast(null));
 
   /**
    * Push grid geometry into the live GridStack.
@@ -779,6 +1087,11 @@ export function DashboardEditor({
         return;
       }
       if (key !== "z") return;
+      // Same guard the toolbar's Undo/Redo have: rewinding the board while the
+      // spec collected before the press is already on its way to disk leaves the
+      // editor re-basing its history on what it sent, so it believes the rewound
+      // state was saved. Only the keyboard path could get through.
+      if (saving) return;
 
       const el = document.activeElement;
       if (
@@ -795,6 +1108,65 @@ export function DashboardEditor({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [editing, undo, redo, save, saving]);
+
+  // Entering and leaving customise mode was announced nowhere: the whole
+  // interaction model of the page changes, and a listener was told nothing. Skip
+  // the first run so a freshly-loaded viewing board doesn't announce itself.
+  const modeAnnounced = useRef(false);
+  useEffect(() => {
+    if (!modeAnnounced.current) {
+      modeAnnounced.current = true;
+      return;
+    }
+    setAnnouncement(
+      editing
+        ? "Customise mode on. Tab to a card, then use the arrow keys to move it."
+        : "Customise mode off.",
+    );
+  }, [editing]);
+
+  // Unsaved work exists: the session is open and its state differs from the
+  // baseline it opened on.
+  const dirtySession = editing && historyState.dirty;
+
+  /**
+   * Guard the two doors out of the page the editor owns: a reload and a tab
+   * close. Both used to discard an hour of rearranging silently — there is no
+   * draft anywhere, the only write path is Save.
+   *
+   * Registered only while dirty, so an ordinary reload of a clean board is never
+   * interrupted (a permanently-installed handler is the version of this that
+   * users learn to click through).
+   */
+  useEffect(() => {
+    if (!dirtySession || typeof window === "undefined") return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      // Some browsers still want the legacy signal to show their own prompt;
+      // none of them let us word it.
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirtySession]);
+
+  // The app's OWN doors out of a session — the dashboard switcher, the desktop
+  // gate — are the host's, and it can't offer to confirm work it doesn't know
+  // about. Reported through a ref so a host passing an inline closure doesn't
+  // re-run this on every render.
+  const onDirtyChangeRef = useRef(onDirtyChange);
+  onDirtyChangeRef.current = onDirtyChange;
+  useEffect(() => {
+    onDirtyChangeRef.current?.(dirtySession);
+  }, [dirtySession]);
+  // The dirty state deliberately does NOT go through the live region. It flips
+  // on the same gesture that moves a card, so announcing it there talked over
+  // every single geometry nudge with the same sentence — and it is already
+  // reachable on demand, as the Save button's `aria-describedby`. A live region
+  // is for what just happened; the dirty flag is a standing condition.
+  // Unmounting takes the session with it, so nothing is pending any more —
+  // otherwise the host keeps guarding a session that no longer exists.
+  useEffect(() => () => onDirtyChangeRef.current?.(false), []);
 
   const renderCustomiseButton = () => (
     <button
@@ -850,6 +1222,13 @@ export function DashboardEditor({
         data-wiggle={editing && count > 12 ? "off" : undefined}
         style={cosmetics.styleVars}
       >
+        {/* Deliberately NOT role="status": the removal toast already carries
+            that role, and a second one would make "the status message" ambiguous
+            to a reader and to a test. A bare aria-live div is announced without
+            claiming the role. */}
+        <div className="zf-sr-live" aria-live="polite">
+          {announcement}
+        </div>
         {(editing || !customiseButtonTarget) && (
           <div className="zf-editor-bar">
             <div className="zf-editor-bar-spacer" />
@@ -900,6 +1279,14 @@ export function DashboardEditor({
                 >
                   Cancel
                 </button>
+                {/* Outside the button on purpose: anything inside it would be
+                    part of name-from-content, which is the very thing
+                    aria-describedby is used here to avoid. */}
+                {historyState.dirty && !saving && (
+                  <span id="zf-save-dirty" className="zf-sr-live">
+                    The board has unsaved changes
+                  </span>
+                )}
                 <button
                   type="button"
                   className="zf-btn zf-btn--primary"
@@ -907,6 +1294,15 @@ export function DashboardEditor({
                   // is left floating — discard the promise explicitly.
                   onClick={() => void save()}
                   disabled={saving}
+                  // The dot is decorative, so the dirty state needs a
+                  // non-visual equivalent. It rides `aria-describedby` rather
+                  // than the accessible NAME on purpose: the name is what every
+                  // caller — including the runtime's e2e — finds this button by,
+                  // and a name that changes when the board goes dirty is a name
+                  // nothing can rely on.
+                  aria-describedby={
+                    historyState.dirty && !saving ? "zf-save-dirty" : undefined
+                  }
                   // With no host to persist to, this button downloads a file.
                   // Saying so is the difference between a deliberate export and
                   // a save the user thinks went somewhere.
@@ -932,35 +1328,51 @@ export function DashboardEditor({
           </div>
         )}
 
-        {/* Deleting a card takes its config, tickers, events and style overrides
-            with it — none of which a re-add restores. The toast makes that
-            recoverable in one click, for the case where ⌘Z isn't reached for. */}
-        {editing && removed && (
-          <div className="zf-toast" role="status">
-            {/* Verb first, name quoted. "{label} removed" reads as a quantifier
-                when the card is titled something like "All frames" — the board
-                this was first tried on produced "All frames removed". */}
-            <span className="zf-toast-text">
-              Removed &ldquo;{removed.label}&rdquo;
-            </span>
-            <button
-              type="button"
-              className="zf-toast-action"
-              // Distinct from the toolbar's Undo, which is on screen at the same
-              // time — two controls both announcing "Undo" is ambiguous by voice
-              // even though the visible label is unmistakable in context.
-              aria-label={`Undo removing ${removed.label}`}
-              onClick={() => {
-                setRemoved(null);
-                undo();
-              }}
-            >
-              Undo
-            </button>
+        {/* One toast, two things to say. Deleting a card takes its config,
+            tickers, events and style overrides with it — none of which a re-add
+            restores — so the removal comes with a one-click way back, for the
+            case where ⌘Z isn't reached for. A refused drop comes with the reason:
+            a card that vanishes silently is indistinguishable from a drop that
+            missed, and the user has no way to learn the rule. */}
+        {editing && toast && (
+          <div
+            className={
+              toast.kind === "refused"
+                ? "zf-toast zf-toast--refused"
+                : "zf-toast"
+            }
+            role="status"
+          >
+            {toast.kind === "removed" ? (
+              <>
+                {/* Verb first, name quoted. "{label} removed" reads as a
+                    quantifier when the card is titled something like "All
+                    frames" — the board this was first tried on produced "All
+                    frames removed". */}
+                <span className="zf-toast-text">
+                  Removed &ldquo;{toast.label}&rdquo;
+                </span>
+                <button
+                  type="button"
+                  className="zf-toast-action"
+                  // Distinct from the toolbar's Undo, which is on screen at the
+                  // same time — two controls both announcing "Undo" is ambiguous
+                  // by voice even though the visible label is unmistakable in
+                  // context. It also restores exactly the named card, which the
+                  // toolbar's Undo does not.
+                  aria-label={`Undo removing ${toast.label}`}
+                  onClick={restoreRemoved}
+                >
+                  Undo
+                </button>
+              </>
+            ) : (
+              <span className="zf-toast-text">{toast.reason}</span>
+            )}
             <button
               type="button"
               className="zf-toast-close"
-              onClick={() => setRemoved(null)}
+              onClick={() => setToast(null)}
               aria-label="Dismiss"
             >
               <X size={14} aria-hidden="true" />
@@ -970,7 +1382,17 @@ export function DashboardEditor({
 
         <div className="zf-editor-main">
           <div className="zf-editor-grid" data-switching={switching}>
-            <div ref={gridRef} className="grid-stack" />
+            {/* The board was a flat run of absolutely-positioned cards with no
+                landmark of any kind, so there was nothing to navigate to it by.
+                `region` rather than `grid`: the ARIA grid pattern demands
+                row/cell descendants and full arrow-key ownership, and these
+                cards are neither rows nor cells. */}
+            <div
+              ref={gridRef}
+              className="grid-stack"
+              role="region"
+              aria-label="Dashboard"
+            />
             {/* A board with no frames rendered as a blank page with no
                 explanation and no way forward — the one state where the user
                 most needs telling what to do next. */}
@@ -1187,7 +1609,10 @@ export function DashboardEditor({
       {editingInstance
         ? createPortal(
             <FrameConfigDialog
-              key={editingInstance.id}
+              // The revision is in the key on purpose: applying a snapshot
+              // (undo, redo, Cancel) may have rewound the very config this form
+              // is holding drafts of, and a remount is how the form re-reads it.
+              key={`${editingInstance.id}:${configRevision}`}
               instance={editingInstance}
               registry={registry}
               instancesRef={instancesRef}
