@@ -125,3 +125,10 @@ export {
   setLiveUpdatesPaused,
   useLiveUpdatesPaused,
 } from "./visibility";
+// The one Escape stack: every dismissable surface registers a layer while open
+// and the topmost alone consumes the key (one press closes one thing).
+export {
+  escapeLayerDepth,
+  pushEscapeLayer,
+  useEscapeLayer,
+} from "./escape-stack";
