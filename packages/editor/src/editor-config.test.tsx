@@ -9,7 +9,9 @@ import {
 import { z } from "zod";
 import { FrameConfigDialog } from "./editor-config";
 import { createRegistry, defineFrame } from "@zframes/spec/frame";
+import { escapeLayerDepth } from "@zframes/core";
 import type { CurrencyCode, FrameInstance } from "@zframes/spec/spec";
+import type { SymbolOption } from "./editor-symbols";
 
 // The config dialog turns a frame's Zod schema into a form: each field shape maps
 // to a specific control, and every edit is validated live against that schema —
@@ -102,11 +104,25 @@ const usdOnlyJournalFrame = defineFrame({
   component: () => null,
 });
 
+/** A frame with a `symbol` field, which is what routes the ticker picker in. */
+const tickerFrame = defineFrame({
+  name: "synthetic-ticker",
+  label: "Synthetic Ticker",
+  category: "markets",
+  description: "one symbol",
+  capabilities: [],
+  schema: z.object({
+    symbol: z.string().default("TSLA").describe("Which ticker to chart."),
+  }),
+  component: () => null,
+});
+
 const registry = createRegistry([
   syntheticFrame,
   annotatableFrame,
   usdOnlyMacroFrame,
   usdOnlyJournalFrame,
+  tickerFrame,
 ]);
 
 const baseConfig = {
@@ -124,6 +140,8 @@ function setup(
   configOverrides: Record<string, unknown> = {},
   instanceOverrides: Partial<FrameInstance> = {},
   boardCurrency: CurrencyCode = "USD",
+  /** The live symbol universe the ticker picker searches. */
+  options: SymbolOption[] = [],
 ) {
   const instance: FrameInstance = {
     id: "f1",
@@ -140,7 +158,7 @@ function setup(
       instance={instance}
       registry={registry}
       instancesRef={instancesRef}
-      symbolUniverse={{ options: [], loading: false }}
+      symbolUniverse={{ options, loading: false }}
       accentHue={242}
       boardCurrency={boardCurrency}
       inherited={{
@@ -416,6 +434,23 @@ describe("FrameConfigDialog invalid-draft exits", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("the header ✕ reverts instead of discarding an invalid draft", () => {
+    // The ✕ was a bare `onClose` — the one exit that looks most like "close"
+    // was the only one that dropped the typed text without a word.
+    const { container, getByRole, onClose } = setup();
+    const field = () =>
+      container.querySelector("#zf-cfg-label") as HTMLInputElement;
+    invalidate(container);
+
+    fireEvent.click(getByRole("button", { name: "Close" }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(field().value).toBe("Name");
+
+    // Valid again, so the same button closes — one exit rule, four exits.
+    fireEvent.click(getByRole("button", { name: "Close" }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it("leaves a valid draft's exits exactly as they were", () => {
     const { getByRole, onClose } = setup();
     fireEvent.click(getByRole("button", { name: "Done" }));
@@ -519,6 +554,137 @@ describe("FrameConfigDialog events panel", () => {
     ) as HTMLButtonElement;
     fireEvent.click(remove);
     expect(committedInstance().events).toBeUndefined();
+  });
+});
+
+/**
+ * Markers are validated on the same terms as `config`.
+ *
+ * They were not validated at all: the panel wrote whatever was typed straight
+ * onto the card, so a blank label or a cleared date parsed nowhere until Save —
+ * which then failed on a screen the user had long since left, over a field they
+ * had no reason to connect to it.
+ */
+describe("FrameConfigDialog events validation", () => {
+  const chart = { frame: "synthetic-chart" } as const;
+  const withMarker = () =>
+    setup({}, { ...chart, events: [{ date: "2026-03-18", label: "FOMC" }] });
+  const labelBox = () =>
+    document.querySelector(
+      'input[aria-label="Event 1 label"]',
+    ) as HTMLInputElement;
+
+  it("refuses a whitespace-only label, which the spec's min(1) accepts", () => {
+    const { committedInstance, getByRole } = withMarker();
+    fireEvent.change(labelBox(), { target: { value: "   " } });
+
+    // The draft still shows what was typed — inputs never snap back mid-edit.
+    expect(labelBox().value).toBe("   ");
+    // But the card keeps the marker it was drawing, and Save writes that.
+    expect(committedInstance().events).toEqual([
+      { date: "2026-03-18", label: "FOMC" },
+    ]);
+    const alert = getByRole("alert");
+    expect(alert.textContent).toContain("aren’t applied");
+    expect(alert.textContent).toContain("Save will write");
+    expect(
+      (getByRole("button", { name: "Done" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
+
+  it("refuses a cleared date", () => {
+    const { committedInstance, getByRole } = withMarker();
+    fireEvent.change(
+      document.querySelector(
+        'input[aria-label="Event 1 date"]',
+      ) as HTMLInputElement,
+      { target: { value: "" } },
+    );
+    expect(committedInstance().events).toEqual([
+      { date: "2026-03-18", label: "FOMC" },
+    ]);
+    expect(getByRole("alert")).toBeTruthy();
+  });
+
+  it("names the marker that is wrong, next to the row that is wrong", () => {
+    const { container } = setup(
+      {},
+      {
+        ...chart,
+        events: [
+          { date: "2026-03-18", label: "FOMC" },
+          { date: "2026-04-01", label: "CPI" },
+        ],
+      },
+    );
+    fireEvent.change(
+      document.querySelector(
+        'input[aria-label="Event 2 label"]',
+      ) as HTMLInputElement,
+      { target: { value: "" } },
+    );
+    // Same per-field treatment the generated config controls get: the message
+    // under the offending row, and that row's inputs ringed.
+    const rows = [...container.querySelectorAll(".zf-field-wrap")].filter(
+      (row) => row.querySelector(".zf-event"),
+    );
+    expect(rows[0].getAttribute("data-invalid")).toBeNull();
+    expect(rows[1].getAttribute("data-invalid")).toBe("true");
+    expect(rows[1].querySelector(".zf-field-error")?.textContent).toContain(
+      "label",
+    );
+    // And the aggregate says which one, not just that something is wrong.
+    expect(
+      container.querySelector(".zf-config-error-detail")?.textContent,
+    ).toContain("marker 2");
+  });
+
+  it("Revert restores the markers the card is drawing", () => {
+    const { getByRole, committedInstance } = withMarker();
+    fireEvent.change(labelBox(), { target: { value: "" } });
+
+    fireEvent.click(getByRole("button", { name: "Revert" }));
+    expect(labelBox().value).toBe("FOMC");
+    expect(committedInstance().events).toEqual([
+      { date: "2026-03-18", label: "FOMC" },
+    ]);
+    fireEvent.click(getByRole("button", { name: "Done" }));
+  });
+
+  it("Esc and the ✕ revert an invalid marker instead of closing over it", () => {
+    const { getByRole, onClose } = withMarker();
+    fireEvent.change(labelBox(), { target: { value: "" } });
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(labelBox().value).toBe("FOMC");
+
+    fireEvent.change(labelBox(), { target: { value: "" } });
+    fireEvent.click(getByRole("button", { name: "Close" }));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(labelBox().value).toBe("FOMC");
+  });
+
+  it("keeps the panel open over an error, so the blocked Done has a reason", () => {
+    const { container } = withMarker();
+    fireEvent.change(labelBox(), { target: { value: "" } });
+    const head = [...container.querySelectorAll(".zf-style-head")].find((h) =>
+      h.textContent?.includes("Events"),
+    )!;
+
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    expect(labelBox()).not.toBeNull();
+  });
+
+  it("accepts a label with surrounding space, and writes it as typed", () => {
+    // Trimming is how the label is CHECKED, not how it is stored: a value the
+    // user typed reads back as typed.
+    const { committedInstance } = withMarker();
+    fireEvent.change(labelBox(), { target: { value: " FOMC +25bp " } });
+    expect(committedInstance().events).toEqual([
+      { date: "2026-03-18", label: " FOMC +25bp " },
+    ]);
   });
 });
 
@@ -1152,5 +1318,145 @@ describe("FrameConfigDialog display currency", () => {
     expect(
       view.getByRole("button", { name: "Display currency for this card" }),
     ).toBeTruthy();
+  });
+});
+
+/**
+ * The ticker combobox's keyboard contract.
+ *
+ * It announced `role="combobox"` with a `role="listbox"` popup and answered
+ * exactly one key — Enter, which took the top match — so the second row was
+ * unreachable without a pointer, while the currency picker directly below it
+ * was fully arrow-drivable. Both now run the same active-row model.
+ */
+describe("FrameConfigDialog symbol combobox", () => {
+  const universe: SymbolOption[] = [
+    { symbol: "TSLA", ticker: "TSLA", kind: "Stock", rank: 1 },
+    { symbol: "NVDA", ticker: "NVDA", kind: "Stock", rank: 2 },
+    { symbol: "AAPL", ticker: "AAPL", kind: "Stock", rank: 3 },
+  ];
+  const setupTicker = () =>
+    setup({ symbol: "TSLA" }, { frame: "synthetic-ticker" }, "USD", universe);
+
+  /** Focusing the box opens its list, which is how a keyboard user gets there. */
+  const openList = () => {
+    const input = document.querySelector(
+      'input[role="combobox"]',
+    ) as HTMLInputElement;
+    fireEvent.focus(input);
+    return input;
+  };
+  const activeRow = (input: HTMLInputElement) =>
+    document.getElementById(input.getAttribute("aria-activedescendant") ?? "")
+      ?.textContent;
+
+  it("moves an active row with the arrows, wrapping at both ends", () => {
+    setupTicker();
+    const input = openList();
+    // Starts on the best match, so type-then-Enter is unchanged.
+    expect(activeRow(input)).toContain("TSLA");
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(activeRow(input)).toContain("NVDA");
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    // Wraps to the last row rather than dead-ending at the top.
+    expect(activeRow(input)).toContain("AAPL");
+    fireEvent.keyDown(input, { key: "Home" });
+    expect(activeRow(input)).toContain("TSLA");
+    fireEvent.keyDown(input, { key: "End" });
+    expect(activeRow(input)).toContain("AAPL");
+  });
+
+  it("points aria-controls at the listbox it opens", () => {
+    setupTicker();
+    const input = openList();
+    const menu = document.querySelector('[role="listbox"]') as HTMLElement;
+    expect(input.getAttribute("aria-controls")).toBe(menu.id);
+    expect(menu.id).not.toBe("");
+    expect(input.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("Enter commits the active row, not the top match", () => {
+    const { committed } = setupTicker();
+    const input = openList();
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(committed().symbol).toBe("NVDA");
+  });
+
+  it("still reaches a symbol the universe doesn't list", () => {
+    // The free-typed rows are rows like any other: arrowable, and the fallback
+    // when there are none is the typed text itself.
+    const { committed } = setupTicker();
+    const input = openList();
+    fireEvent.change(input, { target: { value: "zzz" } });
+    expect(activeRow(input)).toContain("ZZZ");
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(committed().symbol).toBe("ZZZ");
+  });
+
+  it("re-lands the highlight on the best match when the query changes", () => {
+    setupTicker();
+    const input = openList();
+    fireEvent.keyDown(input, { key: "End" });
+    fireEvent.change(input, { target: { value: "nvda" } });
+    expect(activeRow(input)).toContain("NVDA");
+  });
+});
+
+/**
+ * One Escape press closes one thing, topmost first.
+ *
+ * The dialog used to answer Escape from its own document-level listener, so a
+ * dropdown opened inside it had to `stopPropagation` to keep the dialog from
+ * closing underneath it. Both are layers on the shared stack now.
+ */
+describe("FrameConfigDialog Escape layering", () => {
+  it("closes a symbol menu first and the dialog second", () => {
+    const { onClose, unmount } = setup(
+      { symbol: "TSLA" },
+      { frame: "synthetic-ticker" },
+      "USD",
+      [{ symbol: "TSLA", ticker: "TSLA", kind: "Stock", rank: 1 }],
+    );
+    const input = document.querySelector(
+      'input[role="combobox"]',
+    ) as HTMLInputElement;
+    fireEvent.focus(input);
+    expect(escapeLayerDepth()).toBe(2);
+
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    // The query survives — it is still visible in the box with the menu shut.
+    expect(input.value).toBe("");
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    // The dialog releases its layer when it goes, so a stale one can't swallow
+    // the next press.
+    unmount();
+    expect(escapeLayerDepth()).toBe(0);
+  });
+
+  it("closes a currency dropdown first and the dialog second", () => {
+    const { getByRole, onClose, unmount } = setup();
+    fireEvent.click(
+      getByRole("button", { name: "Display currency for this card" }),
+    );
+    expect(escapeLayerDepth()).toBe(2);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(document.querySelector(".zf-ccy-menu")).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(escapeLayerDepth()).toBe(0);
   });
 });

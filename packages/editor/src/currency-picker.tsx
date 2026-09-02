@@ -1,7 +1,8 @@
 import { Check, ChevronDown, Search } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { currencySymbol } from "@zframes/core";
+import { currencySymbol, useEscapeLayer } from "@zframes/core";
 import { CURRENCY_CODES, type CurrencyCode } from "@zframes/spec/spec";
+import { useActiveRow } from "./editor-listbox";
 
 /**
  * The searchable currency control, shared by the board-wide Cosmetics rail and
@@ -203,7 +204,6 @@ export function CurrencyPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -215,24 +215,17 @@ export function CurrencyPicker({
   const inheritRow = inheritOf !== undefined && !query.trim();
   const total = rows.length + (inheritRow ? 1 : 0);
 
-  // A fresh query invalidates the highlight; land it on the best match so Enter
-  // picks what the list shows first.
-  useEffect(() => setActive(0), [query]);
+  // ↑/↓ with wraparound, Home, End — the same model the symbol combobox in the
+  // config dialog drives, so the two adjacent controls answer the same keys.
+  const { active, setActive, onNavKeyDown } = useActiveRow(
+    total,
+    query,
+    menuRef,
+  );
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
   }, [open]);
-
-  // Keep the active row visible while arrowing through 146 of them.
-  useEffect(() => {
-    if (!open) return;
-    const row = menuRef.current?.querySelector<HTMLElement>(
-      '[data-active="true"]',
-    );
-    // Guarded: jsdom has no scrollIntoView, and scrolling is a nicety — it must
-    // never be what breaks the control.
-    row?.scrollIntoView?.({ block: "nearest" });
-  }, [active, open]);
 
   const close = (returnFocus: boolean) => {
     setOpen(false);
@@ -253,27 +246,15 @@ export function CurrencyPicker({
 
   const rowId = (index: number) => `${baseId}-row-${index}`;
 
+  // The open dropdown is its own Escape layer, so one press closes it and
+  // nothing else: the rail's search box also clears on Escape and the config
+  // dialog closes on it, and both sit BELOW this in the stack while it is open.
+  // This replaces a `stopPropagation` in the key handler, which only worked
+  // while the keystroke happened to be aimed at the filter box.
+  useEscapeLayer(open && !disabled, () => close(true));
+
   const onKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Escape") {
-      // Stop here: the rail's own search box also clears on Escape, and the
-      // config dialog closes on it — neither should fire because a menu was open.
-      event.stopPropagation();
-      event.preventDefault();
-      close(true);
-      return;
-    }
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      if (total === 0) return;
-      const step = event.key === "ArrowDown" ? 1 : -1;
-      setActive((prev) => (prev + step + total) % total);
-      return;
-    }
-    if (event.key === "Home" || event.key === "End") {
-      event.preventDefault();
-      setActive(event.key === "Home" ? 0 : total - 1);
-      return;
-    }
+    if (onNavKeyDown(event)) return;
     if (event.key === "Enter") {
       event.preventDefault();
       const picked = rowAt(active);

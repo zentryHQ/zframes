@@ -9,6 +9,7 @@ import {
   matchCurrencies,
 } from "./currency-picker";
 import { CURRENCY_CODES } from "@zframes/spec/spec";
+import { escapeLayerDepth, pushEscapeLayer } from "@zframes/core";
 
 // The picker exists because `CURRENCY_CODES` is 146 long: a native <select> over
 // it can only be used by someone who already knows the ISO code. So the contract
@@ -220,5 +221,43 @@ describe("CurrencyPicker", () => {
     const input = openPicker();
     fireEvent.change(input, { target: { value: "eur" } });
     expect(screen.queryByRole("option", { name: /Inherit board/ })).toBeNull();
+  });
+});
+
+/**
+ * The dropdown is a layer on the shared Escape stack while it is open.
+ *
+ * It used to answer Escape from its own key handler and call `stopPropagation`
+ * so the rail's search box and the config dialog's document-level listener
+ * wouldn't also act on the press — which only worked while the keystroke
+ * happened to be aimed at the filter box.
+ */
+describe("CurrencyPicker Escape layering", () => {
+  it("registers a layer only while the dropdown is open", () => {
+    render(<CurrencyPicker value="USD" label="Currency" onChange={vi.fn()} />);
+    expect(escapeLayerDepth()).toBe(0);
+
+    const input = openPicker();
+    expect(escapeLayerDepth()).toBe(1);
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(escapeLayerDepth()).toBe(0);
+  });
+
+  it("yields to a surface opened above it", () => {
+    const onChange = vi.fn();
+    render(<CurrencyPicker value="USD" label="Currency" onChange={onChange} />);
+    openPicker();
+    const later = vi.fn();
+    const release = pushEscapeLayer(later);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    // Topmost-first: one press closes one thing, and this is not it.
+    expect(later).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("listbox")).toBeTruthy();
+
+    release();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

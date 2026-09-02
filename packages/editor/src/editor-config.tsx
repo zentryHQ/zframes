@@ -2,11 +2,14 @@ import { Check, ChevronDown, ChevronUp, Plus, Search, X } from "lucide-react";
 import {
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type RefObject,
 } from "react";
+import { useEscapeLayer } from "@zframes/core";
+import { EventMarkerSchema } from "@zframes/spec/spec";
 import type {
   CurrencyCode,
   EventMarker,
@@ -14,6 +17,7 @@ import type {
   FrameStyle,
 } from "@zframes/spec/spec";
 import { CurrencyPicker } from "./currency-picker";
+import { useActiveRow } from "./editor-listbox";
 import type { FrameCategory, FrameRegistry } from "@zframes/spec/frame";
 import {
   assetLogoUrl,
@@ -231,9 +235,23 @@ export function FrameConfigDialog({
   const [events, setEvents] = useState<EventMarker[]>(() => [
     ...(instance.events ?? []),
   ]);
+  // Markers are validated on the same terms as `config`: an invalid draft stays
+  // local, says so, and is not pushed to the card. Before this the panel wrote
+  // whatever was typed — a blank label or a cleared date parsed nowhere until
+  // Save, which then failed on a screen the user had long left.
+  const [eventError, setEventError] = useState<string | null>(null);
+  const [eventErrors, setEventErrors] = useState<Record<number, string>>({});
   const commitEvents = useCallback(
     (next: EventMarker[]) => {
       setEvents(next);
+      const invalid = validateEvents(next);
+      if (invalid) {
+        setEventError(invalid.message);
+        setEventErrors(invalid.byIndex);
+        return;
+      }
+      setEventError(null);
+      setEventErrors({});
       const current = instancesRef.current.get(instanceId);
       if (!current) return;
       instancesRef.current.set(instanceId, {
@@ -246,6 +264,15 @@ export function FrameConfigDialog({
     },
     [instanceId, instancesRef, onApply],
   );
+
+  /** The markers the card is actually drawing — the exit from an invalid draft,
+   *  parallel to `revertConfig` below. */
+  const revertEvents = useCallback(() => {
+    const current = instancesRef.current.get(instanceId);
+    setEvents([...(current?.events ?? [])]);
+    setEventError(null);
+    setEventErrors({});
+  }, [instanceId, instancesRef]);
 
   // This card's display-currency override (spec: instance.currency — a bare
   // code beside config, not inside it). Three-state, and the third state is the
@@ -311,21 +338,38 @@ export function FrameConfigDialog({
     setFieldErrors({});
   }, [instanceId, instancesRef]);
 
-  // Esc closes the dialog — unless the draft is invalid, in which case closing
-  // would silently discard it. Then Esc reverts to the last valid config instead,
-  // which is a visible change (the fields snap back) rather than a silent loss.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      // A deferred draft is validated first, and its own verdict wins — `error`
-      // is one debounce behind whatever was just typed.
-      const flushed = flushConfig();
-      if (flushed !== undefined ? flushed : error) revertConfig();
-      else onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose, error, revertConfig, flushConfig]);
+  /** Put every invalid draft back to what the card is rendering. Offered as one
+   *  button, because "revert" that fixes only one of two problems isn't one. */
+  const revertDraft = useCallback(() => {
+    revertConfig();
+    revertEvents();
+  }, [revertConfig, revertEvents]);
+
+  /**
+   * The ONE exit rule, shared by Esc, a backdrop click and the header ✕: an
+   * invalid draft is never thrown away silently. Closing would discard it, so
+   * these revert to the last valid values instead — a visible change (the fields
+   * snap back) rather than a silent loss — and the dialog stays open.
+   *
+   * The ✕ used to be a bare `onClose`, so the one exit that looks most like
+   * "close" was the one that dropped the typed text without a word.
+   */
+  const exitOrRevert = useCallback(() => {
+    // A deferred config draft is validated first, and its own verdict wins —
+    // `error` is one debounce behind whatever was just typed.
+    const flushed = flushConfig();
+    const badConfig = Boolean(flushed !== undefined ? flushed : error);
+    const badEvents = Boolean(eventError);
+    if (badConfig) revertConfig();
+    if (badEvents) revertEvents();
+    if (!badConfig && !badEvents) onClose();
+  }, [error, eventError, flushConfig, onClose, revertConfig, revertEvents]);
+
+  // Esc is the dialog's own Escape layer, so exactly one surface answers one
+  // press: a currency dropdown or a symbol menu opened INSIDE the dialog sits
+  // above it in the stack and closes first. This replaces a document-level
+  // listener that fired alongside every other surface's.
+  useEscapeLayer(true, exitOrRevert);
 
   /**
    * Focus management for a real modal: move focus in on open, keep Tab inside it,
@@ -397,6 +441,10 @@ export function FrameConfigDialog({
   const setField = (key: string, value: unknown) =>
     commit({ ...config, [key]: value });
   const frameLabel = def?.label ?? instance.frame.replace(/-/g, " ");
+  // Either draft being invalid blocks the exits that would drop it. One flag,
+  // because the user doesn't distinguish "a setting is invalid" from "a marker
+  // is" — both mean the dialog is holding an edit the card hasn't taken.
+  const blocked = Boolean(error) || Boolean(eventError);
 
   return (
     <div
@@ -404,11 +452,9 @@ export function FrameConfigDialog({
       style={{ ["--zf-accent-hue" as string]: accentHue }}
       onMouseDown={(e) => {
         // Backdrop click closes — but not over an invalid draft, which closing
-        // would discard without saying so. See the Esc handler above.
+        // would discard without saying so. Same guard as Esc and the ✕.
         if (e.target !== e.currentTarget) return;
-        const flushed = flushConfig();
-        if (flushed !== undefined ? flushed : error) revertConfig();
-        else onClose();
+        exitOrRevert();
       }}
     >
       <div
@@ -423,9 +469,15 @@ export function FrameConfigDialog({
           <button
             type="button"
             className="zf-dialog-close"
-            onClick={onClose}
+            /* Not a bare `onClose`: over an invalid draft this reverts and stays
+               open, exactly as Esc and the backdrop do. */
+            onClick={exitOrRevert}
             aria-label="Close"
-            title="Close"
+            title={
+              blocked
+                ? "Fix or revert the invalid settings first"
+                : "Close this frame's settings"
+            }
           >
             <X size={16} aria-hidden="true" />
           </button>
@@ -491,7 +543,12 @@ export function FrameConfigDialog({
             </div>
           )}
           {def?.annotatable && (
-            <FrameEventsPanel events={events} onChange={commitEvents} />
+            <FrameEventsPanel
+              events={events}
+              error={eventError}
+              errors={eventErrors}
+              onChange={commitEvents}
+            />
           )}
           <FrameCurrencyField
             value={currency}
@@ -520,11 +577,11 @@ export function FrameConfigDialog({
           {/* Done is blocked while the draft is invalid — leaving would drop the
               edit — but Revert always offers a one-click way out, so the dialog
               is never a trap. */}
-          {error && (
+          {blocked && (
             <button
               type="button"
               className="zf-btn zf-btn--ghost"
-              onClick={revertConfig}
+              onClick={revertDraft}
             >
               Revert
             </button>
@@ -537,11 +594,12 @@ export function FrameConfigDialog({
               // validated here too rather than closing over an unparsed edit.
               const flushed = flushConfig();
               if (flushed !== undefined ? flushed : error) return;
+              if (eventError) return;
               onClose();
             }}
-            disabled={Boolean(error)}
+            disabled={blocked}
             title={
-              error
+              blocked
                 ? "Fix or revert the invalid settings first"
                 : "Close this frame's settings"
             }
@@ -767,6 +825,43 @@ const todayIso = (): string => {
 };
 
 /**
+ * Validate a marker draft on the same terms `applyConfig` validates a config
+ * draft: one aggregate message for the alert, plus a per-row message keyed by
+ * the marker's index so it lands on the row that caused it.
+ *
+ * Labels are checked TRIMMED. The spec's `min(1)` counts a space, so a marker
+ * labelled "   " parses here and then draws a blank flag — the one constraint
+ * the schema alone doesn't cover.
+ */
+function validateEvents(
+  next: EventMarker[],
+): { message: string; byIndex: Record<number, string> } | null {
+  const result = EventMarkerSchema.array().safeParse(
+    next.map((event) => ({ ...event, label: event.label?.trim() })),
+  );
+  if (result.success) return null;
+  const byIndex: Record<number, string> = {};
+  for (const issue of result.error.issues) {
+    const index = issue.path[0];
+    if (typeof index !== "number") continue;
+    const field = issue.path.slice(1).join(".");
+    if (!byIndex[index])
+      byIndex[index] = field ? `${field}: ${issue.message}` : issue.message;
+  }
+  const message = result.error.issues
+    .map((issue) => {
+      const row =
+        typeof issue.path[0] === "number"
+          ? `marker ${issue.path[0] + 1}`
+          : "markers";
+      const field = issue.path.slice(1).join(".");
+      return `${row}${field ? ` · ${field}` : ""}: ${issue.message}`;
+    })
+    .join("\n");
+  return { message, byIndex };
+}
+
+/**
  * This card's event markers — dated annotations drawn on its time axis, so a
  * move can be read against what caused it. Offered only for frames whose meta
  * says `annotatable` (a marker on any other frame would parse fine and then
@@ -775,25 +870,38 @@ const todayIso = (): string => {
  * Edits patch a marker in place rather than rebuilding it, so a field this
  * form doesn't expose (`url`, written by the agent or by hand) survives a
  * human fixing a date or a label.
+ *
+ * An invalid marker is reported here in the same two places a bad config field
+ * is: a message under the row that caused it, and one alert stating that these
+ * markers aren't applied and aren't what Save will write.
  */
 function FrameEventsPanel({
   events,
+  error,
+  errors,
   onChange,
 }: {
   events: EventMarker[];
+  /** Aggregate validation message for the draft, or null when it parses. */
+  error: string | null;
+  /** Per-marker message, keyed by index. */
+  errors: Record<number, string>;
   onChange: (next: EventMarker[]) => void;
 }) {
   const [open, setOpen] = useState(events.length > 0);
+  // Collapsing over an invalid marker would hide the reason Done is disabled,
+  // so an error holds the panel open regardless of the toggle.
+  const shown = open || error !== null;
 
   const patch = (index: number, fields: Partial<EventMarker>) =>
     onChange(events.map((e, i) => (i === index ? { ...e, ...fields } : e)));
 
   return (
-    <section className={open ? "zf-style-panel is-open" : "zf-style-panel"}>
+    <section className={shown ? "zf-style-panel is-open" : "zf-style-panel"}>
       <button
         type="button"
         className="zf-style-head"
-        aria-expanded={open}
+        aria-expanded={shown}
         onClick={() => setOpen((v) => !v)}
       >
         <ChevronDown
@@ -806,61 +914,87 @@ function FrameEventsPanel({
           <span className="zf-style-count">{events.length}</span>
         )}
       </button>
-      {open && (
+      {shown && (
         <div className="zf-style-body">
           <p className="zf-field-hint" style={{ margin: "0 0 8px" }}>
             Dated markers on this chart&rsquo;s time axis — hover a flag to read
             it. Markers outside the chart&rsquo;s window aren&rsquo;t drawn.
           </p>
+          {error && (
+            <div className="zf-config-error" role="alert">
+              <p className="zf-config-error-head">
+                These markers aren&rsquo;t applied
+              </p>
+              <p className="zf-config-error-note">
+                The card is still using its last valid markers, and that&rsquo;s
+                what Save will write. Fix the marker below, or revert.
+              </p>
+              <pre className="zf-config-error-detail">{error}</pre>
+            </div>
+          )}
           <div className="zf-events">
             {events.map((event, index) => (
-              <div className="zf-event" key={`event-${index}`}>
-                <div className="zf-event-head">
+              <div
+                /* Same wrapper the generated config controls use, so an invalid
+                   marker gets the same ringed inputs and the same message
+                   position rather than a second look invented here. */
+                className="zf-field-wrap"
+                data-invalid={errors[index] ? "true" : undefined}
+                key={`event-${index}`}
+              >
+                <div className="zf-event">
+                  <div className="zf-event-head">
+                    <input
+                      type="date"
+                      className="zf-input zf-event-date"
+                      value={event.date.slice(0, 10)}
+                      aria-label={`Event ${index + 1} date`}
+                      onChange={(e) =>
+                        patch(index, {
+                          date: withCalendarDay(event.date, e.target.value),
+                        })
+                      }
+                    />
+                    <input
+                      type="color"
+                      className="zf-color"
+                      value={event.color ?? DEFAULT_EVENT_COLOR}
+                      aria-label={`Event ${index + 1} colour`}
+                      onChange={(e) => patch(index, { color: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="zf-event-del"
+                      aria-label={`Remove event ${index + 1}`}
+                      onClick={() =>
+                        onChange(events.filter((_, i) => i !== index))
+                      }
+                    >
+                      <X size={12} aria-hidden="true" />
+                    </button>
+                  </div>
                   <input
-                    type="date"
-                    className="zf-input zf-event-date"
-                    value={event.date.slice(0, 10)}
-                    aria-label={`Event ${index + 1} date`}
+                    className="zf-input"
+                    value={event.label}
+                    placeholder="What happened"
+                    aria-label={`Event ${index + 1} label`}
+                    onChange={(e) => patch(index, { label: e.target.value })}
+                  />
+                  <input
+                    className="zf-input"
+                    value={event.note ?? ""}
+                    placeholder="Note (optional)"
+                    aria-label={`Event ${index + 1} note`}
                     onChange={(e) =>
-                      patch(index, {
-                        date: withCalendarDay(event.date, e.target.value),
-                      })
+                      patch(index, { note: e.target.value || undefined })
                     }
                   />
-                  <input
-                    type="color"
-                    className="zf-color"
-                    value={event.color ?? DEFAULT_EVENT_COLOR}
-                    aria-label={`Event ${index + 1} colour`}
-                    onChange={(e) => patch(index, { color: e.target.value })}
-                  />
-                  <button
-                    type="button"
-                    className="zf-event-del"
-                    aria-label={`Remove event ${index + 1}`}
-                    onClick={() =>
-                      onChange(events.filter((_, i) => i !== index))
-                    }
-                  >
-                    <X size={12} aria-hidden="true" />
-                  </button>
                 </div>
-                <input
-                  className="zf-input"
-                  value={event.label}
-                  placeholder="What happened"
-                  aria-label={`Event ${index + 1} label`}
-                  onChange={(e) => patch(index, { label: e.target.value })}
-                />
-                <input
-                  className="zf-input"
-                  value={event.note ?? ""}
-                  placeholder="Note (optional)"
-                  aria-label={`Event ${index + 1} note`}
-                  onChange={(e) =>
-                    patch(index, { note: e.target.value || undefined })
-                  }
-                />
+                {errors[index] && (
+                  <p className="zf-field-error" id={`zf-event-${index}-error`}>
+                    {errors[index]}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -1922,6 +2056,18 @@ function SelectedTicker({
   );
 }
 
+/**
+ * The ticker search: a filter box over a listbox of live symbols, plus the
+ * free-typed rows that let a symbol the universe doesn't list be entered by
+ * hand.
+ *
+ * Keyboard-complete on the same model as the currency picker directly below it
+ * in this dialog (`useActiveRow`): ↑/↓ move an active row with wraparound, Home
+ * and End jump to the ends, Enter picks the ACTIVE row, and Escape closes the
+ * list. It announced `role="combobox"` with a `role="listbox"` popup long before
+ * it answered any of those keys — the only key it handled was Enter, which took
+ * the top match, so the second row was unreachable without a pointer.
+ */
 function SymbolCombobox({
   disabled = false,
   loading,
@@ -1941,6 +2087,8 @@ function SymbolCombobox({
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const baseId = useId();
   const selected = useMemo(() => new Set(selectedSymbols), [selectedSymbols]);
   const known = useMemo(
     () => new Set(options.map((option) => option.symbol)),
@@ -1976,12 +2124,32 @@ function SymbolCombobox({
     );
   }, [known, normalized, selected]);
 
+  // The rendered row order: known symbols first, then the free-typed
+  // candidates. One flat index over both is what ↑/↓ walk.
+  const total = visible.length + custom.length;
+  const { active, setActive, onNavKeyDown } = useActiveRow(
+    total,
+    query,
+    menuRef,
+  );
+  const rowAt = (index: number): string | undefined =>
+    index < visible.length
+      ? visible[index]?.symbol
+      : custom[index - visible.length];
+  const rowId = (index: number) => `${baseId}-row-${index}`;
+
   const commit = (symbol: string) => {
     if (!symbol || (keepOpenOnSelect && selected.has(symbol))) return;
     onSelect(symbol);
     setQuery("");
     setOpen(keepOpenOnSelect);
   };
+
+  // The open menu is its own Escape layer, above the config dialog's: one press
+  // closes the list, the next closes the dialog. The query is left in the box —
+  // unlike the currency picker's filter, it is still visible with the menu shut,
+  // so clearing it would look like the keystroke ate the typing.
+  useEscapeLayer(open && !disabled, () => setOpen(false));
 
   return (
     <div
@@ -2004,15 +2172,27 @@ function SymbolCombobox({
           aria-label={placeholder}
           role="combobox"
           aria-expanded={open}
+          aria-controls={`${baseId}-menu`}
+          aria-activedescendant={open && total > 0 ? rowId(active) : undefined}
           onFocus={() => setOpen(true)}
           onChange={(event) => {
             setQuery(event.target.value);
             setOpen(true);
           }}
           onKeyDown={(event) => {
+            if (onNavKeyDown(event)) {
+              // Arrowing into a closed list has to show it, or the highlight
+              // moves somewhere the user can't see.
+              setOpen(true);
+              return;
+            }
             if (event.key === "Enter") {
               event.preventDefault();
-              commit(visible[0]?.symbol ?? custom[0] ?? normalized);
+              // The active row — which starts on the top match, so a straight
+              // type-then-Enter still commits what the list shows first. With no
+              // rows at all it falls back to the typed text, which is how a
+              // symbol the universe doesn't list gets entered.
+              commit(rowAt(active) ?? normalized);
             }
           }}
         />
@@ -2020,18 +2200,26 @@ function SymbolCombobox({
       </div>
 
       {open && !disabled && (
-        <div className="zf-symbol-menu" role="listbox">
+        <div
+          className="zf-symbol-menu"
+          id={`${baseId}-menu`}
+          role="listbox"
+          aria-label={placeholder}
+          ref={menuRef}
+        >
           {loading && (
             <div className="zf-symbol-menu-status">
               Loading live universe...
             </div>
           )}
-          {visible.map((option) => {
+          {visible.map((option, index) => {
             const isSelected = selected.has(option.symbol);
             return (
               <button
                 type="button"
                 key={option.symbol}
+                id={rowId(index)}
+                data-active={active === index}
                 className={
                   isSelected
                     ? "zf-symbol-option is-selected"
@@ -2040,6 +2228,7 @@ function SymbolCombobox({
                 disabled={keepOpenOnSelect && isSelected}
                 role="option"
                 aria-selected={isSelected}
+                onMouseEnter={() => setActive(index)}
                 onMouseDown={(event) => {
                   event.preventDefault();
                   commit(option.symbol);
@@ -2071,11 +2260,16 @@ function SymbolCombobox({
               </button>
             );
           })}
-          {custom.map((symbol) => (
+          {custom.map((symbol, i) => (
             <button
               type="button"
               key={symbol}
+              id={rowId(visible.length + i)}
+              data-active={active === visible.length + i}
               className="zf-symbol-option zf-symbol-option--custom"
+              role="option"
+              aria-selected={false}
+              onMouseEnter={() => setActive(visible.length + i)}
               onMouseDown={(event) => {
                 event.preventDefault();
                 commit(symbol);

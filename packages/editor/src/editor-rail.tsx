@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import { useEscapeLayer } from "@zframes/core";
 import type {
   ColorCosmeticKey,
   Cosmetics,
@@ -17,13 +18,12 @@ import type {
  * `preventDefault`), and whether a clear button existed at all (only the palette
  * had one). None of that was a decision; it was two copies aging separately.
  *
- * Escape calls `stopPropagation`, which is the half that does real work: a
- * document-level Escape listener (the frame config dialog's) would otherwise see
- * the keystroke that was meant for this box. `preventDefault` was the other
- * copy's guess and cancels nothing worth cancelling here — the input's own
- * Escape behaviour (revert to the default value) is moot when the handler is
- * already clearing the value itself. Escape only fires either when there is a
- * query to clear, so an empty box still lets Escape through to whatever owns it.
+ * Escape clears the query through the shared Escape stack rather than a key
+ * handler that called `stopPropagation` to keep the config dialog's own
+ * document-level listener from also answering the press. The box is a layer only
+ * while it is FOCUSED and has something to clear, which is exactly when the old
+ * handler could fire: an empty box, or one nobody is typing in, still lets
+ * Escape through to whatever owns it.
  */
 export function RailSearch({
   value,
@@ -37,6 +37,9 @@ export function RailSearch({
   /** Accessible name — also what a test queries the box by. */
   label: string;
 }) {
+  const [focused, setFocused] = useState(false);
+  useEscapeLayer(focused && value !== "", () => onChange(""));
+
   return (
     <div className="zf-palette-search">
       <Search size={14} className="zf-palette-search-icon" aria-hidden="true" />
@@ -52,12 +55,8 @@ export function RailSearch({
         autoComplete="off"
         spellCheck={false}
         onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && value) {
-            e.stopPropagation();
-            onChange("");
-          }
-        }}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
       />
       {value && (
         <button
