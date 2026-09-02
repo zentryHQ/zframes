@@ -236,4 +236,58 @@ describe("EventLayer tooltip interaction", () => {
     });
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
+
+  it("closes on Escape, so a marker opened with Tab is not a keyboard trap", () => {
+    draw(marker);
+    fireEvent.focus(flags()[0]);
+    expect(screen.queryByRole("tooltip")).not.toBeNull();
+    fireEvent.keyDown(flags()[0], { key: "Escape" });
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("consumes that Escape, so one press does not also close the surface behind", () => {
+    // The chart layer can't join the shell's escape stack, so the only thing
+    // keeping a marker's Escape from reaching the orb's and chooser's `window`
+    // listeners is stopping the native event here.
+    const onWindowEscape = vi.fn();
+    window.addEventListener("keydown", onWindowEscape);
+    draw(marker);
+    fireEvent.focus(flags()[0]);
+    fireEvent.keyDown(flags()[0], { key: "Escape" });
+    expect(onWindowEscape).not.toHaveBeenCalled();
+    window.removeEventListener("keydown", onWindowEscape);
+  });
+
+  it("lets Escape through when there is nothing open to dismiss", () => {
+    const onWindowEscape = vi.fn();
+    window.addEventListener("keydown", onWindowEscape);
+    draw(marker);
+    fireEvent.keyDown(flags()[0], { key: "Escape" });
+    expect(onWindowEscape).toHaveBeenCalledTimes(1);
+    window.removeEventListener("keydown", onWindowEscape);
+  });
+});
+
+describe("EventLayer inline label", () => {
+  it("ends a truncated label in an ellipsis, and keeps the full text reachable", () => {
+    const long = "Federal Reserve cuts by 50bp";
+    const { container } = draw([
+      { date: new Date("2026-06-01T00:00:00Z"), label: long },
+    ]);
+    // Without the ellipsis this read as a complete but wrong phrase.
+    expect(container.textContent).toContain("…");
+    expect(container.textContent).not.toContain(long);
+    // Truncated on screen only: AT and the tooltip still get all of it.
+    expect(flags()[0].getAttribute("aria-label")).toContain(long);
+    fireEvent.focus(flags()[0]);
+    expect(screen.getByRole("tooltip").textContent).toContain(long);
+  });
+
+  it("leaves a label that fits exactly as it is", () => {
+    const { container } = draw([
+      { date: new Date("2026-06-01T00:00:00Z"), label: "Halving" },
+    ]);
+    expect(container.textContent).toContain("Halving");
+    expect(container.textContent).not.toContain("…");
+  });
 });

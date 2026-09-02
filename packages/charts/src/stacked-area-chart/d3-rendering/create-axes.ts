@@ -1,6 +1,10 @@
 import * as d3 from "d3";
 import { AXIS } from "../constants";
 
+// AXIS.domainColor is an hsl() over --zf-ink-l, so the rule and the labels are
+// painted through `.style()`: a var() is not substituted inside an SVG
+// presentation attribute, and `.attr()` here left them unpainted.
+
 export function createAxes(
   g: d3.Selection<SVGGElement, unknown, null, undefined>,
   xScale: d3.ScaleTime<number, number>,
@@ -26,7 +30,7 @@ export function createAxes(
     .call((selection) => {
       selection
         .select(".domain")
-        .attr("stroke", AXIS.domainColor)
+        .style("stroke", AXIS.domainColor)
         .attr("stroke-opacity", AXIS.domainOpacity);
       selection
         .selectAll(".tick line")
@@ -34,7 +38,7 @@ export function createAxes(
         .attr("stroke-opacity", AXIS.textOpacity);
       selection
         .selectAll(".tick text")
-        .attr("fill", AXIS.domainColor)
+        .style("fill", AXIS.domainColor)
         .attr("fill-opacity", AXIS.textOpacity)
         .attr("font-size", AXIS.fontSize)
         .attr("font-weight", "500");
@@ -56,7 +60,7 @@ export function createAxes(
     .call((selection) => {
       selection
         .select(".domain")
-        .attr("stroke", AXIS.domainColor)
+        .style("stroke", AXIS.domainColor)
         .attr("stroke-opacity", AXIS.domainOpacity);
       selection
         .selectAll(".tick line")
@@ -64,7 +68,7 @@ export function createAxes(
         .attr("stroke-opacity", AXIS.textOpacity);
       selection
         .selectAll(".tick text")
-        .attr("fill", AXIS.domainColor)
+        .style("fill", AXIS.domainColor)
         .attr("fill-opacity", AXIS.textOpacity)
         .attr("font-size", AXIS.fontSize)
         .attr("font-weight", "500");

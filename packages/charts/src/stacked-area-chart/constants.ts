@@ -1,3 +1,5 @@
+import { chartInk } from "../lib/ink";
+
 export const CHART_MARGIN = {
   top: 20,
   right: 20,
@@ -13,7 +15,9 @@ export const CHART_DEFAULTS = {
 export const GRID = {
   ticks: 6,
   opacity: 0.05,
-  color: "#FFFFFF",
+  // Board ink, not a baked white: on a light board a white gridline is
+  // invisible. A var() only resolves through .style() — see lib/ink.ts.
+  color: chartInk(),
 };
 
 export const AXIS = {
@@ -21,7 +25,7 @@ export const AXIS = {
   yTicks: 5,
   tickSize: 6,
   tickColor: "#404146",
-  domainColor: "#FFFFFF",
+  domainColor: chartInk(),
   domainOpacity: 0.05,
   textOpacity: 0.5,
   fontSize: 12,

@@ -29,6 +29,8 @@ export const createGrid = (
     )
     .call((g) => g.select(".domain").remove())
     .selectAll("line")
-    .attr("stroke", GRID.color)
+    // `.style`: GRID.color carries a var(), which a presentation attribute
+    // would not resolve.
+    .style("stroke", GRID.color)
     .attr("stroke-opacity", GRID.opacity);
 };

@@ -11,6 +11,33 @@ D3 base chart layer ported from zTerminal (`tree-chart`, `heatmap-chart`, `multi
 `loading-orb/` is internal (used by `multi-series-line-chart`), deliberately not
 exported.
 
+## Chrome follows the board's surface (`lib/ink.ts`)
+
+Axis rules, tick labels, crosshairs, knobs and panel backgrounds are **chart
+chrome**, and the board flips them: the renderer publishes `--zf-ink-l` (100%
+dark / 16% light) and `--zf-surf-l1..3` on the grid container. Derive them via
+`chartInk()` / `chartInkContrast()` / `chartSurface()`, or plain `currentColor`
+where the mark already inherits the card's colour — never a literal `#FFFFFF`,
+which is invisible on a light board.
+
+**The footgun:** those helpers return an `hsl()` containing `var()`, and a
+`var()` is NOT substituted inside an SVG *presentation attribute*. In D3 they
+must go through `.style("stroke", …)` (or a class); `.attr("stroke", …)` paints
+nothing at all. Same for a React SVG element: `style={{ stroke: chartInk() }}`,
+not `stroke={chartInk()}`. The two zTerminal ports (`multi-series-line-chart`,
+`stacked-area-chart`) are the ones that had baked whites; the in-house charts
+already use `currentColor`.
+
+## Reduced motion
+
+`prefersReducedMotion()` (one-shot) is correct **inside a draw effect** — it is
+re-read on the next draw. Anywhere it would be sampled once and kept (a
+`useState` initialiser, a render-time branch) use **`useReducedMotion()`**,
+which subscribes to the media query: a chart that samples at mount never hears
+the setting change. And gate the *animation*, never the *interaction* — the
+bubble cloud's drag is attached under reduce too (the simulation stays stopped
+and each pointer move advances it one tick).
+
 ## Fitting text a chart cannot see
 
 A chart knows a dimension its caller does not, so it publishes it rather than

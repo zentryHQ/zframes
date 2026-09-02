@@ -3,7 +3,7 @@ import { memo, useEffect, useId, useRef, useState } from "react";
 import { attachChartTooltip, hideChartTooltip } from "./lib/chart-tooltip";
 import { observeResize } from "./lib/observe-resize";
 import { useChartIntro } from "./lib/use-chart-intro";
-import { prefersReducedMotion } from "./lib/utils";
+import { useReducedMotion } from "./lib/use-reduced-motion";
 
 export interface BubbleNode {
   id: string;
@@ -91,6 +91,10 @@ const BubbleChart = ({
   const [box, setBox] = useState<{ w: number; h: number } | null>(null);
   const clipPrefix = useId().replace(/[^a-zA-Z0-9]/g, "");
   const shouldIntro = useChartIntro();
+  // Read live, and a dependency of the draw effect below: sampled once per draw
+  // instead, turning the preference off left an already-mounted cloud static
+  // and undraggable for the rest of the session (B-42).
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -288,34 +292,56 @@ const BubbleChart = ({
       item.attr("transform", (d) => `translate(${d.x},${d.y})`);
     };
 
-    if (prefersReducedMotion()) {
-      simulation.stop();
-      for (let i = 0; i < 200; i++) simulation.tick();
+    simulation.on("tick", position);
+
+    /**
+     * Advance the layout by hand and paint it, with the simulation's own timer
+     * stopped. `simulation.tick()` dispatches no "tick" event, hence the
+     * explicit `position()`.
+     */
+    const step = (ticks: number) => {
+      for (let i = 0; i < ticks; i++) simulation.tick();
       position();
-    } else {
-      simulation.on("tick", position);
-      item.call(
-        d3
-          .drag<SVGGElement, SimNode>()
-          .on("start", (event) => {
-            // The drag captures the pointer, so pointerleave never arrives —
-            // and a tooltip riding the cursor through a drag is just noise.
-            hideChartTooltip();
-            if (!event.active) simulation.alphaTarget(0.25).restart();
-            event.subject.fx = event.subject.x;
-            event.subject.fy = event.subject.y;
-          })
-          .on("drag", (event) => {
-            event.subject.fx = event.x;
-            event.subject.fy = event.y;
-          })
-          .on("end", (event) => {
-            if (!event.active) simulation.alphaTarget(0);
-            event.subject.fx = null;
-            event.subject.fy = null;
-          }),
-      );
+    };
+
+    if (reducedMotion) {
+      // The cloud arrives already settled: no self-propelled motion, ever.
+      simulation.stop();
+      step(200);
     }
+
+    // Dragging is a FUNCTION, not an animation, so it is attached either way —
+    // reduce used to remove it outright, leaving a cloud that could not be
+    // rearranged at all. Under reduce the simulation stays stopped and each
+    // pointer move advances it a single tick, so the only thing that moves is
+    // what the finger is moving.
+    item.call(
+      d3
+        .drag<SVGGElement, SimNode>()
+        .on("start", (event) => {
+          // The drag captures the pointer, so pointerleave never arrives —
+          // and a tooltip riding the cursor through a drag is just noise.
+          hideChartTooltip();
+          if (!reducedMotion && !event.active) {
+            simulation.alphaTarget(0.25).restart();
+          }
+          event.subject.fx = event.subject.x;
+          event.subject.fy = event.subject.y;
+        })
+        .on("drag", (event) => {
+          event.subject.fx = event.x;
+          event.subject.fy = event.y;
+          if (reducedMotion) step(1);
+        })
+        .on("end", (event) => {
+          if (!reducedMotion && !event.active) simulation.alphaTarget(0);
+          event.subject.fx = null;
+          event.subject.fy = null;
+          // Released under reduce: settle to the rest state in one go rather
+          // than letting a cool-down animate the neighbours back.
+          if (reducedMotion) step(200);
+        }),
+    );
 
     return () => {
       simulation.stop();
@@ -323,7 +349,16 @@ const BubbleChart = ({
       // this the tooltip would hang over an empty chart.
       hideChartTooltip();
     };
-  }, [nodes, box, showLabels, color, formatTitle, clipPrefix, shouldIntro]);
+  }, [
+    nodes,
+    box,
+    showLabels,
+    color,
+    formatTitle,
+    clipPrefix,
+    shouldIntro,
+    reducedMotion,
+  ]);
 
   return (
     <div

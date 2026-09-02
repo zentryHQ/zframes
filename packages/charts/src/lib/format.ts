@@ -44,6 +44,33 @@ export const parseMarketData = (value: number | null | undefined) => {
   });
 };
 
+/**
+ * A bare reading, for a chart that has to print a number its caller gave it no
+ * formatter for (the gauge's hover tooltip). Enough precision to be honest,
+ * never enough to expose float noise: a put/call ratio that reads 1.04 in the
+ * centre of the dial must not appear as 1.0400000000000002 in the tooltip
+ * beside it.
+ *
+ * Deliberately NOT `parseMarketData`: a gauge's bounds are ratios and index
+ * levels, not market caps, so compacting 1,200 to "1.20K" would be worse than
+ * printing it.
+ */
+export const formatReading = (value: number): string => {
+  // A gauge whose value never arrived would otherwise print "NaN" / "Infinity"
+  // as though it were a reading.
+  if (!Number.isFinite(value)) return "—";
+  const magnitude = Math.abs(value);
+  const text =
+    // Below a hundredth, two decimals would round the whole reading away
+    // (0.0001 → "0"), so keep four significant digits there instead.
+    magnitude > 0 && magnitude < 0.01
+      ? String(parseFloat(value.toPrecision(4)))
+      : // Trailing zeros trimmed, so a whole 100 does not read "100.00".
+        value.toFixed(2).replace(/\.?0+$/, "");
+  // A negative zero would print "-0", which reads as a signed reading.
+  return text === "-0" ? "0" : text;
+};
+
 const toSubscript = (num: number): string => {
   const subscripts = ["₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"];
   return num

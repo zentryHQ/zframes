@@ -9,6 +9,7 @@ import {
 } from "./lib/chart-tooltip";
 import { useChartIntro } from "./lib/use-chart-intro";
 import { prefersReducedMotion } from "./lib/utils";
+import { formatReading } from "./lib/format";
 
 export interface RadialGaugeProps {
   /** Current reading — clamped into [min, max]. */
@@ -42,7 +43,9 @@ export interface RadialGaugeProps {
 const START_ANGLE = (-3 * Math.PI) / 4;
 const END_ANGLE = (3 * Math.PI) / 4;
 
-const DEFAULT_FORMAT_VALUE = (v: number) => String(v);
+// `String(v)` printed the raw float, and no shipped gauge passes a formatter:
+// the tooltip beside a 1.04 dial read 1.0400000000000002.
+const DEFAULT_FORMAT_VALUE = formatReading;
 
 /**
  * Radial gauge — a bounded scalar (sentiment index, ratio, progress) as a

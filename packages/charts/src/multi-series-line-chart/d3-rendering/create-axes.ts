@@ -56,9 +56,11 @@ export const createAxes = (
     .style("font-weight", "700")
     .style("font-family", "var(--font-manrope)");
 
+  // `.style`, not `.attr`: AXIS.domainColor is an hsl() over --zf-ink-l, and a
+  // var() is not substituted inside an SVG presentation attribute.
   xAxisG
     .select(".domain")
-    .attr("stroke", AXIS.domainColor)
+    .style("stroke", AXIS.domainColor)
     .attr("stroke-width", 1)
     .attr("stroke-opacity", AXIS.domainOpacity);
 
@@ -112,6 +114,8 @@ export const createAxes = (
         ),
     )
     .style("font-size", "12px")
+    // d3 gives axis text `fill: currentColor`, so the group's colour is what
+    // the y labels actually take.
     .style("color", AXIS.domainColor)
     .style("font-family", "var(--font-dmsans)")
     .style("opacity", AXIS.textOpacity)

@@ -10,6 +10,9 @@ import React, {
 import * as d3 from "d3";
 
 import type { ChartEvent } from "../types";
+import { chartInk, chartSurface } from "../../lib/ink";
+import { useReducedMotion } from "../../lib/use-reduced-motion";
+import { cn } from "../../lib/utils";
 
 /**
  * Dated annotations on the time axis: a dashed rule where something happened,
@@ -28,6 +31,12 @@ const CLUSTER_PX = 18;
 const TOOLTIP_WIDTH = 224;
 /** Rough advance width of the 9px inline label, for the overlap check. */
 const LABEL_CHAR_PX = 5.2;
+/**
+ * Inline labels are cut to this many characters INCLUDING the ellipsis, so a
+ * long one reads as truncated instead of as a complete but wrong word
+ * ("Fed cuts rates by" for "Fed cuts rates by 50bp"). The full text is never
+ * lost: it is the flag's `aria-label` and the tooltip's headline.
+ */
 const LABEL_MAX_CHARS = 18;
 /** Below this the card is too narrow for inline labels; the tooltip carries them. */
 const INLINE_LABEL_MIN_WIDTH = 460;
@@ -67,6 +76,9 @@ export const EventLayer: React.FC<EventLayerProps> = ({
   containerWidth,
 }) => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  // Read live rather than at mount: a marker mounted before the preference was
+  // turned on must stop growing its flag too (B-42).
+  const reducedMotion = useReducedMotion();
   // Hover intent: the pointer has to cross a few pixels of gap between the flag
   // and the tooltip, so closing on `pointerleave` alone would snatch the tooltip
   // away before a link inside it could ever be clicked.
@@ -115,10 +127,13 @@ export const EventLayer: React.FC<EventLayerProps> = ({
     if (containerWidth >= INLINE_LABEL_MIN_WIDTH) {
       let lastRight = -Infinity;
       for (const cluster of grouped) {
+        const label = cluster.events[0].label;
         const text =
           cluster.events.length > 1
             ? `${cluster.events.length} events`
-            : cluster.events[0].label.slice(0, LABEL_MAX_CHARS);
+            : label.length > LABEL_MAX_CHARS
+              ? `${label.slice(0, LABEL_MAX_CHARS - 1).trimEnd()}…`
+              : label;
         const halfWidth = (text.length * LABEL_CHAR_PX) / 2;
         if (cluster.x - halfWidth < lastRight + 6) continue;
         cluster.inlineLabel = text;
@@ -151,7 +166,12 @@ export const EventLayer: React.FC<EventLayerProps> = ({
           <React.Fragment key={`${cluster.x}-${cluster.events[0].label}`}>
             <div
               aria-hidden
-              className="absolute transition-opacity duration-150"
+              // Under reduce the rule still brightens, it just arrives at the
+              // brighter value instead of travelling to it.
+              className={cn(
+                "absolute",
+                !reducedMotion && "transition-opacity duration-150",
+              )}
               style={{
                 left,
                 top: offsetY,
@@ -189,9 +209,25 @@ export const EventLayer: React.FC<EventLayerProps> = ({
               onFocus={() => open(index)}
               onBlur={scheduleClose}
               onClick={() => (isOpen ? setOpenIndex(null) : open(index))}
+              onKeyDown={(event) => {
+                // Escape dismisses the marker like every other surface in the
+                // product. Opened with Tab it otherwise had no way out but
+                // tabbing away. Handled locally and consumed here: the chart
+                // layer imports no @zframes package, so it cannot join the
+                // shell's escape stack — stopping the key is what keeps one
+                // press from also closing the surface behind the board (the
+                // same hand-patch the editor's rail already uses).
+                if (event.key !== "Escape" || !isOpen) return;
+                event.stopPropagation();
+                cancelClose();
+                setOpenIndex(null);
+              }}
             >
               <span
-                className="block rounded-full ring-1 ring-black/40 transition-transform duration-150"
+                className={cn(
+                  "block rounded-full ring-1 ring-black/40",
+                  !reducedMotion && "transition-transform duration-150",
+                )}
                 style={{
                   backgroundColor: cluster.color,
                   width: cluster.events.length > 1 ? 9 : 7,
@@ -204,8 +240,16 @@ export const EventLayer: React.FC<EventLayerProps> = ({
             {isOpen && (
               <div
                 role="tooltip"
-                className="bg-background-terminal pointer-events-auto absolute z-40 rounded-md px-3 py-2 shadow-lg ring-1 ring-white/10"
+                className="pointer-events-auto absolute z-40 rounded-md px-3 py-2 shadow-lg"
                 style={{
+                  // The card's own surface, not the baked dark
+                  // `bg-background-terminal`: on a light board that panel kept
+                  // near-black prose on a near-black background. Same stop and
+                  // alpha as the shared hover tooltip, so the two panels read as
+                  // one surface when both are open over the same card — and
+                  // nearly opaque, so the plot never shows through the text.
+                  background: chartSurface(2, 0.97),
+                  border: `1px solid ${chartInk(0.14)}`,
                   left: tooltipLeft,
                   // Butted against the flag's hit area, so the pointer never
                   // crosses dead space on its way to a link inside.

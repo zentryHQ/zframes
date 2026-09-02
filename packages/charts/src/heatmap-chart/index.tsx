@@ -15,7 +15,8 @@ import {
 } from "../lib/chart-tooltip";
 import { measureTextWidth } from "../lib/measure-text";
 import { observeResize } from "../lib/observe-resize";
-import { cn, prefersReducedMotion } from "../lib/utils";
+import { cn } from "../lib/utils";
+import { useReducedMotion } from "../lib/use-reduced-motion";
 
 /**
  * Base interface for heatmap cells.
@@ -224,15 +225,24 @@ function HeatmapChartInner<T extends HeatmapCell>({
   }>({ width: 0, height: 0 });
 
   // Under reduce the stage starts at "done", so the grid paints its final state
-  // instantly and no transition is ever scheduled. `prefers-reduced-motion` is
-  // read once here, in the initialiser — unlike the d3 charts, which re-read it
-  // per draw via `useChartIntro`. The difference only shows if the OS setting is
-  // toggled mid-session: those charts pick it up on their next redraw, this grid
-  // keeps the stage it started with. Its intro is a one-shot React state machine
-  // rather than a per-draw gate, so there is nowhere later to re-read it.
-  const [introStage, setIntroStage] = useState<IntroStage>(() =>
-    prefersReducedMotion() ? "done" : "pending",
+  // instantly and no transition is ever scheduled. The preference is read LIVE
+  // (`useReducedMotion`) rather than once in the initialiser: a grid mounted
+  // before the setting was turned on used to keep the stage it started with and
+  // finish a stagger the user had just asked not to see.
+  const reducedMotion = useReducedMotion();
+  const [introStage, setIntroStage] = useState<IntroStage>(
+    // Decided on the FIRST paint, not in the effect below: starting at
+    // "pending" under reduce would emit one commit of opacity-0 cells waiting
+    // for a transition that is never going to run.
+    reducedMotion ? "done" : "pending",
   );
+
+  // Turning reduce ON mid-intro lands the grid at once. Turning it OFF does not
+  // start an intro that never ran: the stage only ever moves forward, which is
+  // what makes every later redraw a no-op.
+  useEffect(() => {
+    if (reducedMotion) setIntroStage("done");
+  }, [reducedMotion]);
 
   useEffect(() => {
     const container = containerRef.current;

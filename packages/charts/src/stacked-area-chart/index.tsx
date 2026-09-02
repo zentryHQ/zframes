@@ -20,6 +20,7 @@ import type {
 } from "./types";
 import { AXIS, CHART_DEFAULTS, STACKED_AREA_COLORS, AREA } from "./constants";
 import { measureTextWidth } from "../lib/measure-text";
+import { chartInk } from "../lib/ink";
 import {
   getAllDates,
   combineSeriesData,
@@ -461,7 +462,10 @@ function StackedAreaChartInner<T extends StackedAreaSeries>({
               y1={0}
               x2={0}
               y2={dimensions.innerHeight}
-              stroke="#FFFFFF"
+              // Board ink rather than a baked white, so the crosshair darkens
+              // on a light surface. Inline `style`, not the `stroke` attribute:
+              // a var() is not substituted inside a presentation attribute.
+              style={{ stroke: chartInk() }}
               strokeWidth={1}
               strokeOpacity={0.3}
               strokeDasharray="4,4"

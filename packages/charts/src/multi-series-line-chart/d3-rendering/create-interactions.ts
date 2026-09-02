@@ -5,6 +5,7 @@ import type { CombinedDataPoint, MultiSeriesData } from "../types";
 import { parseMarketData } from "../../lib/format";
 import { observeResize } from "../../lib/observe-resize";
 import { prefersReducedMotion } from "../../lib/utils";
+import { chartInk, chartInkContrast } from "../../lib/ink";
 
 interface InteractionHandlers {
   onMouseMove: (event: MouseEvent | TouchEvent) => void;
@@ -43,10 +44,13 @@ export const createInteractions = ({
   highestValue,
   formatValue,
 }: createInteractionsProps): InteractionHandlers => {
+  // Board ink through `.style()` rather than a literal white through `.attr()`:
+  // the crosshair has to darken with a light surface, and a var() does not
+  // resolve inside an SVG presentation attribute (lib/ink.ts).
   const hoverLine = g
     .append("line")
     .attr("class", "hover-line")
-    .attr("stroke", "white")
+    .style("stroke", chartInk())
     .attr("stroke-width", 1)
     .attr("stroke-dasharray", "4,4")
     .attr("stroke-opacity", 0.6)
@@ -105,14 +109,16 @@ export const createInteractions = ({
       .append("circle")
       .attr("class", "hover-dot-glow")
       .attr("r", 9)
-      .attr("fill", "white")
+      .style("fill", chartInk())
       .attr("fill-opacity", 0.18);
     newGroups
       .append("circle")
       .attr("class", "hover-dot-core")
       .attr("r", 4.5)
-      .attr("fill", "white")
-      .attr("stroke", "rgba(10, 12, 20, 0.55)")
+      .style("fill", chartInk())
+      // The ring separates the knob from the plot, so it tracks the ink's
+      // opposite: near-black under a white core, near-white under a dark one.
+      .style("stroke", chartInkContrast(0.55))
       .attr("stroke-width", 1.5);
 
     newGroups
