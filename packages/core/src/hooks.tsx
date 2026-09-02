@@ -1810,7 +1810,15 @@ export function useRegionalHousingPrice(
 
 /** FX rates for `symbols` quoted against `base`, each with a short trend.
  *  Polled hourly by default — ECB publishes reference rates once a business
- *  day, so there's nothing faster to see. */
+ *  day, so there's nothing faster to see.
+ *
+ *  An EMPTY `symbols` list asks for nothing and gets no loader: no request, no
+ *  poll timer, `[]` and not loading. `DashboardCurrencyProvider` runs this hook
+ *  unconditionally (hooks can't be conditional) and passes `[]` on a USD board,
+ *  which used to invoke the mounted provider once per board with nothing to
+ *  price — harmless only because every fx provider happens to short-circuit an
+ *  empty list before fetching. That is not a promise the provider contract
+ *  makes, so the short-circuit belongs here. */
 export function useFxRates(
   base: string,
   symbols: readonly string[],
@@ -1819,7 +1827,7 @@ export function useFxRates(
   const provider = useProviderFor("fx-rates");
   const key = symbols.join(",");
   const { data: rates, isLoading } = usePolled<FxRate[]>(
-    provider?.getFxRates
+    provider?.getFxRates && symbols.length > 0
       ? () => provider.getFxRates!(base, [...symbols])
       : null,
     [],

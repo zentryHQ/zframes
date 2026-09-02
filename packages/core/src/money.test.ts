@@ -14,12 +14,17 @@
 //     `currency` override can put two currencies side by side on one board. A
 //     "tidy-up" of the table would mislabel amounts with nothing failing.
 //
-//  2. Sign handling. `formatMoneyCompact` leads with the minus, `formatMoney`
-//     does not, and `formatAmount`'s branches compare the raw `value` rather
-//     than its magnitude — so a negative price prints in exponential notation
-//     on a card. Both are pinned below as KNOWN BUGs; they are latent today
-//     only because current callers send negatives to `compact`, which handles
-//     the sign itself. HAZARD for anyone reaching for `money.price()`.
+//  2. Sign handling. Every formatter now bands on the MAGNITUDE and prefixes
+//     the sign, so `-$20.66` and `-$2,160,387` read the same way through
+//     `price` as through `compact`. Both used to be wrong the other way —
+//     `formatMoney` glued the sign after the symbol and `formatAmount`
+//     compared the signed value, dropping every negative into exponential
+//     notation — so the assertions below are the regression net for the fix,
+//     not a description of the current behaviour's history.
+//
+//  3. Values that are not numbers. NaN and ±Infinity reach these formatters
+//     from any upstream division by zero, and used to print "NaN", "$NaN" and
+//     "InfinityT". They render the em-dash placeholder instead.
 //
 // Pure and React-free: this file deliberately has no `@vitest-environment
 // jsdom` docblock, so importing `money.ts` under the default node environment
@@ -218,7 +223,6 @@ describe("formatMagnitude", () => {
   });
 
   it("keeps the sign in front for negatives at every scale", () => {
-    // Unlike formatAmount, this branches on Math.abs, so negatives scale.
     expect(formatMagnitude(-1500)).toBe("-1.5K");
     expect(formatMagnitude(-5e9)).toBe("-5.00B");
     expect(formatMagnitude(-500)).toBe("-500");
@@ -228,11 +232,43 @@ describe("formatMagnitude", () => {
     expect(formatMagnitude(0)).toBe("0");
     expect(formatMagnitude(-0)).toBe("0");
   });
+
+  it("keeps a sub-unit magnitude instead of rounding it away", () => {
+    // A magnitude below 1 used to round to whole units, so the figure "0.4"
+    // rendered as "0" — the reading, deleted. Two significant digits keep it.
+    expect(formatMagnitude(0.4)).toBe("0.40");
+    expect(formatMagnitude(0.96)).toBe("0.96");
+    expect(formatMagnitude(-0.4)).toBe("-0.40");
+    // Zero is not sub-unit and keeps its bare form (no "0.00" on a scale).
+    expect(formatMagnitude(0)).toBe("0");
+  });
+
+  it("switches to quadrillions at exactly 1e15 rather than counting zeros", () => {
+    // With trillions as the top band this printed "1000.00T".
+    expect(formatMagnitude(1e15)).toBe("1.00Q");
+    expect(formatMagnitude(1.23e15)).toBe("1.23Q");
+    expect(formatMagnitude(-1e15)).toBe("-1.00Q");
+    // The band below is untouched: 999 trillion still reads in T.
+    expect(formatMagnitude(9.99e14)).toBe("999.00T");
+  });
+
+  it("renders the em-dash placeholder for a value that is not a number", () => {
+    // A division by zero upstream must not print a confident "NaN"/"InfinityT".
+    expect(formatMagnitude(NaN)).toBe("—");
+    expect(formatMagnitude(Infinity)).toBe("—");
+    expect(formatMagnitude(-Infinity)).toBe("—");
+  });
 });
 
 describe("formatAmount", () => {
-  it("formats zero through the toPrecision(4) branch", () => {
-    expect(formatAmount(0)).toBe("0.000");
+  it("gives zero the currency's own minor units, not four significant digits", () => {
+    // Zero used to fall into the sub-unit band and print "0.000" — three
+    // decimals no currency asked for.
+    expect(formatAmount(0)).toBe("0.00");
+    expect(formatAmount(0, "JPY")).toBe("0");
+    expect(formatAmount(0, "KWD" as CurrencyCode)).toBe("0.000");
+    // Negative zero is still zero, and never wears a minus.
+    expect(formatAmount(-0)).toBe("0.00");
   });
 
   it("keeps four significant digits below 1", () => {
@@ -260,14 +296,26 @@ describe("formatAmount", () => {
     expect(formatAmount(2160387)).toBe("2,160,387");
   });
 
-  it("sends every negative to toPrecision(4)", () => {
-    // KNOWN BUG: formatAmount branches on `value >= …` instead of the
-    // magnitude, so a negative never reaches the grouping branches and a
-    // millions-scale negative renders in exponential notation ("-2.160e+6")
-    // — should be "-2,160,387". Pinned so the suite stays green; fixing the
-    // source must flip this assertion.
-    expect(formatAmount(-2160387)).toBe("-2.160e+6");
+  it("bands a negative by its magnitude, so it groups like its positive", () => {
+    // Branching on the signed value sent every negative past both grouping
+    // branches into toPrecision(4): a millions-scale negative rendered in
+    // exponential notation ("-2.160e+6").
+    expect(formatAmount(-2160387)).toBe("-2,160,387");
     expect(formatAmount(-20.66)).toBe("-20.66");
+    expect(formatAmount(-1000)).toBe("-1,000");
+    expect(formatAmount(-1234.56)).toBe("-1,235");
+    // The sub-unit band keeps its four significant digits, sign in front.
+    expect(formatAmount(-0.6145)).toBe("-0.6145");
+    // Mirror image of the positive in every band.
+    for (const value of [2160387, 1000, 1234.56, 20.66, 0.6145]) {
+      expect(formatAmount(-value)).toBe(`-${formatAmount(value)}`);
+    }
+  });
+
+  it("renders the em-dash placeholder for a value that is not a number", () => {
+    expect(formatAmount(NaN)).toBe("—");
+    expect(formatAmount(Infinity)).toBe("—");
+    expect(formatAmount(-Infinity)).toBe("—");
   });
 });
 
@@ -289,21 +337,31 @@ describe("formatMoney", () => {
     expect(formatMoney(20.66, "HKD")).toBe("HK$20.66");
   });
 
-  it("puts the symbol AHEAD of the minus sign", () => {
-    // KNOWN BUG: formatMoney renders "$-20.66" — should be "-$20.66", the
-    // sign-first wording formatMoneyCompact already uses (and which its own
-    // docblock calls "natural"). Pinned so the suite stays green; fixing the
-    // source must flip this assertion.
-    expect(formatMoney(-20.66, "USD")).toBe("$-20.66");
+  it("puts the minus AHEAD of the symbol", () => {
+    // "-$20.66", never "$-20.66": the sign-first wording formatMoneyCompact
+    // already used (and which its own docblock calls "natural").
+    expect(formatMoney(-20.66, "USD")).toBe("-$20.66");
+    // Multi-character symbols keep their separator inside the amount.
+    expect(formatMoney(-20.66, "CHF")).toBe("-CHF 20.66");
+    expect(formatMoney(-20.66, "THB")).toBe("-฿20.66");
   });
 
-  it("renders a negative millions price in exponential notation", () => {
-    // KNOWN BUG: formatMoney prints "$-2.160e+6" on a card — should be
-    // "-$2,160,387". Inherited from formatAmount's `value >= …` branches, and
-    // reachable through `useMoney().price()`, the primitive every new frame is
-    // told to use. Pinned so the suite stays green; fixing the source must
-    // flip this assertion.
-    expect(formatMoney(-2160387, "USD")).toBe("$-2.160e+6");
+  it("groups a negative millions price instead of going exponential", () => {
+    // Inherited from formatAmount's signed branches, and reachable through
+    // `useMoney().price()` — the primitive every new frame is told to use.
+    expect(formatMoney(-2160387, "USD")).toBe("-$2,160,387");
+  });
+
+  it("prints zero at the currency's minor units", () => {
+    expect(formatMoney(0, "USD")).toBe("$0.00");
+    expect(formatMoney(0, "JPY")).toBe("¥0");
+  });
+
+  it("renders the em-dash placeholder for a value that is not a number", () => {
+    // Never "$NaN": the symbol must not vouch for a non-number.
+    expect(formatMoney(NaN, "USD")).toBe("—");
+    expect(formatMoney(Infinity, "THB")).toBe("—");
+    expect(formatMoney(-Infinity, "USD")).toBe("—");
   });
 });
 
@@ -326,14 +384,20 @@ describe("formatMoneyCompact", () => {
   });
 
   it("scales a negative correctly (it negates before formatting)", () => {
-    // The sign is stripped here, so — unlike formatMoney — the magnitude
-    // branches still apply to negatives.
     expect(formatMoneyCompact(-1500, "USD")).toBe("-$1.5K");
     expect(formatMoneyCompact(-500, "USD")).toBe("-$500");
   });
 
   it("treats zero as non-negative", () => {
     expect(formatMoneyCompact(0, "USD")).toBe("$0");
+  });
+
+  it("renders the em-dash placeholder for a value that is not a number", () => {
+    // The guard is on this path too, or the symbol would be glued to the
+    // placeholder ("$—").
+    expect(formatMoneyCompact(NaN, "USD")).toBe("—");
+    expect(formatMoneyCompact(Infinity, "USD")).toBe("—");
+    expect(formatMoneyCompact(-Infinity, "CHF")).toBe("—");
   });
 });
 

@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+} from "@testing-library/react";
 import { z } from "zod";
 import { createRegistry, defineFrame } from "@zframes/spec/frame";
 import { DashboardSpecSchema } from "@zframes/spec/spec";
@@ -10,6 +16,8 @@ import type {
   MarketDataProvider,
 } from "@zframes/spec/types";
 import { DashboardRenderer } from "./renderer";
+import { FRAME_CSS } from "./frame-content";
+import { escapeLayerDepth, pushEscapeLayer } from "./escape-stack";
 import { FramesProvider } from "./hooks";
 import { useMoney } from "./currency";
 import { formatMoney } from "./money";
@@ -44,6 +52,14 @@ import { formatMoney } from "./money";
 /** A minimal provider — name + capability list is all the coverage check reads. */
 function makeProvider(capabilities: Capability[]): MarketDataProvider {
   return { name: "test-provider", capabilities };
+}
+
+/** A named provider, for the routing the source credit re-derives. */
+function named(
+  name: string,
+  capabilities: Capability[] = ["ohlcv"],
+): MarketDataProvider {
+  return { name, capabilities };
 }
 
 /** An fx provider answering from a fixed table, around a spy. */
@@ -231,6 +247,68 @@ const pickOneFrame = defineFrame({
   component: () => <div data-testid="pick-one-body">rows</div>,
 });
 
+/**
+ * The same pick-one shape, but with a CAPABILITY — so the chrome can re-derive
+ * which provider actually answers the card (pin by provider name, else
+ * first-match) instead of reading the credit off the config alone. `pick-one`
+ * above deliberately declares none, which is the "nothing to route on" path.
+ */
+const pickOneRoutedFrame = defineFrame({
+  name: "pick-one-routed",
+  label: "Pick One Routed",
+  category: "markets",
+  description: "a pick-one frame whose capability is really routed",
+  capabilities: ["ohlcv"],
+  source: [
+    { id: "hyperliquid", name: "Hyperliquid", url: "https://hyperliquid.xyz" },
+    { id: "bitkub", name: "Bitkub", url: "https://bitkub.com" },
+  ],
+  schema: z.object({
+    source: z
+      .enum(["hyperliquid", "bitkub", "nasdaq"])
+      .optional()
+      .describe("exchange"),
+  }),
+  component: () => <div data-testid="pick-one-routed-body">rows</div>,
+});
+
+/**
+ * A pick-one frame reading TWO capabilities from different tiers — the
+ * rsi-momentum shape, where a deep daily series backs the default and the pin
+ * only selects the exchange the candles come from.
+ */
+const pickOneMixedFrame = defineFrame({
+  name: "pick-one-mixed",
+  label: "Pick One Mixed",
+  category: "markets",
+  description: "a pick-one frame whose pin covers only its second capability",
+  capabilities: ["price-history-daily", "ohlcv"],
+  source: [
+    { id: "coin-metrics", name: "Coin Metrics", url: "https://coinmetrics.io" },
+    { id: "hyperliquid", name: "Hyperliquid", url: "https://hyperliquid.xyz" },
+    { id: "bitkub", name: "Bitkub", url: "https://bitkub.com" },
+  ],
+  schema: z.object({
+    source: z
+      .enum(["hyperliquid", "bitkub"])
+      .optional()
+      .describe("exchange for the candle path"),
+  }),
+  component: () => <div data-testid="pick-one-mixed-body">rows</div>,
+});
+
+/** A card carrying meta `interpretation`, so it renders the reader's guide. */
+const guidedFrame = defineFrame({
+  name: "guided",
+  label: "Guided",
+  category: "tools",
+  description: "carries a reader's guide",
+  capabilities: [],
+  interpretation: "What this card means.\n\n- one thing\n- another thing",
+  schema: z.object({}),
+  component: () => <div data-testid="guided-body">body</div>,
+});
+
 const registry = createRegistry([
   crashFrame,
   bareCrashFrame,
@@ -239,6 +317,9 @@ const registry = createRegistry([
   plainFrame,
   plainSourcedFrame,
   pickOneFrame,
+  pickOneRoutedFrame,
+  pickOneMixedFrame,
+  guidedFrame,
   tickerFrame,
   iconFrame,
   cardMoneyFrame,
@@ -267,10 +348,16 @@ function renderBoard(
   {
     providers = [makeProvider(["day-stats"])],
     currency,
-  }: { providers?: MarketDataProvider[]; currency?: string } = {},
+    surface,
+  }: {
+    providers?: MarketDataProvider[];
+    currency?: string;
+    surface?: "light" | "dark";
+  } = {},
 ) {
   const spec = DashboardSpecSchema.parse({
     title: "t",
+    ...(surface ? { theme: { surface } } : {}),
     grid: {
       mode: "flow-vertical",
       columns: 6,
@@ -341,14 +428,17 @@ describe("FrameErrorBoundary — a frame that throws mid-render", () => {
     expect(card.querySelector(".zf-frame-title")).not.toBeNull();
     expect(el(card, ".zf-frame-title-text").textContent).toBe("Crash");
 
-    // KNOWN BUG: a crashed card keeps the plain (non-error) card chrome —
-    // should also carry `zf-frame--error`, which is what paints the red rim +
-    // top-bloom that FRAME_CSS's own comment says "unknown frame / missing
-    // capability / invalid config / runtime crash all share". The boundary
-    // renders inside the body, below the element that owns the class, so it
-    // cannot add it. Pinned so the suite stays green; fixing the source must
-    // flip this assertion.
-    expect(card.classList.contains("zf-frame--error")).toBe(false);
+    // … and the card reads as failed from across the room: the same
+    // `zf-frame--error` rim + top-bloom that FRAME_CSS's own comment says
+    // "unknown frame / missing capability / invalid config / runtime crash all
+    // share". The boundary renders inside the body, below the element that owns
+    // the class, so it reports the crash upward for the card to carry it.
+    expect(card.classList.contains("zf-frame--error")).toBe(true);
+    // Its healthy sibling keeps the ordinary surface.
+    const sibling = el(container, '[data-testid="marker"]').closest(
+      ".zf-frame",
+    ) as HTMLElement;
+    expect(sibling.classList.contains("zf-frame--error")).toBe(false);
 
     // The other frame on the same board rendered normally.
     expect(el(container, '[data-testid="marker"]').textContent).toBe(
@@ -475,6 +565,8 @@ describe('chrome: "plain" and the showHeader predicate', () => {
       );
 
     it("credits the pinned source, not the whole list", () => {
+      // `pick-one` declares no capability, so there is nothing to route on and
+      // the config's own reading of the pin is all the chrome has.
       const { container } = renderBoard([
         inst("pick-one", { config: { source: "bitkub" } }),
       ]);
@@ -507,12 +599,289 @@ describe('chrome: "plain" and the showHeader predicate', () => {
     });
   });
 
+  // The credit's whole job is attribution, so it names whoever ANSWERED. It
+  // used to be read off the config alone: a pin nothing had mounted still
+  // printed its venue's name over first-match numbers, and an unpinned card
+  // always printed the first-declared credit whether or not that provider was
+  // the one routing reached. These exercise the real routing rule (pin by
+  // provider name, else first-match) through the real renderer.
+  describe("the credit names the provider that actually served the card", () => {
+    const creditText = (container: HTMLElement) =>
+      el(container, ".zf-frame-source").textContent;
+    const linked = (container: HTMLElement) =>
+      [...container.querySelectorAll(".zf-frame-source a")].map(
+        (a) => a.textContent,
+      );
+
+    it("credits the pin when a provider of that name is mounted", () => {
+      const { container } = renderBoard(
+        [inst("pick-one-routed", { config: { source: "bitkub" } })],
+        { providers: [named("hyperliquid"), named("bitkub")] },
+      );
+
+      expect(linked(container)).toEqual(["Bitkub"]);
+      expect(container.querySelector(".zf-frame-source-note")).toBeNull();
+    });
+
+    it("credits the first-match provider, not the first-declared credit", () => {
+      // Nothing pinned and bitkub registered first, so bitkub is what
+      // `useProviderFor` hands the card — even though Hyperliquid heads the
+      // frame's credit list. This is the assertion the old config-only credit
+      // could not satisfy.
+      const { container } = renderBoard([inst("pick-one-routed")], {
+        providers: [named("bitkub"), named("hyperliquid")],
+      });
+
+      expect(linked(container)).toEqual(["Bitkub"]);
+      expect(container.querySelector(".zf-frame-source-note")).toBeNull();
+    });
+
+    it("says the pin was dropped and credits whoever answered instead", () => {
+      // A board written against an installation that had Bitkub, opened on one
+      // that does not.
+      const { container } = renderBoard(
+        [inst("pick-one-routed", { config: { source: "bitkub" } })],
+        { providers: [named("hyperliquid")] },
+      );
+
+      expect(linked(container)).toEqual(["Hyperliquid"]);
+      expect(el(container, ".zf-frame-source-note").textContent).toBe(
+        "(pinned bitkub unavailable)",
+      );
+      expect(creditText(container)).toBe(
+        "viaHyperliquid(pinned bitkub unavailable)",
+      );
+      // The credit's tooltip carries the same fact, for the link itself.
+      expect(el(container, ".zf-frame-source a").getAttribute("title")).toBe(
+        "Data source: Hyperliquid — pinned bitkub unavailable",
+      );
+    });
+
+    it("names an undeclared serving provider as plain text, with no link", () => {
+      // The synthetic `demo` provider answers a pinned card on a bare install.
+      // It is not one of the frame's credits and has no site to link to, so the
+      // name stands alone rather than pointing at a venue that never answered.
+      const { container } = renderBoard(
+        [inst("pick-one-routed", { config: { source: "bitkub" } })],
+        { providers: [named("demo")] },
+      );
+
+      expect(linked(container)).toEqual([]);
+      expect(el(container, ".zf-frame-source-name").textContent).toBe("demo");
+      expect(el(container, ".zf-frame-source-note").textContent).toBe(
+        "(pinned bitkub unavailable)",
+      );
+    });
+
+    it("leaves an UNPINNED card on its first-declared credit when the server is undeclared", () => {
+      // Deliberate: the card asked for nobody in particular, and disclosing
+      // simulated data is a board-wide badge (the runtime header says "demo
+      // data", the explorer hides credits outright) rather than a per-card
+      // relabelling that would leave every non-pick-one frame reading normally.
+      const { container } = renderBoard([inst("pick-one-routed")], {
+        providers: [named("demo")],
+      });
+
+      expect(linked(container)).toEqual(["Hyperliquid"]);
+      expect(container.querySelector(".zf-frame-source-note")).toBeNull();
+    });
+
+    it("honours a pin that only the frame's SECOND capability covers", () => {
+      // A pin is honoured when the named provider covers ANY of the frame's
+      // capabilities, not only whichever one is declared first: here the deep
+      // daily series comes from Coin Metrics and only the candles come from the
+      // pinned exchange.
+      const providers = [
+        named("coin-metrics", ["price-history-daily"]),
+        named("hyperliquid", ["ohlcv"]),
+        named("bitkub", ["ohlcv"]),
+      ];
+      const { container } = renderBoard(
+        [inst("pick-one-mixed", { config: { source: "bitkub" } })],
+        { providers },
+      );
+
+      expect(linked(container)).toEqual(["Bitkub"]);
+      expect(container.querySelector(".zf-frame-source-note")).toBeNull();
+    });
+
+    it("credits the first covered capability's provider when nothing is pinned", () => {
+      const { container } = renderBoard([inst("pick-one-mixed")], {
+        providers: [
+          named("coin-metrics", ["price-history-daily"]),
+          named("hyperliquid", ["ohlcv"]),
+        ],
+      });
+
+      expect(linked(container)).toEqual(["Coin Metrics"]);
+    });
+  });
+
   it('"card" chrome (the default) auto-titles from the frame label', () => {
     const { container } = renderBoard([inst("marker")]);
 
     expect(el(container, ".zf-frame-title-text").textContent).toBe("Marker");
     // No source declared on this frame → no credit, but the row still shows.
     expect(container.querySelector(".zf-frame-source")).toBeNull();
+  });
+});
+
+// Escape belongs to the shared stack: every dismissable surface registers a
+// layer while open, and ONE press closes ONE surface. The reader's guide is a
+// Radix Dialog, so two paths could answer a press — Radix's own document-level
+// dismissal and the stack's window listener — and these pin that exactly one
+// does, whichever gets there first.
+describe("the reader's guide joins the Escape stack", () => {
+  const openGuide = () => {
+    const { container } = renderBoard([inst("guided")]);
+    fireEvent.click(el(container, ".zf-info-btn"));
+    return container;
+  };
+  const dialog = () =>
+    document.body.querySelector<HTMLElement>(".zf-info-dialog");
+  /** A real key press: it reaches the document listeners AND the stack. */
+  const pressEscapeOn = (el: HTMLElement) =>
+    fireEvent.keyDown(el, { key: "Escape" });
+
+  it("registers exactly one layer while open, and releases it on close", () => {
+    // What a "is anything modal / is anything dismissable open" check reads.
+    expect(escapeLayerDepth()).toBe(0);
+    openGuide();
+    expect(dialog()).not.toBeNull();
+    expect(escapeLayerDepth()).toBe(1);
+
+    pressEscapeOn(dialog()!);
+    expect(dialog()).toBeNull();
+    expect(escapeLayerDepth()).toBe(0);
+  });
+
+  it("closes on Escape without a layer beneath it also answering", () => {
+    // The bug this stack exists for: a press that closed two stacked surfaces
+    // at once. The guide is opened SECOND, so it is topmost and the surface
+    // underneath must be left alone.
+    let beneath = 0;
+    const release = pushEscapeLayer(() => void beneath++);
+    openGuide();
+    expect(escapeLayerDepth()).toBe(2);
+
+    pressEscapeOn(dialog()!);
+
+    expect(dialog()).toBeNull();
+    expect(beneath).toBe(0);
+    // Only the guide's own layer went away.
+    expect(escapeLayerDepth()).toBe(1);
+
+    // … and the surface underneath answers the NEXT press.
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(beneath).toBe(1);
+    release();
+  });
+
+  it("closes from the stack alone when Radix's own dismissal does not fire", () => {
+    // Radix dismisses only while it is the highest RADIX layer, so a Radix
+    // dialog opened over this one leaves the guide's Escape to the stack.
+    // Dispatching on `window` isolates that path: the document-level listeners
+    // Radix installs are not in this event's propagation path at all.
+    openGuide();
+    expect(escapeLayerDepth()).toBe(1);
+
+    act(() => {
+      window.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Escape",
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+
+    expect(dialog()).toBeNull();
+    expect(escapeLayerDepth()).toBe(0);
+  });
+});
+
+// Light mode is a shipped, selectable surface: `surfaceModeVars` flips the ink
+// ladder (--zf-ink-l) and the card-surface ladder (--zf-surf-l1..3) on the board
+// container, and everything painted on a card has to read them. These pieces of
+// chrome were written as literal whites and baked-dark gradients, so they stayed
+// dark on a light board — an invisible source credit, four dark error cards, a
+// near-black reader's guide, an invisible skeleton. jsdom resolves no cascade,
+// so the stylesheet itself is what is pinned.
+describe("the card layer follows the surface mode", () => {
+  /** The declaration block of the FIRST rule whose selector list starts here. */
+  const ruleBody = (selector: string) => {
+    const at = FRAME_CSS.indexOf(`\n${selector}`);
+    expect(at, `no rule found for ${selector}`).toBeGreaterThan(-1);
+    return FRAME_CSS.slice(at).split("}")[0];
+  };
+
+  it.each([
+    ".zf-frame-source a",
+    ".zf-frame-source-sep",
+    ".zf-frame-source-note",
+    ".zf-error-headline",
+    ".zf-error-detail",
+    ".zf-error-frame",
+    ".zf-error-icon",
+    ".zf-error-list",
+    ".zf-error-msg",
+    ".zf-error-field",
+    ".zf-frame-skeleton",
+  ])("paints %s against the ink ladder, not a literal white", (selector) => {
+    const body = ruleBody(selector);
+    expect(body).toContain("var(--zf-ink-l");
+    expect(body).not.toContain("rgba(255, 255, 255");
+    // The error tint keeps its hue; only its lightness follows the ink.
+    expect(body).not.toContain("#ff8b9d");
+  });
+
+  it("sinks the invalid-config issue rows with inverted ink, not a fixed black", () => {
+    // The row well is a recess in the card surface, so it has to darken a dark
+    // card and lighten a light one.
+    const body = ruleBody(".zf-error-issue {");
+    expect(body).toContain("calc(100% - var(--zf-ink-l");
+    expect(body).not.toContain("rgba(0, 0, 0");
+  });
+
+  it.each([".zf-frame--error", ".zf-info-dialog"])(
+    "paints %s's surface against the card-surface ladder",
+    (selector) => {
+      const body = ruleBody(selector);
+      for (const stop of ["--zf-surf-l1", "--zf-surf-l2", "--zf-surf-l3"]) {
+        expect(body).toContain(`var(${stop}`);
+      }
+    },
+  );
+
+  it("carries the LIGHT surface ladder into the portalled reader's guide", () => {
+    // Radix portals the dialog out of the board container, so a var it needs
+    // resolves to its DARK default unless the trigger snapshots it inline. The
+    // panel background reads --zf-surf-l1..3, so all three have to travel with
+    // the ink — snapshotting the ink alone is what left near-black prose on a
+    // near-black panel.
+    const { container } = renderBoard([inst("guided")], { surface: "light" });
+    fireEvent.click(el(container, ".zf-info-btn"));
+    const dialog = document.body.querySelector<HTMLElement>(".zf-info-dialog");
+    expect(dialog).not.toBeNull();
+
+    const inline = dialog!.style;
+    expect(inline.getPropertyValue("--zf-ink-l")).toBe("16%");
+    expect(inline.getPropertyValue("--zf-surf-l1")).toBe("98%");
+    expect(inline.getPropertyValue("--zf-surf-l2")).toBe("96%");
+    expect(inline.getPropertyValue("--zf-surf-l3")).toBe("94%");
+
+    fireEvent.keyDown(dialog!, { key: "Escape" });
+  });
+
+  it("carries the dark ladder on a dark board (the default is a no-op)", () => {
+    const { container } = renderBoard([inst("guided")]);
+    fireEvent.click(el(container, ".zf-info-btn"));
+    const dialog = document.body.querySelector<HTMLElement>(".zf-info-dialog");
+
+    expect(dialog!.style.getPropertyValue("--zf-ink-l")).toBe("100%");
+    expect(dialog!.style.getPropertyValue("--zf-surf-l1")).toBe("12.5%");
+
+    fireEvent.keyDown(dialog!, { key: "Escape" });
   });
 });
 

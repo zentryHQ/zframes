@@ -21,6 +21,20 @@ import { CURRENCY_CODES, type CurrencyCode } from "@zframes/spec";
 const GENERIC_CURRENCY_GLYPH = "¤";
 
 /**
+ * What every formatter here prints for a figure that is not a number — the em
+ * dash the frame layer already uses for an absent reading (`card-header`'s
+ * `absent` slot, and a dozen hand-rolled `?? "—"` fallbacks).
+ *
+ * Nothing upstream promises a finite number: a growth rate divides by a supply
+ * that can be zero, a ratio by an open interest that can be zero. Those used to
+ * fall straight through the bands — `Math.abs(NaN)` fails every comparison and
+ * landed on `toFixed(0)` ("NaN", "$NaN"), while `Infinity` matched the trillions
+ * band and printed "InfinityT". A confident-looking figure that means nothing is
+ * worse than a visible gap, so the gap is what we print.
+ */
+const NO_VALUE = "—";
+
+/**
  * The only symbols we do NOT take from Intl.
  *
  * A dashboard can show two currencies side by side (a per-frame `currency`
@@ -170,14 +184,26 @@ function groupedFormatter(maximumFractionDigits: number): Intl.NumberFormat {
  * Deliberately currency-BLIND: this is a scale, not a price. A "1.23T" reads
  * the same in every currency, and giving it per-currency decimals would make
  * one board's aggregates disagree with another's for no reader benefit.
+ *
+ * The bands run to QUADRILLIONS: with trillions as the top band, 1e15 printed
+ * "1000.00T", which reads as a thousand trillion only if you stop to count the
+ * zeros. Nothing the fleet reports is that large today, but a total denominated
+ * in a 1e-8 unit — or a converted board on a collapsed currency — gets there
+ * arithmetically.
  */
 export function formatMagnitude(value: number): string {
+  if (!Number.isFinite(value)) return NO_VALUE;
   const abs = Math.abs(value);
   const sign = value < 0 ? "-" : "";
+  if (abs >= 1e15) return `${sign}${(abs / 1e15).toFixed(2)}Q`;
   if (abs >= 1e12) return `${sign}${(abs / 1e12).toFixed(2)}T`;
   if (abs >= 1e9) return `${sign}${(abs / 1e9).toFixed(2)}B`;
   if (abs >= 1e6) return `${sign}${(abs / 1e6).toFixed(2)}M`;
   if (abs >= 1e3) return `${sign}${(abs / 1e3).toFixed(1)}K`;
+  // A sub-unit magnitude keeps two significant digits instead of rounding to
+  // whole units: "0.40" is the figure, "0" is the figure destroyed. Zero itself
+  // is not sub-unit and still prints as a bare "0".
+  if (abs > 0 && abs < 1) return `${sign}${abs.toPrecision(2)}`;
   return `${sign}${abs.toFixed(0)}`;
 }
 
@@ -198,14 +224,34 @@ export function formatAmount(
   value: number,
   code: CurrencyCode = "USD",
 ): string {
-  if (value >= 1000) return groupedFormatter(0).format(value);
-  if (value >= 1) return groupedFormatter(currencyDigits(code)).format(value);
-  return value.toPrecision(4);
+  if (!Number.isFinite(value)) return NO_VALUE;
+  // Band on the MAGNITUDE and prefix the sign, exactly as `formatMagnitude` and
+  // `formatMoneyCompact` do. Branching on the signed value sent every negative
+  // past both grouping branches into `toPrecision(4)`, so a millions-scale
+  // negative price printed in exponential notation ("-2.160e+6").
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (abs >= 1000) return `${sign}${groupedFormatter(0).format(abs)}`;
+  if (abs >= 1)
+    return `${sign}${groupedFormatter(currencyDigits(code)).format(abs)}`;
+  // Zero is not a sub-unit price: through `toPrecision(4)` it printed "0.000",
+  // three decimals no currency asked for. It gets the currency's own minor
+  // units instead — "0.00" in dollars, "0" in yen, "0.000" in dinar.
+  if (abs === 0) return (0).toFixed(currencyDigits(code));
+  return `${sign}${abs.toPrecision(4)}`;
 }
 
-/** A price with its currency symbol: "$20.66", "฿2,160,387", "¥1,235". */
+/**
+ * A price with its currency symbol: "$20.66", "฿2,160,387", "¥1,235". The minus
+ * sign leads the symbol ("-$20.66", never "$-20.66"), the same wording
+ * {@link formatMoneyCompact} uses.
+ */
 export function formatMoney(value: number, code: CurrencyCode): string {
-  return `${currencySymbol(code)}${formatAmount(value, code)}`;
+  if (!Number.isFinite(value)) return NO_VALUE;
+  const symbol = currencySymbol(code);
+  return value < 0
+    ? `-${symbol}${formatAmount(-value, code)}`
+    : `${symbol}${formatAmount(value, code)}`;
 }
 
 /**
@@ -213,6 +259,8 @@ export function formatMoney(value: number, code: CurrencyCode): string {
  * leads the symbol so negatives read naturally.
  */
 export function formatMoneyCompact(value: number, code: CurrencyCode): string {
+  // Guarded here too, or the symbol would be glued to the placeholder ("$—").
+  if (!Number.isFinite(value)) return NO_VALUE;
   const symbol = currencySymbol(code);
   return value < 0
     ? `-${symbol}${formatMagnitude(-value)}`

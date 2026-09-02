@@ -25,8 +25,10 @@ export function useFramePatch(): FramePatcher | null {
 import { Dialog as DialogPrimitive } from "radix-ui";
 import type { FrameRegistry, FrameSource } from "@zframes/spec/frame";
 import { FrameCurrencyOverride } from "./currency";
+import { useEscapeLayer } from "./escape-stack";
 import { FrameEventsProvider } from "./events";
 import { useProviders } from "./hooks";
+import type { Capability, MarketDataProvider } from "@zframes/spec/types";
 import type {
   ChildFrameInstance,
   FrameInstance,
@@ -114,9 +116,20 @@ export const FRAME_CSS = `
     grid-auto-columns: var(--zf-row-h, 96px);
     /* dvh (not vh) so a mobile URL bar doesn't inflate the box, and the 420px
        floor yields on short viewports (landscape phones) — a hard 420px inside
-       an overflow-hidden 100dvh host clipped the bottom of the board. */
+       an overflow-hidden 100dvh host clipped the bottom of the board.
+       --zf-tape-reserve is the strip at the bottom of the viewport the host
+       keeps for its own fixed chrome: the runtime's pinned ticker tape is 36px,
+       and the default 56px is the tape plus breathing room, which is exactly
+       what the editor's band arithmetic subtracts (editor-grid-controller's
+       horizontalCellPx). Without it the floor overshot the tape between roughly
+       390px and 600px of viewport height and the lowest band ran underneath it,
+       so the read-only board and the editor disagreed about the same layout. A
+       host with no bottom chrome can set the var to 0px and reclaim the strip. */
     height: var(--zf-h-height, calc(100dvh - 220px));
-    min-height: min(420px, calc(100dvh - 120px));
+    min-height: min(
+      420px,
+      calc(100dvh - 120px - var(--zf-tape-reserve, 56px))
+    );
     overflow-x: auto;
     overflow-y: hidden;
     align-content: stretch;
@@ -303,8 +316,12 @@ export const FRAME_CSS = `
   letter-spacing: 0;
   font-weight: 600;
 }
-.zf-frame-source a {
-  color: var(--zf-frame-source, rgba(255, 255, 255, 0.42));
+/* Ink expressed off --zf-ink-l (the surface-mode ladder above), not a literal
+   white: a fixed rgba(255,255,255,…) credit was invisible beside a correctly
+   darkened title on a light board. Same reason for the separator below. */
+.zf-frame-source a,
+.zf-frame-source-name {
+  color: var(--zf-frame-source, hsl(0 0% var(--zf-ink-l, 100%) / 0.42));
   text-decoration: none;
   transition: color 0.2s var(--zf-ease-out, cubic-bezier(0.23, 1, 0.32, 1));
   white-space: nowrap;
@@ -315,7 +332,15 @@ export const FRAME_CSS = `
     text-decoration: underline;
   }
 }
-.zf-frame-source-sep { color: rgba(255, 255, 255, 0.22); }
+.zf-frame-source-sep { color: hsl(0 0% var(--zf-ink-l, 100%) / 0.22); }
+/* A pin the installation cannot honour: the credit names whoever actually
+   answered, and this says the pin was dropped. Quieter than the credit itself —
+   it is a footnote on the attribution, not a second attribution. */
+.zf-frame-source-note,
+.zf-frame-source-via {
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.3);
+  font-weight: 500;
+}
 .zf-frame-body {
   position: relative;
   z-index: 1;
@@ -355,10 +380,15 @@ export const FRAME_CSS = `
    detail stays precise (field paths, the exact missing capability/provider). */
 .zf-frame--error {
   border-color: var(--zf-frame-error-border, rgba(242, 21, 83, 0.42));
+  /* The surface stops read --zf-surf-l1..3 like the ordinary card above, so an
+     error card follows the board's light/dark surface instead of staying a dark
+     card on a light board. The dark defaults are the original values, so this is
+     a no-op on a dark board. The red bloom on top is semantic and does not
+     flip — it reads as a pink wash over a light surface. */
   background: var(
     --zf-frame-error-bg,
     radial-gradient(125% 80% at 50% -12%, rgba(242, 21, 83, 0.13), transparent 60%),
-    linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 12.5% / 0.82) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 7% / 0.86) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 5.3% / 0.9) 100%)
+    linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l1, 12.5%) / 0.82) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l2, 7%) / 0.86) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l3, 5.3%) / 0.9) 100%)
   );
   /* Errors are a rare state and never hover-spammed, so they keep the original
      background + box-shadow cross-fade (the GPU-only ::after path is reserved
@@ -375,7 +405,7 @@ export const FRAME_CSS = `
     background: var(
       --zf-frame-error-bg,
       radial-gradient(125% 80% at 50% -12%, rgba(242, 21, 83, 0.13), transparent 60%),
-      linear-gradient(165deg, rgba(26, 27, 38, 0.82) 0%, rgba(14, 15, 22, 0.86) 60%, rgba(10, 11, 17, 0.9) 100%)
+      linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l1, 12.5%) / 0.82) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l2, 7%) / 0.86) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) var(--zf-surf-l3, 5.3%) / 0.9) 100%)
     );
     box-shadow: var(--zf-frame-shadow, inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 44px -26px rgba(0, 0, 0, 0.9)), 0 0 0 1px rgba(242, 21, 83, 0.14), 0 20px 56px -30px rgba(242, 21, 83, 0.4);
   }
@@ -395,6 +425,11 @@ export const FRAME_CSS = `
   text-align: center;
   overflow: auto;
 }
+/* The error tint keeps its hue and saturation (red carries meaning, so it never
+   rotates with the accent) but takes its LIGHTNESS from the surface mode: the
+   shipped #ff8b9d is hsl(351 100% 77%), a pale rose that vanished on a light
+   card. 30% + 47% of --zf-ink-l reproduces 77% on a dark board (ink 100%) and
+   lands on a 37.5% crimson on a light one (ink 16%). */
 .zf-error-icon {
   flex: none;
   width: 38px;
@@ -402,7 +437,7 @@ export const FRAME_CSS = `
   display: grid;
   place-items: center;
   border-radius: 12px;
-  color: var(--zf-frame-error-text, #ff8b9d);
+  color: var(--zf-frame-error-text, hsl(351 100% calc(30% + var(--zf-ink-l, 100%) * 0.47)));
   background: rgba(242, 21, 83, 0.12);
   box-shadow: inset 0 0 0 1px rgba(242, 21, 83, 0.32),
     0 0 24px -8px rgba(242, 21, 83, 0.6);
@@ -417,7 +452,10 @@ export const FRAME_CSS = `
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.01em;
-  color: var(--zf-frame-error-headline, rgba(255, 255, 255, 0.92));
+  color: var(
+    --zf-frame-error-headline,
+    hsl(0 0% var(--zf-ink-l, 100%) / 0.92)
+  );
 }
 .zf-error-frame {
   margin-top: -3px;
@@ -425,14 +463,14 @@ export const FRAME_CSS = `
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--zf-frame-error-text, #ff8b9d);
+  color: var(--zf-frame-error-text, hsl(351 100% calc(30% + var(--zf-ink-l, 100%) * 0.47)));
 }
 .zf-error-detail {
   margin: 2px 0 0;
   max-width: 44ch;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--zf-frame-error-detail, rgba(255, 255, 255, 0.6));
+  color: var(--zf-frame-error-detail, hsl(0 0% var(--zf-ink-l, 100%) / 0.6));
 }
 .zf-error-detail code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -458,7 +496,9 @@ export const FRAME_CSS = `
   gap: 7px;
   padding: 6px 10px;
   border-radius: 9px;
-  background: rgba(0, 0, 0, 0.22);
+  /* The row well is a recess in the card surface, so it darkens a dark card and
+     must lighten a light one — an inverted-ink tint rather than a fixed black. */
+  background: hsl(0 0% calc(100% - var(--zf-ink-l, 100%)) / 0.22);
   border: 1px solid rgba(242, 21, 83, 0.18);
 }
 .zf-error-field {
@@ -466,7 +506,7 @@ export const FRAME_CSS = `
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   font-weight: 700;
-  color: var(--zf-frame-error-text, #ff8b9d);
+  color: var(--zf-frame-error-text, hsl(351 100% calc(30% + var(--zf-ink-l, 100%) * 0.47)));
   background: rgba(242, 21, 83, 0.14);
   padding: 1px 6px;
   border-radius: 5px;
@@ -475,14 +515,14 @@ export const FRAME_CSS = `
   min-width: 0;
   font-size: 12px;
   line-height: 1.4;
-  color: var(--zf-frame-error-detail, rgba(255, 255, 255, 0.68));
+  color: var(--zf-frame-error-detail, hsl(0 0% var(--zf-ink-l, 100%) / 0.68));
 }
 /* Registered-frame list under an "unknown frame" card — quiet, it's reference. */
 .zf-error-list {
   margin-top: 4px;
   font-size: 11px;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.4);
+  color: hsl(0 0% var(--zf-ink-l, 100%) / 0.4);
 }
 /* Bare frames (headings) divide a dashboard into zones — positioned slot,
    no card chrome, no auto-title. */
@@ -717,7 +757,13 @@ export const FRAME_CSS = `
   padding: 0;
   border: 1px solid hsl(var(--zf-accent-hue, 242) var(--zf-accent-sat, 90%) 76% / 0.28);
   border-radius: 16px;
-  background: linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 13.5%) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 8%) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) 6%) 100%);
+  /* One point brighter than the card surface at each stop, expressed off the
+     same --zf-surf-l1..3 the card reads (defaults reproduce the original
+     13.5/8/6% exactly). Baked dark, the panel stayed near-black while its text
+     followed --zf-ink-l — near-black prose on a near-black panel. The trigger
+     snapshots the surface vars along with the ink (INFO_THEME_VARS), since Radix
+     portals this outside the board container. */
+  background: linear-gradient(165deg, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) calc(var(--zf-surf-l1, 12.5%) + 1%)) 0%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) calc(var(--zf-surf-l2, 7%) + 1%)) 60%, hsl(var(--zf-base-hue, 233) var(--zf-base-sat, 20%) calc(var(--zf-surf-l3, 5.3%) + 0.7%)) 100%);
   box-shadow: 0 24px 80px -24px rgba(0, 0, 0, 0.9);
   color: hsl(0 0% var(--zf-ink-l, 100%) / 0.85);
   font-family: var(--font-dmsans, "DM Sans", sans-serif);
@@ -825,7 +871,9 @@ export const FRAME_CSS = `
   width: 100%;
   height: 100%;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  /* Ink at 5%, not white at 5%: a white fill over a 98%-white surface is an
+     invisible skeleton, so the card looked empty rather than loading. */
+  background: hsl(0 0% var(--zf-ink-l, 100%) / 0.05);
   animation: zf-skeleton-pulse 1.2s ease-in-out infinite;
 }
 @keyframes zf-skeleton-pulse {
@@ -898,64 +946,161 @@ function ErrorCard({
 }
 
 /**
- * The credits to actually show for a card — only the provider serving it, not
- * every provider that could.
+ * One line of a card's attribution. `url` is optional because the provider that
+ * answers a card is not always one of the frame's declared credits — an
+ * installation can mount a plugin set the frame never anticipated (the synthetic
+ * `demo` provider being the everyday case), and `MarketDataProvider` carries a
+ * name and no canonical site. A name with no link beats a link to a venue that
+ * did not answer.
+ */
+interface Credit {
+  name: string;
+  url?: string;
+}
+
+/** What a card's title row credits, and any pin routing could not honour. */
+interface CardCredits {
+  sources: Credit[];
+  /**
+   * The `config.source` value the installation could not route, so the credit
+   * can say the pin was dropped instead of silently crediting somebody else.
+   */
+  droppedPin?: string;
+}
+
+/**
+ * The credits to actually show for a card — the provider that SERVED it, not
+ * every provider that could, and not the one its config asked for when that ask
+ * could not be honoured.
  *
  * A frame whose schema declares a `source` field is a **pick-one**: exactly one
- * exchange answers it, chosen by that field or, when it is unset, by first-match
- * capability routing — which resolves to the first-declared credit. Crediting
- * the whole list there claims data from a venue the card never queried.
+ * venue answers it, chosen by that field or, when it is unset, by first-match
+ * capability routing. Both halves used to be read off the config alone, so the
+ * credit named the pinned venue even when nothing of that name was mounted —
+ * the card then quietly read first-match numbers under another venue's name, on
+ * the one piece of chrome whose entire job is attribution.
+ *
+ * So the routing is re-derived here, mirroring `useProviderFor` (pin by provider
+ * name, else first-match) over the frame's own capabilities. Every capability is
+ * covered by the time this runs — an uncovered one renders the "No data source"
+ * error card above — so "nothing routable" means only that the frame declares no
+ * capabilities, and then the config's own reading of the pin is all there is.
  *
  * A frame with several credits and NO `source` field genuinely reads them all
  * (rates-board combines NY Fed + Treasury), so it keeps every credit. The shape
  * of the schema is the signal, so a new multi-source frame lands on the right
  * side of this by construction rather than by remembering to opt in.
  */
-function activeSources(
-  def: { source?: FrameSource | FrameSource[]; schema: unknown },
+function cardCredits(
+  def: {
+    source?: FrameSource | FrameSource[];
+    schema: unknown;
+    capabilities: readonly Capability[];
+  },
   config: unknown,
-): FrameSource[] {
+  providers: MarketDataProvider[],
+): CardCredits {
   const declared = def.source
     ? Array.isArray(def.source)
       ? def.source
       : [def.source]
     : [];
-  if (declared.length < 2) return declared;
+  if (declared.length === 0) return { sources: [] };
 
   // Read the ZodObject shape structurally — core deliberately doesn't import
   // zod, and a schema that isn't a plain object (wrapped in .transform() etc.)
   // simply keeps every credit, which is the pre-existing behaviour.
   const shape = (def.schema as { shape?: Record<string, unknown> } | undefined)
     ?.shape;
-  if (!shape || !("source" in shape)) return declared;
+  if (!shape || !("source" in shape)) return { sources: declared };
 
-  const pinned = (config as { source?: unknown } | undefined)?.source;
-  const match =
-    typeof pinned === "string"
-      ? declared.find((source) => source.id === pinned)
+  const configured = (config as { source?: unknown } | undefined)?.source;
+  const pinned = typeof configured === "string" ? configured : undefined;
+
+  // Who answers: the pinned provider if it covers any of the frame's
+  // capabilities, otherwise whatever first-match hands the first covered one.
+  let pinnedName: string | undefined;
+  let firstMatch: string | undefined;
+  for (const capability of def.capabilities) {
+    const covering = providers.filter((p) =>
+      p.capabilities.includes(capability),
+    );
+    if (covering.length === 0) continue;
+    if (pinned && !pinnedName) {
+      pinnedName = covering.find(
+        (p) => p.name.toLowerCase() === pinned.toLowerCase(),
+      )?.name;
+    }
+    firstMatch ??= covering[0].name;
+  }
+
+  const creditFor = (name: string | undefined) =>
+    name
+      ? declared.find((s) => s.id?.toLowerCase() === name.toLowerCase())
       : undefined;
-  return [match ?? declared[0]];
+
+  // The pin was honoured — or there is nothing to route on, in which case the
+  // config's reading of it is the best available answer.
+  if (pinnedName)
+    return { sources: [creditFor(pinnedName) ?? { name: pinnedName }] };
+  if (pinned && !firstMatch)
+    return { sources: [creditFor(pinned) ?? declared[0]] };
+  if (pinned) {
+    // Asked for a venue this installation does not have: credit whoever
+    // actually answered and name the pin that was dropped.
+    return {
+      sources: [creditFor(firstMatch) ?? { name: firstMatch! }],
+      droppedPin: pinned,
+    };
+  }
+  // Nothing pinned: first-match, credited by name when the serving provider is
+  // one of the declared venues. When it is NOT — an installation running on
+  // `demo`, say — the first-declared credit stands: the card asked for nobody in
+  // particular, and disclosing simulated data is a board-wide badge (the header
+  // says "demo data", the explorer hides credits outright), not a per-card
+  // relabelling that would leave every other frame's credit reading normally.
+  return { sources: [creditFor(firstMatch) ?? declared[0]] };
 }
 
-function SourceCredit({ sources }: { sources: FrameSource[] }) {
+function SourceCredit({
+  sources,
+  droppedPin,
+}: {
+  sources: Credit[];
+  droppedPin?: string;
+}) {
   if (sources.length === 0) return null;
+  const note = droppedPin ? `pinned ${droppedPin} unavailable` : undefined;
   return (
     <span className="zf-frame-source">
-      {sources.map((source, i) => (
-        <Fragment key={source.url}>
-          {i > 0 && <span className="zf-frame-source-sep">·</span>}
-          <a
-            href={source.url}
-            target="_blank"
-            rel="noreferrer noopener"
-            title={`Data source: ${source.name}`}
-            onMouseDown={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {source.name}
-          </a>
-        </Fragment>
-      ))}
+      {/* "via X (pinned Y unavailable)": the substitution reads as a
+          substitution, rather than X looking like the card's own choice. */}
+      {note && <span className="zf-frame-source-via">via</span>}
+      {sources.map((source, i) => {
+        const title = `Data source: ${source.name}${note ? ` — ${note}` : ""}`;
+        return (
+          <Fragment key={source.name}>
+            {i > 0 && <span className="zf-frame-source-sep">·</span>}
+            {source.url ? (
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={title}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                {source.name}
+              </a>
+            ) : (
+              <span className="zf-frame-source-name" title={title}>
+                {source.name}
+              </span>
+            )}
+          </Fragment>
+        );
+      })}
+      {note && <span className="zf-frame-source-note">({note})</span>}
     </span>
   );
 }
@@ -1013,7 +1158,13 @@ const INFO_THEME_VARS = [
   "--zf-accent-sat",
   "--zf-base-hue",
   "--zf-base-sat",
+  // The ink ladder AND the surface ladder: the panel background is expressed off
+  // --zf-surf-l1..3 so it follows the board's light/dark surface, and outside the
+  // board container neither resolves unless it is snapshotted here.
   "--zf-ink-l",
+  "--zf-surf-l1",
+  "--zf-surf-l2",
+  "--zf-surf-l3",
   "--font-dmsans",
 ] as const;
 
@@ -1021,10 +1172,21 @@ const INFO_THEME_VARS = [
  * The quiet bottom-right info glyph + its "how to read this card" dialog — a
  * Radix Dialog in shadcn's composition (Root/Trigger/Portal/Overlay/Content/
  * Title/Close), styled by the zf-* chrome stylesheet since core stays
- * Tailwind-free. Radix supplies focus trap, Esc/overlay dismissal, aria
- * wiring, and the data-state attributes the open/close animations key off.
+ * Tailwind-free. Radix supplies focus trap, overlay dismissal, aria wiring, and
+ * the data-state attributes the open/close animations key off.
  * `stopPropagation` on pointer-down keeps the click from starting a GridStack
  * drag in the editor, same as the source credit.
+ *
+ * ESCAPE joins the shared stack (`useEscapeLayer`): while open, the guide is a
+ * layer, so one press closes ONE surface instead of every listener answering at
+ * once. Exactly one of the two paths ever runs, never both. Radix's own
+ * `DismissableLayer` sits on the document and the stack sits on `window` in the
+ * BUBBLE phase, so Radix goes first, closes the dialog and calls
+ * `preventDefault` — which is the stack's own early-out, so the layer stays
+ * quiet. When Radix declines (its layer is not the highest Radix layer, e.g. the
+ * editor's config dialog opened over this one) nothing is defaultPrevented and
+ * the stack closes the topmost layer instead. The handler is idempotent either
+ * way: both routes end in `setOpen(false)`.
  *
  * The content mounts only while open (Radix's default): a board can hold
  * dozens of annotated cards, and the guide prose belongs in the DOM (and in
@@ -1035,6 +1197,7 @@ function InterpretationInfo({ label, text }: { label: string; text: string }) {
   const [open, setOpen] = useState(false);
   const [themeVars, setThemeVars] = useState<CSSProperties>();
   const triggerRef = useRef<HTMLButtonElement>(null);
+  useEscapeLayer(open, () => setOpen(false));
   return (
     <DialogPrimitive.Root
       open={open}
@@ -1096,13 +1259,27 @@ function InterpretationInfo({ label, text }: { label: string; text: string }) {
   );
 }
 
+/**
+ * Contains a frame that throws mid-render, inside the body the card already
+ * framed — so the title row, the credit and the info glyph survive above it and
+ * it is obvious WHICH card died.
+ *
+ * `onError` exists because the class the failure state paints (`zf-frame--error`
+ * — the red rim and top bloom the other three error kinds carry) belongs to the
+ * card element, which is this boundary's ancestor. A crash was the one failure
+ * that kept the ordinary surface and so did not read as a failure from across
+ * the room; reporting it upward lets the card add the class.
+ */
 class FrameErrorBoundary extends Component<
-  { children: ReactNode },
+  { children: ReactNode; onError?: () => void },
   { error: Error | null }
 > {
   state = { error: null as Error | null };
   static getDerivedStateFromError(error: Error) {
     return { error };
+  }
+  componentDidCatch() {
+    this.props.onError?.();
   }
   render() {
     if (this.state.error) {
@@ -1151,6 +1328,7 @@ function ValidFrameCard({
   title,
   titleContent,
   sources,
+  droppedPin,
   interpretation,
   children,
 }: {
@@ -1160,7 +1338,9 @@ function ValidFrameCard({
   titleIcon: ReactNode;
   title?: string;
   titleContent?: ReactNode;
-  sources: FrameSource[];
+  sources: Credit[];
+  /** A `config.source` routing could not honour — see {@link cardCredits}. */
+  droppedPin?: string;
   /** Frame label + meta `interpretation`; absent → no info glyph. */
   interpretation?: { label: string; text: string };
   children: ReactNode;
@@ -1215,7 +1395,7 @@ function ValidFrameCard({
           >
             {titleIcon}
             <span className="zf-frame-title-text">{titleContent ?? title}</span>
-            <SourceCredit sources={sources} />
+            <SourceCredit sources={sources} droppedPin={droppedPin} />
           </div>
         )}
         <div className="zf-frame-body">{children}</div>
@@ -1280,6 +1460,11 @@ function FrameContentImpl({
 }) {
   const providers = useProviders();
   const def = registry.get(instance.frame);
+  // Set by the error boundary below when the frame throws. Held HERE, above the
+  // card, because the failure styling lives on the card element the boundary
+  // renders inside. Never reset: a crashed frame stays crashed until the tree
+  // it lives in is rebuilt, exactly as the boundary's own state does.
+  const [crashed, setCrashed] = useState(false);
 
   // Merge this instance's optional per-frame cosmetic overrides (accent, glass,
   // corners, …) onto the positioning style as inline --zf-* vars — they cascade
@@ -1364,7 +1549,7 @@ function FrameContentImpl({
   const FrameComponent = def.component;
   const TitleIcon = def.titleIcon;
   const TitleContent = def.titleContent;
-  const sources = activeSources(def, parsed.data);
+  const credits = cardCredits(def, parsed.data, providers);
 
   // Container frames (`group`) render the instance's CHILDREN as their own grid
   // rather than content of their own — so a cluster of cards occupies one board
@@ -1435,10 +1620,13 @@ function FrameContentImpl({
   return (
     <ValidFrameCard
       style={frameStyle}
-      className={className}
+      // A crash inside the body paints the card as failed, like the other three
+      // error kinds — the class rides the className the card composes.
+      className={cx(className, crashed ? "zf-frame--error" : "")}
       hasIcon={!!TitleIcon}
       title={instance.title ?? (autoTitle ? def.label : undefined)}
-      sources={sources}
+      sources={credits.sources}
+      droppedPin={credits.droppedPin}
       interpretation={
         def.interpretation
           ? { label: instance.title ?? def.label, text: def.interpretation }
@@ -1461,7 +1649,7 @@ function FrameContentImpl({
         ) : undefined
       }
     >
-      <FrameErrorBoundary>
+      <FrameErrorBoundary onError={() => setCrashed(true)}>
         <Suspense fallback={<div className="zf-frame-skeleton" />}>
           <FrameComponent config={parsed.data} />
         </Suspense>

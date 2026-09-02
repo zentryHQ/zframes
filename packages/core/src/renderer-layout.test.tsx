@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { z } from "zod";
 import { DashboardRenderer } from "./renderer";
+import { FRAME_CSS } from "./frame-content";
 import { createRegistry, defineFrame } from "@zframes/spec/frame";
 import { DashboardSpecSchema } from "@zframes/spec/spec";
 import { FramesProvider } from "./hooks";
@@ -137,6 +138,28 @@ describe("flow-horizontal grid host", () => {
     expect(grid.classList.contains("zf-flow-horizontal")).toBe(false);
     // --zf-h-rows is emitted unconditionally; only the horizontal rule reads it.
     expect(v(grid, "--zf-h-rows")).toBe("4");
+  });
+
+  it("reserves the host's bottom chrome in the bounded board's height floor", () => {
+    // The horizontal board is bounded to the viewport, and the host that serves
+    // it pins a 36px ticker tape to the bottom of that viewport. The floor used
+    // to yield only 120px, so between roughly 390px and 600px of viewport height
+    // the lowest band ran underneath the tape — while the editor's own band
+    // arithmetic subtracted 56px for it, leaving the two paths disagreeing about
+    // the same layout. jsdom resolves no `calc()`, so the rule itself is what is
+    // pinned: a bottom reserve, defaulted to the editor's constant, inside the
+    // floor.
+    const rule = FRAME_CSS.slice(
+      FRAME_CSS.indexOf(".zf-grid.zf-flow-horizontal"),
+    ).split("}")[0];
+    expect(rule).toContain("min-height");
+    expect(rule).toContain("var(--zf-tape-reserve, 56px)");
+    // Inside the FLOOR, not the height: the height term already clears the tape.
+    expect(
+      /min-height:\s*min\(\s*420px,\s*calc\(100dvh - 120px - var\(--zf-tape-reserve, 56px\)\)\s*\)/.test(
+        rule,
+      ),
+    ).toBe(true);
   });
 });
 

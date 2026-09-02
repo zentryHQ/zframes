@@ -23,14 +23,29 @@ import {
  */
 
 interface CurrencyState {
+  /** The code actually being QUOTED — "USD" until a non-USD rate resolves. */
   code: CurrencyCode;
+  /**
+   * The code the enclosing scope was CONFIGURED with, resolved or not. What
+   * "does this card's override repeat what it would inherit anyway?" has to be
+   * asked against: `code` is still "USD" while the board's rate is in flight,
+   * so comparing against it made a THB card on a THB board look like a genuine
+   * third-currency override — a second poll for the same code, and a full
+   * remount of the card's subtree once the board's rate landed.
+   */
+  configured: CurrencyCode;
   /** USD → display-currency multiplier. 1 while USD, or until the rate lands. */
   rate: number;
   /** True once a non-USD rate has actually resolved. */
   converted: boolean;
 }
 
-const USD_STATE: CurrencyState = { code: "USD", rate: 1, converted: true };
+const USD_STATE: CurrencyState = {
+  code: "USD",
+  configured: "USD",
+  rate: 1,
+  converted: true,
+};
 
 const CurrencyContext = createContext<CurrencyState>(USD_STATE);
 
@@ -48,19 +63,26 @@ export function DashboardCurrencyProvider({
   children: ReactNode;
 }) {
   const needsRate = code !== "USD";
-  // Hooks can't be called conditionally: on a USD board this still runs, but
-  // with an empty symbol list it never asks a provider for anything.
+  // Hooks can't be called conditionally: on a USD board this still runs, but an
+  // empty symbol list short-circuits INSIDE `useFxRates` — no loader, so no
+  // fetch and no poll timer, whatever the mounted provider does with `[]`.
   const { rates } = useFxRates("USD", needsRate ? [code] : []);
   const rate = needsRate
     ? (rates.find((r) => r.symbol === code)?.rate ?? 0)
     : 1;
 
   const value = useMemo<CurrencyState>(() => {
+    if (!needsRate) return USD_STATE;
     // Until the rate resolves, keep quoting USD. Showing a baht symbol against
     // an unconverted dollar amount would be a wrong number, not a slow one —
-    // the label and the value must always agree.
-    if (!needsRate || rate <= 0) return USD_STATE;
-    return { code, rate, converted: true };
+    // the label and the value must always agree. `converted` stays FALSE here
+    // (unlike the genuine USD board above): it is the one signal a frame has
+    // for "this figure is still dollars", so reporting true in the fallback
+    // would make it a trap rather than a flag. `configured` still carries the
+    // board's chosen code, so a per-card override can recognise a repeat of it.
+    if (rate <= 0)
+      return { code: "USD", configured: code, rate: 1, converted: false };
+    return { code, configured: code, rate, converted: true };
   }, [code, needsRate, rate]);
 
   return (
@@ -74,6 +96,15 @@ export function DashboardCurrencyProvider({
  * Overrides the display currency for one card (`FrameInstance.currency`).
  * Rendered by FrameContent inside the dashboard-level provider, so an override
  * to a *third* currency still resolves its own rate.
+ *
+ * An override equal to what the card would inherit is a pass-through: it is
+ * compared against the inherited `configured` code, NOT the code currently
+ * being quoted. A THB card on a THB board is the shape a generating agent
+ * writes easily, and against the quoted code it read as a third currency for
+ * as long as the board's rate was in flight — a duplicate poll, and then a
+ * remount (element type swaps from a Fragment to a provider) that threw away
+ * whatever state the frame was holding: a scroll offset, a timeframe pick, a
+ * half-finished interaction.
  */
 export function FrameCurrencyOverride({
   code,
@@ -83,7 +114,7 @@ export function FrameCurrencyOverride({
   children: ReactNode;
 }) {
   const inherited = useContext(CurrencyContext);
-  if (!code || code === inherited.code) return <>{children}</>;
+  if (!code || code === inherited.configured) return <>{children}</>;
   return (
     <DashboardCurrencyProvider code={code}>
       {children}

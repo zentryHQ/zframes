@@ -236,19 +236,33 @@ describe("DashboardCurrencyProvider — the unresolved-rate carve-out", () => {
     expect(read(container).symbol).not.toBe("฿");
   });
 
-  it("keeps `converted` true in the fallback state (cannot be used as a rate-pending flag)", async () => {
-    const { provider } = deferredFx("THB", 36.5);
+  it("reports `converted` false while the requested rate is unresolved", async () => {
+    const { provider, release } = deferredFx("THB", 36.5);
     const { container } = render(board(provider, "THB"));
 
-    // KNOWN BUG: the pre-rate fallback reports converted:true — should be false
-    // while a requested non-USD rate is unresolved, as `Money.converted`'s own
-    // doc comment ("False while a requested non-USD rate is still unresolved")
-    // and `CurrencyState.converted` ("True once a non-USD rate has actually
-    // resolved") both promise; the shared USD_STATE constant carries
-    // converted:true because it doubles as the genuine USD-board state. Pinned
-    // so the suite stays green; fixing the source must flip this assertion.
-    expect(read(container).converted).toBe(true);
+    // `converted` is the ONE signal a frame has for "this figure is still
+    // dollars" (`Money.converted`: "False while a requested non-USD rate is
+    // still unresolved"). It used to report true in the fallback — the shared
+    // USD_STATE doubles as the genuine USD-board state — which made it a trap
+    // for the first frame to read it: it would have printed "in THB" over
+    // dollar figures.
+    expect(read(container).converted).toBe(false);
     expect(read(container).code).toBe("USD");
+
+    // … and true once the rate actually lands.
+    release();
+    await waitFor(() => expect(read(container).code).toBe("THB"));
+    expect(read(container).converted).toBe(true);
+  });
+
+  it("keeps `converted` true on a genuine USD board (nothing to convert)", async () => {
+    const { provider } = tableFx({ THB: 36.5 });
+    const { container } = render(board(provider, "USD"));
+    await settle();
+
+    // No rate was requested, so nothing is pending: false here would read as
+    // "still waiting" on a board that will never wait.
+    expect(read(container).converted).toBe(true);
   });
 });
 
@@ -264,14 +278,12 @@ describe("DashboardCurrencyProvider — USD short-circuit", () => {
     expect(r.rate).toBe(1);
     expect(r.price).toBe(formatMoney(PRICE_USD, "USD"));
 
-    // KNOWN BUG: a USD board still invokes the provider's getFxRates — with an
-    // EMPTY symbol list, so nothing can come back — should not call it at all
-    // (`useFxRates` polls whenever the provider covers `fx-rates`, regardless of
-    // an empty `symbols`). Harmless only because every fx provider short-circuits
-    // an empty list before fetching. Pinned so the suite stays green; fixing the
-    // source must flip this to `not.toHaveBeenCalled()`.
-    expect(getFxRates).toHaveBeenCalledTimes(1);
-    expect(getFxRates).toHaveBeenCalledWith("USD", []);
+    // A USD board asks for nothing, so nothing is asked. It used to invoke the
+    // provider once per board with an EMPTY symbol list — nothing could come
+    // back, and it stayed off the network only because every fx provider
+    // happens to short-circuit an empty list, which the provider contract does
+    // not promise. `useFxRates` now skips the loader entirely.
+    expect(getFxRates).not.toHaveBeenCalled();
   });
 
   it("defaults to USD (rate 1) when the board omits a currency code", async () => {
@@ -291,9 +303,9 @@ describe("DashboardCurrencyProvider — USD short-circuit", () => {
     expect(r.rate).toBe(1);
     expect(r.symbol).toBe("$");
     expect(r.price).toBe(formatMoney(PRICE_USD, "USD"));
-    // Same empty-symbol call as above — never a real rate request.
-    expect(getFxRates).not.toHaveBeenCalledWith("USD", ["USD"]);
-    expect(getFxRates.mock.calls).toEqual([["USD", []]]);
+    // Same as above: no code, nothing to price, no call — and specifically
+    // never a request for "USD" quoted against USD.
+    expect(getFxRates).not.toHaveBeenCalled();
   });
 });
 
@@ -346,7 +358,7 @@ describe("FrameCurrencyOverride", () => {
     expect(getFxRates).toHaveBeenCalledTimes(1);
   });
 
-  it("re-polls and remounts its children when the override repeats the board code", async () => {
+  it("passes through when the override merely repeats the board code", async () => {
     const { provider, getFxRates } = tableFx({ THB: 36.5 });
     const mounted = vi.fn();
 
@@ -362,25 +374,45 @@ describe("FrameCurrencyOverride", () => {
     );
     await waitFor(() => expect(read(container).code).toBe("THB"));
 
-    // The card does end up on the right currency …
+    // The card ends up on the right currency …
     expect(read(container).rate).toBe(36.5);
     expect(read(container).price).toBe(formatMoney(PRICE_USD * 36.5, "THB"));
 
-    // KNOWN BUG: an override that merely repeats the board's own currency is not
-    // a pass-through — it fires a second, redundant fx poll for the same code and
-    // then REMOUNTS the card's whole subtree — should short-circuit to
-    // `<>{children}</>` on the first render. Cause: the guard compares `code`
-    // against the *resolved* context code, which is still "USD" on the first
-    // render (the board quotes USD until its rate lands), so the override mounts
-    // a duplicate DashboardCurrencyProvider and only swaps element type — losing
-    // every child's state — once the board rate arrives. Pinned so the suite
-    // stays green; fixing the source must flip these two assertions to one call
-    // and one mount.
-    expect(getFxRates.mock.calls).toEqual([
-      ["USD", ["THB"]],
-      ["USD", ["THB"]],
-    ]);
-    expect(mounted).toHaveBeenCalledTimes(2);
+    // … by INHERITING it. One poll and one mount: the override is compared
+    // against the board's configured code, not the code it is currently
+    // quoting. Compared against the quoted code it read as a third currency
+    // while the board's rate was in flight (the board quotes USD until then),
+    // so it mounted a duplicate provider for the same code and then swapped
+    // element type once the rate landed — remounting the card's whole subtree
+    // and losing every child's state.
+    expect(getFxRates.mock.calls).toEqual([["USD", ["THB"]]]);
+    expect(mounted).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes through a repeat of the board code before its rate has landed", async () => {
+    // The window the bug lived in: while the board still quotes USD, an
+    // override equal to its configured code must already be inert.
+    const { provider, getFxRates, release } = deferredFx("THB", 36.5);
+    const mounted = vi.fn();
+
+    const { container } = render(
+      board(
+        provider,
+        "THB",
+        <FrameCurrencyOverride code="THB">
+          <MoneyProbe tag="probe" />
+          <MountCounter onMount={mounted} />
+        </FrameCurrencyOverride>,
+      ),
+    );
+
+    expectUsdFallback(read(container));
+    expect(getFxRates.mock.calls).toEqual([["USD", ["THB"]]]);
+
+    release();
+    await waitFor(() => expect(read(container).code).toBe("THB"));
+    expect(getFxRates.mock.calls).toEqual([["USD", ["THB"]]]);
+    expect(mounted).toHaveBeenCalledTimes(1);
   });
 
   it("resolves its own rate for a third currency, leaving siblings on the board currency", async () => {
