@@ -20,7 +20,7 @@
   "dependencies": {
     "@zframes/data-primitives": "workspace:*",
     "@zframes/spec": "workspace:*",
-    "zod": "^4.1.0"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "typescript": "^5.8.0"

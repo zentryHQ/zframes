@@ -29,13 +29,13 @@
     "@zframes/core": "workspace:*",
     "@zframes/spec": "workspace:*",
     "liveline": "0.0.7",
-    "zod": "^4.1.0"
+    "zod": "^4.6.5"
   },
   "peerDependencies": {
     "react": ">=18"
   },
   "devDependencies": {
-    "@types/react": "^19.1.0",
+    "@types/react": "^19.3.0",
     "@zframes/editor": "workspace:*",
     "@zframes/provider-demo": "workspace:*",
     "typescript": "^5.8.0"
