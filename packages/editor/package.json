@@ -28,16 +28,16 @@
     "@zframes/core": "workspace:*",
     "@zframes/spec": "workspace:*",
     "gridstack": "^13.1.0",
-    "lucide-react": "^1.21.0",
-    "zod": "^4.1.0"
+    "lucide-react": "^1.48.0",
+    "zod": "^4.6.5"
   },
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18"
   },
   "devDependencies": {
-    "@types/react": "^19.1.0",
-    "@types/react-dom": "^19.1.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "typescript": "^5.8.0"
   }
 }
