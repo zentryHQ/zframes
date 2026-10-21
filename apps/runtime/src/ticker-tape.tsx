@@ -12,9 +12,10 @@ import { AssetLogo, tickerOf } from "@zframes/frames/asset-logo";
 // it shares the app's provider instances (no extra WebSocket). The spec never
 // declares it.
 
-// Stocks first: HIP-3 equity perps live on builder dexes; "xyz:*" asks the
-// provider for that dex's whole universe (the default getDayStats() call only
-// returns the crypto default dex).
+// Stocks first, from the xyz dex alone. The other universe scans read the
+// shared HIP3_DEX_WILDCARDS (@zframes/spec/hip3); the tape deliberately does
+// not, because MAX_SYMBOLS is one cap filled equities-first, so every extra dex
+// would push crypto rows off the tape. Widening it needs a per-group cap first.
 const EQUITY_DEX_WILDCARDS = ["xyz:*"];
 
 // Cap the DOM at a sane bound — equities + the ~190-symbol crypto universe,

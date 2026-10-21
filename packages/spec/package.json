@@ -21,7 +21,8 @@
     "./frame": "./src/frame.ts",
     "./presets": "./src/presets.ts",
     "./catalogue": "./src/catalogue.ts",
-    "./provider-plugin": "./src/provider-plugin.ts"
+    "./provider-plugin": "./src/provider-plugin.ts",
+    "./hip3": "./src/hip3.ts"
   },
   "sideEffects": false,
   "scripts": {

@@ -66,6 +66,17 @@ function bodyOf(
   return JSON.parse(String(init.body)) as Record<string, unknown>;
 }
 
+/** A fetch whose `metaAndAssetCtxs` answers 503 for `failingDex` and `table`
+ *  for every other dex. */
+function fetchFailingDex(failingDex: string, table: unknown) {
+  return vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+    const body = JSON.parse(String(init.body)) as { dex?: string };
+    return Promise.resolve(
+      body.dex === failingDex ? errStatus(503) : okJson(table),
+    );
+  });
+}
+
 const INFO_URL = "https://api.hyperliquid.xyz/info";
 
 afterEach(() => {
@@ -382,6 +393,36 @@ describe("HyperliquidProvider.getDayStats", () => {
     await expect(provider.getDayStats(["BTC"])).rejects.toThrow(/429/);
   });
 
+  it("one dex failing in a multi-dex request keeps the other dex's rows", async () => {
+    const fetchMock = fetchFailingDex(
+      "para",
+      metaAndCtxs([
+        { name: "TSLA", markPx: "250", prevDayPx: "200", openInterest: "3" },
+      ]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = await freshProvider();
+
+    const stats = await provider.getDayStats(["xyz:*", "para:*"]);
+
+    // Both dexes were asked; only para's 503 is dropped, not xyz's rows.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(stats).toEqual({
+      TSLA: { markPx: 250, prevDayPx: 200, changePct: 25 },
+    });
+  });
+
+  it("rejects a multi-dex request only when every dex failed", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(errStatus(503));
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = await freshProvider();
+
+    await expect(provider.getDayStats(["xyz:*", "para:*"])).rejects.toThrow(
+      /503/,
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("serves the last-good value when a later refresh fails (stale-on-error)", async () => {
     vi.useFakeTimers();
     try {
@@ -464,6 +505,22 @@ describe("HyperliquidProvider.getOpenInterest", () => {
     const oi = await provider.getOpenInterest(["xyz:*"]);
 
     expect(bodyOf(fetchMock)).toEqual({ type: "metaAndAssetCtxs", dex: "xyz" });
+    expect(oi).toEqual([{ symbol: "TSLA", openInterestUsd: 600 }]);
+  });
+
+  it("one dex failing in a multi-dex request keeps the other dex's entries", async () => {
+    const fetchMock = fetchFailingDex(
+      "para",
+      metaAndCtxs([
+        { name: "TSLA", markPx: "200", prevDayPx: "0", openInterest: "3" },
+      ]),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const provider = await freshProvider();
+
+    const oi = await provider.getOpenInterest(["xyz:*", "para:*"]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(oi).toEqual([{ symbol: "TSLA", openInterestUsd: 600 }]);
   });
 

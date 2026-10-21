@@ -1,11 +1,15 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
+import { renderHook, waitFor } from "@testing-library/react";
 import { z } from "zod";
 import type { AnyFrameDefinition } from "@zframes/spec/frame";
+import type { DayStats, MarketDataProvider } from "@zframes/spec/types";
 import {
   buildDefaultConfig,
   configFields,
   defaultForShape,
   humanizeKey,
+  useSymbolUniverse,
 } from "./editor-symbols";
 
 // core sits *below* frames in the dependency graph, so the real @zframes/frames
@@ -326,4 +330,56 @@ describe("buildDefaultConfig", () => {
       expect(parsed.success).toBe(true);
     },
   );
+});
+
+describe("useSymbolUniverse", () => {
+  const stat: DayStats = { markPx: 10, prevDayPx: 9, changePct: 11.1 };
+
+  /**
+   * A day-stats provider shaped like Hyperliquid's: no symbols returns the
+   * default (crypto) dex, and a builder dex answers only for its own "<dex>:*"
+   * wildcard. Every request is recorded so the test can see what was asked.
+   */
+  function fakeProvider(
+    byDex: Record<string, Record<string, DayStats>>,
+    requested: (string[] | undefined)[],
+  ): MarketDataProvider {
+    return {
+      name: "fake",
+      capabilities: ["day-stats"],
+      getDayStats: async (symbols?: string[]) => {
+        requested.push(symbols);
+        if (!symbols) return byDex[""] ?? {};
+        const out: Record<string, DayStats> = {};
+        for (const symbol of symbols) {
+          if (symbol.endsWith(":*"))
+            Object.assign(out, byDex[symbol.slice(0, -2)] ?? {});
+        }
+        return out;
+      },
+    };
+  }
+
+  it("lists every HIP-3 dex's markets alongside the default dex", async () => {
+    const requested: (string[] | undefined)[] = [];
+    const providers = [
+      fakeProvider(
+        {
+          "": { BTC: stat },
+          xyz: { "xyz:TSLA": stat },
+          para: { "para:AVGO": stat, "para:TOTAL2": stat },
+        },
+        requested,
+      ),
+    ];
+    const { result } = renderHook(() => useSymbolUniverse(providers, true));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(requested.flatMap((symbols) => symbols ?? [])).toEqual(
+      expect.arrayContaining(["xyz:*", "para:*"]),
+    );
+    expect(result.current.options.map((o) => o.symbol)).toEqual(
+      expect.arrayContaining(["BTC", "xyz:TSLA", "para:AVGO", "para:TOTAL2"]),
+    );
+  });
 });

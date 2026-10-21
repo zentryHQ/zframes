@@ -1,4 +1,5 @@
 import { defineFrame, useDayStatsState } from "@zframes/core";
+import { HIP3_DEX_WILDCARDS, preferOneDexPerTicker } from "@zframes/spec/hip3";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
@@ -9,15 +10,16 @@ import { FrameStatus, scrollAreaClass } from "./ui";
 
 const schema = topMoversMeta.schema;
 
-// The "xyz:*" wildcard returns that dex's entire 97-symbol universe — every
-// equity, index (XYZ100/SP500), commodity (GOLD/SILVER/CL/BRENTOIL/…), and FX
-// pair. It's the only HIP-3 dex with real liquidity, so one wildcard covers the
-// whole cross-asset movers board; the other builder dexes (km/flx/vntl/…) are
-// effectively $0-volume and were only ever duplicating symbols already in xyz.
-const MOVER_UNIVERSE = ["xyz:*"] as const;
+// The whole universe of every HIP-3 builder dex the boards scan — equities,
+// indices, commodities and FX pairs — read from the one shared list so this
+// board cannot drift from the picker and the other universe scans. Bare crypto
+// is left out by design, keeping this a stocks/commodities board: the default
+// (crypto) dex is never requested, and the ":" test below drops a bare ticker.
+const MOVER_UNIVERSE = HIP3_DEX_WILDCARDS;
 
-// Another source has no HIP-3 dex to wildcard, so asking for "xyz:*" there would
-// return nothing: pass no symbols and take that source's whole universe instead.
+// Another source has no HIP-3 dex to wildcard, so asking for those wildcards
+// there would return nothing: pass no symbols and take that source's whole
+// universe instead.
 const ALL_SYMBOLS = undefined;
 
 function TopMovers({ config }: { config: z.output<typeof schema> }) {
@@ -29,7 +31,8 @@ function TopMovers({ config }: { config: z.output<typeof schema> }) {
   );
 
   const { gainers, losers } = useMemo(() => {
-    const rows = Object.entries(stats)
+    // A row shows the bare ticker, so a name two dexes both list keeps one row.
+    const rows = Object.entries(preferOneDexPerTicker(stats))
       .map(([symbol, stat]) => ({ symbol, ...stat }))
       // Dust assets produce absurd % moves with no liquidity behind them.
       // On Hyperliquid the ":" test keeps this a stocks/commodities board (bare

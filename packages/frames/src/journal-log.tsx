@@ -1,4 +1,5 @@
 import { defineFrame, useDayStats, useMids, useMoney } from "@zframes/core";
+import { HIP3_DEX_WILDCARDS, preferOneDexPerTicker } from "@zframes/spec/hip3";
 import { useMemo, useState } from "react";
 import type { z } from "zod";
 import { AssetLogo, tickerOf } from "./asset-logo";
@@ -16,9 +17,10 @@ import {
 import { journalLogMeta } from "./schemas";
 import { scrollAreaClass } from "./ui";
 
-// "xyz:*" asks Hyperliquid for that builder dex's whole equity universe; the
-// bare call returns the crypto default dex. Same source as the ticker tape.
-const EQUITY_DEX_WILDCARDS = ["xyz:*"];
+// Each HIP-3 builder dex answers only for its own "<dex>:*" wildcard (the bare
+// call returns the crypto default dex), so the picker reads the shared list of
+// every dex the boards and the editor's symbol picker scan.
+const EQUITY_DEX_WILDCARDS = HIP3_DEX_WILDCARDS;
 const liveSymbols = (
   s: Record<string, { markPx: number; prevDayPx: number }>,
 ): string[] =>
@@ -71,8 +73,14 @@ function JournalLog(_props: { config: z.output<typeof schema> }) {
     () => ({ ...cryptoStats, ...equityStats }),
     [cryptoStats, equityStats],
   );
+  // A picker row shows the bare ticker, so a name two dexes both list is
+  // offered once. `stats` above stays whole: a chosen symbol prices by its
+  // full name.
   const universe = useMemo(
-    () => [...liveSymbols(equityStats), ...liveSymbols(cryptoStats)],
+    () => [
+      ...liveSymbols(preferOneDexPerTicker(equityStats)),
+      ...liveSymbols(cryptoStats),
+    ],
     [equityStats, cryptoStats],
   );
   const liveMid = useMids([sym]);

@@ -191,6 +191,20 @@ function resolveDexes(symbols?: string[]): {
 }
 
 /**
+ * One request can name several dexes (the boards ask for every HIP-3 builder
+ * dex in one call), and one dex failing must not blank the others: keep what
+ * the rest returned, and reject only when EVERY dex failed — with the first
+ * failure, so a single-dex request rejects exactly as it always has.
+ */
+function rejectIfEveryDexFailed(results: PromiseSettledResult<void>[]): void {
+  const failed = results.filter(
+    (result): result is PromiseRejectedResult => result.status === "rejected",
+  );
+  if (failed.length > 0 && failed.length === results.length)
+    throw failed[0].reason;
+}
+
+/**
  * Free, no-API-key provider backed by Hyperliquid's public API.
  * - quote-stream: `allMids` WebSocket (one subscription per dex, lazily added
  *   when a requested symbol names a new HIP-3 dex)
@@ -400,7 +414,7 @@ export class HyperliquidProvider implements MarketDataProvider {
     const { wholeDexes, concrete, dexes } = resolveDexes(symbols);
 
     const out: Record<string, DayStats> = {};
-    await Promise.all(
+    const results = await Promise.allSettled(
       [...dexes].map(async (dex) => {
         const [meta, ctxs] = await this.getMetaCtxs(dex);
         const wholeDex = wholeDexes.has(dex);
@@ -440,6 +454,7 @@ export class HyperliquidProvider implements MarketDataProvider {
         });
       }),
     );
+    rejectIfEveryDexFailed(results);
     return out;
   }
 
@@ -451,7 +466,7 @@ export class HyperliquidProvider implements MarketDataProvider {
     const { wholeDexes, concrete, dexes } = resolveDexes(symbols);
 
     const out: OpenInterestEntry[] = [];
-    await Promise.all(
+    const results = await Promise.allSettled(
       [...dexes].map(async (dex) => {
         const [meta, ctxs] = await this.getMetaCtxs(dex);
         const wholeDex = wholeDexes.has(dex);
@@ -466,6 +481,7 @@ export class HyperliquidProvider implements MarketDataProvider {
         });
       }),
     );
+    rejectIfEveryDexFailed(results);
     return out.sort((a, b) => b.openInterestUsd - a.openInterestUsd);
   }
 

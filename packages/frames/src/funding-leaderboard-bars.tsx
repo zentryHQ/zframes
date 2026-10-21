@@ -1,5 +1,6 @@
 import { BarChart } from "@zframes/charts";
 import { defineFrame, useDayStatsState } from "@zframes/core";
+import { HIP3_DEX_WILDCARDS, preferOneDexPerTicker } from "@zframes/spec/hip3";
 import { useMemo } from "react";
 import type { z } from "zod";
 import { tickerOf } from "./asset-logo";
@@ -9,10 +10,11 @@ import { FrameStatus } from "./ui";
 
 const schema = fundingLeaderboardBarsMeta.schema;
 
-// The "xyz:*" wildcard returns that dex's entire HIP-3 equity universe;
-// merged with the default (crypto) dex this covers the WHOLE Hyperliquid perp
-// book, matching the project's stocks-first + crypto-alongside stance.
-const EQUITY_DEX_WILDCARDS = ["xyz:*"] as const;
+// Each HIP-3 builder dex answers only for its own "<dex>:*" wildcard, so the
+// shared list asks for every one the boards scan; merged with the default
+// (crypto) dex this covers the WHOLE Hyperliquid perp book, matching the
+// project's stocks-first + crypto-alongside stance.
+const EQUITY_DEX_WILDCARDS = HIP3_DEX_WILDCARDS;
 
 function FundingLeaderboardBars({
   config,
@@ -25,7 +27,10 @@ function FundingLeaderboardBars({
 
   const data = useMemo(
     () =>
-      Object.entries({ ...crypto.stats, ...equity.stats })
+      // A bar shows the bare ticker, so a name two dexes both list keeps one.
+      Object.entries(
+        preferOneDexPerTicker({ ...crypto.stats, ...equity.stats }),
+      )
         .filter(([, s]) => s.funding !== undefined)
         .map(([symbol, s]) => ({
           label: tickerOf(symbol),

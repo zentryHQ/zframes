@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import type { AnyFrameDefinition } from "@zframes/spec/frame";
+import { HIP3_DEX_WILDCARDS } from "@zframes/spec/hip3";
 import type { DayStats, MarketDataProvider } from "@zframes/spec/types";
 
 export type SymbolKind = "Stock" | "Crypto" | "Custom";
@@ -39,8 +40,9 @@ export type SymbolControl =
   | { kind: "symbols"; minItems?: number; maxItems?: number }
   | { kind: "holdings"; minItems?: number; maxItems?: number };
 
-// The picker fetches the whole live `xyz:*` universe; this is the offline
-// fallback AND the priority ranking that floats a hand-picked set to the top.
+// The picker fetches the whole live universe of the default (crypto) dex and
+// of every HIP-3 dex in `HIP3_DEX_WILDCARDS`; this is the offline fallback AND
+// the priority ranking that floats a hand-picked set to the top.
 // Stocks-first, then crypto — and deliberately spanning every xyz asset class
 // (index / commodity / FX / ETF / semis-memory), not just mega-cap tech, so the
 // top of the list reads as a cross-asset terminal.
@@ -457,7 +459,8 @@ export function useSymbolUniverse(
     // outcome (cancelled guard + finally), so explicitly mark it ignored.
     void Promise.allSettled([
       provider.getDayStats(),
-      provider.getDayStats(["xyz:*"]),
+      // One call for every HIP-3 dex: the provider fetches each in parallel.
+      provider.getDayStats([...HIP3_DEX_WILDCARDS]),
     ])
       .then((results) => {
         if (cancelled) return;
