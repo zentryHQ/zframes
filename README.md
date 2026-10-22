@@ -135,7 +135,7 @@ Twenty-nine free, keyless providers ([`packages/provider-*`](packages)) fulfil f
 | **FINRA** | `short-volume` (daily reported short-sale volume) |
 | **SEC EDGAR** | company filings + XBRL fundamentals |
 | **News (RSS)** | `news` headlines from public outlet feeds |
-| **FX chain** (Frankfurter/ECB → FXRatesAPI → currency-api → ECB Data Portal) | `fx-rates`, `dollar-index` — four keyless upstreams behind one capability, so a dead source falls through instead of breaking the board |
+| **FX chain** (Frankfurter/ECB → FXRatesAPI → currency-api → ECB Data Portal → AllRatesToday) | `fx-rates`, `dollar-index` — five keyless upstreams behind one capability, so a dead source falls through instead of breaking the board |
 | **GeckoTerminal** | `dex-pools` — trending/hot DEX pools per network |
 | **Blockchair** | `chain-activity` — 24h transactions, blocks, mempool per major L1 |
 | **Coin Metrics** (community) | `onchain-valuation` — MVRV, MVRV-Z, NUPL, realized price |

@@ -398,6 +398,10 @@ const HOSTS = [
     host: "data-api.ecb.europa.eu",
     reason: "ECB SDMX daily exchange-rate series.",
   },
+  {
+    host: "allratestoday.com",
+    reason: "ECB daily FX reference rates, latest only, as a fallback leg.",
+  },
   { host: "api.gold-api.com", reason: "Metal spot quotes." },
   {
     host: "prices.lbma.org.uk",
