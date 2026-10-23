@@ -132,6 +132,7 @@ const HOST = {
   fxSpot: "api.fxratesapi.com/latest",
   currencyApi: "latest.currency-api.pages.dev",
   ecb: "data-api.ecb.europa.eu",
+  allRatesToday: "allratestoday.com/api/open",
 } as const;
 
 /**
@@ -554,11 +555,11 @@ describe("FxProvider", () => {
       const stale = await provider.getFxRates("USD", ["THB"]);
       // A minutes-old rate beats blanking every converted card on the board.
       expect(stale).toEqual(good);
-      // The 429 costs Frankfurter's turn and the chain then asks the other three
+      // The 429 costs Frankfurter's turn and the chain then asks the other four
       // — which are stubbed with a Frankfurter-shaped body none of them accepts —
-      // so all four fail and the cache falls back to the last good value. One
-      // priming call + four chain attempts.
-      expect(fetchMock).toHaveBeenCalledTimes(5);
+      // so all five fail and the cache falls back to the last good value. One
+      // priming call + five chain attempts.
+      expect(fetchMock).toHaveBeenCalledTimes(6);
     });
   });
 
@@ -783,7 +784,7 @@ describe("FxProvider", () => {
       await expect(provider.getFxRates("USD", ["THB"])).rejects.toThrow(
         /api\.frankfurter\.dev.*failed: 500/,
       );
-      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(fetchMock).toHaveBeenCalledTimes(5);
     });
 
     it("never sends a symbol list that would ask a fallback for the base itself", async () => {
@@ -958,6 +959,56 @@ describe("FxProvider", () => {
       const [thb] = await provider.getFxRates("USD", ["THB"]);
 
       expect(thb.source).toBe("ecb");
+    });
+  });
+
+  describe("source: AllRatesToday", () => {
+    function allRatesTodayRes(
+      rates: Record<string, number>,
+      base = "USD",
+      date = "2026-07-31",
+    ) {
+      return jsonRes({ result: "success", base_code: base, date, rates });
+    }
+
+    it("is the last leg, read as a one-point history at the ECB day", async () => {
+      const fetchMock = routedFetch({
+        frankfurter: errorRes(503),
+        fxSeries: errorRes(500),
+        currencyApi: errorRes(404),
+        ecb: errorRes(500),
+        allRatesToday: allRatesTodayRes({ THB: 33.465, EUR: 0.8707, USD: 1 }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const provider = await freshProvider();
+      const [thb] = await provider.getFxRates("USD", ["THB"]);
+
+      expect(fetchTargets(fetchMock)[4]).toBe(
+        "https://allratestoday.com/api/open/latest/USD",
+      );
+      expect(thb.source).toBe("allratestoday");
+      expect(thb.rate).toBe(33.465);
+      expect(thb.history).toEqual([
+        { time: Date.UTC(2026, 6, 31), value: 33.465 },
+      ]);
+      expect(thb.changePct).toBe(0);
+    });
+
+    it("rejects a body for a different base", async () => {
+      const fetchMock = routedFetch({
+        frankfurter: errorRes(503),
+        fxSeries: errorRes(500),
+        currencyApi: errorRes(404),
+        ecb: errorRes(500),
+        allRatesToday: allRatesTodayRes({ THB: 38.4 }, "EUR"),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const provider = await freshProvider();
+      await expect(provider.getFxRates("USD", ["THB"])).rejects.toThrow(
+        /api\.frankfurter\.dev.*failed: 503/,
+      );
     });
   });
 
@@ -1149,6 +1200,7 @@ describe("FxProvider", () => {
         fxSeries: errorRes(429),
         currencyApi: errorRes(429),
         ecb: errorRes(418), // some CDNs answer a quota breach with a teapot
+        allRatesToday: errorRes(429),
       });
       vi.stubGlobal("fetch", fetchMock);
 
@@ -1156,15 +1208,15 @@ describe("FxProvider", () => {
       await expect(provider.getFxRates("USD", ["THB"])).rejects.toThrow(
         /failed: 429/,
       );
-      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(fetchMock).toHaveBeenCalledTimes(5);
 
       // Every source is cooling down, so the next key spends NO requests and
       // says why, rather than looking like a transport failure.
       vi.advanceTimersByTime(60_000);
       await expect(provider.getFxRates("USD", ["EUR"])).rejects.toThrow(
-        /every source is rate-limited \(4 in cooldown\)/,
+        /every source is rate-limited \(5 in cooldown\)/,
       );
-      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(fetchMock).toHaveBeenCalledTimes(5);
     });
   });
 

@@ -20,7 +20,12 @@ import { fetchJson } from "@zframes/data-primitives/fetch";
  * keyless AND CORS-open (`access-control-allow-origin: *`), so none of them needs
  * the runtime's `/__zframes/proxy` and the provider keeps working on a static host.
  */
-export type FxSourceId = "frankfurter" | "fxratesapi" | "currency-api" | "ecb";
+export type FxSourceId =
+  | "frankfurter"
+  | "fxratesapi"
+  | "currency-api"
+  | "ecb"
+  | "allratestoday";
 
 /**
  * The one internal shape every adapter normalises into — deliberately identical
@@ -294,6 +299,45 @@ async function loadEcb(req: RateRequest): Promise<RateTable> {
   return { source: "ecb", rates };
 }
 
+interface AllRatesTodayLatest {
+  result?: string;
+  base_code?: string;
+  /** The ECB publication day, `YYYY-MM-DD`. */
+  date?: string;
+  /** Upper-case code → units per 1 base. */
+  rates?: Record<string, number>;
+}
+
+/**
+ * FALLBACK 4. AllRatesToday's open endpoint — keyless, CORS-open, the same ECB
+ * daily reference rates rebased to any of the 30 ECB currencies. Latest-only,
+ * so like currency-api it yields a single-day table. Last because it adds no
+ * currency the sources above lack; it is one more independent host for the ECB
+ * set. An unsupported base is a non-2xx, which `fetchJson` already throws on.
+ */
+async function loadAllRatesToday(req: RateRequest): Promise<RateTable> {
+  const url = `https://allratestoday.com/api/open/latest/${req.base}`;
+  const body = await fetchJson<AllRatesTodayLatest>(url);
+  if (
+    body?.result !== "success" ||
+    body.base_code !== req.base ||
+    !body.rates
+  )
+    throw new Error(
+      `${sourceLabel("allratestoday", req.purpose)}: unexpected response shape`,
+    );
+  const day: Record<string, number> = {};
+  for (const symbol of req.symbols) {
+    const value = body.rates[symbol];
+    if (usable(value)) day[symbol] = value;
+  }
+  const date =
+    typeof body.date === "string" && body.date.length >= 10
+      ? body.date.slice(0, 10)
+      : isoToday();
+  return { source: "allratestoday", rates: { [date]: day } };
+}
+
 /**
  * The chain, in order. Frankfurter stays first (it is what every existing frame
  * has been reading, at daily granularity, with the widest rebasing support);
@@ -308,6 +352,7 @@ export const FX_SOURCES: readonly {
   { id: "fxratesapi", load: loadFxRatesApi },
   { id: "currency-api", load: loadCurrencyApi },
   { id: "ecb", load: loadEcb },
+  { id: "allratestoday", load: loadAllRatesToday },
 ];
 
 /**
