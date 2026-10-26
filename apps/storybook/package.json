@@ -31,7 +31,7 @@
     "@types/node": "^26.1.1",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "storybook": "^10.4.6",
+    "storybook": "^10.6.2",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.22.4",
     "typescript": "^5.8.0",
