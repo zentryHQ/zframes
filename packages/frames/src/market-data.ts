@@ -54,6 +54,16 @@ const HOLIDAYS: Record<string, string[]> = {
     "2026-09-07", // Labor Day
     "2026-11-26", // Thanksgiving
     "2026-12-25", // Christmas
+    "2027-01-01", // New Year's Day
+    "2027-01-18", // Martin Luther King Jr. Day
+    "2027-02-15", // Washington's Birthday
+    "2027-03-26", // Good Friday
+    "2027-05-31", // Memorial Day
+    "2027-06-18", // Juneteenth (observed, Jun 19 = Sat)
+    "2027-07-05", // Independence Day (observed, Jul 4 = Sun)
+    "2027-09-06", // Labor Day
+    "2027-11-25", // Thanksgiving
+    "2027-12-24", // Christmas (observed, Dec 25 = Sat)
   ],
   // Canada — Toronto Stock Exchange
   TSX: [
@@ -708,7 +718,7 @@ export function isHoliday(code: string, ymd: string): boolean {
  * The next `n` full-closure holiday dates ("YYYY-MM-DD") for an exchange,
  * counting from today (exchange-local, today included if it is itself a
  * holiday) forward. Sorted ascending; empty for an unknown code. Keyless —
- * reads the bundled holiday table (currently 2026 only).
+ * reads the bundled holiday table (currently 2026; US through 2027).
  */
 export function nextHolidays(
   code: string,
