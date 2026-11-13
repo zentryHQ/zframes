@@ -177,9 +177,18 @@ describe("nextHolidays", () => {
     );
   });
 
+  it("rolls over into the next listed year", () => {
+    // After the final 2026 US holiday, the next ones come from 2027.
+    expect(nextHolidays("NYSE", 3, new Date("2026-12-31T23:00:00Z"))).toEqual([
+      "2027-01-01",
+      "2027-01-18",
+      "2027-02-15",
+    ]);
+  });
+
   it("returns [] once every listed holiday is in the past", () => {
-    // After the final 2026 US holiday there are none left in the bundled table.
-    expect(nextHolidays("NYSE", 5, new Date("2026-12-31T23:00:00Z"))).toEqual(
+    // After the final 2027 US holiday there are none left in the bundled table.
+    expect(nextHolidays("NYSE", 5, new Date("2027-12-31T23:00:00Z"))).toEqual(
       [],
     );
   });
