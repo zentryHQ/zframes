@@ -2,7 +2,7 @@
   <img src="docs/assets/zframes-banner.png" alt="zframes" width="100%">
 </p>
 
-<p align="center"><b>Describe your dashboard. An agent builds it. Live market data, no API keys.</b></p>
+<p align="center"><b>Describe your dashboard. An agent builds it. Live market data, no API keys required.</b></p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
@@ -221,4 +221,4 @@ Packages ship TypeScript source (`main: src/index.ts`); the runtime's Vite consu
 
 ## License
 
-[MIT](LICENSE) · Copyright 2026 Zentry. See [`NOTICE`](NOTICE) for third-party components (liveline, d3, the Unicorn Studio engine). Distribution is `npx zframes serve` — one [published](https://www.npmjs.com/package/zframes) CLI that bundles the runtime, pointed at your `dashboard.json`.
+[MIT](LICENSE) · Copyright 2026 Zentry. See [`NOTICE`](NOTICE) for third-party components (liveline, d3, the Unicorn Studio engine). Distribution is provided as `npx zframes serve` — one [published](https://www.npmjs.com/package/zframes) CLI that bundles the runtime, pointed at your `dashboard.json`.
