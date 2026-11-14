@@ -2,7 +2,7 @@
   <img src="docs/assets/zframes-banner.png" alt="zframes" width="100%">
 </p>
 
-<p align="center"><b>Describe your dashboard. An agent builds it. Live market data, no API keys.</b></p>
+<p align="center"><b>Describe your dashboard. An agent builds it. Live market data, no API keys required.</b></p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
